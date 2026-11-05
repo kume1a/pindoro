@@ -1,6 +1,7 @@
 /// Pure Dart game logic for Pindoro.
 library;
 
+export 'src/game/area.dart';
 export 'src/game/question_selector.dart';
 export 'src/geo/geo.dart';
 export 'src/geo/polyline6.dart';

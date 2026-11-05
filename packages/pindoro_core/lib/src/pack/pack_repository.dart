@@ -15,5 +15,8 @@ abstract interface class PackRepository {
 
   List<StreetDistrict> streetDistricts(String streetId);
 
+  /// `name_ka` by street id; ids missing from the pack are left out.
+  Map<String, String> streetNames(Iterable<String> ids);
+
   void close();
 }

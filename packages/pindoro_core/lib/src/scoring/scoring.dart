@@ -1,6 +1,17 @@
 import 'dart:math' as math;
 
-enum Difficulty { easy, medium, hard, expert }
+enum Difficulty {
+  easy,
+  medium,
+  hard,
+  expert;
+
+  /// Cumulative: a round at this difficulty asks every street up to it.
+  Set<Difficulty> get pool => {
+    for (final d in values)
+      if (d.index <= index) d,
+  };
+}
 
 enum Tier { perfect, great, close, miss }
 

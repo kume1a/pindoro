@@ -78,6 +78,20 @@ class SqlitePackRepository implements PackRepository {
   ];
 
   @override
+  Map<String, String> streetNames(Iterable<String> ids) {
+    final list = ids.toList();
+    if (list.isEmpty) return const {};
+    final marks = List.filled(list.length, '?').join(', ');
+    return {
+      for (final r in _db.select(
+        'SELECT id, name_ka FROM street WHERE id IN ($marks)',
+        list,
+      ))
+        r['id'] as String: r['name_ka'] as String,
+    };
+  }
+
+  @override
   void close() => _db.close();
 }
 

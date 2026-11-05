@@ -52,4 +52,12 @@ void main() {
     );
     expect(links.every((l) => l.share > 0 && l.share <= 1.0001), isTrue);
   });
+
+  test('streetNames resolves known ids and skips unknown ones', () {
+    final street = pack.streets(districtId: AppConfig.fixtureDistrictId).first;
+    expect(pack.streetNames([street.id, 'missing']), {
+      street.id: street.nameKa,
+    });
+    expect(pack.streetNames(const []), isEmpty);
+  });
 }

@@ -1,9 +1,17 @@
 import 'dart:math';
 
 import '../geo/geo.dart';
+import '../scoring/scoring.dart';
 
 /// What the player has shown about a street so far.
 enum StreetKnowledge { unknown, missed, known }
+
+/// The answer log's verdict on a street: never asked, got right, or missed.
+StreetKnowledge knowledgeFrom(Tier? lastTier) => switch (lastTier) {
+  null => StreetKnowledge.unknown,
+  Tier.perfect || Tier.great => StreetKnowledge.known,
+  Tier.close || Tier.miss => StreetKnowledge.missed,
+};
 
 class QuestionCandidate {
   const QuestionCandidate({
