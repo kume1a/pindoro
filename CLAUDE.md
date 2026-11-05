@@ -45,6 +45,7 @@ no S3/R2 (packs are static files served by Caddy). See `docs/adr/0001-architectu
 | `just setup`        | `pnpm install` + `melos bootstrap`                                   |
 | `just gen`          | Regenerate design tokens and Drift code                              |
 | `just tokens-check` | Regenerate tokens and fail on a diff                                 |
+| `just goldens`      | Regenerate design goldens on Linux (pinned Flutter, as CI)           |
 | `just lint`         | Biome, tsc, dart format, flutter analyze                             |
 | `just test`         | Melos tests, geo + API tests, pipeline tests in the pipeline image   |
 | `just dev`          | PostGIS, API (tsx watch), Martin, packs server                       |
@@ -64,4 +65,5 @@ On Windows run `just` from Git Bash. Dev PostGIS listens on host port 5433.
 - API route changes → `just openapi` committed. Pack format changes → `docs/pack-format.md`,
   pipeline export, Dart pack models and `format_version` updated together.
 - New UI uses `pindoro_design` widgets and tokens only; no uppercase strings; maps keep attribution.
+- Visual changes to design widgets → `just goldens` and commit the PNGs (goldens are Linux-only).
 - Remaining work and placeholders are tracked in `docs/TODO.md`.

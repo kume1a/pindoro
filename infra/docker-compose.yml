@@ -46,6 +46,9 @@ services:
       - ..:/repo
       - api-root-modules:/repo/node_modules
       - api-modules:/repo/apps/api/node_modules
+      # Mask the other importers too, or pnpm in here would prune the host copies.
+      - api-geo-modules:/repo/packages/geo/node_modules
+      - api-pipeline-modules:/repo/pipeline/node_modules
       - ${PACKS_DIR:-./packs}:/packs:ro
     depends_on:
       postgis:
@@ -98,4 +101,6 @@ volumes:
   pgdata:
   api-root-modules:
   api-modules:
+  api-geo-modules:
+  api-pipeline-modules:
   pipeline-cache:
