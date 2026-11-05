@@ -1,0 +1,129 @@
+# Production stack on the home server. Run from the repo root: just deploy
+# Nothing is published on the host; the only way in is the Cloudflare Tunnel -> caddy:80.
+# Every service sits on the internal-only default network; only cloudflared (and one-off pipeline
+# runs, which download OSM data and tiles) also join `egress` to reach the internet.
+name: pindoro
+
+x-database-url: &database-url postgres://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@postgis:5432/${POSTGRES_DB:?}
+
+services:
+  postgis:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: ${POSTGRES_DB:?}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    image: pindoro-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: *database-url
+      PACKS_DIR: /packs
+      PACKS_PUBLIC_URL: https://packs.${DOMAIN:?}
+      LOG_LEVEL: info
+    volumes:
+      - ${PACKS_DIR:-./packs}:/packs:ro
+    depends_on:
+      postgis:
+        condition: service_healthy
+
+  martin:
+    image: ghcr.io/maplibre/martin:1.16.1
+    restart: unless-stopped
+    command: ["/tiles"]
+    volumes:
+      - ${TILES_DIR:-./tiles}:/tiles:ro
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?}
+    # Optional local admin access (also add networks: [default, egress], internal networks
+    # cannot publish ports):
+    # ports:
+    #   - "127.0.0.1:8080:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${PACKS_DIR:-./packs}:/srv/packs:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [api, martin]
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run"]
+    networks: [default, egress]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?}
+    depends_on: [caddy]
+
+  # Nightly pg_dump at 03:00 UTC into infra/backups, keeping 14 days.
+  backup:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        while :; do
+          sleep $$(( (27 * 3600 - $$(date +%s) % 86400) % 86400 ))
+          f=/backups/pindoro-$$(date -u +%Y-%m-%d).dump
+          pg_dump -Fc -f /backups/.in-progress && mv /backups/.in-progress "$$f" && echo "backup: $$f" || echo "backup: FAILED"
+          find /backups -name 'pindoro-*.dump' -mtime +14 -delete
+          sleep 60
+        done
+    environment:
+      PGHOST: postgis
+      PGUSER: ${POSTGRES_USER:?}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?}
+      PGDATABASE: ${POSTGRES_DB:?}
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      postgis:
+        condition: service_healthy
+
+  pipeline:
+    profiles: [pipeline]
+    build:
+      context: ..
+      dockerfile: pipeline/Dockerfile
+    image: pindoro-pipeline
+    networks: [default, egress]
+    environment:
+      DATABASE_URL: *database-url
+      PACKS_DIR: /packs
+    volumes:
+      - ../data:/repo/data
+      - ../apps/mobile/assets:/repo/apps/mobile/assets
+      - ../packages/pindoro_design/tokens:/repo/packages/pindoro_design/tokens:ro
+      - ${TILES_DIR:-./tiles}:/repo/infra/tiles
+      - ${PACKS_DIR:-./packs}:/packs
+      - pipeline-cache:/repo/pipeline/.cache
+    depends_on:
+      postgis:
+        condition: service_healthy
+
+networks:
+  default:
+    internal: true
+  egress: {}
+
+volumes:
+  pgdata:
+  caddy-data:
+  caddy-config:
+  pipeline-cache:

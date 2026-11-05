@@ -1,4 +1,9 @@
+# Local development stack. Run from the repo root: just dev
+#   postgis :5433   api :3000 (/docs)   martin :3001   packs :8080
+# The pipeline service is opt-in: docker compose -f infra/docker-compose.yml run --rm pipeline <cmd>
 name: pindoro-dev
+
+x-database-url: &database-url postgres://${POSTGRES_USER:-pindoro}:${POSTGRES_PASSWORD:-pindoro}@postgis:5432/${POSTGRES_DB:-pindoro}
 
 services:
   postgis:
@@ -17,5 +22,77 @@ services:
       timeout: 5s
       retries: 20
 
+  api:
+    image: node:24-bookworm-slim
+    working_dir: /repo
+    # Host node_modules may be Windows junctions, so the container installs its own into volumes.
+    command: >-
+      sh -c "corepack enable &&
+      pnpm install --frozen-lockfile --filter pindoro --filter @pindoro/api &&
+      pnpm --filter @pindoro/api dev"
+    environment:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      # Keep the store inside the node_modules volume (hardlinks), not in the bind-mounted repo.
+      npm_config_store_dir: /repo/node_modules/.pnpm-store
+      DATABASE_URL: *database-url
+      PACKS_DIR: /packs
+      # Absolute pack URLs in /v1/catalog; 10.0.2.2 is the host as seen from the Android emulator.
+      PACKS_PUBLIC_URL: ${PACKS_PUBLIC_URL:-http://10.0.2.2:8080}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ..:/repo
+      - api-root-modules:/repo/node_modules
+      - api-modules:/repo/apps/api/node_modules
+      - ${PACKS_DIR:-./packs}:/packs:ro
+    depends_on:
+      postgis:
+        condition: service_healthy
+
+  martin:
+    image: ghcr.io/maplibre/martin:1.16.1
+    # Serves every *.pmtiles in the dir; georgia.pmtiles -> source id `georgia` (/georgia/{z}/{x}/{y}).
+    command: ["/tiles"]
+    ports:
+      - "3001:3000"
+    volumes:
+      - ${TILES_DIR:-./tiles}:/tiles:ro
+
+  packs:
+    image: caddy:2
+    command: ["caddy", "file-server", "--root", "/srv", "--listen", ":80", "--browse"]
+    ports:
+      - "8080:80"
+    volumes:
+      - ${PACKS_DIR:-./packs}:/srv:ro
+
+  pipeline:
+    profiles: [pipeline]
+    build:
+      context: ..
+      dockerfile: pipeline/Dockerfile
+    environment:
+      DATABASE_URL: *database-url
+      PACKS_DIR: /packs
+    volumes:
+      - ../data:/repo/data
+      - ../apps/mobile/assets:/repo/apps/mobile/assets
+      - ../packages/pindoro_design/tokens:/repo/packages/pindoro_design/tokens:ro
+      - ${TILES_DIR:-./tiles}:/repo/infra/tiles
+      - ${PACKS_DIR:-./packs}:/packs
+      - pipeline-cache:/repo/pipeline/.cache
+      # Source mounts so code edits apply without rebuilding the image.
+      - ../pipeline/src:/repo/pipeline/src:ro
+      - ../pipeline/sql:/repo/pipeline/sql:ro
+      - ../pipeline/osm2pgsql:/repo/pipeline/osm2pgsql:ro
+      - ../pipeline/test:/repo/pipeline/test:ro
+      - ../packages/geo/src:/repo/packages/geo/src:ro
+    depends_on:
+      postgis:
+        condition: service_healthy
+
 volumes:
   pgdata:
+  api-root-modules:
+  api-modules:
+  pipeline-cache:
