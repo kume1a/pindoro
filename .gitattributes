@@ -1,0 +1,11 @@
+* text=auto eol=lf
+*.bat text eol=crlf
+*.png binary
+*.jpg binary
+*.ttf binary
+*.otf binary
+*.sqlite binary
+*.gz binary
+*.pmtiles binary
+*.pbf binary
+*.jar binary

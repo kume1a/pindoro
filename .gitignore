@@ -1,0 +1,26 @@
+# deps / build
+node_modules/
+.dart_tool/
+build/
+coverage/
+*.log
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# large or generated runtime data
+infra/tiles/*
+!infra/tiles/.gitkeep
+infra/backups/*
+!infra/backups/.gitkeep
+infra/packs/
+pipeline/.cache/
+pipeline/out/
+
+# editors / os
+.idea/
+.vscode/
+*.iml
+.DS_Store

@@ -1,0 +1,41 @@
+name: pindoro_workspace
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+workspace:
+  - packages/pindoro_core
+  - packages/pindoro_design
+  - apps/mobile
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  melos: ^8.10.0
+
+melos:
+  ide:
+    intellij:
+      enabled: false
+
+  scripts:
+    analyze:
+      description: Analyze every Dart package.
+      run: flutter analyze --fatal-infos
+    test:dart:
+      description: Pure Dart package tests.
+      exec: dart test
+      packageFilters:
+        flutter: false
+        dirExists: test
+    test:flutter:
+      description: Flutter package and app tests.
+      exec: flutter test
+      packageFilters:
+        flutter: true
+        dirExists: test
+    test:
+      description: All Dart and Flutter tests.
+      steps:
+        - test:dart
+        - test:flutter

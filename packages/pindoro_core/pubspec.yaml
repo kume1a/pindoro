@@ -1,0 +1,12 @@
+name: pindoro_core
+description: Pure Dart game logic for Pindoro - geometry, scoring, levels, question selection, pack models.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.10.0
+
+resolution: workspace
+
+dev_dependencies:
+  test: ^1.25.6

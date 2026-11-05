@@ -1,0 +1,16 @@
+id: tbilisi
+name_ka: თბილისი
+name_en: Tbilisi
+osm_relation_id: 1996871
+utm_epsg: 32638
+
+extract:
+  url: https://download.geofabrik.de/asia/georgia-latest.osm.pbf
+  max_age_days: 7
+
+# Relations that must be present as districts (subarea members of the city relation).
+expect_relations:
+  - 11300449 # Vake
+
+fixture:
+  district_relation_id: 11300449 # Vake

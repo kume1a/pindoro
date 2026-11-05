@@ -1,0 +1,21 @@
+{
+  "name": "@pindoro/pipeline",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "cli": "tsx src/cli.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0"
+  },
+  "dependencies": {
+    "@pindoro/geo": "workspace:*",
+    "@protomaps/basemaps": "^5.7.2",
+    "better-sqlite3": "~12.11.1",
+    "postgres": "^4.0.0",
+    "yaml": "^2.9.1"
+  }
+}
