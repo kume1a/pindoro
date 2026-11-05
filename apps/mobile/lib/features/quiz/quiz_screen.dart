@@ -1,99 +1,128 @@
-import 'dart:math';
+import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-import '../../app/config.dart';
+import '../../app/database.dart';
+import '../../app/placeholder_screen.dart';
 import '../../app/router.dart';
 import '../map/pindoro_map.dart';
-import '../pack/sqlite_pack_repository.dart';
+import 'answer_row.dart';
+import 'round_controller.dart';
 
-/// M0 placeholder quiz: the map over the fixture district with a debug
-/// button that reveals a random street and measures the pin against it.
-class QuizScreen extends ConsumerWidget {
-  const QuizScreen({super.key});
+/// Plays a round: resumes [roundId], or starts one from the saved area and
+/// difficulty.
+class QuizScreen extends ConsumerStatefulWidget {
+  const QuizScreen({super.key, this.roundId});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
-    body: ref
-        .watch(packRepositoryProvider)
-        .when(
-          data: (pack) => _DebugQuiz(pack),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Could not open pack: $e')),
-        ),
-  );
-}
-
-class _DebugQuiz extends StatefulWidget {
-  const _DebugQuiz(this.pack);
-
-  final PackRepository pack;
+  final String? roundId;
 
   @override
-  State<_DebugQuiz> createState() => _DebugQuizState();
+  ConsumerState<QuizScreen> createState() => _QuizScreenState();
 }
 
-class _DebugQuizState extends State<_DebugQuiz> {
-  late final District _district = widget.pack.districts().firstWhere(
-    (d) => d.id == AppConfig.fixtureDistrictId,
-  );
-  late final List<Street> _streets = widget.pack.streets(
-    districtId: _district.id,
-  );
-  final _random = Random();
-  LatLng? _pin;
-  Street? _truth;
+class _QuizScreenState extends ConsumerState<QuizScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Providers can't change while the tree builds; begin right after.
+    Future.microtask(_begin);
+  }
+
+  Future<void> _begin() async {
+    final controller = ref.read(roundControllerProvider.notifier);
+    final roundId = widget.roundId;
+    if (roundId != null) return controller.resume(roundId);
+    final settings = await ref.read(databaseProvider).readSettings();
+    await controller.start(
+      settings.area,
+      settings.lastDifficulty ?? Difficulty.easy,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final pin = _pin, truth = _truth;
-    final nearest = pin == null || truth == null
-        ? null
-        : pointToPolylineDistance(pin, truth.geometry);
+    ref.listen(roundControllerProvider, (_, next) {
+      if (next is RoundFinished) {
+        context.go('${Routes.results}?round=${next.roundId}');
+      }
+    });
+    return switch (ref.watch(roundControllerProvider)) {
+      final RoundInPlay play => Scaffold(body: _Playing(play)),
+      RoundNotEnough(:final count) => _Blocked(
+        'This area has only $count streets at this difficulty.',
+      ),
+      RoundAreaMissing() => const _Blocked(
+        'This area is not in the installed city pack.',
+      ),
+      RoundLoading() || RoundFinished() => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+    };
+  }
+}
+
+class _Playing extends ConsumerWidget {
+  const _Playing(this.play);
+
+  final RoundInPlay play;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controller = ref.read(roundControllerProvider.notifier);
+    final round = play.round;
+    final pin = play.pin;
+    final revealed = switch (play) {
+      final RoundRevealed r => r,
+      RoundAsking() => null,
+    };
     return Stack(
       children: [
-        PindoroMap(
-          area: (
-            name: _district.nameKa,
-            areaM2: _district.areaM2,
-            bbox: _district.bbox,
-            boundary: _district.boundary,
+        ref.watch(pindoroMapBuilderProvider)(
+          PindoroMap(
+            area: round.shape,
+            pin: pin,
+            truth: revealed?.round.current.geometry,
+            measure: revealed == null ? null : (pin!, revealed.nearest),
+            onTap: revealed == null ? controller.placePin : null,
           ),
-          pin: pin,
-          truth: truth?.geometry,
-          measure: nearest == null ? null : (pin!, nearest.nearestPoint),
-          onTap: (p) => setState(() => _pin = p),
         ),
         SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(PindoroTokens.spaceMd),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               spacing: PindoroTokens.spaceSm,
               children: [
-                StreetPlate(truth?.nameKa ?? 'Tap the map to drop a pin'),
-                if (nearest != null)
-                  Text(
-                    '${nearest.distanceMeters.round()} m',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
+                StreetPlate(round.current.nameKa),
+                Text(
+                  '${round.number} / ${round.total}',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const Spacer(),
-                if (kDebugMode)
-                  PindoroButton(
-                    label: 'Highlight a random street',
-                    variant: PindoroButtonVariant.secondary,
-                    onPressed: () => setState(
-                      () => _truth = _streets[_random.nextInt(_streets.length)],
+                if (revealed != null)
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(PindoroTokens.spaceMd),
+                      child: AnswerRow(revealed.answer),
                     ),
                   ),
-                PindoroButton(
-                  label: 'Finish',
-                  onPressed: () => context.go(Routes.results),
-                ),
+                if (revealed == null)
+                  PindoroButton(
+                    label: 'Confirm',
+                    onPressed: pin == null
+                        ? null
+                        : () => unawaited(controller.confirm()),
+                  )
+                else
+                  PindoroButton(
+                    label: round.isLast ? 'See results' : 'Next',
+                    onPressed: () => unawaited(controller.next()),
+                  ),
               ],
             ),
           ),
@@ -101,4 +130,28 @@ class _DebugQuizState extends State<_DebugQuiz> {
       ],
     );
   }
+}
+
+/// A round can't start here; send the player to change area or difficulty.
+class _Blocked extends StatelessWidget {
+  const _Blocked(this.message);
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) => PlaceholderScreen(
+    title: 'Round',
+    body: message,
+    actions: [
+      PindoroButton(
+        label: 'Pick an area',
+        onPressed: () => context.push(Routes.area),
+      ),
+      PindoroButton(
+        label: 'Pick a difficulty',
+        variant: PindoroButtonVariant.secondary,
+        onPressed: () => context.push(Routes.difficulty),
+      ),
+    ],
+  );
 }

@@ -33,7 +33,11 @@ GoRouter buildRouter(String initialLocation) => GoRouter(
       builder: (_, _) => const DifficultyScreen(),
     ),
     GoRoute(path: Routes.home, builder: (_, _) => const HomeScreen()),
-    GoRoute(path: Routes.quiz, builder: (_, _) => const QuizScreen()),
+    GoRoute(
+      path: Routes.quiz,
+      builder: (_, state) =>
+          QuizScreen(roundId: state.uri.queryParameters['round']),
+    ),
     GoRoute(path: Routes.results, builder: (_, _) => const ResultsScreen()),
     GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
   ],

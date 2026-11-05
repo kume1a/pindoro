@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart' show Value;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -38,12 +37,6 @@ class WelcomeScreen extends StatelessWidget {
               label: 'Start',
               onPressed: () => context.push(Routes.city),
             ),
-            if (kDebugMode)
-              PindoroButton(
-                label: 'Debug map',
-                variant: PindoroButtonVariant.ghost,
-                onPressed: () => context.push(Routes.quiz),
-              ),
           ],
         ),
       ),
