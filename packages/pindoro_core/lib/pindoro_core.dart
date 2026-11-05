@@ -1,8 +1,10 @@
-/// Support for doing something awesome.
-///
-/// More dartdocs go here.
+/// Pure Dart game logic for Pindoro.
 library;
 
-export 'src/pindoro_core_base.dart';
-
-// TODO: Export any libraries intended for clients of this package.
+export 'src/game/question_selector.dart';
+export 'src/geo/geo.dart';
+export 'src/geo/polyline6.dart';
+export 'src/pack/models.dart';
+export 'src/pack/pack_repository.dart';
+export 'src/progress/levels.dart';
+export 'src/scoring/scoring.dart';
