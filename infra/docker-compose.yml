@@ -33,6 +33,7 @@ services:
       pnpm --filter @pindoro/api dev"
     environment:
       COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+      CI: "true" # never prompt (e.g. to recreate node_modules) in a non-TTY container
       # Keep the store inside the node_modules volume (hardlinks), not in the bind-mounted repo.
       npm_config_store_dir: /repo/node_modules/.pnpm-store
       DATABASE_URL: *database-url
