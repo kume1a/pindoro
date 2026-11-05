@@ -17,6 +17,8 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          # Pinned so goldens match; keep equal to `flutter_version` in the justfile.
+          flutter-version: 3.47.9
           cache: true
       - uses: extractions/setup-just@v3
       - run: dart run melos bootstrap

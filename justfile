@@ -3,6 +3,8 @@
 dc := "docker compose -f infra/docker-compose.yml"
 dc_prod := "docker compose --env-file .env -f infra/docker-compose.prod.yml"
 melos := "dart run melos"
+# Flutter that renders goldens; keep equal to flutter-version in .github/workflows/mobile.yml.
+flutter_version := "3.47.9"
 # Relative to the pipeline container workdir (/repo/pipeline); absolute paths get mangled by Git Bash.
 fixture_pack := "../apps/mobile/assets/packs_fixture/tbilisi_vake_fixture.sqlite"
 
@@ -26,7 +28,10 @@ tokens-check:
 
 # Regenerate pindoro_design goldens on Linux, the only platform that compares them
 goldens:
-    MSYS_NO_PATHCONV=1 docker run --rm -v "{{ justfile_directory() }}:/repo" -v /repo/.dart_tool -v /repo/packages/pindoro_design/.dart_tool -w /repo/packages/pindoro_design ghcr.io/cirruslabs/flutter:stable sh -c "flutter pub get && flutter test --update-goldens test/widgets_test.dart"
+    MSYS_NO_PATHCONV=1 docker run --rm \
+      -v "{{ justfile_directory() }}:/repo" -v /repo/.dart_tool -v /repo/packages/pindoro_design/.dart_tool \
+      -v pindoro-flutter-{{ flutter_version }}:/flutter -w /repo/packages/pindoro_design \
+      ghcr.io/cirruslabs/flutter:3.44.0 sh -c '[ -x /flutter/bin/flutter ] || git clone -q --depth 1 -b {{ flutter_version }} https://github.com/flutter/flutter.git /flutter; /flutter/bin/flutter pub get && /flutter/bin/flutter test --update-goldens test/widgets_test.dart'
 
 # Biome, tsc, dart format, flutter analyze
 lint:
