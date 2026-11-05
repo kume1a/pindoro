@@ -102,6 +102,8 @@ class _PindoroMapState extends State<PindoroMap> {
     final mask = Theme.of(context).brightness == Brightness.dark
         ? PindoroTokens.colorMapDarkMask
         : PindoroTokens.colorMapLightMask;
+    // Overlays must stay non-interactive: maplibre_gl reports taps on interactive
+    // layers as feature taps instead of map clicks, which would block pin drops.
     await c.addGeoJsonSource(
       MapSources.areaMask,
       areaMaskGeoJson(widget.area.boundary),
@@ -113,6 +115,7 @@ class _PindoroMapState extends State<PindoroMap> {
         fillColor: _hex(mask),
         fillOpacity: PindoroTokens.opacityMapMask,
       ),
+      enableInteraction: false,
     );
     await c.addGeoJsonSource(MapSources.truthStreet, _lines(const []));
     await c.addLineLayer(
@@ -124,6 +127,7 @@ class _PindoroMapState extends State<PindoroMap> {
         lineCap: 'round',
         lineJoin: 'round',
       ),
+      enableInteraction: false,
     );
     await c.addGeoJsonSource(MapSources.measure, _lines(const []));
     await c.addLineLayer(
@@ -137,6 +141,7 @@ class _PindoroMapState extends State<PindoroMap> {
           PindoroTokens.sizeMapMeasureGap,
         ],
       ),
+      enableInteraction: false,
     );
     await c.addGeoJsonSource(MapSources.youPin, _points(const []));
     await c.addCircleLayer(
@@ -146,6 +151,7 @@ class _PindoroMapState extends State<PindoroMap> {
         circleColor: _hex(theme.mapYou),
         circleRadius: PindoroTokens.sizeMapPin / 2,
       ),
+      enableInteraction: false,
     );
     _overlaysReady = true;
     await _syncOverlays();
