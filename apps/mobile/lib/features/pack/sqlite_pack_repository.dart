@@ -2,32 +2,16 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../app/config.dart';
+import 'pack_store.dart';
 
 /// Reads a city pack (docs/pack-format.md) opened read-only.
 class SqlitePackRepository implements PackRepository {
   SqlitePackRepository.open(String path)
     : _db = sqlite3.open(path, mode: OpenMode.readOnly);
-
-  /// Opens the bundled Vake fixture, copying it to app documents first.
-  // ponytail: copied once; M1 replaces the fixture with downloaded packs.
-  static Future<SqlitePackRepository> openFixture() async {
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File('${dir.path}/packs/tbilisi_vake_fixture.sqlite');
-    if (!file.existsSync()) {
-      final data = await rootBundle.load(AppConfig.fixturePackAsset);
-      await file.create(recursive: true);
-      await file.writeAsBytes(
-        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
-        flush: true,
-      );
-    }
-    return SqlitePackRepository.open(file.path);
-  }
 
   final Database _db;
 
@@ -95,8 +79,26 @@ class SqlitePackRepository implements PackRepository {
   void close() => _db.close();
 }
 
+/// Copies the bundled Vake fixture next to downloaded packs once.
+Future<File> copyFixture(Directory root) async {
+  final file = File('${root.path}/tbilisi_vake_fixture.sqlite');
+  if (!file.existsSync()) {
+    final data = await rootBundle.load(AppConfig.fixturePackAsset);
+    await file.create(recursive: true);
+    await file.writeAsBytes(
+      data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+      flush: true,
+    );
+  }
+  return file;
+}
+
+/// The newest downloaded pack, else the bundled fixture. main() invalidates
+/// it when a download finishes.
 final packRepositoryProvider = FutureProvider<PackRepository>((ref) async {
-  final repo = await SqlitePackRepository.openFixture();
+  final store = ref.watch(packStoreProvider);
+  final file = store.newest(AppConfig.cityId) ?? await copyFixture(store.root);
+  final repo = SqlitePackRepository.open(file.path);
   ref.onDispose(repo.close);
   return repo;
 });

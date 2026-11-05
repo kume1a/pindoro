@@ -1,18 +1,42 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'app/app.dart';
+import 'app/config.dart';
 import 'app/database.dart';
 import 'app/router.dart';
+import 'features/pack/pack_store.dart';
+import 'features/pack/sqlite_pack_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final db = AppDatabase();
-  final location = await initialLocation(db);
+  final docs = await getApplicationDocumentsDirectory();
+  final store = PackStore(
+    root: Directory('${docs.path}/packs'),
+    apiBaseUrl: AppConfig.apiBaseUrl,
+  );
+  final container = ProviderContainer(
+    overrides: [
+      databaseProvider.overrideWithValue(db),
+      packStoreProvider.overrideWithValue(store),
+    ],
+  );
+  // A pack installed in the background is used right away; a round in play
+  // keeps the streets it already loaded.
+  unawaited(
+    refreshQuietly(store).then((installed) {
+      if (installed) container.invalidate(packRepositoryProvider);
+    }),
+  );
   runApp(
-    ProviderScope(
-      overrides: [databaseProvider.overrideWithValue(db)],
-      child: PindoroApp(initialLocation: location),
+    UncontrolledProviderScope(
+      container: container,
+      child: PindoroApp(initialLocation: await initialLocation(db)),
     ),
   );
 }

@@ -20,6 +20,9 @@ abstract final class AppConfig {
 
   static bool get isProd => env == 'prod';
 
+  /// Single city until the catalog drives the city picker.
+  static const String cityId = 'tbilisi';
+
   static const String fixturePackAsset =
       'assets/packs_fixture/tbilisi_vake_fixture.sqlite';
   static const String fixtureDistrictId = 'osm:r11300449';
