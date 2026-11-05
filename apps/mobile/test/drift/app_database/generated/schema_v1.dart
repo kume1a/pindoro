@@ -4,7 +4,7 @@
 //
 import 'package:drift/drift.dart';
 
-class Round extends Table with TableInfo {
+class Round extends Table with TableInfo<Round, RoundData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -83,8 +83,38 @@ class Round extends Table with TableInfo {
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  Never map(Map<String, dynamic> data, {String? tablePrefix}) {
-    throw UnsupportedError('TableInfo.map in schema verification code');
+  RoundData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RoundData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      cityId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}city_id'],
+      )!,
+      areaJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}area_json'],
+      )!,
+      difficulty: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}difficulty'],
+      )!,
+      packVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pack_version'],
+      )!,
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}started_at'],
+      )!,
+      finishedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}finished_at'],
+      ),
+    );
   }
 
   @override
@@ -98,7 +128,278 @@ class Round extends Table with TableInfo {
   bool get dontWriteConstraints => true;
 }
 
-class Answer extends Table with TableInfo {
+class RoundData extends DataClass implements Insertable<RoundData> {
+  final String id;
+  final String cityId;
+  final String areaJson;
+  final String difficulty;
+  final String packVersion;
+  final String startedAt;
+  final String? finishedAt;
+  const RoundData({
+    required this.id,
+    required this.cityId,
+    required this.areaJson,
+    required this.difficulty,
+    required this.packVersion,
+    required this.startedAt,
+    this.finishedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['city_id'] = Variable<String>(cityId);
+    map['area_json'] = Variable<String>(areaJson);
+    map['difficulty'] = Variable<String>(difficulty);
+    map['pack_version'] = Variable<String>(packVersion);
+    map['started_at'] = Variable<String>(startedAt);
+    if (!nullToAbsent || finishedAt != null) {
+      map['finished_at'] = Variable<String>(finishedAt);
+    }
+    return map;
+  }
+
+  RoundCompanion toCompanion(bool nullToAbsent) {
+    return RoundCompanion(
+      id: Value(id),
+      cityId: Value(cityId),
+      areaJson: Value(areaJson),
+      difficulty: Value(difficulty),
+      packVersion: Value(packVersion),
+      startedAt: Value(startedAt),
+      finishedAt: finishedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(finishedAt),
+    );
+  }
+
+  factory RoundData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RoundData(
+      id: serializer.fromJson<String>(json['id']),
+      cityId: serializer.fromJson<String>(json['cityId']),
+      areaJson: serializer.fromJson<String>(json['areaJson']),
+      difficulty: serializer.fromJson<String>(json['difficulty']),
+      packVersion: serializer.fromJson<String>(json['packVersion']),
+      startedAt: serializer.fromJson<String>(json['startedAt']),
+      finishedAt: serializer.fromJson<String?>(json['finishedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'cityId': serializer.toJson<String>(cityId),
+      'areaJson': serializer.toJson<String>(areaJson),
+      'difficulty': serializer.toJson<String>(difficulty),
+      'packVersion': serializer.toJson<String>(packVersion),
+      'startedAt': serializer.toJson<String>(startedAt),
+      'finishedAt': serializer.toJson<String?>(finishedAt),
+    };
+  }
+
+  RoundData copyWith({
+    String? id,
+    String? cityId,
+    String? areaJson,
+    String? difficulty,
+    String? packVersion,
+    String? startedAt,
+    Value<String?> finishedAt = const Value.absent(),
+  }) => RoundData(
+    id: id ?? this.id,
+    cityId: cityId ?? this.cityId,
+    areaJson: areaJson ?? this.areaJson,
+    difficulty: difficulty ?? this.difficulty,
+    packVersion: packVersion ?? this.packVersion,
+    startedAt: startedAt ?? this.startedAt,
+    finishedAt: finishedAt.present ? finishedAt.value : this.finishedAt,
+  );
+  RoundData copyWithCompanion(RoundCompanion data) {
+    return RoundData(
+      id: data.id.present ? data.id.value : this.id,
+      cityId: data.cityId.present ? data.cityId.value : this.cityId,
+      areaJson: data.areaJson.present ? data.areaJson.value : this.areaJson,
+      difficulty: data.difficulty.present
+          ? data.difficulty.value
+          : this.difficulty,
+      packVersion: data.packVersion.present
+          ? data.packVersion.value
+          : this.packVersion,
+      startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
+      finishedAt: data.finishedAt.present
+          ? data.finishedAt.value
+          : this.finishedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RoundData(')
+          ..write('id: $id, ')
+          ..write('cityId: $cityId, ')
+          ..write('areaJson: $areaJson, ')
+          ..write('difficulty: $difficulty, ')
+          ..write('packVersion: $packVersion, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('finishedAt: $finishedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    cityId,
+    areaJson,
+    difficulty,
+    packVersion,
+    startedAt,
+    finishedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RoundData &&
+          other.id == this.id &&
+          other.cityId == this.cityId &&
+          other.areaJson == this.areaJson &&
+          other.difficulty == this.difficulty &&
+          other.packVersion == this.packVersion &&
+          other.startedAt == this.startedAt &&
+          other.finishedAt == this.finishedAt);
+}
+
+class RoundCompanion extends UpdateCompanion<RoundData> {
+  final Value<String> id;
+  final Value<String> cityId;
+  final Value<String> areaJson;
+  final Value<String> difficulty;
+  final Value<String> packVersion;
+  final Value<String> startedAt;
+  final Value<String?> finishedAt;
+  final Value<int> rowid;
+  const RoundCompanion({
+    this.id = const Value.absent(),
+    this.cityId = const Value.absent(),
+    this.areaJson = const Value.absent(),
+    this.difficulty = const Value.absent(),
+    this.packVersion = const Value.absent(),
+    this.startedAt = const Value.absent(),
+    this.finishedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RoundCompanion.insert({
+    required String id,
+    required String cityId,
+    required String areaJson,
+    required String difficulty,
+    required String packVersion,
+    required String startedAt,
+    this.finishedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       cityId = Value(cityId),
+       areaJson = Value(areaJson),
+       difficulty = Value(difficulty),
+       packVersion = Value(packVersion),
+       startedAt = Value(startedAt);
+  static Insertable<RoundData> custom({
+    Expression<String>? id,
+    Expression<String>? cityId,
+    Expression<String>? areaJson,
+    Expression<String>? difficulty,
+    Expression<String>? packVersion,
+    Expression<String>? startedAt,
+    Expression<String>? finishedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (cityId != null) 'city_id': cityId,
+      if (areaJson != null) 'area_json': areaJson,
+      if (difficulty != null) 'difficulty': difficulty,
+      if (packVersion != null) 'pack_version': packVersion,
+      if (startedAt != null) 'started_at': startedAt,
+      if (finishedAt != null) 'finished_at': finishedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RoundCompanion copyWith({
+    Value<String>? id,
+    Value<String>? cityId,
+    Value<String>? areaJson,
+    Value<String>? difficulty,
+    Value<String>? packVersion,
+    Value<String>? startedAt,
+    Value<String?>? finishedAt,
+    Value<int>? rowid,
+  }) {
+    return RoundCompanion(
+      id: id ?? this.id,
+      cityId: cityId ?? this.cityId,
+      areaJson: areaJson ?? this.areaJson,
+      difficulty: difficulty ?? this.difficulty,
+      packVersion: packVersion ?? this.packVersion,
+      startedAt: startedAt ?? this.startedAt,
+      finishedAt: finishedAt ?? this.finishedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (cityId.present) {
+      map['city_id'] = Variable<String>(cityId.value);
+    }
+    if (areaJson.present) {
+      map['area_json'] = Variable<String>(areaJson.value);
+    }
+    if (difficulty.present) {
+      map['difficulty'] = Variable<String>(difficulty.value);
+    }
+    if (packVersion.present) {
+      map['pack_version'] = Variable<String>(packVersion.value);
+    }
+    if (startedAt.present) {
+      map['started_at'] = Variable<String>(startedAt.value);
+    }
+    if (finishedAt.present) {
+      map['finished_at'] = Variable<String>(finishedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RoundCompanion(')
+          ..write('id: $id, ')
+          ..write('cityId: $cityId, ')
+          ..write('areaJson: $areaJson, ')
+          ..write('difficulty: $difficulty, ')
+          ..write('packVersion: $packVersion, ')
+          ..write('startedAt: $startedAt, ')
+          ..write('finishedAt: $finishedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class Answer extends Table with TableInfo<Answer, AnswerData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -204,8 +505,50 @@ class Answer extends Table with TableInfo {
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  Never map(Map<String, dynamic> data, {String? tablePrefix}) {
-    throw UnsupportedError('TableInfo.map in schema verification code');
+  AnswerData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AnswerData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      roundId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}round_id'],
+      )!,
+      streetId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}street_id'],
+      )!,
+      pinLat: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}pin_lat'],
+      )!,
+      pinLon: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}pin_lon'],
+      )!,
+      distanceM: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}distance_m'],
+      )!,
+      tier: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tier'],
+      )!,
+      xp: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}xp'],
+      )!,
+      packVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pack_version'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
   }
 
   @override
@@ -219,7 +562,344 @@ class Answer extends Table with TableInfo {
   bool get dontWriteConstraints => true;
 }
 
-class UserSettings extends Table with TableInfo {
+class AnswerData extends DataClass implements Insertable<AnswerData> {
+  final String id;
+  final String roundId;
+  final String streetId;
+  final double pinLat;
+  final double pinLon;
+  final double distanceM;
+  final String tier;
+  final int xp;
+  final String packVersion;
+  final String createdAt;
+  const AnswerData({
+    required this.id,
+    required this.roundId,
+    required this.streetId,
+    required this.pinLat,
+    required this.pinLon,
+    required this.distanceM,
+    required this.tier,
+    required this.xp,
+    required this.packVersion,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['round_id'] = Variable<String>(roundId);
+    map['street_id'] = Variable<String>(streetId);
+    map['pin_lat'] = Variable<double>(pinLat);
+    map['pin_lon'] = Variable<double>(pinLon);
+    map['distance_m'] = Variable<double>(distanceM);
+    map['tier'] = Variable<String>(tier);
+    map['xp'] = Variable<int>(xp);
+    map['pack_version'] = Variable<String>(packVersion);
+    map['created_at'] = Variable<String>(createdAt);
+    return map;
+  }
+
+  AnswerCompanion toCompanion(bool nullToAbsent) {
+    return AnswerCompanion(
+      id: Value(id),
+      roundId: Value(roundId),
+      streetId: Value(streetId),
+      pinLat: Value(pinLat),
+      pinLon: Value(pinLon),
+      distanceM: Value(distanceM),
+      tier: Value(tier),
+      xp: Value(xp),
+      packVersion: Value(packVersion),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory AnswerData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AnswerData(
+      id: serializer.fromJson<String>(json['id']),
+      roundId: serializer.fromJson<String>(json['roundId']),
+      streetId: serializer.fromJson<String>(json['streetId']),
+      pinLat: serializer.fromJson<double>(json['pinLat']),
+      pinLon: serializer.fromJson<double>(json['pinLon']),
+      distanceM: serializer.fromJson<double>(json['distanceM']),
+      tier: serializer.fromJson<String>(json['tier']),
+      xp: serializer.fromJson<int>(json['xp']),
+      packVersion: serializer.fromJson<String>(json['packVersion']),
+      createdAt: serializer.fromJson<String>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'roundId': serializer.toJson<String>(roundId),
+      'streetId': serializer.toJson<String>(streetId),
+      'pinLat': serializer.toJson<double>(pinLat),
+      'pinLon': serializer.toJson<double>(pinLon),
+      'distanceM': serializer.toJson<double>(distanceM),
+      'tier': serializer.toJson<String>(tier),
+      'xp': serializer.toJson<int>(xp),
+      'packVersion': serializer.toJson<String>(packVersion),
+      'createdAt': serializer.toJson<String>(createdAt),
+    };
+  }
+
+  AnswerData copyWith({
+    String? id,
+    String? roundId,
+    String? streetId,
+    double? pinLat,
+    double? pinLon,
+    double? distanceM,
+    String? tier,
+    int? xp,
+    String? packVersion,
+    String? createdAt,
+  }) => AnswerData(
+    id: id ?? this.id,
+    roundId: roundId ?? this.roundId,
+    streetId: streetId ?? this.streetId,
+    pinLat: pinLat ?? this.pinLat,
+    pinLon: pinLon ?? this.pinLon,
+    distanceM: distanceM ?? this.distanceM,
+    tier: tier ?? this.tier,
+    xp: xp ?? this.xp,
+    packVersion: packVersion ?? this.packVersion,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  AnswerData copyWithCompanion(AnswerCompanion data) {
+    return AnswerData(
+      id: data.id.present ? data.id.value : this.id,
+      roundId: data.roundId.present ? data.roundId.value : this.roundId,
+      streetId: data.streetId.present ? data.streetId.value : this.streetId,
+      pinLat: data.pinLat.present ? data.pinLat.value : this.pinLat,
+      pinLon: data.pinLon.present ? data.pinLon.value : this.pinLon,
+      distanceM: data.distanceM.present ? data.distanceM.value : this.distanceM,
+      tier: data.tier.present ? data.tier.value : this.tier,
+      xp: data.xp.present ? data.xp.value : this.xp,
+      packVersion: data.packVersion.present
+          ? data.packVersion.value
+          : this.packVersion,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AnswerData(')
+          ..write('id: $id, ')
+          ..write('roundId: $roundId, ')
+          ..write('streetId: $streetId, ')
+          ..write('pinLat: $pinLat, ')
+          ..write('pinLon: $pinLon, ')
+          ..write('distanceM: $distanceM, ')
+          ..write('tier: $tier, ')
+          ..write('xp: $xp, ')
+          ..write('packVersion: $packVersion, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    roundId,
+    streetId,
+    pinLat,
+    pinLon,
+    distanceM,
+    tier,
+    xp,
+    packVersion,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AnswerData &&
+          other.id == this.id &&
+          other.roundId == this.roundId &&
+          other.streetId == this.streetId &&
+          other.pinLat == this.pinLat &&
+          other.pinLon == this.pinLon &&
+          other.distanceM == this.distanceM &&
+          other.tier == this.tier &&
+          other.xp == this.xp &&
+          other.packVersion == this.packVersion &&
+          other.createdAt == this.createdAt);
+}
+
+class AnswerCompanion extends UpdateCompanion<AnswerData> {
+  final Value<String> id;
+  final Value<String> roundId;
+  final Value<String> streetId;
+  final Value<double> pinLat;
+  final Value<double> pinLon;
+  final Value<double> distanceM;
+  final Value<String> tier;
+  final Value<int> xp;
+  final Value<String> packVersion;
+  final Value<String> createdAt;
+  final Value<int> rowid;
+  const AnswerCompanion({
+    this.id = const Value.absent(),
+    this.roundId = const Value.absent(),
+    this.streetId = const Value.absent(),
+    this.pinLat = const Value.absent(),
+    this.pinLon = const Value.absent(),
+    this.distanceM = const Value.absent(),
+    this.tier = const Value.absent(),
+    this.xp = const Value.absent(),
+    this.packVersion = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AnswerCompanion.insert({
+    required String id,
+    required String roundId,
+    required String streetId,
+    required double pinLat,
+    required double pinLon,
+    required double distanceM,
+    required String tier,
+    required int xp,
+    required String packVersion,
+    required String createdAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       roundId = Value(roundId),
+       streetId = Value(streetId),
+       pinLat = Value(pinLat),
+       pinLon = Value(pinLon),
+       distanceM = Value(distanceM),
+       tier = Value(tier),
+       xp = Value(xp),
+       packVersion = Value(packVersion),
+       createdAt = Value(createdAt);
+  static Insertable<AnswerData> custom({
+    Expression<String>? id,
+    Expression<String>? roundId,
+    Expression<String>? streetId,
+    Expression<double>? pinLat,
+    Expression<double>? pinLon,
+    Expression<double>? distanceM,
+    Expression<String>? tier,
+    Expression<int>? xp,
+    Expression<String>? packVersion,
+    Expression<String>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (roundId != null) 'round_id': roundId,
+      if (streetId != null) 'street_id': streetId,
+      if (pinLat != null) 'pin_lat': pinLat,
+      if (pinLon != null) 'pin_lon': pinLon,
+      if (distanceM != null) 'distance_m': distanceM,
+      if (tier != null) 'tier': tier,
+      if (xp != null) 'xp': xp,
+      if (packVersion != null) 'pack_version': packVersion,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AnswerCompanion copyWith({
+    Value<String>? id,
+    Value<String>? roundId,
+    Value<String>? streetId,
+    Value<double>? pinLat,
+    Value<double>? pinLon,
+    Value<double>? distanceM,
+    Value<String>? tier,
+    Value<int>? xp,
+    Value<String>? packVersion,
+    Value<String>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return AnswerCompanion(
+      id: id ?? this.id,
+      roundId: roundId ?? this.roundId,
+      streetId: streetId ?? this.streetId,
+      pinLat: pinLat ?? this.pinLat,
+      pinLon: pinLon ?? this.pinLon,
+      distanceM: distanceM ?? this.distanceM,
+      tier: tier ?? this.tier,
+      xp: xp ?? this.xp,
+      packVersion: packVersion ?? this.packVersion,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (roundId.present) {
+      map['round_id'] = Variable<String>(roundId.value);
+    }
+    if (streetId.present) {
+      map['street_id'] = Variable<String>(streetId.value);
+    }
+    if (pinLat.present) {
+      map['pin_lat'] = Variable<double>(pinLat.value);
+    }
+    if (pinLon.present) {
+      map['pin_lon'] = Variable<double>(pinLon.value);
+    }
+    if (distanceM.present) {
+      map['distance_m'] = Variable<double>(distanceM.value);
+    }
+    if (tier.present) {
+      map['tier'] = Variable<String>(tier.value);
+    }
+    if (xp.present) {
+      map['xp'] = Variable<int>(xp.value);
+    }
+    if (packVersion.present) {
+      map['pack_version'] = Variable<String>(packVersion.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<String>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AnswerCompanion(')
+          ..write('id: $id, ')
+          ..write('roundId: $roundId, ')
+          ..write('streetId: $streetId, ')
+          ..write('pinLat: $pinLat, ')
+          ..write('pinLon: $pinLon, ')
+          ..write('distanceM: $distanceM, ')
+          ..write('tier: $tier, ')
+          ..write('xp: $xp, ')
+          ..write('packVersion: $packVersion, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class UserSettings extends Table
+    with TableInfo<UserSettings, UserSettingsData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -282,8 +962,30 @@ class UserSettings extends Table with TableInfo {
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
-  Never map(Map<String, dynamic> data, {String? tablePrefix}) {
-    throw UnsupportedError('TableInfo.map in schema verification code');
+  UserSettingsData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UserSettingsData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      lastCity: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_city'],
+      ),
+      lastAreaJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_area_json'],
+      ),
+      lastDifficulty: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_difficulty'],
+      ),
+      onboardingDone: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}onboarding_done'],
+      )!,
+    );
   }
 
   @override
@@ -295,6 +997,221 @@ class UserSettings extends Table with TableInfo {
   List<String> get customConstraints => const ['PRIMARY KEY(id)'];
   @override
   bool get dontWriteConstraints => true;
+}
+
+class UserSettingsData extends DataClass
+    implements Insertable<UserSettingsData> {
+  final int id;
+  final String? lastCity;
+  final String? lastAreaJson;
+  final String? lastDifficulty;
+  final int onboardingDone;
+  const UserSettingsData({
+    required this.id,
+    this.lastCity,
+    this.lastAreaJson,
+    this.lastDifficulty,
+    required this.onboardingDone,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    if (!nullToAbsent || lastCity != null) {
+      map['last_city'] = Variable<String>(lastCity);
+    }
+    if (!nullToAbsent || lastAreaJson != null) {
+      map['last_area_json'] = Variable<String>(lastAreaJson);
+    }
+    if (!nullToAbsent || lastDifficulty != null) {
+      map['last_difficulty'] = Variable<String>(lastDifficulty);
+    }
+    map['onboarding_done'] = Variable<int>(onboardingDone);
+    return map;
+  }
+
+  UserSettingsCompanion toCompanion(bool nullToAbsent) {
+    return UserSettingsCompanion(
+      id: Value(id),
+      lastCity: lastCity == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastCity),
+      lastAreaJson: lastAreaJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastAreaJson),
+      lastDifficulty: lastDifficulty == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastDifficulty),
+      onboardingDone: Value(onboardingDone),
+    );
+  }
+
+  factory UserSettingsData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UserSettingsData(
+      id: serializer.fromJson<int>(json['id']),
+      lastCity: serializer.fromJson<String?>(json['lastCity']),
+      lastAreaJson: serializer.fromJson<String?>(json['lastAreaJson']),
+      lastDifficulty: serializer.fromJson<String?>(json['lastDifficulty']),
+      onboardingDone: serializer.fromJson<int>(json['onboardingDone']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'lastCity': serializer.toJson<String?>(lastCity),
+      'lastAreaJson': serializer.toJson<String?>(lastAreaJson),
+      'lastDifficulty': serializer.toJson<String?>(lastDifficulty),
+      'onboardingDone': serializer.toJson<int>(onboardingDone),
+    };
+  }
+
+  UserSettingsData copyWith({
+    int? id,
+    Value<String?> lastCity = const Value.absent(),
+    Value<String?> lastAreaJson = const Value.absent(),
+    Value<String?> lastDifficulty = const Value.absent(),
+    int? onboardingDone,
+  }) => UserSettingsData(
+    id: id ?? this.id,
+    lastCity: lastCity.present ? lastCity.value : this.lastCity,
+    lastAreaJson: lastAreaJson.present ? lastAreaJson.value : this.lastAreaJson,
+    lastDifficulty: lastDifficulty.present
+        ? lastDifficulty.value
+        : this.lastDifficulty,
+    onboardingDone: onboardingDone ?? this.onboardingDone,
+  );
+  UserSettingsData copyWithCompanion(UserSettingsCompanion data) {
+    return UserSettingsData(
+      id: data.id.present ? data.id.value : this.id,
+      lastCity: data.lastCity.present ? data.lastCity.value : this.lastCity,
+      lastAreaJson: data.lastAreaJson.present
+          ? data.lastAreaJson.value
+          : this.lastAreaJson,
+      lastDifficulty: data.lastDifficulty.present
+          ? data.lastDifficulty.value
+          : this.lastDifficulty,
+      onboardingDone: data.onboardingDone.present
+          ? data.onboardingDone.value
+          : this.onboardingDone,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserSettingsData(')
+          ..write('id: $id, ')
+          ..write('lastCity: $lastCity, ')
+          ..write('lastAreaJson: $lastAreaJson, ')
+          ..write('lastDifficulty: $lastDifficulty, ')
+          ..write('onboardingDone: $onboardingDone')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, lastCity, lastAreaJson, lastDifficulty, onboardingDone);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UserSettingsData &&
+          other.id == this.id &&
+          other.lastCity == this.lastCity &&
+          other.lastAreaJson == this.lastAreaJson &&
+          other.lastDifficulty == this.lastDifficulty &&
+          other.onboardingDone == this.onboardingDone);
+}
+
+class UserSettingsCompanion extends UpdateCompanion<UserSettingsData> {
+  final Value<int> id;
+  final Value<String?> lastCity;
+  final Value<String?> lastAreaJson;
+  final Value<String?> lastDifficulty;
+  final Value<int> onboardingDone;
+  const UserSettingsCompanion({
+    this.id = const Value.absent(),
+    this.lastCity = const Value.absent(),
+    this.lastAreaJson = const Value.absent(),
+    this.lastDifficulty = const Value.absent(),
+    this.onboardingDone = const Value.absent(),
+  });
+  UserSettingsCompanion.insert({
+    this.id = const Value.absent(),
+    this.lastCity = const Value.absent(),
+    this.lastAreaJson = const Value.absent(),
+    this.lastDifficulty = const Value.absent(),
+    this.onboardingDone = const Value.absent(),
+  });
+  static Insertable<UserSettingsData> custom({
+    Expression<int>? id,
+    Expression<String>? lastCity,
+    Expression<String>? lastAreaJson,
+    Expression<String>? lastDifficulty,
+    Expression<int>? onboardingDone,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (lastCity != null) 'last_city': lastCity,
+      if (lastAreaJson != null) 'last_area_json': lastAreaJson,
+      if (lastDifficulty != null) 'last_difficulty': lastDifficulty,
+      if (onboardingDone != null) 'onboarding_done': onboardingDone,
+    });
+  }
+
+  UserSettingsCompanion copyWith({
+    Value<int>? id,
+    Value<String?>? lastCity,
+    Value<String?>? lastAreaJson,
+    Value<String?>? lastDifficulty,
+    Value<int>? onboardingDone,
+  }) {
+    return UserSettingsCompanion(
+      id: id ?? this.id,
+      lastCity: lastCity ?? this.lastCity,
+      lastAreaJson: lastAreaJson ?? this.lastAreaJson,
+      lastDifficulty: lastDifficulty ?? this.lastDifficulty,
+      onboardingDone: onboardingDone ?? this.onboardingDone,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (lastCity.present) {
+      map['last_city'] = Variable<String>(lastCity.value);
+    }
+    if (lastAreaJson.present) {
+      map['last_area_json'] = Variable<String>(lastAreaJson.value);
+    }
+    if (lastDifficulty.present) {
+      map['last_difficulty'] = Variable<String>(lastDifficulty.value);
+    }
+    if (onboardingDone.present) {
+      map['onboarding_done'] = Variable<int>(onboardingDone.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UserSettingsCompanion(')
+          ..write('id: $id, ')
+          ..write('lastCity: $lastCity, ')
+          ..write('lastAreaJson: $lastAreaJson, ')
+          ..write('lastDifficulty: $lastDifficulty, ')
+          ..write('onboardingDone: $onboardingDone')
+          ..write(')'))
+        .toString();
+  }
 }
 
 class DatabaseAtV1 extends GeneratedDatabase {

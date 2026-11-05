@@ -1462,6 +1462,275 @@ class UserSettingsCompanion extends UpdateCompanion<Settings> {
   }
 }
 
+class $RoundQuestionsTable extends RoundQuestions
+    with TableInfo<$RoundQuestionsTable, RoundQuestion> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RoundQuestionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _roundIdMeta = const VerificationMeta(
+    'roundId',
+  );
+  @override
+  late final GeneratedColumn<String> roundId = GeneratedColumn<String>(
+    'round_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES round (id)',
+    ),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _streetIdMeta = const VerificationMeta(
+    'streetId',
+  );
+  @override
+  late final GeneratedColumn<String> streetId = GeneratedColumn<String>(
+    'street_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [roundId, position, streetId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'round_question';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RoundQuestion> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('round_id')) {
+      context.handle(
+        _roundIdMeta,
+        roundId.isAcceptableOrUnknown(data['round_id']!, _roundIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_roundIdMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_positionMeta);
+    }
+    if (data.containsKey('street_id')) {
+      context.handle(
+        _streetIdMeta,
+        streetId.isAcceptableOrUnknown(data['street_id']!, _streetIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_streetIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {roundId, position};
+  @override
+  RoundQuestion map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RoundQuestion(
+      roundId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}round_id'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      streetId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}street_id'],
+      )!,
+    );
+  }
+
+  @override
+  $RoundQuestionsTable createAlias(String alias) {
+    return $RoundQuestionsTable(attachedDatabase, alias);
+  }
+}
+
+class RoundQuestion extends DataClass implements Insertable<RoundQuestion> {
+  final String roundId;
+  final int position;
+  final String streetId;
+  const RoundQuestion({
+    required this.roundId,
+    required this.position,
+    required this.streetId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['round_id'] = Variable<String>(roundId);
+    map['position'] = Variable<int>(position);
+    map['street_id'] = Variable<String>(streetId);
+    return map;
+  }
+
+  RoundQuestionsCompanion toCompanion(bool nullToAbsent) {
+    return RoundQuestionsCompanion(
+      roundId: Value(roundId),
+      position: Value(position),
+      streetId: Value(streetId),
+    );
+  }
+
+  factory RoundQuestion.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RoundQuestion(
+      roundId: serializer.fromJson<String>(json['roundId']),
+      position: serializer.fromJson<int>(json['position']),
+      streetId: serializer.fromJson<String>(json['streetId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'roundId': serializer.toJson<String>(roundId),
+      'position': serializer.toJson<int>(position),
+      'streetId': serializer.toJson<String>(streetId),
+    };
+  }
+
+  RoundQuestion copyWith({String? roundId, int? position, String? streetId}) =>
+      RoundQuestion(
+        roundId: roundId ?? this.roundId,
+        position: position ?? this.position,
+        streetId: streetId ?? this.streetId,
+      );
+  RoundQuestion copyWithCompanion(RoundQuestionsCompanion data) {
+    return RoundQuestion(
+      roundId: data.roundId.present ? data.roundId.value : this.roundId,
+      position: data.position.present ? data.position.value : this.position,
+      streetId: data.streetId.present ? data.streetId.value : this.streetId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RoundQuestion(')
+          ..write('roundId: $roundId, ')
+          ..write('position: $position, ')
+          ..write('streetId: $streetId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(roundId, position, streetId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RoundQuestion &&
+          other.roundId == this.roundId &&
+          other.position == this.position &&
+          other.streetId == this.streetId);
+}
+
+class RoundQuestionsCompanion extends UpdateCompanion<RoundQuestion> {
+  final Value<String> roundId;
+  final Value<int> position;
+  final Value<String> streetId;
+  final Value<int> rowid;
+  const RoundQuestionsCompanion({
+    this.roundId = const Value.absent(),
+    this.position = const Value.absent(),
+    this.streetId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RoundQuestionsCompanion.insert({
+    required String roundId,
+    required int position,
+    required String streetId,
+    this.rowid = const Value.absent(),
+  }) : roundId = Value(roundId),
+       position = Value(position),
+       streetId = Value(streetId);
+  static Insertable<RoundQuestion> custom({
+    Expression<String>? roundId,
+    Expression<int>? position,
+    Expression<String>? streetId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (roundId != null) 'round_id': roundId,
+      if (position != null) 'position': position,
+      if (streetId != null) 'street_id': streetId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RoundQuestionsCompanion copyWith({
+    Value<String>? roundId,
+    Value<int>? position,
+    Value<String>? streetId,
+    Value<int>? rowid,
+  }) {
+    return RoundQuestionsCompanion(
+      roundId: roundId ?? this.roundId,
+      position: position ?? this.position,
+      streetId: streetId ?? this.streetId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (roundId.present) {
+      map['round_id'] = Variable<String>(roundId.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (streetId.present) {
+      map['street_id'] = Variable<String>(streetId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RoundQuestionsCompanion(')
+          ..write('roundId: $roundId, ')
+          ..write('position: $position, ')
+          ..write('streetId: $streetId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1472,6 +1741,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'answer_immutable',
   );
   late final $UserSettingsTable userSettings = $UserSettingsTable(this);
+  late final $RoundQuestionsTable roundQuestions = $RoundQuestionsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1481,6 +1751,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     answers,
     answerImmutable,
     userSettings,
+    roundQuestions,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -1538,6 +1809,24 @@ final class $$RoundsTableReferences
     ).filter((f) => f.roundId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_answersRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$RoundQuestionsTable, List<RoundQuestion>>
+  _roundQuestionsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.roundQuestions,
+    aliasName: 'round__id__round_question__round_id',
+  );
+
+  $$RoundQuestionsTableProcessedTableManager get roundQuestionsRefs {
+    final manager = $$RoundQuestionsTableTableManager(
+      $_db,
+      $_db.roundQuestions,
+    ).filter((f) => f.roundId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_roundQuestionsRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -1605,6 +1894,31 @@ class $$RoundsTableFilterComposer
           }) => $$AnswersTableFilterComposer(
             $db: $db,
             $table: $db.answers,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> roundQuestionsRefs(
+    Expression<bool> Function($$RoundQuestionsTableFilterComposer f) f,
+  ) {
+    final $$RoundQuestionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.roundQuestions,
+      getReferencedColumn: (t) => t.roundId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RoundQuestionsTableFilterComposer(
+            $db: $db,
+            $table: $db.roundQuestions,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -1721,6 +2035,31 @@ class $$RoundsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> roundQuestionsRefs<T extends Object>(
+    Expression<T> Function($$RoundQuestionsTableAnnotationComposer a) f,
+  ) {
+    final $$RoundQuestionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.roundQuestions,
+      getReferencedColumn: (t) => t.roundId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RoundQuestionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.roundQuestions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$RoundsTableTableManager
@@ -1736,7 +2075,7 @@ class $$RoundsTableTableManager
           $$RoundsTableUpdateCompanionBuilder,
           (Round, $$RoundsTableReferences),
           Round,
-          PrefetchHooks Function({bool answersRefs})
+          PrefetchHooks Function({bool answersRefs, bool roundQuestionsRefs})
         > {
   $$RoundsTableTableManager(_$AppDatabase db, $RoundsTable table)
     : super(
@@ -1797,33 +2136,61 @@ class $$RoundsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({answersRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (answersRefs) db.answers],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (answersRefs)
-                    await $_getPrefetchedDataByColumns<
-                      Round,
-                      $RoundsTable,
-                      Answer,
-                      $AnswersTable
-                    >(
-                      currentTable: table,
-                      referencedTable: $$RoundsTableReferences
-                          ._answersRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$RoundsTableReferences(db, table, p0).answersRefs,
-                      currentColumn: 'id',
-                      referencedColumn: 'round_id',
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({answersRefs = false, roundQuestionsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (answersRefs) db.answers,
+                    if (roundQuestionsRefs) db.roundQuestions,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (answersRefs)
+                        await $_getPrefetchedDataByColumns<
+                          Round,
+                          $RoundsTable,
+                          Answer,
+                          $AnswersTable
+                        >(
+                          currentTable: table,
+                          referencedTable: $$RoundsTableReferences
+                              ._answersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$RoundsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).answersRefs,
+                          currentColumn: 'id',
+                          referencedColumn: 'round_id',
+                          typedResults: items,
+                        ),
+                      if (roundQuestionsRefs)
+                        await $_getPrefetchedDataByColumns<
+                          Round,
+                          $RoundsTable,
+                          RoundQuestion,
+                          $RoundQuestionsTable
+                        >(
+                          currentTable: table,
+                          referencedTable: $$RoundsTableReferences
+                              ._roundQuestionsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$RoundsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).roundQuestionsRefs,
+                          currentColumn: 'id',
+                          referencedColumn: 'round_id',
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -1840,7 +2207,7 @@ typedef $$RoundsTableProcessedTableManager =
       $$RoundsTableUpdateCompanionBuilder,
       (Round, $$RoundsTableReferences),
       Round,
-      PrefetchHooks Function({bool answersRefs})
+      PrefetchHooks Function({bool answersRefs, bool roundQuestionsRefs})
     >;
 typedef $$AnswersTableCreateCompanionBuilder =
     AnswersCompanion Function({
@@ -2465,6 +2832,292 @@ typedef $$UserSettingsTableProcessedTableManager =
       Settings,
       PrefetchHooks Function()
     >;
+typedef $$RoundQuestionsTableCreateCompanionBuilder =
+    RoundQuestionsCompanion Function({
+      required String roundId,
+      required int position,
+      required String streetId,
+      Value<int> rowid,
+    });
+typedef $$RoundQuestionsTableUpdateCompanionBuilder =
+    RoundQuestionsCompanion Function({
+      Value<String> roundId,
+      Value<int> position,
+      Value<String> streetId,
+      Value<int> rowid,
+    });
+
+final class $$RoundQuestionsTableReferences
+    extends BaseReferences<_$AppDatabase, $RoundQuestionsTable, RoundQuestion> {
+  $$RoundQuestionsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $RoundsTable _roundIdTable(_$AppDatabase db) =>
+      db.rounds.createAlias('round_question__round_id__round__id');
+
+  $$RoundsTableProcessedTableManager get roundId {
+    final $_column = $_itemColumn<String>('round_id')!;
+
+    final manager = $$RoundsTableTableManager(
+      $_db,
+      $_db.rounds,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_roundIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$RoundQuestionsTableFilterComposer
+    extends Composer<_$AppDatabase, $RoundQuestionsTable> {
+  $$RoundQuestionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get streetId => $composableBuilder(
+    column: $table.streetId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$RoundsTableFilterComposer get roundId {
+    final $$RoundsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.roundId,
+      referencedTable: $db.rounds,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RoundsTableFilterComposer(
+            $db: $db,
+            $table: $db.rounds,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RoundQuestionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $RoundQuestionsTable> {
+  $$RoundQuestionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get streetId => $composableBuilder(
+    column: $table.streetId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$RoundsTableOrderingComposer get roundId {
+    final $$RoundsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.roundId,
+      referencedTable: $db.rounds,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RoundsTableOrderingComposer(
+            $db: $db,
+            $table: $db.rounds,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RoundQuestionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RoundQuestionsTable> {
+  $$RoundQuestionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<String> get streetId =>
+      $composableBuilder(column: $table.streetId, builder: (column) => column);
+
+  $$RoundsTableAnnotationComposer get roundId {
+    final $$RoundsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.roundId,
+      referencedTable: $db.rounds,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RoundsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.rounds,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RoundQuestionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RoundQuestionsTable,
+          RoundQuestion,
+          $$RoundQuestionsTableFilterComposer,
+          $$RoundQuestionsTableOrderingComposer,
+          $$RoundQuestionsTableAnnotationComposer,
+          $$RoundQuestionsTableCreateCompanionBuilder,
+          $$RoundQuestionsTableUpdateCompanionBuilder,
+          (RoundQuestion, $$RoundQuestionsTableReferences),
+          RoundQuestion,
+          PrefetchHooks Function({bool roundId})
+        > {
+  $$RoundQuestionsTableTableManager(
+    _$AppDatabase db,
+    $RoundQuestionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RoundQuestionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RoundQuestionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RoundQuestionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> roundId = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<String> streetId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RoundQuestionsCompanion(
+                roundId: roundId,
+                position: position,
+                streetId: streetId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String roundId,
+                required int position,
+                required String streetId,
+                Value<int> rowid = const Value.absent(),
+              }) => RoundQuestionsCompanion.insert(
+                roundId: roundId,
+                position: position,
+                streetId: streetId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$RoundQuestionsTable, RoundQuestion>(table),
+                  $$RoundQuestionsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({roundId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (roundId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.roundId,
+                                referencedTable: $$RoundQuestionsTableReferences
+                                    ._roundIdTable(db),
+                                referencedColumn:
+                                    $$RoundQuestionsTableReferences
+                                        ._roundIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$RoundQuestionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RoundQuestionsTable,
+      RoundQuestion,
+      $$RoundQuestionsTableFilterComposer,
+      $$RoundQuestionsTableOrderingComposer,
+      $$RoundQuestionsTableAnnotationComposer,
+      $$RoundQuestionsTableCreateCompanionBuilder,
+      $$RoundQuestionsTableUpdateCompanionBuilder,
+      (RoundQuestion, $$RoundQuestionsTableReferences),
+      RoundQuestion,
+      PrefetchHooks Function({bool roundId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2475,4 +3128,6 @@ class $AppDatabaseManager {
       $$AnswersTableTableManager(_db, _db.answers);
   $$UserSettingsTableTableManager get userSettings =>
       $$UserSettingsTableTableManager(_db, _db.userSettings);
+  $$RoundQuestionsTableTableManager get roundQuestions =>
+      $$RoundQuestionsTableTableManager(_db, _db.roundQuestions);
 }

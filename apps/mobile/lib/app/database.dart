@@ -1,12 +1,34 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:uuid/uuid.dart';
 
+import 'database.steps.dart';
+
 part 'database.g.dart';
 
 String newId() => const Uuid().v7();
+
+const _rowid = CustomExpression<int>('rowid');
+
+extension SettingsArea on Settings {
+  /// The saved area; unset or unreadable falls back to the whole city.
+  Area get area {
+    final json = lastAreaJson;
+    if (json == null) return const WholeCity();
+    try {
+      return switch (jsonDecode(json)) {
+        final Map<String, Object?> map => Area.fromJson(map),
+        _ => const WholeCity(),
+      };
+    } on FormatException {
+      return const WholeCity();
+    }
+  }
+}
 
 /// Single row (id = 1) of local preferences.
 @DataClassName('Settings')
@@ -59,8 +81,29 @@ class Answers extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// The streets planned for a round, in order. With the answer log this
+/// derives where a round stands, so rounds resume after an app kill.
+@DataClassName('RoundQuestion')
+class RoundQuestions extends Table {
+  @override
+  String get tableName => 'round_question';
+
+  TextColumn get roundId => text().references(Rounds, #id)();
+  IntColumn get position => integer()();
+  TextColumn get streetId => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {roundId, position};
+}
+
+typedef RoundProgress = ({
+  Round round,
+  List<String> planned,
+  List<Answer> answers,
+});
+
 @DriftDatabase(
-  tables: [UserSettings, Rounds, Answers],
+  tables: [UserSettings, Rounds, Answers, RoundQuestions],
   include: {'answer_immutable.drift'},
 )
 class AppDatabase extends _$AppDatabase {
@@ -68,10 +111,13 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'pindoro'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: stepByStep(
+      from1To2: (m, schema) => m.createTable(schema.roundQuestion),
+    ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );
 
@@ -90,6 +136,88 @@ class AppDatabase extends _$AppDatabase {
     final row = await (selectOnly(answers)..addColumns([sum])).getSingle();
     return row.read(sum) ?? 0;
   }
+
+  /// Inserts the round and its planned streets atomically; returns the round id.
+  Future<String> startRound({
+    required String cityId,
+    required Area area,
+    required Difficulty difficulty,
+    required String packVersion,
+    required List<String> streetIds,
+  }) => transaction(() async {
+    final round = await into(rounds).insertReturning(
+      RoundsCompanion.insert(
+        cityId: cityId,
+        areaJson: jsonEncode(area.toJson()),
+        difficulty: difficulty,
+        packVersion: packVersion,
+      ),
+    );
+    await batch(
+      (b) => b.insertAll(roundQuestions, [
+        for (final (i, streetId) in streetIds.indexed)
+          RoundQuestionsCompanion.insert(
+            roundId: round.id,
+            position: i,
+            streetId: streetId,
+          ),
+      ]),
+    );
+    return round.id;
+  });
+
+  /// The most recent round while it is unfinished; starting a new round
+  /// abandons older unfinished ones.
+  Future<Round?> resumableRound() async {
+    final latest =
+        await (select(rounds)
+              ..orderBy([(_) => OrderingTerm.desc(_rowid)])
+              ..limit(1))
+            .getSingleOrNull();
+    return latest?.finishedAt == null ? latest : null;
+  }
+
+  Future<RoundProgress> roundProgress(String roundId) async => (
+    round: await (select(
+      rounds,
+    )..where((r) => r.id.equals(roundId))).getSingle(),
+    planned:
+        await (select(roundQuestions)
+              ..where((q) => q.roundId.equals(roundId))
+              ..orderBy([(q) => OrderingTerm.asc(q.position)]))
+            .map((q) => q.streetId)
+            .get(),
+    answers: await answersForRound(roundId),
+  );
+
+  Future<void> finishRound(String roundId) =>
+      (update(rounds)..where((r) => r.id.equals(roundId))).write(
+        RoundsCompanion(finishedAt: Value(DateTime.now())),
+      );
+
+  Future<List<Answer>> answersForRound(String roundId) =>
+      (select(answers)
+            ..where((a) => a.roundId.equals(roundId))
+            ..orderBy([(_) => OrderingTerm.asc(_rowid)]))
+          .get();
+
+  /// Latest tier per answered street (selection weights).
+  // ponytail: reads the whole answer log; aggregate in SQL past ~100k answers.
+  Future<Map<String, Tier>> lastTierByStreet() async => {
+    for (final a in await (select(
+      answers,
+    )..orderBy([(_) => OrderingTerm.asc(_rowid)])).get())
+      a.streetId: a.tier,
+  };
+
+  Future<Set<String>> recentlyAnsweredStreetIds({int limit = 30}) async => {
+    for (final a
+        in await (select(answers)
+              ..orderBy([(_) => OrderingTerm.desc(_rowid)])
+              ..limit(limit))
+            .get())
+      a.streetId,
+  };
 }
 
 /// Overridden in main() and in tests.
