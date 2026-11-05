@@ -41,12 +41,12 @@ cp .env.example .env && chmod 600 .env
 
 Edit `.env`:
 
-| Variable                  | Value                                                                  |
-| ------------------------- | ---------------------------------------------------------------------- |
-| `DOMAIN`                  | e.g. `pindoro.app` → serves `api.`, `tiles.`, `packs.` subdomains      |
-| `POSTGRES_USER/PASSWORD/DB` | strong password; never reuse the dev defaults                        |
-| `CLOUDFLARE_TUNNEL_TOKEN` | from step 3                                                            |
-| `PACKS_DIR`, `TILES_DIR`  | host dirs, relative to `infra/` (defaults `./packs`, `./tiles`)        |
+| Variable                    | Value                                                             |
+| --------------------------- | ----------------------------------------------------------------- |
+| `DOMAIN`                    | e.g. `pindoro.app` → serves `api.`, `tiles.`, `packs.` subdomains |
+| `POSTGRES_USER/PASSWORD/DB` | strong password; never reuse the dev defaults                     |
+| `CLOUDFLARE_TUNNEL_TOKEN`   | from step 3                                                       |
+| `PACKS_DIR`, `TILES_DIR`    | host dirs, relative to `infra/` (defaults `./packs`, `./tiles`)   |
 
 ## 3. Cloudflare Tunnel
 
