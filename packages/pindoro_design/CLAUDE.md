@@ -22,6 +22,8 @@ Signpost widgets (`PindoroButton`, `StreetPlate`, `FeedbackBadge`).
 
 ## Tests
 
-`flutter test` from this package. Goldens live in `test/goldens/`; `test/flutter_test_config.dart`
-loads the real fonts and allows a 1.5 % pixel diff so goldens made on one OS pass on Linux CI.
-Regenerate with `flutter test --update-goldens` after an intended visual change.
+`flutter test` from this package. Goldens live in `test/goldens/` and are **Linux-only** (glyph
+rasterisation differs per OS): they are skipped elsewhere and compared on Linux CI with a 1.5 %
+tolerance for Flutter stable drift (`test/flutter_test_config.dart`, which also loads the real
+fonts). After an intended visual change run `just goldens` (regenerates them in a Linux Flutter
+container) and commit the PNGs.

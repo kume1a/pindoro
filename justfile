@@ -24,6 +24,10 @@ tokens-check:
     dart run packages/pindoro_design/tool/generate_tokens.dart
     git diff --exit-code -- packages/pindoro_design/lib/src/generated
 
+# Regenerate pindoro_design goldens on Linux, the only platform that compares them
+goldens:
+    MSYS_NO_PATHCONV=1 docker run --rm -v "{{ justfile_directory() }}:/repo" -v /repo/.dart_tool -v /repo/packages/pindoro_design/.dart_tool -w /repo/packages/pindoro_design ghcr.io/cirruslabs/flutter:stable sh -c "flutter pub get && flutter test --update-goldens test/widgets_test.dart"
+
 # Biome, tsc, dart format, flutter analyze
 lint:
     pnpm exec biome check .

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -94,7 +96,7 @@ void main() {
     expect(find.text('perfect'), findsOneWidget);
   });
 
-  group('goldens', () {
+  group('goldens', skip: _goldensSkip, () {
     Future<void> pumpGallery(WidgetTester tester, Brightness brightness) async {
       await tester.binding.setSurfaceSize(const Size(400, 720));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -152,3 +154,9 @@ void main() {
     });
   });
 }
+
+// Glyph rasterisation differs per OS, so goldens are rendered and compared on
+// Linux only (CI, and `just goldens` regenerates them in a Linux container).
+final Object _goldensSkip = Platform.isLinux
+    ? false
+    : 'goldens are Linux-only; run `just goldens` to update them';

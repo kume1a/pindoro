@@ -5,8 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Goldens are generated on one OS and compared on others (Linux CI), where
-/// glyph anti-aliasing differs slightly.
+/// Goldens are Linux-only; this absorbs small rendering drift between Flutter
+/// stable releases.
 const double _maxGoldenDiffRatio = 0.015;
 
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
