@@ -5,12 +5,22 @@ osm_relation_id: 1996871
 utm_epsg: 32638
 
 extract:
-  url: https://download.geofabrik.de/asia/georgia-latest.osm.pbf
+  url: https://download.geofabrik.de/europe/georgia-latest.osm.pbf
   max_age_days: 7
 
 # Relations that must be present as districts (subarea members of the city relation).
 expect_relations:
+  - 11300436 # Samgori
+  - 11300438 # Nadzaladevi
+  - 11300445 # Didube
+  - 11300446 # Saburtalo
   - 11300449 # Vake
+  - 13438808 # Isani
+  - 13438809 # Krtsanisi
+  - 13438810 # Chughureti
+  - 13438811 # Mtatsminda
+  - 13438812 # Gldani
 
 fixture:
+  name: vake
   district_relation_id: 11300449 # Vake
