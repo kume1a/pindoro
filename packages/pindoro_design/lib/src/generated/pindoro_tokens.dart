@@ -87,6 +87,8 @@ abstract final class PindoroTokens {
   static const double sizeMapMeasureDash = 2;
   static const double sizeMapMeasureGap = 2;
   static const double mapCameraZoom = 13.5;
+  static const double mapCameraFitPaddingX = 32;
+  static const double mapCameraFitPaddingY = 170;
   static const double opacityDisabled = 0.5;
   static const double typeDisplay = 32;
   static const double typeTitle = 22;

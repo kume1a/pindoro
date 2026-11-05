@@ -57,7 +57,26 @@ class _PindoroMapState extends State<PindoroMap> {
   @override
   void didUpdateWidget(PindoroMap oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_overlaysReady) _syncOverlays();
+    if (!_overlaysReady) return;
+    _syncOverlays();
+    if (widget.truth != null && widget.truth != oldWidget.truth) _frameTruth();
+  }
+
+  /// Reveal: frame the truth street together with the pin.
+  Future<void> _frameTruth() {
+    final b = Bbox.of([...widget.truth!.expand((l) => l), ?widget.pin]);
+    return _controller!.animateCamera(
+      ml.CameraUpdate.newLatLngBounds(
+        ml.LatLngBounds(
+          southwest: ml.LatLng(b.minLat, b.minLon),
+          northeast: ml.LatLng(b.maxLat, b.maxLon),
+        ),
+        left: PindoroTokens.mapCameraFitPaddingX,
+        top: PindoroTokens.mapCameraFitPaddingY,
+        right: PindoroTokens.mapCameraFitPaddingX,
+        bottom: PindoroTokens.mapCameraFitPaddingY,
+      ),
+    );
   }
 
   Future<void> _addOverlays() async {

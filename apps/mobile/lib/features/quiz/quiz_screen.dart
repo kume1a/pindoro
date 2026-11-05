@@ -45,6 +45,13 @@ class _DebugQuizState extends State<_DebugQuiz> {
   late final List<Street> _streets = widget.pack.streets(
     districtId: _district.id,
   );
+  // Districts include forest and hills; frame where the streets actually are.
+  late final LatLng _streetsCenter = LatLng(
+    _streets.map((s) => s.midpoint.lat).reduce((a, b) => a + b) /
+        _streets.length,
+    _streets.map((s) => s.midpoint.lon).reduce((a, b) => a + b) /
+        _streets.length,
+  );
   final _random = Random();
   LatLng? _pin;
   Street? _truth;
@@ -58,7 +65,7 @@ class _DebugQuizState extends State<_DebugQuiz> {
     return Stack(
       children: [
         PindoroMap(
-          initialCenter: _district.center,
+          initialCenter: _streetsCenter,
           pin: pin,
           truth: truth?.geometry,
           measure: nearest == null ? null : (pin!, nearest.nearestPoint),
