@@ -1,0 +1,27 @@
+name: mobile
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  mobile:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - uses: extractions/setup-just@v3
+      - run: dart run melos bootstrap
+      - run: just tokens-check
+      - run: dart format --set-exit-if-changed .
+      - run: dart run melos run analyze
+      # pindoro_core runs the shared golden vectors (shared/fixtures) here.
+      - run: dart run melos run test
