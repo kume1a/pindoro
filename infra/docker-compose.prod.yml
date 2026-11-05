@@ -113,6 +113,7 @@ services:
       - ${TILES_DIR:-./tiles}:/repo/infra/tiles
       - ${PACKS_DIR:-./packs}:/packs
       - pipeline-cache:/repo/pipeline/.cache
+      - ../pipeline/out:/repo/pipeline/out
     depends_on:
       postgis:
         condition: service_healthy

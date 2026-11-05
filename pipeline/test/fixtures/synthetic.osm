@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Hand-made test city near Tbilisi (UTM 38N). City square lat 41.70-41.75, lon 44.70-44.80, split into
+  West (r1001, admin_level 6) and East (r1002, admin_level 10) subareas at lon 44.75.
+  r1003 is an admin boundary inside West that is NOT a subarea and must not become a district.
+  Roads:
+    w2001 + w2002  "Split Street" / "Split  Street"   share node 202 -> one merged street
+    w2003, w2004   "Twin Street" 2.2 km apart        -> two streets
+    w2005          unnamed residential               -> dropped
+    w2007 service, w2009 footway, w2010 access=private, w2011 primary_link -> dropped
+    w2006          "Cross Avenue" (primary), ~830 m in each district -> both districts
+    w2008          "Edge Lane" (tertiary), ~83 m (17 %) in East -> West only
+-->
+<osm version="0.6" generator="hand">
+  <node id="1" version="1" lat="41.70" lon="44.70"/>
+  <node id="2" version="1" lat="41.70" lon="44.80"/>
+  <node id="3" version="1" lat="41.75" lon="44.80"/>
+  <node id="4" version="1" lat="41.75" lon="44.70"/>
+  <node id="5" version="1" lat="41.70" lon="44.75"/>
+  <node id="6" version="1" lat="41.75" lon="44.75"/>
+
+  <node id="201" version="1" lat="41.71" lon="44.71"/>
+  <node id="202" version="1" lat="41.71" lon="44.72"/>
+  <node id="203" version="1" lat="41.71" lon="44.73"/>
+  <node id="204" version="1" lat="41.72" lon="44.710"/>
+  <node id="205" version="1" lat="41.72" lon="44.715"/>
+  <node id="206" version="1" lat="41.74" lon="44.710"/>
+  <node id="207" version="1" lat="41.74" lon="44.715"/>
+  <node id="208" version="1" lat="41.725" lon="44.72"/>
+  <node id="209" version="1" lat="41.725" lon="44.73"/>
+  <node id="210" version="1" lat="41.73" lon="44.74"/>
+  <node id="211" version="1" lat="41.73" lon="44.76"/>
+  <node id="212" version="1" lat="41.715" lon="44.745"/>
+  <node id="213" version="1" lat="41.715" lon="44.751"/>
+  <node id="301" version="1" lat="41.705" lon="44.705"/>
+  <node id="302" version="1" lat="41.705" lon="44.710"/>
+  <node id="303" version="1" lat="41.708" lon="44.710"/>
+  <node id="304" version="1" lat="41.708" lon="44.705"/>
+  <node id="401" version="1" lat="41.735" lon="44.725">
+    <tag k="place" v="neighbourhood"/>
+    <tag k="name" v="Test Place"/>
+  </node>
+
+  <way id="101" version="1">
+    <nd ref="1"/><nd ref="5"/><nd ref="2"/><nd ref="3"/><nd ref="6"/><nd ref="4"/><nd ref="1"/>
+  </way>
+  <way id="111" version="1">
+    <nd ref="1"/><nd ref="5"/><nd ref="6"/><nd ref="4"/><nd ref="1"/>
+  </way>
+  <way id="112" version="1">
+    <nd ref="5"/><nd ref="2"/><nd ref="3"/><nd ref="6"/><nd ref="5"/>
+  </way>
+  <way id="113" version="1">
+    <nd ref="301"/><nd ref="302"/><nd ref="303"/><nd ref="304"/><nd ref="301"/>
+  </way>
+
+  <way id="2001" version="1">
+    <nd ref="201"/><nd ref="202"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="Split Street"/>
+  </way>
+  <way id="2002" version="1">
+    <nd ref="202"/><nd ref="203"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="Split  Street"/>
+  </way>
+  <way id="2003" version="1">
+    <nd ref="204"/><nd ref="205"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="Twin Street"/>
+  </way>
+  <way id="2004" version="1">
+    <nd ref="206"/><nd ref="207"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="Twin Street"/>
+  </way>
+  <way id="2005" version="1">
+    <nd ref="208"/><nd ref="209"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="2006" version="1">
+    <nd ref="210"/><nd ref="211"/>
+    <tag k="highway" v="primary"/>
+    <tag k="name" v="Cross Avenue"/>
+    <tag k="name:ka" v="ჯვრის გამზირი"/>
+    <tag k="name:en" v="Cross Avenue"/>
+  </way>
+  <way id="2007" version="1">
+    <nd ref="208"/><nd ref="209"/>
+    <tag k="highway" v="service"/>
+    <tag k="name" v="Service Road"/>
+  </way>
+  <way id="2008" version="1">
+    <nd ref="212"/><nd ref="213"/>
+    <tag k="highway" v="tertiary"/>
+    <tag k="name" v="Edge Lane"/>
+  </way>
+  <way id="2009" version="1">
+    <nd ref="208"/><nd ref="209"/>
+    <tag k="highway" v="footway"/>
+    <tag k="name" v="Foot Path"/>
+  </way>
+  <way id="2010" version="1">
+    <nd ref="208"/><nd ref="209"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="Private Lane"/>
+    <tag k="access" v="private"/>
+  </way>
+  <way id="2011" version="1">
+    <nd ref="208"/><nd ref="209"/>
+    <tag k="highway" v="primary_link"/>
+    <tag k="name" v="Link Road"/>
+  </way>
+
+  <relation id="1000" version="1">
+    <member type="way" ref="101" role="outer"/>
+    <member type="relation" ref="1001" role="subarea"/>
+    <member type="relation" ref="1002" role="subarea"/>
+    <tag k="type" v="boundary"/>
+    <tag k="boundary" v="administrative"/>
+    <tag k="admin_level" v="4"/>
+    <tag k="name" v="სინთი"/>
+    <tag k="name:en" v="Synth"/>
+  </relation>
+  <relation id="1001" version="1">
+    <member type="way" ref="111" role="outer"/>
+    <tag k="type" v="boundary"/>
+    <tag k="boundary" v="administrative"/>
+    <tag k="admin_level" v="6"/>
+    <tag k="name" v="დასავლეთი"/>
+    <tag k="name:en" v="West"/>
+  </relation>
+  <relation id="1002" version="1">
+    <member type="way" ref="112" role="outer"/>
+    <tag k="type" v="boundary"/>
+    <tag k="boundary" v="administrative"/>
+    <tag k="admin_level" v="10"/>
+    <tag k="name" v="აღმოსავლეთი"/>
+    <tag k="name:en" v="East"/>
+  </relation>
+  <relation id="1003" version="1">
+    <member type="way" ref="113" role="outer"/>
+    <tag k="type" v="boundary"/>
+    <tag k="boundary" v="administrative"/>
+    <tag k="admin_level" v="7"/>
+    <tag k="name" v="Decoy"/>
+  </relation>
+</osm>

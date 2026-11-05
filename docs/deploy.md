@@ -88,6 +88,7 @@ curl https://tiles.$DOMAIN/georgia     # TileJSON
 
 dc run --rm pipeline fetch tbilisi     # Geofabrik extract into the pipeline cache volume
 dc run --rm pipeline build tbilisi     # osm2pgsql + SQL steps + export pack
+dc run --rm pipeline validate tbilisi  # schema, districts, >= 30 expert streets each, geometry
 dc run --rm pipeline publish tbilisi   # copy pack + manifest into PACKS_DIR, rewrite catalog.json
 curl https://api.$DOMAIN/v1/catalog
 ```
@@ -112,6 +113,7 @@ WorkingDirectory=/opt/pindoro
 ExecStartPre=/usr/bin/docker compose --env-file .env -f infra/docker-compose.prod.yml build pipeline
 ExecStart=/usr/bin/docker compose --env-file .env -f infra/docker-compose.prod.yml run --rm pipeline fetch tbilisi
 ExecStart=/usr/bin/docker compose --env-file .env -f infra/docker-compose.prod.yml run --rm pipeline build tbilisi
+ExecStart=/usr/bin/docker compose --env-file .env -f infra/docker-compose.prod.yml run --rm pipeline validate tbilisi
 ExecStart=/usr/bin/docker compose --env-file .env -f infra/docker-compose.prod.yml run --rm pipeline publish tbilisi
 ```
 

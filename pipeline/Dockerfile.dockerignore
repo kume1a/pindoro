@@ -1,0 +1,13 @@
+**
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!tsconfig.base.json
+!apps/api/package.json
+!packages/geo
+!packages/pindoro_design/tokens
+!data
+!pipeline
+**/node_modules
+pipeline/.cache
+pipeline/out

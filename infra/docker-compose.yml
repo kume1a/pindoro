@@ -82,6 +82,7 @@ services:
       - ${TILES_DIR:-./tiles}:/repo/infra/tiles
       - ${PACKS_DIR:-./packs}:/packs
       - pipeline-cache:/repo/pipeline/.cache
+      - ../pipeline/out:/repo/pipeline/out
       # Source mounts so code edits apply without rebuilding the image.
       - ../pipeline/src:/repo/pipeline/src:ro
       - ../pipeline/sql:/repo/pipeline/sql:ro
