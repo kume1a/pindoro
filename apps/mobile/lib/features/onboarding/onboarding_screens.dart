@@ -7,10 +7,10 @@ import 'package:go_router/go_router.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-import '../../app/config.dart';
 import '../../app/database.dart';
 import '../../app/placeholder_screen.dart';
 import '../../app/router.dart';
+import '../pack/sqlite_pack_repository.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -71,21 +71,54 @@ class AreaScreen extends ConsumerWidget {
   const AreaScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => PlaceholderScreen(
-    title: 'Area',
-    body: 'Play the whole city or one district.',
-    actions: [
-      PindoroButton(
-        label: 'Vake',
-        onPressed: () async {
-          final area = jsonEncode({'district_id': AppConfig.fixtureDistrictId});
-          await ref
-              .read(databaseProvider)
-              .updateSettings(UserSettingsCompanion(lastAreaJson: Value(area)));
-          if (context.mounted) await context.push(Routes.difficulty);
-        },
-      ),
-    ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pack = ref.watch(packRepositoryProvider).value;
+    return PlaceholderScreen(
+      title: 'Area',
+      body: 'Play the whole city or one district.',
+      child: pack == null
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              children: [
+                _AreaTile(
+                  const WholeCity(),
+                  title: pack.city().nameKa,
+                  subtitle: 'whole city',
+                ),
+                for (final d in pack.districts())
+                  _AreaTile(
+                    DistrictArea(d.id),
+                    title: d.nameKa,
+                    subtitle: d.nameEn,
+                  ),
+              ],
+            ),
+    );
+  }
+}
+
+class _AreaTile extends ConsumerWidget {
+  const _AreaTile(this.area, {required this.title, this.subtitle});
+
+  final Area area;
+  final String title;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => ListTile(
+    title: Text(title),
+    subtitle: subtitle == null ? null : Text(subtitle!),
+    mouseCursor: SystemMouseCursors.click,
+    onTap: () async {
+      await ref
+          .read(databaseProvider)
+          .updateSettings(
+            UserSettingsCompanion(
+              lastAreaJson: Value(jsonEncode(area.toJson())),
+            ),
+          );
+      if (context.mounted) await context.push(Routes.difficulty);
+    },
   );
 }
 

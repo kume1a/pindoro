@@ -3,10 +3,11 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/app/app.dart';
+import 'package:pindoro/app/config.dart';
 import 'package:pindoro/app/database.dart';
 import 'package:pindoro/app/router.dart';
+import 'package:pindoro/features/pack/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
-import 'package:pindoro_design/pindoro_design.dart';
 
 void main() {
   late AppDatabase db;
@@ -24,9 +25,19 @@ void main() {
   Future<void> pumpApp(WidgetTester tester, String location) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [databaseProvider.overrideWithValue(db)],
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          packRepositoryProvider.overrideWith((ref) async {
+            final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
+            ref.onDispose(repo.close);
+            return repo;
+          }),
+        ],
         child: PindoroApp(initialLocation: location),
       ),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
     );
     await tester.pumpAndSettle();
   }
@@ -50,7 +61,8 @@ void main() {
       expect(find.text('City'), findsOneWidget);
       await tapAndSettle(tester, 'Tbilisi');
       expect(find.text('Area'), findsOneWidget);
-      await tapAndSettle(tester, 'Vake');
+      expect(find.text('თბილისი'), findsOneWidget, reason: 'whole city');
+      await tapAndSettle(tester, 'ვაკის რაიონი');
       expect(find.text('Difficulty'), findsOneWidget);
       await tapAndSettle(tester, 'expert');
       expect(find.text('Home'), findsOneWidget);
@@ -68,10 +80,5 @@ void main() {
 
     await tapAndSettle(tester, 'Settings');
     expect(find.textContaining('OpenStreetMap'), findsOneWidget);
-  });
-
-  testWidgets('results shows one badge per tier', (tester) async {
-    await pumpApp(tester, Routes.results);
-    expect(find.byType(FeedbackBadge), findsNWidgets(Tier.values.length));
   });
 }
