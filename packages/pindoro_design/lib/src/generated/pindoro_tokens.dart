@@ -55,6 +55,7 @@ abstract final class PindoroTokens {
   static const Color colorMapLightRoadCasing = Color(0xFFD9D2BF);
   static const Color colorMapLightRailway = Color(0xFFB9B2A2);
   static const Color colorMapLightBoundary = Color(0xFF9AA0AE);
+  static const Color colorMapLightMask = Color(0xFF15171E);
   static const Color colorMapDarkBackground = Color(0xFF14161E);
   static const Color colorMapDarkEarth = Color(0xFF1B1E28);
   static const Color colorMapDarkWater = Color(0xFF1D3346);
@@ -66,6 +67,7 @@ abstract final class PindoroTokens {
   static const Color colorMapDarkRoadCasing = Color(0xFF101219);
   static const Color colorMapDarkRailway = Color(0xFF3A3F4F);
   static const Color colorMapDarkBoundary = Color(0xFF5C6170);
+  static const Color colorMapDarkMask = Color(0xFF000000);
   static const double radiusSm = 8;
   static const double radiusMd = 12;
   static const double radiusLg = 16;
@@ -90,6 +92,7 @@ abstract final class PindoroTokens {
   static const double mapCameraFitPaddingX = 32;
   static const double mapCameraFitPaddingY = 170;
   static const double opacityDisabled = 0.5;
+  static const double opacityMapMask = 0.35;
   static const double typeDisplay = 32;
   static const double typeTitle = 22;
   static const double typeBody = 16;

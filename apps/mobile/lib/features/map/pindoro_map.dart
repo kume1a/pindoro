@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 import '../../app/config.dart';
 
-/// GeoJSON source ids (`area-mask` is reserved for area selection).
+/// GeoJSON source ids.
 abstract final class MapSources {
+  static const String areaMask = 'area-mask';
   static const String youPin = 'you-pin';
   static const String truthStreet = 'truth-street';
   static const String measure = 'measure';
@@ -15,19 +17,25 @@ abstract final class MapSources {
 
 const String osmAttribution = '© OpenStreetMap contributors, Protomaps';
 
-/// Unlabelled self-hosted basemap with the three game overlays. Stateless
-/// about the game: callers pass the pin, truth street and measure line.
+/// Builds the game map; widget tests override it so no platform view is made.
+final pindoroMapBuilderProvider = Provider<Widget Function(PindoroMap map)>(
+  (ref) =>
+      (map) => map,
+);
+
+/// Unlabelled self-hosted basemap: the round's area (outside dimmed) plus the
+/// pin, truth street and measure line passed in by the caller.
 class PindoroMap extends StatefulWidget {
   const PindoroMap({
     super.key,
-    required this.initialCenter,
+    required this.area,
     this.pin,
     this.truth,
     this.measure,
     this.onTap,
   });
 
-  final LatLng initialCenter;
+  final AreaShape area;
   final LatLng? pin;
   final MultiPolyline? truth;
   final (LatLng from, LatLng to)? measure;
@@ -59,12 +67,20 @@ class _PindoroMapState extends State<PindoroMap> {
     super.didUpdateWidget(oldWidget);
     if (!_overlaysReady) return;
     _syncOverlays();
-    if (widget.truth != null && widget.truth != oldWidget.truth) _frameTruth();
+    if (widget.truth != null && widget.truth != oldWidget.truth) {
+      _fit([...widget.truth!.expand((l) => l), ?widget.pin]);
+    } else if (widget.truth == null && oldWidget.truth != null) {
+      _fitArea();
+    }
   }
 
-  /// Reveal: frame the truth street together with the pin.
-  Future<void> _frameTruth() {
-    final b = Bbox.of([...widget.truth!.expand((l) => l), ?widget.pin]);
+  Future<void> _fitArea() {
+    final b = widget.area.bbox;
+    return _fit([LatLng(b.minLat, b.minLon), LatLng(b.maxLat, b.maxLon)]);
+  }
+
+  Future<void> _fit(List<LatLng> points) {
+    final b = Bbox.of(points);
     return _controller!.animateCamera(
       ml.CameraUpdate.newLatLngBounds(
         ml.LatLngBounds(
@@ -83,6 +99,21 @@ class _PindoroMapState extends State<PindoroMap> {
     final c = _controller;
     if (c == null) return;
     final theme = PindoroTheme.of(context);
+    final mask = Theme.of(context).brightness == Brightness.dark
+        ? PindoroTokens.colorMapDarkMask
+        : PindoroTokens.colorMapLightMask;
+    await c.addGeoJsonSource(
+      MapSources.areaMask,
+      areaMaskGeoJson(widget.area.boundary),
+    );
+    await c.addFillLayer(
+      MapSources.areaMask,
+      '${MapSources.areaMask}-fill',
+      ml.FillLayerProperties(
+        fillColor: _hex(mask),
+        fillOpacity: PindoroTokens.opacityMapMask,
+      ),
+    );
     await c.addGeoJsonSource(MapSources.truthStreet, _lines(const []));
     await c.addLineLayer(
       MapSources.truthStreet,
@@ -118,6 +149,7 @@ class _PindoroMapState extends State<PindoroMap> {
     );
     _overlaysReady = true;
     await _syncOverlays();
+    await _fitArea();
   }
 
   Future<void> _syncOverlays() async {
@@ -142,7 +174,7 @@ class _PindoroMapState extends State<PindoroMap> {
     future: _style,
     builder: (context, style) {
       if (!style.hasData) return const SizedBox.expand();
-      final center = widget.initialCenter;
+      final center = widget.area.bbox.center;
       return Stack(
         children: [
           ml.MapLibreMap(
@@ -231,3 +263,22 @@ Map<String, dynamic> _lines(MultiPolyline lines) => _collection([
       ],
     },
 ]);
+
+/// The world with every area polygon cut out; filled, it dims all but the area.
+Map<String, dynamic> areaMaskGeoJson(List<List<Polyline>> boundary) =>
+    _collection([
+      {
+        'type': 'Polygon',
+        'coordinates': [
+          const [
+            [-180.0, -85.0],
+            [180.0, -85.0],
+            [180.0, 85.0],
+            [-180.0, 85.0],
+            [-180.0, -85.0],
+          ],
+          for (final polygon in boundary)
+            [for (final p in polygon.first) _coord(p)],
+        ],
+      },
+    ]);
