@@ -4,4 +4,6 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Dev servers (API, packs, Martin tiles) are plain HTTP on the host. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>

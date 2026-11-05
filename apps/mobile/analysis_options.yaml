@@ -1,0 +1,10 @@
+include: ../../analysis_options.yaml
+
+analyzer:
+  # drift_dev's generated schema helpers trip strict-raw-types.
+  exclude:
+    - "**/*.g.dart"
+    - "build/**"
+    - "test/drift/**/generated/**"
+    - android/**
+    - ios/**

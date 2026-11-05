@@ -1,0 +1,7 @@
+import 'database.dart';
+
+-- The answer log is append-only; corrections are new rows.
+CREATE TRIGGER answer_immutable BEFORE UPDATE ON answer
+BEGIN
+  SELECT RAISE(ABORT, 'answer rows are immutable');
+END;
