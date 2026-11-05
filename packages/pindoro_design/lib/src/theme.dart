@@ -111,6 +111,10 @@ ThemeData buildPindoroTheme(Brightness brightness) {
     useMaterial3: true,
     colorScheme: scheme,
     scaffoldBackgroundColor: pindoro.background,
+    // M3 would draw the track in `secondary` (yellow): an empty bar looks full.
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      linearTrackColor: pindoro.lip,
+    ),
     fontFamily: fontFamily,
     package: fontPackage,
     extensions: [pindoro],
