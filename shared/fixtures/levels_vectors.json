@@ -1,0 +1,124 @@
+{
+  "requirement": [
+    {
+      "n": 1,
+      "xp": 1000
+    },
+    {
+      "n": 2,
+      "xp": 1250
+    },
+    {
+      "n": 3,
+      "xp": 1500
+    },
+    {
+      "n": 4,
+      "xp": 1750
+    },
+    {
+      "n": 10,
+      "xp": 3250
+    }
+  ],
+  "total_xp_to_reach": [
+    {
+      "n": 1,
+      "xp": 0
+    },
+    {
+      "n": 2,
+      "xp": 1000
+    },
+    {
+      "n": 3,
+      "xp": 2250
+    },
+    {
+      "n": 4,
+      "xp": 3750
+    },
+    {
+      "n": 5,
+      "xp": 5500
+    },
+    {
+      "n": 10,
+      "xp": 18000
+    }
+  ],
+  "progress": [
+    {
+      "xp": 0,
+      "level": 1,
+      "xpIntoLevel": 0,
+      "xpForLevel": 1000
+    },
+    {
+      "xp": 1,
+      "level": 1,
+      "xpIntoLevel": 1,
+      "xpForLevel": 1000
+    },
+    {
+      "xp": 999,
+      "level": 1,
+      "xpIntoLevel": 999,
+      "xpForLevel": 1000
+    },
+    {
+      "xp": 1000,
+      "level": 2,
+      "xpIntoLevel": 0,
+      "xpForLevel": 1250
+    },
+    {
+      "xp": 1001,
+      "level": 2,
+      "xpIntoLevel": 1,
+      "xpForLevel": 1250
+    },
+    {
+      "xp": 2249,
+      "level": 2,
+      "xpIntoLevel": 1249,
+      "xpForLevel": 1250
+    },
+    {
+      "xp": 2250,
+      "level": 3,
+      "xpIntoLevel": 0,
+      "xpForLevel": 1500
+    },
+    {
+      "xp": 3749,
+      "level": 3,
+      "xpIntoLevel": 1499,
+      "xpForLevel": 1500
+    },
+    {
+      "xp": 3750,
+      "level": 4,
+      "xpIntoLevel": 0,
+      "xpForLevel": 1750
+    },
+    {
+      "xp": 5499,
+      "level": 4,
+      "xpIntoLevel": 1749,
+      "xpForLevel": 1750
+    },
+    {
+      "xp": 5500,
+      "level": 5,
+      "xpIntoLevel": 0,
+      "xpForLevel": 2000
+    },
+    {
+      "xp": 100000,
+      "level": 26,
+      "xpIntoLevel": 0,
+      "xpForLevel": 7250
+    }
+  ]
+}
