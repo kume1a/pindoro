@@ -20,6 +20,9 @@
 - Download packs from `/v1/catalog` (verify sha256 + size, gunzip, swap atomically) instead of the
   bundled fixture; `http` is already a dependency for this.
 - Settings: theme, language, about/licences page.
+- The dark map style is generated but has not been checked on a device.
+- Random debug streets can be kilometres apart: districts such as Vake include large forested
+  areas, so area selection and question framing should account for that.
 
 ## Data / pipeline
 
@@ -33,7 +36,10 @@
 
 ## Infra / CI
 
-- No GitHub remote yet; both workflows were verified locally with `act`, not on GitHub Actions.
+- No GitHub remote yet; both workflows were run green locally with `act` (ubuntu-24.04 image),
+  not on GitHub Actions itself.
+- Flutter is pinned to 3.47.9 in CI and `just goldens`; the bootstrap machine ran a 3.41.2 checkout
+  (Dart 3.13). Align local Flutter with the pinned version, and bump both together later.
 - Real server setup per `docs/deploy.md`: Cloudflare Tunnel token, public hostnames, systemd timers
   for pack refresh and the second-disk backup copy.
 - iOS has not been built or run (no macOS in the bootstrap environment).
