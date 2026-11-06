@@ -14,7 +14,7 @@ import postgres from "postgres";
 import { cityDir, databaseUrl, extractPath, fixturePath, loadCity, OUT_DIR } from "./config.ts";
 import { matchIdentities, readIdentities, writeIdentities } from "./identity.ts";
 import { extractCity, loadOsm, readNeighbourhoods, run, runSqlSteps } from "./load.ts";
-import { finalisePack, packVersion, writePack } from "./pack.ts";
+import { finalisePack, type Manifest, packVersion, writePack } from "./pack.ts";
 
 const DAY_MS = 86_400_000;
 
@@ -100,6 +100,10 @@ export const build = async (cityId: string, opts: { fixture: boolean }): Promise
     } else {
       const file = join(out, `${cityId}-${version}.sqlite`);
       await writePack(sql, file, pack);
+      const [bbox] = await sql`
+        SELECT ST_YMin(geom) AS min_lat, ST_XMin(geom) AS min_lon,
+               ST_YMax(geom) AS max_lat, ST_XMax(geom) AS max_lon
+        FROM pipeline.pack_area WHERE id = 'city'`;
       const manifest = finalisePack(file, join(out, "manifest.json"), {
         format_version: 1,
         city: cityId,
@@ -108,6 +112,7 @@ export const build = async (cityId: string, opts: { fixture: boolean }): Promise
         version,
         osm_timestamp: pack.osmTimestamp,
         generated_at: pack.generatedAt,
+        bbox: bbox as Manifest["bbox"],
       });
       console.log(`pack: ${join(out, manifest.file)} (${(manifest.size / 1e6).toFixed(2)} MB)`);
     }

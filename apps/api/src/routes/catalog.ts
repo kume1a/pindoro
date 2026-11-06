@@ -5,6 +5,13 @@ import type { FastifyBaseLogger } from "fastify";
 import { type Static, Type } from "typebox";
 import { Value } from "typebox/value";
 
+const Bbox = Type.Object({
+  min_lat: Type.Number(),
+  min_lon: Type.Number(),
+  max_lat: Type.Number(),
+  max_lon: Type.Number(),
+});
+
 // <PACKS_DIR>/<city>/manifest.json, written by `pipeline publish` (docs/pack-format.md).
 const Manifest = Type.Object({
   format_version: Type.Integer(),
@@ -16,6 +23,7 @@ const Manifest = Type.Object({
   sha256: Type.String({ pattern: "^[0-9a-f]{64}$" }),
   size: Type.Integer({ minimum: 0 }),
   osm_timestamp: Type.String(),
+  bbox: Type.Optional(Bbox),
 });
 type Manifest = Static<typeof Manifest>;
 
@@ -30,7 +38,14 @@ const Pack = Type.Object({
 
 const Catalog = Type.Object({
   cities: Type.Array(
-    Type.Object({ id: Type.String(), name_ka: Type.String(), name_en: Type.String(), pack: Pack }),
+    Type.Object({
+      id: Type.String(),
+      name_ka: Type.String(),
+      name_en: Type.String(),
+      // Missing for packs published before the manifest carried it.
+      bbox: Type.Optional(Bbox),
+      pack: Pack,
+    }),
   ),
 });
 
@@ -73,6 +88,7 @@ export const catalogRoutes: FastifyPluginAsyncTypebox<{
           id: m.city,
           name_ka: m.name_ka,
           name_en: m.name_en,
+          bbox: m.bbox,
           pack: {
             format_version: m.format_version,
             version: m.version,

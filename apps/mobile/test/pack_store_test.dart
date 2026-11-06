@@ -7,8 +7,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:pindoro/app/config.dart';
+import 'package:pindoro/features/pack/cities.dart';
 import 'package:pindoro/features/pack/pack_store.dart';
 import 'package:pindoro/features/pack/sqlite_pack_repository.dart';
+import 'package:pindoro_core/pindoro_core.dart';
 
 void main() {
   final gz = gzip.encode(File(AppConfig.fixturePackAsset).readAsBytesSync());
@@ -31,6 +33,12 @@ void main() {
                     'id': 'tbilisi',
                     'name_ka': 'თბილისი',
                     'name_en': 'Tbilisi',
+                    'bbox': {
+                      'min_lat': 41.6,
+                      'min_lon': 44.6,
+                      'max_lat': 41.8,
+                      'max_lon': 45,
+                    },
                     'pack': {
                       'format_version': format,
                       'version': version,
@@ -61,6 +69,13 @@ void main() {
           .map((f) => f.uri.pathSegments.last)
           .toList()
         ..sort();
+
+  test('the catalog lists cities with their bounds', () async {
+    final cities = await store('20261105T000000Z').cities();
+    expect(cities.single.bbox?.maxLat, 41.8);
+    expect(cityAt(cities, const LatLng(41.7, 44.8))?.id, 'tbilisi');
+    expect(cityAt(cities, const LatLng(42.2, 42.7)), isNull);
+  });
 
   test('nothing is installed at first', () {
     expect(store('20261106T000000Z').newest('tbilisi'), isNull);

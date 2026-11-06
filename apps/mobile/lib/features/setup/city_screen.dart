@@ -4,7 +4,6 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 import '../../app/database.dart';
@@ -16,7 +15,6 @@ import '../../app/settings.dart';
 import '../../app/toast.dart';
 import '../pack/cities.dart';
 import '../pack/pack_store.dart';
-import '../pack/sqlite_pack_repository.dart';
 
 enum _Locating { idle, busy, denied }
 
@@ -68,11 +66,9 @@ class _CityScreenState extends ConsumerState<CityScreen> {
         setState(() => _locating = _Locating.denied);
       case Located(:final position):
         setState(() => _locating = _Locating.idle);
-        final pack = await ref.read(packRepositoryProvider.future);
-        final city = pack.city();
-        final here = city.boundary.any((p) => polygonContains(p, position));
+        final city = cityAt(await ref.read(cityListProvider.future), position);
         if (!mounted) return;
-        if (here) {
+        if (city != null) {
           await _pick(city.id);
         } else {
           showToast(context, context.l10n.cityNoneNearby);
