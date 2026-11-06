@@ -12,6 +12,9 @@ export const TOKENS_FILES = ["tokens.json", "app.json"].map((f) =>
 );
 export const MOBILE_ASSETS = join(REPO_ROOT, "apps/mobile/assets");
 
+/** A neighbourhood needs this many streets to make a 10-question round. */
+export const MIN_AREA_STREETS = 10;
+
 export interface CityConfig {
   id: string;
   name_ka: string;

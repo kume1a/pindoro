@@ -12,3 +12,14 @@ WHERE s.length_m > 0
   AND (x.length_m >= 150 OR x.length_m / s.length_m >= 0.3);
 
 CREATE INDEX ON pipeline.street_district (district_id);
+
+-- Neighbourhoods with too few streets for a round are dropped.
+
+DELETE FROM pipeline.district d
+USING pipeline.params p
+WHERE d.kind = 'neighbourhood'
+  AND (SELECT count(*) FROM pipeline.street_district sd WHERE sd.district_id = d.id)
+      < p.min_area_streets;
+
+DELETE FROM pipeline.street_district sd
+WHERE NOT EXISTS (SELECT 1 FROM pipeline.district d WHERE d.id = sd.district_id);

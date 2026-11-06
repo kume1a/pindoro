@@ -60,6 +60,19 @@ local places = osm2pgsql.define_table({
     }),
 })
 
+-- Quarters and neighbourhoods drawn as areas (closed ways or multipolygon relations).
+local place_areas = osm2pgsql.define_table({
+    name = 'place_areas',
+    schema = schema,
+    ids = { type = 'any', id_column = 'osm_id', type_column = 'osm_type' },
+    columns = names({
+        { column = 'place', type = 'text', not_null = true },
+        { column = 'geom', type = 'geometry', projection = 4326, not_null = true },
+    }),
+})
+
+local area_places = { quarter = true, neighbourhood = true }
+
 function osm2pgsql.process_node(object)
     local tags = object.tags
     if tags.place then
@@ -76,12 +89,19 @@ function osm2pgsql.process_way(object)
             geom = object:as_linestring(),
         }))
     end
+    if area_places[tags.place] and object.is_closed then
+        place_areas:insert(name_values(tags, { place = tags.place, geom = object:as_polygon() }))
+    end
 end
 
 function osm2pgsql.process_relation(object)
     local tags = object.tags
     if tags.type ~= 'boundary' and tags.type ~= 'multipolygon' then return end
     if not (tags.boundary or tags.place) then return end
+
+    if area_places[tags.place] then
+        place_areas:insert(name_values(tags, { place = tags.place, geom = object:as_multipolygon() }))
+    end
 
     boundaries:insert(name_values(tags, {
         boundary = tags.boundary,

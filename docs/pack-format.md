@@ -86,9 +86,9 @@ CREATE TABLE city (
 );
 
 CREATE TABLE district (
-  id              TEXT PRIMARY KEY,      -- 'osm:r<relation id>' or 'curated:<slug>'
+  id              TEXT PRIMARY KEY,      -- 'osm:r<relation id>', 'osm:w<way id>' or 'curated:<slug>'
   kind            TEXT NOT NULL CHECK (kind IN ('district', 'neighbourhood')),
-  osm_relation_id INTEGER,               -- NULL for curated neighbourhoods
+  osm_relation_id INTEGER,               -- NULL for curated and way-drawn neighbourhoods
   name_ka         TEXT NOT NULL,
   name_en         TEXT,
   center_lat      REAL NOT NULL,         -- point on surface, for labels/camera
@@ -138,8 +138,11 @@ CREATE INDEX street_district_district ON street_district (district_id);
   expert = unclassified/residential/living_street.
 - `street_district`: a street belongs to a district when its length inside is ≥ 150 m or its share
   is ≥ 0.3. A street can belong to several districts.
-- Districts are the `subarea` members of the city relation (any `admin_level`); curated
-  neighbourhoods come from `data/cities/<city>/curation/neighbourhoods.geojson`.
+- Districts are the `subarea` members of the city relation (any `admin_level`). Neighbourhoods are
+  OSM `place=quarter|neighbourhood` areas (closed ways or multipolygons) clipped to the city, plus
+  curated ones from `data/cities/<city>/curation/neighbourhoods.geojson`. When OSM areas share a
+  name only the smallest is kept, and a neighbourhood with fewer than 10 streets is dropped (too
+  small for a round). Neighbourhoods may overlap each other and districts.
 
 ### Fixture scope
 
