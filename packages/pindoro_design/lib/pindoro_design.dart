@@ -8,5 +8,6 @@ export 'src/widgets/feedback_badge.dart';
 export 'src/widgets/graphics.dart';
 export 'src/widgets/pindoro_button.dart';
 export 'src/widgets/round.dart';
+export 'src/widgets/setup.dart';
 export 'src/widgets/street_plate.dart';
 export 'src/widgets/surfaces.dart';

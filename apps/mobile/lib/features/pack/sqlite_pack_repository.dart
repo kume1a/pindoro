@@ -6,6 +6,7 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../app/config.dart';
+import '../../app/settings.dart';
 import 'pack_store.dart';
 
 /// Reads a city pack (docs/pack-format.md) opened read-only.
@@ -126,11 +127,18 @@ Future<File> copyFixture(Directory root) async {
   return file;
 }
 
-/// The newest downloaded pack, else the bundled fixture. main() invalidates
-/// it when a download finishes.
+/// The chosen city's newest pack: downloaded on first use; the bundled
+/// fixture stands in for Tbilisi offline. main() invalidates it when a
+/// download finishes.
 final packRepositoryProvider = FutureProvider<PackRepository>((ref) async {
   final store = ref.watch(packStoreProvider);
-  final file = store.newest(AppConfig.cityId) ?? await copyFixture(store.root);
+  final city =
+      ref.watch(settingsProvider.select((s) => s.value?.lastCity)) ??
+      AppConfig.cityId;
+  final file =
+      store.newest(city) ??
+      await store.refresh(city).catchError((Object _) => null) ??
+      await copyFixture(store.root);
   final repo = SqlitePackRepository.open(file.path);
   ref.onDispose(repo.close);
   return repo;

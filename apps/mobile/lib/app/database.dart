@@ -178,6 +178,32 @@ class AppDatabase extends _$AppDatabase {
           .watchSingleOrNull()
           .asyncMap((row) async => row ?? await readSettings());
 
+  /// Distinct cities of past rounds, most recent first.
+  Future<List<String>> recentCityIds() async {
+    final ids = <String>{};
+    for (final r in await (select(
+      rounds,
+    )..orderBy([(_) => OrderingTerm.desc(_rowid)])).get()) {
+      ids.add(r.cityId);
+    }
+    return ids.toList();
+  }
+
+  /// District ids of past rounds in [cityId], most recently played first.
+  Future<List<String>> recentDistrictIds(String cityId) async {
+    final ids = <String>{};
+    for (final r
+        in await (select(rounds)
+              ..where((r) => r.cityId.equals(cityId))
+              ..orderBy([(_) => OrderingTerm.desc(_rowid)]))
+            .get()) {
+      if (parseArea(r.areaJson) case DistrictsArea(ids: final picked)) {
+        ids.addAll(picked);
+      }
+    }
+    return ids.toList();
+  }
+
   /// Whether the player has ever answered (the first-question hint shows once).
   Future<bool> hasAnswered() async =>
       await (select(answers)..limit(1)).getSingleOrNull() != null;

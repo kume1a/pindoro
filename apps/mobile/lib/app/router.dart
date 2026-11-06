@@ -1,11 +1,14 @@
 import 'package:go_router/go_router.dart';
 
 import '../features/home/home_screen.dart';
-import '../features/onboarding/onboarding_screens.dart';
 import '../features/quiz/quiz_screen.dart';
 import '../features/quiz/result_street_screen.dart';
 import '../features/quiz/results_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/setup/area_screen.dart';
+import '../features/setup/city_screen.dart';
+import '../features/setup/difficulty_screen.dart';
+import '../features/setup/welcome_screen.dart';
 import 'database.dart';
 
 /// Paths from docs/design/v1-screens.md § Navigation.

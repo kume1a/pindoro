@@ -110,12 +110,27 @@ void main() {
     expect(files(), ['20261102T000000Z.sqlite', '20261103T000000Z.sqlite']);
   });
 
-  test('the active pack falls back to the bundled fixture', () async {
+  test('the active pack downloads when missing', () async {
     TestWidgetsFlutterBinding.ensureInitialized(); // rootBundle
     final c = ProviderContainer(
       overrides: [
         packStoreProvider.overrideWithValue(store('20261106T000000Z')),
       ],
+    );
+    addTearDown(c.dispose);
+    await c.read(packRepositoryProvider.future);
+    expect(files(), ['20261106T000000Z.sqlite']);
+  });
+
+  test('offline, the active pack falls back to the bundled fixture', () async {
+    TestWidgetsFlutterBinding.ensureInitialized(); // rootBundle
+    final offline = PackStore(
+      root: root,
+      apiBaseUrl: 'http://api.test',
+      client: MockClient((_) async => throw const SocketException('offline')),
+    );
+    final c = ProviderContainer(
+      overrides: [packStoreProvider.overrideWithValue(offline)],
     );
     addTearDown(c.dispose);
     final pack = await c.read(packRepositoryProvider.future);

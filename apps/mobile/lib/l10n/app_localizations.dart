@@ -311,7 +311,7 @@ abstract class AppLocalizations {
   /// No description provided for @citySearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search any city or town'**
+  /// **'Search cities'**
   String get citySearchHint;
 
   /// No description provided for @cityUseLocation.
@@ -365,7 +365,7 @@ abstract class AppLocalizations {
   /// No description provided for @cityNoResultsBody.
   ///
   /// In en, this message translates to:
-  /// **'Check the spelling, or try a nearby town.'**
+  /// **'Check the spelling. Pindoro has these cities so far.'**
   String get cityNoResultsBody;
 
   /// No description provided for @cityNoResultsSuggestion.
@@ -1135,6 +1135,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The streets for this area aren’t on your phone yet. Pick an area from the ones you have.'**
   String get setupAreaMissingBody;
+
+  /// No description provided for @areaCircleName.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} circle'**
+  String areaCircleName(String size);
+
+  /// No description provided for @areaRectangleName.
+  ///
+  /// In en, this message translates to:
+  /// **'{size} rectangle'**
+  String areaRectangleName(String size);
+
+  /// No description provided for @difficultyScoringTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How close counts at {difficulty}'**
+  String difficultyScoringTitle(String difficulty);
+
+  /// No description provided for @difficultyWithin.
+  ///
+  /// In en, this message translates to:
+  /// **'Within {distance}'**
+  String difficultyWithin(String distance);
+
+  /// No description provided for @cityNoneNearby.
+  ///
+  /// In en, this message translates to:
+  /// **'No city near you yet. Pick one from the list.'**
+  String get cityNoneNearby;
+
+  /// No description provided for @cityAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All cities'**
+  String get cityAll;
+
+  /// No description provided for @cityClearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get cityClearSearch;
+
+  /// No description provided for @a11yCitySwitcher.
+  ///
+  /// In en, this message translates to:
+  /// **'City: {city}. Change city.'**
+  String a11yCitySwitcher(String city);
+
+  /// No description provided for @a11yPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Play {what}'**
+  String a11yPlay(String what);
+
+  /// No description provided for @a11ySettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get a11ySettings;
+
+  /// No description provided for @homeXpTotalShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{xp} XP'**
+  String homeXpTotalShort(String xp);
+
+  /// No description provided for @homeKnownOf.
+  ///
+  /// In en, this message translates to:
+  /// **'{known} / {total}'**
+  String homeKnownOf(String known, String total);
+
+  /// No description provided for @homeSavedProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Question {question} of {total} · {xp} XP so far'**
+  String homeSavedProgress(int question, int total, String xp);
+
+  /// No description provided for @unitMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} min'**
+  String unitMinutes(int count);
+
+  /// No description provided for @unitHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} h'**
+  String unitHours(int count);
+
+  /// No description provided for @unitDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} d'**
+  String unitDays(int count);
 }
 
 class _AppLocalizationsDelegate

@@ -176,6 +176,20 @@ ThemeData buildPindoroTheme(Brightness brightness) {
         borderRadius: BorderRadius.circular(PindoroRadius.lg),
       ),
     ),
+    sliderTheme: SliderThemeData(
+      trackHeight: 10,
+      activeTrackColor: c.sliderFill,
+      inactiveTrackColor: c.sliderTrack,
+      thumbColor: c.sliderThumb,
+      overlayColor: c.sliderFill.withValues(alpha: PindoroOpacity.pressed),
+      valueIndicatorColor: c.surfaceInverse,
+      valueIndicatorTextStyle: PindoroType.labelMd.copyWith(
+        color: c.textInverse,
+      ),
+      activeTickMarkColor: c.sliderThumb,
+      inactiveTickMarkColor: c.lineStrong,
+      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 16),
+    ),
     dialogTheme: DialogThemeData(
       backgroundColor: c.surfaceOverlay,
       elevation: 0,

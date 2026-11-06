@@ -14,6 +14,8 @@ final packStoreProvider = Provider<PackStore>(
   (ref) => throw UnimplementedError('packStoreProvider must be overridden'),
 );
 
+typedef CatalogCity = ({String id, String nameKa, String nameEn});
+
 typedef CatalogPack = ({
   String version,
   String url,
@@ -96,16 +98,29 @@ class PackStore {
 
   Directory _cityDir(String city) => Directory(_join(root.path, city));
 
-  Future<CatalogPack?> _catalogPack(String city) async {
+  /// Every city the server has a pack for.
+  Future<List<CatalogCity>> cities() async => [
+    for (final entry in await _catalogCities())
+      (
+        id: entry['id']! as String,
+        nameKa: entry['name_ka']! as String,
+        nameEn: entry['name_en']! as String,
+      ),
+  ];
+
+  Future<List<Map<String, Object?>>> _catalogCities() async {
     final uri = Uri.parse('$apiBaseUrl/v1/catalog');
-    final res = await _client.get(uri);
+    final res = await _client.get(uri).timeout(const Duration(seconds: 20));
     if (res.statusCode != 200) {
       throw HttpException('HTTP ${res.statusCode}', uri: uri);
     }
     final catalog =
         jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, Object?>;
-    for (final entry
-        in (catalog['cities']! as List<Object?>).cast<Map<String, Object?>>()) {
+    return (catalog['cities']! as List<Object?>).cast<Map<String, Object?>>();
+  }
+
+  Future<CatalogPack?> _catalogPack(String city) async {
+    for (final entry in await _catalogCities()) {
       if (entry['id'] != city) continue;
       final p = entry['pack']! as Map<String, Object?>;
       return (

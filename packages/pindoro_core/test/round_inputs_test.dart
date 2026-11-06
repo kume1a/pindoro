@@ -21,6 +21,27 @@ void main() {
     expect(compassPoint(pin, const LatLng(41.71, 44.737)), CompassPoint.nw);
   });
 
+  test('polygonContains respects holes', () {
+    const outer = [
+      LatLng(0, 0),
+      LatLng(0, 10),
+      LatLng(10, 10),
+      LatLng(10, 0),
+      LatLng(0, 0),
+    ];
+    const hole = [
+      LatLng(4, 4),
+      LatLng(4, 6),
+      LatLng(6, 6),
+      LatLng(6, 4),
+      LatLng(4, 4),
+    ];
+    expect(polygonContains([outer], const LatLng(5, 5)), isTrue);
+    expect(polygonContains([outer, hole], const LatLng(5, 5)), isFalse);
+    expect(polygonContains([outer, hole], const LatLng(2, 2)), isTrue);
+    expect(polygonContains([outer], const LatLng(11, 5)), isFalse);
+  });
+
   group('knowledge', () {
     test('comes from the best tier', () {
       expect(knowledgeFrom(null), StreetKnowledge.unknown);

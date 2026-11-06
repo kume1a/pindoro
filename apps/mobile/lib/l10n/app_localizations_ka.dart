@@ -137,7 +137,7 @@ class AppLocalizationsKa extends AppLocalizations {
       'ყოველი შესანიშნავი ან იდეალური პასუხი ახალ ნაცნობ ქუჩას ამატებს. დასახურად შეეხე ეკრანს.';
 
   @override
-  String get citySearchHint => 'მოძებნე ქალაქი ან დაბა';
+  String get citySearchHint => 'ქალაქის ძებნა';
 
   @override
   String get cityUseLocation => 'ჩემი მდებარეობა';
@@ -174,7 +174,7 @@ class AppLocalizationsKa extends AppLocalizations {
 
   @override
   String get cityNoResultsBody =>
-      'შეამოწმე მართლწერა ან სცადე ახლომდებარე დაბა.';
+      'შეამოწმე მართლწერა. ამ ეტაპზე პინდოროში ეს ქალაქებია.';
 
   @override
   String cityNoResultsSuggestion(String name) {
@@ -660,4 +660,77 @@ class AppLocalizationsKa extends AppLocalizations {
   @override
   String get setupAreaMissingBody =>
       'ამ არეალის ქუჩები ჯერ ტელეფონზე არ გაქვს. აირჩიე არეალი იმათგან, რაც გაქვს.';
+
+  @override
+  String areaCircleName(String size) {
+    return '$size წრე';
+  }
+
+  @override
+  String areaRectangleName(String size) {
+    return '$size მართკუთხედი';
+  }
+
+  @override
+  String difficultyScoringTitle(String difficulty) {
+    return 'რამდენად ახლოს უნდა იყო: $difficulty';
+  }
+
+  @override
+  String difficultyWithin(String distance) {
+    return '$distance-ის ფარგლებში';
+  }
+
+  @override
+  String get cityNoneNearby =>
+      'შენს ახლოს ქალაქი ჯერ არ გვაქვს. აირჩიე სიიდან.';
+
+  @override
+  String get cityAll => 'ყველა ქალაქი';
+
+  @override
+  String get cityClearSearch => 'ძებნის გასუფთავება';
+
+  @override
+  String a11yCitySwitcher(String city) {
+    return 'ქალაქი: $city. ქალაქის შეცვლა.';
+  }
+
+  @override
+  String a11yPlay(String what) {
+    return 'თამაში: $what';
+  }
+
+  @override
+  String get a11ySettings => 'პარამეტრები';
+
+  @override
+  String homeXpTotalShort(String xp) {
+    return '$xp XP';
+  }
+
+  @override
+  String homeKnownOf(String known, String total) {
+    return '$known / $total';
+  }
+
+  @override
+  String homeSavedProgress(int question, int total, String xp) {
+    return 'კითხვა $question / $total · ჯერჯერობით $xp XP';
+  }
+
+  @override
+  String unitMinutes(int count) {
+    return '$count წთ';
+  }
+
+  @override
+  String unitHours(int count) {
+    return '$count სთ';
+  }
+
+  @override
+  String unitDays(int count) {
+    return '$count დღე';
+  }
 }

@@ -20,4 +20,13 @@ void main() {
     expect(formatDistance(84, ka), '84 მ');
     expect(formatDistance(1234, ka), '1,2 კმ');
   });
+
+  test('area sizes drop a trailing .0 and use one unit for both sides', () {
+    const en = Locale('en'), ka = Locale('ka');
+    expect(formatSize(500, en), '500 m');
+    expect(formatSize(1500, en), '1.5 km');
+    expect(formatSize(3000, en), '3 km');
+    expect(formatSides(2600, 3000, en), '2.6 × 3 km');
+    expect(formatSides(2600, 3000, ka), '2,6 × 3 კმ');
+  });
 }

@@ -139,7 +139,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Every Great or Perfect adds a street you know. Tap anywhere to close.';
 
   @override
-  String get citySearchHint => 'Search any city or town';
+  String get citySearchHint => 'Search cities';
 
   @override
   String get cityUseLocation => 'Use my location';
@@ -176,7 +176,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get cityNoResultsBody => 'Check the spelling, or try a nearby town.';
+  String get cityNoResultsBody =>
+      'Check the spelling. Pindoro has these cities so far.';
 
   @override
   String cityNoResultsSuggestion(String name) {
@@ -666,4 +667,76 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get setupAreaMissingBody =>
       'The streets for this area aren’t on your phone yet. Pick an area from the ones you have.';
+
+  @override
+  String areaCircleName(String size) {
+    return '$size circle';
+  }
+
+  @override
+  String areaRectangleName(String size) {
+    return '$size rectangle';
+  }
+
+  @override
+  String difficultyScoringTitle(String difficulty) {
+    return 'How close counts at $difficulty';
+  }
+
+  @override
+  String difficultyWithin(String distance) {
+    return 'Within $distance';
+  }
+
+  @override
+  String get cityNoneNearby => 'No city near you yet. Pick one from the list.';
+
+  @override
+  String get cityAll => 'All cities';
+
+  @override
+  String get cityClearSearch => 'Clear search';
+
+  @override
+  String a11yCitySwitcher(String city) {
+    return 'City: $city. Change city.';
+  }
+
+  @override
+  String a11yPlay(String what) {
+    return 'Play $what';
+  }
+
+  @override
+  String get a11ySettings => 'Settings';
+
+  @override
+  String homeXpTotalShort(String xp) {
+    return '$xp XP';
+  }
+
+  @override
+  String homeKnownOf(String known, String total) {
+    return '$known / $total';
+  }
+
+  @override
+  String homeSavedProgress(int question, int total, String xp) {
+    return 'Question $question of $total · $xp XP so far';
+  }
+
+  @override
+  String unitMinutes(int count) {
+    return '$count min';
+  }
+
+  @override
+  String unitHours(int count) {
+    return '$count h';
+  }
+
+  @override
+  String unitDays(int count) {
+    return '$count d';
+  }
 }

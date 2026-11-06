@@ -90,18 +90,19 @@ void main() {
     return id;
   }
 
-  testWidgets('home offers play without a round in progress', (tester) async {
+  testWidgets('home without an area asks for one', (tester) async {
     await pumpApp(tester, Routes.home);
-    expect(find.text('Play'), findsOneWidget);
-    expect(find.text('New round'), findsNothing);
-    expect(find.textContaining('Level 1'), findsOneWidget);
+    expect(find.text('Choose an area'), findsOneWidget);
+    expect(find.text('Level 1'), findsOneWidget);
+    expect(find.text('Streets you know'), findsOneWidget);
   });
 
   testWidgets('home offers to continue an unfinished round', (tester) async {
     await tester.runAsync(() => roundWithAnswers(1));
     await pumpApp(tester, Routes.home);
-    expect(find.text('Continue (1/10)'), findsOneWidget);
-    expect(find.text('New round'), findsOneWidget);
+    expect(find.text('Round in progress'), findsOneWidget);
+    expect(find.text('Continue round'), findsOneWidget);
+    expect(find.text('Start a new round instead'), findsOneWidget);
   });
 
   testWidgets('results list each answer with its street and the level', (
@@ -136,6 +137,6 @@ void main() {
 
   testWidgets('results without a round go home', (tester) async {
     await pumpApp(tester, Routes.results);
-    expect(find.text('Play'), findsOneWidget);
+    expect(find.text('Streets you know'), findsOneWidget);
   });
 }

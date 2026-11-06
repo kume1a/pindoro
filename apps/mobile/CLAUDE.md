@@ -5,7 +5,8 @@ Offline-first: progress in Drift (SQLite), city data from read-only SQLite packs
 ```
 lib/main.dart                  open AppDatabase, pick the initial route, runApp
 lib/app/                       app shell: config, router, database (+ .drift trigger), placeholder layout
-lib/features/<feature>/        one folder per feature: onboarding, home, quiz, settings, map, pack
+lib/features/<feature>/        one folder per feature: setup (welcome, city, area, difficulty), home,
+                               quiz (round, results, level up), settings, map, pack
 lib/features/quiz/round_controller.dart   round state machine; resumes from round_question + answers;
                                questions are NamedStreets (every same-name part); retries set round.retry_of
 lib/features/pack/pack_store.dart         catalog download + sha256/size check -> <docs>/packs/<city>/<version>.sqlite (2 kept)

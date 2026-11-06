@@ -98,7 +98,7 @@
   "homeNewRound": "Start a new round instead",
   "homeCoachTitle": "Your city fills in here",
   "homeCoachBody": "Every Great or Perfect adds a street you know. Tap anywhere to close.",
-  "citySearchHint": "Search any city or town",
+  "citySearchHint": "Search cities",
   "cityUseLocation": "Use my location",
   "cityUseLocationSubtitle": "Play the streets around you",
   "cityLocationLocating": "Finding where you are…",
@@ -121,7 +121,7 @@
       }
     }
   },
-  "cityNoResultsBody": "Check the spelling, or try a nearby town.",
+  "cityNoResultsBody": "Check the spelling. Pindoro has these cities so far.",
   "cityNoResultsSuggestion": "Did you mean {name}?",
   "@cityNoResultsSuggestion": {
     "placeholders": {
@@ -528,5 +528,118 @@
     }
   },
   "setupAreaMissingBody": "The streets for this area aren’t on your phone yet. Pick an area from the ones you have.",
-  "@setupAreaMissingBody": {}
+  "@setupAreaMissingBody": {},
+  "areaCircleName": "{size} circle",
+  "@areaCircleName": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "areaRectangleName": "{size} rectangle",
+  "@areaRectangleName": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "difficultyScoringTitle": "How close counts at {difficulty}",
+  "@difficultyScoringTitle": {
+    "placeholders": {
+      "difficulty": {
+        "type": "String"
+      }
+    }
+  },
+  "difficultyWithin": "Within {distance}",
+  "@difficultyWithin": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "cityNoneNearby": "No city near you yet. Pick one from the list.",
+  "@cityNoneNearby": {},
+  "cityAll": "All cities",
+  "@cityAll": {},
+  "cityClearSearch": "Clear search",
+  "@cityClearSearch": {},
+  "a11yCitySwitcher": "City: {city}. Change city.",
+  "@a11yCitySwitcher": {
+    "placeholders": {
+      "city": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yPlay": "Play {what}",
+  "@a11yPlay": {
+    "placeholders": {
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "a11ySettings": "Settings",
+  "@a11ySettings": {},
+  "homeXpTotalShort": "{xp} XP",
+  "@homeXpTotalShort": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "homeKnownOf": "{known} / {total}",
+  "@homeKnownOf": {
+    "placeholders": {
+      "known": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "homeSavedProgress": "Question {question} of {total} · {xp} XP so far",
+  "@homeSavedProgress": {
+    "placeholders": {
+      "question": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "unitMinutes": "{count} min",
+  "@unitMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unitHours": "{count} h",
+  "@unitHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unitDays": "{count} d",
+  "@unitDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

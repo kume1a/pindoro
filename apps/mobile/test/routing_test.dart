@@ -9,6 +9,7 @@ import 'package:pindoro/app/database.dart';
 import 'package:pindoro/app/router.dart';
 import 'package:pindoro/features/map/pindoro_map.dart';
 import 'package:pindoro/features/pack/sqlite_pack_repository.dart';
+import 'package:pindoro/features/setup/area_map.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
 void main() {
@@ -31,6 +32,9 @@ void main() {
           databaseProvider.overrideWithValue(db),
           pindoroMapBuilderProvider.overrideWithValue(
             (map) => const SizedBox(),
+          ),
+          areaPickerMapBuilderProvider.overrideWithValue(
+            (map) => const SizedBox.expand(),
           ),
           packRepositoryProvider.overrideWith((ref) async {
             final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
@@ -56,32 +60,58 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets(
-    'onboarding walks welcome -> city -> area -> difficulty -> round',
-    (tester) async {
-      await pumpApp(tester, Routes.welcome);
-      expect(find.text('პინდორო'), findsOneWidget);
+  Future<void> tapLabelled(WidgetTester tester, String label) async {
+    await tester.runAsync(() async {
+      await tester.tap(find.bySemanticsLabel(label).first);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pumpAndSettle();
+  }
 
-      await tapAndSettle(tester, 'Start');
-      expect(find.text('City'), findsOneWidget);
-      await tapAndSettle(tester, 'Tbilisi');
-      expect(find.text('Area'), findsOneWidget);
-      await tapAndSettle(tester, 'ვაკის რაიონი');
-      expect(find.text('Difficulty'), findsOneWidget);
-      await tapAndSettle(tester, 'expert');
-      expect(find.text('Confirm'), findsOneWidget);
+  testWidgets('first run: welcome -> city -> area -> difficulty -> round', (
+    tester,
+  ) async {
+    await pumpApp(tester, Routes.welcome);
+    expect(find.text('No recent cities yet'), findsOneWidget);
 
-      final settings = await tester.runAsync(db.readSettings);
-      expect(settings!.lastCity, 'tbilisi');
-      expect(settings.lastDifficulty, Difficulty.expert);
-    },
-  );
+    await tapAndSettle(tester, 'Choose a city');
+    await tapAndSettle(tester, 'Tbilisi');
+    expect(find.text('Pick a district first'), findsOneWidget);
+
+    await tapAndSettle(tester, 'ვაკის რაიონი');
+    await tapAndSettle(tester, 'Next');
+    expect(find.text('Choose a difficulty'), findsOneWidget);
+
+    await tapAndSettle(tester, 'Expert');
+    await tester.scrollUntilVisible(
+      find.text('How close counts at Expert'),
+      200,
+    );
+    expect(find.text('Within 50 m'), findsOneWidget);
+    await tapAndSettle(tester, 'Start');
+    expect(find.text('Confirm'), findsOneWidget);
+
+    final settings = (await tester.runAsync(db.readSettings))!;
+    expect(settings.lastCity, 'tbilisi');
+    expect(settings.area, const DistrictsArea({AppConfig.fixtureDistrictId}));
+    expect(settings.lastDifficulty, Difficulty.expert);
+  });
+
+  testWidgets('the area picker seeds a circle from the picked districts', (
+    tester,
+  ) async {
+    await pumpApp(tester, Routes.area);
+    await tapAndSettle(tester, 'ვაკის რაიონი');
+    await tapAndSettle(tester, 'Circle');
+    expect(find.byType(Slider), findsOneWidget);
+    await tapAndSettle(tester, 'Next');
+    final area = (await tester.runAsync(db.readSettings))!.area;
+    expect(area, isA<CircleArea>());
+  });
 
   testWidgets('settings lead to the map data credits', (tester) async {
     await pumpApp(tester, Routes.home);
-    expect(find.text('Play'), findsOneWidget);
-
-    await tapAndSettle(tester, 'Settings');
+    await tapLabelled(tester, 'Settings');
     await tester.scrollUntilVisible(find.text('Map data credits'), 200);
     await tapAndSettle(tester, 'Map data credits');
     expect(find.text('© OpenStreetMap contributors'), findsOneWidget);

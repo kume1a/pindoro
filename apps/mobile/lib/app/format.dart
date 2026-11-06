@@ -24,3 +24,30 @@ String formatDistance(double metres, Locale locale) {
   final km = (metres / 1000).toStringAsFixed(1);
   return ka ? '${km.replaceFirst('.', ',')} კმ' : '$km km';
 }
+
+/// "500 m", "1.5 km", "3 km": an area dimension (one decimal, no ".0").
+String formatSize(double metres, Locale locale) {
+  final ka = locale.languageCode == 'ka';
+  if (metres < 999.5) return '${metres.round()} ${ka ? 'მ' : 'm'}';
+  return '${_km(metres, ka)} ${ka ? 'კმ' : 'km'}';
+}
+
+/// "2.6 × 3 km": a rectangle's sides.
+String formatSides(double width, double height, Locale locale) {
+  final ka = locale.languageCode == 'ka';
+  return '${_km(width, ka)} × ${_km(height, ka)} ${ka ? 'კმ' : 'km'}';
+}
+
+String _km(double metres, bool ka) {
+  final km = (metres / 1000)
+      .toStringAsFixed(1)
+      .replaceFirst(RegExp(r'\.0$'), '');
+  return ka ? km.replaceFirst('.', ',') : km;
+}
+
+/// "5 min", "2 h", "3 d" for how long ago something happened.
+String formatAgo(Duration ago, AppLocalizations l10n) {
+  if (ago.inMinutes < 60) return l10n.unitMinutes(ago.inMinutes.clamp(1, 59));
+  if (ago.inHours < 24) return l10n.unitHours(ago.inHours);
+  return l10n.unitDays(ago.inDays);
+}

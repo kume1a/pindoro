@@ -9,9 +9,13 @@
   are in place, so add an audio player there once the files are designed.
 - **Georgian copy** — `apps/mobile/lib/l10n/app_ka.arb` is the copy deck's draft plus a few strings
   written in the repo; it needs a native review.
-- **Design-system components** — only `PindoroButton` (primary / secondary / tertiary),
-  `StreetPlate` and `FeedbackBadge` exist; the pin marker, reveal sheet, progress bars and the
-  rest of the components on claude.ai are not built. The player's pin is a dot until then.
+- **MVP screens, not yet as designed:**
+  - Area picker: no district name chips on the map and no 90 % "All districts" sheet with search;
+    every district is a chip in the sheet instead.
+  - Reveal: no distance chip on the map (the basemap style has no glyphs); the sheet shows it.
+  - No "network error" setup state: round setup reads the local pack, and a failed first download
+    falls back to the bundled fixture.
+  - "Use my location" only recognises the active pack's city (no city centres in the catalog).
 - **App identity** — launcher icon, splash screen, final bundle id (`app.pindoro.pindoro`).
 - **Code licence** — not chosen yet (data is ODbL, font is OFL).
 
