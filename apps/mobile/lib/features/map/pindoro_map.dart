@@ -87,10 +87,10 @@ class _PindoroMapState extends State<PindoroMap> {
           southwest: ml.LatLng(b.minLat, b.minLon),
           northeast: ml.LatLng(b.maxLat, b.maxLon),
         ),
-        left: PindoroTokens.mapCameraFitPaddingX,
-        top: PindoroTokens.mapCameraFitPaddingY,
-        right: PindoroTokens.mapCameraFitPaddingX,
-        bottom: PindoroTokens.mapCameraFitPaddingY,
+        left: PindoroCamera.fitPaddingX,
+        top: PindoroCamera.fitPaddingY,
+        right: PindoroCamera.fitPaddingX,
+        bottom: PindoroCamera.fitPaddingY,
       ),
     );
   }
@@ -98,10 +98,7 @@ class _PindoroMapState extends State<PindoroMap> {
   Future<void> _addOverlays() async {
     final c = _controller;
     if (c == null) return;
-    final theme = PindoroTheme.of(context);
-    final mask = Theme.of(context).brightness == Brightness.dark
-        ? PindoroTokens.colorMapDarkMask
-        : PindoroTokens.colorMapLightMask;
+    final colors = PindoroTheme.of(context).colors;
     // Overlays must stay non-interactive: maplibre_gl reports taps on interactive
     // layers as feature taps instead of map clicks, which would block pin drops.
     await c.addGeoJsonSource(
@@ -112,34 +109,43 @@ class _PindoroMapState extends State<PindoroMap> {
       MapSources.areaMask,
       '${MapSources.areaMask}-fill',
       ml.FillLayerProperties(
-        fillColor: _hex(mask),
-        fillOpacity: PindoroTokens.opacityMapMask,
+        fillColor: _hex(colors.mapMask),
+        fillOpacity: PindoroOpacity.mask,
       ),
       enableInteraction: false,
     );
     await c.addGeoJsonSource(MapSources.truthStreet, _lines(const []));
-    await c.addLineLayer(
-      MapSources.truthStreet,
-      '${MapSources.truthStreet}-line',
-      ml.LineLayerProperties(
-        lineColor: _hex(theme.mapTruth),
-        lineWidth: PindoroTokens.sizeMapTruthLineWidth,
-        lineCap: 'round',
-        lineJoin: 'round',
+    // Yellow paint over an ink casing: on light maps the casing carries contrast.
+    for (final (id, color, width) in [
+      (
+        'casing',
+        colors.mapAnswerCasing,
+        PindoroStroke.answer + 2 * PindoroStroke.base,
       ),
-      enableInteraction: false,
-    );
+      ('line', colors.mapAnswerLine, PindoroStroke.answer),
+    ]) {
+      await c.addLineLayer(
+        MapSources.truthStreet,
+        '${MapSources.truthStreet}-$id',
+        ml.LineLayerProperties(
+          lineColor: _hex(color),
+          lineWidth: width,
+          lineCap: 'round',
+          lineJoin: 'round',
+        ),
+        enableInteraction: false,
+      );
+    }
     await c.addGeoJsonSource(MapSources.measure, _lines(const []));
     await c.addLineLayer(
       MapSources.measure,
       '${MapSources.measure}-line',
       ml.LineLayerProperties(
-        lineColor: _hex(theme.mapMeasure),
-        lineWidth: PindoroTokens.sizeMapMeasureLineWidth,
-        lineDasharray: [
-          PindoroTokens.sizeMapMeasureDash,
-          PindoroTokens.sizeMapMeasureGap,
-        ],
+        lineColor: _hex(colors.mapMeasureLine),
+        lineWidth: PindoroStroke.thick,
+        lineCap: 'round',
+        // Dots: zero-length dashes with round caps; dash units are line widths.
+        lineDasharray: [0, PindoroSize.mapMeasureGap / PindoroStroke.thick],
       ),
       enableInteraction: false,
     );
@@ -148,8 +154,10 @@ class _PindoroMapState extends State<PindoroMap> {
       MapSources.youPin,
       '${MapSources.youPin}-dot',
       ml.CircleLayerProperties(
-        circleColor: _hex(theme.mapYou),
-        circleRadius: PindoroTokens.sizeMapPin / 2,
+        circleColor: _hex(colors.mapPlayerPin),
+        circleRadius: PindoroSize.mapPinDot / 2,
+        circleStrokeColor: _hex(colors.mapPlayerHalo),
+        circleStrokeWidth: PindoroStroke.thick,
       ),
       enableInteraction: false,
     );
@@ -187,7 +195,7 @@ class _PindoroMapState extends State<PindoroMap> {
             styleString: style.data!,
             initialCameraPosition: ml.CameraPosition(
               target: ml.LatLng(center.lat, center.lon),
-              zoom: PindoroTokens.mapCameraZoom,
+              zoom: PindoroCamera.zoom,
             ),
             onMapCreated: (c) => _controller = c,
             onStyleLoadedCallback: _addOverlays,
@@ -198,8 +206,8 @@ class _PindoroMapState extends State<PindoroMap> {
             compassEnabled: false,
           ),
           const Positioned(
-            left: PindoroTokens.spaceSm,
-            bottom: PindoroTokens.spaceSm,
+            left: PindoroSpace.s4,
+            bottom: PindoroSpace.s2,
             child: _Attribution(),
           ),
         ],
@@ -221,22 +229,20 @@ class _Attribution extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = PindoroTheme.of(context);
+    final colors = PindoroTheme.of(context).colors;
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: theme.card,
-        borderRadius: BorderRadius.circular(PindoroTokens.radiusSm),
+        color: colors.mapAttributionBg,
+        borderRadius: BorderRadius.circular(PindoroRadius.sm),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          horizontal: PindoroTokens.spaceSm,
-          vertical: PindoroTokens.spaceXs,
+          horizontal: PindoroSpace.s2,
+          vertical: PindoroSpace.s1,
         ),
         child: Text(
           osmAttribution,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(color: theme.muted),
+          style: PindoroType.labelSm.copyWith(color: colors.mapAttributionText),
         ),
       ),
     );

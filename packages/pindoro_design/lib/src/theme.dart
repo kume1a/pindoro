@@ -3,160 +3,169 @@ import 'package:pindoro_core/pindoro_core.dart';
 
 import 'generated/pindoro_tokens.dart';
 
-typedef _T = PindoroTokens;
-
-const String fontFamily = 'FiraGO';
-const String fontPackage = 'pindoro_design';
-const List<FontFeature> tabularFigures = [FontFeature.tabularFigures()];
-
+/// One answer tier's colours (fill/lip/on for badges and buttons, bg/ink for
+/// the reveal sheet) and icon, so a tier never relies on colour alone.
 class TierStyle {
-  const TierStyle({required this.fill, required this.on, required this.icon});
+  const TierStyle({
+    required this.fill,
+    required this.lip,
+    required this.on,
+    required this.bg,
+    required this.ink,
+    required this.icon,
+  });
 
   final Color fill;
+  final Color lip;
   final Color on;
+  final Color bg;
+  final Color ink;
   final IconData icon;
 }
 
+/// The game parts Material has no slot for: every Pindoro colour, plus the
+/// soft shadow for elements floating over the map.
 class PindoroTheme extends ThemeExtension<PindoroTheme> {
-  const PindoroTheme({
-    required this.background,
-    required this.card,
-    required this.lip,
-    required this.text,
-    required this.muted,
-  });
+  const PindoroTheme({required this.colors, required this.floatShadow});
 
   static const light = PindoroTheme(
-    background: _T.colorSurfaceLightBackground,
-    card: _T.colorSurfaceLightCard,
-    lip: _T.colorSurfaceLightLip,
-    text: _T.colorSurfaceLightText,
-    muted: _T.colorSurfaceLightMuted,
+    colors: PindoroColors.light,
+    floatShadow: PindoroShadow.floatLight,
   );
 
   static const dark = PindoroTheme(
-    background: _T.colorSurfaceDarkBackground,
-    card: _T.colorSurfaceDarkCard,
-    lip: _T.colorSurfaceDarkLip,
-    text: _T.colorSurfaceDarkText,
-    muted: _T.colorSurfaceDarkMuted,
+    colors: PindoroColors.dark,
+    floatShadow: PindoroShadow.floatDark,
   );
 
-  final Color background;
-  final Color card;
-  final Color lip;
-  final Color text;
-  final Color muted;
+  final PindoroColors colors;
+  final BoxShadow floatShadow;
 
-  // Map roles never change with brightness: yellow = truth, cobalt = you,
-  // ink = measurement.
-  Color get mapTruth => _T.colorMapTruth;
-  Color get mapYou => _T.colorMapYou;
-  Color get mapMeasure => _T.colorMapMeasure;
-
-  double get radius => _T.radiusLg;
-
-  TierStyle tier(Tier tier) => switch (tier) {
-    Tier.perfect => const TierStyle(
-      fill: _T.colorFeedbackPerfectFill,
-      on: _T.colorFeedbackPerfectOn,
-      icon: Icons.star_rounded,
-    ),
-    Tier.great => const TierStyle(
-      fill: _T.colorFeedbackGreatFill,
-      on: _T.colorFeedbackGreatOn,
-      icon: Icons.check_circle_rounded,
-    ),
-    Tier.close => const TierStyle(
-      fill: _T.colorFeedbackCloseFill,
-      on: _T.colorFeedbackCloseOn,
-      icon: Icons.track_changes_rounded,
-    ),
-    Tier.miss => const TierStyle(
-      fill: _T.colorFeedbackMissFill,
-      on: _T.colorFeedbackMissOn,
-      icon: Icons.alt_route_rounded,
-    ),
-  };
+  TierStyle tier(Tier tier) {
+    final c = colors;
+    return switch (tier) {
+      Tier.perfect => TierStyle(
+        fill: c.feedbackPerfectFill,
+        lip: c.feedbackPerfectLip,
+        on: c.feedbackPerfectOn,
+        bg: c.feedbackPerfectBg,
+        ink: c.feedbackPerfectInk,
+        icon: Icons.star_rounded,
+      ),
+      Tier.great => TierStyle(
+        fill: c.feedbackGreatFill,
+        lip: c.feedbackGreatLip,
+        on: c.feedbackGreatOn,
+        bg: c.feedbackGreatBg,
+        ink: c.feedbackGreatInk,
+        icon: Icons.check_circle_rounded,
+      ),
+      Tier.close => TierStyle(
+        fill: c.feedbackCloseFill,
+        lip: c.feedbackCloseLip,
+        on: c.feedbackCloseOn,
+        bg: c.feedbackCloseBg,
+        ink: c.feedbackCloseInk,
+        icon: Icons.track_changes_rounded,
+      ),
+      Tier.miss => TierStyle(
+        fill: c.feedbackMissFill,
+        lip: c.feedbackMissLip,
+        on: c.feedbackMissOn,
+        bg: c.feedbackMissBg,
+        ink: c.feedbackMissInk,
+        icon: Icons.alt_route_rounded,
+      ),
+    };
+  }
 
   static PindoroTheme of(BuildContext context) =>
       Theme.of(context).extension<PindoroTheme>()!;
 
-  // ponytail: only two fixed instances exist, so copy/lerp just snap.
   @override
-  PindoroTheme copyWith() => this;
+  PindoroTheme copyWith({PindoroColors? colors, BoxShadow? floatShadow}) =>
+      PindoroTheme(
+        colors: colors ?? this.colors,
+        floatShadow: floatShadow ?? this.floatShadow,
+      );
 
   @override
-  PindoroTheme lerp(PindoroTheme? other, double t) =>
-      t < 0.5 || other == null ? this : other;
+  PindoroTheme lerp(PindoroTheme? other, double t) => other == null
+      ? this
+      : PindoroTheme(
+          colors: PindoroColors.lerp(colors, other.colors, t),
+          floatShadow: BoxShadow.lerp(floatShadow, other.floatShadow, t)!,
+        );
 }
 
+/// Material 3 theme from the tokens (slot mapping: docs/design/flutter-handoff.md).
 ThemeData buildPindoroTheme(Brightness brightness) {
   final pindoro = brightness == Brightness.dark
       ? PindoroTheme.dark
       : PindoroTheme.light;
-  final scheme = ColorScheme(
-    brightness: brightness,
-    primary: _T.colorBrandCobalt,
-    onPrimary: _T.colorButtonPrimaryText,
-    secondary: _T.colorBrandYellow,
-    onSecondary: _T.colorBrandInk,
-    error: _T.colorBrandRed,
-    onError: _T.colorFeedbackMissOn,
-    surface: pindoro.background,
-    onSurface: pindoro.text,
-    onSurfaceVariant: pindoro.muted,
-  );
-  final base = ThemeData(
+  final c = pindoro.colors;
+  return ThemeData(
     useMaterial3: true,
-    colorScheme: scheme,
-    scaffoldBackgroundColor: pindoro.background,
-    // M3 would draw the track in `secondary` (yellow): an empty bar looks full.
-    progressIndicatorTheme: ProgressIndicatorThemeData(
-      linearTrackColor: pindoro.lip,
+    colorScheme: ColorScheme(
+      brightness: brightness,
+      primary: c.primaryBase,
+      onPrimary: c.primaryOn,
+      primaryContainer: c.primarySoft,
+      onPrimaryContainer: c.primaryText,
+      secondary: c.rewardBase,
+      onSecondary: c.rewardOn,
+      secondaryContainer: c.rewardSoft,
+      onSecondaryContainer: c.rewardText,
+      tertiary: c.successBase,
+      onTertiary: c.successOn,
+      tertiaryContainer: c.successSoft,
+      onTertiaryContainer: c.successText,
+      error: c.errorBase,
+      onError: c.errorOn,
+      errorContainer: c.errorSoft,
+      onErrorContainer: c.errorText,
+      surface: c.surfaceBase,
+      onSurface: c.textPrimary,
+      onSurfaceVariant: c.textSecondary,
+      surfaceContainerLowest: c.surfaceRaised,
+      surfaceContainerLow: c.surfaceRaised,
+      surfaceContainer: c.surfaceOverlay,
+      surfaceContainerHigh: c.surfaceSunken,
+      surfaceContainerHighest: c.surfaceSunken,
+      outline: c.lineStrong,
+      outlineVariant: c.lineBase,
+      inverseSurface: c.surfaceInverse,
+      onInverseSurface: c.textInverse,
+      inversePrimary: PindoroPalette.cobalt300,
+      scrim: c.scrim,
+      shadow: PindoroPalette.asphalt975,
+      // Depth is the solid lip, never Material's tonal tint.
+      surfaceTint: Colors.transparent,
     ),
-    fontFamily: fontFamily,
-    package: fontPackage,
+    textTheme: const TextTheme(
+      displayLarge: PindoroType.displayLg,
+      displayMedium: PindoroType.displayMd,
+      displaySmall: PindoroType.headlineLg,
+      headlineLarge: PindoroType.headlineLg,
+      headlineMedium: PindoroType.headlineMd,
+      headlineSmall: PindoroType.headlineSm,
+      titleLarge: PindoroType.titleLg,
+      titleMedium: PindoroType.titleMd,
+      titleSmall: PindoroType.titleSm,
+      bodyLarge: PindoroType.bodyLg,
+      bodyMedium: PindoroType.bodyMd,
+      bodySmall: PindoroType.bodySm,
+      labelLarge: PindoroType.labelLg,
+      labelMedium: PindoroType.labelMd,
+      labelSmall: PindoroType.labelSm,
+    ).apply(bodyColor: c.textPrimary, displayColor: c.textPrimary),
+    fontFamily: PindoroType.family,
+    package: PindoroType.package,
+    scaffoldBackgroundColor: c.surfaceBase,
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      color: c.xpFill,
+      linearTrackColor: c.xpTrack,
+    ),
     extensions: [pindoro],
-  );
-  return base.copyWith(textTheme: _withTabularFigures(_sized(base.textTheme)));
-}
-
-TextTheme _sized(TextTheme t) => t.copyWith(
-  displaySmall: t.displaySmall?.copyWith(
-    fontSize: _T.typeDisplay,
-    fontWeight: FontWeight.w700,
-  ),
-  titleLarge: t.titleLarge?.copyWith(
-    fontSize: _T.typeTitle,
-    fontWeight: FontWeight.w600,
-  ),
-  bodyLarge: t.bodyLarge?.copyWith(fontSize: _T.typeBody),
-  bodyMedium: t.bodyMedium?.copyWith(fontSize: _T.typeBody),
-  labelLarge: t.labelLarge?.copyWith(
-    fontSize: _T.typeLabel,
-    fontWeight: FontWeight.w600,
-  ),
-  bodySmall: t.bodySmall?.copyWith(fontSize: _T.typeCaption),
-);
-
-TextTheme _withTabularFigures(TextTheme t) {
-  TextStyle? f(TextStyle? s) => s?.copyWith(fontFeatures: tabularFigures);
-  return t.copyWith(
-    displayLarge: f(t.displayLarge),
-    displayMedium: f(t.displayMedium),
-    displaySmall: f(t.displaySmall),
-    headlineLarge: f(t.headlineLarge),
-    headlineMedium: f(t.headlineMedium),
-    headlineSmall: f(t.headlineSmall),
-    titleLarge: f(t.titleLarge),
-    titleMedium: f(t.titleMedium),
-    titleSmall: f(t.titleSmall),
-    bodyLarge: f(t.bodyLarge),
-    bodyMedium: f(t.bodyMedium),
-    bodySmall: f(t.bodySmall),
-    labelLarge: f(t.labelLarge),
-    labelMedium: f(t.labelMedium),
-    labelSmall: f(t.labelSmall),
   );
 }

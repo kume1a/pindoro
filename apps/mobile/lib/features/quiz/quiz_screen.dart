@@ -92,10 +92,10 @@ class _Playing extends ConsumerWidget {
         ),
         SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(PindoroTokens.spaceMd),
+            padding: const EdgeInsets.all(PindoroSpace.s4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              spacing: PindoroTokens.spaceSm,
+              spacing: PindoroSpace.s2,
               children: [
                 StreetPlate(round.current.nameKa),
                 Text(
@@ -107,7 +107,7 @@ class _Playing extends ConsumerWidget {
                 if (revealed != null)
                   Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(PindoroTokens.spaceMd),
+                      padding: const EdgeInsets.all(PindoroSpace.s4),
                       child: AnswerRow(revealed.answer),
                     ),
                   ),

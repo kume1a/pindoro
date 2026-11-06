@@ -5,20 +5,26 @@ Signpost widgets (`PindoroButton`, `StreetPlate`, `FeedbackBadge`).
 
 ## Tokens
 
-- Source of truth: `tokens/tokens.json` (flat dot-named keys; `color.*` hex, `motion.*`
-  `{duration_ms, curve}`, other numbers = dp). Intent lives in `docs/design/*.md`.
-- `tool/generate_tokens.dart` writes `lib/src/generated/pindoro_tokens.dart`. **Never hand-edit
-  generated code** — edit `tokens.json`, then run `just gen` and commit both. CI runs
-  `just tokens-check` (regenerate + `git diff --exit-code`).
-- No literal colours, radii, spacing or durations in widgets: use `PindoroTokens` / `PindoroTheme`.
+- `tokens/tokens.json` is the claude.ai design system's file, copied verbatim (never edit it here;
+  change it on claude.ai and copy it again). `tokens/app.json` holds app-only tokens in the same
+  format; duplicates of a design-system token fail the generator. Intent lives in
+  `docs/design/*.md`.
+- `tool/generate_tokens.dart` writes `lib/src/generated/pindoro_tokens.dart`: `PindoroPalette`
+  (primitives), `PindoroColors.light` / `.dark` (semantic + component colours, aliases resolved),
+  `PindoroSpace.s4`, `PindoroRadius.lg`, `PindoroElevation.e2`, `PindoroSize`, `PindoroStroke`,
+  `PindoroMotion`, `PindoroOpacity`, `PindoroShadow`, `PindoroCamera` and `PindoroType` roles.
+  **Never hand-edit generated code** — run `just gen` and commit both. CI runs `just tokens-check`.
+- No literal colours, radii, spacing or durations in widgets. Theme-dependent colours come from
+  `PindoroTheme.of(context).colors`, never from `PindoroPalette` directly.
 
 ## Rules
 
-- Never uppercase UI strings. FiraGO (OFL, `fonts/OFL.txt`) everywhere; the theme turns on tabular
-  figures for all text styles.
+- Never uppercase UI strings. FiraGO 400–900 (OFL, `fonts/OFL.txt`) everywhere; every type role
+  carries tabular figures.
 - Tier → colour + icon: perfect yellow star, great aqua check-circle, close orange target,
   miss red reroute. Map roles: yellow = truth, cobalt = you, ink = measurement.
-- `StreetPlate`: max 2 lines, shrink 2 dp steps down to 20 dp, then wrap — never truncate.
+- `StreetPlate`: starts at `headline.md`, shrinks 2 dp steps until it fits two lines, floor
+  `size.plate.name-min` (20), then wraps — never truncates.
 
 ## Tests
 

@@ -6,7 +6,10 @@ export const REPO_ROOT = resolve(import.meta.dirname, "../..");
 export const PIPELINE_DIR = join(REPO_ROOT, "pipeline");
 export const CACHE_DIR = join(PIPELINE_DIR, ".cache");
 export const OUT_DIR = join(PIPELINE_DIR, "out");
-export const TOKENS_FILE = join(REPO_ROOT, "packages/pindoro_design/tokens/tokens.json");
+/** The claude.ai design system's tokens, then the app-only ones. */
+export const TOKENS_FILES = ["tokens.json", "app.json"].map((f) =>
+  join(REPO_ROOT, "packages/pindoro_design/tokens", f),
+);
 export const MOBILE_ASSETS = join(REPO_ROOT, "apps/mobile/assets");
 
 export interface CityConfig {

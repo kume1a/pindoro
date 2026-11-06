@@ -52,7 +52,7 @@ class ResultsScreen extends ConsumerWidget {
         PindoroButton(label: 'Done', onPressed: () => context.go(Routes.home)),
       ],
       child: Column(
-        spacing: PindoroTokens.spaceMd,
+        spacing: PindoroSpace.s4,
         children: [
           LevelBar(results.totalXp),
           Expanded(
@@ -61,7 +61,7 @@ class ResultsScreen extends ConsumerWidget {
                 for (final a in results.answers)
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                      vertical: PindoroTokens.spaceXs,
+                      vertical: PindoroSpace.s1,
                     ),
                     child: AnswerRow(
                       a,

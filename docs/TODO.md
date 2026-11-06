@@ -2,13 +2,15 @@
 
 ## Placeholders to replace
 
-- **Design tokens** — every value in `packages/pindoro_design/tokens/tokens.json` is a placeholder
-  (colours, map palette, radii, spacing, sizes, motion), including `map.camera.zoom`,
-  `opacity.disabled` and the measure-line dash/gap.
-- **Design docs** — `docs/design/signpost.md` and `docs/design/v1-screens.md` are placeholders
-  written during the bootstrap; the real Signpost spec and v1 screen specs are missing.
-- **Screens** — all routes are placeholder layouts; UI copy is English-only placeholder text with
-  no localisation (Georgian + English needed).
+- **App-only tokens** — `packages/pindoro_design/tokens/app.json` values were picked in the repo,
+  not designed: basemap building / railway / boundary colours, the area mask, the pin dot size and
+  camera framing. Design them on claude.ai and move them into the design system.
+- **Screens** — all routes are placeholder layouts, not yet built to `docs/design/v1-screens.md`
+  and the screens canvas; UI copy is English-only placeholder text with no localisation (Georgian +
+  English needed).
+- **Design-system components** — only `PindoroButton` (primary / secondary / tertiary),
+  `StreetPlate` and `FeedbackBadge` exist; the pin marker, reveal sheet, progress bars and the
+  rest of the components on claude.ai are not built. The player's pin is a dot until then.
 - **App identity** — launcher icon, splash screen, final bundle id (`app.pindoro.pindoro`).
 - **Code licence** — not chosen yet (data is ODbL, font is OFL).
 

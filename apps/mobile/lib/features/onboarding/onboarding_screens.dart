@@ -19,10 +19,10 @@ class WelcomeScreen extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     body: SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(PindoroTokens.spaceLg),
+        padding: const EdgeInsets.all(PindoroSpace.s6),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          spacing: PindoroTokens.spaceMd,
+          spacing: PindoroSpace.s4,
           children: [
             const Spacer(),
             const StreetPlate('პინდორო'),

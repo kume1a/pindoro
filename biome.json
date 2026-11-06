@@ -13,7 +13,8 @@
       "!packages/pindoro_design",
       "!shared/openapi",
       "!apps/api/drizzle/meta",
-      "!data/cities/*/identity.json"
+      "!data/cities/*/identity.json",
+      "!docs/design"
     ]
   },
   "formatter": {

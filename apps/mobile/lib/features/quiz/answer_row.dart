@@ -12,7 +12,7 @@ class AnswerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-    spacing: PindoroTokens.spaceSm,
+    spacing: PindoroSpace.s2,
     children: [
       FeedbackBadge(answer.tier),
       if (name case final name?)

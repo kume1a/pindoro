@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../generated/pindoro_tokens.dart';
+import '../theme.dart';
 
-typedef _T = PindoroTokens;
-
-enum PindoroButtonVariant { primary, secondary, ghost }
+enum PindoroButtonVariant { primary, secondary, tertiary }
 
 /// Flat face on a solid bottom lip; pressing pushes the face down onto it.
 class PindoroButton extends StatefulWidget {
@@ -17,6 +16,8 @@ class PindoroButton extends StatefulWidget {
   });
 
   final String label;
+
+  /// Null disables the button.
   final VoidCallback? onPressed;
   final PindoroButtonVariant variant;
   final IconData? icon;
@@ -34,29 +35,35 @@ class _PindoroButtonState extends State<PindoroButton> {
 
   @override
   Widget build(BuildContext context) {
-    final (fill, lip, text) = switch (widget.variant) {
-      PindoroButtonVariant.primary => (
-        _T.colorButtonPrimaryFill,
-        _T.colorButtonPrimaryLip,
-        _T.colorButtonPrimaryText,
-      ),
-      PindoroButtonVariant.secondary => (
-        _T.colorButtonSecondaryFill,
-        _T.colorButtonSecondaryLip,
-        _T.colorButtonSecondaryText,
-      ),
-      PindoroButtonVariant.ghost => (
-        Colors.transparent,
-        Colors.transparent,
-        _T.colorButtonGhostText,
-      ),
-    };
+    final c = PindoroTheme.of(context).colors;
     final enabled = widget.onPressed != null;
-    final radius = BorderRadius.circular(_T.radiusLg);
-    final lipHeight = _pressed ? 0.0 : _T.sizeButtonLip;
+    final (face, lip, text, border) = !enabled
+        ? (c.buttonDisabledBg, c.buttonDisabledLip, c.buttonDisabledText, null)
+        : switch (widget.variant) {
+            PindoroButtonVariant.primary => (
+              c.buttonPrimaryBg,
+              c.buttonPrimaryLip,
+              c.buttonPrimaryText,
+              null,
+            ),
+            PindoroButtonVariant.secondary => (
+              c.buttonSecondaryBg,
+              c.buttonSecondaryLip,
+              c.buttonSecondaryText,
+              c.buttonSecondaryBorder,
+            ),
+            PindoroButtonVariant.tertiary => (
+              Colors.transparent,
+              Colors.transparent,
+              c.buttonTertiaryText,
+              null,
+            ),
+          };
+    final radius = BorderRadius.circular(PindoroRadius.lg);
+    final lipHeight = _pressed ? 0.0 : PindoroElevation.e2;
     final label = Text(
       widget.label,
-      style: Theme.of(context).textTheme.labelLarge?.copyWith(color: text),
+      style: PindoroType.labelButton.copyWith(color: text),
     );
 
     return Semantics(
@@ -71,30 +78,33 @@ class _PindoroButtonState extends State<PindoroButton> {
           onTapDown: (_) => _setPressed(true),
           onTapUp: (_) => _setPressed(false),
           onTapCancel: () => _setPressed(false),
-          child: Opacity(
-            opacity: enabled ? 1 : PindoroTokens.opacityDisabled,
-            child: AnimatedContainer(
-              duration: _T.motionPress,
-              curve: _T.motionPressCurve,
-              margin: EdgeInsets.only(top: _T.sizeButtonLip - lipHeight),
-              padding: EdgeInsets.only(bottom: lipHeight),
-              decoration: BoxDecoration(color: lip, borderRadius: radius),
-              child: Container(
-                height: _T.sizeButtonHeight,
-                padding: const EdgeInsets.symmetric(horizontal: _T.spaceLg),
-                decoration: BoxDecoration(color: fill, borderRadius: radius),
-                alignment: Alignment.center,
-                child: widget.icon == null
-                    ? label
-                    : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        spacing: _T.spaceSm,
-                        children: [
-                          Icon(widget.icon, color: text),
-                          label,
-                        ],
-                      ),
+          child: AnimatedContainer(
+            duration: PindoroMotion.durationInstant,
+            curve: PindoroMotion.easePress,
+            margin: EdgeInsets.only(top: PindoroElevation.e2 - lipHeight),
+            padding: EdgeInsets.only(bottom: lipHeight),
+            decoration: BoxDecoration(color: lip, borderRadius: radius),
+            child: Container(
+              height: PindoroSize.buttonLg,
+              padding: const EdgeInsets.symmetric(horizontal: PindoroSpace.s6),
+              decoration: BoxDecoration(
+                color: face,
+                borderRadius: radius,
+                border: border == null
+                    ? null
+                    : Border.all(color: border, width: PindoroStroke.base),
               ),
+              alignment: Alignment.center,
+              child: widget.icon == null
+                  ? label
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      spacing: PindoroSpace.s2,
+                      children: [
+                        Icon(widget.icon, color: text),
+                        label,
+                      ],
+                    ),
             ),
           ),
         ),

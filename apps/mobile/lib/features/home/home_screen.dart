@@ -69,12 +69,12 @@ class HomeScreen extends ConsumerWidget {
           PindoroButton(label: 'Play', onPressed: () => open(Routes.quiz)),
         PindoroButton(
           label: 'Change area',
-          variant: PindoroButtonVariant.ghost,
+          variant: PindoroButtonVariant.tertiary,
           onPressed: () => open(Routes.area),
         ),
         PindoroButton(
           label: 'Settings',
-          variant: PindoroButtonVariant.ghost,
+          variant: PindoroButtonVariant.tertiary,
           onPressed: () => open(Routes.settings),
         ),
       ],

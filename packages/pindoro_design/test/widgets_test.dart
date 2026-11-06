@@ -29,7 +29,7 @@ void main() {
   group('StreetPlate', () {
     testWidgets('short names use the largest size', (tester) async {
       await tester.pumpWidget(_host(const StreetPlate(_shortName)));
-      expect(_fontSizeOf(tester, _shortName), PindoroTokens.sizePlateFontMax);
+      expect(_fontSizeOf(tester, _shortName), PindoroType.headlineMd.fontSize);
     });
 
     testWidgets('long names shrink but never below the floor or truncate', (
@@ -40,25 +40,23 @@ void main() {
       for (final name in [_longGeorgian, _longLatin]) {
         await tester.pumpWidget(_host(StreetPlate(name)));
         final size = _fontSizeOf(tester, name);
-        expect(size, lessThan(PindoroTokens.sizePlateFontMax));
-        expect(size, greaterThanOrEqualTo(PindoroTokens.sizePlateFontMin));
+        expect(size, lessThan(PindoroType.headlineMd.fontSize!));
+        expect(size, greaterThanOrEqualTo(PindoroSize.plateNameMin));
         final text = tester.widget<Text>(find.text(name));
         expect(text.maxLines, isNull);
         expect(text.overflow, isNot(TextOverflow.ellipsis));
       }
     });
 
-    test('plateFontSize steps down by the step token', () {
-      const style = TextStyle(fontFamily: 'FiraGO');
+    test('plateFontSize steps down in 2 dp steps', () {
+      const style = PindoroType.headlineMd;
       final size = plateFontSize(_longLatin, style, maxWidth: 300);
-      final steps =
-          (PindoroTokens.sizePlateFontMax - size) /
-          PindoroTokens.sizePlateFontStep;
+      final steps = (style.fontSize! - size) / 2;
       expect(steps, steps.roundToDouble());
-      expect(plateFontSize('x', style, maxWidth: 300), 32);
+      expect(plateFontSize('x', style, maxWidth: 300), style.fontSize);
       expect(
         plateFontSize(_longGeorgian * 4, style, maxWidth: 100),
-        PindoroTokens.sizePlateFontMin,
+        PindoroSize.plateNameMin,
       );
     });
   });
@@ -118,7 +116,7 @@ void main() {
               ),
               PindoroButton(
                 label: 'skip',
-                variant: PindoroButtonVariant.ghost,
+                variant: PindoroButtonVariant.tertiary,
                 onPressed: () {},
               ),
               const Wrap(

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../generated/pindoro_tokens.dart';
+import '../theme.dart';
 
-typedef _T = PindoroTokens;
+/// Street card spec: the name shrinks in 2 dp steps until it fits two lines.
+const double _fontStep = 2;
 
-/// Cobalt road-sign plate. Fits the name in two lines by shrinking the font in
-/// 2 dp steps down to a 20 dp floor; below that it wraps and never truncates.
+/// Cobalt road-sign plate with a white inner rule. The name starts at
+/// headline.md and shrinks until it fits two lines, down to
+/// [PindoroSize.plateNameMin]; at the floor it wraps and never truncates.
 class StreetPlate extends StatelessWidget {
   const StreetPlate(this.name, {super.key});
 
@@ -13,63 +16,67 @@ class StreetPlate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final base = Theme.of(context).textTheme.titleLarge!.copyWith(
-      color: _T.colorPlateText,
-      fontWeight: FontWeight.w700,
-    );
+    final theme = PindoroTheme.of(context);
+    final c = theme.colors;
+    final style = PindoroType.headlineMd.copyWith(color: c.streetCardText);
     return Container(
-      padding: const EdgeInsets.all(_T.spaceXs),
+      padding: const EdgeInsets.only(bottom: PindoroElevation.e2),
       decoration: BoxDecoration(
-        color: _T.colorPlateFill,
-        borderRadius: BorderRadius.circular(_T.radiusPlate),
+        color: c.streetCardLip,
+        borderRadius: BorderRadius.circular(PindoroRadius.lg),
+        boxShadow: [theme.floatShadow],
       ),
       child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(
-          horizontal: _T.spaceMd,
-          vertical: _T.spaceSm,
-        ),
+        padding: const EdgeInsets.all(PindoroSpace.s1),
         decoration: BoxDecoration(
-          border: Border.all(
-            color: _T.colorPlateBorder,
-            width: _T.sizePlateBorder,
-          ),
-          borderRadius: BorderRadius.circular(_T.radiusPlate - _T.spaceXs),
+          color: c.streetCardBg,
+          borderRadius: BorderRadius.circular(PindoroRadius.lg),
         ),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final fontSize = plateFontSize(
-              name,
-              base,
-              maxWidth: constraints.maxWidth,
-              textScaler: MediaQuery.textScalerOf(context),
-            );
-            return Text(
-              name,
-              textAlign: TextAlign.center,
-              style: base.copyWith(fontSize: fontSize),
-            );
-          },
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(
+            horizontal: PindoroSpace.s4,
+            vertical: PindoroSpace.s2,
+          ),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: c.streetCardRule,
+              width: PindoroStroke.thick,
+            ),
+            borderRadius: BorderRadius.circular(PindoroRadius.md),
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final fontSize = plateFontSize(
+                name,
+                style,
+                maxWidth: constraints.maxWidth,
+                textScaler: MediaQuery.textScalerOf(context),
+              );
+              return Text(
+                name,
+                textAlign: TextAlign.center,
+                style: style.copyWith(fontSize: fontSize),
+              );
+            },
+          ),
         ),
       ),
     );
   }
 }
 
-/// Largest font size (from the max token down in step tokens) at which [text]
-/// fits in two lines of [maxWidth]; the floor token when nothing fits.
+/// Largest size from [style]'s own down to the floor, in 2 dp steps, at which
+/// [text] fits in two lines of [maxWidth]; the floor when nothing fits.
 double plateFontSize(
   String text,
   TextStyle style, {
   required double maxWidth,
   TextScaler textScaler = TextScaler.noScaling,
 }) {
-  if (!maxWidth.isFinite) return _T.sizePlateFontMax;
-  for (
-    var size = _T.sizePlateFontMax;
-    size > _T.sizePlateFontMin;
-    size -= _T.sizePlateFontStep
-  ) {
+  final start = style.fontSize!;
+  if (!maxWidth.isFinite) return start;
+  for (var size = start; size > PindoroSize.plateNameMin; size -= _fontStep) {
     final painter = TextPainter(
       text: TextSpan(
         text: text,
@@ -84,5 +91,5 @@ double plateFontSize(
     painter.dispose();
     if (fits) return size;
   }
-  return _T.sizePlateFontMin;
+  return PindoroSize.plateNameMin;
 }

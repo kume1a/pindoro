@@ -14,7 +14,7 @@ class LevelBar extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      spacing: PindoroTokens.spaceXs,
+      spacing: PindoroSpace.s1,
       children: [
         Text('Level ${p.level}', style: text.titleLarge),
         LinearProgressIndicator(value: p.xpIntoLevel / p.xpForLevel),

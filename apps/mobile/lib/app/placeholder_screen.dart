@@ -21,10 +21,10 @@ class PlaceholderScreen extends StatelessWidget {
     appBar: AppBar(title: Text(title)),
     body: SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(PindoroTokens.spaceLg),
+        padding: const EdgeInsets.all(PindoroSpace.s6),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          spacing: PindoroTokens.spaceMd,
+          spacing: PindoroSpace.s4,
           children: [
             Text(body, style: Theme.of(context).textTheme.bodyLarge),
             Expanded(child: child ?? const SizedBox()),

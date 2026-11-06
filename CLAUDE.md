@@ -19,6 +19,21 @@ Mobile game for learning a city's streets: the player sees a street name, drops 
 | `infra`                   | Docker Compose (dev + prod), Caddyfile, `tiles/`, `backups/`                |
 | `docs`                    | ADRs, `pack-format.md`, `deploy.md`, `design/`, `TODO.md`                   |
 
+## Design and planning on claude.ai
+
+Research, features and design happen on claude.ai; coding happens here. Read them with the Artifact
+tool (`action: "read"`, `path` for one file) and the docs with the Claude Docs tools. Private links:
+
+| Artifact                                                                               | Holds                                                                                 |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [Pindoro design system](https://claude.ai/artifact/5hFQnWQ3hn8o7G4Fjy6y7K)             | `project/tokens.json`, `README.md`, `v1-screens.md`, `flutter-handoff.md`, components |
+| [Pindoro screens: MVP and releases](https://claude.ai/artifact/Q2dLJn2NTaWESxWgYy9EGb) | Design canvas, one `project/*.dc.html` per screen (MVP, R2–R5, stress tests)          |
+| [Learning Every Tbilisi Route](https://claude.ai/artifact/6W921EaUJ4rjA833Aq8XRi)      | Product plan doc                                                                      |
+
+claude.ai is the source of truth for design; pull changes in by copying its files verbatim
+(`docs/design/README.md` lists which), then `just gen`. Where it conflicts with this file (e.g.
+CARTO / `flutter_map` vs our self-hosted Protomaps + MapLibre), this file wins.
+
 ## Architecture
 
 Offline-first app + static, versioned SQLite city packs + self-hosted Fastify/PostGIS/Martin behind
@@ -27,8 +42,9 @@ no S3/R2 (packs are static files served by Caddy). See `docs/adr/0001-architectu
 
 ## Golden rules
 
-- **Design values only from** `packages/pindoro_design/tokens/tokens.json` and `docs/design/*.md`.
-  Edit tokens, then `just gen`; never hand-edit generated code.
+- **Design values only from** `packages/pindoro_design/tokens/` (`tokens.json` from claude.ai,
+  app-only `app.json`) and `docs/design/*.md`. Change tokens, then `just gen`; never hand-edit
+  generated code.
 - **Never uppercase UI strings.** FiraGO everywhere, tabular figures for numbers.
 - **Scoring constants live only in** pindoro_core `ScoringConfig` and `@pindoro/geo`
   `ScoringConfig`, and they must match `shared/fixtures/*.json`. Change all three together.

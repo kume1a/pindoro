@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type Flavor, layers, namedFlavor } from "@protomaps/basemaps";
-import { MOBILE_ASSETS, REPO_ROOT, TOKENS_FILE } from "./config.ts";
+import { MOBILE_ASSETS, REPO_ROOT, TOKENS_FILES } from "./config.ts";
 import { run } from "./load.ts";
 
 // minLon,minLat,maxLon,maxLat around Georgia
@@ -24,50 +24,60 @@ const latestBuild = async (): Promise<string> => {
   throw new Error("no Protomaps daily build found in the last 21 days");
 };
 
-/** Tokens use Flutter's #AARRGGBB; MapLibre wants #RRGGBBAA. */
-const cssColor = (hex: string): string =>
-  hex.length === 9 ? `#${hex.slice(3)}${hex.slice(1, 3)}` : hex;
+export type TokenValue = string | Record<Mode, string>;
+
+const loadTokens = (): Map<string, TokenValue> =>
+  new Map(
+    TOKENS_FILES.flatMap((file) =>
+      Object.values(JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>).flatMap(
+        (group) =>
+          (group as { tokens?: { name: string; value: TokenValue }[] } | null)?.tokens?.map(
+            (t) => [t.name, t.value] as const,
+          ) ?? [],
+      ),
+    ),
+  );
+
+/** A token's value in one theme, following `{other.token}` aliases. */
+export const resolveToken = (tokens: Map<string, TokenValue>, name: string, mode: Mode): string => {
+  const value = tokens.get(name);
+  if (value === undefined) throw new Error(`tokens: missing ${name}`);
+  const raw = typeof value === "string" ? value : value[mode];
+  const [, alias] = /^\{(.+)\}$/.exec(raw) ?? [];
+  return alias ? resolveToken(tokens, alias, mode) : raw;
+};
 
 const flavorFor = (mode: Mode): Flavor => {
-  const tokens = JSON.parse(readFileSync(TOKENS_FILE, "utf8")) as Record<string, unknown>;
-  const c = (name: string): string => {
-    const value = tokens[`color.map.${mode}.${name}`];
-    if (typeof value !== "string")
-      throw new Error(`tokens.json: missing color.map.${mode}.${name}`);
-    return cssColor(value);
-  };
-  const major = c("road_major");
-  const minor = c("road_minor");
-  const casing = c("road_casing");
+  const tokens = loadTokens();
+  const c = (name: string): string => resolveToken(tokens, `color.map.basemap.${name}`, mode);
+  const land = c("land");
+  const park = c("park");
+  const road = c("road");
+  const casing = c("casing");
   return {
     ...namedFlavor(mode),
-    background: c("background"),
-    earth: c("earth"),
+    background: land,
+    earth: land,
     water: c("water"),
-    park_a: c("park"),
-    park_b: c("park"),
-    wood_a: c("wood"),
-    wood_b: c("wood"),
+    park_a: park,
+    park_b: park,
+    wood_a: park,
+    wood_b: park,
     buildings: c("building"),
     railway: c("railway"),
     boundaries: c("boundary"),
     ...Object.fromEntries(
       ["", "tunnel_", "bridges_"].flatMap((prefix) => [
-        [`${prefix}highway`, major],
-        [`${prefix}major`, major],
-        [`${prefix}link`, major],
-        [`${prefix}minor`, minor],
-        [`${prefix}other`, minor],
-        [`${prefix}highway_casing`, casing],
-        [`${prefix}major_casing`, casing],
-        [`${prefix}link_casing`, casing],
-        [`${prefix}minor_casing`, casing],
-        [`${prefix}other_casing`, casing],
+        ...["highway", "major", "link", "minor", "other"].map((kind) => [`${prefix}${kind}`, road]),
+        ...["highway", "major", "link", "minor", "other"].map((kind) => [
+          `${prefix}${kind}_casing`,
+          casing,
+        ]),
       ]),
     ),
-    minor_a: minor,
-    minor_b: minor,
-    minor_service: minor,
+    minor_a: road,
+    minor_b: road,
+    minor_service: road,
     minor_service_casing: casing,
     major_casing_early: casing,
     major_casing_late: casing,
