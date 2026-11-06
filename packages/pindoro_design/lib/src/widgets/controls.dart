@@ -124,13 +124,17 @@ class SegmentedControl<T> extends StatelessWidget {
                               )
                             : null,
                       ),
-                      child: Text(
-                        label,
-                        textAlign: TextAlign.center,
-                        style: PindoroType.labelLg.copyWith(
-                          color: value == selected
-                              ? c.primaryText
-                              : c.textSecondary,
+                      // Long labels ("მართკუთხედი") shrink instead of wrapping.
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          style: PindoroType.labelLg.copyWith(
+                            color: value == selected
+                                ? c.primaryText
+                                : c.textSecondary,
+                          ),
                         ),
                       ),
                     ),
