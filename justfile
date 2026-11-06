@@ -1,4 +1,7 @@
-# Single entry point for every Pindoro command. On Windows run `just` from Git Bash.
+# Single entry point for every Pindoro command.
+
+# Recipes are sh; on Windows use Git for Windows' sh (`bash` on PATH may be WSL's).
+set windows-shell := ["C:/Program Files/Git/bin/sh.exe", "-cu"]
 
 dc := "docker compose -f infra/docker-compose.yml"
 dc_prod := "docker compose --env-file .env -f infra/docker-compose.prod.yml"

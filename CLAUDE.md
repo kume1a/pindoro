@@ -72,7 +72,8 @@ no S3/R2 (packs are static files served by Caddy). See `docs/adr/0001-architectu
 | `just run-mobile`   | `flutter run` in `apps/mobile` (args pass through)                   |
 | `just deploy`       | On the server: `git pull` + prod compose up                          |
 
-On Windows run `just` from Git Bash. Dev PostGIS listens on host port 5433.
+On Windows `just` works from PowerShell or Git Bash: recipes run in Git for Windows' `sh`
+(`justfile` `windows-shell`). Dev PostGIS listens on host port 5433.
 
 ## Definition of done
 
