@@ -64,6 +64,9 @@ class _CityScreenState extends ConsumerState<CityScreen> {
     switch (result) {
       case LocationDenied():
         setState(() => _locating = _Locating.denied);
+      case LocationUnavailable():
+        setState(() => _locating = _Locating.idle);
+        showToast(context, context.l10n.locationUnavailable);
       case Located(:final position):
         setState(() => _locating = _Locating.idle);
         final city = cityAt(await ref.read(cityListProvider.future), position);

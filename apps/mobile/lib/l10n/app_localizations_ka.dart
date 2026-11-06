@@ -648,6 +648,10 @@ class AppLocalizationsKa extends AppLocalizations {
       'შენს ახლოს ქალაქი ჯერ არ გვაქვს. აირჩიე სიიდან.';
 
   @override
+  String get locationUnavailable =>
+      'ვერ დავადგინეთ, სად ხარ. სცადე თავიდან ან აირჩიე ქალაქი სიიდან.';
+
+  @override
   String get cityAll => 'ყველა ქალაქი';
 
   @override

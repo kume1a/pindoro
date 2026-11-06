@@ -1100,6 +1100,12 @@ abstract class AppLocalizations {
   /// **'No city near you yet. Pick one from the list.'**
   String get cityNoneNearby;
 
+  /// No description provided for @locationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t find where you are. Try again, or pick a city from the list.'**
+  String get locationUnavailable;
+
   /// No description provided for @cityAll.
   ///
   /// In en, this message translates to:

@@ -316,6 +316,8 @@ class _PindoroMapState extends State<PindoroMap>
         );
       case LocationDenied():
         showToast(context, context.l10n.cityLocationDenied);
+      case LocationUnavailable():
+        showToast(context, context.l10n.locationUnavailable);
     }
   }
 

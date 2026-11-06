@@ -654,6 +654,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cityNoneNearby => 'No city near you yet. Pick one from the list.';
 
   @override
+  String get locationUnavailable =>
+      'Couldn\'t find where you are. Try again, or pick a city from the list.';
+
+  @override
   String get cityAll => 'All cities';
 
   @override

@@ -167,6 +167,7 @@
   "difficultyScoringTitle": "რამდენად ახლოს უნდა იყო: {difficulty}",
   "difficultyWithin": "{distance}-ის ფარგლებში",
   "cityNoneNearby": "შენს ახლოს ქალაქი ჯერ არ გვაქვს. აირჩიე სიიდან.",
+  "locationUnavailable": "ვერ დავადგინეთ, სად ხარ. სცადე თავიდან ან აირჩიე ქალაქი სიიდან.",
   "cityAll": "ყველა ქალაქი",
   "cityClearSearch": "ძებნის გასუფთავება",
   "a11yCitySwitcher": "ქალაქი: {city}. ქალაქის შეცვლა.",

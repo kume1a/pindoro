@@ -545,6 +545,7 @@
   },
   "cityNoneNearby": "No city near you yet. Pick one from the list.",
   "@cityNoneNearby": {},
+  "locationUnavailable": "Couldn't find where you are. Try again, or pick a city from the list.",
   "cityAll": "All cities",
   "@cityAll": {},
   "cityClearSearch": "Clear search",
