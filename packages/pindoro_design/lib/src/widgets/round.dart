@@ -8,6 +8,7 @@ import 'package:pindoro_core/pindoro_core.dart';
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
+import 'motion.dart';
 import 'surfaces.dart';
 
 /// The quiz top bar's progress: one segment per question. Answered segments
@@ -377,7 +378,12 @@ class RevealSheet extends StatelessWidget {
                         spacing: PindoroSpace.s3,
                         runSpacing: PindoroSpace.s2,
                         children: [
-                          TierBadge(tier, size: 44),
+                          PopIn(
+                            delay: const Duration(milliseconds: 80),
+                            child: tier == Tier.close
+                                ? Wiggle(child: TierBadge(tier, size: 44))
+                                : TierBadge(tier, size: 44),
+                          ),
                           Text(
                             label,
                             style: PindoroType.headlineMd.copyWith(

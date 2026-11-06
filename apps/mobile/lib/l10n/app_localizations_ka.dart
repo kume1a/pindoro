@@ -21,9 +21,6 @@ class AppLocalizationsKa extends AppLocalizations {
   String get commonBack => 'უკან';
 
   @override
-  String get commonTryAgain => 'თავიდან ცდა';
-
-  @override
   String get commonContinue => 'გაგრძელება';
 
   @override
@@ -31,9 +28,6 @@ class AppLocalizationsKa extends AppLocalizations {
 
   @override
   String get commonCancel => 'გაუქმება';
-
-  @override
-  String get commonNotNow => 'ახლა არა';
 
   @override
   String commonXp(String xp) {
@@ -119,22 +113,10 @@ class AppLocalizationsKa extends AppLocalizations {
   }
 
   @override
-  String homeSavedXp(String xp) {
-    return 'ჯერჯერობით $xp XP';
-  }
-
-  @override
   String get homeContinueRound => 'რაუნდის გაგრძელება';
 
   @override
   String get homeNewRound => 'ახალი რაუნდის დაწყება';
-
-  @override
-  String get homeCoachTitle => 'აქ შენი ქალაქი ივსება';
-
-  @override
-  String get homeCoachBody =>
-      'ყოველი შესანიშნავი ან იდეალური პასუხი ახალ ნაცნობ ქუჩას ამატებს. დასახურად შეეხე ეკრანს.';
 
   @override
   String get citySearchHint => 'ქალაქის ძებნა';
@@ -165,9 +147,6 @@ class AppLocalizationsKa extends AppLocalizations {
   }
 
   @override
-  String get citySearching => 'ვეძებთ…';
-
-  @override
   String cityNoResultsTitle(String query) {
     return '„$query“ ვერ მოიძებნა';
   }
@@ -175,28 +154,6 @@ class AppLocalizationsKa extends AppLocalizations {
   @override
   String get cityNoResultsBody =>
       'შეამოწმე მართლწერა. ამ ეტაპზე პინდოროში ეს ქალაქებია.';
-
-  @override
-  String cityNoResultsSuggestion(String name) {
-    return 'ხომ არ გულისხმობდი: $name?';
-  }
-
-  @override
-  String get cityOfflineTitle => 'ძებნას ინტერნეტი სჭირდება';
-
-  @override
-  String get cityOfflineBody =>
-      'ბოლო ქალაქები მაინც იხსნება. ქუჩები ინტერნეტის დაბრუნებისას ჩაიტვირთება.';
-
-  @override
-  String get cityPermissionTitle => 'ითამაშე იქ, სადაც ხარ';
-
-  @override
-  String get cityPermissionBody =>
-      'პინდორო ერთხელ ამოწმებს შენს მდებარეობას, რომ იპოვოს ქალაქი, სადაც ხარ. ის არ ინახება და არავის გადაეცემა.';
-
-  @override
-  String get cityPermissionAllow => 'მდებარეობის დაშვება';
 
   @override
   String get areaModeDistricts => 'უბნები';
@@ -248,24 +205,6 @@ class AppLocalizationsKa extends AppLocalizations {
       'მართკუთხედის გადასაადგილებლად გადაათრიე რუკა. ზომის შესაცვლელად — კუთხე.';
 
   @override
-  String areaNoDistricts(String city) {
-    return 'ამ ქალაქს რუკაზე უბნების საზღვრები არ აქვს, ამიტომ აირჩიე წრე ან მართკუთხედი.';
-  }
-
-  @override
-  String get areaSearchDistricts => 'უბნის ძებნა';
-
-  @override
-  String areaPickedCount(int count) {
-    return 'არჩეულია $count';
-  }
-
-  @override
-  String areaKnownCount(int known, int total) {
-    return 'ნაცნობი: $known / $total';
-  }
-
-  @override
   String get difficultyTitle => 'აირჩიე სირთულე';
 
   @override
@@ -297,13 +236,6 @@ class AppLocalizationsKa extends AppLocalizations {
 
   @override
   String get setupLoading => 'ქუჩებს ვეძებთ…';
-
-  @override
-  String get setupErrorTitle => 'ქუჩები ვერ ჩაიტვირთა';
-
-  @override
-  String get setupErrorBody =>
-      'შეამოწმე ინტერნეტი და სცადე თავიდან. ქალაქი, არეალი და სირთულე შენახულია.';
 
   @override
   String get setupSparseTitle => 'აქ საკმარისი ქუჩა არ არის';
@@ -355,11 +287,7 @@ class AppLocalizationsKa extends AppLocalizations {
 
   @override
   String get toastPinOutsideArea =>
-      'შენი ქუჩა წრის შიგნითაა. აქაც შეგიძლია დაადასტურო.';
-
-  @override
-  String get toastOffline =>
-      'ინტერნეტი არ გაქვს. რუკაზე ხარვეზებია, მაგრამ რაუნდი გრძელდება.';
+      'შენი ქუჩა სათამაშო არეალის შიგნითაა. აქაც შეგიძლია დაადასტურო.';
 
   @override
   String toastRoundResumed(int question) {
@@ -454,9 +382,6 @@ class AppLocalizationsKa extends AppLocalizations {
 
   @override
   String get resultsPlayAgain => 'ახლიდან თამაში';
-
-  @override
-  String get resultsNewRound => 'ახალი რაუნდი';
 
   @override
   String levelUpTitle(int level) {
@@ -562,9 +487,6 @@ class AppLocalizationsKa extends AppLocalizations {
 
   @override
   String get a11yMap => 'რუკა. ცენტრში მოსანიშნად ორჯერ შეეხე.';
-
-  @override
-  String get a11yPin => 'შენი ნიშნული. გადასატანად ორჯერ შეეხე და დააჭირე.';
 
   @override
   String get a11yConfirmDisabled => 'დადასტურება. ჯერ მონიშნე რუკაზე.';
@@ -703,11 +625,6 @@ class AppLocalizationsKa extends AppLocalizations {
 
   @override
   String get a11ySettings => 'პარამეტრები';
-
-  @override
-  String homeXpTotalShort(String xp) {
-    return '$xp XP';
-  }
 
   @override
   String homeKnownOf(String known, String total) {

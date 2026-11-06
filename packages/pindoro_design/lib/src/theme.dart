@@ -3,6 +3,7 @@ import 'package:pindoro_core/pindoro_core.dart';
 
 import 'generated/pindoro_tokens.dart';
 import 'widgets/graphics.dart';
+import 'widgets/motion.dart';
 
 /// One answer tier's colours (fill/lip/on for badges and buttons, bg/ink for
 /// the reveal sheet) and icon, so a tier never relies on colour alone.
@@ -175,6 +176,12 @@ ThemeData buildPindoroTheme(Brightness brightness) {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(PindoroRadius.lg),
       ),
+    ),
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: PindoroPageTransitions(),
+        TargetPlatform.iOS: PindoroPageTransitions(),
+      },
     ),
     sliderTheme: SliderThemeData(
       trackHeight: 10,

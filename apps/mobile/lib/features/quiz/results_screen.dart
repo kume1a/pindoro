@@ -63,9 +63,11 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
       counts.update(e.answer.tier, (n) => n + 1, ifAbsent: () => 1);
     }
     return PageScaffold(
-      title: data.round.retryOf == null
-          ? l10n.resultsTitle
-          : l10n.resultsRetryTitle,
+      title: data.round.retryOf != null
+          ? l10n.resultsRetryTitle
+          : data.retryCount == 0
+          ? l10n.resultsFlawless
+          : l10n.resultsTitle,
       trailing: PindoroIconButton(
         glyph: PindoroGlyph.close,
         semanticLabel: l10n.commonDone,
@@ -83,7 +85,6 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
             ),
           ),
           Expanded(
-            flex: 2,
             child: PindoroButton(
               label: l10n.resultsPlayAgain,
               onPressed: () => context.go(Routes.round),
@@ -104,10 +105,15 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
             Expanded(
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: RewardTotal(
-                  value: l10n.commonXp(formatNumber(data.roundXp)),
-                  semanticLabel: l10n.a11yRewardTotal(
-                    formatNumber(data.roundXp),
+                child: PopIn(
+                  child: CountUp(
+                    value: data.roundXp,
+                    builder: (context, xp) => RewardTotal(
+                      value: l10n.commonXp(formatNumber(xp)),
+                      semanticLabel: l10n.a11yRewardTotal(
+                        formatNumber(data.roundXp),
+                      ),
+                    ),
                   ),
                 ),
               ),

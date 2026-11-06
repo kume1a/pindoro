@@ -214,6 +214,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                     picked: mode == AreaMode.districts ? _picked : const {},
                     initialBounds: city.bbox,
                     focus: _focus,
+                    showDistricts: mode == AreaMode.districts,
                     onTap: (at) {
                       if (mode != AreaMode.districts) return;
                       for (final d in districts) {

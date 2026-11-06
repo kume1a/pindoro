@@ -87,7 +87,7 @@ class PageScaffold extends StatelessWidget {
   }
 }
 
-/// Centres content at most 600 dp wide (tablets).
+/// Full width up to 600 dp, centred on tablets.
 class ContentColumn extends StatelessWidget {
   const ContentColumn({super.key, required this.child});
 
@@ -97,7 +97,7 @@ class ContentColumn extends StatelessWidget {
   Widget build(BuildContext context) => Center(
     child: ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 600),
-      child: child,
+      child: SizedBox(width: double.infinity, child: child),
     ),
   );
 }

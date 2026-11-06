@@ -323,7 +323,7 @@ class _SavedCard extends StatelessWidget {
       border: c.primaryBase,
       padding: const EdgeInsets.all(PindoroSpace.s4),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             l10n.homeSavedTitle,

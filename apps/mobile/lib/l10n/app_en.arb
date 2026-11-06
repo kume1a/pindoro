@@ -4,11 +4,9 @@
   "commonNext": "Next",
   "commonConfirm": "Confirm",
   "commonBack": "Back",
-  "commonTryAgain": "Try again",
   "commonContinue": "Continue",
   "commonDone": "Done",
   "commonCancel": "Cancel",
-  "commonNotNow": "Not now",
   "commonXp": "+{xp} XP",
   "@commonXp": {
     "placeholders": {
@@ -86,18 +84,8 @@
       }
     }
   },
-  "homeSavedXp": "{xp} XP so far",
-  "@homeSavedXp": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      }
-    }
-  },
   "homeContinueRound": "Continue round",
   "homeNewRound": "Start a new round instead",
-  "homeCoachTitle": "Your city fills in here",
-  "homeCoachBody": "Every Great or Perfect adds a street you know. Tap anywhere to close.",
   "citySearchHint": "Search cities",
   "cityUseLocation": "Use my location",
   "cityUseLocationSubtitle": "Play the streets around you",
@@ -112,7 +100,6 @@
       }
     }
   },
-  "citySearching": "Searching…",
   "cityNoResultsTitle": "No places called “{query}”",
   "@cityNoResultsTitle": {
     "placeholders": {
@@ -122,19 +109,6 @@
     }
   },
   "cityNoResultsBody": "Check the spelling. Pindoro has these cities so far.",
-  "cityNoResultsSuggestion": "Did you mean {name}?",
-  "@cityNoResultsSuggestion": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "cityOfflineTitle": "Search needs a connection",
-  "cityOfflineBody": "Your recent cities still open. Their streets load again when you’re back online.",
-  "cityPermissionTitle": "Play where you are",
-  "cityPermissionBody": "Pindoro checks your location once to find the town you’re in. It isn’t stored or shared.",
-  "cityPermissionAllow": "Allow location",
   "areaModeDistricts": "Districts",
   "areaModeCircle": "Circle",
   "areaModeRectangle": "Rectangle",
@@ -177,34 +151,6 @@
   "areaPlayArea": "Play area",
   "areaCircleHelp": "Drag the map to move the circle. Drag its handle or the slider to resize it.",
   "areaRectangleHelp": "Drag the map to move the rectangle. Drag a corner to resize it.",
-  "areaNoDistricts": "{city} has no district outlines on the map, so pick a circle or a rectangle.",
-  "@areaNoDistricts": {
-    "placeholders": {
-      "city": {
-        "type": "String"
-      }
-    }
-  },
-  "areaSearchDistricts": "Search districts",
-  "areaPickedCount": "{count} picked",
-  "@areaPickedCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "areaKnownCount": "{known} / {total} known",
-  "@areaKnownCount": {
-    "placeholders": {
-      "known": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
   "difficultyTitle": "Choose a difficulty",
   "difficultyEasy": "Easy",
   "difficultyMedium": "Medium",
@@ -216,8 +162,6 @@
   "difficultyExpertDescription": "Adds residential and small streets",
   "difficultyStart": "Start",
   "setupLoading": "Finding streets…",
-  "setupErrorTitle": "Streets didn’t load",
-  "setupErrorBody": "Check your connection and try again. Your city, area and difficulty are saved.",
   "setupSparseTitle": "Not enough streets here",
   "setupSparseBody": "A round needs 10 streets.",
   "setupSparseBiggerCircle": "Make the circle bigger",
@@ -260,8 +204,7 @@
   },
   "quizLeaveKeepPlaying": "Keep playing",
   "quizLeaveConfirm": "Leave for now",
-  "toastPinOutsideArea": "Your street is inside the circle. You can still confirm here.",
-  "toastOffline": "You’re offline. The map has gaps, but your round still works.",
+  "toastPinOutsideArea": "Your street is inside the play area. You can still confirm here.",
   "toastRoundResumed": "Welcome back. Your round continues at question {question}.",
   "@toastRoundResumed": {
     "placeholders": {
@@ -342,7 +285,6 @@
   "resultsToRetry": "to retry",
   "resultsOnStreet": "On the street",
   "resultsPlayAgain": "Play again",
-  "resultsNewRound": "Play a new round",
   "levelUpTitle": "Level {level}!",
   "@levelUpTitle": {
     "placeholders": {
@@ -405,7 +347,6 @@
     }
   },
   "a11yMap": "Map. Double-tap to drop your pin at the centre.",
-  "a11yPin": "Your pin. Double-tap and hold to move.",
   "a11yConfirmDisabled": "Confirm. Drop a pin first.",
   "a11yReveal": "{tier}. {distance} away. Plus {xp} XP.",
   "@a11yReveal": {
@@ -585,14 +526,6 @@
   },
   "a11ySettings": "Settings",
   "@a11ySettings": {},
-  "homeXpTotalShort": "{xp} XP",
-  "@homeXpTotalShort": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      }
-    }
-  },
   "homeKnownOf": "{known} / {total}",
   "@homeKnownOf": {
     "placeholders": {

@@ -107,6 +107,10 @@ class _CityScreenState extends ConsumerState<CityScreen> {
     final recents = [
       for (final id in recentIds) ...cities.where((city) => city.id == id),
     ];
+    final others = [
+      for (final city in cities)
+        if (!recentIds.contains(city.id)) city,
+    ];
 
     return PageScaffold(
       title: l10n.commonChooseCity,
@@ -167,8 +171,10 @@ class _CityScreenState extends ConsumerState<CityScreen> {
             SectionTitle(l10n.cityRecent),
             ListGroup(children: [for (final city in recents) row(city)]),
           ],
-          SectionTitle(l10n.cityAll),
-          ListGroup(children: [for (final city in cities) row(city)]),
+          if (others.isNotEmpty) ...[
+            SectionTitle(l10n.cityAll),
+            ListGroup(children: [for (final city in others) row(city)]),
+          ],
         ],
       ],
     );

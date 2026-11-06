@@ -122,12 +122,6 @@ abstract class AppLocalizations {
   /// **'Back'**
   String get commonBack;
 
-  /// No description provided for @commonTryAgain.
-  ///
-  /// In en, this message translates to:
-  /// **'Try again'**
-  String get commonTryAgain;
-
   /// No description provided for @commonContinue.
   ///
   /// In en, this message translates to:
@@ -145,12 +139,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get commonCancel;
-
-  /// No description provided for @commonNotNow.
-  ///
-  /// In en, this message translates to:
-  /// **'Not now'**
-  String get commonNotNow;
 
   /// No description provided for @commonXp.
   ///
@@ -278,12 +266,6 @@ abstract class AppLocalizations {
   /// **'saved {time} ago'**
   String homeSavedAgo(String time);
 
-  /// No description provided for @homeSavedXp.
-  ///
-  /// In en, this message translates to:
-  /// **'{xp} XP so far'**
-  String homeSavedXp(String xp);
-
   /// No description provided for @homeContinueRound.
   ///
   /// In en, this message translates to:
@@ -295,18 +277,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Start a new round instead'**
   String get homeNewRound;
-
-  /// No description provided for @homeCoachTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Your city fills in here'**
-  String get homeCoachTitle;
-
-  /// No description provided for @homeCoachBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Every Great or Perfect adds a street you know. Tap anywhere to close.'**
-  String get homeCoachBody;
 
   /// No description provided for @citySearchHint.
   ///
@@ -350,12 +320,6 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{{count} place} other{{count} places}}'**
   String cityResultCount(int count);
 
-  /// No description provided for @citySearching.
-  ///
-  /// In en, this message translates to:
-  /// **'Searching…'**
-  String get citySearching;
-
   /// No description provided for @cityNoResultsTitle.
   ///
   /// In en, this message translates to:
@@ -367,42 +331,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Check the spelling. Pindoro has these cities so far.'**
   String get cityNoResultsBody;
-
-  /// No description provided for @cityNoResultsSuggestion.
-  ///
-  /// In en, this message translates to:
-  /// **'Did you mean {name}?'**
-  String cityNoResultsSuggestion(String name);
-
-  /// No description provided for @cityOfflineTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Search needs a connection'**
-  String get cityOfflineTitle;
-
-  /// No description provided for @cityOfflineBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Your recent cities still open. Their streets load again when you’re back online.'**
-  String get cityOfflineBody;
-
-  /// No description provided for @cityPermissionTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Play where you are'**
-  String get cityPermissionTitle;
-
-  /// No description provided for @cityPermissionBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Pindoro checks your location once to find the town you’re in. It isn’t stored or shared.'**
-  String get cityPermissionBody;
-
-  /// No description provided for @cityPermissionAllow.
-  ///
-  /// In en, this message translates to:
-  /// **'Allow location'**
-  String get cityPermissionAllow;
 
   /// No description provided for @areaModeDistricts.
   ///
@@ -476,30 +404,6 @@ abstract class AppLocalizations {
   /// **'Drag the map to move the rectangle. Drag a corner to resize it.'**
   String get areaRectangleHelp;
 
-  /// No description provided for @areaNoDistricts.
-  ///
-  /// In en, this message translates to:
-  /// **'{city} has no district outlines on the map, so pick a circle or a rectangle.'**
-  String areaNoDistricts(String city);
-
-  /// No description provided for @areaSearchDistricts.
-  ///
-  /// In en, this message translates to:
-  /// **'Search districts'**
-  String get areaSearchDistricts;
-
-  /// No description provided for @areaPickedCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} picked'**
-  String areaPickedCount(int count);
-
-  /// No description provided for @areaKnownCount.
-  ///
-  /// In en, this message translates to:
-  /// **'{known} / {total} known'**
-  String areaKnownCount(int known, int total);
-
   /// No description provided for @difficultyTitle.
   ///
   /// In en, this message translates to:
@@ -565,18 +469,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Finding streets…'**
   String get setupLoading;
-
-  /// No description provided for @setupErrorTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Streets didn’t load'**
-  String get setupErrorTitle;
-
-  /// No description provided for @setupErrorBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Check your connection and try again. Your city, area and difficulty are saved.'**
-  String get setupErrorBody;
 
   /// No description provided for @setupSparseTitle.
   ///
@@ -665,14 +557,8 @@ abstract class AppLocalizations {
   /// No description provided for @toastPinOutsideArea.
   ///
   /// In en, this message translates to:
-  /// **'Your street is inside the circle. You can still confirm here.'**
+  /// **'Your street is inside the play area. You can still confirm here.'**
   String get toastPinOutsideArea;
-
-  /// No description provided for @toastOffline.
-  ///
-  /// In en, this message translates to:
-  /// **'You’re offline. The map has gaps, but your round still works.'**
-  String get toastOffline;
 
   /// No description provided for @toastRoundResumed.
   ///
@@ -823,12 +709,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Play again'**
   String get resultsPlayAgain;
-
-  /// No description provided for @resultsNewRound.
-  ///
-  /// In en, this message translates to:
-  /// **'Play a new round'**
-  String get resultsNewRound;
 
   /// No description provided for @levelUpTitle.
   ///
@@ -1016,12 +896,6 @@ abstract class AppLocalizations {
   /// **'Map. Double-tap to drop your pin at the centre.'**
   String get a11yMap;
 
-  /// No description provided for @a11yPin.
-  ///
-  /// In en, this message translates to:
-  /// **'Your pin. Double-tap and hold to move.'**
-  String get a11yPin;
-
   /// No description provided for @a11yConfirmDisabled.
   ///
   /// In en, this message translates to:
@@ -1195,12 +1069,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings'**
   String get a11ySettings;
-
-  /// No description provided for @homeXpTotalShort.
-  ///
-  /// In en, this message translates to:
-  /// **'{xp} XP'**
-  String homeXpTotalShort(String xp);
 
   /// No description provided for @homeKnownOf.
   ///

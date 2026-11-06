@@ -62,8 +62,16 @@ class PindoroMap extends StatefulWidget {
   State<PindoroMap> createState() => _PindoroMapState();
 }
 
-class _PindoroMapState extends State<PindoroMap> {
+class _PindoroMapState extends State<PindoroMap>
+    with SingleTickerProviderStateMixin {
   ml.MapLibreMapController? _controller;
+
+  /// The pin drop: falls 24 dp and bounces once (`motion.pin-drop`).
+  late final AnimationController _drop = AnimationController(
+    vsync: this,
+    duration: PindoroMotion.pinDrop,
+  )..addListener(_dropTick);
+  double _pixelRatio = 1;
   Brightness? _brightness;
   Future<String>? _style;
   bool _overlaysReady = false;
@@ -79,10 +87,40 @@ class _PindoroMapState extends State<PindoroMap> {
     }
   }
 
+  /// The pin symbol anchored at its tip, raised by [dy] dp.
+  ml.SymbolLayerProperties _pinLayer(double dy) => ml.SymbolLayerProperties(
+    iconImage: _pinImage,
+    iconAnchor: 'bottom',
+    iconOffset: [0, dy * _pixelRatio],
+    iconAllowOverlap: true,
+    iconIgnorePlacement: true,
+  );
+
+  @override
+  void dispose() {
+    _drop.dispose();
+    super.dispose();
+  }
+
+  void _dropTick() {
+    final fall = 24 * (1 - Curves.bounceOut.transform(_drop.value));
+    // setLayerProperties replaces every property, so send them all.
+    _controller?.setLayerProperties(
+      '${MapSources.youPin}-pin',
+      _pinLayer(PinMark.tipInset - fall),
+    );
+  }
+
   @override
   void didUpdateWidget(PindoroMap oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!_overlaysReady) return;
+    if (widget.pin != null &&
+        widget.pin != oldWidget.pin &&
+        widget.truth == null &&
+        !MediaQuery.disableAnimationsOf(context)) {
+      unawaited(_drop.forward(from: 0));
+    }
     unawaited(_syncOverlays());
     if (widget.truth != null && widget.truth != oldWidget.truth) {
       unawaited(_fit([...widget.truth!.expand((l) => l), ?widget.pin]));
@@ -116,7 +154,7 @@ class _PindoroMapState extends State<PindoroMap> {
     final c = _controller;
     if (c == null) return;
     final colors = PindoroTheme.of(context).colors;
-    final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final pixelRatio = _pixelRatio = MediaQuery.devicePixelRatioOf(context);
     final pin = PinMark(
       face: colors.mapPlayerPin,
       lip: colors.mapPlayerPinLip,
@@ -190,13 +228,7 @@ class _PindoroMapState extends State<PindoroMap> {
     await c.addSymbolLayer(
       MapSources.youPin,
       '${MapSources.youPin}-pin',
-      ml.SymbolLayerProperties(
-        iconImage: _pinImage,
-        iconAnchor: 'bottom',
-        iconOffset: [0, PinMark.tipInset * pixelRatio],
-        iconAllowOverlap: true,
-        iconIgnorePlacement: true,
-      ),
+      _pinLayer(PinMark.tipInset),
       enableInteraction: false,
     );
     _overlaysReady = true;
@@ -248,21 +280,24 @@ class _PindoroMapState extends State<PindoroMap> {
       return Stack(
         children: [
           if (style.hasData)
-            ml.MapLibreMap(
-              styleString: style.data!,
-              initialCameraPosition: ml.CameraPosition(
-                target: ml.LatLng(center.lat, center.lon),
-                zoom: PindoroCamera.zoom,
+            Semantics(
+              label: widget.onTap == null ? null : l10n.a11yMap,
+              child: ml.MapLibreMap(
+                styleString: style.data!,
+                initialCameraPosition: ml.CameraPosition(
+                  target: ml.LatLng(center.lat, center.lon),
+                  zoom: PindoroCamera.zoom,
+                ),
+                onMapCreated: (c) => _controller = c,
+                onStyleLoadedCallback: _addOverlays,
+                onMapClick: (_, at) =>
+                    widget.onTap?.call(LatLng(at.latitude, at.longitude)),
+                rotateGesturesEnabled: false,
+                tiltGesturesEnabled: false,
+                compassEnabled: false,
+                // Our own chip carries the attribution text.
+                attributionButtonMargins: const Point(-100, -100),
               ),
-              onMapCreated: (c) => _controller = c,
-              onStyleLoadedCallback: _addOverlays,
-              onMapClick: (_, at) =>
-                  widget.onTap?.call(LatLng(at.latitude, at.longitude)),
-              rotateGesturesEnabled: false,
-              tiltGesturesEnabled: false,
-              compassEnabled: false,
-              // Our own chip carries the attribution text.
-              attributionButtonMargins: const Point(-100, -100),
             ),
           if (widget.showControls)
             Positioned(

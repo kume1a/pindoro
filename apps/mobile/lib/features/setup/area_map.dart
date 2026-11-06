@@ -20,6 +20,7 @@ class AreaPickerMap extends StatefulWidget {
     required this.onTap,
     required this.onCamera,
     this.focus,
+    this.showDistricts = true,
   });
 
   final List<District> districts;
@@ -30,6 +31,9 @@ class AreaPickerMap extends StatefulWidget {
 
   /// Moves the camera to these bounds when it changes.
   final Bbox? focus;
+
+  /// District outlines show only while picking districts.
+  final bool showDistricts;
 
   @override
   State<AreaPickerMap> createState() => _AreaPickerMapState();
@@ -67,6 +71,14 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
     super.didUpdateWidget(old);
     if (!_ready) return;
     if (old.picked != widget.picked) unawaited(_syncPicked());
+    if (old.showDistricts != widget.showDistricts) {
+      unawaited(
+        _controller?.setLayerVisibility(
+          '$_allSource-outline',
+          widget.showDistricts,
+        ),
+      );
+    }
     final focus = widget.focus;
     if (focus != null && focus != old.focus) unawaited(_moveTo(focus));
   }
@@ -123,6 +135,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
     );
     _ready = true;
     await _syncPicked();
+    await c.setLayerVisibility('$_allSource-outline', widget.showDistricts);
     await _moveTo(widget.focus ?? widget.initialBounds);
   }
 

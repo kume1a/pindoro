@@ -24,6 +24,13 @@ gen:
     dart run packages/pindoro_design/tool/generate_tokens.dart
     cd apps/mobile && dart run build_runner build
 
+# Native app icon and splash from the branding assets (design-system asset groups)
+branding:
+    cd packages/pindoro_design && flutter test tool/rasterize_branding_test.dart
+    cd apps/mobile && dart pub global run flutter_launcher_icons -f flutter_launcher_icons.yaml
+    cp apps/mobile/assets/branding/png/splash-mark.png apps/mobile/android/app/src/main/res/drawable-xxxhdpi/splash.png
+    cp apps/mobile/assets/branding/png/splash-mark-dark.png apps/mobile/android/app/src/main/res/drawable-night-xxxhdpi/splash.png
+
 # Fail when generated tokens are stale
 tokens-check:
     dart run packages/pindoro_design/tool/generate_tokens.dart

@@ -28,11 +28,12 @@ class LevelUpScreen extends StatelessWidget {
               painter: _Rays(c.levelText.withValues(alpha: 0.08)),
             ),
           ),
+          const Positioned.fill(child: Celebration(size: CelebrationSize.big)),
           SafeArea(
             child: Column(
               children: [
                 const Spacer(),
-                LevelBadge(level, size: 120),
+                PopIn(child: LevelBadge(level, size: 120)),
                 const SizedBox(height: PindoroSpace.s4),
                 const Pindo(PindoExpression.cheering, height: 104),
                 const SizedBox(height: PindoroSpace.s4),

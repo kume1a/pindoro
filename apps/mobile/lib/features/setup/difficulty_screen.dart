@@ -100,6 +100,10 @@ class _DifficultyScreenState extends ConsumerState<DifficultyScreen> {
                     Expanded(
                       child: AnimatedSwitcher(
                         duration: PindoroMotion.durationQuick,
+                        layoutBuilder: (current, previous) => Stack(
+                          alignment: Alignment.centerLeft,
+                          children: [...previous, ?current],
+                        ),
                         child: Text(
                           text,
                           key: ValueKey(text),

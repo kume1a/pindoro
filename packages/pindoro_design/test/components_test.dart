@@ -5,10 +5,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
+/// Animations off, so pops and count-ups show their final frame.
 Widget _host(Widget child, {Brightness brightness = Brightness.light}) =>
     MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: buildPindoroTheme(brightness),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(disableAnimations: true),
+        child: child!,
+      ),
       home: Scaffold(
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(16),

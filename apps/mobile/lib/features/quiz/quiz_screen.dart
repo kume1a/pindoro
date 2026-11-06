@@ -12,6 +12,7 @@ import '../../app/format.dart';
 import '../../app/page_scaffold.dart';
 import '../../app/router.dart';
 import '../../app/settings.dart';
+import '../../app/toast.dart';
 import '../../l10n/app_localizations.dart';
 import '../map/pindoro_map.dart';
 import 'round_controller.dart';
@@ -41,7 +42,20 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   Future<void> _begin() async {
     final controller = ref.read(roundControllerProvider.notifier);
     final roundId = widget.roundId;
-    if (roundId != null) return controller.resume(roundId);
+    if (roundId != null) {
+      await controller.resume(roundId);
+      if (!mounted) return;
+      if (ref.read(roundControllerProvider) case RoundAsking(
+        :final round,
+      ) when round.index > 0) {
+        showToast(
+          context,
+          context.l10n.toastRoundResumed(round.number),
+          above: _RoundView._confirmInset(context),
+        );
+      }
+      return;
+    }
     final retryOf = widget.retryOf;
     if (retryOf != null) return controller.startRetry(retryOf);
     final settings = await ref.read(databaseProvider).readSettings();
@@ -130,6 +144,9 @@ class _RoundView extends ConsumerWidget {
         round.index == 0 &&
         (ref.watch(_firstQuestionEverProvider).value ?? false);
     final topInset = MediaQuery.paddingOf(context).top + 180;
+    final celebration = revealed == null
+        ? null
+        : celebrationFor(revealed.answer.tier);
 
     return PopScope(
       canPop: false,
@@ -149,6 +166,16 @@ class _RoundView extends ConsumerWidget {
                     ? (at) {
                         feedback.pinDrop();
                         controller.placePin(at);
+                        final inside = round.shape.boundary.any(
+                          (polygon) => polygonContains(polygon, at),
+                        );
+                        if (!inside) {
+                          showToast(
+                            context,
+                            l10n.toastPinOutsideArea,
+                            above: _confirmInset(context),
+                          );
+                        }
                       }
                     : null,
                 topInset: topInset,
@@ -208,11 +235,30 @@ class _RoundView extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    _Plate(
-                      street: street,
-                      settings: settings,
-                      compact: revealed != null,
-                      retryDistance: round.previousDistanceM[round.currentId],
+                    AnimatedSwitcher(
+                      duration: PindoroMotion.durationBase,
+                      reverseDuration: PindoroMotion.durationFast,
+                      switchInCurve: PindoroMotion.easeDecelerate,
+                      switchOutCurve: PindoroMotion.easeAccelerate,
+                      transitionBuilder: (child, animation) => FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: animation.drive(
+                            Tween(
+                              begin: const Offset(0, 0.15),
+                              end: Offset.zero,
+                            ),
+                          ),
+                          child: child,
+                        ),
+                      ),
+                      child: _Plate(
+                        key: ValueKey(round.currentId),
+                        street: street,
+                        settings: settings,
+                        compact: revealed != null,
+                        retryDistance: round.previousDistanceM[round.currentId],
+                      ),
                     ),
                   ],
                 ),
@@ -239,8 +285,20 @@ class _RoundView extends ConsumerWidget {
             else
               Align(
                 alignment: Alignment.bottomCenter,
-                child: ContentColumn(
-                  child: _Reveal(revealed: revealed, onNext: controller.next),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  child: RiseIn(
+                    key: ValueKey(revealed.answer.id),
+                    child: _Reveal(revealed: revealed, onNext: controller.next),
+                  ),
+                ),
+              ),
+            if (celebration != null)
+              Positioned.fill(
+                child: Celebration(
+                  key: ValueKey(revealed!.answer.id),
+                  size: celebration,
+                  burstCenter: const Alignment(-0.78, 0.5),
                 ),
               ),
           ],
@@ -270,6 +328,7 @@ class _RoundView extends ConsumerWidget {
 
 class _Plate extends StatelessWidget {
   const _Plate({
+    super.key,
     required this.street,
     required this.settings,
     required this.compact,
@@ -325,7 +384,6 @@ class _Reveal extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final answer = revealed.answer;
-    final round = revealed.round;
     final distance = formatDistance(
       answer.distanceM,
       Localizations.localeOf(context),
@@ -341,13 +399,22 @@ class _Reveal extends StatelessWidget {
         ),
       ),
     };
+    return CountUp(
+      value: answer.xp,
+      builder: (context, xp) => _sheet(l10n, sentence, xp),
+    );
+  }
+
+  Widget _sheet(AppLocalizations l10n, String sentence, int xp) {
+    final answer = revealed.answer;
+    final round = revealed.round;
     return RevealSheet(
       tier: answer.tier,
       label: tierLabel(l10n, answer.tier),
       sentence: sentence,
       xpLabel: answer.tier == Tier.miss
           ? null
-          : l10n.commonXp(formatNumber(answer.xp)),
+          : l10n.commonXp(formatNumber(xp)),
       chips: [if (round.streak >= 2) l10n.revealStreak(round.streak)],
       mascot: Pindo(switch (answer.tier) {
         Tier.perfect || Tier.great => PindoExpression.cheering,

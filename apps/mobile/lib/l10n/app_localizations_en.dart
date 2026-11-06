@@ -21,9 +21,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonBack => 'Back';
 
   @override
-  String get commonTryAgain => 'Try again';
-
-  @override
   String get commonContinue => 'Continue';
 
   @override
@@ -31,9 +28,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonCancel => 'Cancel';
-
-  @override
-  String get commonNotNow => 'Not now';
 
   @override
   String commonXp(String xp) {
@@ -121,22 +115,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String homeSavedXp(String xp) {
-    return '$xp XP so far';
-  }
-
-  @override
   String get homeContinueRound => 'Continue round';
 
   @override
   String get homeNewRound => 'Start a new round instead';
-
-  @override
-  String get homeCoachTitle => 'Your city fills in here';
-
-  @override
-  String get homeCoachBody =>
-      'Every Great or Perfect adds a street you know. Tap anywhere to close.';
 
   @override
   String get citySearchHint => 'Search cities';
@@ -168,9 +150,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get citySearching => 'Searching…';
-
-  @override
   String cityNoResultsTitle(String query) {
     return 'No places called “$query”';
   }
@@ -178,28 +157,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get cityNoResultsBody =>
       'Check the spelling. Pindoro has these cities so far.';
-
-  @override
-  String cityNoResultsSuggestion(String name) {
-    return 'Did you mean $name?';
-  }
-
-  @override
-  String get cityOfflineTitle => 'Search needs a connection';
-
-  @override
-  String get cityOfflineBody =>
-      'Your recent cities still open. Their streets load again when you’re back online.';
-
-  @override
-  String get cityPermissionTitle => 'Play where you are';
-
-  @override
-  String get cityPermissionBody =>
-      'Pindoro checks your location once to find the town you’re in. It isn’t stored or shared.';
-
-  @override
-  String get cityPermissionAllow => 'Allow location';
 
   @override
   String get areaModeDistricts => 'Districts';
@@ -252,24 +209,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Drag the map to move the rectangle. Drag a corner to resize it.';
 
   @override
-  String areaNoDistricts(String city) {
-    return '$city has no district outlines on the map, so pick a circle or a rectangle.';
-  }
-
-  @override
-  String get areaSearchDistricts => 'Search districts';
-
-  @override
-  String areaPickedCount(int count) {
-    return '$count picked';
-  }
-
-  @override
-  String areaKnownCount(int known, int total) {
-    return '$known / $total known';
-  }
-
-  @override
   String get difficultyTitle => 'Choose a difficulty';
 
   @override
@@ -302,13 +241,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get setupLoading => 'Finding streets…';
-
-  @override
-  String get setupErrorTitle => 'Streets didn’t load';
-
-  @override
-  String get setupErrorBody =>
-      'Check your connection and try again. Your city, area and difficulty are saved.';
 
   @override
   String get setupSparseTitle => 'Not enough streets here';
@@ -360,11 +292,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get toastPinOutsideArea =>
-      'Your street is inside the circle. You can still confirm here.';
-
-  @override
-  String get toastOffline =>
-      'You’re offline. The map has gaps, but your round still works.';
+      'Your street is inside the play area. You can still confirm here.';
 
   @override
   String toastRoundResumed(int question) {
@@ -460,9 +388,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resultsPlayAgain => 'Play again';
-
-  @override
-  String get resultsNewRound => 'Play a new round';
 
   @override
   String levelUpTitle(int level) {
@@ -568,9 +493,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get a11yMap => 'Map. Double-tap to drop your pin at the centre.';
-
-  @override
-  String get a11yPin => 'Your pin. Double-tap and hold to move.';
 
   @override
   String get a11yConfirmDisabled => 'Confirm. Drop a pin first.';
@@ -709,11 +631,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get a11ySettings => 'Settings';
-
-  @override
-  String homeXpTotalShort(String xp) {
-    return '$xp XP';
-  }
 
   @override
   String homeKnownOf(String known, String total) {

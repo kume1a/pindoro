@@ -5,7 +5,10 @@ Signpost widgets: `PindoroButton`, `StreetPlate`, `FeedbackBadge`, surfaces (`Li
 `ListGroup`, `ListRow`), controls (`SegmentedControl`, `PindoroToggle`, `PindoroIconButton`,
 `LaneLoader`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark`) and the round
 components (`QuestionBar`, `Pill`, `MapControl`, `RevealSheet`, `ResultRow`, `RewardTotal`,
-`TierTally`, `CoachBubble`). Widgets take their text as parameters; strings live in the app.
+`TierTally`, `CoachBubble`), setup components (`SearchField`, `CitySwitcher`, `PindoroChip`,
+`DifficultyCard`, `DistrictMiniMap`) and motion (`PindoroPageTransitions`, `CountUp`, `PopIn`,
+`RiseIn`, `Celebration`, `Wiggle`; all calm down under reduce motion). Widgets take their text
+as parameters; strings live in the app.
 
 ## Tokens
 
