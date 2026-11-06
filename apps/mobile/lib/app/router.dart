@@ -7,24 +7,37 @@ import '../features/quiz/results_screen.dart';
 import '../features/settings/settings_screen.dart';
 import 'database.dart';
 
+/// Paths from docs/design/v1-screens.md § Navigation.
 abstract final class Routes {
+  static const String home = '/';
   static const String welcome = '/welcome';
   static const String city = '/city';
   static const String area = '/area';
   static const String difficulty = '/difficulty';
-  static const String home = '/home';
-  static const String quiz = '/quiz';
+
+  /// `?round=<id>` resumes, `?retry=<id>` plays that round's missed streets.
+  static const String round = '/round';
+
+  /// `?round=<id>`; `/results/street/<index>?round=<id>` opens one answer.
   static const String results = '/results';
   static const String settings = '/settings';
+  static const String credits = '/settings/credits';
+
+  static String resume(String roundId) => '$round?round=$roundId';
+  static String retry(String roundId) => '$round?retry=$roundId';
+  static String resultsOf(String roundId) => '$results?round=$roundId';
+  static String resultStreet(String roundId, int index) =>
+      '$results/street/$index?round=$roundId';
 }
 
-/// First run opens onboarding; afterwards the app starts at home.
+/// Welcome shows until the player finishes a first round; then Home.
 Future<String> initialLocation(AppDatabase db) async =>
-    (await db.readSettings()).onboardingDone ? Routes.home : Routes.welcome;
+    await db.hasFinishedRound() ? Routes.home : Routes.welcome;
 
 GoRouter buildRouter(String initialLocation) => GoRouter(
   initialLocation: initialLocation,
   routes: [
+    GoRoute(path: Routes.home, builder: (_, _) => const HomeScreen()),
     GoRoute(path: Routes.welcome, builder: (_, _) => const WelcomeScreen()),
     GoRoute(path: Routes.city, builder: (_, _) => const CityScreen()),
     GoRoute(path: Routes.area, builder: (_, _) => const AreaScreen()),
@@ -32,9 +45,8 @@ GoRouter buildRouter(String initialLocation) => GoRouter(
       path: Routes.difficulty,
       builder: (_, _) => const DifficultyScreen(),
     ),
-    GoRoute(path: Routes.home, builder: (_, _) => const HomeScreen()),
     GoRoute(
-      path: Routes.quiz,
+      path: Routes.round,
       builder: (_, state) => QuizScreen(
         roundId: state.uri.queryParameters['round'],
         retryOf: state.uri.queryParameters['retry'],
@@ -48,5 +60,6 @@ GoRouter buildRouter(String initialLocation) => GoRouter(
           ResultsScreen(roundId: state.uri.queryParameters['round']!),
     ),
     GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
+    GoRoute(path: Routes.credits, builder: (_, _) => const CreditsScreen()),
   ],
 );

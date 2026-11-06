@@ -5,9 +5,10 @@
 - **App-only tokens** — `packages/pindoro_design/tokens/app.json` values were picked in the repo,
   not designed: basemap building / railway / boundary colours, the area mask, the pin dot size and
   camera framing. Design them on claude.ai and move them into the design system.
-- **Screens** — all routes are placeholder layouts, not yet built to `docs/design/v1-screens.md`
-  and the screens canvas; UI copy is English-only placeholder text with no localisation (Georgian +
-  English needed).
+- **Sound kit** — the design's 14 sounds don't exist yet; the Sound toggle and `GameFeedback`
+  are in place, so add an audio player there once the files are designed.
+- **Georgian copy** — `apps/mobile/lib/l10n/app_ka.arb` is the copy deck's draft plus a few strings
+  written in the repo; it needs a native review.
 - **Design-system components** — only `PindoroButton` (primary / secondary / tertiary),
   `StreetPlate` and `FeedbackBadge` exist; the pin marker, reveal sheet, progress bars and the
   rest of the components on claude.ai are not built. The player's pin is a dot until then.
@@ -16,7 +17,6 @@
 
 ## Gameplay
 
-- Settings: theme, language, about/licences page.
 - Offline maps: rounds work offline, but tiles need the server or MapLibre's cache.
 - The dark map style is generated but has not been checked on a device.
 - Districts such as Vake include large forested areas, so streets in one round can be kilometres

@@ -50,7 +50,6 @@ void main() {
             ),
           ),
           lastDifficulty: const Value(Difficulty.expert),
-          onboardingDone: const Value(true),
         ),
       ),
     );
@@ -71,7 +70,7 @@ void main() {
             return const SizedBox.expand();
           }),
         ],
-        child: const PindoroApp(initialLocation: Routes.quiz),
+        child: const PindoroApp(initialLocation: Routes.round),
       ),
     );
     await settle(tester);

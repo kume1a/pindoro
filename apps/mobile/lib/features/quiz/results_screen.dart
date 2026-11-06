@@ -55,7 +55,7 @@ class ResultsScreen extends ConsumerWidget {
           PindoroButton(
             label: 'Retry ${results.retryCount} missed',
             variant: PindoroButtonVariant.secondary,
-            onPressed: () => context.go('${Routes.quiz}?retry=$roundId'),
+            onPressed: () => context.go(Routes.retry(roundId)),
           ),
         PindoroButton(label: 'Done', onPressed: () => context.go(Routes.home)),
       ],

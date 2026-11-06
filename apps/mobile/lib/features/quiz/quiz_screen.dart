@@ -50,7 +50,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   Widget build(BuildContext context) {
     ref.listen(roundControllerProvider, (_, next) {
       if (next is RoundFinished) {
-        context.go('${Routes.results}?round=${next.roundId}');
+        context.go(Routes.resultsOf(next.roundId));
       }
     });
     return switch (ref.watch(roundControllerProvider)) {

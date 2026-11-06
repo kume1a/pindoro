@@ -433,9 +433,167 @@ i1.GeneratedColumn<String> _column_21(String aliasedName) =>
       type: i1.DriftSqlType.string,
       $customConstraints: 'NULL REFERENCES round(id)',
     );
+
+final class Schema4 extends i0.VersionedSchema {
+  Schema4({required super.database}) : super(version: 4);
+  @override
+  late final List<i1.DatabaseSchemaEntity> entities = [
+    round,
+    answer,
+    answerImmutable,
+    userSettings,
+    roundQuestion,
+  ];
+  late final Shape4 round = Shape4(
+    source: i0.VersionedTable(
+      entityName: 'round',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [
+        _column_0,
+        _column_1,
+        _column_2,
+        _column_3,
+        _column_4,
+        _column_5,
+        _column_6,
+        _column_21,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape1 answer = Shape1(
+    source: i0.VersionedTable(
+      entityName: 'answer',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [
+        _column_0,
+        _column_7,
+        _column_8,
+        _column_9,
+        _column_10,
+        _column_11,
+        _column_12,
+        _column_13,
+        _column_4,
+        _column_14,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  final i1.Trigger answerImmutable = i1.Trigger(
+    'CREATE TRIGGER answer_immutable BEFORE UPDATE ON answer BEGIN SELECT RAISE (ABORT, \'answer rows are immutable\');END',
+    'answer_immutable',
+  );
+  late final Shape5 userSettings = Shape5(
+    source: i0.VersionedTable(
+      entityName: 'user_settings',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(id)'],
+      columns: [
+        _column_15,
+        _column_16,
+        _column_17,
+        _column_18,
+        _column_22,
+        _column_23,
+        _column_24,
+        _column_25,
+        _column_26,
+      ],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+  late final Shape3 roundQuestion = Shape3(
+    source: i0.VersionedTable(
+      entityName: 'round_question',
+      withoutRowId: false,
+      isStrict: false,
+      tableConstraints: ['PRIMARY KEY(round_id, position)'],
+      columns: [_column_7, _column_20, _column_8],
+      attachedDatabase: database,
+    ),
+    alias: null,
+  );
+}
+
+class Shape5 extends i0.VersionedTable {
+  Shape5({required super.source, required super.alias}) : super.aliased();
+  i1.GeneratedColumn<int> get id =>
+      columnsByName['id']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<String> get lastCity =>
+      columnsByName['last_city']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get lastAreaJson =>
+      columnsByName['last_area_json']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get lastDifficulty =>
+      columnsByName['last_difficulty']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get appLanguage =>
+      columnsByName['app_language']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get streetNames =>
+      columnsByName['street_names']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<String> get theme =>
+      columnsByName['theme']! as i1.GeneratedColumn<String>;
+  i1.GeneratedColumn<int> get sound =>
+      columnsByName['sound']! as i1.GeneratedColumn<int>;
+  i1.GeneratedColumn<int> get haptics =>
+      columnsByName['haptics']! as i1.GeneratedColumn<int>;
+}
+
+i1.GeneratedColumn<String> _column_22(String aliasedName) =>
+    i1.GeneratedColumn<String>(
+      'app_language',
+      aliasedName,
+      true,
+      type: i1.DriftSqlType.string,
+      $customConstraints: 'NULL',
+    );
+i1.GeneratedColumn<String> _column_23(String aliasedName) =>
+    i1.GeneratedColumn<String>(
+      'street_names',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.string,
+      $customConstraints: 'NOT NULL DEFAULT \'local\'',
+      defaultValue: const i1.CustomExpression('\'local\''),
+    );
+i1.GeneratedColumn<String> _column_24(String aliasedName) =>
+    i1.GeneratedColumn<String>(
+      'theme',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.string,
+      $customConstraints: 'NOT NULL DEFAULT \'system\'',
+      defaultValue: const i1.CustomExpression('\'system\''),
+    );
+i1.GeneratedColumn<int> _column_25(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'sound',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NOT NULL DEFAULT 1 CHECK (sound IN (0, 1))',
+      defaultValue: const i1.CustomExpression('1'),
+    );
+i1.GeneratedColumn<int> _column_26(String aliasedName) =>
+    i1.GeneratedColumn<int>(
+      'haptics',
+      aliasedName,
+      false,
+      type: i1.DriftSqlType.int,
+      $customConstraints: 'NOT NULL DEFAULT 1 CHECK (haptics IN (0, 1))',
+      defaultValue: const i1.CustomExpression('1'),
+    );
 i0.MigrationStepWithVersion migrationSteps({
   required Future<void> Function(i1.Migrator m, Schema2 schema) from1To2,
   required Future<void> Function(i1.Migrator m, Schema3 schema) from2To3,
+  required Future<void> Function(i1.Migrator m, Schema4 schema) from3To4,
 }) {
   return (currentVersion, database) async {
     switch (currentVersion) {
@@ -449,6 +607,11 @@ i0.MigrationStepWithVersion migrationSteps({
         final migrator = i1.Migrator(database, schema);
         await from2To3(migrator, schema);
         return 3;
+      case 3:
+        final schema = Schema4(database: database);
+        final migrator = i1.Migrator(database, schema);
+        await from3To4(migrator, schema);
+        return 4;
       default:
         throw ArgumentError.value('Unknown migration from $currentVersion');
     }
@@ -458,6 +621,11 @@ i0.MigrationStepWithVersion migrationSteps({
 i1.OnUpgrade stepByStep({
   required Future<void> Function(i1.Migrator m, Schema2 schema) from1To2,
   required Future<void> Function(i1.Migrator m, Schema3 schema) from2To3,
+  required Future<void> Function(i1.Migrator m, Schema4 schema) from3To4,
 }) => i0.VersionedSchema.stepByStepHelper(
-  step: migrationSteps(from1To2: from1To2, from2To3: from2To3),
+  step: migrationSteps(
+    from1To2: from1To2,
+    from2To3: from2To3,
+    from3To4: from3To4,
+  ),
 );

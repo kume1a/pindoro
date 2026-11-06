@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
+import 'graphics.dart';
 
 enum PindoroButtonVariant { primary, secondary, tertiary }
 
@@ -20,7 +21,7 @@ class PindoroButton extends StatefulWidget {
   /// Null disables the button.
   final VoidCallback? onPressed;
   final PindoroButtonVariant variant;
-  final IconData? icon;
+  final PindoroGlyph? icon;
 
   @override
   State<PindoroButton> createState() => _PindoroButtonState();
@@ -101,7 +102,7 @@ class _PindoroButtonState extends State<PindoroButton> {
                       mainAxisSize: MainAxisSize.min,
                       spacing: PindoroSpace.s2,
                       children: [
-                        Icon(widget.icon, color: text),
+                        PindoroIcon(widget.icon!, color: text, cut: face),
                         label,
                       ],
                     ),

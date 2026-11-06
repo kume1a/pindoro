@@ -20,8 +20,18 @@ test/drift/                    generated schema helpers + migration test
 - **Riverpod 3, no codegen.** Plain `Provider` / `FutureProvider` declared next to what they
   provide. `databaseProvider` is overridden in `main()` and in tests. Widgets read with
   `ref.watch` in build, `ref.read` in callbacks.
-- **Routing:** go_router, paths in `Routes`. First run → `/welcome`, later → `/home`
-  (`initialLocation()` reads `user_settings.onboarding_done`).
+- **Routing:** go_router, paths in `Routes` (v1-screens.md § Navigation): `/` Home, `/welcome`,
+  `/city`, `/area`, `/difficulty`, `/round` (`?round=` resumes, `?retry=` retries), `/results`,
+  `/settings`, `/settings/credits`. Welcome opens until the first round is finished.
+- **Strings:** every UI string comes from `lib/l10n/app_{en,ka}.arb` (gen-l10n, `context.l10n`);
+  the generated `app_localizations*.dart` are committed. Georgian is a draft awaiting native review.
+  Numbers through `formatNumber` (narrow no-break space groups), distances through
+  `formatDistance`. Never uppercase.
+- **Settings** (`user_settings`, watched by `settingsProvider`): language (null = device),
+  street names, theme, sound, haptics; they apply immediately. `feedbackProvider` plays haptics
+  per game event behind the Haptics toggle; the Sound toggle gates nothing until a sound kit exists.
+- **Drift defaults are literals** (`Constant('local')`): drift copies them into the generated
+  migration steps, which can't see app enums. No Flutter imports in `database.dart` either.
 - **Database:** client ids are UUIDv7 (`newId()`). `answer` is an append-only log, enforced by the
   `answer_immutable` trigger. Changing a table: bump `schemaVersion`, add a migration, run
   `dart run drift_dev make-migrations` and commit the new dump + generated helpers. Run

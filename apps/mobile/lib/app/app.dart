@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
+import '../l10n/app_localizations.dart';
 import 'router.dart';
+import 'settings.dart';
 
-class PindoroApp extends StatefulWidget {
+class PindoroApp extends ConsumerStatefulWidget {
   const PindoroApp({super.key, required this.initialLocation});
 
   final String initialLocation;
 
   @override
-  State<PindoroApp> createState() => _PindoroAppState();
+  ConsumerState<PindoroApp> createState() => _PindoroAppState();
 }
 
-class _PindoroAppState extends State<PindoroApp> {
+class _PindoroAppState extends ConsumerState<PindoroApp> {
   late final GoRouter _router = buildRouter(widget.initialLocation);
 
   @override
@@ -23,11 +27,24 @@ class _PindoroAppState extends State<PindoroApp> {
   }
 
   @override
-  Widget build(BuildContext context) => MaterialApp.router(
-    title: 'პინდორო',
-    debugShowCheckedModeBanner: false,
-    theme: buildPindoroTheme(Brightness.light),
-    darkTheme: buildPindoroTheme(Brightness.dark),
-    routerConfig: _router,
-  );
+  Widget build(BuildContext context) {
+    final settings = ref.watch(settingsProvider).value;
+    return MaterialApp.router(
+      title: 'პინდორო',
+      debugShowCheckedModeBanner: false,
+      theme: buildPindoroTheme(Brightness.light),
+      darkTheme: buildPindoroTheme(Brightness.dark),
+      themeMode: settings?.themeMode ?? ThemeMode.system,
+      themeAnimationDuration: PindoroMotion.durationBase,
+      locale: settings?.locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      routerConfig: _router,
+    );
+  }
 }

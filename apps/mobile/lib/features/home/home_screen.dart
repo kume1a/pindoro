@@ -61,15 +61,15 @@ class HomeScreen extends ConsumerWidget {
         if (resumable != null) ...[
           PindoroButton(
             label: 'Continue (${home.answered}/${home.planned})',
-            onPressed: () => open('${Routes.quiz}?round=${resumable.id}'),
+            onPressed: () => open(Routes.resume(resumable.id)),
           ),
           PindoroButton(
             label: 'New round',
             variant: PindoroButtonVariant.secondary,
-            onPressed: () => open(Routes.quiz),
+            onPressed: () => open(Routes.round),
           ),
         ] else
-          PindoroButton(label: 'Play', onPressed: () => open(Routes.quiz)),
+          PindoroButton(label: 'Play', onPressed: () => open(Routes.round)),
         PindoroButton(
           label: 'Change area',
           variant: PindoroButtonVariant.tertiary,

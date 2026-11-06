@@ -34,7 +34,7 @@ goldens:
     MSYS_NO_PATHCONV=1 docker run --rm \
       -v "{{ justfile_directory() }}:/repo" -v /repo/.dart_tool -v /repo/packages/pindoro_design/.dart_tool \
       -v pindoro-flutter-{{ flutter_version }}:/flutter -w /repo/packages/pindoro_design \
-      ghcr.io/cirruslabs/flutter:3.44.0 sh -c '[ -x /flutter/bin/flutter ] || git clone -q --depth 1 -b {{ flutter_version }} https://github.com/flutter/flutter.git /flutter; /flutter/bin/flutter pub get && /flutter/bin/flutter test --update-goldens test/widgets_test.dart'
+      ghcr.io/cirruslabs/flutter:3.44.0 sh -c '[ -x /flutter/bin/flutter ] || git clone -q --depth 1 -b {{ flutter_version }} https://github.com/flutter/flutter.git /flutter; /flutter/bin/flutter pub get && /flutter/bin/flutter test --update-goldens test/widgets_test.dart test/components_test.dart'
 
 # Biome, tsc, dart format, flutter analyze
 lint:

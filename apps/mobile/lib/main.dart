@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -14,6 +16,11 @@ import 'features/pack/sqlite_pack_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks([
+      'FiraGO',
+    ], await rootBundle.loadString('packages/pindoro_design/fonts/OFL.txt'));
+  });
   final db = AppDatabase();
   final docs = await getApplicationDocumentsDirectory();
   final store = PackStore(

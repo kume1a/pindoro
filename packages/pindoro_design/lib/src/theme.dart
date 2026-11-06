@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
 import 'generated/pindoro_tokens.dart';
+import 'widgets/graphics.dart';
 
 /// One answer tier's colours (fill/lip/on for badges and buttons, bg/ink for
 /// the reveal sheet) and icon, so a tier never relies on colour alone.
@@ -20,7 +21,7 @@ class TierStyle {
   final Color on;
   final Color bg;
   final Color ink;
-  final IconData icon;
+  final PindoroGlyph icon;
 }
 
 /// The game parts Material has no slot for: every Pindoro colour, plus the
@@ -50,7 +51,7 @@ class PindoroTheme extends ThemeExtension<PindoroTheme> {
         on: c.feedbackPerfectOn,
         bg: c.feedbackPerfectBg,
         ink: c.feedbackPerfectInk,
-        icon: Icons.star_rounded,
+        icon: PindoroGlyph.star,
       ),
       Tier.great => TierStyle(
         fill: c.feedbackGreatFill,
@@ -58,7 +59,7 @@ class PindoroTheme extends ThemeExtension<PindoroTheme> {
         on: c.feedbackGreatOn,
         bg: c.feedbackGreatBg,
         ink: c.feedbackGreatInk,
-        icon: Icons.check_circle_rounded,
+        icon: PindoroGlyph.checkCircle,
       ),
       Tier.close => TierStyle(
         fill: c.feedbackCloseFill,
@@ -66,7 +67,7 @@ class PindoroTheme extends ThemeExtension<PindoroTheme> {
         on: c.feedbackCloseOn,
         bg: c.feedbackCloseBg,
         ink: c.feedbackCloseInk,
-        icon: Icons.track_changes_rounded,
+        icon: PindoroGlyph.target,
       ),
       Tier.miss => TierStyle(
         fill: c.feedbackMissFill,
@@ -74,7 +75,7 @@ class PindoroTheme extends ThemeExtension<PindoroTheme> {
         on: c.feedbackMissOn,
         bg: c.feedbackMissBg,
         ink: c.feedbackMissInk,
-        icon: Icons.alt_route_rounded,
+        icon: PindoroGlyph.reroute,
       ),
     };
   }

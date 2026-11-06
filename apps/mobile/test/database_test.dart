@@ -13,11 +13,17 @@ void main() {
   setUp(() => db = AppDatabase(NativeDatabase.memory()));
   tearDown(() => db.close());
 
-  test('first run opens /welcome, afterwards /home', () async {
+  test('welcome shows until the first round is finished', () async {
     expect(await initialLocation(db), Routes.welcome);
-    await db.updateSettings(
-      const UserSettingsCompanion(onboardingDone: Value(true)),
+    final id = await db.startRound(
+      cityId: 'tbilisi',
+      area: const DistrictsArea({'osm:r1'}),
+      difficulty: Difficulty.expert,
+      packVersion: 'v1',
+      streetIds: const ['a'],
     );
+    expect(await initialLocation(db), Routes.welcome);
+    await db.finishRound(id);
     expect(await initialLocation(db), Routes.home);
   });
 

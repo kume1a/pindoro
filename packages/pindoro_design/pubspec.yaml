@@ -12,6 +12,7 @@ resolution: workspace
 dependencies:
   flutter:
     sdk: flutter
+  flutter_svg: ^2.3.2
   pindoro_core: any
 
 dev_dependencies:
@@ -20,6 +21,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icons/
+    - assets/logos/
+    - assets/mascot/
+    - fonts/OFL.txt
   fonts:
     - family: FiraGO
       fonts:

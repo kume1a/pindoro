@@ -133,12 +133,9 @@ class DifficultyScreen extends ConsumerWidget {
             await ref
                 .read(databaseProvider)
                 .updateSettings(
-                  UserSettingsCompanion(
-                    lastDifficulty: Value(d),
-                    onboardingDone: const Value(true),
-                  ),
+                  UserSettingsCompanion(lastDifficulty: Value(d)),
                 );
-            if (context.mounted) context.go(Routes.home);
+            if (context.mounted) context.go(Routes.round);
           },
         ),
     ],

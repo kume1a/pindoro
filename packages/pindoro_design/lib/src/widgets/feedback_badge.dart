@@ -3,6 +3,7 @@ import 'package:pindoro_core/pindoro_core.dart';
 
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
+import 'graphics.dart';
 
 /// Tier pill on its lip: colour + icon + label, so the tier never relies on
 /// colour alone.
@@ -31,7 +32,7 @@ class FeedbackBadge extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           spacing: PindoroSpace.s2,
           children: [
-            Icon(style.icon, color: style.on),
+            PindoroIcon(style.icon, color: style.on, cut: style.fill),
             Text(
               label ?? tier.name,
               style: PindoroType.labelLg.copyWith(color: style.on),

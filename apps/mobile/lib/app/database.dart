@@ -32,6 +32,15 @@ extension SettingsArea on Settings {
   Area? get area => parseArea(lastAreaJson);
 }
 
+enum AppLanguage { en, ka }
+
+/// How street names show: as the city writes them, or in English when the
+/// pack has an English name.
+enum StreetNameMode { local, english }
+
+/// Light, dark, or the device setting (kept Flutter-free for drift's exporter).
+enum ThemePreference { system, light, dark }
+
 /// Single row (id = 1) of local preferences.
 @DataClassName('Settings')
 class UserSettings extends Table {
@@ -39,8 +48,16 @@ class UserSettings extends Table {
   TextColumn get lastCity => text().nullable()();
   TextColumn get lastAreaJson => text().nullable()();
   TextColumn get lastDifficulty => textEnum<Difficulty>().nullable()();
-  BoolColumn get onboardingDone =>
-      boolean().withDefault(const Constant(false))();
+
+  /// Null follows the device language.
+  TextColumn get appLanguage => textEnum<AppLanguage>().nullable()();
+  // Literal defaults: drift copies them into the generated migration steps.
+  TextColumn get streetNames =>
+      textEnum<StreetNameMode>().withDefault(const Constant('local'))();
+  TextColumn get theme =>
+      textEnum<ThemePreference>().withDefault(const Constant('system'))();
+  BoolColumn get sound => boolean().withDefault(const Constant(true))();
+  BoolColumn get haptics => boolean().withDefault(const Constant(true))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -116,13 +133,29 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'pindoro'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: stepByStep(
       from1To2: (m, schema) => m.createTable(schema.roundQuestion),
       from2To3: (m, schema) => m.addColumn(schema.round, schema.round.retryOf),
+      // Rebuilds the table: adds the preference columns, drops onboarding_done.
+      from3To4: (m, schema) {
+        final t = schema.userSettings;
+        return m.alterTable(
+          TableMigration(
+            t,
+            newColumns: [
+              t.appLanguage,
+              t.streetNames,
+              t.theme,
+              t.sound,
+              t.haptics,
+            ],
+          ),
+        );
+      },
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );
@@ -131,7 +164,27 @@ class AppDatabase extends _$AppDatabase {
       await (select(
         userSettings,
       )..where((s) => s.id.equals(1))).getSingleOrNull() ??
-      const Settings(id: 1, onboardingDone: false);
+      const Settings(
+        id: 1,
+        streetNames: StreetNameMode.local,
+        theme: ThemePreference.system,
+        sound: true,
+        haptics: true,
+      );
+
+  /// The settings row as it changes; defaults until the first write.
+  Stream<Settings> watchSettings() =>
+      (select(userSettings)..where((s) => s.id.equals(1)))
+          .watchSingleOrNull()
+          .asyncMap((row) async => row ?? await readSettings());
+
+  /// Welcome shows until the player finishes a first round.
+  Future<bool> hasFinishedRound() async =>
+      await (select(rounds)
+            ..where((r) => r.finishedAt.isNotNull())
+            ..limit(1))
+          .getSingleOrNull() !=
+      null;
 
   Future<void> updateSettings(UserSettingsCompanion changes) => into(
     userSettings,
