@@ -61,7 +61,6 @@ void main() {
       expect(find.text('City'), findsOneWidget);
       await tapAndSettle(tester, 'Tbilisi');
       expect(find.text('Area'), findsOneWidget);
-      expect(find.text('თბილისი'), findsOneWidget, reason: 'whole city');
       await tapAndSettle(tester, 'ვაკის რაიონი');
       expect(find.text('Difficulty'), findsOneWidget);
       await tapAndSettle(tester, 'expert');

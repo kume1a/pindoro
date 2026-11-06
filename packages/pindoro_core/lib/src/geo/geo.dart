@@ -64,6 +64,15 @@ class Bbox {
 
   LatLng clamp(LatLng p) =>
       LatLng(_clamp(p.lat, minLat, maxLat), _clamp(p.lon, minLon, maxLon));
+
+  bool contains(LatLng p) =>
+      p.lat >= minLat && p.lat <= maxLat && p.lon >= minLon && p.lon <= maxLon;
+
+  bool intersects(Bbox o) =>
+      o.minLat <= maxLat &&
+      o.maxLat >= minLat &&
+      o.minLon <= maxLon &&
+      o.maxLon >= minLon;
 }
 
 double _clamp(double v, double lo, double hi) => math.min(hi, math.max(lo, v));

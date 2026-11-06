@@ -14,20 +14,22 @@ String newId() => const Uuid().v7();
 
 const _rowid = CustomExpression<int>('rowid');
 
-extension SettingsArea on Settings {
-  /// The saved area; unset or unreadable falls back to the whole city.
-  Area get area {
-    final json = lastAreaJson;
-    if (json == null) return const WholeCity();
-    try {
-      return switch (jsonDecode(json)) {
-        final Map<String, Object?> map => Area.fromJson(map),
-        _ => const WholeCity(),
-      };
-    } on FormatException {
-      return const WholeCity();
-    }
+/// Parses a stored area; null when unset or unreadable (e.g. the M1 whole city).
+Area? parseArea(String? json) {
+  if (json == null) return null;
+  try {
+    return switch (jsonDecode(json)) {
+      final Map<String, Object?> map => Area.fromJson(map),
+      _ => null,
+    };
+  } on FormatException {
+    return null;
   }
+}
+
+extension SettingsArea on Settings {
+  /// The saved area; null until the player picks one.
+  Area? get area => parseArea(lastAreaJson);
 }
 
 /// Single row (id = 1) of local preferences.
@@ -56,6 +58,9 @@ class Rounds extends Table {
   TextColumn get packVersion => text()();
   DateTimeColumn get startedAt => dateTime().clientDefault(DateTime.now)();
   DateTimeColumn get finishedAt => dateTime().nullable()();
+
+  /// The round whose Close and Miss streets this round retries.
+  TextColumn get retryOf => text().nullable().references(Rounds, #id)();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -111,12 +116,13 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'pindoro'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: stepByStep(
       from1To2: (m, schema) => m.createTable(schema.roundQuestion),
+      from2To3: (m, schema) => m.addColumn(schema.round, schema.round.retryOf),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );
@@ -144,6 +150,7 @@ class AppDatabase extends _$AppDatabase {
     required Difficulty difficulty,
     required String packVersion,
     required List<String> streetIds,
+    String? retryOf,
   }) => transaction(() async {
     final round = await into(rounds).insertReturning(
       RoundsCompanion.insert(
@@ -151,6 +158,7 @@ class AppDatabase extends _$AppDatabase {
         areaJson: jsonEncode(area.toJson()),
         difficulty: difficulty,
         packVersion: packVersion,
+        retryOf: Value(retryOf),
       ),
     );
     await batch(
@@ -166,15 +174,38 @@ class AppDatabase extends _$AppDatabase {
     return round.id;
   });
 
-  /// The most recent round while it is unfinished; starting a new round
-  /// abandons older unfinished ones.
-  Future<Round?> resumableRound() async {
+  /// A saved round expires this long after its last answer (or its start).
+  static const Duration savedRoundLifetime = Duration(days: 7);
+
+  /// The most recent round while it is unfinished and active within
+  /// [savedRoundLifetime]; starting a new round abandons older ones.
+  Future<Round?> resumableRound(DateTime now) async {
     final latest =
         await (select(rounds)
               ..orderBy([(_) => OrderingTerm.desc(_rowid)])
               ..limit(1))
             .getSingleOrNull();
-    return latest?.finishedAt == null ? latest : null;
+    if (latest == null || latest.finishedAt != null) return null;
+    final lastAnswer =
+        await (select(answers)
+              ..where((a) => a.roundId.equals(latest.id))
+              ..orderBy([(_) => OrderingTerm.desc(_rowid)])
+              ..limit(1))
+            .getSingleOrNull();
+    final active = lastAnswer?.createdAt ?? latest.startedAt;
+    return now.difference(active) > savedRoundLifetime ? null : latest;
+  }
+
+  /// [resumableRound] when it is for the current settings' city and area.
+  Future<Round?> savedRound(DateTime now) async {
+    final round = await resumableRound(now);
+    if (round == null) return null;
+    final settings = await readSettings();
+    final city = settings.lastCity;
+    final sameCity = city == null || city == round.cityId;
+    return sameCity && parseArea(round.areaJson) == settings.area
+        ? round
+        : null;
   }
 
   Future<RoundProgress> roundProgress(String roundId) async => (
@@ -201,23 +232,59 @@ class AppDatabase extends _$AppDatabase {
             ..orderBy([(_) => OrderingTerm.asc(_rowid)]))
           .get();
 
-  /// Latest tier per answered street (selection weights).
-  // ponytail: reads the whole answer log; aggregate in SQL past ~100k answers.
-  Future<Map<String, Tier>> lastTierByStreet() async => {
-    for (final a in await (select(
-      answers,
-    )..orderBy([(_) => OrderingTerm.asc(_rowid)])).get())
-      a.streetId: a.tier,
-  };
+  /// Best tier per answered street in [cityId], from answers created before
+  /// [before] when given.
+  // ponytail: reads the city's answer log; aggregate in SQL past ~100k answers.
+  Future<Map<String, Tier>> bestTierByStreet(
+    String cityId, {
+    DateTime? before,
+  }) async {
+    final query = select(answers).join([
+      innerJoin(rounds, rounds.id.equalsExp(answers.roundId)),
+    ])..where(rounds.cityId.equals(cityId));
+    if (before != null) {
+      query.where(answers.createdAt.isSmallerThanValue(before));
+    }
+    final best = <String, Tier>{};
+    for (final row in await query.get()) {
+      final a = row.readTable(answers);
+      final current = best[a.streetId];
+      if (current == null || a.tier.index < current.index) {
+        best[a.streetId] = a.tier;
+      }
+    }
+    return best;
+  }
 
-  Future<Set<String>> recentlyAnsweredStreetIds({int limit = 30}) async => {
-    for (final a
-        in await (select(answers)
+  /// Street ids planned in the [count] most recent rounds of [cityId].
+  Future<Set<String>> askedInLastRounds(String cityId, {int count = 3}) async {
+    final recent =
+        await (select(rounds)
+              ..where((r) => r.cityId.equals(cityId))
               ..orderBy([(_) => OrderingTerm.desc(_rowid)])
-              ..limit(limit))
-            .get())
-      a.streetId,
-  };
+              ..limit(count))
+            .map((r) => r.id)
+            .get();
+    return {
+      for (final q in await (select(
+        roundQuestions,
+      )..where((q) => q.roundId.isIn(recent))).get())
+        q.streetId,
+    };
+  }
+
+  /// The round's planned street ids answered Close or Miss, in position order.
+  Future<List<String>> retrySet(String roundId) async {
+    final progress = await roundProgress(roundId);
+    final missed = {
+      for (final a in progress.answers)
+        if (a.tier == Tier.close || a.tier == Tier.miss) a.streetId,
+    };
+    return [
+      for (final id in progress.planned)
+        if (missed.contains(id)) id,
+    ];
+  }
 }
 
 /// Overridden in main() and in tests.

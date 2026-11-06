@@ -50,8 +50,11 @@ void main() {
   group('scoring', () {
     for (final v in _cases(scoring, 'thresholds')) {
       final difficulty = Difficulty.values.byName(v['difficulty']! as String);
-      test('thresholds for ${v['area_m2']} m² ${difficulty.name}', () {
-        final t = TierThresholds.forArea(_d(v['area_m2']), difficulty);
+      test('thresholds for ${v['road_class']} ${difficulty.name}', () {
+        final t = TierThresholds.forStreet(
+          v['road_class']! as String,
+          difficulty,
+        );
         expect(t.perfect, closeTo(_d(v['perfect']), 1e-5));
         expect(t.great, closeTo(_d(v['great']), 1e-5));
         expect(t.close, closeTo(_d(v['close']), 1e-5));
@@ -60,14 +63,13 @@ void main() {
 
     for (final v in _cases(scoring, 'score')) {
       final difficulty = Difficulty.values.byName(v['difficulty']! as String);
-      test('${v['distance_m']} m in ${v['area_m2']} m² ${difficulty.name}', () {
+      test(v['name'], () {
         final s = scoreAnswer(
           _d(v['distance_m']),
-          _d(v['area_m2']),
+          v['road_class']! as String,
           difficulty,
         );
         expect(s.tier.name, v['tier']);
-        expect(s.points, v['points']);
         expect(s.xp, v['xp']);
       });
     }

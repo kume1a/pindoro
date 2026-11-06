@@ -16,21 +16,24 @@ typedef _Home = ({
   int totalXp,
   Round? resumable,
   int answered,
+  int planned,
 });
 
 final _homeProvider = FutureProvider.autoDispose<_Home>((ref) async {
   final db = ref.watch(databaseProvider);
   final pack = await ref.watch(packRepositoryProvider.future);
   final settings = await db.readSettings();
-  final resumable = await db.resumableRound();
+  final resumable = await db.savedRound(DateTime.now());
+  final progress = resumable == null
+      ? null
+      : await db.roundProgress(resumable.id);
   return (
     settings: settings,
-    areaName: settings.area.shapeIn(pack)?.name,
+    areaName: settings.area?.shapeIn(pack)?.name,
     totalXp: await db.totalXp(),
     resumable: resumable,
-    answered: resumable == null
-        ? 0
-        : (await db.answersForRound(resumable.id)).length,
+    answered: progress?.answers.length ?? 0,
+    planned: progress?.planned.length ?? 0,
   );
 });
 
@@ -57,7 +60,7 @@ class HomeScreen extends ConsumerWidget {
       actions: [
         if (resumable != null) ...[
           PindoroButton(
-            label: 'Continue (${home.answered}/${QuestionSelector.roundSize})',
+            label: 'Continue (${home.answered}/${home.planned})',
             onPressed: () => open('${Routes.quiz}?round=${resumable.id}'),
           ),
           PindoroButton(

@@ -16,9 +16,6 @@
 
 ## Gameplay
 
-- **Same-name street parts** — the pipeline splits a named road wherever its parts are more than
-  30 m apart, so one round can ask "წყნეთის ქუჩა" twice and a pin on the other part scores as a
-  miss. Decide: merge same-name parts within an area for scoring, or skip duplicate names per round.
 - Settings: theme, language, about/licences page.
 - Offline maps: rounds work offline, but tiles need the server or MapLibre's cache.
 - The dark map style is generated but has not been checked on a device.

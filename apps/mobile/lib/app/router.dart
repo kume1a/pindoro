@@ -35,8 +35,10 @@ GoRouter buildRouter(String initialLocation) => GoRouter(
     GoRoute(path: Routes.home, builder: (_, _) => const HomeScreen()),
     GoRoute(
       path: Routes.quiz,
-      builder: (_, state) =>
-          QuizScreen(roundId: state.uri.queryParameters['round']),
+      builder: (_, state) => QuizScreen(
+        roundId: state.uri.queryParameters['round'],
+        retryOf: state.uri.queryParameters['retry'],
+      ),
     ),
     GoRoute(
       path: Routes.results,

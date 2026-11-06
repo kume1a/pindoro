@@ -13,38 +13,180 @@ void main() {
     expect(Difficulty.expert.pool, Difficulty.values.toSet());
   });
 
-  test('knowledge comes from the last tier', () {
-    expect(knowledgeFrom(null), StreetKnowledge.unknown);
-    expect(knowledgeFrom(Tier.perfect), StreetKnowledge.known);
-    expect(knowledgeFrom(Tier.great), StreetKnowledge.known);
-    expect(knowledgeFrom(Tier.close), StreetKnowledge.missed);
-    expect(knowledgeFrom(Tier.miss), StreetKnowledge.missed);
+  group('knowledge', () {
+    test('comes from the best tier', () {
+      expect(knowledgeFrom(null), StreetKnowledge.unknown);
+      expect(knowledgeFrom(Tier.perfect), StreetKnowledge.known);
+      expect(knowledgeFrom(Tier.great), StreetKnowledge.known);
+      expect(knowledgeFrom(Tier.close), StreetKnowledge.missed);
+      expect(knowledgeFrom(Tier.miss), StreetKnowledge.missed);
+    });
+
+    test('is per name: a later miss never un-knows a street', () {
+      final best = bestTierByName(
+        {'a1': Tier.great, 'a2': Tier.miss, 'b': Tier.close},
+        {'a1': 'A', 'a2': 'A', 'b': 'B'},
+      );
+      expect(best, {'A': Tier.great, 'B': Tier.close});
+    });
+
+    test('newlyKnown counts a name once and skips ones known before', () {
+      expect(
+        newlyKnown(
+          knownBefore: {'A'},
+          roundAnswers: [
+            (name: 'A', tier: Tier.perfect),
+            (name: 'B', tier: Tier.great),
+            (name: 'B', tier: Tier.perfect),
+            (name: 'C', tier: Tier.close),
+          ],
+        ),
+        {'B'},
+      );
+    });
+
+    test('knownCounts per city and district', () {
+      final counts = knownCounts(
+        cityNames: {'A', 'B', 'C'},
+        namesByDistrict: {
+          'd1': {'A', 'B'},
+          'd2': {'C'},
+        },
+        knownNames: {'A'},
+      );
+      expect(counts.city, (known: 1, total: 3));
+      expect(counts.byDistrict['d1'], (known: 1, total: 2));
+      expect(counts.byDistrict['d2'], (known: 0, total: 1));
+    });
+  });
+
+  group('NamedStreet', () {
+    final long = _street('l', 'A', 900, [
+      [_p(41.70, 44.70), _p(41.70, 44.71)],
+    ]);
+    final short = _street('s', 'A', 200, [
+      [_p(41.75, 44.70), _p(41.75, 44.701)],
+    ], roadClass: 'primary');
+
+    test('groups parts by name, longest first', () {
+      final groups = groupByName([short, _street('b', 'B', 10, []), long]);
+      expect(groups.map((g) => g.name), ['A', 'B']);
+      expect(groups.first.parts.map((p) => p.id), ['l', 's']);
+      expect(groups.first.id, 'l');
+      expect(groups.first.lengthM, 1100);
+    });
+
+    test('scores against the nearest part with its road class', () {
+      final street = groupByName([long, short]).single;
+      // 25 m north of the short primary part: within primary's 30 m Perfect.
+      const pin = LatLng(41.750225, 44.7005);
+      expect(street.nearest(pin).part.id, 's');
+      expect(street.score(pin, Difficulty.medium).tier, Tier.perfect);
+    });
   });
 
   group('Area', () {
     final pack = _FakePack();
 
     test('round-trips through JSON', () {
-      for (final area in [const WholeCity(), const DistrictArea('osm:r1')]) {
+      final areas = [
+        const DistrictsArea({'osm:r2', 'osm:r1'}),
+        const CircleArea(LatLng(41.7, 44.75), 2000),
+        const RectArea(Bbox(41.69, 44.7, 41.72, 44.78)),
+      ];
+      for (final area in areas) {
         expect(Area.fromJson(area.toJson()), area);
       }
-      expect(const DistrictArea('osm:r1').toJson(), {
-        'kind': 'district',
-        'district_id': 'osm:r1',
+      expect(areas.first.toJson(), {
+        'kind': 'districts',
+        'ids': ['osm:r1', 'osm:r2'],
       });
-      expect(() => Area.fromJson({'district_id': 'x'}), throwsFormatException);
     });
 
-    test('resolves its shape from the pack', () {
-      expect(const WholeCity().shapeIn(pack).areaM2, 504e6);
-      expect(const WholeCity().districtId, isNull);
-      final vake = const DistrictArea('osm:r1').shapeIn(pack)!;
+    test('reads the M1 one-district form and rejects the rest', () {
+      expect(
+        Area.fromJson({'kind': 'district', 'district_id': 'osm:r1'}),
+        const DistrictsArea({'osm:r1'}),
+      );
+      expect(() => Area.fromJson({'kind': 'city'}), throwsFormatException);
+    });
+
+    test('resolves district shapes from the pack', () {
+      final vake = const DistrictsArea({'osm:r1'}).shapeIn(pack)!;
       expect(vake.name, 'ვაკე');
-      expect(vake.areaM2, 32e6);
       expect(vake.boundary, [_square]);
-      expect(const DistrictArea('osm:r9').shapeIn(pack), isNull);
+      expect(const DistrictsArea({'osm:r1', 'osm:r9'}).shapeIn(pack), isNull);
+    });
+
+    test('a circle is a closed 64-point ring of its radius', () {
+      const circle = CircleArea(LatLng(41.7, 44.75), 1000);
+      final ring = circle.shapeIn(pack).boundary.single.single;
+      expect(ring, hasLength(65));
+      expect(ring.first, ring.last);
+      for (final p in ring) {
+        expect(distanceBetween(circle.center, p), closeTo(1000, 1));
+      }
+      expect(circle.shapeIn(pack).name, isNull);
     });
   });
+
+  group('in-area rule', () {
+    // 1 km east-west line at lat 41.7 starting at lon 44.7.
+    final line = [_p(41.7, 44.7), _p(41.7, 44.7120566)];
+
+    test('lengthInside measures the part inside a shape', () {
+      const rect = RectArea(Bbox(41.69, 44.7, 41.71, 44.7060283));
+      expect(lengthInside([line], rect.contains), closeTo(500, 25));
+      const circle = CircleArea(LatLng(41.7, 44.7), 300);
+      expect(lengthInside([line], circle.contains), closeTo(300, 25));
+    });
+
+    test('a part counts with 150 m inside or 30 % of its length', () {
+      final pack = _FakePack(
+        streetRows: [
+          _street('mostly-out', 'A', 1000, [line]),
+          _street('short-in', 'B', 120, [
+            [_p(41.7, 44.7), _p(41.7, 44.7014468)],
+          ]),
+        ],
+      );
+      // Circle of 100 m around the line's start: 100 m of 'mostly-out'
+      // (10 %, < 150 m) and all of 'short-in' (100 %).
+      const circle = CircleArea(LatLng(41.7, 44.7), 100);
+      expect(
+        circle.streetsIn(pack, Difficulty.values.toSet()).map((s) => s.id),
+        ['short-in'],
+      );
+      const wider = CircleArea(LatLng(41.7, 44.7), 200);
+      expect(
+        wider.streetsIn(pack, Difficulty.values.toSet()).map((s) => s.id),
+        ['mostly-out', 'short-in'],
+      );
+    });
+  });
+}
+
+LatLng _p(double lat, double lon) => LatLng(lat, lon);
+
+Street _street(
+  String id,
+  String name,
+  double lengthM,
+  MultiPolyline geometry, {
+  String roadClass = 'residential',
+}) {
+  final points = geometry.expand((l) => l).toList();
+  return Street(
+    id: id,
+    nameKa: name,
+    nameEn: null,
+    roadClass: roadClass,
+    difficulty: Difficulty.expert,
+    lengthM: lengthM,
+    midpoint: points.isEmpty ? const LatLng(0, 0) : points.first,
+    bbox: points.isEmpty ? const Bbox(0, 0, 0, 0) : Bbox.of(points),
+    geometry: geometry,
+  );
 }
 
 const _square = [
@@ -57,6 +199,10 @@ const _square = [
 ];
 
 class _FakePack implements PackRepository {
+  _FakePack({this.streetRows = const []});
+
+  final List<Street> streetRows;
+
   @override
   City city() => const City(
     id: 'tbilisi',
@@ -89,13 +235,23 @@ class _FakePack implements PackRepository {
 
   @override
   List<Street> streets({String? districtId, Set<Difficulty>? difficulties}) =>
-      const [];
+      streetRows;
+
+  @override
+  List<Street> streetsNamed(Set<String> names) => [
+    for (final s in streetRows)
+      if (names.contains(s.nameKa)) s,
+  ];
 
   @override
   List<StreetDistrict> streetDistricts(String streetId) => const [];
 
   @override
   Map<String, String> streetNames(Iterable<String> ids) => const {};
+
+  @override
+  ({Set<String> city, Map<String, Set<String>> byDistrict}) streetNameIndex() =>
+      (city: const {}, byDistrict: const {});
 
   @override
   void close() {}

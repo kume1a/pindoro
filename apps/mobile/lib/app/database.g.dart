@@ -81,6 +81,20 @@ class $RoundsTable extends Rounds with TableInfo<$RoundsTable, Round> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _retryOfMeta = const VerificationMeta(
+    'retryOf',
+  );
+  @override
+  late final GeneratedColumn<String> retryOf = GeneratedColumn<String>(
+    'retry_of',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES round (id)',
+    ),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -90,6 +104,7 @@ class $RoundsTable extends Rounds with TableInfo<$RoundsTable, Round> {
     packVersion,
     startedAt,
     finishedAt,
+    retryOf,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -145,6 +160,12 @@ class $RoundsTable extends Rounds with TableInfo<$RoundsTable, Round> {
         finishedAt.isAcceptableOrUnknown(data['finished_at']!, _finishedAtMeta),
       );
     }
+    if (data.containsKey('retry_of')) {
+      context.handle(
+        _retryOfMeta,
+        retryOf.isAcceptableOrUnknown(data['retry_of']!, _retryOfMeta),
+      );
+    }
     return context;
   }
 
@@ -184,6 +205,10 @@ class $RoundsTable extends Rounds with TableInfo<$RoundsTable, Round> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}finished_at'],
       ),
+      retryOf: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}retry_of'],
+      ),
     );
   }
 
@@ -204,6 +229,9 @@ class Round extends DataClass implements Insertable<Round> {
   final String packVersion;
   final DateTime startedAt;
   final DateTime? finishedAt;
+
+  /// The round whose Close and Miss streets this round retries.
+  final String? retryOf;
   const Round({
     required this.id,
     required this.cityId,
@@ -212,6 +240,7 @@ class Round extends DataClass implements Insertable<Round> {
     required this.packVersion,
     required this.startedAt,
     this.finishedAt,
+    this.retryOf,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -229,6 +258,9 @@ class Round extends DataClass implements Insertable<Round> {
     if (!nullToAbsent || finishedAt != null) {
       map['finished_at'] = Variable<DateTime>(finishedAt);
     }
+    if (!nullToAbsent || retryOf != null) {
+      map['retry_of'] = Variable<String>(retryOf);
+    }
     return map;
   }
 
@@ -243,6 +275,9 @@ class Round extends DataClass implements Insertable<Round> {
       finishedAt: finishedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(finishedAt),
+      retryOf: retryOf == null && nullToAbsent
+          ? const Value.absent()
+          : Value(retryOf),
     );
   }
 
@@ -261,6 +296,7 @@ class Round extends DataClass implements Insertable<Round> {
       packVersion: serializer.fromJson<String>(json['packVersion']),
       startedAt: serializer.fromJson<DateTime>(json['startedAt']),
       finishedAt: serializer.fromJson<DateTime?>(json['finishedAt']),
+      retryOf: serializer.fromJson<String?>(json['retryOf']),
     );
   }
   @override
@@ -276,6 +312,7 @@ class Round extends DataClass implements Insertable<Round> {
       'packVersion': serializer.toJson<String>(packVersion),
       'startedAt': serializer.toJson<DateTime>(startedAt),
       'finishedAt': serializer.toJson<DateTime?>(finishedAt),
+      'retryOf': serializer.toJson<String?>(retryOf),
     };
   }
 
@@ -287,6 +324,7 @@ class Round extends DataClass implements Insertable<Round> {
     String? packVersion,
     DateTime? startedAt,
     Value<DateTime?> finishedAt = const Value.absent(),
+    Value<String?> retryOf = const Value.absent(),
   }) => Round(
     id: id ?? this.id,
     cityId: cityId ?? this.cityId,
@@ -295,6 +333,7 @@ class Round extends DataClass implements Insertable<Round> {
     packVersion: packVersion ?? this.packVersion,
     startedAt: startedAt ?? this.startedAt,
     finishedAt: finishedAt.present ? finishedAt.value : this.finishedAt,
+    retryOf: retryOf.present ? retryOf.value : this.retryOf,
   );
   Round copyWithCompanion(RoundsCompanion data) {
     return Round(
@@ -311,6 +350,7 @@ class Round extends DataClass implements Insertable<Round> {
       finishedAt: data.finishedAt.present
           ? data.finishedAt.value
           : this.finishedAt,
+      retryOf: data.retryOf.present ? data.retryOf.value : this.retryOf,
     );
   }
 
@@ -323,7 +363,8 @@ class Round extends DataClass implements Insertable<Round> {
           ..write('difficulty: $difficulty, ')
           ..write('packVersion: $packVersion, ')
           ..write('startedAt: $startedAt, ')
-          ..write('finishedAt: $finishedAt')
+          ..write('finishedAt: $finishedAt, ')
+          ..write('retryOf: $retryOf')
           ..write(')'))
         .toString();
   }
@@ -337,6 +378,7 @@ class Round extends DataClass implements Insertable<Round> {
     packVersion,
     startedAt,
     finishedAt,
+    retryOf,
   );
   @override
   bool operator ==(Object other) =>
@@ -348,7 +390,8 @@ class Round extends DataClass implements Insertable<Round> {
           other.difficulty == this.difficulty &&
           other.packVersion == this.packVersion &&
           other.startedAt == this.startedAt &&
-          other.finishedAt == this.finishedAt);
+          other.finishedAt == this.finishedAt &&
+          other.retryOf == this.retryOf);
 }
 
 class RoundsCompanion extends UpdateCompanion<Round> {
@@ -359,6 +402,7 @@ class RoundsCompanion extends UpdateCompanion<Round> {
   final Value<String> packVersion;
   final Value<DateTime> startedAt;
   final Value<DateTime?> finishedAt;
+  final Value<String?> retryOf;
   final Value<int> rowid;
   const RoundsCompanion({
     this.id = const Value.absent(),
@@ -368,6 +412,7 @@ class RoundsCompanion extends UpdateCompanion<Round> {
     this.packVersion = const Value.absent(),
     this.startedAt = const Value.absent(),
     this.finishedAt = const Value.absent(),
+    this.retryOf = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RoundsCompanion.insert({
@@ -378,6 +423,7 @@ class RoundsCompanion extends UpdateCompanion<Round> {
     required String packVersion,
     this.startedAt = const Value.absent(),
     this.finishedAt = const Value.absent(),
+    this.retryOf = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : cityId = Value(cityId),
        areaJson = Value(areaJson),
@@ -391,6 +437,7 @@ class RoundsCompanion extends UpdateCompanion<Round> {
     Expression<String>? packVersion,
     Expression<DateTime>? startedAt,
     Expression<DateTime>? finishedAt,
+    Expression<String>? retryOf,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -401,6 +448,7 @@ class RoundsCompanion extends UpdateCompanion<Round> {
       if (packVersion != null) 'pack_version': packVersion,
       if (startedAt != null) 'started_at': startedAt,
       if (finishedAt != null) 'finished_at': finishedAt,
+      if (retryOf != null) 'retry_of': retryOf,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -413,6 +461,7 @@ class RoundsCompanion extends UpdateCompanion<Round> {
     Value<String>? packVersion,
     Value<DateTime>? startedAt,
     Value<DateTime?>? finishedAt,
+    Value<String?>? retryOf,
     Value<int>? rowid,
   }) {
     return RoundsCompanion(
@@ -423,6 +472,7 @@ class RoundsCompanion extends UpdateCompanion<Round> {
       packVersion: packVersion ?? this.packVersion,
       startedAt: startedAt ?? this.startedAt,
       finishedAt: finishedAt ?? this.finishedAt,
+      retryOf: retryOf ?? this.retryOf,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -453,6 +503,9 @@ class RoundsCompanion extends UpdateCompanion<Round> {
     if (finishedAt.present) {
       map['finished_at'] = Variable<DateTime>(finishedAt.value);
     }
+    if (retryOf.present) {
+      map['retry_of'] = Variable<String>(retryOf.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -469,6 +522,7 @@ class RoundsCompanion extends UpdateCompanion<Round> {
           ..write('packVersion: $packVersion, ')
           ..write('startedAt: $startedAt, ')
           ..write('finishedAt: $finishedAt, ')
+          ..write('retryOf: $retryOf, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1777,6 +1831,7 @@ typedef $$RoundsTableCreateCompanionBuilder =
       required String packVersion,
       Value<DateTime> startedAt,
       Value<DateTime?> finishedAt,
+      Value<String?> retryOf,
       Value<int> rowid,
     });
 typedef $$RoundsTableUpdateCompanionBuilder =
@@ -1788,12 +1843,30 @@ typedef $$RoundsTableUpdateCompanionBuilder =
       Value<String> packVersion,
       Value<DateTime> startedAt,
       Value<DateTime?> finishedAt,
+      Value<String?> retryOf,
       Value<int> rowid,
     });
 
 final class $$RoundsTableReferences
     extends BaseReferences<_$AppDatabase, $RoundsTable, Round> {
   $$RoundsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $RoundsTable _retryOfTable(_$AppDatabase db) =>
+      db.rounds.createAlias('round__retry_of__round__id');
+
+  $$RoundsTableProcessedTableManager? get retryOf {
+    final $_column = $_itemColumn<String>('retry_of');
+    if ($_column == null) return null;
+    final manager = $$RoundsTableTableManager(
+      $_db,
+      $_db.rounds,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_retryOfTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 
   static MultiTypedResultKey<$AnswersTable, List<Answer>> _answersRefsTable(
     _$AppDatabase db,
@@ -1877,6 +1950,29 @@ class $$RoundsTableFilterComposer
     column: $table.finishedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$RoundsTableFilterComposer get retryOf {
+    final $$RoundsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.retryOf,
+      referencedTable: $db.rounds,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RoundsTableFilterComposer(
+            $db: $db,
+            $table: $db.rounds,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<bool> answersRefs(
     Expression<bool> Function($$AnswersTableFilterComposer f) f,
@@ -1972,6 +2068,29 @@ class $$RoundsTableOrderingComposer
     column: $table.finishedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$RoundsTableOrderingComposer get retryOf {
+    final $$RoundsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.retryOf,
+      referencedTable: $db.rounds,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RoundsTableOrderingComposer(
+            $db: $db,
+            $table: $db.rounds,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$RoundsTableAnnotationComposer
@@ -2010,6 +2129,29 @@ class $$RoundsTableAnnotationComposer
     column: $table.finishedAt,
     builder: (column) => column,
   );
+
+  $$RoundsTableAnnotationComposer get retryOf {
+    final $$RoundsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.retryOf,
+      referencedTable: $db.rounds,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RoundsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.rounds,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<T> answersRefs<T extends Object>(
     Expression<T> Function($$AnswersTableAnnotationComposer a) f,
@@ -2075,7 +2217,11 @@ class $$RoundsTableTableManager
           $$RoundsTableUpdateCompanionBuilder,
           (Round, $$RoundsTableReferences),
           Round,
-          PrefetchHooks Function({bool answersRefs, bool roundQuestionsRefs})
+          PrefetchHooks Function({
+            bool retryOf,
+            bool answersRefs,
+            bool roundQuestionsRefs,
+          })
         > {
   $$RoundsTableTableManager(_$AppDatabase db, $RoundsTable table)
     : super(
@@ -2097,6 +2243,7 @@ class $$RoundsTableTableManager
                 Value<String> packVersion = const Value.absent(),
                 Value<DateTime> startedAt = const Value.absent(),
                 Value<DateTime?> finishedAt = const Value.absent(),
+                Value<String?> retryOf = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RoundsCompanion(
                 id: id,
@@ -2106,6 +2253,7 @@ class $$RoundsTableTableManager
                 packVersion: packVersion,
                 startedAt: startedAt,
                 finishedAt: finishedAt,
+                retryOf: retryOf,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2117,6 +2265,7 @@ class $$RoundsTableTableManager
                 required String packVersion,
                 Value<DateTime> startedAt = const Value.absent(),
                 Value<DateTime?> finishedAt = const Value.absent(),
+                Value<String?> retryOf = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RoundsCompanion.insert(
                 id: id,
@@ -2126,6 +2275,7 @@ class $$RoundsTableTableManager
                 packVersion: packVersion,
                 startedAt: startedAt,
                 finishedAt: finishedAt,
+                retryOf: retryOf,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -2137,14 +2287,49 @@ class $$RoundsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({answersRefs = false, roundQuestionsRefs = false}) {
+              ({
+                retryOf = false,
+                answersRefs = false,
+                roundQuestionsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (answersRefs) db.answers,
                     if (roundQuestionsRefs) db.roundQuestions,
                   ],
-                  addJoins: null,
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (retryOf) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.retryOf,
+                                    referencedTable: $$RoundsTableReferences
+                                        ._retryOfTable(db),
+                                    referencedColumn: $$RoundsTableReferences
+                                        ._retryOfTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
                   getPrefetchedDataCallback: (items) async {
                     return [
                       if (answersRefs)
@@ -2207,7 +2392,11 @@ typedef $$RoundsTableProcessedTableManager =
       $$RoundsTableUpdateCompanionBuilder,
       (Round, $$RoundsTableReferences),
       Round,
-      PrefetchHooks Function({bool answersRefs, bool roundQuestionsRefs})
+      PrefetchHooks Function({
+        bool retryOf,
+        bool answersRefs,
+        bool roundQuestionsRefs,
+      })
     >;
 typedef $$AnswersTableCreateCompanionBuilder =
     AnswersCompanion Function({

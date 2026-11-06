@@ -75,19 +75,14 @@ class AreaScreen extends ConsumerWidget {
     final pack = ref.watch(packRepositoryProvider).value;
     return PlaceholderScreen(
       title: 'Area',
-      body: 'Play the whole city or one district.',
+      body: 'Play one district.',
       child: pack == null
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               children: [
-                _AreaTile(
-                  const WholeCity(),
-                  title: pack.city().nameKa,
-                  subtitle: 'whole city',
-                ),
                 for (final d in pack.districts())
                   _AreaTile(
-                    DistrictArea(d.id),
+                    DistrictsArea({d.id}),
                     title: d.nameKa,
                     subtitle: d.nameEn,
                   ),

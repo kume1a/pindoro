@@ -1,4 +1,6 @@
-import 'package:drift/drift.dart' show DatabaseConnection;
+import 'dart:convert';
+
+import 'package:drift/drift.dart' show DatabaseConnection, Value;
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,10 +52,20 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<String> roundWithAnswers(int answered) async {
+  Future<String> roundWithAnswers(
+    int answered, {
+    Tier tier = Tier.great,
+  }) async {
+    const vake = DistrictsArea({AppConfig.fixtureDistrictId});
+    await db.updateSettings(
+      UserSettingsCompanion(
+        lastCity: const Value('tbilisi'),
+        lastAreaJson: Value(jsonEncode(vake.toJson())),
+      ),
+    );
     final id = await db.startRound(
       cityId: 'tbilisi',
-      area: const DistrictArea(AppConfig.fixtureDistrictId),
+      area: vake,
       difficulty: Difficulty.expert,
       packVersion: 'v1',
       streetIds: [for (final s in streets.take(10)) s.id],
@@ -68,7 +80,7 @@ void main() {
               pinLat: s.midpoint.lat,
               pinLon: s.midpoint.lon,
               distanceM: 42,
-              tier: Tier.great,
+              tier: tier,
               xp: 600,
               packVersion: 'v1',
             ),
@@ -101,6 +113,20 @@ void main() {
     expect(find.text('42 m · +600 xp'), findsNWidgets(2));
     expect(find.text('+1200 xp this round · level up!'), findsOneWidget);
     expect(find.textContaining('Level 2'), findsOneWidget);
+  });
+
+  testWidgets('results offer to retry Close and Miss streets', (tester) async {
+    final missed = (await tester.runAsync(
+      () => roundWithAnswers(3, tier: Tier.miss),
+    ))!;
+    await pumpApp(tester, '${Routes.results}?round=$missed');
+    expect(find.text('Retry 3 missed'), findsOneWidget);
+  });
+
+  testWidgets('results without Close or Miss offer no retry', (tester) async {
+    final great = (await tester.runAsync(() => roundWithAnswers(2)))!;
+    await pumpApp(tester, '${Routes.results}?round=$great');
+    expect(find.textContaining('Retry'), findsNothing);
   });
 
   testWidgets('results without a round go home', (tester) async {

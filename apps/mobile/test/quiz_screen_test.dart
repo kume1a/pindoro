@@ -46,7 +46,7 @@ void main() {
         UserSettingsCompanion(
           lastAreaJson: Value(
             jsonEncode(
-              const DistrictArea(AppConfig.fixtureDistrictId).toJson(),
+              const DistrictsArea({AppConfig.fixtureDistrictId}).toJson(),
             ),
           ),
           lastDifficulty: const Value(Difficulty.expert),
@@ -86,7 +86,7 @@ void main() {
     );
     final street =
         (container.read(roundControllerProvider) as RoundAsking).round.current;
-    expect(find.text(street.nameKa), findsOneWidget);
+    expect(find.text(street.name), findsOneWidget);
 
     map!.onTap!(street.geometry.first.first);
     await tester.pump();
@@ -94,7 +94,7 @@ void main() {
     await settle(tester);
 
     expect(find.byType(FeedbackBadge), findsOneWidget);
-    expect(find.text('0 m · +150 xp'), findsOneWidget);
+    expect(find.text('0 m · +100 xp'), findsOneWidget);
     expect(map!.truth, isNotNull);
     expect(map!.onTap, isNull, reason: 'no new pins while revealed');
 

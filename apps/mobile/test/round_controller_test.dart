@@ -10,7 +10,7 @@ import 'package:pindoro/features/quiz/round_controller.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
 void main() {
-  const vake = DistrictArea(AppConfig.fixtureDistrictId);
+  const vake = DistrictsArea({AppConfig.fixtureDistrictId});
   late AppDatabase db;
 
   setUp(() => db = AppDatabase(NativeDatabase.memory()));
@@ -37,13 +37,17 @@ void main() {
     return c;
   }
 
+  /// Answers on the street, or far away (a Miss) when [miss].
   Future<void> answerCurrent(
     RoundController controller,
-    ProviderContainer c,
-  ) async {
+    ProviderContainer c, {
+    bool miss = false,
+  }) async {
     final street =
         (c.read(roundControllerProvider) as RoundAsking).round.current;
-    controller.placePin(street.geometry.first.first);
+    controller.placePin(
+      miss ? const LatLng(41.9, 45.2) : street.geometry.first.first,
+    );
     await controller.confirm();
   }
 
@@ -71,7 +75,7 @@ void main() {
     final revealed = c.read(roundControllerProvider) as RoundRevealed;
     expect(revealed.answer.distanceM, closeTo(0, 0.5));
     expect(revealed.answer.tier, Tier.perfect);
-    expect(revealed.answer.xp, 150, reason: '100 points x expert bonus 1.5');
+    expect(revealed.answer.xp, 100, reason: 'XP is the same at every level');
     expect(await db.answersForRound(revealed.round.id), hasLength(1));
   });
 
@@ -100,7 +104,35 @@ void main() {
     }
     expect(c.read(roundControllerProvider), isA<RoundFinished>());
     expect((await db.roundProgress(id)).round.finishedAt, isNotNull);
-    expect(await db.resumableRound(), isNull);
+    expect(await db.resumableRound(DateTime.now()), isNull);
+  });
+
+  test('a retry round asks the Close and Miss streets of a round', () async {
+    final c = container();
+    final controller = c.read(roundControllerProvider.notifier);
+    await controller.start(vake, Difficulty.expert);
+    final first = (c.read(roundControllerProvider) as RoundAsking).round;
+    for (var i = 0; i < first.total; i++) {
+      await answerCurrent(controller, c, miss: i == 1 || i == 4);
+      await controller.next();
+    }
+
+    await controller.startRetry(first.id);
+    final retry = (c.read(roundControllerProvider) as RoundAsking).round;
+    expect(retry.retryOf, first.id);
+    expect(retry.total, 2);
+    expect(
+      [for (final q in retry.questions) q.id],
+      [first.questions[1].id, first.questions[4].id],
+    );
+    expect((await db.roundProgress(retry.id)).round.retryOf, first.id);
+
+    for (var i = 0; i < retry.total; i++) {
+      await answerCurrent(controller, c);
+      await controller.next();
+    }
+    expect(c.read(roundControllerProvider), isA<RoundFinished>());
+    expect(await db.retrySet(retry.id), isEmpty);
   });
 
   test('a pool smaller than a round is reported', () async {
@@ -113,7 +145,7 @@ void main() {
         .start(vake, Difficulty.expert);
     expect(
       c.read(roundControllerProvider),
-      isA<RoundNotEnough>().having((s) => s.count, 'count', 3),
+      isA<RoundNotEnough>().having((s) => s.count, 'count', lessThan(4)),
     );
   });
 
@@ -121,7 +153,7 @@ void main() {
     final c = container();
     await c
         .read(roundControllerProvider.notifier)
-        .start(const DistrictArea('osm:r1'), Difficulty.expert);
+        .start(const DistrictsArea({'osm:r1'}), Difficulty.expert);
     expect(c.read(roundControllerProvider), isA<RoundAreaMissing>());
   });
 }
@@ -153,8 +185,15 @@ class _TinyPack implements PackRepository {
       _inner.streetDistricts(streetId);
 
   @override
+  List<Street> streetsNamed(Set<String> names) => _inner.streetsNamed(names);
+
+  @override
   Map<String, String> streetNames(Iterable<String> ids) =>
       _inner.streetNames(ids);
+
+  @override
+  ({Set<String> city, Map<String, Set<String>> byDistrict}) streetNameIndex() =>
+      _inner.streetNameIndex();
 
   @override
   void close() => _inner.close();

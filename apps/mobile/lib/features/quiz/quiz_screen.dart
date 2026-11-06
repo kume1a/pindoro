@@ -13,12 +13,13 @@ import '../map/pindoro_map.dart';
 import 'answer_row.dart';
 import 'round_controller.dart';
 
-/// Plays a round: resumes [roundId], or starts one from the saved area and
-/// difficulty.
+/// Plays a round: resumes [roundId], retries [retryOf]'s missed streets, or
+/// starts one from the saved area and difficulty.
 class QuizScreen extends ConsumerStatefulWidget {
-  const QuizScreen({super.key, this.roundId});
+  const QuizScreen({super.key, this.roundId, this.retryOf});
 
   final String? roundId;
+  final String? retryOf;
 
   @override
   ConsumerState<QuizScreen> createState() => _QuizScreenState();
@@ -36,6 +37,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     final controller = ref.read(roundControllerProvider.notifier);
     final roundId = widget.roundId;
     if (roundId != null) return controller.resume(roundId);
+    final retryOf = widget.retryOf;
+    if (retryOf != null) return controller.startRetry(retryOf);
     final settings = await ref.read(databaseProvider).readSettings();
     await controller.start(
       settings.area,
@@ -97,7 +100,7 @@ class _Playing extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               spacing: PindoroSpace.s2,
               children: [
-                StreetPlate(round.current.nameKa),
+                StreetPlate(round.current.name),
                 Text(
                   '${round.number} / ${round.total}',
                   textAlign: TextAlign.center,

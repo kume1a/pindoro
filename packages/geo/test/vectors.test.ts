@@ -10,7 +10,7 @@ import {
   progressWithinLevel,
   requirement,
   scoreAnswer,
-  thresholdsForArea,
+  thresholdsForStreet,
   totalXpToReach,
 } from "../src/index.ts";
 
@@ -29,18 +29,18 @@ interface ScoringVectors {
     nearest: number[];
   }[];
   thresholds: {
-    area_m2: number;
+    road_class: string;
     difficulty: Difficulty;
     perfect: number;
     great: number;
     close: number;
   }[];
   score: {
+    name: string;
     distance_m: number;
-    area_m2: number;
+    road_class: string;
     difficulty: Difficulty;
     tier: string;
-    points: number;
     xp: number;
   }[];
   polyline6: { name: string; points: number[][]; encoded: string; decoded: number[][] }[];
@@ -73,17 +73,16 @@ describe("pointToPolylineDistance", () => {
 });
 
 describe("scoring", () => {
-  it.each(s.thresholds)("thresholds for $area_m2 m² $difficulty", (v) => {
-    const t = thresholdsForArea(v.area_m2, v.difficulty);
+  it.each(s.thresholds)("thresholds for $road_class $difficulty", (v) => {
+    const t = thresholdsForStreet(v.road_class, v.difficulty);
     expect(t.perfect).toBeCloseTo(v.perfect, 5);
     expect(t.great).toBeCloseTo(v.great, 5);
     expect(t.close).toBeCloseTo(v.close, 5);
   });
 
-  it.each(s.score)("$distance_m m in $area_m2 m² $difficulty -> $tier", (v) => {
-    expect(scoreAnswer(v.distance_m, v.area_m2, v.difficulty)).toEqual({
+  it.each(s.score)("$name", (v) => {
+    expect(scoreAnswer(v.distance_m, v.road_class, v.difficulty)).toEqual({
       tier: v.tier,
-      points: v.points,
       xp: v.xp,
     });
   });

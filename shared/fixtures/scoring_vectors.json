@@ -60,285 +60,253 @@
   ],
   "thresholds": [
     {
-      "area_m2": 10000,
-      "difficulty": "easy",
-      "perfect": 30,
-      "great": 90,
+      "road_class": "motorway",
+      "difficulty": "medium",
+      "perfect": 34,
+      "great": 100,
       "close": 300
     },
     {
-      "area_m2": 10000,
-      "difficulty": "medium",
-      "perfect": 20,
-      "great": 60,
-      "close": 200
-    },
-    {
-      "area_m2": 10000,
+      "road_class": "trunk",
       "difficulty": "hard",
-      "perfect": 14,
-      "great": 42,
-      "close": 140
+      "perfect": 23.8,
+      "great": 70,
+      "close": 210
     },
     {
-      "area_m2": 10000,
-      "difficulty": "expert",
-      "perfect": 10,
-      "great": 30,
-      "close": 100
-    },
-    {
-      "area_m2": 1000000,
+      "road_class": "primary",
       "difficulty": "easy",
-      "perfect": 30,
-      "great": 90,
+      "perfect": 45,
+      "great": 150,
+      "close": 450
+    },
+    {
+      "road_class": "secondary",
+      "difficulty": "hard",
+      "perfect": 19.6,
+      "great": 70,
+      "close": 210
+    },
+    {
+      "road_class": "tertiary",
+      "difficulty": "expert",
+      "perfect": 13.5,
+      "great": 50,
+      "close": 150
+    },
+    {
+      "road_class": "residential",
+      "difficulty": "medium",
+      "perfect": 25,
+      "great": 100,
       "close": 300
     },
     {
-      "area_m2": 1000000,
-      "difficulty": "medium",
-      "perfect": 20,
-      "great": 60,
-      "close": 200
-    },
-    {
-      "area_m2": 1000000,
-      "difficulty": "hard",
-      "perfect": 14,
-      "great": 42,
-      "close": 140
-    },
-    {
-      "area_m2": 1000000,
-      "difficulty": "expert",
-      "perfect": 10,
-      "great": 30,
-      "close": 100
-    },
-    {
-      "area_m2": 32000000,
+      "road_class": "unclassified",
       "difficulty": "easy",
-      "perfect": 42.426407,
-      "great": 169.705627,
-      "close": 593.969696
+      "perfect": 37.5,
+      "great": 150,
+      "close": 450
     },
     {
-      "area_m2": 32000000,
-      "difficulty": "medium",
-      "perfect": 28.284271,
-      "great": 113.137085,
-      "close": 395.979797
-    },
-    {
-      "area_m2": 32000000,
-      "difficulty": "hard",
-      "perfect": 19.79899,
-      "great": 79.195959,
-      "close": 277.185858
-    },
-    {
-      "area_m2": 32000000,
+      "road_class": "living_street",
       "difficulty": "expert",
-      "perfect": 14.142136,
-      "great": 56.568542,
-      "close": 197.989899
-    },
-    {
-      "area_m2": 504000000,
-      "difficulty": "easy",
-      "perfect": 168.374582,
-      "great": 673.49833,
-      "close": 2357.244154
-    },
-    {
-      "area_m2": 504000000,
-      "difficulty": "medium",
-      "perfect": 112.249722,
-      "great": 448.998886,
-      "close": 1571.496102
-    },
-    {
-      "area_m2": 504000000,
-      "difficulty": "hard",
-      "perfect": 78.574805,
-      "great": 314.29922,
-      "close": 1100.047272
-    },
-    {
-      "area_m2": 504000000,
-      "difficulty": "expert",
-      "perfect": 56.124861,
-      "great": 224.499443,
-      "close": 785.748051
+      "perfect": 12.5,
+      "great": 50,
+      "close": 150
     }
   ],
   "score": [
     {
+      "name": "on the street",
       "distance_m": 0,
-      "area_m2": 1000000,
+      "road_class": "residential",
       "difficulty": "medium",
       "tier": "perfect",
-      "points": 100,
-      "xp": 110
-    },
-    {
-      "distance_m": 20,
-      "area_m2": 1000000,
-      "difficulty": "medium",
-      "tier": "perfect",
-      "points": 100,
-      "xp": 110
-    },
-    {
-      "distance_m": 20.01,
-      "area_m2": 1000000,
-      "difficulty": "medium",
-      "tier": "great",
-      "points": 90,
-      "xp": 99
-    },
-    {
-      "distance_m": 40,
-      "area_m2": 1000000,
-      "difficulty": "medium",
-      "tier": "great",
-      "points": 80,
-      "xp": 88
-    },
-    {
-      "distance_m": 60,
-      "area_m2": 1000000,
-      "difficulty": "medium",
-      "tier": "great",
-      "points": 70,
-      "xp": 77
-    },
-    {
-      "distance_m": 130,
-      "area_m2": 1000000,
-      "difficulty": "medium",
-      "tier": "close",
-      "points": 45,
-      "xp": 50
-    },
-    {
-      "distance_m": 200,
-      "area_m2": 1000000,
-      "difficulty": "medium",
-      "tier": "close",
-      "points": 30,
-      "xp": 33
-    },
-    {
-      "distance_m": 200.01,
-      "area_m2": 1000000,
-      "difficulty": "medium",
-      "tier": "miss",
-      "points": 0,
-      "xp": 0
-    },
-    {
-      "distance_m": 25,
-      "area_m2": 1000000,
-      "difficulty": "easy",
-      "tier": "perfect",
-      "points": 100,
       "xp": 100
     },
     {
-      "distance_m": 95,
-      "area_m2": 1000000,
-      "difficulty": "easy",
-      "tier": "close",
-      "points": 59,
-      "xp": 59
-    },
-    {
-      "distance_m": 14,
-      "area_m2": 1000000,
-      "difficulty": "hard",
+      "name": "perfect boundary: half-width 5 + 20 m",
+      "distance_m": 25,
+      "road_class": "residential",
+      "difficulty": "medium",
       "tier": "perfect",
-      "points": 100,
-      "xp": 125
+      "xp": 100
     },
     {
+      "name": "just past perfect",
+      "distance_m": 25.01,
+      "road_class": "residential",
+      "difficulty": "medium",
+      "tier": "great",
+      "xp": 89
+    },
+    {
+      "name": "canvas example: 84 m",
+      "distance_m": 84,
+      "road_class": "residential",
+      "difficulty": "medium",
+      "tier": "great",
+      "xp": 74
+    },
+    {
+      "name": "great boundary",
+      "distance_m": 100,
+      "road_class": "residential",
+      "difficulty": "medium",
+      "tier": "great",
+      "xp": 70
+    },
+    {
+      "name": "just past great",
+      "distance_m": 100.01,
+      "road_class": "residential",
+      "difficulty": "medium",
+      "tier": "close",
+      "xp": 60
+    },
+    {
+      "name": "canvas example: 240 m",
+      "distance_m": 240,
+      "road_class": "residential",
+      "difficulty": "medium",
+      "tier": "close",
+      "xp": 39
+    },
+    {
+      "name": "close boundary",
+      "distance_m": 300,
+      "road_class": "residential",
+      "difficulty": "medium",
+      "tier": "close",
+      "xp": 30
+    },
+    {
+      "name": "just past close",
+      "distance_m": 300.01,
+      "road_class": "residential",
+      "difficulty": "medium",
+      "tier": "miss",
+      "xp": 0
+    },
+    {
+      "name": "wide road: motorway perfect at 34 m",
+      "distance_m": 34,
+      "road_class": "motorway",
+      "difficulty": "medium",
+      "tier": "perfect",
+      "xp": 100
+    },
+    {
+      "name": "wide road: great from 34 m",
+      "distance_m": 35,
+      "road_class": "motorway",
+      "difficulty": "medium",
+      "tier": "great",
+      "xp": 86
+    },
+    {
+      "name": "easy perfect boundary (primary)",
+      "distance_m": 45,
+      "road_class": "primary",
+      "difficulty": "easy",
+      "tier": "perfect",
+      "xp": 100
+    },
+    {
+      "name": "easy scales the curve: 126 m = 84 m at medium",
+      "distance_m": 126,
+      "road_class": "primary",
+      "difficulty": "easy",
+      "tier": "great",
+      "xp": 74
+    },
+    {
+      "name": "easy great boundary",
       "distance_m": 150,
-      "area_m2": 1000000,
-      "difficulty": "hard",
-      "tier": "miss",
-      "points": 0,
-      "xp": 0
-    },
-    {
-      "distance_m": 9,
-      "area_m2": 32000000,
-      "difficulty": "expert",
-      "tier": "perfect",
-      "points": 100,
-      "xp": 150
-    },
-    {
-      "distance_m": 40,
-      "area_m2": 32000000,
-      "difficulty": "expert",
+      "road_class": "primary",
+      "difficulty": "easy",
       "tier": "great",
-      "points": 78,
-      "xp": 117
+      "xp": 70
     },
     {
-      "distance_m": 300,
-      "area_m2": 32000000,
-      "difficulty": "expert",
-      "tier": "miss",
-      "points": 0,
-      "xp": 0
-    },
-    {
-      "distance_m": 500,
-      "area_m2": 32000000,
-      "difficulty": "expert",
-      "tier": "miss",
-      "points": 0,
-      "xp": 0
-    },
-    {
-      "distance_m": 112,
-      "area_m2": 504000000,
-      "difficulty": "medium",
-      "tier": "perfect",
-      "points": 100,
-      "xp": 110
-    },
-    {
-      "distance_m": 300,
-      "area_m2": 504000000,
-      "difficulty": "medium",
-      "tier": "great",
-      "points": 79,
-      "xp": 87
-    },
-    {
-      "distance_m": 1000,
-      "area_m2": 504000000,
-      "difficulty": "medium",
+      "name": "easy scales the curve: 360 m = 240 m at medium",
+      "distance_m": 360,
+      "road_class": "primary",
+      "difficulty": "easy",
       "tier": "close",
-      "points": 45,
-      "xp": 50
+      "xp": 39
     },
     {
-      "distance_m": 1600,
-      "area_m2": 504000000,
-      "difficulty": "medium",
-      "tier": "miss",
-      "points": 0,
-      "xp": 0
+      "name": "easy close boundary",
+      "distance_m": 450,
+      "road_class": "primary",
+      "difficulty": "easy",
+      "tier": "close",
+      "xp": 30
     },
     {
-      "distance_m": 5000,
-      "area_m2": 504000000,
+      "name": "easy miss",
+      "distance_m": 451,
+      "road_class": "primary",
       "difficulty": "easy",
       "tier": "miss",
-      "points": 0,
+      "xp": 0
+    },
+    {
+      "name": "hard inside perfect (secondary 19.6 m)",
+      "distance_m": 19.5,
+      "road_class": "secondary",
+      "difficulty": "hard",
+      "tier": "perfect",
+      "xp": 100
+    },
+    {
+      "name": "hard scales the curve: 58.8 m = 84 m at medium",
+      "distance_m": 58.8,
+      "road_class": "secondary",
+      "difficulty": "hard",
+      "tier": "great",
+      "xp": 74
+    },
+    {
+      "name": "hard scales the curve: 168 m = 240 m at medium",
+      "distance_m": 168,
+      "road_class": "secondary",
+      "difficulty": "hard",
+      "tier": "close",
+      "xp": 39
+    },
+    {
+      "name": "unlisted class uses 5 m: expert perfect boundary",
+      "distance_m": 12.5,
+      "road_class": "living_street",
+      "difficulty": "expert",
+      "tier": "perfect",
+      "xp": 100
+    },
+    {
+      "name": "expert scales the curve: 42 m = 84 m at medium",
+      "distance_m": 42,
+      "road_class": "living_street",
+      "difficulty": "expert",
+      "tier": "great",
+      "xp": 74
+    },
+    {
+      "name": "expert scales the curve: 120 m = 240 m at medium",
+      "distance_m": 120,
+      "road_class": "living_street",
+      "difficulty": "expert",
+      "tier": "close",
+      "xp": 39
+    },
+    {
+      "name": "expert miss",
+      "distance_m": 151,
+      "road_class": "living_street",
+      "difficulty": "expert",
+      "tier": "miss",
       "xp": 0
     }
   ],

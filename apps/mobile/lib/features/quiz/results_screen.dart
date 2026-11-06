@@ -15,6 +15,7 @@ typedef _Results = ({
   List<Answer> answers,
   Map<String, String> names,
   int totalXp,
+  int retryCount,
 });
 
 final _resultsProvider = FutureProvider.autoDispose.family<_Results, String>((
@@ -28,6 +29,7 @@ final _resultsProvider = FutureProvider.autoDispose.family<_Results, String>((
     answers: answers,
     names: pack.streetNames(answers.map((a) => a.streetId)),
     totalXp: await db.totalXp(),
+    retryCount: (await db.retrySet(roundId)).length,
   );
 });
 
@@ -49,6 +51,12 @@ class ResultsScreen extends ConsumerWidget {
       title: 'Results',
       body: '+$roundXp xp this round${levelUp ? ' · level up!' : ''}',
       actions: [
+        if (results.retryCount > 0)
+          PindoroButton(
+            label: 'Retry ${results.retryCount} missed',
+            variant: PindoroButtonVariant.secondary,
+            onPressed: () => context.go('${Routes.quiz}?retry=$roundId'),
+          ),
         PindoroButton(label: 'Done', onPressed: () => context.go(Routes.home)),
       ],
       child: Column(

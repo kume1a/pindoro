@@ -3,100 +3,114 @@ import 'dart:math';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:test/test.dart';
 
-/// Streets on a 1 km grid, so every pair is ≥ 300 m apart.
-List<QuestionCandidate> _grid(int n) => [
-  for (var i = 0; i < n; i++)
-    QuestionCandidate(
-      streetId: 's$i',
-      midpoint: LatLng(41.70 + (i ~/ 10) * 0.01, 44.70 + (i % 10) * 0.012),
-    ),
+const _bounds = Bbox(41.70, 44.70, 41.73, 44.73);
+
+/// A 200 m street called [name] whose midpoint is [at].
+Street _street(String id, String name, LatLng at, {double lengthM = 200}) =>
+    Street(
+      id: id,
+      nameKa: name,
+      nameEn: null,
+      roadClass: 'residential',
+      difficulty: Difficulty.expert,
+      lengthM: lengthM,
+      midpoint: at,
+      bbox: Bbox.of([at]),
+      geometry: [
+        [at],
+      ],
+    );
+
+/// [perCell] streets in each of the 3 × 3 cells of [_bounds].
+List<Street> _grid(int perCell) => [
+  for (var row = 0; row < 3; row++)
+    for (var col = 0; col < 3; col++)
+      for (var i = 0; i < perCell; i++)
+        _street(
+          's$row$col$i',
+          'n$row$col$i',
+          LatLng(41.705 + row * 0.01, 44.705 + col * 0.01 + i * 1e-4),
+        ),
 ];
 
-List<String> _ids(QuestionSelection s) => (s as SelectedQuestions).streetIds;
+int _cell(LatLng p) =>
+    ((p.lat - 41.70) / 0.01).floor() * 3 + ((p.lon - 44.70) / 0.01).floor();
+
+List<String> _pick(
+  List<Street> streets, {
+  Map<String, StreetKnowledge> knowledge = const {},
+  Set<String> recentNames = const {},
+  int seed = 1,
+}) {
+  final s = QuestionSelector(random: Random(seed)).select(
+    streets,
+    bounds: _bounds,
+    knowledge: knowledge,
+    recentNames: recentNames,
+  );
+  return (s as SelectedQuestions).streetIds;
+}
 
 void main() {
-  test('picks 10 distinct streets', () {
-    final ids = _ids(QuestionSelector(random: Random(1)).select(_grid(40)));
-    expect(ids, hasLength(10));
-    expect(ids.toSet(), hasLength(10));
+  test('picks 10 distinct names spread over all 9 cells', () {
+    final streets = _grid(3);
+    final picked = _pick(streets);
+    expect(picked.toSet(), hasLength(10));
+    final byId = {for (final s in streets) s.id: s};
+    expect(picked.map((id) => _cell(byId[id]!.midpoint)).toSet(), hasLength(9));
   });
 
-  test('returns NotEnoughStreets when the pool is smaller than 10', () {
-    final s = QuestionSelector().select(_grid(9));
-    expect(s, isA<NotEnoughStreets>());
+  test('never asks the same name twice; one id per name', () {
+    final streets = [
+      for (final s in _grid(2)) s,
+      _street('dup', 'n000', const LatLng(41.725, 44.725), lengthM: 900),
+    ];
+    final picked = _pick(streets);
+    final names = {for (final s in streets) s.id: s.nameKa};
+    expect(picked.map((id) => names[id]).toSet(), hasLength(10));
+  });
+
+  test('skips names shorter than 150 m in total', () {
+    final streets = [
+      ..._grid(1),
+      _street('short', 'short', const LatLng(41.705, 44.705), lengthM: 100),
+      _street('pair-a', 'pair', const LatLng(41.715, 44.715), lengthM: 80),
+      _street('pair-b', 'pair', const LatLng(41.716, 44.716), lengthM: 80),
+    ];
+    final picked = _pick(streets);
+    expect(picked, isNot(contains('short')));
+    expect(picked.where((id) => id.startsWith('pair')), hasLength(1));
+  });
+
+  test('NotEnoughStreets counts the candidates', () {
+    final s = QuestionSelector().select(_grid(1), bounds: _bounds);
     expect((s as NotEnoughStreets).count, 9);
   });
 
+  test('within a cell: unknown, then missed, then known; then not recent', () {
+    final streets = _grid(4);
+    final names = {for (final s in streets) s.id: s.nameKa};
+    // In every cell, street 0 is known, 1 missed, 2 unknown but recent,
+    // 3 unknown and fresh: the first pass takes each cell's street 3.
+    final knowledge = {
+      for (final s in streets)
+        if (s.id.endsWith('0'))
+          s.nameKa: StreetKnowledge.known
+        else if (s.id.endsWith('1'))
+          s.nameKa: StreetKnowledge.missed,
+    };
+    final recent = {
+      for (final s in streets)
+        if (s.id.endsWith('2')) s.nameKa,
+    };
+    final picked = _pick(streets, knowledge: knowledge, recentNames: recent);
+    expect(picked.take(9).every((id) => id.endsWith('3')), isTrue);
+    expect(picked[9], endsWith('2'));
+    expect(names.keys, containsAll(picked));
+  });
+
   test('is deterministic for a seeded Random', () {
-    final pool = _grid(50);
-    expect(
-      _ids(QuestionSelector(random: Random(42)).select(pool)),
-      _ids(QuestionSelector(random: Random(42)).select(pool)),
-    );
-  });
-
-  test('excludes recently asked streets', () {
-    final pool = _grid(30);
-    final recent = {for (var i = 0; i < 20; i++) 's$i'};
-    final ids = _ids(
-      QuestionSelector(random: Random(3)).select(pool, recentlyAsked: recent),
-    );
-    expect(ids.toSet().intersection(recent), isEmpty);
-  });
-
-  test('falls back to recent streets when too few fresh ones remain', () {
-    final pool = _grid(12);
-    final recent = {for (var i = 0; i < 5; i++) 's$i'};
-    final ids = _ids(QuestionSelector().select(pool, recentlyAsked: recent));
-    expect(ids, hasLength(10));
-  });
-
-  test('weights unknown x3, missed x2, known x0.5', () {
-    const pool = [
-      QuestionCandidate(streetId: 'u0', midpoint: LatLng(41.7, 44.7)),
-      QuestionCandidate(
-        streetId: 'm0',
-        midpoint: LatLng(41.8, 44.8),
-        knowledge: StreetKnowledge.missed,
-      ),
-      QuestionCandidate(
-        streetId: 'k0',
-        midpoint: LatLng(41.9, 44.9),
-        knowledge: StreetKnowledge.known,
-      ),
-    ];
-    final selector = QuestionSelector(random: Random(7));
-    final counts = <String, int>{};
-    const trials = 20000;
-    for (var i = 0; i < trials; i++) {
-      final id = _ids(selector.select(pool, count: 1)).single;
-      counts[id] = (counts[id] ?? 0) + 1;
-    }
-    expect(counts['u0']! / trials, closeTo(3 / 5.5, 0.02));
-    expect(counts['m0']! / trials, closeTo(2 / 5.5, 0.02));
-    expect(counts['k0']! / trials, closeTo(0.5 / 5.5, 0.02));
-  });
-
-  test('never puts consecutive midpoints closer than 300 m', () {
-    // 10 far-apart streets plus 30 clustered within 50 m of the first one.
-    final pool = [
-      ..._grid(10),
-      for (var i = 0; i < 30; i++)
-        QuestionCandidate(
-          streetId: 'near$i',
-          midpoint: LatLng(41.70 + i * 0.00001, 44.70),
-        ),
-    ];
-    for (var seed = 0; seed < 50; seed++) {
-      final byId = {for (final c in pool) c.streetId: c.midpoint};
-      final ids = _ids(QuestionSelector(random: Random(seed)).select(pool));
-      for (var i = 1; i < ids.length; i++) {
-        expect(
-          distanceBetween(byId[ids[i - 1]]!, byId[ids[i]]!),
-          greaterThanOrEqualTo(QuestionSelector.minConsecutiveDistanceM),
-          reason: 'seed $seed, ${ids[i - 1]} -> ${ids[i]}',
-        );
-      }
-    }
+    final streets = _grid(3);
+    expect(_pick(streets, seed: 7), _pick(streets, seed: 7));
   });
 }
