@@ -178,6 +178,10 @@ class AppDatabase extends _$AppDatabase {
           .watchSingleOrNull()
           .asyncMap((row) async => row ?? await readSettings());
 
+  /// Whether the player has ever answered (the first-question hint shows once).
+  Future<bool> hasAnswered() async =>
+      await (select(answers)..limit(1)).getSingleOrNull() != null;
+
   /// Welcome shows until the player finishes a first round.
   Future<bool> hasFinishedRound() async =>
       await (select(rounds)

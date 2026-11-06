@@ -114,3 +114,12 @@ NearestPoint pointToPolylineDistance(LatLng point, MultiPolyline lines) {
   }
   return (distanceMeters: best, nearestPoint: proj.unproject(bestXy));
 }
+
+enum CompassPoint { n, ne, e, se, s, sw, w, nw }
+
+/// Which of the eight compass points [to] lies in, seen from [from].
+CompassPoint compassPoint(LatLng from, LatLng to) {
+  final (x, y) = LocalProjection(from).project(to);
+  final degrees = (math.atan2(x, y) * 180 / math.pi + 360) % 360;
+  return CompassPoint.values[((degrees + 22.5) ~/ 45) % 8];
+}

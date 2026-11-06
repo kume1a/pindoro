@@ -167,6 +167,22 @@ ThemeData buildPindoroTheme(Brightness brightness) {
       color: c.xpFill,
       linearTrackColor: c.xpTrack,
     ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: c.toastBg,
+      contentTextStyle: PindoroType.bodyMd.copyWith(color: c.toastText),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(PindoroRadius.lg),
+      ),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: c.surfaceOverlay,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(PindoroRadius.xl),
+      ),
+    ),
     extensions: [pindoro],
   );
 }

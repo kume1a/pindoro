@@ -1,4 +1,6 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -168,15 +170,36 @@ class PinMark extends StatelessWidget {
   final Color? halo;
   final double width;
 
-  /// The pin's 40 × 48 design grid.
-  static const double gridWidth = 40;
-  static const double gridHeight = 48;
+  /// The pin's 40 × 46 shape (head r16, tip 26 below the centre, 4 dp
+  /// lip) plus 2 units on each side for the halo.
+  static const double gridWidth = 44;
+  static const double gridHeight = 50;
+
+  /// The tip sits this far above the bottom edge (the halo below it).
+  static const double tipInset = 2;
+
+  Size get size => Size(width, width * gridHeight / gridWidth);
 
   @override
   Widget build(BuildContext context) => CustomPaint(
-    size: Size(width, width * gridHeight / gridWidth),
+    size: size,
     painter: _PinPainter(face: face, lip: lip, dot: dot, halo: halo),
   );
+
+  /// PNG of this pin at [pixelRatio], with room for the halo; the tip sits
+  /// at the bottom centre (for map symbol layers anchored at the bottom).
+  Future<Uint8List> toPng(double pixelRatio) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder)..scale(pixelRatio);
+    _PinPainter(face: face, lip: lip, dot: dot, halo: halo).paint(canvas, size);
+    final image = await recorder.endRecording().toImage(
+      (size.width * pixelRatio).ceil(),
+      (size.height * pixelRatio).ceil(),
+    );
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    return bytes!.buffer.asUint8List();
+  }
 }
 
 class _PinPainter extends CustomPainter {
@@ -192,9 +215,9 @@ class _PinPainter extends CustomPainter {
   final Color dot;
   final Color? halo;
 
-  /// Head radius 16 centred at (20, 18), tip 26 below the centre (grid units).
+  /// Head radius 16 centred at (22, 18 + [dy]), tip 26 below the centre.
   static Path _shape(double dy) {
-    const cx = 20.0, r = 16.0, tipDrop = 26.0;
+    const cx = 22.0, r = 16.0, tipDrop = 26.0;
     final cy = 18.0 + dy;
     final tip = Offset(cx, cy + tipDrop);
     final angle = math.acos(r / tipDrop);
@@ -214,22 +237,22 @@ class _PinPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     canvas.scale(size.width / PinMark.gridWidth);
-    final lipPath = _shape(PindoroElevation.e2 - 4);
-    final facePath = _shape(-4);
+    final facePath = _shape(0);
+    final lipPath = _shape(PindoroElevation.e2);
     if (halo != null) {
-      canvas.drawPath(
-        lipPath,
-        Paint()
-          ..color = halo!
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = PindoroStroke.base * 2
-          ..strokeJoin = StrokeJoin.round,
-      );
+      final stroke = Paint()
+        ..color = halo!
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = PindoroStroke.base * 2
+        ..strokeJoin = StrokeJoin.round;
+      canvas
+        ..drawPath(facePath, stroke)
+        ..drawPath(lipPath, stroke);
     }
     canvas
       ..drawPath(lipPath, Paint()..color = lip)
       ..drawPath(facePath, Paint()..color = face)
-      ..drawCircle(const Offset(20, 14), 6, Paint()..color = dot);
+      ..drawCircle(const Offset(22, 18), 6, Paint()..color = dot);
   }
 
   @override
@@ -657,6 +680,87 @@ class TierTally extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// The XP bar: a rounded track with a lane-yellow fill on a lower lip.
+class XpBar extends StatelessWidget {
+  const XpBar({super.key, required this.value, required this.semanticLabel});
+
+  /// 0–1.
+  final double value;
+  final String semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    return Semantics(
+      label: semanticLabel,
+      excludeSemantics: true,
+      child: Container(
+        height: 18,
+        decoration: BoxDecoration(
+          color: c.xpTrack,
+          borderRadius: BorderRadius.circular(PindoroRadius.full),
+        ),
+        alignment: Alignment.centerLeft,
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(end: value.clamp(0, 1)),
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : PindoroMotion.durationSlow,
+          curve: PindoroMotion.easeStandard,
+          builder: (_, v, _) => FractionallySizedBox(
+            widthFactor: v,
+            child: Container(
+              decoration: BoxDecoration(
+                color: c.xpFill,
+                borderRadius: BorderRadius.circular(PindoroRadius.full),
+                border: Border(
+                  bottom: BorderSide(
+                    color: c.xpLip,
+                    width: PindoroElevation.e2,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The level shield: level number on `color.level.bg` inside a yellow rim.
+class LevelBadge extends StatelessWidget {
+  const LevelBadge(this.level, {super.key, this.size = 48});
+
+  final int level;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: ShapeDecoration(
+        color: c.levelBg,
+        shape: StarBorder.polygon(
+          sides: 6,
+          pointRounding: 0.4,
+          side: BorderSide(color: c.levelRim, width: size / 16),
+        ),
+      ),
+      child: Text(
+        '$level',
+        style: PindoroType.numericMd.copyWith(
+          color: c.levelText,
+          fontSize: size * 0.42,
+        ),
       ),
     );
   }

@@ -44,7 +44,13 @@ test/drift/                    generated schema helpers + migration test
 
 - `PindoroMap` loads the bundled style, injects `{TILES_BASE_URL}` (Martin source `georgia`), and
   always shows "© OpenStreetMap contributors, Protomaps". Never point it at public OSM tile servers.
-- GeoJSON source names: `you-pin`, `truth-street`, `measure`, `area-mask` (dims outside the round's area).
+- GeoJSON source names: `you-pin` (a symbol of the `PinMark` rendered to PNG, anchored at its tip),
+  `truth-street` (8 dp yellow over a 12 dp ink casing), `measure` (dotted ink) + `measure-end`
+  (ring), `area-mask` (dims outside the round's area). The map owns its controls (my location,
+  recentre, zoom) and the attribution chip, placed above `bottomInset`.
+- **Round screens** (`features/quiz`): `/round` is one route for setup states, question and
+  reveal; Results (`results_data.dart` gathers everything), the per-answer street view and the
+  full-screen level up.
 - Colour rule: **yellow = truth, cobalt = you, ink = measurement.** Never swap them.
 - Screens get the map through `pindoroMapBuilderProvider`; tests override it to capture the
   `PindoroMap` config instead of building the platform view.

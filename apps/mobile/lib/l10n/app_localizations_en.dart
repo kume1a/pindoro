@@ -36,7 +36,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonNotNow => 'Not now';
 
   @override
-  String commonXp(int xp) {
+  String commonXp(String xp) {
     return '+$xp XP';
   }
 
@@ -73,12 +73,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String homeXpToNextLevel(int xp, int level) {
+  String homeXpToNextLevel(String xp, int level) {
     return '$xp XP to level $level';
   }
 
   @override
-  String homeXpTotal(int xp) {
+  String homeXpTotal(String xp) {
     return '$xp XP in total';
   }
 
@@ -121,7 +121,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String homeSavedXp(int xp) {
+  String homeSavedXp(String xp) {
     return '$xp XP so far';
   }
 
@@ -347,7 +347,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quizLeaveTitle => 'Leave for now?';
 
   @override
-  String quizLeaveBody(int question, int total, int xp) {
+  String quizLeaveBody(int question, int total, String xp) {
     return 'Your round is saved at question $question of $total, with the $xp XP you’ve earned. Pick it up from Home.';
   }
 
@@ -469,7 +469,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String levelUpBody(int xp) {
+  String levelUpBody(String xp) {
     return '$xp XP in total. Every Great and Perfect got you here.';
   }
 
@@ -575,12 +575,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get a11yConfirmDisabled => 'Confirm. Drop a pin first.';
 
   @override
-  String a11yReveal(String tier, String distance, int xp) {
+  String a11yReveal(String tier, String distance, String xp) {
     return '$tier. $distance away. Plus $xp XP.';
   }
 
   @override
-  String a11yLevelProgress(int level, int xp, int xpNeeded) {
+  String a11yLevelProgress(int level, String xp, String xpNeeded) {
     return 'Level $level, $xp of $xpNeeded XP';
   }
 
@@ -595,4 +595,75 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get a11yZoomOut => 'Zoom out';
+
+  @override
+  String revealMissDirection(String direction) {
+    String _temp0 = intl.Intl.selectLogic(direction, {
+      'n': 'It’s north of your pin.',
+      'ne': 'It’s north-east of your pin.',
+      'e': 'It’s east of your pin.',
+      'se': 'It’s south-east of your pin.',
+      's': 'It’s south of your pin.',
+      'sw': 'It’s south-west of your pin.',
+      'w': 'It’s west of your pin.',
+      'nw': 'It’s north-west of your pin.',
+      'other': 'It’s close to your pin.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String a11yFindStreetName(String name) {
+    return 'Find: $name';
+  }
+
+  @override
+  String a11yRoundXp(String xp) {
+    return '$xp XP this round';
+  }
+
+  @override
+  String a11yResultRow(
+    int question,
+    String street,
+    String tier,
+    String distance,
+    String xp,
+  ) {
+    return 'Question $question. $street. $tier, $distance, plus $xp XP. Show on map.';
+  }
+
+  @override
+  String get resultsPreviousStreet => 'Previous';
+
+  @override
+  String get resultsNextStreet => 'Next street';
+
+  @override
+  String get resultsBackToResults => 'Back to results';
+
+  @override
+  String a11yRewardTotal(String xp) {
+    return 'Plus $xp XP this round';
+  }
+
+  @override
+  String a11yTierTally(int perfect, int great, int close, int miss) {
+    return '$perfect Perfect, $great Great, $close Close, $miss Miss';
+  }
+
+  @override
+  String setupSparseCount(int count, String difficulty) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'This area has $count streets at $difficulty.',
+      one: 'This area has 1 street at $difficulty.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get setupAreaMissingBody =>
+      'The streets for this area aren’t on your phone yet. Pick an area from the ones you have.';
 }

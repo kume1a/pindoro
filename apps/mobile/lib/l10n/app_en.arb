@@ -13,7 +13,7 @@
   "@commonXp": {
     "placeholders": {
       "xp": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
@@ -47,7 +47,7 @@
   "@homeXpToNextLevel": {
     "placeholders": {
       "xp": {
-        "type": "int"
+        "type": "String"
       },
       "level": {
         "type": "int"
@@ -58,7 +58,7 @@
   "@homeXpTotal": {
     "placeholders": {
       "xp": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
@@ -90,7 +90,7 @@
   "@homeSavedXp": {
     "placeholders": {
       "xp": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
@@ -254,7 +254,7 @@
         "type": "int"
       },
       "xp": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
@@ -355,7 +355,7 @@
   "@levelUpBody": {
     "placeholders": {
       "xp": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
@@ -418,7 +418,7 @@
         "example": "84 m"
       },
       "xp": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
@@ -429,15 +429,104 @@
         "type": "int"
       },
       "xp": {
-        "type": "int"
+        "type": "String"
       },
       "xpNeeded": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
   "a11yGoToMyLocation": "Go to my location",
   "a11yRecentre": "Recentre",
   "a11yZoomIn": "Zoom in",
-  "a11yZoomOut": "Zoom out"
+  "a11yZoomOut": "Zoom out",
+  "revealMissDirection": "{direction, select, n{It’s north of your pin.} ne{It’s north-east of your pin.} e{It’s east of your pin.} se{It’s south-east of your pin.} s{It’s south of your pin.} sw{It’s south-west of your pin.} w{It’s west of your pin.} nw{It’s north-west of your pin.} other{It’s close to your pin.}}",
+  "@revealMissDirection": {
+    "description": "The {hint} of a Miss: which way the street lies from the pin (n, ne, e, se, s, sw, w, nw).",
+    "placeholders": {
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yFindStreetName": "Find: {name}",
+  "@a11yFindStreetName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yRoundXp": "{xp} XP this round",
+  "@a11yRoundXp": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yResultRow": "Question {question}. {street}. {tier}, {distance}, plus {xp} XP. Show on map.",
+  "@a11yResultRow": {
+    "placeholders": {
+      "question": {
+        "type": "int"
+      },
+      "street": {
+        "type": "String"
+      },
+      "tier": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      },
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "resultsPreviousStreet": "Previous",
+  "@resultsPreviousStreet": {},
+  "resultsNextStreet": "Next street",
+  "@resultsNextStreet": {},
+  "resultsBackToResults": "Back to results",
+  "@resultsBackToResults": {},
+  "a11yRewardTotal": "Plus {xp} XP this round",
+  "@a11yRewardTotal": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yTierTally": "{perfect} Perfect, {great} Great, {close} Close, {miss} Miss",
+  "@a11yTierTally": {
+    "placeholders": {
+      "perfect": {
+        "type": "int"
+      },
+      "great": {
+        "type": "int"
+      },
+      "close": {
+        "type": "int"
+      },
+      "miss": {
+        "type": "int"
+      }
+    }
+  },
+  "setupSparseCount": "{count, plural, =1{This area has 1 street at {difficulty}.} other{This area has {count} streets at {difficulty}.}}",
+  "@setupSparseCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "difficulty": {
+        "type": "String"
+      }
+    }
+  },
+  "setupAreaMissingBody": "The streets for this area aren’t on your phone yet. Pick an area from the ones you have.",
+  "@setupAreaMissingBody": {}
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
+import 'pindoro_button.dart';
 import 'surfaces.dart';
 
 /// A 56 × 32 switch; put it in a [ListRow] so the whole row is the target.
@@ -262,6 +263,66 @@ class PindoroIconButton extends StatelessWidget {
                 child: PindoroIcon(glyph, color: c.buttonSecondaryText),
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A centred decision: title, body, the safe action first (primary) and the
+/// leaving action under it (tertiary). Pops `true` when the leaving action is
+/// chosen; back and the scrim keep the safe action.
+class PindoroDialog extends StatelessWidget {
+  const PindoroDialog({
+    super.key,
+    required this.title,
+    required this.body,
+    required this.primary,
+    required this.secondary,
+  });
+
+  final String title;
+  final String body;
+  final String primary;
+  final String secondary;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    return Dialog(
+      insetPadding: const EdgeInsets.all(PindoroSpace.s6),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 320),
+        child: Padding(
+          padding: const EdgeInsets.all(PindoroSpace.s6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: PindoroSpace.s3,
+            children: [
+              Semantics(
+                header: true,
+                child: Text(
+                  title,
+                  style: PindoroType.headlineSm.copyWith(color: c.textPrimary),
+                ),
+              ),
+              Text(
+                body,
+                style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
+              ),
+              const SizedBox(height: PindoroSpace.s2),
+              PindoroButton(
+                label: primary,
+                onPressed: () => Navigator.of(context).pop(false),
+              ),
+              PindoroButton(
+                label: secondary,
+                variant: PindoroButtonVariant.tertiary,
+                onPressed: () => Navigator.of(context).pop(true),
+              ),
+            ],
           ),
         ),
       ),

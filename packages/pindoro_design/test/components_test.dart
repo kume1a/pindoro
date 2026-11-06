@@ -85,7 +85,7 @@ void main() {
 
   group('goldens', skip: _goldensSkip, () {
     Future<void> pumpGallery(WidgetTester tester, Brightness brightness) async {
-      await tester.binding.setSurfaceSize(const Size(400, 1100));
+      await tester.binding.setSurfaceSize(const Size(400, 1500));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
         _host(
@@ -113,6 +113,20 @@ void main() {
                   const Pill(label: '338', icon: PindoroGlyph.xp),
                 ],
               ),
+              const StreetPlate(
+                'დავით აღმაშენებლის გამზირი',
+                prompt: 'Try again: drop a pin on',
+                promptGlyph: PindoroGlyph.reroute,
+                subline: 'Davit Aghmashenebeli Avenue · you were 1.2 km away',
+              ),
+              const Row(
+                spacing: 12,
+                children: [
+                  LevelBadge(3, size: 44),
+                  Expanded(child: XpBar(value: 0.87, semanticLabel: 'Level 3')),
+                ],
+              ),
+              PindoroButton(label: 'Got it', tier: Tier.miss, onPressed: () {}),
               SegmentedControl(
                 segments: const {'l': 'Light', 'd': 'Dark', 's': 'System'},
                 selected: 'd',

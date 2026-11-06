@@ -36,7 +36,7 @@ class AppLocalizationsKa extends AppLocalizations {
   String get commonNotNow => 'ახლა არა';
 
   @override
-  String commonXp(int xp) {
+  String commonXp(String xp) {
     return '+$xp XP';
   }
 
@@ -72,12 +72,12 @@ class AppLocalizationsKa extends AppLocalizations {
   }
 
   @override
-  String homeXpToNextLevel(int xp, int level) {
+  String homeXpToNextLevel(String xp, int level) {
     return 'მე-$level დონემდე $xp XP';
   }
 
   @override
-  String homeXpTotal(int xp) {
+  String homeXpTotal(String xp) {
     return 'სულ $xp XP';
   }
 
@@ -119,7 +119,7 @@ class AppLocalizationsKa extends AppLocalizations {
   }
 
   @override
-  String homeSavedXp(int xp) {
+  String homeSavedXp(String xp) {
     return 'ჯერჯერობით $xp XP';
   }
 
@@ -343,7 +343,7 @@ class AppLocalizationsKa extends AppLocalizations {
   String get quizLeaveTitle => 'ახლა გადიხარ?';
 
   @override
-  String quizLeaveBody(int question, int total, int xp) {
+  String quizLeaveBody(int question, int total, String xp) {
     return 'რაუნდი შენახულია (კითხვა $question / $total, $xp XP). გააგრძელე მთავარი გვერდიდან.';
   }
 
@@ -464,7 +464,7 @@ class AppLocalizationsKa extends AppLocalizations {
   }
 
   @override
-  String levelUpBody(int xp) {
+  String levelUpBody(String xp) {
     return 'სულ $xp XP. აქამდე ყოველმა კარგმა პასუხმა მოგიყვანა.';
   }
 
@@ -570,12 +570,12 @@ class AppLocalizationsKa extends AppLocalizations {
   String get a11yConfirmDisabled => 'დადასტურება. ჯერ მონიშნე რუკაზე.';
 
   @override
-  String a11yReveal(String tier, String distance, int xp) {
+  String a11yReveal(String tier, String distance, String xp) {
     return '$tier. დაშორება: $distance. +$xp XP.';
   }
 
   @override
-  String a11yLevelProgress(int level, int xp, int xpNeeded) {
+  String a11yLevelProgress(int level, String xp, String xpNeeded) {
     return 'დონე $level, $xp / $xpNeeded XP';
   }
 
@@ -590,4 +590,74 @@ class AppLocalizationsKa extends AppLocalizations {
 
   @override
   String get a11yZoomOut => 'დაპატარავება';
+
+  @override
+  String revealMissDirection(String direction) {
+    String _temp0 = intl.Intl.selectLogic(direction, {
+      'n': 'ქუჩა შენი ნიშნულის ჩრდილოეთითაა.',
+      'ne': 'ქუჩა შენი ნიშნულის ჩრდილო-აღმოსავლეთითაა.',
+      'e': 'ქუჩა შენი ნიშნულის აღმოსავლეთითაა.',
+      'se': 'ქუჩა შენი ნიშნულის სამხრეთ-აღმოსავლეთითაა.',
+      's': 'ქუჩა შენი ნიშნულის სამხრეთითაა.',
+      'sw': 'ქუჩა შენი ნიშნულის სამხრეთ-დასავლეთითაა.',
+      'w': 'ქუჩა შენი ნიშნულის დასავლეთითაა.',
+      'nw': 'ქუჩა შენი ნიშნულის ჩრდილო-დასავლეთითაა.',
+      'other': 'ქუჩა შენს ნიშნულთან ახლოსაა.',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String a11yFindStreetName(String name) {
+    return 'იპოვე: $name';
+  }
+
+  @override
+  String a11yRoundXp(String xp) {
+    return 'ამ რაუნდში $xp XP';
+  }
+
+  @override
+  String a11yResultRow(
+    int question,
+    String street,
+    String tier,
+    String distance,
+    String xp,
+  ) {
+    return 'კითხვა $question. $street. $tier, $distance, +$xp XP. რუკაზე ნახვა.';
+  }
+
+  @override
+  String get resultsPreviousStreet => 'წინა';
+
+  @override
+  String get resultsNextStreet => 'შემდეგი ქუჩა';
+
+  @override
+  String get resultsBackToResults => 'შედეგებზე დაბრუნება';
+
+  @override
+  String a11yRewardTotal(String xp) {
+    return 'ამ რაუნდში +$xp XP';
+  }
+
+  @override
+  String a11yTierTally(int perfect, int great, int close, int miss) {
+    return '$perfect იდეალური, $great შესანიშნავი, $close ახლოს, $miss აცდენა';
+  }
+
+  @override
+  String setupSparseCount(int count, String difficulty) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ამ არეალში $difficulty დონეზე $count ქუჩაა.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get setupAreaMissingBody =>
+      'ამ არეალის ქუჩები ჯერ ტელეფონზე არ გაქვს. აირჩიე არეალი იმათგან, რაც გაქვს.';
 }

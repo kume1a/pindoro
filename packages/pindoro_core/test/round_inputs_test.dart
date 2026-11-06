@@ -13,6 +13,14 @@ void main() {
     expect(Difficulty.expert.pool, Difficulty.values.toSet());
   });
 
+  test('compassPoint names the direction from one point to another', () {
+    const pin = LatLng(41.7, 44.75);
+    expect(compassPoint(pin, const LatLng(41.71, 44.75)), CompassPoint.n);
+    expect(compassPoint(pin, const LatLng(41.7, 44.76)), CompassPoint.e);
+    expect(compassPoint(pin, const LatLng(41.69, 44.74)), CompassPoint.sw);
+    expect(compassPoint(pin, const LatLng(41.71, 44.737)), CompassPoint.nw);
+  });
+
   group('knowledge', () {
     test('comes from the best tier', () {
       expect(knowledgeFrom(null), StreetKnowledge.unknown);

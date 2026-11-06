@@ -156,7 +156,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'+{xp} XP'**
-  String commonXp(int xp);
+  String commonXp(String xp);
 
   /// No description provided for @commonAttribution.
   ///
@@ -216,13 +216,13 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{xp} XP to level {level}'**
-  String homeXpToNextLevel(int xp, int level);
+  String homeXpToNextLevel(String xp, int level);
 
   /// No description provided for @homeXpTotal.
   ///
   /// In en, this message translates to:
   /// **'{xp} XP in total'**
-  String homeXpTotal(int xp);
+  String homeXpTotal(String xp);
 
   /// No description provided for @homeKnownTitle.
   ///
@@ -282,7 +282,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{xp} XP so far'**
-  String homeSavedXp(int xp);
+  String homeSavedXp(String xp);
 
   /// No description provided for @homeContinueRound.
   ///
@@ -648,7 +648,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'Your round is saved at question {question} of {total}, with the {xp} XP you’ve earned. Pick it up from Home.'**
-  String quizLeaveBody(int question, int total, int xp);
+  String quizLeaveBody(int question, int total, String xp);
 
   /// No description provided for @quizLeaveKeepPlaying.
   ///
@@ -840,7 +840,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{xp} XP in total. Every Great and Perfect got you here.'**
-  String levelUpBody(int xp);
+  String levelUpBody(String xp);
 
   /// No description provided for @levelUpNext.
   ///
@@ -1032,13 +1032,13 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{tier}. {distance} away. Plus {xp} XP.'**
-  String a11yReveal(String tier, String distance, int xp);
+  String a11yReveal(String tier, String distance, String xp);
 
   /// No description provided for @a11yLevelProgress.
   ///
   /// In en, this message translates to:
   /// **'Level {level}, {xp} of {xpNeeded} XP'**
-  String a11yLevelProgress(int level, int xp, int xpNeeded);
+  String a11yLevelProgress(int level, String xp, String xpNeeded);
 
   /// No description provided for @a11yGoToMyLocation.
   ///
@@ -1063,6 +1063,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Zoom out'**
   String get a11yZoomOut;
+
+  /// The {hint} of a Miss: which way the street lies from the pin (n, ne, e, se, s, sw, w, nw).
+  ///
+  /// In en, this message translates to:
+  /// **'{direction, select, n{It’s north of your pin.} ne{It’s north-east of your pin.} e{It’s east of your pin.} se{It’s south-east of your pin.} s{It’s south of your pin.} sw{It’s south-west of your pin.} w{It’s west of your pin.} nw{It’s north-west of your pin.} other{It’s close to your pin.}}'**
+  String revealMissDirection(String direction);
+
+  /// No description provided for @a11yFindStreetName.
+  ///
+  /// In en, this message translates to:
+  /// **'Find: {name}'**
+  String a11yFindStreetName(String name);
+
+  /// No description provided for @a11yRoundXp.
+  ///
+  /// In en, this message translates to:
+  /// **'{xp} XP this round'**
+  String a11yRoundXp(String xp);
+
+  /// No description provided for @a11yResultRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Question {question}. {street}. {tier}, {distance}, plus {xp} XP. Show on map.'**
+  String a11yResultRow(
+    int question,
+    String street,
+    String tier,
+    String distance,
+    String xp,
+  );
+
+  /// No description provided for @resultsPreviousStreet.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get resultsPreviousStreet;
+
+  /// No description provided for @resultsNextStreet.
+  ///
+  /// In en, this message translates to:
+  /// **'Next street'**
+  String get resultsNextStreet;
+
+  /// No description provided for @resultsBackToResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to results'**
+  String get resultsBackToResults;
+
+  /// No description provided for @a11yRewardTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Plus {xp} XP this round'**
+  String a11yRewardTotal(String xp);
+
+  /// No description provided for @a11yTierTally.
+  ///
+  /// In en, this message translates to:
+  /// **'{perfect} Perfect, {great} Great, {close} Close, {miss} Miss'**
+  String a11yTierTally(int perfect, int great, int close, int miss);
+
+  /// No description provided for @setupSparseCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{This area has 1 street at {difficulty}.} other{This area has {count} streets at {difficulty}.}}'**
+  String setupSparseCount(int count, String difficulty);
+
+  /// No description provided for @setupAreaMissingBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The streets for this area aren’t on your phone yet. Pick an area from the ones you have.'**
+  String get setupAreaMissingBody;
 }
 
 class _AppLocalizationsDelegate

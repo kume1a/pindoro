@@ -27,7 +27,9 @@ class RoundContext {
     required this.packVersion,
     required this.questions,
     required this.index,
+    this.answers = const [],
     this.retryOf,
+    this.previousDistanceM = const {},
   });
 
   final String id;
@@ -39,8 +41,39 @@ class RoundContext {
   final List<RoundQuestion> questions;
   final int index;
 
+  /// Answers given so far, in order.
+  final List<Answer> answers;
+
   /// The round whose Close and Miss streets this one retries.
   final String? retryOf;
+
+  /// For a retry: how far the pin was last time, by question id.
+  final Map<String, double> previousDistanceM;
+
+  String get currentId => questions[index].id;
+  int get xp => answers.fold(0, (sum, a) => sum + a.xp);
+
+  /// Consecutive Great-or-better answers ending with the latest one.
+  int get streak {
+    var n = 0;
+    for (final a in answers.reversed) {
+      if (!isKnownTier(a.tier)) break;
+      n++;
+    }
+    return n;
+  }
+
+  RoundContext withAnswer(Answer answer) => RoundContext(
+    id: id,
+    shape: shape,
+    difficulty: difficulty,
+    packVersion: packVersion,
+    questions: questions,
+    index: index,
+    answers: [...answers, answer],
+    retryOf: retryOf,
+    previousDistanceM: previousDistanceM,
+  );
 
   NamedStreet get current => questions[index].street;
   int get number => index + 1;
@@ -54,7 +87,9 @@ class RoundContext {
     packVersion: packVersion,
     questions: questions,
     index: index + 1,
+    answers: answers,
     retryOf: retryOf,
+    previousDistanceM: previousDistanceM,
   );
 }
 
@@ -145,7 +180,7 @@ class RoundController extends Notifier<RoundState> {
       case NotEnoughStreets(:final count):
         if (ref.mounted) state = RoundNotEnough(count);
       case SelectedQuestions(:final streetIds):
-        final questions = _resolve(pack, streetIds);
+        final questions = resolveQuestions(pack, streetIds);
         final packVersion = pack.meta()['version']!;
         final roundId = await _db.startRound(
           cityId: cityId,
@@ -180,7 +215,7 @@ class RoundController extends Notifier<RoundState> {
       if (ref.mounted) state = const RoundAreaMissing();
       return;
     }
-    final questions = _resolve(pack, await _db.retrySet(roundId));
+    final questions = resolveQuestions(pack, await _db.retrySet(roundId));
     if (questions.isEmpty) {
       if (ref.mounted) state = RoundFinished(roundId);
       return;
@@ -204,9 +239,14 @@ class RoundController extends Notifier<RoundState> {
         questions: questions,
         index: 0,
         retryOf: roundId,
+        previousDistanceM: await _distancesOf(roundId),
       ),
     );
   }
+
+  Future<Map<String, double>> _distancesOf(String roundId) async => {
+    for (final a in await _db.answersForRound(roundId)) a.streetId: a.distanceM,
+  };
 
   Future<void> resume(String roundId) async {
     state = const RoundLoading();
@@ -218,7 +258,7 @@ class RoundController extends Notifier<RoundState> {
       state = const RoundAreaMissing();
       return;
     }
-    final questions = _resolve(pack, progress.planned);
+    final questions = resolveQuestions(pack, progress.planned);
     final answered = {for (final a in progress.answers) a.streetId};
     final index = questions.indexWhere((q) => !answered.contains(q.id));
     if (index == -1) {
@@ -226,6 +266,11 @@ class RoundController extends Notifier<RoundState> {
       if (ref.mounted) state = RoundFinished(roundId);
       return;
     }
+    final retryOf = progress.round.retryOf;
+    final previous = retryOf == null
+        ? const <String, double>{}
+        : await _distancesOf(retryOf);
+    if (!ref.mounted) return;
     state = RoundAsking(
       RoundContext(
         id: roundId,
@@ -234,7 +279,9 @@ class RoundController extends Notifier<RoundState> {
         packVersion: pack.meta()['version']!,
         questions: questions,
         index: index,
-        retryOf: progress.round.retryOf,
+        answers: progress.answers,
+        retryOf: retryOf,
+        previousDistanceM: previous,
       ),
     );
   }
@@ -271,7 +318,7 @@ class RoundController extends Notifier<RoundState> {
             );
         if (ref.mounted) {
           state = RoundRevealed(
-            round,
+            round.withAnswer(answer),
             pin,
             answer: answer,
             nearest: nearest.nearestPoint,
@@ -297,7 +344,7 @@ class RoundController extends Notifier<RoundState> {
 
 /// Planned ids → their named streets (every part in the city). Ids are stable
 /// across pack versions; ones retired since are skipped.
-List<RoundQuestion> _resolve(PackRepository pack, List<String> ids) {
+List<RoundQuestion> resolveQuestions(PackRepository pack, List<String> ids) {
   final nameById = pack.streetNames(ids);
   final byName = {
     for (final s in groupByName(pack.streetsNamed(nameById.values.toSet())))

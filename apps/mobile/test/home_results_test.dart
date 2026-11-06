@@ -55,6 +55,7 @@ void main() {
   Future<String> roundWithAnswers(
     int answered, {
     Tier tier = Tier.great,
+    int xp = 60,
   }) async {
     const vake = DistrictsArea({AppConfig.fixtureDistrictId});
     await db.updateSettings(
@@ -81,7 +82,7 @@ void main() {
               pinLon: s.midpoint.lon,
               distanceM: 42,
               tier: tier,
-              xp: 600,
+              xp: xp,
               packVersion: 'v1',
             ),
           );
@@ -106,13 +107,17 @@ void main() {
   testWidgets('results list each answer with its street and the level', (
     tester,
   ) async {
-    final id = (await tester.runAsync(() => roundWithAnswers(2)))!;
+    final id = (await tester.runAsync(() => roundWithAnswers(2, xp: 600)))!;
     await pumpApp(tester, '${Routes.results}?round=$id');
-    expect(find.byType(FeedbackBadge), findsNWidgets(2));
+    expect(find.text('Level 2!'), findsOneWidget, reason: 'level-up moment');
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ResultRow), findsNWidgets(2));
     expect(find.text(streets[0].nameKa), findsOneWidget);
-    expect(find.text('42 m · +600 xp'), findsNWidgets(2));
-    expect(find.text('+1200 xp this round · level up!'), findsOneWidget);
-    expect(find.textContaining('Level 2'), findsOneWidget);
+    expect(find.text('+600'), findsNWidgets(2));
+    expect(find.text('+1 200 XP'), findsOneWidget);
+    expect(find.text('Level 2'), findsOneWidget);
   });
 
   testWidgets('results offer to retry Close and Miss streets', (tester) async {

@@ -75,7 +75,7 @@ void main() {
     );
     await settle(tester);
 
-    expect(find.text('1 / 10'), findsOneWidget);
+    expect(find.bySemanticsLabel('Question 1 of 10'), findsOneWidget);
     PindoroButton button(String label) =>
         tester.widget(find.widgetWithText(PindoroButton, label));
     expect(button('Confirm').onPressed, isNull, reason: 'no pin yet');
@@ -92,14 +92,16 @@ void main() {
     await tester.tap(find.text('Confirm'));
     await settle(tester);
 
-    expect(find.byType(FeedbackBadge), findsOneWidget);
-    expect(find.text('0 m · +100 xp'), findsOneWidget);
+    expect(find.byType(RevealSheet), findsOneWidget);
+    expect(find.text('Perfect!'), findsOneWidget);
+    expect(find.text('+100 XP'), findsOneWidget);
+    expect(find.text('100'), findsOneWidget, reason: 'the round XP pill');
     expect(map!.truth, isNotNull);
     expect(map!.onTap, isNull, reason: 'no new pins while revealed');
 
     await tester.tap(find.text('Next'));
     await settle(tester);
-    expect(find.text('2 / 10'), findsOneWidget);
+    expect(find.bySemanticsLabel('Question 2 of 10'), findsOneWidget);
     expect(map!.truth, isNull);
   });
 }

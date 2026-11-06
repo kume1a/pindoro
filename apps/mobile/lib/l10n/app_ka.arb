@@ -161,5 +161,16 @@
   "a11yGoToMyLocation": "ჩემს მდებარეობაზე გადასვლა",
   "a11yRecentre": "ცენტრში დაბრუნება",
   "a11yZoomIn": "გადიდება",
-  "a11yZoomOut": "დაპატარავება"
+  "a11yZoomOut": "დაპატარავება",
+  "revealMissDirection": "{direction, select, n{ქუჩა შენი ნიშნულის ჩრდილოეთითაა.} ne{ქუჩა შენი ნიშნულის ჩრდილო-აღმოსავლეთითაა.} e{ქუჩა შენი ნიშნულის აღმოსავლეთითაა.} se{ქუჩა შენი ნიშნულის სამხრეთ-აღმოსავლეთითაა.} s{ქუჩა შენი ნიშნულის სამხრეთითაა.} sw{ქუჩა შენი ნიშნულის სამხრეთ-დასავლეთითაა.} w{ქუჩა შენი ნიშნულის დასავლეთითაა.} nw{ქუჩა შენი ნიშნულის ჩრდილო-დასავლეთითაა.} other{ქუჩა შენს ნიშნულთან ახლოსაა.}}",
+  "a11yFindStreetName": "იპოვე: {name}",
+  "a11yRoundXp": "ამ რაუნდში {xp} XP",
+  "a11yResultRow": "კითხვა {question}. {street}. {tier}, {distance}, +{xp} XP. რუკაზე ნახვა.",
+  "resultsPreviousStreet": "წინა",
+  "resultsNextStreet": "შემდეგი ქუჩა",
+  "resultsBackToResults": "შედეგებზე დაბრუნება",
+  "a11yRewardTotal": "ამ რაუნდში +{xp} XP",
+  "a11yTierTally": "{perfect} იდეალური, {great} შესანიშნავი, {close} ახლოს, {miss} აცდენა",
+  "setupSparseCount": "{count, plural, other{ამ არეალში {difficulty} დონეზე {count} ქუჩაა.}}",
+  "setupAreaMissingBody": "ამ არეალის ქუჩები ჯერ ტელეფონზე არ გაქვს. აირჩიე არეალი იმათგან, რაც გაქვს."
 }
