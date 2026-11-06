@@ -24,6 +24,13 @@ gen:
     dart run packages/pindoro_design/tool/generate_tokens.dart
     cd apps/mobile && dart run build_runner build
 
+# Native app icon and splash from the branding assets (design-system asset groups)
+branding:
+    cd packages/pindoro_design && flutter test tool/rasterize_branding_test.dart
+    cd apps/mobile && dart pub global run flutter_launcher_icons -f flutter_launcher_icons.yaml
+    cp apps/mobile/assets/branding/png/splash-mark.png apps/mobile/android/app/src/main/res/drawable-xxxhdpi/splash.png
+    cp apps/mobile/assets/branding/png/splash-mark-dark.png apps/mobile/android/app/src/main/res/drawable-night-xxxhdpi/splash.png
+
 # Fail when generated tokens are stale
 tokens-check:
     dart run packages/pindoro_design/tool/generate_tokens.dart
@@ -34,7 +41,7 @@ goldens:
     MSYS_NO_PATHCONV=1 docker run --rm \
       -v "{{ justfile_directory() }}:/repo" -v /repo/.dart_tool -v /repo/packages/pindoro_design/.dart_tool \
       -v pindoro-flutter-{{ flutter_version }}:/flutter -w /repo/packages/pindoro_design \
-      ghcr.io/cirruslabs/flutter:3.44.0 sh -c '[ -x /flutter/bin/flutter ] || git clone -q --depth 1 -b {{ flutter_version }} https://github.com/flutter/flutter.git /flutter; /flutter/bin/flutter pub get && /flutter/bin/flutter test --update-goldens test/widgets_test.dart'
+      ghcr.io/cirruslabs/flutter:3.44.0 sh -c '[ -x /flutter/bin/flutter ] || git clone -q --depth 1 -b {{ flutter_version }} https://github.com/flutter/flutter.git /flutter; /flutter/bin/flutter pub get && /flutter/bin/flutter test --update-goldens test/widgets_test.dart test/components_test.dart'
 
 # Biome, tsc, dart format, flutter analyze
 lint:

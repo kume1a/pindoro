@@ -62,6 +62,7 @@ no S3/R2 (packs are static files served by Caddy). See `docs/adr/0001-architectu
 | `just gen`          | Regenerate design tokens and Drift code                              |
 | `just tokens-check` | Regenerate tokens and fail on a diff                                 |
 | `just goldens`      | Regenerate design goldens on Linux (pinned Flutter, as CI)           |
+| `just branding`     | App icon + splash from `apps/mobile/assets/branding` (design assets) |
 | `just lint`         | Biome, tsc, dart format, flutter analyze                             |
 | `just test`         | Melos tests, geo + API tests, pipeline tests in the pipeline image   |
 | `just dev`          | PostGIS, API (tsx watch), Martin, packs server                       |

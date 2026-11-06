@@ -64,6 +64,15 @@ class Bbox {
 
   LatLng clamp(LatLng p) =>
       LatLng(_clamp(p.lat, minLat, maxLat), _clamp(p.lon, minLon, maxLon));
+
+  bool contains(LatLng p) =>
+      p.lat >= minLat && p.lat <= maxLat && p.lon >= minLon && p.lon <= maxLon;
+
+  bool intersects(Bbox o) =>
+      o.minLat <= maxLat &&
+      o.maxLat >= minLat &&
+      o.minLon <= maxLon &&
+      o.maxLon >= minLon;
 }
 
 double _clamp(double v, double lo, double hi) => math.min(hi, math.max(lo, v));
@@ -104,4 +113,29 @@ NearestPoint pointToPolylineDistance(LatLng point, MultiPolyline lines) {
     throw ArgumentError.value(lines, 'lines', 'empty polyline');
   }
   return (distanceMeters: best, nearestPoint: proj.unproject(bestXy));
+}
+
+enum CompassPoint { n, ne, e, se, s, sw, w, nw }
+
+/// Which of the eight compass points [to] lies in, seen from [from].
+CompassPoint compassPoint(LatLng from, LatLng to) {
+  final (x, y) = LocalProjection(from).project(to);
+  final degrees = (math.atan2(x, y) * 180 / math.pi + 360) % 360;
+  return CompassPoint.values[((degrees + 22.5) ~/ 45) % 8];
+}
+
+/// Whether [p] lies inside [polygon] (outer ring first, then holes): even-odd
+/// ray casting on lat/lon, fine at city scale.
+bool polygonContains(List<Polyline> polygon, LatLng p) {
+  var inside = false;
+  for (final ring in polygon) {
+    for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      final a = ring[i], b = ring[j];
+      if ((a.lat > p.lat) != (b.lat > p.lat) &&
+          p.lon < (b.lon - a.lon) * (p.lat - a.lat) / (b.lat - a.lat) + a.lon) {
+        inside = !inside;
+      }
+    }
+  }
+  return inside;
 }

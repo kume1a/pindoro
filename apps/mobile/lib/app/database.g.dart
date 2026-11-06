@@ -81,6 +81,20 @@ class $RoundsTable extends Rounds with TableInfo<$RoundsTable, Round> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _retryOfMeta = const VerificationMeta(
+    'retryOf',
+  );
+  @override
+  late final GeneratedColumn<String> retryOf = GeneratedColumn<String>(
+    'retry_of',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES round (id)',
+    ),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -90,6 +104,7 @@ class $RoundsTable extends Rounds with TableInfo<$RoundsTable, Round> {
     packVersion,
     startedAt,
     finishedAt,
+    retryOf,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -145,6 +160,12 @@ class $RoundsTable extends Rounds with TableInfo<$RoundsTable, Round> {
         finishedAt.isAcceptableOrUnknown(data['finished_at']!, _finishedAtMeta),
       );
     }
+    if (data.containsKey('retry_of')) {
+      context.handle(
+        _retryOfMeta,
+        retryOf.isAcceptableOrUnknown(data['retry_of']!, _retryOfMeta),
+      );
+    }
     return context;
   }
 
@@ -184,6 +205,10 @@ class $RoundsTable extends Rounds with TableInfo<$RoundsTable, Round> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}finished_at'],
       ),
+      retryOf: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}retry_of'],
+      ),
     );
   }
 
@@ -204,6 +229,9 @@ class Round extends DataClass implements Insertable<Round> {
   final String packVersion;
   final DateTime startedAt;
   final DateTime? finishedAt;
+
+  /// The round whose Close and Miss streets this round retries.
+  final String? retryOf;
   const Round({
     required this.id,
     required this.cityId,
@@ -212,6 +240,7 @@ class Round extends DataClass implements Insertable<Round> {
     required this.packVersion,
     required this.startedAt,
     this.finishedAt,
+    this.retryOf,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -229,6 +258,9 @@ class Round extends DataClass implements Insertable<Round> {
     if (!nullToAbsent || finishedAt != null) {
       map['finished_at'] = Variable<DateTime>(finishedAt);
     }
+    if (!nullToAbsent || retryOf != null) {
+      map['retry_of'] = Variable<String>(retryOf);
+    }
     return map;
   }
 
@@ -243,6 +275,9 @@ class Round extends DataClass implements Insertable<Round> {
       finishedAt: finishedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(finishedAt),
+      retryOf: retryOf == null && nullToAbsent
+          ? const Value.absent()
+          : Value(retryOf),
     );
   }
 
@@ -261,6 +296,7 @@ class Round extends DataClass implements Insertable<Round> {
       packVersion: serializer.fromJson<String>(json['packVersion']),
       startedAt: serializer.fromJson<DateTime>(json['startedAt']),
       finishedAt: serializer.fromJson<DateTime?>(json['finishedAt']),
+      retryOf: serializer.fromJson<String?>(json['retryOf']),
     );
   }
   @override
@@ -276,6 +312,7 @@ class Round extends DataClass implements Insertable<Round> {
       'packVersion': serializer.toJson<String>(packVersion),
       'startedAt': serializer.toJson<DateTime>(startedAt),
       'finishedAt': serializer.toJson<DateTime?>(finishedAt),
+      'retryOf': serializer.toJson<String?>(retryOf),
     };
   }
 
@@ -287,6 +324,7 @@ class Round extends DataClass implements Insertable<Round> {
     String? packVersion,
     DateTime? startedAt,
     Value<DateTime?> finishedAt = const Value.absent(),
+    Value<String?> retryOf = const Value.absent(),
   }) => Round(
     id: id ?? this.id,
     cityId: cityId ?? this.cityId,
@@ -295,6 +333,7 @@ class Round extends DataClass implements Insertable<Round> {
     packVersion: packVersion ?? this.packVersion,
     startedAt: startedAt ?? this.startedAt,
     finishedAt: finishedAt.present ? finishedAt.value : this.finishedAt,
+    retryOf: retryOf.present ? retryOf.value : this.retryOf,
   );
   Round copyWithCompanion(RoundsCompanion data) {
     return Round(
@@ -311,6 +350,7 @@ class Round extends DataClass implements Insertable<Round> {
       finishedAt: data.finishedAt.present
           ? data.finishedAt.value
           : this.finishedAt,
+      retryOf: data.retryOf.present ? data.retryOf.value : this.retryOf,
     );
   }
 
@@ -323,7 +363,8 @@ class Round extends DataClass implements Insertable<Round> {
           ..write('difficulty: $difficulty, ')
           ..write('packVersion: $packVersion, ')
           ..write('startedAt: $startedAt, ')
-          ..write('finishedAt: $finishedAt')
+          ..write('finishedAt: $finishedAt, ')
+          ..write('retryOf: $retryOf')
           ..write(')'))
         .toString();
   }
@@ -337,6 +378,7 @@ class Round extends DataClass implements Insertable<Round> {
     packVersion,
     startedAt,
     finishedAt,
+    retryOf,
   );
   @override
   bool operator ==(Object other) =>
@@ -348,7 +390,8 @@ class Round extends DataClass implements Insertable<Round> {
           other.difficulty == this.difficulty &&
           other.packVersion == this.packVersion &&
           other.startedAt == this.startedAt &&
-          other.finishedAt == this.finishedAt);
+          other.finishedAt == this.finishedAt &&
+          other.retryOf == this.retryOf);
 }
 
 class RoundsCompanion extends UpdateCompanion<Round> {
@@ -359,6 +402,7 @@ class RoundsCompanion extends UpdateCompanion<Round> {
   final Value<String> packVersion;
   final Value<DateTime> startedAt;
   final Value<DateTime?> finishedAt;
+  final Value<String?> retryOf;
   final Value<int> rowid;
   const RoundsCompanion({
     this.id = const Value.absent(),
@@ -368,6 +412,7 @@ class RoundsCompanion extends UpdateCompanion<Round> {
     this.packVersion = const Value.absent(),
     this.startedAt = const Value.absent(),
     this.finishedAt = const Value.absent(),
+    this.retryOf = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RoundsCompanion.insert({
@@ -378,6 +423,7 @@ class RoundsCompanion extends UpdateCompanion<Round> {
     required String packVersion,
     this.startedAt = const Value.absent(),
     this.finishedAt = const Value.absent(),
+    this.retryOf = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : cityId = Value(cityId),
        areaJson = Value(areaJson),
@@ -391,6 +437,7 @@ class RoundsCompanion extends UpdateCompanion<Round> {
     Expression<String>? packVersion,
     Expression<DateTime>? startedAt,
     Expression<DateTime>? finishedAt,
+    Expression<String>? retryOf,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -401,6 +448,7 @@ class RoundsCompanion extends UpdateCompanion<Round> {
       if (packVersion != null) 'pack_version': packVersion,
       if (startedAt != null) 'started_at': startedAt,
       if (finishedAt != null) 'finished_at': finishedAt,
+      if (retryOf != null) 'retry_of': retryOf,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -413,6 +461,7 @@ class RoundsCompanion extends UpdateCompanion<Round> {
     Value<String>? packVersion,
     Value<DateTime>? startedAt,
     Value<DateTime?>? finishedAt,
+    Value<String?>? retryOf,
     Value<int>? rowid,
   }) {
     return RoundsCompanion(
@@ -423,6 +472,7 @@ class RoundsCompanion extends UpdateCompanion<Round> {
       packVersion: packVersion ?? this.packVersion,
       startedAt: startedAt ?? this.startedAt,
       finishedAt: finishedAt ?? this.finishedAt,
+      retryOf: retryOf ?? this.retryOf,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -453,6 +503,9 @@ class RoundsCompanion extends UpdateCompanion<Round> {
     if (finishedAt.present) {
       map['finished_at'] = Variable<DateTime>(finishedAt.value);
     }
+    if (retryOf.present) {
+      map['retry_of'] = Variable<String>(retryOf.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -469,6 +522,7 @@ class RoundsCompanion extends UpdateCompanion<Round> {
           ..write('packVersion: $packVersion, ')
           ..write('startedAt: $startedAt, ')
           ..write('finishedAt: $finishedAt, ')
+          ..write('retryOf: $retryOf, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1127,20 +1181,62 @@ class $UserSettingsTable extends UserSettings
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   ).withConverter<Difficulty?>($UserSettingsTable.$converterlastDifficultyn);
-  static const VerificationMeta _onboardingDoneMeta = const VerificationMeta(
-    'onboardingDone',
-  );
   @override
-  late final GeneratedColumn<bool> onboardingDone = GeneratedColumn<bool>(
-    'onboarding_done',
+  late final GeneratedColumnWithTypeConverter<AppLanguage?, String>
+  appLanguage = GeneratedColumn<String>(
+    'app_language',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  ).withConverter<AppLanguage?>($UserSettingsTable.$converterappLanguagen);
+  @override
+  late final GeneratedColumnWithTypeConverter<StreetNameMode, String>
+  streetNames = GeneratedColumn<String>(
+    'street_names',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('local'),
+  ).withConverter<StreetNameMode>($UserSettingsTable.$converterstreetNames);
+  @override
+  late final GeneratedColumnWithTypeConverter<ThemePreference, String> theme =
+      GeneratedColumn<String>(
+        'theme',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('system'),
+      ).withConverter<ThemePreference>($UserSettingsTable.$convertertheme);
+  static const VerificationMeta _soundMeta = const VerificationMeta('sound');
+  @override
+  late final GeneratedColumn<bool> sound = GeneratedColumn<bool>(
+    'sound',
     aliasedName,
     false,
     type: DriftSqlType.bool,
     requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("onboarding_done" IN (0, 1))',
+      'CHECK ("sound" IN (0, 1))',
     ),
-    defaultValue: const Constant(false),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _hapticsMeta = const VerificationMeta(
+    'haptics',
+  );
+  @override
+  late final GeneratedColumn<bool> haptics = GeneratedColumn<bool>(
+    'haptics',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("haptics" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -1148,7 +1244,11 @@ class $UserSettingsTable extends UserSettings
     lastCity,
     lastAreaJson,
     lastDifficulty,
-    onboardingDone,
+    appLanguage,
+    streetNames,
+    theme,
+    sound,
+    haptics,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1180,13 +1280,16 @@ class $UserSettingsTable extends UserSettings
         ),
       );
     }
-    if (data.containsKey('onboarding_done')) {
+    if (data.containsKey('sound')) {
       context.handle(
-        _onboardingDoneMeta,
-        onboardingDone.isAcceptableOrUnknown(
-          data['onboarding_done']!,
-          _onboardingDoneMeta,
-        ),
+        _soundMeta,
+        sound.isAcceptableOrUnknown(data['sound']!, _soundMeta),
+      );
+    }
+    if (data.containsKey('haptics')) {
+      context.handle(
+        _hapticsMeta,
+        haptics.isAcceptableOrUnknown(data['haptics']!, _hapticsMeta),
       );
     }
     return context;
@@ -1216,9 +1319,31 @@ class $UserSettingsTable extends UserSettings
           data['${effectivePrefix}last_difficulty'],
         ),
       ),
-      onboardingDone: attachedDatabase.typeMapping.read(
+      appLanguage: $UserSettingsTable.$converterappLanguagen.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}app_language'],
+        ),
+      ),
+      streetNames: $UserSettingsTable.$converterstreetNames.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}street_names'],
+        )!,
+      ),
+      theme: $UserSettingsTable.$convertertheme.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}theme'],
+        )!,
+      ),
+      sound: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
-        data['${effectivePrefix}onboarding_done'],
+        data['${effectivePrefix}sound'],
+      )!,
+      haptics: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}haptics'],
       )!,
     );
   }
@@ -1236,6 +1361,16 @@ class $UserSettingsTable extends UserSettings
   $converterlastDifficultyn = JsonTypeConverter2.asNullable(
     $converterlastDifficulty,
   );
+  static JsonTypeConverter2<AppLanguage, String, String> $converterappLanguage =
+      const EnumNameConverter<AppLanguage>(AppLanguage.values);
+  static JsonTypeConverter2<AppLanguage?, String?, String?>
+  $converterappLanguagen = JsonTypeConverter2.asNullable($converterappLanguage);
+  static JsonTypeConverter2<StreetNameMode, String, String>
+  $converterstreetNames = const EnumNameConverter<StreetNameMode>(
+    StreetNameMode.values,
+  );
+  static JsonTypeConverter2<ThemePreference, String, String> $convertertheme =
+      const EnumNameConverter<ThemePreference>(ThemePreference.values);
 }
 
 class Settings extends DataClass implements Insertable<Settings> {
@@ -1243,13 +1378,23 @@ class Settings extends DataClass implements Insertable<Settings> {
   final String? lastCity;
   final String? lastAreaJson;
   final Difficulty? lastDifficulty;
-  final bool onboardingDone;
+
+  /// Null follows the device language.
+  final AppLanguage? appLanguage;
+  final StreetNameMode streetNames;
+  final ThemePreference theme;
+  final bool sound;
+  final bool haptics;
   const Settings({
     required this.id,
     this.lastCity,
     this.lastAreaJson,
     this.lastDifficulty,
-    required this.onboardingDone,
+    this.appLanguage,
+    required this.streetNames,
+    required this.theme,
+    required this.sound,
+    required this.haptics,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1266,7 +1411,23 @@ class Settings extends DataClass implements Insertable<Settings> {
         $UserSettingsTable.$converterlastDifficultyn.toSql(lastDifficulty),
       );
     }
-    map['onboarding_done'] = Variable<bool>(onboardingDone);
+    if (!nullToAbsent || appLanguage != null) {
+      map['app_language'] = Variable<String>(
+        $UserSettingsTable.$converterappLanguagen.toSql(appLanguage),
+      );
+    }
+    {
+      map['street_names'] = Variable<String>(
+        $UserSettingsTable.$converterstreetNames.toSql(streetNames),
+      );
+    }
+    {
+      map['theme'] = Variable<String>(
+        $UserSettingsTable.$convertertheme.toSql(theme),
+      );
+    }
+    map['sound'] = Variable<bool>(sound);
+    map['haptics'] = Variable<bool>(haptics);
     return map;
   }
 
@@ -1282,7 +1443,13 @@ class Settings extends DataClass implements Insertable<Settings> {
       lastDifficulty: lastDifficulty == null && nullToAbsent
           ? const Value.absent()
           : Value(lastDifficulty),
-      onboardingDone: Value(onboardingDone),
+      appLanguage: appLanguage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(appLanguage),
+      streetNames: Value(streetNames),
+      theme: Value(theme),
+      sound: Value(sound),
+      haptics: Value(haptics),
     );
   }
 
@@ -1298,7 +1465,17 @@ class Settings extends DataClass implements Insertable<Settings> {
       lastDifficulty: $UserSettingsTable.$converterlastDifficultyn.fromJson(
         serializer.fromJson<String?>(json['lastDifficulty']),
       ),
-      onboardingDone: serializer.fromJson<bool>(json['onboardingDone']),
+      appLanguage: $UserSettingsTable.$converterappLanguagen.fromJson(
+        serializer.fromJson<String?>(json['appLanguage']),
+      ),
+      streetNames: $UserSettingsTable.$converterstreetNames.fromJson(
+        serializer.fromJson<String>(json['streetNames']),
+      ),
+      theme: $UserSettingsTable.$convertertheme.fromJson(
+        serializer.fromJson<String>(json['theme']),
+      ),
+      sound: serializer.fromJson<bool>(json['sound']),
+      haptics: serializer.fromJson<bool>(json['haptics']),
     );
   }
   @override
@@ -1311,7 +1488,17 @@ class Settings extends DataClass implements Insertable<Settings> {
       'lastDifficulty': serializer.toJson<String?>(
         $UserSettingsTable.$converterlastDifficultyn.toJson(lastDifficulty),
       ),
-      'onboardingDone': serializer.toJson<bool>(onboardingDone),
+      'appLanguage': serializer.toJson<String?>(
+        $UserSettingsTable.$converterappLanguagen.toJson(appLanguage),
+      ),
+      'streetNames': serializer.toJson<String>(
+        $UserSettingsTable.$converterstreetNames.toJson(streetNames),
+      ),
+      'theme': serializer.toJson<String>(
+        $UserSettingsTable.$convertertheme.toJson(theme),
+      ),
+      'sound': serializer.toJson<bool>(sound),
+      'haptics': serializer.toJson<bool>(haptics),
     };
   }
 
@@ -1320,7 +1507,11 @@ class Settings extends DataClass implements Insertable<Settings> {
     Value<String?> lastCity = const Value.absent(),
     Value<String?> lastAreaJson = const Value.absent(),
     Value<Difficulty?> lastDifficulty = const Value.absent(),
-    bool? onboardingDone,
+    Value<AppLanguage?> appLanguage = const Value.absent(),
+    StreetNameMode? streetNames,
+    ThemePreference? theme,
+    bool? sound,
+    bool? haptics,
   }) => Settings(
     id: id ?? this.id,
     lastCity: lastCity.present ? lastCity.value : this.lastCity,
@@ -1328,7 +1519,11 @@ class Settings extends DataClass implements Insertable<Settings> {
     lastDifficulty: lastDifficulty.present
         ? lastDifficulty.value
         : this.lastDifficulty,
-    onboardingDone: onboardingDone ?? this.onboardingDone,
+    appLanguage: appLanguage.present ? appLanguage.value : this.appLanguage,
+    streetNames: streetNames ?? this.streetNames,
+    theme: theme ?? this.theme,
+    sound: sound ?? this.sound,
+    haptics: haptics ?? this.haptics,
   );
   Settings copyWithCompanion(UserSettingsCompanion data) {
     return Settings(
@@ -1340,9 +1535,15 @@ class Settings extends DataClass implements Insertable<Settings> {
       lastDifficulty: data.lastDifficulty.present
           ? data.lastDifficulty.value
           : this.lastDifficulty,
-      onboardingDone: data.onboardingDone.present
-          ? data.onboardingDone.value
-          : this.onboardingDone,
+      appLanguage: data.appLanguage.present
+          ? data.appLanguage.value
+          : this.appLanguage,
+      streetNames: data.streetNames.present
+          ? data.streetNames.value
+          : this.streetNames,
+      theme: data.theme.present ? data.theme.value : this.theme,
+      sound: data.sound.present ? data.sound.value : this.sound,
+      haptics: data.haptics.present ? data.haptics.value : this.haptics,
     );
   }
 
@@ -1353,14 +1554,27 @@ class Settings extends DataClass implements Insertable<Settings> {
           ..write('lastCity: $lastCity, ')
           ..write('lastAreaJson: $lastAreaJson, ')
           ..write('lastDifficulty: $lastDifficulty, ')
-          ..write('onboardingDone: $onboardingDone')
+          ..write('appLanguage: $appLanguage, ')
+          ..write('streetNames: $streetNames, ')
+          ..write('theme: $theme, ')
+          ..write('sound: $sound, ')
+          ..write('haptics: $haptics')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, lastCity, lastAreaJson, lastDifficulty, onboardingDone);
+  int get hashCode => Object.hash(
+    id,
+    lastCity,
+    lastAreaJson,
+    lastDifficulty,
+    appLanguage,
+    streetNames,
+    theme,
+    sound,
+    haptics,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1369,7 +1583,11 @@ class Settings extends DataClass implements Insertable<Settings> {
           other.lastCity == this.lastCity &&
           other.lastAreaJson == this.lastAreaJson &&
           other.lastDifficulty == this.lastDifficulty &&
-          other.onboardingDone == this.onboardingDone);
+          other.appLanguage == this.appLanguage &&
+          other.streetNames == this.streetNames &&
+          other.theme == this.theme &&
+          other.sound == this.sound &&
+          other.haptics == this.haptics);
 }
 
 class UserSettingsCompanion extends UpdateCompanion<Settings> {
@@ -1377,34 +1595,54 @@ class UserSettingsCompanion extends UpdateCompanion<Settings> {
   final Value<String?> lastCity;
   final Value<String?> lastAreaJson;
   final Value<Difficulty?> lastDifficulty;
-  final Value<bool> onboardingDone;
+  final Value<AppLanguage?> appLanguage;
+  final Value<StreetNameMode> streetNames;
+  final Value<ThemePreference> theme;
+  final Value<bool> sound;
+  final Value<bool> haptics;
   const UserSettingsCompanion({
     this.id = const Value.absent(),
     this.lastCity = const Value.absent(),
     this.lastAreaJson = const Value.absent(),
     this.lastDifficulty = const Value.absent(),
-    this.onboardingDone = const Value.absent(),
+    this.appLanguage = const Value.absent(),
+    this.streetNames = const Value.absent(),
+    this.theme = const Value.absent(),
+    this.sound = const Value.absent(),
+    this.haptics = const Value.absent(),
   });
   UserSettingsCompanion.insert({
     this.id = const Value.absent(),
     this.lastCity = const Value.absent(),
     this.lastAreaJson = const Value.absent(),
     this.lastDifficulty = const Value.absent(),
-    this.onboardingDone = const Value.absent(),
+    this.appLanguage = const Value.absent(),
+    this.streetNames = const Value.absent(),
+    this.theme = const Value.absent(),
+    this.sound = const Value.absent(),
+    this.haptics = const Value.absent(),
   });
   static Insertable<Settings> custom({
     Expression<int>? id,
     Expression<String>? lastCity,
     Expression<String>? lastAreaJson,
     Expression<String>? lastDifficulty,
-    Expression<bool>? onboardingDone,
+    Expression<String>? appLanguage,
+    Expression<String>? streetNames,
+    Expression<String>? theme,
+    Expression<bool>? sound,
+    Expression<bool>? haptics,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (lastCity != null) 'last_city': lastCity,
       if (lastAreaJson != null) 'last_area_json': lastAreaJson,
       if (lastDifficulty != null) 'last_difficulty': lastDifficulty,
-      if (onboardingDone != null) 'onboarding_done': onboardingDone,
+      if (appLanguage != null) 'app_language': appLanguage,
+      if (streetNames != null) 'street_names': streetNames,
+      if (theme != null) 'theme': theme,
+      if (sound != null) 'sound': sound,
+      if (haptics != null) 'haptics': haptics,
     });
   }
 
@@ -1413,14 +1651,22 @@ class UserSettingsCompanion extends UpdateCompanion<Settings> {
     Value<String?>? lastCity,
     Value<String?>? lastAreaJson,
     Value<Difficulty?>? lastDifficulty,
-    Value<bool>? onboardingDone,
+    Value<AppLanguage?>? appLanguage,
+    Value<StreetNameMode>? streetNames,
+    Value<ThemePreference>? theme,
+    Value<bool>? sound,
+    Value<bool>? haptics,
   }) {
     return UserSettingsCompanion(
       id: id ?? this.id,
       lastCity: lastCity ?? this.lastCity,
       lastAreaJson: lastAreaJson ?? this.lastAreaJson,
       lastDifficulty: lastDifficulty ?? this.lastDifficulty,
-      onboardingDone: onboardingDone ?? this.onboardingDone,
+      appLanguage: appLanguage ?? this.appLanguage,
+      streetNames: streetNames ?? this.streetNames,
+      theme: theme ?? this.theme,
+      sound: sound ?? this.sound,
+      haptics: haptics ?? this.haptics,
     );
   }
 
@@ -1443,8 +1689,26 @@ class UserSettingsCompanion extends UpdateCompanion<Settings> {
         ),
       );
     }
-    if (onboardingDone.present) {
-      map['onboarding_done'] = Variable<bool>(onboardingDone.value);
+    if (appLanguage.present) {
+      map['app_language'] = Variable<String>(
+        $UserSettingsTable.$converterappLanguagen.toSql(appLanguage.value),
+      );
+    }
+    if (streetNames.present) {
+      map['street_names'] = Variable<String>(
+        $UserSettingsTable.$converterstreetNames.toSql(streetNames.value),
+      );
+    }
+    if (theme.present) {
+      map['theme'] = Variable<String>(
+        $UserSettingsTable.$convertertheme.toSql(theme.value),
+      );
+    }
+    if (sound.present) {
+      map['sound'] = Variable<bool>(sound.value);
+    }
+    if (haptics.present) {
+      map['haptics'] = Variable<bool>(haptics.value);
     }
     return map;
   }
@@ -1456,7 +1720,11 @@ class UserSettingsCompanion extends UpdateCompanion<Settings> {
           ..write('lastCity: $lastCity, ')
           ..write('lastAreaJson: $lastAreaJson, ')
           ..write('lastDifficulty: $lastDifficulty, ')
-          ..write('onboardingDone: $onboardingDone')
+          ..write('appLanguage: $appLanguage, ')
+          ..write('streetNames: $streetNames, ')
+          ..write('theme: $theme, ')
+          ..write('sound: $sound, ')
+          ..write('haptics: $haptics')
           ..write(')'))
         .toString();
   }
@@ -1777,6 +2045,7 @@ typedef $$RoundsTableCreateCompanionBuilder =
       required String packVersion,
       Value<DateTime> startedAt,
       Value<DateTime?> finishedAt,
+      Value<String?> retryOf,
       Value<int> rowid,
     });
 typedef $$RoundsTableUpdateCompanionBuilder =
@@ -1788,12 +2057,30 @@ typedef $$RoundsTableUpdateCompanionBuilder =
       Value<String> packVersion,
       Value<DateTime> startedAt,
       Value<DateTime?> finishedAt,
+      Value<String?> retryOf,
       Value<int> rowid,
     });
 
 final class $$RoundsTableReferences
     extends BaseReferences<_$AppDatabase, $RoundsTable, Round> {
   $$RoundsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $RoundsTable _retryOfTable(_$AppDatabase db) =>
+      db.rounds.createAlias('round__retry_of__round__id');
+
+  $$RoundsTableProcessedTableManager? get retryOf {
+    final $_column = $_itemColumn<String>('retry_of');
+    if ($_column == null) return null;
+    final manager = $$RoundsTableTableManager(
+      $_db,
+      $_db.rounds,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_retryOfTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 
   static MultiTypedResultKey<$AnswersTable, List<Answer>> _answersRefsTable(
     _$AppDatabase db,
@@ -1877,6 +2164,29 @@ class $$RoundsTableFilterComposer
     column: $table.finishedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$RoundsTableFilterComposer get retryOf {
+    final $$RoundsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.retryOf,
+      referencedTable: $db.rounds,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RoundsTableFilterComposer(
+            $db: $db,
+            $table: $db.rounds,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<bool> answersRefs(
     Expression<bool> Function($$AnswersTableFilterComposer f) f,
@@ -1972,6 +2282,29 @@ class $$RoundsTableOrderingComposer
     column: $table.finishedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$RoundsTableOrderingComposer get retryOf {
+    final $$RoundsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.retryOf,
+      referencedTable: $db.rounds,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RoundsTableOrderingComposer(
+            $db: $db,
+            $table: $db.rounds,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$RoundsTableAnnotationComposer
@@ -2010,6 +2343,29 @@ class $$RoundsTableAnnotationComposer
     column: $table.finishedAt,
     builder: (column) => column,
   );
+
+  $$RoundsTableAnnotationComposer get retryOf {
+    final $$RoundsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.retryOf,
+      referencedTable: $db.rounds,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$RoundsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.rounds,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<T> answersRefs<T extends Object>(
     Expression<T> Function($$AnswersTableAnnotationComposer a) f,
@@ -2075,7 +2431,11 @@ class $$RoundsTableTableManager
           $$RoundsTableUpdateCompanionBuilder,
           (Round, $$RoundsTableReferences),
           Round,
-          PrefetchHooks Function({bool answersRefs, bool roundQuestionsRefs})
+          PrefetchHooks Function({
+            bool retryOf,
+            bool answersRefs,
+            bool roundQuestionsRefs,
+          })
         > {
   $$RoundsTableTableManager(_$AppDatabase db, $RoundsTable table)
     : super(
@@ -2097,6 +2457,7 @@ class $$RoundsTableTableManager
                 Value<String> packVersion = const Value.absent(),
                 Value<DateTime> startedAt = const Value.absent(),
                 Value<DateTime?> finishedAt = const Value.absent(),
+                Value<String?> retryOf = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RoundsCompanion(
                 id: id,
@@ -2106,6 +2467,7 @@ class $$RoundsTableTableManager
                 packVersion: packVersion,
                 startedAt: startedAt,
                 finishedAt: finishedAt,
+                retryOf: retryOf,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2117,6 +2479,7 @@ class $$RoundsTableTableManager
                 required String packVersion,
                 Value<DateTime> startedAt = const Value.absent(),
                 Value<DateTime?> finishedAt = const Value.absent(),
+                Value<String?> retryOf = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => RoundsCompanion.insert(
                 id: id,
@@ -2126,6 +2489,7 @@ class $$RoundsTableTableManager
                 packVersion: packVersion,
                 startedAt: startedAt,
                 finishedAt: finishedAt,
+                retryOf: retryOf,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -2137,14 +2501,49 @@ class $$RoundsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({answersRefs = false, roundQuestionsRefs = false}) {
+              ({
+                retryOf = false,
+                answersRefs = false,
+                roundQuestionsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (answersRefs) db.answers,
                     if (roundQuestionsRefs) db.roundQuestions,
                   ],
-                  addJoins: null,
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (retryOf) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.retryOf,
+                                    referencedTable: $$RoundsTableReferences
+                                        ._retryOfTable(db),
+                                    referencedColumn: $$RoundsTableReferences
+                                        ._retryOfTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
                   getPrefetchedDataCallback: (items) async {
                     return [
                       if (answersRefs)
@@ -2207,7 +2606,11 @@ typedef $$RoundsTableProcessedTableManager =
       $$RoundsTableUpdateCompanionBuilder,
       (Round, $$RoundsTableReferences),
       Round,
-      PrefetchHooks Function({bool answersRefs, bool roundQuestionsRefs})
+      PrefetchHooks Function({
+        bool retryOf,
+        bool answersRefs,
+        bool roundQuestionsRefs,
+      })
     >;
 typedef $$AnswersTableCreateCompanionBuilder =
     AnswersCompanion Function({
@@ -2630,7 +3033,11 @@ typedef $$UserSettingsTableCreateCompanionBuilder =
       Value<String?> lastCity,
       Value<String?> lastAreaJson,
       Value<Difficulty?> lastDifficulty,
-      Value<bool> onboardingDone,
+      Value<AppLanguage?> appLanguage,
+      Value<StreetNameMode> streetNames,
+      Value<ThemePreference> theme,
+      Value<bool> sound,
+      Value<bool> haptics,
     });
 typedef $$UserSettingsTableUpdateCompanionBuilder =
     UserSettingsCompanion Function({
@@ -2638,7 +3045,11 @@ typedef $$UserSettingsTableUpdateCompanionBuilder =
       Value<String?> lastCity,
       Value<String?> lastAreaJson,
       Value<Difficulty?> lastDifficulty,
-      Value<bool> onboardingDone,
+      Value<AppLanguage?> appLanguage,
+      Value<StreetNameMode> streetNames,
+      Value<ThemePreference> theme,
+      Value<bool> sound,
+      Value<bool> haptics,
     });
 
 class $$UserSettingsTableFilterComposer
@@ -2671,8 +3082,31 @@ class $$UserSettingsTableFilterComposer
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
-  ColumnFilters<bool> get onboardingDone => $composableBuilder(
-    column: $table.onboardingDone,
+  ColumnWithTypeConverterFilters<AppLanguage?, AppLanguage, String>
+  get appLanguage => $composableBuilder(
+    column: $table.appLanguage,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<StreetNameMode, StreetNameMode, String>
+  get streetNames => $composableBuilder(
+    column: $table.streetNames,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<ThemePreference, ThemePreference, String>
+  get theme => $composableBuilder(
+    column: $table.theme,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<bool> get sound => $composableBuilder(
+    column: $table.sound,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get haptics => $composableBuilder(
+    column: $table.haptics,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2706,8 +3140,28 @@ class $$UserSettingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get onboardingDone => $composableBuilder(
-    column: $table.onboardingDone,
+  ColumnOrderings<String> get appLanguage => $composableBuilder(
+    column: $table.appLanguage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get streetNames => $composableBuilder(
+    column: $table.streetNames,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get theme => $composableBuilder(
+    column: $table.theme,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get sound => $composableBuilder(
+    column: $table.sound,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get haptics => $composableBuilder(
+    column: $table.haptics,
     builder: (column) => ColumnOrderings(column),
   );
 }
@@ -2738,10 +3192,26 @@ class $$UserSettingsTableAnnotationComposer
         builder: (column) => column,
       );
 
-  GeneratedColumn<bool> get onboardingDone => $composableBuilder(
-    column: $table.onboardingDone,
-    builder: (column) => column,
-  );
+  GeneratedColumnWithTypeConverter<AppLanguage?, String> get appLanguage =>
+      $composableBuilder(
+        column: $table.appLanguage,
+        builder: (column) => column,
+      );
+
+  GeneratedColumnWithTypeConverter<StreetNameMode, String> get streetNames =>
+      $composableBuilder(
+        column: $table.streetNames,
+        builder: (column) => column,
+      );
+
+  GeneratedColumnWithTypeConverter<ThemePreference, String> get theme =>
+      $composableBuilder(column: $table.theme, builder: (column) => column);
+
+  GeneratedColumn<bool> get sound =>
+      $composableBuilder(column: $table.sound, builder: (column) => column);
+
+  GeneratedColumn<bool> get haptics =>
+      $composableBuilder(column: $table.haptics, builder: (column) => column);
 }
 
 class $$UserSettingsTableTableManager
@@ -2779,13 +3249,21 @@ class $$UserSettingsTableTableManager
                 Value<String?> lastCity = const Value.absent(),
                 Value<String?> lastAreaJson = const Value.absent(),
                 Value<Difficulty?> lastDifficulty = const Value.absent(),
-                Value<bool> onboardingDone = const Value.absent(),
+                Value<AppLanguage?> appLanguage = const Value.absent(),
+                Value<StreetNameMode> streetNames = const Value.absent(),
+                Value<ThemePreference> theme = const Value.absent(),
+                Value<bool> sound = const Value.absent(),
+                Value<bool> haptics = const Value.absent(),
               }) => UserSettingsCompanion(
                 id: id,
                 lastCity: lastCity,
                 lastAreaJson: lastAreaJson,
                 lastDifficulty: lastDifficulty,
-                onboardingDone: onboardingDone,
+                appLanguage: appLanguage,
+                streetNames: streetNames,
+                theme: theme,
+                sound: sound,
+                haptics: haptics,
               ),
           createCompanionCallback:
               ({
@@ -2793,13 +3271,21 @@ class $$UserSettingsTableTableManager
                 Value<String?> lastCity = const Value.absent(),
                 Value<String?> lastAreaJson = const Value.absent(),
                 Value<Difficulty?> lastDifficulty = const Value.absent(),
-                Value<bool> onboardingDone = const Value.absent(),
+                Value<AppLanguage?> appLanguage = const Value.absent(),
+                Value<StreetNameMode> streetNames = const Value.absent(),
+                Value<ThemePreference> theme = const Value.absent(),
+                Value<bool> sound = const Value.absent(),
+                Value<bool> haptics = const Value.absent(),
               }) => UserSettingsCompanion.insert(
                 id: id,
                 lastCity: lastCity,
                 lastAreaJson: lastAreaJson,
                 lastDifficulty: lastDifficulty,
-                onboardingDone: onboardingDone,
+                appLanguage: appLanguage,
+                streetNames: streetNames,
+                theme: theme,
+                sound: sound,
+                haptics: haptics,
               ),
           withReferenceMapper: (p0) => p0
               .map(

@@ -5,21 +5,22 @@
 - **App-only tokens** — `packages/pindoro_design/tokens/app.json` values were picked in the repo,
   not designed: basemap building / railway / boundary colours, the area mask, the pin dot size and
   camera framing. Design them on claude.ai and move them into the design system.
-- **Screens** — all routes are placeholder layouts, not yet built to `docs/design/v1-screens.md`
-  and the screens canvas; UI copy is English-only placeholder text with no localisation (Georgian +
-  English needed).
-- **Design-system components** — only `PindoroButton` (primary / secondary / tertiary),
-  `StreetPlate` and `FeedbackBadge` exist; the pin marker, reveal sheet, progress bars and the
-  rest of the components on claude.ai are not built. The player's pin is a dot until then.
+- **Sound kit** — the design's 14 sounds don't exist yet; the Sound toggle and `GameFeedback`
+  are in place, so add an audio player there once the files are designed.
+- **Georgian copy** — `apps/mobile/lib/l10n/app_ka.arb` is the copy deck's draft plus a few strings
+  written in the repo; it needs a native review.
+- **MVP screens, not yet as designed:**
+  - Area picker: no district name chips on the map and no 90 % "All districts" sheet with search;
+    every district is a chip in the sheet instead.
+  - Reveal: no distance chip on the map (the basemap style has no glyphs); the sheet shows it.
+  - No "network error" setup state: round setup reads the local pack, and a failed first download
+    falls back to the bundled fixture.
+  - "Use my location" only recognises the active pack's city (no city centres in the catalog).
 - **App identity** — launcher icon, splash screen, final bundle id (`app.pindoro.pindoro`).
 - **Code licence** — not chosen yet (data is ODbL, font is OFL).
 
 ## Gameplay
 
-- **Same-name street parts** — the pipeline splits a named road wherever its parts are more than
-  30 m apart, so one round can ask "წყნეთის ქუჩა" twice and a pin on the other part scores as a
-  miss. Decide: merge same-name parts within an area for scoring, or skip duplicate names per round.
-- Settings: theme, language, about/licences page.
 - Offline maps: rounds work offline, but tiles need the server or MapLibre's cache.
 - The dark map style is generated but has not been checked on a device.
 - Districts such as Vake include large forested areas, so streets in one round can be kilometres

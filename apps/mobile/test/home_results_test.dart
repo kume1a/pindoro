@@ -1,4 +1,6 @@
-import 'package:drift/drift.dart' show DatabaseConnection;
+import 'dart:convert';
+
+import 'package:drift/drift.dart' show DatabaseConnection, Value;
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,10 +52,21 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<String> roundWithAnswers(int answered) async {
+  Future<String> roundWithAnswers(
+    int answered, {
+    Tier tier = Tier.great,
+    int xp = 60,
+  }) async {
+    const vake = DistrictsArea({AppConfig.fixtureDistrictId});
+    await db.updateSettings(
+      UserSettingsCompanion(
+        lastCity: const Value('tbilisi'),
+        lastAreaJson: Value(jsonEncode(vake.toJson())),
+      ),
+    );
     final id = await db.startRound(
       cityId: 'tbilisi',
-      area: const DistrictArea(AppConfig.fixtureDistrictId),
+      area: vake,
       difficulty: Difficulty.expert,
       packVersion: 'v1',
       streetIds: [for (final s in streets.take(10)) s.id],
@@ -68,8 +81,8 @@ void main() {
               pinLat: s.midpoint.lat,
               pinLon: s.midpoint.lon,
               distanceM: 42,
-              tier: Tier.great,
-              xp: 600,
+              tier: tier,
+              xp: xp,
               packVersion: 'v1',
             ),
           );
@@ -77,34 +90,53 @@ void main() {
     return id;
   }
 
-  testWidgets('home offers play without a round in progress', (tester) async {
+  testWidgets('home without an area asks for one', (tester) async {
     await pumpApp(tester, Routes.home);
-    expect(find.text('Play'), findsOneWidget);
-    expect(find.text('New round'), findsNothing);
-    expect(find.textContaining('Level 1'), findsOneWidget);
+    expect(find.text('Choose an area'), findsOneWidget);
+    expect(find.text('Level 1'), findsOneWidget);
+    expect(find.text('Streets you know'), findsOneWidget);
   });
 
   testWidgets('home offers to continue an unfinished round', (tester) async {
     await tester.runAsync(() => roundWithAnswers(1));
     await pumpApp(tester, Routes.home);
-    expect(find.text('Continue (1/10)'), findsOneWidget);
-    expect(find.text('New round'), findsOneWidget);
+    expect(find.text('Round in progress'), findsOneWidget);
+    expect(find.text('Continue round'), findsOneWidget);
+    expect(find.text('Start a new round instead'), findsOneWidget);
   });
 
   testWidgets('results list each answer with its street and the level', (
     tester,
   ) async {
-    final id = (await tester.runAsync(() => roundWithAnswers(2)))!;
+    final id = (await tester.runAsync(() => roundWithAnswers(2, xp: 600)))!;
     await pumpApp(tester, '${Routes.results}?round=$id');
-    expect(find.byType(FeedbackBadge), findsNWidgets(2));
+    expect(find.text('Level 2!'), findsOneWidget, reason: 'level-up moment');
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ResultRow), findsNWidgets(2));
     expect(find.text(streets[0].nameKa), findsOneWidget);
-    expect(find.text('42 m · +600 xp'), findsNWidgets(2));
-    expect(find.text('+1200 xp this round · level up!'), findsOneWidget);
-    expect(find.textContaining('Level 2'), findsOneWidget);
+    expect(find.text('+600'), findsNWidgets(2));
+    expect(find.text('+1 200 XP'), findsOneWidget);
+    expect(find.text('Level 2'), findsOneWidget);
+  });
+
+  testWidgets('results offer to retry Close and Miss streets', (tester) async {
+    final missed = (await tester.runAsync(
+      () => roundWithAnswers(3, tier: Tier.miss),
+    ))!;
+    await pumpApp(tester, '${Routes.results}?round=$missed');
+    expect(find.text('Retry 3 missed'), findsOneWidget);
+  });
+
+  testWidgets('results without Close or Miss offer no retry', (tester) async {
+    final great = (await tester.runAsync(() => roundWithAnswers(2)))!;
+    await pumpApp(tester, '${Routes.results}?round=$great');
+    expect(find.textContaining('Retry'), findsNothing);
   });
 
   testWidgets('results without a round go home', (tester) async {
     await pumpApp(tester, Routes.results);
-    expect(find.text('Play'), findsOneWidget);
+    expect(find.text('Streets you know'), findsOneWidget);
   });
 }

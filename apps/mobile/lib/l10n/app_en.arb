@@ -1,0 +1,578 @@
+{
+  "@@locale": "en",
+  "commonPlay": "Play",
+  "commonNext": "Next",
+  "commonConfirm": "Confirm",
+  "commonBack": "Back",
+  "commonContinue": "Continue",
+  "commonDone": "Done",
+  "commonCancel": "Cancel",
+  "commonXp": "+{xp} XP",
+  "@commonXp": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "commonAttribution": "© OpenStreetMap contributors, Protomaps",
+  "commonChooseCity": "Choose a city",
+  "commonQuestionProgress": "Question {question} of {total}",
+  "@commonQuestionProgress": {
+    "placeholders": {
+      "question": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "commonChangeSettings": "Change settings",
+  "welcomeTagline": "Learn any town, street by street.",
+  "welcomeFindCity": "Find another city",
+  "welcomeEmptyTitle": "No recent cities yet",
+  "welcomeEmptyBody": "Cities you play will show up here, ready to resume.",
+  "homeLevel": "Level {level}",
+  "@homeLevel": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "homeXpToNextLevel": "{xp} XP to level {level}",
+  "@homeXpToNextLevel": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      },
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "homeXpTotal": "{xp} XP in total",
+  "@homeXpTotal": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "homeKnownTitle": "Streets you know",
+  "homeLegendInProgress": "In progress",
+  "homeLegendComplete": "Complete",
+  "homeLegendNotStarted": "Not started",
+  "homeAllDistricts": "{count, plural, =1{{count} district} other{All {count} districts}}",
+  "@homeAllDistricts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeEmptyCity": "No streets known yet. Play a round and the map starts filling in.",
+  "homeChooseArea": "Choose an area",
+  "homeSavedTitle": "Round in progress",
+  "homeSavedAgo": "saved {time} ago",
+  "@homeSavedAgo": {
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "2 h"
+      }
+    }
+  },
+  "homeContinueRound": "Continue round",
+  "homeNewRound": "Start a new round instead",
+  "citySearchHint": "Search cities",
+  "cityUseLocation": "Use my location",
+  "cityUseLocationSubtitle": "Play the streets around you",
+  "cityLocationLocating": "Finding where you are…",
+  "cityLocationDenied": "Location is off. Turn it on in Settings.",
+  "cityRecent": "Recent",
+  "cityResultCount": "{count, plural, =1{{count} place} other{{count} places}}",
+  "@cityResultCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cityNoResultsTitle": "No places called “{query}”",
+  "@cityNoResultsTitle": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "cityNoResultsBody": "Check the spelling. Pindoro has these cities so far.",
+  "areaModeDistricts": "Districts",
+  "areaModeCircle": "Circle",
+  "areaModeRectangle": "Rectangle",
+  "areaNamesTwo": "{first} and {second}",
+  "@areaNamesTwo": {
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "second": {
+        "type": "String"
+      }
+    }
+  },
+  "areaNamesMore": "{first} + {count} more",
+  "@areaNamesMore": {
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "areaDistrictCount": "{total, plural, =1{{count} of {total} district} other{{count} of {total} districts}}",
+  "@areaDistrictCount": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "areaHelp": "Tap districts on the map or here. Pick one or more.",
+  "areaNoneTitle": "Pick your districts",
+  "areaNoneButton": "Pick a district first",
+  "areaPlayArea": "Play area",
+  "areaCircleHelp": "Drag the map to move the circle. Drag its handle or the slider to resize it.",
+  "areaRectangleHelp": "Drag the map to move the rectangle. Drag a corner to resize it.",
+  "difficultyTitle": "Choose a difficulty",
+  "difficultyEasy": "Easy",
+  "difficultyMedium": "Medium",
+  "difficultyHard": "Hard",
+  "difficultyExpert": "Expert",
+  "difficultyEasyDescription": "Major roads only",
+  "difficultyMediumDescription": "Adds secondary roads",
+  "difficultyHardDescription": "Adds tertiary roads",
+  "difficultyExpertDescription": "Adds residential and small streets",
+  "difficultyStart": "Start",
+  "setupLoading": "Finding streets…",
+  "setupSparseTitle": "Not enough streets here",
+  "setupSparseBody": "A round needs 10 streets.",
+  "setupSparseBiggerCircle": "Make the circle bigger",
+  "setupSparseAddNeighbour": "Add a neighbouring district",
+  "setupSparseSwitchDifficulty": "Switch to {difficulty}",
+  "@setupSparseSwitchDifficulty": {
+    "placeholders": {
+      "difficulty": {
+        "type": "String"
+      }
+    }
+  },
+  "quizPrompt": "Drop a pin on",
+  "quizRetryPrompt": "Try again: drop a pin on",
+  "quizRetryPreviousDistance": "you were {distance} away",
+  "@quizRetryPreviousDistance": {
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "84 m"
+      }
+    }
+  },
+  "quizCoachTitle": "Drop a pin where you think this street is",
+  "quizCoachBody": "You can drag it before you confirm.",
+  "quizLeaveTitle": "Leave for now?",
+  "quizLeaveBody": "Your round is saved at question {question} of {total}, with the {xp} XP you’ve earned. Pick it up from Home.",
+  "@quizLeaveBody": {
+    "placeholders": {
+      "question": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "quizLeaveKeepPlaying": "Keep playing",
+  "quizLeaveConfirm": "Leave for now",
+  "toastPinOutsideArea": "Your street is inside the play area. You can still confirm here.",
+  "toastRoundResumed": "Welcome back. Your round continues at question {question}.",
+  "@toastRoundResumed": {
+    "placeholders": {
+      "question": {
+        "type": "int"
+      }
+    }
+  },
+  "tierPerfect": "Perfect!",
+  "tierGreat": "Great!",
+  "tierClose": "Close",
+  "tierMiss": "Not this time",
+  "tierPerfectWord": "Perfect",
+  "tierGreatWord": "Great",
+  "tierMissWord": "Miss",
+  "tierPerfectSentence": "On the street. You know this city.",
+  "tierGreatSentence": "{distance} away. So close to perfect.",
+  "@tierGreatSentence": {
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "84 m"
+      }
+    }
+  },
+  "tierCloseSentence": "{distance} away. You’re in the right neighbourhood.",
+  "@tierCloseSentence": {
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "84 m"
+      }
+    }
+  },
+  "tierMissSentence": "{distance} away. {hint} You’ll see it again on your results.",
+  "@tierMissSentence": {
+    "placeholders": {
+      "distance": {
+        "type": "String",
+        "example": "84 m"
+      },
+      "hint": {
+        "type": "String"
+      }
+    }
+  },
+  "revealStreak": "{count} in a row",
+  "@revealStreak": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "revealGotIt": "Got it",
+  "revealSeeResults": "See results",
+  "resultsTitle": "Round complete!",
+  "resultsFlawless": "Flawless round!",
+  "resultsRetryTitle": "Retry complete",
+  "resultsStreetsKnown": "{count, plural, =1{+{count} street known} other{+{count} streets known}}",
+  "@resultsStreetsKnown": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resultsYourStreets": "Your streets",
+  "resultsRetryMissed": "Retry {count} missed",
+  "@resultsRetryMissed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resultsNoRetry": "No streets to retry",
+  "resultsToRetry": "to retry",
+  "resultsOnStreet": "On the street",
+  "resultsPlayAgain": "Play again",
+  "levelUpTitle": "Level {level}!",
+  "@levelUpTitle": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "levelUpBody": "{xp} XP in total. Every Great and Perfect got you here.",
+  "@levelUpBody": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "levelUpNext": "Next: level {level}",
+  "@levelUpNext": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsTitle": "Settings",
+  "settingsLanguage": "Language",
+  "settingsAppLanguage": "App language",
+  "settingsStreetNames": "Street names",
+  "settingsStreetNamesLocal": "Local",
+  "settingsStreetNamesEnglish": "English",
+  "settingsStreetNamesHelp": "English shows when the map has it, otherwise the local name.",
+  "settingsDisplay": "Display and feedback",
+  "settingsTheme": "Theme",
+  "settingsThemeLight": "Light",
+  "settingsThemeDark": "Dark",
+  "settingsThemeSystem": "System",
+  "settingsSound": "Sound",
+  "settingsSoundSubtitle": "Chimes, taps and celebrations",
+  "settingsHaptics": "Haptics",
+  "settingsHapticsSubtitle": "Buzz on pin drop and answers",
+  "settingsAbout": "About",
+  "creditsTitle": "Map data credits",
+  "creditsIntro": "Pindoro is built on open map data. Thank you to everyone who maps their streets.",
+  "creditsFix": "Spotted a missing or wrong street? Fix it on openstreetmap.org and Pindoro picks it up within a few weeks.",
+  "creditsOsm": "© OpenStreetMap contributors",
+  "creditsOsmLicence": "Map data is available under the Open Database License (ODbL).",
+  "creditsOsmLink": "openstreetmap.org/copyright",
+  "creditsTiles": "Map tiles: Protomaps",
+  "creditsFont": "Font: FiraGO (SIL Open Font License)",
+  "a11yLeaveRound": "Leave round",
+  "a11yFindStreet": "Find: {name}, {altName}",
+  "@a11yFindStreet": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "altName": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yMap": "Map. Double-tap to drop your pin at the centre.",
+  "a11yConfirmDisabled": "Confirm. Drop a pin first.",
+  "a11yReveal": "{tier}. {distance} away. Plus {xp} XP.",
+  "@a11yReveal": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String",
+        "example": "84 m"
+      },
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yLevelProgress": "Level {level}, {xp} of {xpNeeded} XP",
+  "@a11yLevelProgress": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      },
+      "xp": {
+        "type": "String"
+      },
+      "xpNeeded": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yGoToMyLocation": "Go to my location",
+  "a11yRecentre": "Recentre",
+  "a11yZoomIn": "Zoom in",
+  "a11yZoomOut": "Zoom out",
+  "revealMissDirection": "{direction, select, n{It’s north of your pin.} ne{It’s north-east of your pin.} e{It’s east of your pin.} se{It’s south-east of your pin.} s{It’s south of your pin.} sw{It’s south-west of your pin.} w{It’s west of your pin.} nw{It’s north-west of your pin.} other{It’s close to your pin.}}",
+  "@revealMissDirection": {
+    "description": "The {hint} of a Miss: which way the street lies from the pin (n, ne, e, se, s, sw, w, nw).",
+    "placeholders": {
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yFindStreetName": "Find: {name}",
+  "@a11yFindStreetName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yRoundXp": "{xp} XP this round",
+  "@a11yRoundXp": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yResultRow": "Question {question}. {street}. {tier}, {distance}, plus {xp} XP. Show on map.",
+  "@a11yResultRow": {
+    "placeholders": {
+      "question": {
+        "type": "int"
+      },
+      "street": {
+        "type": "String"
+      },
+      "tier": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      },
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "resultsPreviousStreet": "Previous",
+  "@resultsPreviousStreet": {},
+  "resultsNextStreet": "Next street",
+  "@resultsNextStreet": {},
+  "resultsBackToResults": "Back to results",
+  "@resultsBackToResults": {},
+  "a11yRewardTotal": "Plus {xp} XP this round",
+  "@a11yRewardTotal": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yTierTally": "{perfect} Perfect, {great} Great, {close} Close, {miss} Miss",
+  "@a11yTierTally": {
+    "placeholders": {
+      "perfect": {
+        "type": "int"
+      },
+      "great": {
+        "type": "int"
+      },
+      "close": {
+        "type": "int"
+      },
+      "miss": {
+        "type": "int"
+      }
+    }
+  },
+  "setupSparseCount": "{count, plural, =1{This area has 1 street at {difficulty}.} other{This area has {count} streets at {difficulty}.}}",
+  "@setupSparseCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "difficulty": {
+        "type": "String"
+      }
+    }
+  },
+  "setupAreaMissingBody": "The streets for this area aren’t on your phone yet. Pick an area from the ones you have.",
+  "@setupAreaMissingBody": {},
+  "areaCircleName": "{size} circle",
+  "@areaCircleName": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "areaRectangleName": "{size} rectangle",
+  "@areaRectangleName": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "difficultyScoringTitle": "How close counts at {difficulty}",
+  "@difficultyScoringTitle": {
+    "placeholders": {
+      "difficulty": {
+        "type": "String"
+      }
+    }
+  },
+  "difficultyWithin": "Within {distance}",
+  "@difficultyWithin": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "cityNoneNearby": "No city near you yet. Pick one from the list.",
+  "@cityNoneNearby": {},
+  "cityAll": "All cities",
+  "@cityAll": {},
+  "cityClearSearch": "Clear search",
+  "@cityClearSearch": {},
+  "a11yCitySwitcher": "City: {city}. Change city.",
+  "@a11yCitySwitcher": {
+    "placeholders": {
+      "city": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yPlay": "Play {what}",
+  "@a11yPlay": {
+    "placeholders": {
+      "what": {
+        "type": "String"
+      }
+    }
+  },
+  "a11ySettings": "Settings",
+  "@a11ySettings": {},
+  "homeKnownOf": "{known} / {total}",
+  "@homeKnownOf": {
+    "placeholders": {
+      "known": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "homeSavedProgress": "Question {question} of {total} · {xp} XP so far",
+  "@homeSavedProgress": {
+    "placeholders": {
+      "question": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "unitMinutes": "{count} min",
+  "@unitMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unitHours": "{count} h",
+  "@unitHours": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unitDays": "{count} d",
+  "@unitDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
+}

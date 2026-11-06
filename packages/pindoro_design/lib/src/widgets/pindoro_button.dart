@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:pindoro_core/pindoro_core.dart';
 
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
+import 'graphics.dart';
 
-enum PindoroButtonVariant { primary, secondary, tertiary }
+enum PindoroButtonVariant { primary, secondary, tertiary, reward }
 
 /// Flat face on a solid bottom lip; pressing pushes the face down onto it.
 class PindoroButton extends StatefulWidget {
@@ -13,6 +15,8 @@ class PindoroButton extends StatefulWidget {
     required this.onPressed,
     this.variant = PindoroButtonVariant.primary,
     this.icon,
+    this.tier,
+    this.hero = false,
   });
 
   final String label;
@@ -20,7 +24,13 @@ class PindoroButton extends StatefulWidget {
   /// Null disables the button.
   final VoidCallback? onPressed;
   final PindoroButtonVariant variant;
-  final IconData? icon;
+  final PindoroGlyph? icon;
+
+  /// Tier colours (the reveal sheet's Next); overrides [variant].
+  final Tier? tier;
+
+  /// The bigger `elevation.3` lip for hero actions.
+  final bool hero;
 
   @override
   State<PindoroButton> createState() => _PindoroButtonState();
@@ -35,10 +45,14 @@ class _PindoroButtonState extends State<PindoroButton> {
 
   @override
   Widget build(BuildContext context) {
-    final c = PindoroTheme.of(context).colors;
+    final theme = PindoroTheme.of(context);
+    final c = theme.colors;
     final enabled = widget.onPressed != null;
+    final tier = widget.tier == null ? null : theme.tier(widget.tier!);
     final (face, lip, text, border) = !enabled
         ? (c.buttonDisabledBg, c.buttonDisabledLip, c.buttonDisabledText, null)
+        : tier != null
+        ? (tier.fill, tier.lip, tier.on, null)
         : switch (widget.variant) {
             PindoroButtonVariant.primary => (
               c.buttonPrimaryBg,
@@ -58,9 +72,16 @@ class _PindoroButtonState extends State<PindoroButton> {
               c.buttonTertiaryText,
               null,
             ),
+            PindoroButtonVariant.reward => (
+              c.buttonRewardBg,
+              c.buttonRewardLip,
+              c.buttonRewardText,
+              null,
+            ),
           };
     final radius = BorderRadius.circular(PindoroRadius.lg);
-    final lipHeight = _pressed ? 0.0 : PindoroElevation.e2;
+    final fullLip = widget.hero ? PindoroElevation.e3 : PindoroElevation.e2;
+    final lipHeight = _pressed ? 0.0 : fullLip;
     final label = Text(
       widget.label,
       style: PindoroType.labelButton.copyWith(color: text),
@@ -81,7 +102,7 @@ class _PindoroButtonState extends State<PindoroButton> {
           child: AnimatedContainer(
             duration: PindoroMotion.durationInstant,
             curve: PindoroMotion.easePress,
-            margin: EdgeInsets.only(top: PindoroElevation.e2 - lipHeight),
+            margin: EdgeInsets.only(top: fullLip - lipHeight),
             padding: EdgeInsets.only(bottom: lipHeight),
             decoration: BoxDecoration(color: lip, borderRadius: radius),
             child: Container(
@@ -101,7 +122,7 @@ class _PindoroButtonState extends State<PindoroButton> {
                       mainAxisSize: MainAxisSize.min,
                       spacing: PindoroSpace.s2,
                       children: [
-                        Icon(widget.icon, color: text),
+                        PindoroIcon(widget.icon!, color: text, cut: face),
                         label,
                       ],
                     ),

@@ -6,6 +6,7 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../app/config.dart';
+import '../../app/settings.dart';
 import 'pack_store.dart';
 
 /// Reads a city pack (docs/pack-format.md) opened read-only.
@@ -53,6 +54,39 @@ class SqlitePackRepository implements PackRepository {
   }
 
   @override
+  List<Street> streetsNamed(Set<String> names) {
+    if (names.isEmpty) return const [];
+    final marks = List.filled(names.length, '?').join(', ');
+    return [
+      for (final r in _db.select(
+        'SELECT * FROM street WHERE name_ka IN ($marks) ORDER BY id',
+        names.toList(),
+      ))
+        Street.fromRow(r),
+    ];
+  }
+
+  @override
+  ({Set<String> city, Map<String, Set<String>> byDistrict}) streetNameIndex() {
+    final byDistrict = <String, Set<String>>{};
+    for (final r in _db.select(
+      'SELECT sd.district_id, s.name_ka FROM street_district sd '
+      'JOIN street s ON s.id = sd.street_id',
+    )) {
+      byDistrict
+          .putIfAbsent(r['district_id'] as String, () => {})
+          .add(r['name_ka'] as String);
+    }
+    return (
+      city: {
+        for (final r in _db.select('SELECT DISTINCT name_ka FROM street'))
+          r['name_ka'] as String,
+      },
+      byDistrict: byDistrict,
+    );
+  }
+
+  @override
   List<StreetDistrict> streetDistricts(String streetId) => [
     for (final r in _db.select(
       'SELECT * FROM street_district WHERE street_id = ?',
@@ -93,11 +127,18 @@ Future<File> copyFixture(Directory root) async {
   return file;
 }
 
-/// The newest downloaded pack, else the bundled fixture. main() invalidates
-/// it when a download finishes.
+/// The chosen city's newest pack: downloaded on first use; the bundled
+/// fixture stands in for Tbilisi offline. main() invalidates it when a
+/// download finishes.
 final packRepositoryProvider = FutureProvider<PackRepository>((ref) async {
   final store = ref.watch(packStoreProvider);
-  final file = store.newest(AppConfig.cityId) ?? await copyFixture(store.root);
+  final city =
+      ref.watch(settingsProvider.select((s) => s.value?.lastCity)) ??
+      AppConfig.cityId;
+  final file =
+      store.newest(city) ??
+      await store.refresh(city).catchError((Object _) => null) ??
+      await copyFixture(store.root);
   final repo = SqlitePackRepository.open(file.path);
   ref.onDispose(repo.close);
   return repo;

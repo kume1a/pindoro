@@ -13,11 +13,17 @@ void main() {
   setUp(() => db = AppDatabase(NativeDatabase.memory()));
   tearDown(() => db.close());
 
-  test('first run opens /welcome, afterwards /home', () async {
+  test('welcome shows until the first round is finished', () async {
     expect(await initialLocation(db), Routes.welcome);
-    await db.updateSettings(
-      const UserSettingsCompanion(onboardingDone: Value(true)),
+    final id = await db.startRound(
+      cityId: 'tbilisi',
+      area: const DistrictsArea({'osm:r1'}),
+      difficulty: Difficulty.expert,
+      packVersion: 'v1',
+      streetIds: const ['a'],
     );
+    expect(await initialLocation(db), Routes.welcome);
+    await db.finishRound(id);
     expect(await initialLocation(db), Routes.home);
   });
 
@@ -54,12 +60,19 @@ void main() {
     );
   });
 
-  Future<String> round(List<String> streets) => db.startRound(
-    cityId: 'tbilisi',
-    area: const WholeCity(),
+  const vake = DistrictsArea({'osm:r1'});
+
+  Future<String> round(
+    List<String> streets, {
+    String cityId = 'tbilisi',
+    String? retryOf,
+  }) => db.startRound(
+    cityId: cityId,
+    area: vake,
     difficulty: Difficulty.expert,
     packVersion: 'v1',
     streetIds: streets,
+    retryOf: retryOf,
   );
 
   Future<void> answer(String roundId, String streetId, Tier tier) => db
@@ -77,29 +90,57 @@ void main() {
         ),
       );
 
-  test('startRound stores the planned streets in order', () async {
-    final id = await round(['b', 'a', 'c']);
-    final progress = await db.roundProgress(id);
+  test('startRound stores the planned streets, area and retry link', () async {
+    final first = await round(['b', 'a', 'c']);
+    final progress = await db.roundProgress(first);
     expect(progress.planned, ['b', 'a', 'c']);
     expect(progress.answers, isEmpty);
-    expect(
-      Area.fromJson(
-        jsonDecode(progress.round.areaJson) as Map<String, Object?>,
-      ),
-      const WholeCity(),
-    );
+    expect(parseArea(progress.round.areaJson), vake);
+    expect(progress.round.retryOf, isNull);
+    final retry = await round(['a'], retryOf: first);
+    expect((await db.roundProgress(retry)).round.retryOf, first);
   });
 
-  test('only the most recent unfinished round is resumable', () async {
-    final older = await round(['a']);
-    final newer = await round(['b']);
-    expect((await db.resumableRound())?.id, newer);
-    await db.finishRound(newer);
-    expect(
-      await db.resumableRound(),
-      isNull,
-      reason: 'the older unfinished round ($older) was abandoned',
-    );
+  group('saved round', () {
+    final now = DateTime.now();
+
+    test('only the most recent unfinished round is resumable', () async {
+      final older = await round(['a']);
+      final newer = await round(['b']);
+      expect((await db.resumableRound(now))?.id, newer);
+      await db.finishRound(newer);
+      expect(
+        await db.resumableRound(now),
+        isNull,
+        reason: 'the older unfinished round ($older) was abandoned',
+      );
+    });
+
+    test('expires 7 days after its last activity', () async {
+      final id = await round(['a', 'b']);
+      final day = now.add(const Duration(days: 6, hours: 23));
+      expect((await db.resumableRound(day))?.id, id);
+      expect(await db.resumableRound(now.add(const Duration(days: 8))), isNull);
+    });
+
+    test('is only offered for the current city and area', () async {
+      await db.updateSettings(
+        UserSettingsCompanion(
+          lastCity: const Value('tbilisi'),
+          lastAreaJson: Value(jsonEncode(vake.toJson())),
+        ),
+      );
+      final id = await round(['a']);
+      expect((await db.savedRound(now))?.id, id);
+      await db.updateSettings(
+        UserSettingsCompanion(
+          lastAreaJson: Value(
+            jsonEncode(const DistrictsArea({'osm:r2'}).toJson()),
+          ),
+        ),
+      );
+      expect(await db.savedRound(now), isNull);
+    });
   });
 
   test('answers come back in the order they were given', () async {
@@ -109,39 +150,62 @@ void main() {
     expect((await db.answersForRound(id)).map((a) => a.streetId), ['b', 'a']);
   });
 
-  test('lastTierByStreet keeps the latest tier per street', () async {
+  test('bestTierByStreet keeps the best tier per street, per city', () async {
     final id = await round(['a', 'b']);
+    await answer(id, 'a', Tier.great);
+    await answer(id, 'b', Tier.close);
     await answer(id, 'a', Tier.miss);
-    await answer(id, 'b', Tier.great);
-    await answer(id, 'a', Tier.perfect);
-    expect(await db.lastTierByStreet(), {'a': Tier.perfect, 'b': Tier.great});
-  });
-
-  test('recentlyAnsweredStreetIds returns the latest streets', () async {
-    final id = await round(['a', 'b', 'c']);
-    for (final s in ['a', 'b', 'c']) {
-      await answer(id, s, Tier.close);
-    }
-    expect(await db.recentlyAnsweredStreetIds(limit: 2), {'b', 'c'});
-  });
-
-  test('settings area defaults to the whole city', () async {
-    expect((await db.readSettings()).area, const WholeCity());
-    await db.updateSettings(
-      UserSettingsCompanion(
-        lastAreaJson: Value(jsonEncode(const DistrictArea('osm:r1').toJson())),
+    final elsewhere = await round(['c'], cityId: 'batumi');
+    await answer(elsewhere, 'c', Tier.perfect);
+    expect(await db.bestTierByStreet('tbilisi'), {
+      'a': Tier.great,
+      'b': Tier.close,
+    });
+    expect(
+      await db.bestTierByStreet(
+        'tbilisi',
+        before: DateTime.now().subtract(const Duration(days: 1)),
       ),
+      isEmpty,
     );
-    expect((await db.readSettings()).area, const DistrictArea('osm:r1'));
-    for (final unreadable in ['[]', '{"kind":"planet"}', 'not json']) {
-      await db.updateSettings(
-        UserSettingsCompanion(lastAreaJson: Value(unreadable)),
-      );
-      expect(
-        (await db.readSettings()).area,
-        const WholeCity(),
-        reason: unreadable,
-      );
-    }
   });
+
+  test('askedInLastRounds returns the streets of the latest rounds', () async {
+    await round(['a']);
+    await round(['b']);
+    await round(['x'], cityId: 'batumi');
+    await round(['c', 'd']);
+    expect(await db.askedInLastRounds('tbilisi', count: 2), {'b', 'c', 'd'});
+  });
+
+  test('retrySet is the Close and Miss streets in round order', () async {
+    final id = await round(['a', 'b', 'c', 'd']);
+    await answer(id, 'd', Tier.miss);
+    await answer(id, 'a', Tier.close);
+    await answer(id, 'b', Tier.perfect);
+    await answer(id, 'c', Tier.great);
+    expect(await db.retrySet(id), ['a', 'd']);
+  });
+
+  test(
+    'settings area is unset until picked; old and bad forms read as unset',
+    () async {
+      expect((await db.readSettings()).area, isNull);
+      await db.updateSettings(
+        UserSettingsCompanion(lastAreaJson: Value(jsonEncode(vake.toJson()))),
+      );
+      expect((await db.readSettings()).area, vake);
+      for (final unreadable in [
+        '[]',
+        '{"kind":"planet"}',
+        '{"kind":"city"}',
+        'not json',
+      ]) {
+        await db.updateSettings(
+          UserSettingsCompanion(lastAreaJson: Value(unreadable)),
+        );
+        expect((await db.readSettings()).area, isNull, reason: unreadable);
+      }
+    },
+  );
 }

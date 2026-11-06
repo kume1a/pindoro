@@ -14,7 +14,8 @@ truth for design. Edit there, then pull: overwrite these files and
 | `motion-sound-haptics.md` | `project/motion-sound-haptics.md` |
 
 Per-component specs (`project/components/<Name>/README.md`) and the screens canvas stay on claude.ai;
-read them from there when building a component or screen.
+read them from there when building a component or screen. The image assets (icons, logos, mascot,
+app icon, splash) come from the design system's asset store; see `packages/pindoro_design/CLAUDE.md`.
 
 ## Where the app deliberately differs
 

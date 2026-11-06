@@ -1,0 +1,13 @@
+# App icon from the design system's App icon asset group (`just branding`).
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/branding/ios-light-1024.png
+  image_path_ios_dark_transparent: assets/branding/ios-dark-1024.png
+  image_path_ios_tinted_grayscale: assets/branding/ios-tinted-1024.png
+  remove_alpha_ios: true
+  # color.cobalt.500
+  adaptive_icon_background: "#2F54EB"
+  adaptive_icon_foreground: assets/branding/png/android-foreground.png
+  adaptive_icon_monochrome: assets/branding/png/android-monochrome.png
+  min_sdk_android: 21

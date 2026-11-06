@@ -90,7 +90,12 @@ void main() {
 
   testWidgets('FeedbackBadge shows the tier icon and name', (tester) async {
     await tester.pumpWidget(_host(const FeedbackBadge(Tier.perfect)));
-    expect(find.byIcon(Icons.star_rounded), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is PindoroIcon && w.glyph == PindoroGlyph.star,
+      ),
+      findsOneWidget,
+    );
     expect(find.text('perfect'), findsOneWidget);
   });
 

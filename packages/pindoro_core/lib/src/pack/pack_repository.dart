@@ -13,10 +13,16 @@ abstract interface class PackRepository {
   /// Streets, optionally limited to one district and/or some difficulties.
   List<Street> streets({String? districtId, Set<Difficulty>? difficulties});
 
+  /// Every street whose `name_ka` is in [names] (all parts of those names).
+  List<Street> streetsNamed(Set<String> names);
+
   List<StreetDistrict> streetDistricts(String streetId);
 
   /// `name_ka` by street id; ids missing from the pack are left out.
   Map<String, String> streetNames(Iterable<String> ids);
+
+  /// Every street name in the city, and the names in each district.
+  ({Set<String> city, Map<String, Set<String>> byDistrict}) streetNameIndex();
 
   void close();
 }

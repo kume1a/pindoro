@@ -1,7 +1,14 @@
 # pindoro_design
 
 Flutter design system: generated tokens, `buildPindoroTheme`, `PindoroTheme` extension and the
-Signpost widgets (`PindoroButton`, `StreetPlate`, `FeedbackBadge`).
+Signpost widgets: `PindoroButton`, `StreetPlate`, `FeedbackBadge`, surfaces (`LipBox`,
+`ListGroup`, `ListRow`), controls (`SegmentedControl`, `PindoroToggle`, `PindoroIconButton`,
+`LaneLoader`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark`) and the round
+components (`QuestionBar`, `Pill`, `MapControl`, `RevealSheet`, `ResultRow`, `RewardTotal`,
+`TierTally`, `CoachBubble`), setup components (`SearchField`, `CitySwitcher`, `PindoroChip`,
+`DifficultyCard`, `DistrictMiniMap`) and motion (`PindoroPageTransitions`, `CountUp`, `PopIn`,
+`RiseIn`, `Celebration`, `Wiggle`; all calm down under reduce motion). Widgets take their text
+as parameters; strings live in the app.
 
 ## Tokens
 
@@ -16,6 +23,13 @@ Signpost widgets (`PindoroButton`, `StreetPlate`, `FeedbackBadge`).
   **Never hand-edit generated code** — run `just gen` and commit both. CI runs `just tokens-check`.
 - No literal colours, radii, spacing or durations in widgets. Theme-dependent colours come from
   `PindoroTheme.of(context).colors`, never from `PindoroPalette` directly.
+
+## Assets
+
+- `assets/icons` (62), `assets/logos`, `assets/mascot` come from the claude.ai design system's
+  asset groups. Icons are drawn in asphalt ink (#1B2133) with white details; `PindoroIcon` maps ink
+  to its colour and white to `cut` (the surface behind). The mascot files had their `.pd-m-*` CSS
+  colours inlined (flutter_svg ignores external CSS); re-inline when syncing new mascot files.
 
 ## Rules
 

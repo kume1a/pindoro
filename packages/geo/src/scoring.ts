@@ -3,13 +3,22 @@ export type Difficulty = "easy" | "medium" | "hard" | "expert";
 
 // Single source of truth on the TS side; must equal pindoro_core ScoringConfig (shared/fixtures prove it).
 export const ScoringConfig = {
-  thresholdFloorM: { perfect: 20, great: 60, close: 200 },
-  thresholdRatio: { perfect: 0.005, great: 0.02, close: 0.07 },
+  /** Half the drawn width of a street by OSM road class; others use narrowestHalfWidthM. */
+  halfWidthM: { motorway: 14, trunk: 14, primary: 10, secondary: 8, tertiary: 7 } as Record<
+    string,
+    number
+  >,
+  narrowestHalfWidthM: 5,
+  /** Medium distances; every threshold is multiplied by the difficulty factor. */
+  perfectMarginM: 20,
+  greatMaxM: 100,
+  closeMaxM: 300,
   difficultyFactor: { easy: 1.5, medium: 1.0, hard: 0.7, expert: 0.5 },
-  perfectPoints: 100,
-  greatPoints: { from: 90, to: 70 },
-  closePoints: { from: 60, to: 30 },
-  xpBonus: { easy: 1.0, medium: 1.1, hard: 1.25, expert: 1.5 },
+  perfectXp: 100,
+  /** Great: at − perM × (d/f − perfectMarginM), 90 → 70. */
+  greatXp: { at: 90, perM: 0.25 },
+  /** Close: at − perM × (d/f − greatMaxM), 60 → 30. */
+  closeXp: { at: 60, perM: 0.15 },
   levelBaseXp: 1000,
   levelStepXp: 250,
 } as const;
@@ -18,15 +27,19 @@ export interface TierThresholds {
   perfect: number;
   great: number;
   close: number;
+  /** Difficulty factor; XP is computed on distance / factor. */
+  factor: number;
 }
 
-export const thresholdsForArea = (areaM2: number, difficulty: Difficulty): TierThresholds => {
-  const side = Math.sqrt(areaM2);
-  const factor = ScoringConfig.difficultyFactor[difficulty];
-  const band = (tier: keyof TierThresholds): number =>
-    Math.max(ScoringConfig.thresholdFloorM[tier], ScoringConfig.thresholdRatio[tier] * side) *
-    factor;
-  return { perfect: band("perfect"), great: band("great"), close: band("close") };
+export const thresholdsForStreet = (roadClass: string, difficulty: Difficulty): TierThresholds => {
+  const f = ScoringConfig.difficultyFactor[difficulty];
+  const halfWidth = ScoringConfig.halfWidthM[roadClass] ?? ScoringConfig.narrowestHalfWidthM;
+  return {
+    perfect: (halfWidth + ScoringConfig.perfectMarginM) * f,
+    great: ScoringConfig.greatMaxM * f,
+    close: ScoringConfig.closeMaxM * f,
+    factor: f,
+  };
 };
 
 export const tierFor = (distanceM: number, t: TierThresholds): Tier => {
@@ -36,37 +49,35 @@ export const tierFor = (distanceM: number, t: TierThresholds): Tier => {
   return "miss";
 };
 
-const lerpPoints = (
-  range: { from: number; to: number },
-  lo: number,
-  hi: number,
-  d: number,
-): number => Math.round(range.from + ((range.to - range.from) * (d - lo)) / (hi - lo));
-
-export const pointsFor = (distanceM: number, t: TierThresholds): number => {
+export const xpFor = (distanceM: number, t: TierThresholds): number => {
+  const d = distanceM / t.factor;
   switch (tierFor(distanceM, t)) {
     case "perfect":
-      return ScoringConfig.perfectPoints;
+      return ScoringConfig.perfectXp;
     case "great":
-      return lerpPoints(ScoringConfig.greatPoints, t.perfect, t.great, distanceM);
+      return Math.round(
+        ScoringConfig.greatXp.at - ScoringConfig.greatXp.perM * (d - ScoringConfig.perfectMarginM),
+      );
     case "close":
-      return lerpPoints(ScoringConfig.closePoints, t.great, t.close, distanceM);
+      return Math.round(
+        ScoringConfig.closeXp.at - ScoringConfig.closeXp.perM * (d - ScoringConfig.greatMaxM),
+      );
     case "miss":
       return 0;
   }
 };
 
-export const xpFor = (points: number, difficulty: Difficulty): number =>
-  Math.round(points * ScoringConfig.xpBonus[difficulty]);
-
 export interface Score {
   tier: Tier;
-  points: number;
   xp: number;
 }
 
-export const scoreAnswer = (distanceM: number, areaM2: number, difficulty: Difficulty): Score => {
-  const t = thresholdsForArea(areaM2, difficulty);
-  const points = pointsFor(distanceM, t);
-  return { tier: tierFor(distanceM, t), points, xp: xpFor(points, difficulty) };
+/** Scores a pin distanceM from the nearest part of a street of roadClass. */
+export const scoreAnswer = (
+  distanceM: number,
+  roadClass: string,
+  difficulty: Difficulty,
+): Score => {
+  const t = thresholdsForStreet(roadClass, difficulty);
+  return { tier: tierFor(distanceM, t), xp: xpFor(distanceM, t) };
 };

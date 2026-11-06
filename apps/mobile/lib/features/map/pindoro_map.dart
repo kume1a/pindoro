@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math' show Point;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +9,9 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 import '../../app/config.dart';
+import '../../app/format.dart';
+import '../../app/location.dart';
+import '../../app/toast.dart';
 
 /// GeoJSON source ids.
 abstract final class MapSources {
@@ -13,9 +19,10 @@ abstract final class MapSources {
   static const String youPin = 'you-pin';
   static const String truthStreet = 'truth-street';
   static const String measure = 'measure';
+  static const String measureEnd = 'measure-end';
 }
 
-const String osmAttribution = '© OpenStreetMap contributors, Protomaps';
+const String _pinImage = 'player-pin';
 
 /// Builds the game map; widget tests override it so no platform view is made.
 final pindoroMapBuilderProvider = Provider<Widget Function(PindoroMap map)>(
@@ -24,7 +31,9 @@ final pindoroMapBuilderProvider = Provider<Widget Function(PindoroMap map)>(
 );
 
 /// Unlabelled self-hosted basemap: the round's area (outside dimmed) plus the
-/// pin, truth street and measure line passed in by the caller.
+/// pin, truth street and measure line passed in by the caller. [bottomInset]
+/// is the height of whatever covers the bottom of the map (button, sheet):
+/// controls and attribution sit above it and the camera frames above it.
 class PindoroMap extends StatefulWidget {
   const PindoroMap({
     super.key,
@@ -33,6 +42,9 @@ class PindoroMap extends StatefulWidget {
     this.truth,
     this.measure,
     this.onTap,
+    this.bottomInset = 0,
+    this.topInset = 0,
+    this.showControls = true,
   });
 
   final AreaShape area;
@@ -40,13 +52,26 @@ class PindoroMap extends StatefulWidget {
   final MultiPolyline? truth;
   final (LatLng from, LatLng to)? measure;
   final ValueChanged<LatLng>? onTap;
+  final double bottomInset;
+
+  /// Height covered at the top (top bar and plate), for framing.
+  final double topInset;
+  final bool showControls;
 
   @override
   State<PindoroMap> createState() => _PindoroMapState();
 }
 
-class _PindoroMapState extends State<PindoroMap> {
+class _PindoroMapState extends State<PindoroMap>
+    with SingleTickerProviderStateMixin {
   ml.MapLibreMapController? _controller;
+
+  /// The pin drop: falls 24 dp and bounces once (`motion.pin-drop`).
+  late final AnimationController _drop = AnimationController(
+    vsync: this,
+    duration: PindoroMotion.pinDrop,
+  )..addListener(_dropTick);
+  double _pixelRatio = 1;
   Brightness? _brightness;
   Future<String>? _style;
   bool _overlaysReady = false;
@@ -62,15 +87,45 @@ class _PindoroMapState extends State<PindoroMap> {
     }
   }
 
+  /// The pin symbol anchored at its tip, raised by [dy] dp.
+  ml.SymbolLayerProperties _pinLayer(double dy) => ml.SymbolLayerProperties(
+    iconImage: _pinImage,
+    iconAnchor: 'bottom',
+    iconOffset: [0, dy * _pixelRatio],
+    iconAllowOverlap: true,
+    iconIgnorePlacement: true,
+  );
+
+  @override
+  void dispose() {
+    _drop.dispose();
+    super.dispose();
+  }
+
+  void _dropTick() {
+    final fall = 24 * (1 - Curves.bounceOut.transform(_drop.value));
+    // setLayerProperties replaces every property, so send them all.
+    _controller?.setLayerProperties(
+      '${MapSources.youPin}-pin',
+      _pinLayer(PinMark.tipInset - fall),
+    );
+  }
+
   @override
   void didUpdateWidget(PindoroMap oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!_overlaysReady) return;
-    _syncOverlays();
+    if (widget.pin != null &&
+        widget.pin != oldWidget.pin &&
+        widget.truth == null &&
+        !MediaQuery.disableAnimationsOf(context)) {
+      unawaited(_drop.forward(from: 0));
+    }
+    unawaited(_syncOverlays());
     if (widget.truth != null && widget.truth != oldWidget.truth) {
-      _fit([...widget.truth!.expand((l) => l), ?widget.pin]);
+      unawaited(_fit([...widget.truth!.expand((l) => l), ?widget.pin]));
     } else if (widget.truth == null && oldWidget.truth != null) {
-      _fitArea();
+      unawaited(_fitArea());
     }
   }
 
@@ -79,18 +134,18 @@ class _PindoroMapState extends State<PindoroMap> {
     return _fit([LatLng(b.minLat, b.minLon), LatLng(b.maxLat, b.maxLon)]);
   }
 
-  Future<void> _fit(List<LatLng> points) {
+  Future<void> _fit(List<LatLng> points) async {
     final b = Bbox.of(points);
-    return _controller!.animateCamera(
+    await _controller?.animateCamera(
       ml.CameraUpdate.newLatLngBounds(
         ml.LatLngBounds(
           southwest: ml.LatLng(b.minLat, b.minLon),
           northeast: ml.LatLng(b.maxLat, b.maxLon),
         ),
         left: PindoroCamera.fitPaddingX,
-        top: PindoroCamera.fitPaddingY,
+        top: widget.topInset + PindoroSpace.s6,
         right: PindoroCamera.fitPaddingX,
-        bottom: PindoroCamera.fitPaddingY,
+        bottom: widget.bottomInset + PindoroSpace.s6,
       ),
     );
   }
@@ -99,6 +154,14 @@ class _PindoroMapState extends State<PindoroMap> {
     final c = _controller;
     if (c == null) return;
     final colors = PindoroTheme.of(context).colors;
+    final pixelRatio = _pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final pin = PinMark(
+      face: colors.mapPlayerPin,
+      lip: colors.mapPlayerPinLip,
+      dot: colors.mapPlayerHalo,
+      halo: colors.mapPlayerHalo,
+    );
+    await c.addImage(_pinImage, await pin.toPng(pixelRatio));
     // Overlays must stay non-interactive: maplibre_gl reports taps on interactive
     // layers as feature taps instead of map clicks, which would block pin drops.
     await c.addGeoJsonSource(
@@ -149,21 +212,30 @@ class _PindoroMapState extends State<PindoroMap> {
       ),
       enableInteraction: false,
     );
-    await c.addGeoJsonSource(MapSources.youPin, _points(const []));
+    await c.addGeoJsonSource(MapSources.measureEnd, _points(const []));
     await c.addCircleLayer(
-      MapSources.youPin,
-      '${MapSources.youPin}-dot',
+      MapSources.measureEnd,
+      '${MapSources.measureEnd}-ring',
       ml.CircleLayerProperties(
-        circleColor: _hex(colors.mapPlayerPin),
-        circleRadius: PindoroSize.mapPinDot / 2,
-        circleStrokeColor: _hex(colors.mapPlayerHalo),
-        circleStrokeWidth: PindoroStroke.thick,
+        circleColor: _hex(colors.mapPlayerHalo),
+        circleRadius: PindoroStroke.thick + PindoroStroke.base,
+        circleStrokeColor: _hex(colors.mapMeasureLine),
+        circleStrokeWidth: PindoroStroke.base,
       ),
+      enableInteraction: false,
+    );
+    await c.addGeoJsonSource(MapSources.youPin, _points(const []));
+    await c.addSymbolLayer(
+      MapSources.youPin,
+      '${MapSources.youPin}-pin',
+      _pinLayer(PinMark.tipInset),
       enableInteraction: false,
     );
     _overlaysReady = true;
     await _syncOverlays();
-    await _fitArea();
+    await (widget.truth == null
+        ? _fitArea()
+        : _fit([...widget.truth!.expand((l) => l), ?widget.pin]));
   }
 
   Future<void> _syncOverlays() async {
@@ -181,34 +253,88 @@ class _PindoroMapState extends State<PindoroMap> {
         if (measure != null) [measure.$1, measure.$2],
       ]),
     );
+    await c.setGeoJsonSource(MapSources.measureEnd, _points([?measure?.$2]));
+  }
+
+  Future<void> _goToMyLocation() async {
+    final result = await ProviderScope.containerOf(
+      context,
+    ).read(locationServiceProvider).locate();
+    if (!mounted) return;
+    switch (result) {
+      case Located(:final position):
+        await _controller?.animateCamera(
+          ml.CameraUpdate.newLatLng(ml.LatLng(position.lat, position.lon)),
+        );
+      case LocationDenied():
+        showToast(context, context.l10n.cityLocationDenied);
+    }
   }
 
   @override
   Widget build(BuildContext context) => FutureBuilder<String>(
     future: _style,
     builder: (context, style) {
-      if (!style.hasData) return const SizedBox.expand();
+      final l10n = context.l10n;
       final center = widget.area.bbox.center;
       return Stack(
         children: [
-          ml.MapLibreMap(
-            styleString: style.data!,
-            initialCameraPosition: ml.CameraPosition(
-              target: ml.LatLng(center.lat, center.lon),
-              zoom: PindoroCamera.zoom,
+          if (style.hasData)
+            Semantics(
+              label: widget.onTap == null ? null : l10n.a11yMap,
+              child: ml.MapLibreMap(
+                styleString: style.data!,
+                initialCameraPosition: ml.CameraPosition(
+                  target: ml.LatLng(center.lat, center.lon),
+                  zoom: PindoroCamera.zoom,
+                ),
+                onMapCreated: (c) => _controller = c,
+                onStyleLoadedCallback: _addOverlays,
+                onMapClick: (_, at) =>
+                    widget.onTap?.call(LatLng(at.latitude, at.longitude)),
+                rotateGesturesEnabled: false,
+                tiltGesturesEnabled: false,
+                compassEnabled: false,
+                // Our own chip carries the attribution text.
+                attributionButtonMargins: const Point(-100, -100),
+              ),
             ),
-            onMapCreated: (c) => _controller = c,
-            onStyleLoadedCallback: _addOverlays,
-            onMapClick: (_, at) =>
-                widget.onTap?.call(LatLng(at.latitude, at.longitude)),
-            rotateGesturesEnabled: false,
-            tiltGesturesEnabled: false,
-            compassEnabled: false,
-          ),
-          const Positioned(
+          if (widget.showControls)
+            Positioned(
+              right: PindoroSpace.s4,
+              bottom: widget.bottomInset + PindoroSpace.s4,
+              child: Column(
+                spacing: PindoroSpace.s2,
+                children: [
+                  MapControl(
+                    glyph: PindoroGlyph.locate,
+                    semanticLabel: l10n.a11yGoToMyLocation,
+                    onPressed: _goToMyLocation,
+                  ),
+                  MapControl(
+                    glyph: PindoroGlyph.compass,
+                    semanticLabel: l10n.a11yRecentre,
+                    onPressed: _fitArea,
+                  ),
+                  MapControl(
+                    glyph: PindoroGlyph.zoomIn,
+                    semanticLabel: l10n.a11yZoomIn,
+                    onPressed: () =>
+                        _controller?.animateCamera(ml.CameraUpdate.zoomIn()),
+                  ),
+                  MapControl(
+                    glyph: PindoroGlyph.zoomOut,
+                    semanticLabel: l10n.a11yZoomOut,
+                    onPressed: () =>
+                        _controller?.animateCamera(ml.CameraUpdate.zoomOut()),
+                  ),
+                ],
+              ),
+            ),
+          Positioned(
             left: PindoroSpace.s4,
-            bottom: PindoroSpace.s2,
-            child: _Attribution(),
+            bottom: widget.bottomInset + PindoroSpace.s2,
+            child: const MapAttribution(),
           ),
         ],
       );
@@ -224,25 +350,34 @@ Future<String> loadMapStyle(Brightness brightness) async {
   return json.replaceAll('{TILES_BASE_URL}', AppConfig.tilesBaseUrl);
 }
 
-class _Attribution extends StatelessWidget {
-  const _Attribution();
+/// "© OpenStreetMap contributors, Protomaps" on every map: `label.sm` on a
+/// raised chip. Not interactive; the full credits are in Settings.
+class MapAttribution extends StatelessWidget {
+  const MapAttribution({super.key});
 
   @override
   Widget build(BuildContext context) {
     final colors = PindoroTheme.of(context).colors;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colors.mapAttributionBg,
-        borderRadius: BorderRadius.circular(PindoroRadius.sm),
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxWidth: MediaQuery.sizeOf(context).width - 2 * PindoroSpace.s4,
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: PindoroSpace.s2,
-          vertical: PindoroSpace.s1,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colors.mapAttributionBg,
+          borderRadius: BorderRadius.circular(PindoroRadius.sm),
         ),
-        child: Text(
-          osmAttribution,
-          style: PindoroType.labelSm.copyWith(color: colors.mapAttributionText),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: PindoroSpace.s2,
+            vertical: 2,
+          ),
+          child: Text(
+            context.l10n.commonAttribution,
+            style: PindoroType.labelSm.copyWith(
+              color: colors.mapAttributionText,
+            ),
+          ),
         ),
       ),
     );
