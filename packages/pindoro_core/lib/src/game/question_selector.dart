@@ -99,10 +99,14 @@ class QuestionSelector {
     Set<String> recentNames = const {},
     int count = roundSize,
   }) {
-    final candidates = [
-      for (final s in groupByName(inArea))
-        if (s.lengthM >= minTotalLengthM) s,
-    ];
+    final longestByName = <String, NamedStreet>{};
+    for (final s in groupByName(inArea)) {
+      if (s.lengthM < minTotalLengthM) continue;
+      if (s.lengthM > (longestByName[s.name]?.lengthM ?? 0)) {
+        longestByName[s.name] = s;
+      }
+    }
+    final candidates = longestByName.values.toList();
     if (candidates.length < count) return NotEnoughStreets(candidates.length);
 
     final cells = <int, List<({NamedStreet street, List<num> rank})>>{};

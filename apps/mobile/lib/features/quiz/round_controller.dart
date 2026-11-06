@@ -342,16 +342,16 @@ class RoundController extends Notifier<RoundState> {
   }
 }
 
-/// Planned ids → their named streets (every part in the city). Ids are stable
-/// across pack versions; ones retired since are skipped.
+/// Planned ids → their named streets (every nearby same-name part in the
+/// city). Ids are stable across pack versions; ones retired since are skipped.
 List<RoundQuestion> resolveQuestions(PackRepository pack, List<String> ids) {
-  final nameById = pack.streetNames(ids);
-  final byName = {
-    for (final s in groupByName(pack.streetsNamed(nameById.values.toSet())))
-      s.name: s,
+  final names = pack.streetNames(ids).values.toSet();
+  final byPartId = {
+    for (final s in groupByName(pack.streetsNamed(names)))
+      for (final part in s.parts) part.id: s,
   };
   return [
     for (final id in ids)
-      if (byName[nameById[id]] case final street?) (id: id, street: street),
+      if (byPartId[id] case final street?) (id: id, street: street),
   ];
 }

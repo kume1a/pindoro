@@ -93,11 +93,12 @@ void main() {
     final long = _street('l', 'A', 900, [
       [_p(41.70, 44.70), _p(41.70, 44.71)],
     ]);
+    // About 220 m north of the long part.
     final short = _street('s', 'A', 200, [
-      [_p(41.75, 44.70), _p(41.75, 44.701)],
+      [_p(41.702, 44.70), _p(41.702, 44.701)],
     ], roadClass: 'primary');
 
-    test('groups parts by name, longest first', () {
+    test('groups nearby parts by name, longest first', () {
       final groups = groupByName([short, _street('b', 'B', 10, []), long]);
       expect(groups.map((g) => g.name), ['A', 'B']);
       expect(groups.first.parts.map((p) => p.id), ['l', 's']);
@@ -105,10 +106,33 @@ void main() {
       expect(groups.first.lengthM, 1100);
     });
 
+    test('same-name parts far apart are different streets', () {
+      final suburb = _street('far', 'A', 300, [
+        [_p(41.75, 44.70), _p(41.75, 44.701)],
+      ]);
+      final groups = groupByName([long, suburb, short]);
+      expect(groups.map((g) => g.parts.map((p) => p.id).toList()), [
+        ['far'],
+        ['l', 's'],
+      ]);
+    });
+
+    test('a part bridging two groups joins them', () {
+      final middle = _street('m', 'A', 100, [
+        [_p(41.704, 44.70), _p(41.706, 44.70)],
+      ]);
+      final north = _street('n', 'A', 100, [
+        [_p(41.709, 44.70), _p(41.71, 44.70)],
+      ]);
+      // long and north are ~1 km apart; middle is within 500 m of both.
+      expect(groupByName([long, north]), hasLength(2));
+      expect(groupByName([long, north, middle]).single.parts, hasLength(3));
+    });
+
     test('scores against the nearest part with its road class', () {
       final street = groupByName([long, short]).single;
       // 25 m north of the short primary part: within primary's 30 m Perfect.
-      const pin = LatLng(41.750225, 44.7005);
+      const pin = LatLng(41.702225, 44.7005);
       expect(street.nearest(pin).part.id, 's');
       expect(street.score(pin, Difficulty.medium).tier, Tier.perfect);
     });

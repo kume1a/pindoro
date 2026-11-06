@@ -2,8 +2,8 @@ import '../geo/geo.dart';
 import '../pack/models.dart';
 import '../scoring/scoring.dart';
 
-/// Every pack row sharing a `name_ka`: one street to the player. The pipeline
-/// splits same-name parts more than 30 m apart into separate rows.
+/// Nearby pack rows sharing a `name_ka`: one street to the player. The
+/// pipeline splits same-name parts more than 30 m apart into separate rows.
 class NamedStreet {
   /// [parts] longest first, all with the same `name_ka`.
   NamedStreet(this.parts) : assert(parts.isNotEmpty);
@@ -44,7 +44,14 @@ class NamedStreet {
   }
 }
 
-/// Groups streets by exact `name_ka`; each group's parts longest first.
+/// Same-name parts with an end within this of each other are one street;
+/// farther apart they're different streets sharing a name (e.g. one per
+/// suburb). ponytail: end-to-line distance, misses parts that only run side by
+/// side; compare whole lines if that shows up.
+const double sameStreetMaxGapM = 500;
+
+/// Groups streets by exact `name_ka` and nearness; each group's parts longest
+/// first.
 List<NamedStreet> groupByName(Iterable<Street> streets) {
   final byName = <String, List<Street>>{};
   for (final s in streets) {
@@ -52,6 +59,29 @@ List<NamedStreet> groupByName(Iterable<Street> streets) {
   }
   return [
     for (final parts in byName.values)
-      NamedStreet(parts..sort((a, b) => b.lengthM.compareTo(a.lengthM))),
+      for (final group in _nearbyGroups(parts))
+        NamedStreet(group..sort((a, b) => b.lengthM.compareTo(a.lengthM))),
   ];
 }
+
+List<List<Street>> _nearbyGroups(List<Street> parts) {
+  final groups = <List<Street>>[];
+  for (final s in parts) {
+    final touching = [
+      for (final g in groups)
+        if (g.any((p) => _endNear(p, s) || _endNear(s, p))) g,
+    ];
+    groups
+      ..removeWhere(touching.contains)
+      ..add([s, for (final g in touching) ...g]);
+  }
+  return groups;
+}
+
+bool _endNear(Street a, Street b) => a.geometry.any(
+  (line) => [line.first, line.last].any(
+    (end) =>
+        pointToPolylineDistance(end, b.geometry).distanceMeters <=
+        sameStreetMaxGapM,
+  ),
+);
