@@ -133,8 +133,26 @@ void main() {
       ],
     );
     addTearDown(c.dispose);
+    final seen = <int>[];
+    c.listen(packDownloadProvider, (_, p) {
+      if (p != null) seen.add(p.received);
+    });
     await c.read(packRepositoryProvider.future);
     expect(files(), ['20261106T000000Z.sqlite']);
+    expect(seen.last, gz.length);
+    expect(c.read(packDownloadProvider), isNull);
+  });
+
+  test('offline, another city fails instead of falling back', () async {
+    final offline = PackStore(
+      root: root,
+      apiBaseUrl: 'http://api.test',
+      client: MockClient((_) async => throw const SocketException('offline')),
+    );
+    await expectLater(
+      downloadPack(offline, 'batumi'),
+      throwsA(isA<PackUnavailable>()),
+    );
   });
 
   test('offline, the active pack falls back to the bundled fixture', () async {

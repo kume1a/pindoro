@@ -7,6 +7,7 @@
   "commonContinue": "Continue",
   "commonDone": "Done",
   "commonCancel": "Cancel",
+  "commonTryAgain": "Try again",
   "commonXp": "+{xp} XP",
   "@commonXp": {
     "placeholders": {
@@ -166,6 +167,28 @@
       }
     }
   },
+  "areaOffline": "You're offline, so only Vake works until Tbilisi downloads.",
+  "packDownloading": "Downloading {city}",
+  "@packDownloading": {
+    "placeholders": {
+      "city": {
+        "type": "String"
+      }
+    }
+  },
+  "packDownloadSize": "{received} of {total}",
+  "@packDownloadSize": {
+    "placeholders": {
+      "received": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "packFailedTitle": "Couldn't download this city",
+  "packFailedBody": "Check your connection and try again, or choose another city.",
   "areaPlayArea": "Play area",
   "areaCircleHelp": "Drag the map to move the circle. Drag its handle or the slider to resize it.",
   "areaRectangleHelp": "Drag the map to move the rectangle. Drag a corner to resize it.",

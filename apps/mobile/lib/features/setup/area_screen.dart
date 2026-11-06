@@ -14,6 +14,7 @@ import '../../app/format.dart';
 import '../../app/page_scaffold.dart';
 import '../../app/router.dart';
 import '../../app/settings.dart';
+import '../pack/pack_pending.dart';
 import '../pack/sqlite_pack_repository.dart';
 import 'area_map.dart';
 
@@ -76,12 +77,13 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
   void _seedFrom(Settings? settings, PackRepository pack) {
     if (_seeded) return;
     _seeded = true;
-    final hasDistricts = pack.districts().isNotEmpty;
+    final known = {for (final d in pack.districts()) d.id};
     _center = pack.city().center;
     switch (settings?.lastCity == pack.city().id ? settings?.area : null) {
-      case DistrictsArea(:final ids) when hasDistricts:
+      case DistrictsArea(:final ids) when known.isNotEmpty:
         _mode = AreaMode.districts;
-        _picked = {...ids};
+        // Areas this pack lacks (offline stand-in, retired) are dropped.
+        _picked = ids.intersection(known);
       case CircleArea(:final center, :final radiusM):
         _mode = AreaMode.circle;
         _radiusM = radiusM;
@@ -94,7 +96,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
         _focus = bounds;
         _center = bounds.center;
       default:
-        _mode = hasDistricts ? AreaMode.districts : AreaMode.circle;
+        _mode = known.isNotEmpty ? AreaMode.districts : AreaMode.circle;
     }
   }
 
@@ -214,9 +216,13 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pack = ref.watch(packRepositoryProvider).value;
+    final packState = ref.watch(packRepositoryProvider);
+    final pack = packState.value;
     final settings = ref.watch(settingsProvider).value;
-    if (pack == null || settings == null) return const Scaffold();
+    if (pack == null || settings == null) {
+      return PackPending(pack: packState);
+    }
+    final offline = isFixturePack(pack);
     _seedFrom(settings, pack);
     final l10n = context.l10n;
     final locale = Localizations.localeOf(context);
@@ -254,7 +260,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
     final (title, help) = switch (mode) {
       AreaMode.districts => (
         _picked.isEmpty ? l10n.areaNoneTitle : districtNames(l10n, pickedNames),
-        l10n.areaHelp,
+        offline ? l10n.areaOffline : l10n.areaHelp,
       ),
       AreaMode.circle => (
         '${l10n.areaPlayArea} · ${formatSize(_radiusM, locale)}',
@@ -274,6 +280,8 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
               children: [
                 ref.watch(areaPickerMapBuilderProvider)(
                   AreaPickerMap(
+                    // A new pack (first download, update) rebuilds the layers.
+                    key: ObjectKey(pack),
                     districts: districts,
                     names: names,
                     picked: mode == AreaMode.districts ? _picked : const {},
@@ -354,7 +362,13 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
             count: mode == AreaMode.districts
                 ? l10n.areaDistrictCount(districts.length, _picked.length)
                 : null,
-            all: mode == AreaMode.districts
+            all: offline
+                ? PindoroButton(
+                    label: l10n.commonTryAgain,
+                    variant: PindoroButtonVariant.tertiary,
+                    onPressed: () => ref.invalidate(packRepositoryProvider),
+                  )
+                : mode == AreaMode.districts
                 ? PindoroChip(
                     label: l10n.areaAllChip(districts.length),
                     selected: false,

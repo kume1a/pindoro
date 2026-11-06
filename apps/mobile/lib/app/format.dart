@@ -38,6 +38,13 @@ String formatSides(double width, double height, Locale locale) {
   return '${_km(width, ka)} × ${_km(height, ka)} ${ka ? 'კმ' : 'km'}';
 }
 
+/// "1.3 MB" (one decimal) for a download size.
+String formatMegabytes(int bytes, Locale locale) {
+  final ka = locale.languageCode == 'ka';
+  final mb = (bytes / 1e6).toStringAsFixed(1);
+  return ka ? '${mb.replaceFirst('.', ',')} მბ' : '$mb MB';
+}
+
 String _km(double metres, bool ka) {
   final km = (metres / 1000)
       .toStringAsFixed(1)

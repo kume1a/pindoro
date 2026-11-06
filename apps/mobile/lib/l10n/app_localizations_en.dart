@@ -30,6 +30,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonCancel => 'Cancel';
 
   @override
+  String get commonTryAgain => 'Try again';
+
+  @override
   String commonXp(String xp) {
     return '+$xp XP';
   }
@@ -212,6 +215,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String areaNoResults(String query) {
     return 'No districts called “$query”';
   }
+
+  @override
+  String get areaOffline =>
+      'You\'re offline, so only Vake works until Tbilisi downloads.';
+
+  @override
+  String packDownloading(String city) {
+    return 'Downloading $city';
+  }
+
+  @override
+  String packDownloadSize(String received, String total) {
+    return '$received of $total';
+  }
+
+  @override
+  String get packFailedTitle => 'Couldn\'t download this city';
+
+  @override
+  String get packFailedBody =>
+      'Check your connection and try again, or choose another city.';
 
   @override
   String get areaPlayArea => 'Play area';

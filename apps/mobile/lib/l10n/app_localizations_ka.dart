@@ -30,6 +30,9 @@ class AppLocalizationsKa extends AppLocalizations {
   String get commonCancel => 'გაუქმება';
 
   @override
+  String get commonTryAgain => 'თავიდან ცდა';
+
+  @override
   String commonXp(String xp) {
     return '+$xp XP';
   }
@@ -208,6 +211,27 @@ class AppLocalizationsKa extends AppLocalizations {
   String areaNoResults(String query) {
     return 'უბანი „$query“ ვერ მოიძებნა';
   }
+
+  @override
+  String get areaOffline =>
+      'ინტერნეტი არ არის: სანამ თბილისი ჩამოიტვირთება, მხოლოდ ვაკეა ხელმისაწვდომი.';
+
+  @override
+  String packDownloading(String city) {
+    return '$city იტვირთება';
+  }
+
+  @override
+  String packDownloadSize(String received, String total) {
+    return '$received / $total';
+  }
+
+  @override
+  String get packFailedTitle => 'ქალაქი ვერ ჩამოიტვირთა';
+
+  @override
+  String get packFailedBody =>
+      'შეამოწმე ინტერნეტი და სცადე თავიდან, ან აირჩიე სხვა ქალაქი.';
 
   @override
   String get areaPlayArea => 'სათამაშო არეალი';

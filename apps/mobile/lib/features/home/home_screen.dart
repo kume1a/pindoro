@@ -13,6 +13,7 @@ import '../../app/format.dart';
 import '../../app/page_scaffold.dart';
 import '../../app/router.dart';
 import '../../app/settings.dart';
+import '../pack/pack_pending.dart';
 import '../pack/sqlite_pack_repository.dart';
 import '../quiz/setup_states.dart';
 
@@ -89,7 +90,9 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final home = ref.watch(_homeProvider).value;
     final settings = ref.watch(settingsProvider).value;
-    if (home == null) return const Scaffold();
+    if (home == null) {
+      return PackPending(pack: ref.watch(packRepositoryProvider));
+    }
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
     final locale = Localizations.localeOf(context);

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
@@ -7,8 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:sqlite3/sqlite3.dart';
-
-import '../../app/config.dart';
 
 /// Overridden in main() with the app documents directory.
 final packStoreProvider = Provider<PackStore>(
@@ -19,7 +18,11 @@ final packStoreProvider = Provider<PackStore>(
 /// before manifests carried it.
 typedef CatalogCity = ({String id, String nameKa, String nameEn, Bbox? bbox});
 
+/// A pack download under way: bytes received of the .gz's size.
+typedef PackProgress = ({CatalogCity city, int received, int total});
+
 typedef CatalogPack = ({
+  CatalogCity city,
   String version,
   String url,
   String sha256,
@@ -45,7 +48,11 @@ class PackStore {
   /// Installs the catalog's pack for [city] when it is newer than the newest
   /// installed one. Returns the new file, or null when there was nothing to do.
   /// Throws on network or verification failures; nothing partial is left.
-  Future<File?> refresh(String city) async {
+  /// [onProgress] hears about every chunk of the download.
+  Future<File?> refresh(
+    String city, {
+    void Function(PackProgress progress)? onProgress,
+  }) async {
     final pack = await _catalogPack(city);
     if (pack == null || pack.formatVersion > supportedFormatVersion) {
       return null;
@@ -60,11 +67,20 @@ class PackStore {
     try {
       // ponytail: whole pack in memory (~1 MB gz); stream to disk past a few MB.
       final uri = Uri.parse(pack.url);
-      final res = await _client.get(uri);
+      final res = await _client.send(http.Request('GET', uri));
       if (res.statusCode != 200) {
         throw HttpException('HTTP ${res.statusCode}', uri: uri);
       }
-      final gz = res.bodyBytes;
+      final bytes = BytesBuilder(copy: false);
+      await for (final chunk in res.stream) {
+        bytes.add(chunk);
+        onProgress?.call((
+          city: pack.city,
+          received: bytes.length,
+          total: pack.size,
+        ));
+      }
+      final gz = bytes.takeBytes();
       if (gz.length != pack.size) {
         throw FormatException('size ${gz.length} != ${pack.size}');
       }
@@ -103,28 +119,29 @@ class PackStore {
 
   /// Every city the server has a pack for.
   Future<List<CatalogCity>> cities() async => [
-    for (final entry in await _catalogCities())
-      (
-        id: entry['id']! as String,
-        nameKa: entry['name_ka']! as String,
-        nameEn: entry['name_en']! as String,
-        bbox: switch (entry['bbox']) {
-          {
-            'min_lat': final num minLat,
-            'min_lon': final num minLon,
-            'max_lat': final num maxLat,
-            'max_lon': final num maxLon,
-          } =>
-            Bbox(
-              minLat.toDouble(),
-              minLon.toDouble(),
-              maxLat.toDouble(),
-              maxLon.toDouble(),
-            ),
-          _ => null,
-        },
-      ),
+    for (final entry in await _catalogCities()) _city(entry),
   ];
+
+  static CatalogCity _city(Map<String, Object?> entry) => (
+    id: entry['id']! as String,
+    nameKa: entry['name_ka']! as String,
+    nameEn: entry['name_en']! as String,
+    bbox: switch (entry['bbox']) {
+      {
+        'min_lat': final num minLat,
+        'min_lon': final num minLon,
+        'max_lat': final num maxLat,
+        'max_lon': final num maxLon,
+      } =>
+        Bbox(
+          minLat.toDouble(),
+          minLon.toDouble(),
+          maxLat.toDouble(),
+          maxLon.toDouble(),
+        ),
+      _ => null,
+    },
+  );
 
   Future<List<Map<String, Object?>>> _catalogCities() async {
     final uri = Uri.parse('$apiBaseUrl/v1/catalog');
@@ -142,6 +159,7 @@ class PackStore {
       if (entry['id'] != city) continue;
       final p = entry['pack']! as Map<String, Object?>;
       return (
+        city: _city(entry),
         version: p['version']! as String,
         url: p['url']! as String,
         sha256: p['sha256']! as String,
@@ -173,9 +191,11 @@ int? _formatVersion(File pack) {
 
 /// Background refresh: true when a new pack was installed. Failures keep the
 /// current pack and are logged in debug builds only.
-Future<bool> refreshQuietly(PackStore store) async {
+/// Only updates an installed pack: a first download is the pack provider's.
+Future<bool> refreshQuietly(PackStore store, String city) async {
+  if (store.newest(city) == null) return false;
   try {
-    return await store.refresh(AppConfig.cityId) != null;
+    return await store.refresh(city) != null;
   } catch (e) {
     if (kDebugMode) debugPrint('pack refresh failed: $e');
     return false;

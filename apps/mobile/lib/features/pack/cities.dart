@@ -5,27 +5,17 @@ import '../../app/database.dart';
 import 'pack_store.dart';
 import 'sqlite_pack_repository.dart';
 
-/// Cities to play: the catalog's, plus the installed pack's city so the list
-/// works offline.
+/// Cities to play: the catalog's; offline, the active pack's city.
 final cityListProvider = FutureProvider.autoDispose<List<CatalogCity>>((
   ref,
 ) async {
-  final pack = await ref.watch(packRepositoryProvider.future);
-  final here = pack.city();
-  final installed = (
-    id: here.id,
-    nameKa: here.nameKa,
-    nameEn: here.nameEn,
-    bbox: here.bbox,
-  );
   try {
-    final catalog = await ref.watch(packStoreProvider).cities();
-    return [
-      ...catalog,
-      if (!catalog.any((c) => c.id == installed.id)) installed,
-    ];
+    return await ref.watch(packStoreProvider).cities();
   } on Object {
-    return [installed];
+    final here = (await ref.watch(packRepositoryProvider.future)).city();
+    return [
+      (id: here.id, nameKa: here.nameKa, nameEn: here.nameEn, bbox: here.bbox),
+    ];
   }
 });
 
