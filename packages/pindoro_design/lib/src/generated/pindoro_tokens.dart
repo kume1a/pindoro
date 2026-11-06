@@ -1264,6 +1264,7 @@ abstract final class PindoroOpacity {
 
 abstract final class PindoroCamera {
   static const double zoom = 13.5;
+  static const double areaDetailZoom = 12;
   static const double fitPaddingX = 32;
 }
 

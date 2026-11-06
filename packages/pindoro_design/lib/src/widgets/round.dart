@@ -189,18 +189,137 @@ class PinMark extends StatelessWidget {
 
   /// PNG of this pin at [pixelRatio], with room for the halo; the tip sits
   /// at the bottom centre (for map symbol layers anchored at the bottom).
-  Future<Uint8List> toPng(double pixelRatio) async {
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder)..scale(pixelRatio);
-    _PinPainter(face: face, lip: lip, dot: dot, halo: halo).paint(canvas, size);
-    final image = await recorder.endRecording().toImage(
-      (size.width * pixelRatio).ceil(),
-      (size.height * pixelRatio).ceil(),
+  Future<Uint8List> toPng(double pixelRatio) => _png(
+    size,
+    pixelRatio,
+    (canvas) => _PinPainter(
+      face: face,
+      lip: lip,
+      dot: dot,
+      halo: halo,
+    ).paint(canvas, size),
+  );
+}
+
+/// A map label (an area's name, the reveal's distance) as a PNG for map
+/// symbol layers: the label on a pill face over a lip, with an optional
+/// check in front. Map styles carry no fonts, so labels are drawn here.
+class MapChip {
+  const MapChip({
+    required this.label,
+    required this.style,
+    required this.face,
+    required this.lip,
+    required this.text,
+    this.check = false,
+  });
+
+  /// An unpicked area's name chip on the area picker.
+  factory MapChip.region(String label, PindoroColors c) => MapChip(
+    label: label,
+    style: PindoroType.labelMd,
+    face: c.mapRegionLabelBg,
+    lip: c.lineBase,
+    text: c.mapRegionLabelText,
+  );
+
+  /// A picked area's name chip: cobalt, with a check.
+  factory MapChip.picked(String label, PindoroColors c) => MapChip(
+    label: label,
+    style: PindoroType.labelMd,
+    face: c.mapAreaLabelBg,
+    lip: c.mapAreaLabelLip,
+    text: c.mapAreaLabelText,
+    check: true,
+  );
+
+  /// The reveal's distance chip on the measure line ("764 m").
+  factory MapChip.distance(String label, PindoroColors c) => MapChip(
+    label: label,
+    style: PindoroType.numericSm,
+    face: c.mapMeasureLabel,
+    lip: c.mapMeasureLine,
+    text: c.mapMeasureLabelText,
+  );
+
+  final String label;
+  final TextStyle style;
+  final Color face;
+  final Color lip;
+  final Color text;
+  final bool check;
+
+  Future<Uint8List> toPng(double pixelRatio) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: style.copyWith(color: text),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    final checkSize = check ? style.fontSize! : 0.0;
+    final gap = check ? PindoroSpace.s1 : 0.0;
+    final faceHeight = painter.height + 2 * PindoroSpace.s1;
+    final size = Size(
+      painter.width + checkSize + gap + 2 * PindoroSpace.s3,
+      faceHeight + PindoroElevation.e1,
     );
-    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-    image.dispose();
-    return bytes!.buffer.asUint8List();
+    final radius = Radius.circular(faceHeight / 2);
+    return _png(size, pixelRatio, (canvas) {
+      canvas
+        ..drawRRect(
+          RRect.fromLTRBR(
+            0,
+            PindoroElevation.e1,
+            size.width,
+            size.height,
+            radius,
+          ),
+          Paint()..color = lip,
+        )
+        ..drawRRect(
+          RRect.fromLTRBR(0, 0, size.width, faceHeight, radius),
+          Paint()..color = face,
+        );
+      if (check) {
+        final x = PindoroSpace.s3;
+        final y = faceHeight / 2;
+        canvas.drawPath(
+          Path()
+            ..moveTo(x + checkSize * 0.1, y)
+            ..lineTo(x + checkSize * 0.4, y + checkSize * 0.3)
+            ..lineTo(x + checkSize * 0.95, y - checkSize * 0.3),
+          Paint()
+            ..color = text
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = PindoroStroke.base
+            ..strokeCap = StrokeCap.round
+            ..strokeJoin = StrokeJoin.round,
+        );
+      }
+      painter.paint(
+        canvas,
+        Offset(PindoroSpace.s3 + checkSize + gap, PindoroSpace.s1),
+      );
+    });
   }
+}
+
+Future<Uint8List> _png(
+  Size size,
+  double pixelRatio,
+  void Function(Canvas canvas) paint,
+) async {
+  final recorder = ui.PictureRecorder();
+  paint(Canvas(recorder)..scale(pixelRatio));
+  final image = await recorder.endRecording().toImage(
+    (size.width * pixelRatio).ceil(),
+    (size.height * pixelRatio).ceil(),
+  );
+  final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+  image.dispose();
+  return bytes!.buffer.asUint8List();
 }
 
 class _PinPainter extends CustomPainter {

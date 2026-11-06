@@ -386,6 +386,30 @@ abstract class AppLocalizations {
   /// **'Pick a district first'**
   String get areaNoneButton;
 
+  /// No description provided for @areaAllChip.
+  ///
+  /// In en, this message translates to:
+  /// **'All {count}'**
+  String areaAllChip(int count);
+
+  /// No description provided for @areaAllTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'All districts'**
+  String get areaAllTitle;
+
+  /// No description provided for @areaSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search districts'**
+  String get areaSearchHint;
+
+  /// No description provided for @areaNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No districts called “{query}”'**
+  String areaNoResults(String query);
+
   /// No description provided for @areaPlayArea.
   ///
   /// In en, this message translates to:

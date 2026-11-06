@@ -198,6 +198,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get areaNoneButton => 'Pick a district first';
 
   @override
+  String areaAllChip(int count) {
+    return 'All $count';
+  }
+
+  @override
+  String get areaAllTitle => 'All districts';
+
+  @override
+  String get areaSearchHint => 'Search districts';
+
+  @override
+  String areaNoResults(String query) {
+    return 'No districts called “$query”';
+  }
+
+  @override
   String get areaPlayArea => 'Play area';
 
   @override

@@ -44,6 +44,11 @@
   "camera": {
     "tokens": [
       { "name": "camera.zoom", "value": "13.5", "usage": "Initial zoom before the camera fits the area." },
+      {
+        "name": "camera.area-detail-zoom",
+        "value": "12",
+        "usage": "Area picker: from this zoom the map shows neighbourhoods instead of districts."
+      },
       { "name": "camera.fit-padding-x", "value": "32px", "usage": "Side padding when fitting the area or the reveal." }
     ]
   }

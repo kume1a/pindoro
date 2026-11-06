@@ -194,6 +194,22 @@ class AppLocalizationsKa extends AppLocalizations {
   String get areaNoneButton => 'ჯერ აირჩიე უბანი';
 
   @override
+  String areaAllChip(int count) {
+    return 'ყველა $count';
+  }
+
+  @override
+  String get areaAllTitle => 'ყველა უბანი';
+
+  @override
+  String get areaSearchHint => 'უბნის ძებნა';
+
+  @override
+  String areaNoResults(String query) {
+    return 'უბანი „$query“ ვერ მოიძებნა';
+  }
+
+  @override
   String get areaPlayArea => 'სათამაშო არეალი';
 
   @override

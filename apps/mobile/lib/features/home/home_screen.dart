@@ -138,15 +138,18 @@ class HomeScreen extends ConsumerWidget {
                 child: Row(
                   spacing: PindoroSpace.s2,
                   children: [
-                    Flexible(
-                      child: CitySwitcher(
-                        city: cityName,
-                        semanticLabel: l10n.a11yCitySwitcher(cityName),
-                        onPressed: () => open(Routes.city),
+                    // The space after the name is reserved for the streak pill
+                    // (release 2).
+                    Expanded(
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: CitySwitcher(
+                          city: cityName,
+                          semanticLabel: l10n.a11yCitySwitcher(cityName),
+                          onPressed: () => open(Routes.city),
+                        ),
                       ),
                     ),
-                    // Reserved for the streak pill (release 2).
-                    const Spacer(),
                     Pill(
                       label: formatNumber(home.totalXp),
                       icon: PindoroGlyph.xp,
@@ -393,7 +396,11 @@ class _CityCard extends StatelessWidget {
             DistrictMiniMap(
               districts: [
                 for (final d in home.districts)
-                  (boundary: d.district.boundary, progress: _progress(d.count)),
+                  if (d.district.kind == DistrictKind.district)
+                    (
+                      boundary: d.district.boundary,
+                      progress: _progress(d.count),
+                    ),
               ],
             ),
             Wrap(

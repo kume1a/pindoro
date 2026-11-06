@@ -148,6 +148,24 @@
   "areaHelp": "Tap districts on the map or here. Pick one or more.",
   "areaNoneTitle": "Pick your districts",
   "areaNoneButton": "Pick a district first",
+  "areaAllChip": "All {count}",
+  "@areaAllChip": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "areaAllTitle": "All districts",
+  "areaSearchHint": "Search districts",
+  "areaNoResults": "No districts called “{query}”",
+  "@areaNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
   "areaPlayArea": "Play area",
   "areaCircleHelp": "Drag the map to move the circle. Drag its handle or the slider to resize it.",
   "areaRectangleHelp": "Drag the map to move the rectangle. Drag a corner to resize it.",
