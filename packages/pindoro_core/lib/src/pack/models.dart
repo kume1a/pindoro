@@ -140,24 +140,3 @@ class Street {
   final Bbox bbox;
   final MultiPolyline geometry;
 }
-
-class StreetDistrict {
-  const StreetDistrict({
-    required this.streetId,
-    required this.districtId,
-    required this.lengthM,
-    required this.share,
-  });
-
-  factory StreetDistrict.fromRow(PackRow r) => StreetDistrict(
-    streetId: r['street_id']! as String,
-    districtId: r['district_id']! as String,
-    lengthM: _d(r['length_m']),
-    share: _d(r['share']),
-  );
-
-  final String streetId;
-  final String districtId;
-  final double lengthM;
-  final double share;
-}

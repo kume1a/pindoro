@@ -35,19 +35,17 @@ final _homeProvider = FutureProvider.autoDispose<_Home>((ref) async {
   final city = pack.city();
   final round = await db.savedRound(DateTime.now());
   final progress = round == null ? null : await db.roundProgress(round.id);
-  final bestById = await db.bestTierByStreet(city.id);
-  final known = {
-    for (final MapEntry(key: name, value: tier) in bestTierByName(
-      bestById,
-      pack.streetNames(bestById.keys),
-    ).entries)
-      if (isKnownTier(tier)) name,
-  };
-  final index = pack.streetNameIndex();
+  final streets = await ref.watch(cityStreetsProvider.future);
   final counts = knownCounts(
-    cityNames: index.city,
-    namesByDistrict: index.byDistrict,
-    knownNames: known,
+    streets: streets,
+    partsByDistrict: pack.partsByDistrict(),
+    known: {
+      for (final MapEntry(key: id, value: tier) in bestTierPerStreet(
+        await db.bestTierByPart(city.id),
+        streets,
+      ).entries)
+        if (isKnownTier(tier)) id,
+    },
   );
   final districts = [
     for (final d in pack.districts())

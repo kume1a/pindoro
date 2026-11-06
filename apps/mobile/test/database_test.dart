@@ -150,19 +150,19 @@ void main() {
     expect((await db.answersForRound(id)).map((a) => a.streetId), ['b', 'a']);
   });
 
-  test('bestTierByStreet keeps the best tier per street, per city', () async {
+  test('bestTierByPart keeps the best tier per part, per city', () async {
     final id = await round(['a', 'b']);
     await answer(id, 'a', Tier.great);
     await answer(id, 'b', Tier.close);
     await answer(id, 'a', Tier.miss);
     final elsewhere = await round(['c'], cityId: 'batumi');
     await answer(elsewhere, 'c', Tier.perfect);
-    expect(await db.bestTierByStreet('tbilisi'), {
+    expect(await db.bestTierByPart('tbilisi'), {
       'a': Tier.great,
       'b': Tier.close,
     });
     expect(
-      await db.bestTierByStreet(
+      await db.bestTierByPart(
         'tbilisi',
         before: DateTime.now().subtract(const Duration(days: 1)),
       ),

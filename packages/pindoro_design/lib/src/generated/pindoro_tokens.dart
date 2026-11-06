@@ -1216,7 +1216,6 @@ abstract final class PindoroSize {
   static const double road = 24;
   static const double sheetHandle = 36;
   static const double plateNameMin = 20;
-  static const double mapPinDot = 28;
   static const double mapMeasureGap = 6;
 }
 
@@ -1266,7 +1265,6 @@ abstract final class PindoroOpacity {
 abstract final class PindoroCamera {
   static const double zoom = 13.5;
   static const double fitPaddingX = 32;
-  static const double fitPaddingY = 170;
 }
 
 abstract final class PindoroType {

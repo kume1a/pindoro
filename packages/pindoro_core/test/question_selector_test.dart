@@ -39,14 +39,14 @@ int _cell(LatLng p) =>
 List<String> _pick(
   List<Street> streets, {
   Map<String, StreetKnowledge> knowledge = const {},
-  Set<String> recentNames = const {},
+  Set<String> recentStreets = const {},
   int seed = 1,
 }) {
   final s = QuestionSelector(random: Random(seed)).select(
     streets,
     bounds: _bounds,
     knowledge: knowledge,
-    recentNames: recentNames,
+    recentStreets: recentStreets,
   );
   return (s as SelectedQuestions).streetIds;
 }
@@ -95,18 +95,37 @@ void main() {
     final knowledge = {
       for (final s in streets)
         if (s.id.endsWith('0'))
-          s.nameKa: StreetKnowledge.known
+          s.id: StreetKnowledge.known
         else if (s.id.endsWith('1'))
-          s.nameKa: StreetKnowledge.missed,
+          s.id: StreetKnowledge.missed,
     };
     final recent = {
       for (final s in streets)
-        if (s.id.endsWith('2')) s.nameKa,
+        if (s.id.endsWith('2')) s.id,
     };
-    final picked = _pick(streets, knowledge: knowledge, recentNames: recent);
+    final picked = _pick(streets, knowledge: knowledge, recentStreets: recent);
     expect(picked.take(9).every((id) => id.endsWith('3')), isTrue);
     expect(picked[9], endsWith('2'));
     expect(names.keys, containsAll(picked));
+  });
+
+  test('knowledge follows the city-wide street of an in-area part', () {
+    final streets = _grid(2);
+    final inArea = streets.firstWhere((s) => s.id == 's000');
+    // The city knows s000 as part of a longer street with another id.
+    final city = NamedStreet([
+      _street('city', 'n000', inArea.midpoint, lengthM: 900),
+      inArea,
+    ]);
+    final picked = QuestionSelector(random: Random(1)).select(
+      streets,
+      bounds: _bounds,
+      cityStreets: {'s000': city, 'city': city},
+      knowledge: {'city': StreetKnowledge.known},
+    );
+    final first = (picked as SelectedQuestions).streetIds.take(9);
+    expect(first, contains('s001'));
+    expect(first, isNot(contains('s000')));
   });
 
   test('is deterministic for a seeded Random', () {

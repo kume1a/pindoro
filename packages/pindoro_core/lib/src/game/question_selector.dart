@@ -5,7 +5,7 @@ import '../pack/models.dart';
 import '../scoring/scoring.dart';
 import 'named_street.dart';
 
-/// What the player has shown about a street (by name, per city).
+/// What the player has shown about a street (a [NamedStreet], by its id).
 enum StreetKnowledge { unknown, missed, known }
 
 /// Known after any Great or Perfect; it never reverts in the MVP.
@@ -17,45 +17,46 @@ StreetKnowledge knowledgeFrom(Tier? bestTier) => switch (bestTier) {
 
 bool isKnownTier(Tier tier) => tier == Tier.perfect || tier == Tier.great;
 
-/// Best tier per name, from best tiers per street id and the ids' names.
-Map<String, Tier> bestTierByName(
-  Map<String, Tier> bestById,
-  Map<String, String> nameById,
+/// Best tier per street id, from best tiers per answered part id; parts no
+/// longer in [streets] are skipped.
+Map<String, Tier> bestTierPerStreet(
+  Map<String, Tier> bestByPart,
+  Map<String, NamedStreet> streets,
 ) {
   final best = <String, Tier>{};
-  for (final MapEntry(key: id, value: tier) in bestById.entries) {
-    final name = nameById[id];
-    if (name == null) continue;
-    final current = best[name];
-    if (current == null || tier.index < current.index) best[name] = tier;
+  for (final MapEntry(key: partId, value: tier) in bestByPart.entries) {
+    final id = streets[partId]?.id;
+    if (id == null) continue;
+    final current = best[id];
+    if (current == null || tier.index < current.index) best[id] = tier;
   }
   return best;
 }
 
-/// Names with a Great or Perfect in a round that weren't known before it.
+/// Streets with a Great or Perfect in a round that weren't known before it.
 Set<String> newlyKnown({
   required Set<String> knownBefore,
-  required Iterable<({String name, Tier tier})> roundAnswers,
+  required Iterable<({String street, Tier tier})> roundAnswers,
 }) => {
   for (final a in roundAnswers)
-    if (isKnownTier(a.tier) && !knownBefore.contains(a.name)) a.name,
+    if (isKnownTier(a.tier) && !knownBefore.contains(a.street)) a.street,
 };
 
 typedef KnownCount = ({int known, int total});
 
-/// Known / total street names for the city and each district.
+/// Known / total streets for the city and each district.
 ({KnownCount city, Map<String, KnownCount> byDistrict}) knownCounts({
-  required Set<String> cityNames,
-  required Map<String, Set<String>> namesByDistrict,
-  required Set<String> knownNames,
+  required Map<String, NamedStreet> streets,
+  required Map<String, Set<String>> partsByDistrict,
+  required Set<String> known,
 }) {
-  KnownCount count(Set<String> names) =>
-      (known: names.where(knownNames.contains).length, total: names.length);
+  KnownCount count(Set<String> ids) =>
+      (known: ids.where(known.contains).length, total: ids.length);
   return (
-    city: count(cityNames),
+    city: count({for (final s in streets.values) s.id}),
     byDistrict: {
-      for (final MapEntry(key: id, value: names) in namesByDistrict.entries)
-        id: count(names),
+      for (final MapEntry(key: id, value: parts) in partsByDistrict.entries)
+        id: count({for (final p in parts) ?streets[p]?.id}),
     },
   );
 }
@@ -91,12 +92,14 @@ class QuestionSelector {
   /// Picks [count] distinct names from [inArea] (the area's streets at the
   /// round's difficulties), spread over a 3 × 3 grid of [bounds]: the cells
   /// are shuffled once, then visited round-robin, each giving its best-ranked
-  /// name (unknown, missed, known; then not in [recentNames]; then random).
+  /// name (unknown, missed, known; then not in [recentStreets]; then random).
+  /// [knowledge] and [recentStreets] use the street ids of [cityStreets].
   QuestionSelection select(
     List<Street> inArea, {
     required Bbox bounds,
+    Map<String, NamedStreet> cityStreets = const {},
     Map<String, StreetKnowledge> knowledge = const {},
-    Set<String> recentNames = const {},
+    Set<String> recentStreets = const {},
     int count = roundSize,
   }) {
     final longestByName = <String, NamedStreet>{};
@@ -111,9 +114,10 @@ class QuestionSelector {
 
     final cells = <int, List<({NamedStreet street, List<num> rank})>>{};
     for (final s in candidates) {
+      final id = cityStreets[s.id]?.id ?? s.id;
       final rank = [
-        (knowledge[s.name] ?? StreetKnowledge.unknown).index,
-        if (recentNames.contains(s.name)) 1 else 0,
+        (knowledge[id] ?? StreetKnowledge.unknown).index,
+        if (recentStreets.contains(id)) 1 else 0,
         _random.nextDouble(),
       ];
       cells.putIfAbsent(_cellOf(s.parts.first.midpoint, bounds), () => []).add((

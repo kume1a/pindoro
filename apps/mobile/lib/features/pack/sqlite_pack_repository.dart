@@ -54,59 +54,16 @@ class SqlitePackRepository implements PackRepository {
   }
 
   @override
-  List<Street> streetsNamed(Set<String> names) {
-    if (names.isEmpty) return const [];
-    final marks = List.filled(names.length, '?').join(', ');
-    return [
-      for (final r in _db.select(
-        'SELECT * FROM street WHERE name_ka IN ($marks) ORDER BY id',
-        names.toList(),
-      ))
-        Street.fromRow(r),
-    ];
-  }
-
-  @override
-  ({Set<String> city, Map<String, Set<String>> byDistrict}) streetNameIndex() {
+  Map<String, Set<String>> partsByDistrict() {
     final byDistrict = <String, Set<String>>{};
     for (final r in _db.select(
-      'SELECT sd.district_id, s.name_ka FROM street_district sd '
-      'JOIN street s ON s.id = sd.street_id',
+      'SELECT district_id, street_id FROM street_district',
     )) {
       byDistrict
           .putIfAbsent(r['district_id'] as String, () => {})
-          .add(r['name_ka'] as String);
+          .add(r['street_id'] as String);
     }
-    return (
-      city: {
-        for (final r in _db.select('SELECT DISTINCT name_ka FROM street'))
-          r['name_ka'] as String,
-      },
-      byDistrict: byDistrict,
-    );
-  }
-
-  @override
-  List<StreetDistrict> streetDistricts(String streetId) => [
-    for (final r in _db.select(
-      'SELECT * FROM street_district WHERE street_id = ?',
-      [streetId],
-    ))
-      StreetDistrict.fromRow(r),
-  ];
-
-  @override
-  Map<String, String> streetNames(Iterable<String> ids) {
-    final list = ids.toList();
-    if (list.isEmpty) return const {};
-    final marks = List.filled(list.length, '?').join(', ');
-    return {
-      for (final r in _db.select(
-        'SELECT id, name_ka FROM street WHERE id IN ($marks)',
-        list,
-      ))
-        r['id'] as String: r['name_ka'] as String,
-    };
+    return byDistrict;
   }
 
   @override
@@ -143,3 +100,10 @@ final packRepositoryProvider = FutureProvider<PackRepository>((ref) async {
   ref.onDispose(repo.close);
   return repo;
 });
+
+/// The active pack's streets as the player sees them, by any part id.
+final cityStreetsProvider = FutureProvider<Map<String, NamedStreet>>(
+  (ref) async => streetsByPartId(
+    (await ref.watch(packRepositoryProvider.future)).streets(),
+  ),
+);

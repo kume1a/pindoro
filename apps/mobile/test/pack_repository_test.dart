@@ -43,21 +43,10 @@ void main() {
     expect(expert.every((s) => s.difficulty == Difficulty.expert), isTrue);
   });
 
-  test('street_district links back to the district', () {
-    final street = pack.streets(districtId: AppConfig.fixtureDistrictId).first;
-    final links = pack.streetDistricts(street.id);
-    expect(
-      links.map((l) => l.districtId),
-      contains(AppConfig.fixtureDistrictId),
-    );
-    expect(links.every((l) => l.share > 0 && l.share <= 1.0001), isTrue);
-  });
-
-  test('streetNames resolves known ids and skips unknown ones', () {
-    final street = pack.streets(districtId: AppConfig.fixtureDistrictId).first;
-    expect(pack.streetNames([street.id, 'missing']), {
-      street.id: street.nameKa,
+  test('partsByDistrict lists the district streets', () {
+    final streets = pack.streets(districtId: AppConfig.fixtureDistrictId);
+    expect(pack.partsByDistrict()[AppConfig.fixtureDistrictId], {
+      for (final s in streets) s.id,
     });
-    expect(pack.streetNames(const []), isEmpty);
   });
 }

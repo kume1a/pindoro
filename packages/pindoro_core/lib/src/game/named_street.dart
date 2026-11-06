@@ -64,6 +64,12 @@ List<NamedStreet> groupByName(Iterable<Street> streets) {
   ];
 }
 
+/// A pack's streets as the player sees them, found by any part's id.
+Map<String, NamedStreet> streetsByPartId(Iterable<Street> parts) => {
+  for (final s in groupByName(parts))
+    for (final p in s.parts) p.id: s,
+};
+
 List<List<Street>> _nearbyGroups(List<Street> parts) {
   final groups = <List<Street>>[];
   for (final s in parts) {
