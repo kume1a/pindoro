@@ -161,7 +161,16 @@ class _RoundView extends ConsumerWidget {
                 area: round.shape,
                 pin: pin,
                 truth: revealed?.round.current.geometry,
-                measure: revealed == null ? null : (pin!, revealed.nearest),
+                measure: revealed == null
+                    ? null
+                    : (
+                        from: pin!,
+                        to: revealed.nearest,
+                        label: formatDistance(
+                          revealed.answer.distanceM,
+                          Localizations.localeOf(context),
+                        ),
+                      ),
                 onTap: revealed == null
                     ? (at) {
                         feedback.pinDrop();

@@ -20,7 +20,12 @@ abstract final class MapSources {
   static const String truthStreet = 'truth-street';
   static const String measure = 'measure';
   static const String measureEnd = 'measure-end';
+  static const String measureLabel = 'measure-label';
 }
+
+/// The dotted line from the pin to the nearest point of the street, with its
+/// distance chip half-way.
+typedef Measure = ({LatLng from, LatLng to, String label});
 
 const String _pinImage = 'player-pin';
 
@@ -50,7 +55,7 @@ class PindoroMap extends StatefulWidget {
   final AreaShape area;
   final LatLng? pin;
   final MultiPolyline? truth;
-  final (LatLng from, LatLng to)? measure;
+  final Measure? measure;
   final ValueChanged<LatLng>? onTap;
   final double bottomInset;
 
@@ -75,6 +80,7 @@ class _PindoroMapState extends State<PindoroMap>
   Brightness? _brightness;
   Future<String>? _style;
   bool _overlaysReady = false;
+  final Set<String> _measureImages = {};
 
   @override
   void didChangeDependencies() {
@@ -224,6 +230,18 @@ class _PindoroMapState extends State<PindoroMap>
       ),
       enableInteraction: false,
     );
+    await c.addGeoJsonSource(MapSources.measureLabel, _points(const []));
+    await c.addSymbolLayer(
+      MapSources.measureLabel,
+      '${MapSources.measureLabel}-chip',
+      const ml.SymbolLayerProperties(
+        iconImage: ['get', 'icon'],
+        iconAllowOverlap: true,
+        iconIgnorePlacement: true,
+      ),
+      enableInteraction: false,
+    );
+    _measureImages.clear();
     await c.addGeoJsonSource(MapSources.youPin, _points(const []));
     await c.addSymbolLayer(
       MapSources.youPin,
@@ -250,10 +268,40 @@ class _PindoroMapState extends State<PindoroMap>
     await c.setGeoJsonSource(
       MapSources.measure,
       _lines([
-        if (measure != null) [measure.$1, measure.$2],
+        if (measure != null) [measure.from, measure.to],
       ]),
     );
-    await c.setGeoJsonSource(MapSources.measureEnd, _points([?measure?.$2]));
+    await c.setGeoJsonSource(MapSources.measureEnd, _points([?measure?.to]));
+    await c.setGeoJsonSource(
+      MapSources.measureLabel,
+      measure == null ? _points(const []) : await _measureChip(measure),
+    );
+  }
+
+  /// The chip's point half-way along the measure line, its image added once
+  /// per label.
+  Future<Map<String, dynamic>> _measureChip(Measure m) async {
+    final icon = 'measure:${m.label}';
+    if (_measureImages.add(icon)) {
+      final chip = MapChip.distance(m.label, PindoroTheme.of(context).colors);
+      await _controller!.addImage(icon, await chip.toPng(_pixelRatio));
+    }
+    return {
+      'type': 'FeatureCollection',
+      'features': [
+        {
+          'type': 'Feature',
+          'properties': {'icon': icon},
+          'geometry': {
+            'type': 'Point',
+            'coordinates': [
+              (m.from.lon + m.to.lon) / 2,
+              (m.from.lat + m.to.lat) / 2,
+            ],
+          },
+        },
+      ],
+    };
   }
 
   Future<void> _goToMyLocation() async {
