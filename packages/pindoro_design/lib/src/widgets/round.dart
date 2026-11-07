@@ -912,10 +912,13 @@ class XpBar extends StatelessWidget {
                   ),
                   if (tip != null)
                     Positioned(
-                      left: box.maxWidth * v,
+                      left: 0,
+                      right: 0,
                       bottom: _height + PindoroSpace.s2,
-                      child: FractionalTranslation(
-                        translation: const Offset(-0.5, 0),
+                      // Follows the fill's end but never sticks out past the
+                      // bar's ends.
+                      child: Align(
+                        alignment: Alignment(2 * v - 1, 1),
                         child: AnimatedOpacity(
                           opacity: tipShown ? 1 : 0,
                           duration: PindoroMotion.durationFast,

@@ -25,7 +25,6 @@ abstract final class _Arrival {
   static const Duration bar = Duration(milliseconds: 1100);
   static const Duration chips = Duration(milliseconds: 1520);
   static const Duration rows = Duration(milliseconds: 1640);
-  static const Duration chipGap = Duration(milliseconds: 60);
 }
 
 /// Round results: reward, level, tier tally, every answer, retry and play
@@ -81,18 +80,25 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
     for (final e in data.entries) {
       counts.update(e.answer.tier, (n) => n + 1, ifAbsent: () => 1);
     }
+    // Chips pop in with the arrival; the level chip right after the level up.
     final chips = [
       if (data.newlyKnown > 0)
-        Pill(
-          label: l10n.resultsStreetsKnown(data.newlyKnown),
-          icon: PindoroGlyph.checkCircle,
-          iconColor: c.successBase,
+        PopIn(
+          delay: _Arrival.chips,
+          child: Pill(
+            label: l10n.resultsStreetsKnown(data.newlyKnown),
+            icon: PindoroGlyph.checkCircle,
+            iconColor: c.successBase,
+          ),
         ),
       if (_levelUpOver)
-        Pill(
-          label: l10n.levelUpTitle(after.level),
-          icon: PindoroGlyph.xp,
-          iconColor: c.xpFill,
+        PopIn(
+          delay: PindoroMotion.durationSlow,
+          child: Pill(
+            label: l10n.levelUpTitle(after.level),
+            icon: PindoroGlyph.xp,
+            iconColor: c.xpFill,
+          ),
         ),
     ];
     final RoundSummary summary = (
@@ -189,11 +195,8 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
           )
         else
           _LevelRow(
-            level: (
-              level: before.level,
-              xpIntoLevel: before.xpForLevel,
-              xpForLevel: before.xpForLevel,
-            ),
+            level: before,
+            value: 1,
             from: before.fraction,
             delay: _Arrival.bar,
             barKey: _barKey,
@@ -207,13 +210,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
           Wrap(
             spacing: PindoroSpace.s2,
             runSpacing: PindoroSpace.s2,
-            children: [
-              for (final (i, chip) in chips.indexed)
-                PopIn(
-                  delay: _Arrival.chips + _Arrival.chipGap * i,
-                  child: chip,
-                ),
-            ],
+            children: chips,
           ),
         RiseIn(
           delay: _Arrival.rows,
@@ -337,13 +334,15 @@ String tierWord(AppLocalizations l10n, Tier tier) => switch (tier) {
 };
 
 /// "Level 3" with the XP bar and "1 305 / 1 500"; the bar fills from [from]
-/// after [delay] and calls [onFilled] when it gets there.
+/// to [value] (default: the level's progress) after [delay] and calls
+/// [onFilled] when it gets there.
 class _LevelRow extends StatelessWidget {
   const _LevelRow({
     super.key,
     required this.level,
     required this.from,
     required this.delay,
+    this.value,
     this.barKey,
     this.ring = false,
     this.onFilled,
@@ -351,6 +350,7 @@ class _LevelRow extends StatelessWidget {
 
   final LevelProgress level;
   final double from;
+  final double? value;
   final Duration delay;
   final Key? barKey;
   final bool ring;
@@ -389,7 +389,7 @@ class _LevelRow extends StatelessWidget {
               ),
               XpBar(
                 key: barKey,
-                value: level.fraction,
+                value: value ?? level.fraction,
                 from: from,
                 delay: delay,
                 ring: ring,
