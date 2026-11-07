@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -109,21 +110,32 @@ class RectOverlay extends StatelessWidget {
   );
 }
 
-/// A 48 dp target with a 20 dp white dot in a 3 dp cobalt ring.
-class _Handle extends StatelessWidget {
+/// A 48 dp target with a 20 dp white dot in a 3 dp cobalt ring. A drag adds
+/// up its movement from where it started: [at] snaps to the shape's steps, so
+/// following it would drop every move too small for one step.
+class _Handle extends StatefulWidget {
   const _Handle({required this.at, required this.onDrag});
 
   final Offset at;
   final ValueChanged<Offset> onDrag;
 
   @override
+  State<_Handle> createState() => _HandleState();
+}
+
+class _HandleState extends State<_Handle> {
+  Offset _dragged = Offset.zero;
+
+  @override
   Widget build(BuildContext context) {
     final colors = PindoroTheme.of(context).colors;
     return Positioned(
-      left: at.dx - PindoroSize.tapMin / 2,
-      top: at.dy - PindoroSize.tapMin / 2,
+      left: widget.at.dx - PindoroSize.tapMin / 2,
+      top: widget.at.dy - PindoroSize.tapMin / 2,
       child: GestureDetector(
-        onPanUpdate: (d) => onDrag(at + d.delta),
+        dragStartBehavior: DragStartBehavior.down,
+        onPanStart: (_) => _dragged = widget.at,
+        onPanUpdate: (d) => widget.onDrag(_dragged += d.delta),
         child: MouseRegion(
           cursor: SystemMouseCursors.resizeUpLeftDownRight,
           child: SizedBox.square(

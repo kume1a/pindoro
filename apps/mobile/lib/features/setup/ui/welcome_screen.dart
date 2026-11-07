@@ -96,7 +96,7 @@ class WelcomeScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   spacing: PindoroSpace.s3,
                   children: [
-                    if (resumes == null)
+                    if (recents.isEmpty)
                       LipBox(
                         padding: const EdgeInsets.all(PindoroSpace.s4),
                         child: Column(
@@ -117,7 +117,7 @@ class WelcomeScreen extends ConsumerWidget {
                           ],
                         ),
                       )
-                    else ...[
+                    else if (resumes != null) ...[
                       PindoroButton(
                         label: l10n.welcomeFindCity,
                         icon: PindoroGlyph.search,

@@ -44,7 +44,11 @@ GoRouter buildRouter(String initialLocation) => GoRouter(
     ),
     GoRoute(path: Routes.welcome, builder: (_, _) => const WelcomeScreen()),
     GoRoute(path: Routes.city, builder: (_, _) => const CityScreen()),
-    GoRoute(path: Routes.area, builder: (_, _) => const AreaScreen()),
+    GoRoute(
+      path: Routes.area,
+      builder: (_, state) =>
+          AreaScreen(district: state.uri.queryParameters['district']),
+    ),
     GoRoute(
       path: Routes.difficulty,
       builder: (_, _) => const DifficultyScreen(),

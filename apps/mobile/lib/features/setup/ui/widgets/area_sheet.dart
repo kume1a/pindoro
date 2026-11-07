@@ -32,7 +32,7 @@ class AreaSheet extends StatelessWidget {
     required this.help,
     required this.next,
     this.count,
-    this.all,
+    this.countAction,
     this.content,
   });
 
@@ -43,8 +43,8 @@ class AreaSheet extends StatelessWidget {
   final String help;
   final String? count;
 
-  /// The "All n" chip that opens every area, on the count line.
-  final Widget? all;
+  /// At the end of the count line: the "All n" chip, or Try again offline.
+  final Widget? countAction;
   final Widget? content;
   final Widget next;
 
@@ -76,7 +76,7 @@ class AreaSheet extends StatelessWidget {
                     style: PindoroType.labelMd.copyWith(color: c.textSecondary),
                   ),
                 ),
-                ?all,
+                ?countAction,
               ],
             ),
           Text(

@@ -4,9 +4,12 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
-import 'package:pindoro/core/format.dart';
+import 'package:pindoro/features/map/data/geojson.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
+import 'package:pindoro/features/map/data/maplibre_convert.dart';
+import 'package:pindoro/features/map/ui/map_work.dart';
 import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
+import 'package:pindoro/features/map/ui/widgets/map_zoom_controls.dart';
 import 'package:pindoro/features/setup/ui/outline_labels.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -113,6 +116,10 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
   Future<String>? _style;
   Brightness? _brightness;
   bool _ready = false;
+
+  /// The camera frames the area once; a later style load (theme change)
+  /// keeps where the player moved it.
+  bool _framed = false;
   final Set<String> _pickedImages = {};
 
   @override
@@ -131,22 +138,19 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
     super.didUpdateWidget(old);
     if (!_ready) return;
     if (old.picked != widget.picked || old.lastTapped != widget.lastTapped) {
-      unawaited(_syncPicked());
+      runMapWork(_syncPicked);
     }
     if (old.showDistricts != widget.showDistricts) {
-      unawaited(_syncVisibility());
+      runMapWork(_syncVisibility);
     }
     final focus = widget.focus;
-    if (focus != null && focus != old.focus) unawaited(_moveTo(focus));
+    if (focus != null && focus != old.focus) runMapWork(() => _moveTo(focus));
   }
 
   Future<void> _moveTo(Bbox b) async {
     await _controller?.animateCamera(
       ml.CameraUpdate.newLatLngBounds(
-        ml.LatLngBounds(
-          southwest: ml.LatLng(b.minLat, b.minLon),
-          northeast: ml.LatLng(b.maxLat, b.maxLon),
-        ),
+        b.toMapLibre,
         left: PindoroSpace.s8,
         top: PindoroSpace.s16,
         right: PindoroSpace.s8,
@@ -178,25 +182,21 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
           );
         }(),
     ]);
-    await c.addGeoJsonSource(_outlineLabels, {
-      'type': 'FeatureCollection',
-      'features': [
+    await c.addGeoJsonSource(
+      _outlineLabels,
+      labelledPointsGeoJson([
         for (final d in districts)
           for (final spot in outlineSpots(d.boundary))
-            {
-              'type': 'Feature',
-              'properties': {
+            (
+              spot.at,
+              {
                 'icon': 'outline:${d.id}',
                 'rotate': spot.rotate,
                 'below': spot.insideBelow,
               },
-              'geometry': {
-                'type': 'Point',
-                'coordinates': [spot.at.lon, spot.at.lat],
-              },
-            },
-      ],
-    });
+            ),
+      ]),
+    );
     await c.addSymbolLayer(
       _outlineLabels,
       _outlineLabels,
@@ -254,7 +254,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
       _allSource,
       _districtOutlines,
       ml.LineLayerProperties(
-        lineColor: _hex(colors.mapRegionOutline),
+        lineColor: hexColor(colors.mapRegionOutline),
         lineWidth: [
           'step',
           ['zoom'],
@@ -271,7 +271,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
       _allSource,
       _quarterOutlines,
       ml.LineLayerProperties(
-        lineColor: _hex(colors.mapRegionOutline),
+        lineColor: hexColor(colors.mapRegionOutline),
         lineWidth: _quarterOutline,
         lineJoin: 'round',
       ),
@@ -288,7 +288,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
       _pickedSource,
       '$_pickedSource-fill',
       ml.FillLayerProperties(
-        fillColor: _hex(colors.mapAreaStroke),
+        fillColor: hexColor(colors.mapAreaStroke),
         fillOpacity: PindoroOpacity.area,
       ),
       enableInteraction: false,
@@ -297,7 +297,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
       _pickedSource,
       '$_pickedSource-outline',
       ml.LineLayerProperties(
-        lineColor: _hex(colors.mapAreaStroke),
+        lineColor: hexColor(colors.mapAreaStroke),
         lineWidth: PindoroStroke.thick,
         lineJoin: 'round',
       ),
@@ -342,20 +342,24 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
     _ready = true;
     await _syncPicked();
     await _syncVisibility();
-    await _moveTo(widget.focus ?? widget.initialBounds);
+    if (!_framed) {
+      _framed = true;
+      await _moveTo(widget.focus ?? widget.initialBounds);
+    }
   }
 
   Future<void> _syncPicked() async {
     final c = _controller!;
+    await _addImages([
+      for (final d in widget.districts)
+        if (widget.picked.contains(d.id) && _pickedImages.add(d.id)) d,
+    ], picked: true);
+    // Read after the await: a later toggle may have synced meanwhile, and
+    // the last write must be the current pick.
     final picked = [
       for (final d in widget.districts)
         if (widget.picked.contains(d.id)) d,
     ];
-    final missing = [
-      for (final d in picked)
-        if (_pickedImages.add(d.id)) d,
-    ];
-    await _addImages(missing, picked: true);
     await c.setGeoJsonSource(_pickedSource, _polygons(picked));
     await c.setGeoJsonSource(_labelSource, _labels());
   }
@@ -368,25 +372,18 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
 
   /// One point per area at its centre. Among unpicked chips the one touched
   /// last wins collisions, then the bigger area.
-  Map<String, dynamic> _labels() => {
-    'type': 'FeatureCollection',
-    'features': [
-      for (final d in widget.districts)
+  Map<String, dynamic> _labels() => labelledPointsGeoJson([
+    for (final d in widget.districts)
+      (
+        d.center,
         {
-          'type': 'Feature',
-          'properties': {
-            'kind': d.kind.name,
-            'picked': widget.picked.contains(d.id),
-            'icon': _image(d.id, picked: widget.picked.contains(d.id)),
-            'sort': d.id == widget.lastTapped ? -1e12 : -d.areaM2,
-          },
-          'geometry': {
-            'type': 'Point',
-            'coordinates': [d.center.lon, d.center.lat],
-          },
+          'kind': d.kind.name,
+          'picked': widget.picked.contains(d.id),
+          'icon': _image(d.id, picked: widget.picked.contains(d.id)),
+          'sort': d.id == widget.lastTapped ? -1e12 : -d.areaM2,
         },
-    ],
-  };
+      ),
+  ]);
 
   void _reportCamera() {
     final position = _controller?.cameraPosition;
@@ -408,16 +405,15 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
             ml.MapLibreMap(
               styleString: style.data!,
               initialCameraPosition: ml.CameraPosition(
-                target: ml.LatLng(center.lat, center.lon),
+                target: center.toMapLibre,
                 zoom: PindoroCamera.zoom,
               ),
               trackCameraPosition: true,
               onMapCreated: (c) {
                 _controller = c..addListener(_reportCamera);
               },
-              onStyleLoadedCallback: _addLayers,
-              onMapClick: (_, at) =>
-                  widget.onTap(LatLng(at.latitude, at.longitude)),
+              onStyleLoadedCallback: () => runMapWork(_addLayers),
+              onMapClick: (_, at) => widget.onTap(at.toCore),
               rotateGesturesEnabled: false,
               tiltGesturesEnabled: false,
               compassEnabled: false,
@@ -431,22 +427,8 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
           Positioned(
             right: PindoroSpace.s4,
             bottom: PindoroSpace.s4,
-            child: Column(
-              spacing: PindoroSpace.s2,
-              children: [
-                MapControl(
-                  glyph: PindoroGlyph.zoomIn,
-                  semanticLabel: context.l10n.a11yZoomIn,
-                  onPressed: () =>
-                      _controller?.animateCamera(ml.CameraUpdate.zoomIn()),
-                ),
-                MapControl(
-                  glyph: PindoroGlyph.zoomOut,
-                  semanticLabel: context.l10n.a11yZoomOut,
-                  onPressed: () =>
-                      _controller?.animateCamera(ml.CameraUpdate.zoomOut()),
-                ),
-              ],
+            child: MapZoomControls(
+              onCamera: (update) => _controller?.animateCamera(update),
             ),
           ),
         ],
@@ -465,26 +447,8 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
 double metresPerPixel(double zoom, double lat) =>
     40075016.686 * math.cos(lat * math.pi / 180) / (512 * math.pow(2, zoom));
 
-String _hex(Color c) =>
-    '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
-
-Map<String, dynamic> _polygons(List<District> districts) => {
-  'type': 'FeatureCollection',
-  'features': [
-    for (final d in districts)
-      for (final polygon in d.boundary)
-        {
-          'type': 'Feature',
-          'properties': {'id': d.id, 'kind': d.kind.name},
-          'geometry': {
-            'type': 'Polygon',
-            'coordinates': [
-              for (final ring in polygon)
-                [
-                  for (final p in ring) [p.lon, p.lat],
-                ],
-            ],
-          },
-        },
-  ],
-};
+Map<String, dynamic> _polygons(List<District> districts) => polygonsGeoJson([
+  for (final d in districts)
+    for (final polygon in d.boundary)
+      (polygon, {'id': d.id, 'kind': d.kind.name}),
+]);

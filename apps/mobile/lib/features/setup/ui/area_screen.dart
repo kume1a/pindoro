@@ -24,11 +24,18 @@ import 'package:pindoro_design/pindoro_design.dart';
 /// Unpicked chips in the sheet: the areas nearest the map's centre.
 const int _nearbyChips = 6;
 
+/// The circle's radius and the rectangle's sides move in these steps.
+const double _radiusStepM = 500;
+const double _sideStepM = 100;
+
 /// Where the round's streets come from: districts, a circle or a rectangle.
 /// Circle and rectangle stay in the middle of the map; the map pans under
-/// them.
+/// them. Opened with a [district] (Home's district rows), it starts with just
+/// that one picked; nothing is saved until Next.
 class AreaScreen extends ConsumerStatefulWidget {
-  const AreaScreen({super.key});
+  const AreaScreen({super.key, this.district});
+
+  final String? district;
 
   @override
   ConsumerState<AreaScreen> createState() => _AreaScreenState();
@@ -77,7 +84,13 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
     _seeded = true;
     final known = {for (final d in pack.districts()) d.id};
     _center = pack.city().center;
-    switch (settings?.lastCity == pack.city().id ? settings?.area : null) {
+    final district = widget.district;
+    final start = district != null && known.contains(district)
+        ? DistrictsArea({district})
+        : settings?.lastCity == pack.city().id
+        ? settings?.area
+        : null;
+    switch (start) {
       case DistrictsArea(:final ids) when known.isNotEmpty:
         _mode = AreaMode.districts;
         // Areas this pack lacks (offline stand-in, retired) are dropped.
@@ -124,13 +137,14 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
     });
   }
 
-  static double _clampRadius(double m) => ((m / 500).round() * 500.0).clamp(
-    CircleArea.minRadiusM,
-    CircleArea.maxRadiusM,
-  );
+  static double _clampRadius(double m) =>
+      ((m / _radiusStepM).round() * _radiusStepM).clamp(
+        CircleArea.minRadiusM,
+        CircleArea.maxRadiusM,
+      );
 
-  static double _clampSide(double m) =>
-      ((m / 100).round() * 100.0).clamp(RectArea.minSideM, RectArea.maxSideM);
+  static double _clampSide(double m) => ((m / _sideStepM).round() * _sideStepM)
+      .clamp(RectArea.minSideM, RectArea.maxSideM);
 
   /// Picks or unpicks [id] by the area tree's rules; narrowing a picked
   /// district to one of its areas says so in a toast with Undo, shown in
@@ -328,10 +342,17 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                     child: RectOverlay(
                       size: Size(_widthM / mpp, _heightM / mpp),
                       label: formatSides(_widthM, _heightM, l10n),
-                      onResize: (size) => setState(() {
-                        _widthM = _clampSide(size.width * mpp);
-                        _heightM = _clampSide(size.height * mpp);
-                      }),
+                      onResize: (size) {
+                        final w = _clampSide(size.width * mpp);
+                        final h = _clampSide(size.height * mpp);
+                        if (w != _widthM || h != _heightM) {
+                          ref.read(feedbackProvider).tap();
+                          setState(() {
+                            _widthM = w;
+                            _heightM = h;
+                          });
+                        }
+                      },
                     ),
                   ),
                 SafeArea(
@@ -343,7 +364,11 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                         MapControl(
                           glyph: PindoroGlyph.back,
                           semanticLabel: l10n.commonBack,
-                          onPressed: context.pop,
+                          // Opened with go (Results, setup states) it is the
+                          // only page, so back means Home.
+                          onPressed: () => context.canPop()
+                              ? context.pop()
+                              : context.go(Routes.home),
                         ),
                         Pill(
                           label: georgian ? city.nameKa : city.nameEn,
@@ -370,7 +395,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
             count: mode == AreaMode.districts
                 ? areaCountLine(l10n, districts.length, picks, streets)
                 : null,
-            all: offline
+            countAction: offline
                 ? PindoroButton(
                     label: l10n.commonTryAgain,
                     variant: PindoroButtonVariant.tertiary,
@@ -401,7 +426,9 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                 value: _radiusM,
                 min: CircleArea.minRadiusM,
                 max: CircleArea.maxRadiusM,
-                divisions: 9,
+                divisions:
+                    (CircleArea.maxRadiusM - CircleArea.minRadiusM) ~/
+                    _radiusStepM,
                 label: formatSize(_radiusM, l10n),
                 semanticFormatterCallback: (v) => formatSize(v, l10n),
                 onChanged: (v) {
