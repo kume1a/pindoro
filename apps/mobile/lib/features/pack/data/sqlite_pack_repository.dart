@@ -8,27 +8,36 @@ import 'package:pindoro/features/pack/data/pack_store.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:sqlite3/sqlite3.dart';
 
-/// Reads a city pack (docs/pack-format.md) opened read-only.
+/// Reads a city pack (docs/pack-format.md) opened read-only. A pack never
+/// changes, so its meta, city and districts are decoded once.
 class SqlitePackRepository implements PackRepository {
   SqlitePackRepository.open(String path)
     : _db = sqlite3.open(path, mode: OpenMode.readOnly);
 
   final Database _db;
 
-  @override
-  Map<String, String> meta() => {
+  late final Map<String, String> _meta = {
     for (final r in _db.select('SELECT key, value FROM meta'))
       r['key'] as String: r['value'] as String,
   };
 
-  @override
-  City city() => City.fromRow(_db.select('SELECT * FROM city LIMIT 1').first);
+  late final City _city = City.fromRow(
+    _db.select('SELECT * FROM city LIMIT 1').first,
+  );
 
-  @override
-  List<District> districts() => [
+  late final List<District> _districts = List.unmodifiable([
     for (final r in _db.select('SELECT * FROM district ORDER BY name_ka'))
       District.fromRow(r),
-  ];
+  ]);
+
+  @override
+  Map<String, String> meta() => _meta;
+
+  @override
+  City city() => _city;
+
+  @override
+  List<District> districts() => _districts;
 
   @override
   List<Street> streets({String? districtId, Set<Difficulty>? difficulties}) {
@@ -69,18 +78,22 @@ class SqlitePackRepository implements PackRepository {
   void close() => _db.close();
 }
 
-/// Copies the bundled Vake fixture next to downloaded packs once.
+/// Copies the bundled Vake fixture next to downloaded packs, again whenever
+/// an app update ships a different one.
 Future<File> copyFixture(Directory root) async {
   final file = File('${root.path}/tbilisi_vake_fixture.sqlite');
-  if (!file.existsSync()) {
-    final data = await rootBundle.load(AppConfig.fixturePackAsset);
-    await file.create(recursive: true);
-    await file.writeAsBytes(
-      data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
-      flush: true,
-    );
+  final data = await rootBundle.load(AppConfig.fixturePackAsset);
+  // ponytail: size stands in for a checksum; the fixture changes rarely.
+  if (file.existsSync() && file.lengthSync() == data.lengthInBytes) {
+    return file;
   }
-  return file;
+  final tmp = File('${file.path}.tmp');
+  await tmp.create(recursive: true);
+  await tmp.writeAsBytes(
+    data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+    flush: true,
+  );
+  return tmp.rename(file.path);
 }
 
 /// A city with no pack on the phone whose download failed: offline, or
@@ -115,48 +128,54 @@ class PackDownloadNotifier extends Notifier<PackProgress?> {
   @override
   PackProgress? build() => null;
 
-  void report(PackProgress? progress) => state = progress;
+  void report(PackProgress progress) => state = progress;
+
+  /// Ends [city]'s progress; a download of another city keeps its own.
+  void done(String city) {
+    if (state?.city.id == city) state = null;
+  }
 }
 
 /// The chosen city's newest pack: downloaded on first use (progress in
 /// [packDownloadProvider]); a failed download throws [PackUnavailable], and
 /// the bundled fixture stands in for Tbilisi once the player picks it
 /// ([offlineVakeProvider]). main() invalidates it when a background download
-/// finishes. A failure stays until the player taps Try again: no automatic
-/// retries.
-final packRepositoryProvider = FutureProvider<PackRepository>(
-  retry: (_, _) => null,
-  (ref) async {
-    final store = ref.watch(packStoreProvider);
-    final city =
-        ref.watch(settingsProvider.select((s) => s.value?.lastCity)) ??
-        AppConfig.cityId;
-    final offlineVake = ref.watch(offlineVakeProvider);
-    final progress = ref.read(packDownloadProvider.notifier);
-    final file =
-        store.newest(city) ??
-        (offlineVake && city == AppConfig.cityId
-            ? await copyFixture(store.root)
-            : await downloadPack(
-                store,
-                city,
-                onProgress: progress.report,
-              ).whenComplete(() => progress.report(null)));
-    final repo = SqlitePackRepository.open(file.path);
-    // Screens keep showing the previous pack while a new one loads, so a pack
-    // is closed when its replacement opens, not when the provider reloads.
-    final open = ref.read(_openPacksProvider);
-    for (final old in open) {
-      old.close();
-    }
-    open
-      ..clear()
-      ..add(repo);
-    return repo;
-  },
-);
+/// finishes. Failures wait for the player's Try again instead of retrying
+/// behind their back.
+final packRepositoryProvider = FutureProvider<PackRepository>((ref) async {
+  final store = ref.watch(packStoreProvider);
+  final city =
+      await ref.watch(settingsProvider.selectAsync((s) => s.lastCity)) ??
+      AppConfig.cityId;
+  final offlineVake = ref.watch(offlineVakeProvider);
+  final file =
+      store.newest(city) ??
+      (offlineVake && city == AppConfig.cityId
+          ? await copyFixture(store.root)
+          : await _download(ref, store, city));
+  // A rebuild (another city, Try again) superseded this one.
+  if (!ref.mounted) throw StateError('superseded pack load for $city');
+  final repo = SqlitePackRepository.open(file.path);
+  ref.read(_openPacksProvider).add(repo);
+  return repo;
+}, retry: (_, _) => null);
 
-/// The pack [packRepositoryProvider] last returned; all closed with the app.
+/// Downloads [city]'s pack, reporting progress while this load is current.
+Future<File> _download(Ref ref, PackStore store, String city) {
+  final progress = ref.read(packDownloadProvider.notifier);
+  return downloadPack(
+    store,
+    city,
+    onProgress: (p) {
+      if (ref.mounted) progress.report(p);
+    },
+  ).whenComplete(() => progress.done(city));
+}
+
+/// Every pack opened this session, closed with the app. Screens and rounds
+/// keep using the previous pack while a replacement loads, so none closes
+/// earlier.
+// ponytail: a session opens one or two extra read-only handles at most.
 final _openPacksProvider = Provider<List<SqlitePackRepository>>((ref) {
   final open = <SqlitePackRepository>[];
   ref.onDispose(() {
@@ -192,6 +211,9 @@ Future<File> downloadPack(
 
 /// Whether [pack] is the bundled Vake-only stand-in.
 bool isFixturePack(PackRepository pack) => pack.meta()['scope'] == 'fixture';
+
+/// The pack's version, stored on rounds and answers.
+String packVersion(PackRepository pack) => pack.meta()['version']!;
 
 /// The active pack's streets as the player sees them, by any part id.
 final cityStreetsProvider = FutureProvider<Map<String, NamedStreet>>(

@@ -66,7 +66,10 @@ class PackPending extends ConsumerWidget {
       children: children,
     );
 
-    if (pack.error case final error?) {
+    final progress = ref.watch(packDownloadProvider);
+    // A Try again keeps the old error while it loads; it shows its own
+    // progress (or nothing) instead.
+    if (pack.error case final error? when progress == null && !pack.isLoading) {
       final noSpace = error is PackUnavailable && error.noSpace;
       final vake = error is PackUnavailable && error.city == AppConfig.cityId;
       return Semantics(
@@ -90,7 +93,6 @@ class PackPending extends ConsumerWidget {
         ]),
       );
     }
-    final progress = ref.watch(packDownloadProvider);
     if (progress == null) return null;
     final locale = Localizations.localeOf(context);
     final city = locale.languageCode == 'ka'

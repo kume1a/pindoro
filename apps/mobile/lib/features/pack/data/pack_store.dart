@@ -32,11 +32,18 @@ typedef CatalogPack = ({
 
 /// Installs the packs listed by `/v1/catalog` as `<root>/<city>/<version>.sqlite`.
 class PackStore {
-  PackStore({required this.root, required this.apiBaseUrl, http.Client? client})
-    : _client = client ?? http.Client();
+  PackStore({
+    required this.root,
+    required this.apiBaseUrl,
+    http.Client? client,
+    this.timeout = const Duration(seconds: 20),
+  }) : _client = client ?? http.Client();
 
   static const int supportedFormatVersion = 2;
   static const int keptVersions = 2;
+
+  /// Longest wait for the server, and between two chunks of a download.
+  final Duration timeout;
 
   final Directory root;
   final String apiBaseUrl;
@@ -61,43 +68,63 @@ class PackStore {
     if (current != null && _version(current).compareTo(pack.version) >= 0) {
       return null;
     }
+    final installed = await _install(
+      city,
+      pack,
+      await _download(pack, onProgress),
+    );
+    for (final old in _installed(city).skip(keptVersions)) {
+      old.deleteSync();
+    }
+    return installed;
+  }
 
+  /// The pack's .gz, checked against the catalog's size and sha256.
+  Future<Uint8List> _download(
+    CatalogPack pack,
+    void Function(PackProgress progress)? onProgress,
+  ) async {
+    // ponytail: whole pack in memory (~1 MB gz); stream to disk past a few MB.
+    final uri = Uri.parse(pack.url);
+    final res = await _client.send(http.Request('GET', uri)).timeout(timeout);
+    if (res.statusCode != 200) {
+      throw HttpException('HTTP ${res.statusCode}', uri: uri);
+    }
+    final bytes = BytesBuilder(copy: false);
+    await for (final chunk in res.stream.timeout(timeout)) {
+      bytes.add(chunk);
+      onProgress?.call((
+        city: pack.city,
+        received: bytes.length,
+        total: pack.size,
+      ));
+    }
+    final gz = bytes.takeBytes();
+    if (gz.length != pack.size) {
+      throw FormatException('size ${gz.length} != ${pack.size}');
+    }
+    if (sha256.convert(gz).toString() != pack.sha256) {
+      throw const FormatException('sha256 mismatch');
+    }
+    return gz;
+  }
+
+  /// Unpacks [gz] as `<city>/<version>.sqlite`; nothing partial is left.
+  Future<File> _install(String city, CatalogPack pack, Uint8List gz) async {
     final dir = _cityDir(city)..createSync(recursive: true);
-    final tmp = File(_join(dir.path, '${pack.version}.download'));
+    // Unique per call, so overlapping refreshes never share a temp file.
+    final tmp = File(
+      _join(
+        dir.path,
+        '${pack.version}.${DateTime.now().microsecondsSinceEpoch}.download',
+      ),
+    );
     try {
-      // ponytail: whole pack in memory (~1 MB gz); stream to disk past a few MB.
-      final uri = Uri.parse(pack.url);
-      final res = await _client.send(http.Request('GET', uri));
-      if (res.statusCode != 200) {
-        throw HttpException('HTTP ${res.statusCode}', uri: uri);
-      }
-      final bytes = BytesBuilder(copy: false);
-      await for (final chunk in res.stream) {
-        bytes.add(chunk);
-        onProgress?.call((
-          city: pack.city,
-          received: bytes.length,
-          total: pack.size,
-        ));
-      }
-      final gz = bytes.takeBytes();
-      if (gz.length != pack.size) {
-        throw FormatException('size ${gz.length} != ${pack.size}');
-      }
-      if (sha256.convert(gz).toString() != pack.sha256) {
-        throw const FormatException('sha256 mismatch');
-      }
       await tmp.writeAsBytes(gzip.decode(gz), flush: true);
       if (_formatVersion(tmp) != supportedFormatVersion) {
         throw const FormatException('unsupported pack format');
       }
-      final installed = await tmp.rename(
-        _join(dir.path, '${pack.version}.sqlite'),
-      );
-      for (final old in _installed(city).skip(keptVersions)) {
-        old.deleteSync();
-      }
-      return installed;
+      return await tmp.rename(_join(dir.path, '${pack.version}.sqlite'));
     } finally {
       if (tmp.existsSync()) tmp.deleteSync();
     }
@@ -145,7 +172,7 @@ class PackStore {
 
   Future<List<Map<String, Object?>>> _catalogCities() async {
     final uri = Uri.parse('$apiBaseUrl/v1/catalog');
-    final res = await _client.get(uri).timeout(const Duration(seconds: 20));
+    final res = await _client.get(uri).timeout(timeout);
     if (res.statusCode != 200) {
       throw HttpException('HTTP ${res.statusCode}', uri: uri);
     }
