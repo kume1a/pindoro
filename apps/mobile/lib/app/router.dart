@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pindoro/app/tab_shell.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
@@ -17,7 +18,8 @@ import 'package:pindoro/features/setup/ui/welcome_screen.dart';
 import 'package:pindoro/features/streak/ui/streak_screen.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// Home and Results arrive with a fade rather than a slide (canvas M-40, M-43).
+/// The tabs and Results arrive with a fade rather than a slide (canvas M-40,
+/// M-43).
 Page<void> _fadePage(GoRouterState state, Widget child) =>
     CustomTransitionPage<void>(
       key: state.pageKey,
@@ -37,55 +39,85 @@ Future<String> startLocation(AppDatabase db) async {
       : Routes.welcome;
 }
 
-GoRouter buildRouter(String initialLocation) => GoRouter(
-  initialLocation: initialLocation,
-  routes: [
-    GoRoute(
-      path: Routes.home,
-      pageBuilder: (_, state) =>
-          _fadePage(state, HomeScreen(summary: state.extra as RoundSummary?)),
-    ),
-    GoRoute(path: Routes.welcome, builder: (_, _) => const WelcomeScreen()),
-    GoRoute(path: Routes.city, builder: (_, _) => const CityScreen()),
-    GoRoute(
-      path: Routes.area,
-      builder: (_, state) =>
-          AreaScreen(district: state.uri.queryParameters['district']),
-    ),
-    GoRoute(
-      path: Routes.difficulty,
-      builder: (_, _) => const DifficultyScreen(),
-    ),
-    GoRoute(
-      path: Routes.round,
-      builder: (_, state) => QuizScreen(
-        roundId: state.uri.queryParameters['round'],
-        retryOf: state.uri.queryParameters['retry'],
-        pitStop: state.uri.queryParameters.containsKey('pit-stop'),
-      ),
-    ),
-    GoRoute(
-      path: Routes.results,
-      redirect: (_, state) =>
-          state.uri.queryParameters.containsKey('round') ? null : Routes.home,
-      pageBuilder: (_, state) => _fadePage(
-        state,
-        ResultsScreen(roundId: state.uri.queryParameters['round']!),
-      ),
-      routes: [
-        GoRoute(
-          path: 'street/:index',
-          builder: (_, state) => ResultStreetScreen(
-            roundId: state.uri.queryParameters['round']!,
-            index: int.parse(state.pathParameters['index']!),
-          ),
+/// The tabs (Free play, Pit stop, Me) share a [TabShell]; every other route
+/// sits on the root navigator, over the bottom navigation.
+GoRouter buildRouter(String initialLocation) {
+  // ponytail: one per tab, as long as the router (the app) lives.
+  final scroll = [for (var i = 0; i < TabShell.tabs; i++) ScrollController()];
+  StatefulShellBranch tab(
+    int index,
+    String path,
+    Widget Function(GoRouterState state) screen,
+  ) => StatefulShellBranch(
+    routes: [
+      GoRoute(
+        path: path,
+        builder: (_, state) => PrimaryScrollController(
+          controller: scroll[index],
+          child: screen(state),
         ),
-      ],
-    ),
-    GoRoute(path: Routes.streak, builder: (_, _) => const StreakScreen()),
-    GoRoute(path: Routes.pitStop, builder: (_, _) => const PitStopScreen()),
-    GoRoute(path: Routes.me, builder: (_, _) => const MeScreen()),
-    GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
-    GoRoute(path: Routes.credits, builder: (_, _) => const CreditsScreen()),
-  ],
-);
+      ),
+    ],
+  );
+
+  return GoRouter(
+    initialLocation: initialLocation,
+    routes: [
+      StatefulShellRoute(
+        pageBuilder: (_, state, shell) =>
+            _fadePage(state, TabShell(shell: shell, scroll: scroll)),
+        navigatorContainerBuilder: (_, shell, children) =>
+            FadeIndexedStack(index: shell.currentIndex, children: children),
+        branches: [
+          tab(
+            0,
+            Routes.home,
+            (state) => HomeScreen(summary: state.extra as RoundSummary?),
+          ),
+          tab(1, Routes.pitStop, (_) => const PitStopScreen()),
+          tab(2, Routes.me, (_) => const MeScreen()),
+        ],
+      ),
+      GoRoute(path: Routes.welcome, builder: (_, _) => const WelcomeScreen()),
+      GoRoute(path: Routes.city, builder: (_, _) => const CityScreen()),
+      GoRoute(
+        path: Routes.area,
+        builder: (_, state) =>
+            AreaScreen(district: state.uri.queryParameters['district']),
+      ),
+      GoRoute(
+        path: Routes.difficulty,
+        builder: (_, _) => const DifficultyScreen(),
+      ),
+      GoRoute(
+        path: Routes.round,
+        builder: (_, state) => QuizScreen(
+          roundId: state.uri.queryParameters['round'],
+          retryOf: state.uri.queryParameters['retry'],
+          pitStop: state.uri.queryParameters.containsKey('pit-stop'),
+        ),
+      ),
+      GoRoute(
+        path: Routes.results,
+        redirect: (_, state) =>
+            state.uri.queryParameters.containsKey('round') ? null : Routes.home,
+        pageBuilder: (_, state) => _fadePage(
+          state,
+          ResultsScreen(roundId: state.uri.queryParameters['round']!),
+        ),
+        routes: [
+          GoRoute(
+            path: 'street/:index',
+            builder: (_, state) => ResultStreetScreen(
+              roundId: state.uri.queryParameters['round']!,
+              index: int.parse(state.pathParameters['index']!),
+            ),
+          ),
+        ],
+      ),
+      GoRoute(path: Routes.streak, builder: (_, _) => const StreakScreen()),
+      GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
+      GoRoute(path: Routes.credits, builder: (_, _) => const CreditsScreen()),
+    ],
+  );
+}

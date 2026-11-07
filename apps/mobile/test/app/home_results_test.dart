@@ -447,7 +447,7 @@ void main() {
       ]),
     );
 
-    testWidgets('home shows due streets; Review opens the Pit stop', (
+    testWidgets('the Pit stop tab counts and lists the due streets', (
       tester,
     ) async {
       await tester.runAsync(() async {
@@ -455,9 +455,10 @@ void main() {
         await SettingsDao(db).markHomeCoachSeen();
       });
       await pumpApp(tester, Routes.home);
-      expect(find.text('6 streets due today'), findsOneWidget);
+      final tab = find.bySemanticsLabel('Pit stop, 6 streets due');
+      expect(tab, findsOneWidget);
 
-      await tester.tap(find.text('Review'));
+      await tester.tap(tab);
       await settle(tester);
       expect(find.text('6 streets to tune up'), findsOneWidget);
       expect(find.text('+ 2 more streets'), findsOneWidget);

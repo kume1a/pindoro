@@ -23,9 +23,6 @@ typedef HomeData = ({
   List<DistrictCount> districts,
   List<DistrictCount> recent,
   KnownCounts? before,
-
-  /// Streets due in the Pit stop today.
-  int pitStopDue,
 });
 
 /// Home's data; with [introBefore], also the counts before that moment, where
@@ -67,9 +64,6 @@ final homeProvider = FutureProvider.autoDispose.family<HomeData, DateTime?>((
     before: introBefore == null
         ? null
         : await dao.knownIn(pack, streets, before: introBefore),
-    pitStopDue: (await dao.pitStop(
-      city.id,
-    )).dueIn(streets, calendarDay(DateTime.now())).length,
   );
 });
 

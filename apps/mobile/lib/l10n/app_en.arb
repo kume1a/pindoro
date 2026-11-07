@@ -920,15 +920,6 @@
     }
   },
   "resultsPitStopTitle": "Pit stop complete",
-  "homePitStopDue": "{count, plural, =1{1 street due today} other{{count} streets due today}}",
-  "@homePitStopDue": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "homePitStopReview": "Review",
   "pitStopTitle": "Pit stop",
   "pitStopToTuneUp": "{count, plural, =1{1 street to tune up} other{{count} streets to tune up}}",
   "@pitStopToTuneUp": {
@@ -1074,6 +1065,15 @@
       },
       "total": {
         "type": "String"
+      }
+    }
+  },
+  "tabFreePlay": "Free play",
+  "a11yPitStopTab": "{count, plural, =1{Pit stop, 1 street due} other{Pit stop, {count} streets due}}",
+  "@a11yPitStopTab": {
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   }
