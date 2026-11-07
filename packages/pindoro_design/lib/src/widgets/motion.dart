@@ -148,8 +148,7 @@ class RiseIn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final calm = _calm(context);
-    final total =
-(calm ? calmFade : PindoroMotion.durationBase) + delay;
+    final total = (calm ? calmFade : PindoroMotion.durationBase) + delay;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: total,

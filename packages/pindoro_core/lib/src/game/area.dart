@@ -115,8 +115,7 @@ sealed class DrawnArea extends Area {
   bool contains(LatLng p);
 
   @override
-  AreaShape shapeIn(PackRepository pack) =>
-      (bbox: bbox, boundary: [ring]);
+  AreaShape shapeIn(PackRepository pack) => (bbox: bbox, boundary: [ring]);
 
   @override
   List<Street> streetsIn(PackRepository pack, Set<Difficulty> difficulties) {
