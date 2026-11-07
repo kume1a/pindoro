@@ -79,7 +79,8 @@ void main() {
     await tapAndSettle(tester, 'Tbilisi');
     expect(find.text('Pick an area first'), findsOneWidget);
 
-    await tapAndSettle(tester, 'ვაკის რაიონი');
+    // Zoomed in, the chips are Vake's quarters and neighbourhoods.
+    await tapAndSettle(tester, 'ვაკე');
     await tapAndSettle(tester, 'Next');
     expect(find.text('Choose a difficulty'), findsOneWidget);
 
@@ -94,7 +95,10 @@ void main() {
 
     final settings = (await tester.runAsync(SettingsDao(db).read))!;
     expect(settings.lastCity, 'tbilisi');
-    expect(settings.area, const DistrictsArea({AppConfig.fixtureDistrictId}));
+    final pack = SqlitePackRepository.open(AppConfig.fixturePackAsset);
+    final quarter = pack.districts().firstWhere((d) => d.nameKa == 'ვაკე');
+    pack.close();
+    expect(settings.area, DistrictsArea({quarter.id}));
     expect(settings.lastDifficulty, Difficulty.expert);
   });
 
@@ -102,7 +106,7 @@ void main() {
     tester,
   ) async {
     await pumpApp(tester, Routes.area);
-    await tapAndSettle(tester, 'ვაკის რაიონი');
+    await tapAndSettle(tester, 'ვაკე');
     await tapAndSettle(tester, 'Circle');
     expect(find.byType(Slider), findsOneWidget);
     await tapAndSettle(tester, 'Next');

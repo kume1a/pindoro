@@ -17,10 +17,17 @@ void main() {
     expect(meta['attribution'], contains('OpenStreetMap'));
   });
 
-  test('city and the fixture district are present', () {
+  test('the fixture holds Vake and the quarters and neighbourhoods in it', () {
     expect(pack.city().id, 'tbilisi');
-    final ids = pack.districts().map((d) => d.id);
-    expect(ids, contains(AppConfig.fixtureDistrictId));
+    final districts = pack.districts();
+    expect(
+      districts.where((d) => d.kind == DistrictKind.district).map((d) => d.id),
+      [AppConfig.fixtureDistrictId],
+    );
+    expect(
+      districts.map((d) => d.kind),
+      containsAll([DistrictKind.quarter, DistrictKind.neighbourhood]),
+    );
   });
 
   test('district streets decode and lie inside the city bbox', () {

@@ -129,9 +129,16 @@ export interface PackOptions {
   version: string;
   osmTimestamp: string;
   generatedAt: string;
-  /** Restrict to one district and its streets (fixture packs). */
+  /** Restrict to one district, the smaller areas inside it and its streets (fixture packs). */
   districtId?: string;
 }
+
+/** The district $1 and the quarters and neighbourhoods whose centre lies in it. */
+const FIXTURE_AREAS = `
+  SELECT d.id FROM pipeline.district d JOIN pipeline.pack_area a USING (id)
+  WHERE d.id = $1
+     OR (d.kind <> 'district'
+         AND ST_Contains((SELECT geom FROM pipeline.pack_area WHERE id = $1), a.center))`;
 
 const AREA_COLUMNS = `
   a.area_m2, ST_Y(a.center) AS center_lat, ST_X(a.center) AS center_lon,
@@ -147,12 +154,17 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
   const districts = await sql.unsafe(
     `SELECT d.id, d.kind, d.osm_relation_id::float8 AS osm_relation_id, d.name_ka, d.name_en, ${AREA_COLUMNS}
      FROM pipeline.district d JOIN pipeline.pack_area a USING (id)
-     WHERE $1::text IS NULL OR d.id = $1 ORDER BY d.id`,
+     WHERE $1::text IS NULL OR d.id IN (${FIXTURE_AREAS}) ORDER BY d.id`,
     [only],
   );
-  const links = await sql`
-    SELECT street_key::float8 AS street_key, district_id, length_m, share FROM pipeline.street_district
-    WHERE ${only}::text IS NULL OR district_id = ${only} ORDER BY street_key, district_id`;
+  const links = await sql.unsafe(
+    `SELECT street_key::float8 AS street_key, district_id, length_m, share FROM pipeline.street_district
+     WHERE $1::text IS NULL
+        OR (district_id IN (${FIXTURE_AREAS})
+            AND street_key IN (SELECT street_key FROM pipeline.street_district WHERE district_id = $1))
+     ORDER BY street_key, district_id`,
+    [only],
+  );
   const streets = await sql`
     SELECT s.key::float8 AS key, s.name_ka, s.name_en, s.road_class, s.difficulty, s.length_m,
            ST_Y(p.mid) AS mid_lat, ST_X(p.mid) AS mid_lon,
