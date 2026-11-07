@@ -27,3 +27,16 @@ jobs:
       - run: dart run melos run analyze
       # pindoro_core runs the shared golden vectors (shared/fixtures) here.
       - run: dart run melos run test
+
+  ios:
+    # Unsigned store build: proves the iOS side compiles; signing happens on a Mac (docs/deploy.md).
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.9
+          cache: true
+      - run: flutter build ios --release --no-codesign
+        working-directory: apps/mobile

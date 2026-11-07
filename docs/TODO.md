@@ -48,4 +48,4 @@
   and run `just server-setup` (`docs/deploy.md`).
 - Store releases: create the Android upload key and `key.properties`, then
   `just release appbundle <domain>` (`docs/deploy.md` section 9).
-- iOS has not been built or run (no macOS in the bootstrap environment).
+- iOS is built unsigned in CI (macOS runner) but has never run on a device or simulator.

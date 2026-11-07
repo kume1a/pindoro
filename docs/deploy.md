@@ -181,3 +181,4 @@ Without `key.properties` the bundle is signed with the debug key, which Play rej
 
 **iOS** (macOS with Xcode, an Apple Developer account and the `app.pindoro` bundle id registered):
 `just release ipa pindoro.app`, then upload `apps/mobile/build/ios/ipa/*.ipa` with Transporter.
+CI builds iOS without signing on every push, so only this last step needs a Mac.
