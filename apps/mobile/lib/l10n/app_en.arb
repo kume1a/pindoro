@@ -1040,5 +1040,41 @@
         "type": "String"
       }
     }
+  },
+  "meTitle": "Me",
+  "meCities": "Cities",
+  "meStreetsKnown": "Streets known",
+  "meLessons": "Lessons",
+  "meRoadTrips": "Road trips",
+  "meBestStreak": "Best streak",
+  "meDays": "{count, plural, =1{1 day} other{{count} days}}",
+  "@meDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "meXpSince": "{xp} XP in total · playing since {month}",
+  "@meXpSince": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      },
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "meCityStreets": "{known} / {total} streets",
+  "@meCityStreets": {
+    "placeholders": {
+      "known": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
   }
 }

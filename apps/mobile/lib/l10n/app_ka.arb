@@ -257,5 +257,14 @@
   "pitStopAge": "{days, plural, =0{დღეს} other{{days} დღის წინ}}",
   "pitStopStep": "გამეორების ეტაპი {step} / {steps}",
   "a11yDistrictRow": "{name}, ცნობილია {known} / {total} ქუჩა",
-  "a11yDistrictRowComplete": "{name}, ცნობილია {known} / {total} ქუჩა, დასრულებული"
+  "a11yDistrictRowComplete": "{name}, ცნობილია {known} / {total} ქუჩა, დასრულებული",
+  "meTitle": "მე",
+  "meCities": "ქალაქები",
+  "meStreetsKnown": "ნაცნობი ქუჩები",
+  "meLessons": "გაკვეთილები",
+  "meRoadTrips": "მოგზაურობები",
+  "meBestStreak": "საუკეთესო სერია",
+  "meDays": "{count, plural, other{{count} დღე}}",
+  "meXpSince": "სულ {xp} XP · დაწყება: {month}",
+  "meCityStreets": "{known} / {total} ქუჩა"
 }

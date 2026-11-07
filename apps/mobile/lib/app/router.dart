@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
+import 'package:pindoro/features/me/ui/me_screen.dart';
 import 'package:pindoro/features/pitstop/ui/pit_stop_screen.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/quiz/ui/quiz_screen.dart';
@@ -83,6 +84,7 @@ GoRouter buildRouter(String initialLocation) => GoRouter(
     ),
     GoRoute(path: Routes.streak, builder: (_, _) => const StreakScreen()),
     GoRoute(path: Routes.pitStop, builder: (_, _) => const PitStopScreen()),
+    GoRoute(path: Routes.me, builder: (_, _) => const MeScreen()),
     GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
     GoRoute(path: Routes.credits, builder: (_, _) => const CreditsScreen()),
   ],

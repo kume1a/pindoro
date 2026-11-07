@@ -108,6 +108,13 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
           .getSingleOrNull() !=
       null;
 
+  /// When the first round started: when play began. Null before any round.
+  Future<DateTime?> firstRoundAt() async {
+    final first = rounds.startedAt.min();
+    final row = await (selectOnly(rounds)..addColumns([first])).getSingle();
+    return row.read(first);
+  }
+
   Future<int> totalXp() async {
     final sum = answers.xp.sum();
     final row = await (selectOnly(answers)..addColumns([sum])).getSingle();
@@ -375,6 +382,21 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
         if (row.readTable(answers) case final a) (a.streetId, a.tier),
     ]);
   }
+
+  /// Known / total streets of [pack]'s city and its districts, from the
+  /// answers before [before] (all of them without it).
+  Future<KnownCounts> knownIn(
+    PackRepository pack,
+    Map<String, NamedStreet> streets, {
+    DateTime? before,
+  }) async => knownCounts(
+    streets: streets,
+    partsByDistrict: pack.partsByDistrict(),
+    known: knownStreetIds(
+      await bestTierByPart(pack.city().id, before: before),
+      streets,
+    ),
+  );
 
   /// Street ids planned in the [count] most recent rounds of [cityId].
   Future<Set<String>> askedInLastRounds(String cityId, {int count = 3}) async {

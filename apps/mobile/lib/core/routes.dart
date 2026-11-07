@@ -16,6 +16,7 @@ abstract final class Routes {
 
   /// The Pit stop's due streets as a round.
   static const String pitStopRound = '$round?pit-stop=1';
+  static const String me = '/me';
   static const String settings = '/settings';
   static const String credits = '/settings/credits';
 

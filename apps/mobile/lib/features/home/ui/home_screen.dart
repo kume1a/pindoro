@@ -172,7 +172,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         due: home.pitStopDue,
                         onReview: () => open(Routes.pitStop),
                       ),
-                    LevelCard(
+                    HomeLevelCard(
                       level: level,
                       totalXp: home.totalXp,
                       intro: intro,

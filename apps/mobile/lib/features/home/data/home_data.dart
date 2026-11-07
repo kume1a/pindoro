@@ -49,16 +49,7 @@ final homeProvider = FutureProvider.autoDispose.family<HomeData, DateTime?>((
   );
   final progress = round == null ? null : await dao.roundProgress(round.id);
   final streets = await ref.watch(cityStreetsProvider.future);
-  final partsByDistrict = pack.partsByDistrict();
-  Future<KnownCounts> countsAt({DateTime? before}) async => knownCounts(
-    streets: streets,
-    partsByDistrict: partsByDistrict,
-    known: knownStreetIds(
-      await dao.bestTierByPart(city.id, before: before),
-      streets,
-    ),
-  );
-  final counts = await countsAt();
+  final counts = await dao.knownIn(pack, streets);
   final districts = [
     for (final d in pack.districts())
       (district: d, count: counts.byDistrict[d.id] ?? (known: 0, total: 0)),
@@ -73,7 +64,9 @@ final homeProvider = FutureProvider.autoDispose.family<HomeData, DateTime?>((
     recent: [
       for (final id in await dao.recentDistrictIds(city.id)) ?byId[id],
     ].take(2).toList(),
-    before: introBefore == null ? null : await countsAt(before: introBefore),
+    before: introBefore == null
+        ? null
+        : await dao.knownIn(pack, streets, before: introBefore),
     pitStopDue: (await dao.pitStop(
       city.id,
     )).dueIn(streets, calendarDay(DateTime.now())).length,

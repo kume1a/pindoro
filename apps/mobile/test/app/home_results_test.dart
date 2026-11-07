@@ -398,6 +398,35 @@ void main() {
     });
   });
 
+  group('me', () {
+    testWidgets('level, stats and cities; a city opens Free play', (
+      tester,
+    ) async {
+      // One Great of 4 000 XP: level 4 (from 3 750), today's goal met.
+      await tester.runAsync(() => roundWithAnswers(1, xp: 4000));
+      await pumpApp(tester, Routes.me);
+      expect(find.text('Level 4'), findsOneWidget);
+      expect(find.textContaining('playing since'), findsOneWidget);
+      expect(find.text('${formatNumber(1500)} XP to level 5'), findsOneWidget);
+      for (final label in [
+        'Streets known, 1',
+        'Lessons, 0',
+        'Road trips, 0',
+        'Best streak, 1 day',
+      ]) {
+        expect(find.bySemanticsLabel(label), findsOneWidget);
+      }
+      final tbilisi = find.bySemanticsLabel(
+        RegExp(r'^Tbilisi, 1 of \S+ streets known$'),
+      );
+      expect(tbilisi, findsOneWidget);
+
+      await tester.tap(tbilisi);
+      await settle(tester);
+      expect(find.text('Streets you know'), findsOneWidget);
+    });
+  });
+
   group('pit stop', () {
     final today = calendarDay(DateTime.now());
 

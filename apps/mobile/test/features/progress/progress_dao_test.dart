@@ -50,6 +50,15 @@ void main() {
     packVersion: 'v1',
   );
 
+  test('play began with the first round', () async {
+    expect(await progress.firstRoundAt(), isNull);
+    await round(['a']);
+    final first = await progress.firstRoundAt();
+    await round(['b']);
+    expect(first, isNotNull);
+    expect(await progress.firstRoundAt(), first);
+  });
+
   test('welcome shows until a first round is finished or saved', () async {
     expect(await startLocation(db), Routes.welcome);
     final id = await round(['a']);
