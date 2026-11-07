@@ -1,10 +1,12 @@
 import { createHash } from "node:crypto";
-import { readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { basename } from "node:path";
 import { gzipSync } from "node:zlib";
 import { encodePolyline6 } from "@pindoro/geo";
 import Database from "better-sqlite3";
 import type { Sql } from "postgres";
 import type { CityConfig } from "./config.ts";
+import { isoSeconds } from "./io.ts";
 
 export const PACK_FORMAT_VERSION = 2;
 
@@ -84,6 +86,13 @@ export const META_KEYS = [
   "license",
 ] as const;
 
+export interface Bbox {
+  min_lat: number;
+  min_lon: number;
+  max_lat: number;
+  max_lon: number;
+}
+
 export interface Manifest {
   format_version: number;
   city: string;
@@ -96,7 +105,7 @@ export interface Manifest {
   osm_timestamp: string;
   generated_at: string;
   /** The city's bounding box, so clients can tell which city a position is in. */
-  bbox: { min_lat: number; min_lon: number; max_lat: number; max_lon: number };
+  bbox: Bbox;
 }
 
 type Position = [lon: number, lat: number];
@@ -104,24 +113,20 @@ type Position = [lon: number, lat: number];
 const ring6 = (ring: Position[]): string =>
   encodePolyline6(ring.map(([lon, lat]) => ({ lat, lon })));
 
-export const multiline6 = (geojson: string): string => {
+const multiline6 = (geojson: string): string => {
   const g = JSON.parse(geojson) as { type: string; coordinates: Position[][] };
   if (g.type !== "MultiLineString") throw new Error(`expected MultiLineString, got ${g.type}`);
   return JSON.stringify(g.coordinates.map(ring6));
 };
 
-export const multipolygon6 = (geojson: string): string => {
+const multipolygon6 = (geojson: string): string => {
   const g = JSON.parse(geojson) as { type: string; coordinates: Position[][][] };
   if (g.type !== "MultiPolygon") throw new Error(`expected MultiPolygon, got ${g.type}`);
   return JSON.stringify(g.coordinates.map((polygon) => polygon.map(ring6)));
 };
 
 /** UTC build time as YYYYMMDDTHHMMSSZ (lexically sortable). */
-export const packVersion = (at: Date): string =>
-  at
-    .toISOString()
-    .replace(/[-:]/g, "")
-    .replace(/\.\d+Z$/, "Z");
+export const packVersion = (at: Date): string => isoSeconds(at).replace(/[-:]/g, "");
 
 export interface PackOptions {
   city: CityConfig;
@@ -145,8 +150,8 @@ const AREA_COLUMNS = `
   ST_YMin(a.geom) AS min_lat, ST_XMin(a.geom) AS min_lon, ST_YMax(a.geom) AS max_lat, ST_XMax(a.geom) AS max_lon,
   ST_AsGeoJSON(a.geom, 7) AS geojson`;
 
-/** Writes a pack per docs/pack-format.md from the `pipeline` schema. */
-export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise<void> => {
+/** Writes a pack per docs/pack-format.md from the `pipeline` schema; returns the city's bbox. */
+export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise<Bbox> => {
   const only = o.districtId ?? null;
   const [city] = await sql.unsafe(
     `SELECT ${AREA_COLUMNS} FROM pipeline.pack_area a WHERE a.id = 'city'`,
@@ -234,22 +239,25 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
   })();
   db.exec("VACUUM");
   db.close();
+  const { min_lat, min_lon, max_lat, max_lon } = cityArea;
+  return { min_lat, min_lon, max_lat, max_lon };
 };
 
 /** Gzips a pack next to itself and writes manifest.json describing the .gz file. */
 export const finalisePack = (
   sqliteFile: string,
   manifestFile: string,
-  m: Omit<Manifest, "file" | "sha256" | "size">,
+  m: Omit<Manifest, "format_version" | "file" | "sha256" | "size">,
 ): Manifest => {
   const gz = `${sqliteFile}.gz`;
   const bytes = gzipSync(readFileSync(sqliteFile), { level: 9 });
   writeFileSync(gz, bytes);
   const manifest: Manifest = {
+    format_version: PACK_FORMAT_VERSION,
     ...m,
-    file: gz.split(/[\\/]/).pop() as string,
+    file: basename(gz),
     sha256: createHash("sha256").update(bytes).digest("hex"),
-    size: statSync(gz).size,
+    size: bytes.length,
   };
   writeFileSync(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
   return manifest;

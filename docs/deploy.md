@@ -101,12 +101,14 @@ curl https://tiles.$DOMAIN/georgia     # TileJSON
 dc run --rm pipeline fetch tbilisi     # Geofabrik extract into the pipeline cache volume
 dc run --rm pipeline build tbilisi     # osm2pgsql + SQL steps + export pack
 dc run --rm pipeline validate tbilisi  # schema, districts, >= 30 expert streets each, geometry
-dc run --rm pipeline publish tbilisi   # copy pack + manifest into PACKS_DIR, rewrite catalog.json
+dc run --rm pipeline publish tbilisi   # copy pack + manifest into PACKS_DIR, commit street ids, rewrite catalog.json
 curl https://api.$DOMAIN/v1/catalog
 ```
 
-`build` also updates `data/cities/tbilisi/identity.json` (stable street ids). Commit it back so the
-ids survive: `git add data/cities && git commit -m "data: refresh tbilisi identity"` and push.
+`build` stages the new stable street ids in `apps/pipeline/out/tbilisi/identity.json`; only `publish`
+writes them to `data/cities/tbilisi/identity.json`, just before the pack goes live, so a build that
+fails `validate` never retires an id. Commit the file back so the ids survive:
+`git add data/cities && git commit -m "data: refresh tbilisi identity"` and push.
 
 ## 6. Monthly pack refresh (systemd timer)
 

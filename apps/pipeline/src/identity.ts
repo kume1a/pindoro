@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { cityDir } from "./config.ts";
+import { cityDir, OUT_DIR } from "./config.ts";
+import { replaceAtomically } from "./io.ts";
 
 export interface Identity {
   id: string;
@@ -18,19 +19,19 @@ export interface CurrentStreet {
   way_ids: number[];
 }
 
-export interface IdentityDiff {
+interface IdentityDiff {
   matched: number;
   added: { id: string; name: string }[];
   retired: { id: string; name: string }[];
 }
 
-export interface IdentityResult {
+interface IdentityResult {
   ids: Map<number, string>;
   identities: Identity[];
   diff: IdentityDiff;
 }
 
-export const JACCARD_MIN = 0.3;
+const JACCARD_MIN = 0.3;
 
 export const jaccard = (a: number[], b: number[]): number => {
   const sa = new Set(a);
@@ -106,7 +107,11 @@ export const matchIdentities = (
   };
 };
 
-const identityFile = (city: string): string => join(cityDir(city), "identity.json");
+/** The city's committed identities: the ones its published packs use. */
+export const identityFile = (city: string): string => join(cityDir(city), "identity.json");
+
+/** A full build's identities wait here until `publish` makes its pack live. */
+export const stagedIdentityFile = (city: string): string => join(OUT_DIR, city, "identity.json");
 
 export const readIdentities = (city: string): Identity[] => {
   const file = identityFile(city);
@@ -116,7 +121,9 @@ export const readIdentities = (city: string): Identity[] => {
 };
 
 /** One street per line keeps the committed file reviewable in diffs. */
-export const writeIdentities = (city: string, identities: Identity[]): void => {
+export const writeIdentities = (file: string, identities: Identity[]): void => {
   const lines = identities.map((i) => `\n    ${JSON.stringify(i)}`).join(",");
-  writeFileSync(identityFile(city), `{\n  "streets": [${lines}${lines && "\n  "}]\n}\n`);
+  replaceAtomically(file, (tmp) =>
+    writeFileSync(tmp, `{\n  "streets": [${lines}${lines && "\n  "}]\n}\n`),
+  );
 };

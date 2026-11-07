@@ -2,13 +2,14 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type Flavor, layers, namedFlavor } from "@protomaps/basemaps";
 import { MOBILE_ASSETS, REPO_ROOT, TOKENS_FILES } from "./config.ts";
-import { run } from "./load.ts";
+import { replaceAtomically, run } from "./io.ts";
 
 // minLon,minLat,maxLon,maxLat around Georgia
 const GEORGIA_BBOX = "39.9,41.0,46.8,43.6";
 const TILES_FILE = join(REPO_ROOT, "infra/tiles/georgia.pmtiles");
 const STYLES_DIR = join(MOBILE_ASSETS, "map_styles");
 const ATTRIBUTION = "© OpenStreetMap contributors, Protomaps";
+const ROAD_KINDS = ["highway", "major", "link", "minor", "other"];
 // Protomaps daily builds stop at z15; MapLibre overzooms beyond it.
 const MAX_ZOOM = 15;
 
@@ -67,13 +68,12 @@ const flavorFor = (mode: Mode): Flavor => {
     railway: c("railway"),
     boundaries: c("boundary"),
     ...Object.fromEntries(
-      ["", "tunnel_", "bridges_"].flatMap((prefix) => [
-        ...["highway", "major", "link", "minor", "other"].map((kind) => [`${prefix}${kind}`, road]),
-        ...["highway", "major", "link", "minor", "other"].map((kind) => [
-          `${prefix}${kind}_casing`,
-          casing,
+      ["", "tunnel_", "bridges_"].flatMap((prefix) =>
+        ROAD_KINDS.flatMap((kind) => [
+          [`${prefix}${kind}`, road],
+          [`${prefix}${kind}_casing`, casing],
         ]),
-      ]),
+      ),
     ),
     minor_a: road,
     minor_b: road,
@@ -103,7 +103,7 @@ export const mapStyle = (mode: Mode): object => ({
   layers: layers("protomaps", flavorFor(mode)).filter((layer) => layer.type !== "symbol"),
 });
 
-export const writeStyles = (): void => {
+const writeStyles = (): void => {
   mkdirSync(STYLES_DIR, { recursive: true });
   for (const mode of ["light", "dark"] as const) {
     const file = join(STYLES_DIR, `pindoro_${mode}.json`);
@@ -117,5 +117,8 @@ export const tiles = async (opts: { stylesOnly: boolean }): Promise<void> => {
   if (opts.stylesOnly) return;
   const url = await latestBuild();
   console.log(`extracting ${url} (bbox ${GEORGIA_BBOX}) -> ${TILES_FILE}`);
-  run("pmtiles", ["extract", url, TILES_FILE, `--bbox=${GEORGIA_BBOX}`, "--download-threads=4"]);
+  // martin keeps serving the old file until `dc restart martin`.
+  replaceAtomically(TILES_FILE, (tmp) =>
+    run("pmtiles", ["extract", url, tmp, `--bbox=${GEORGIA_BBOX}`, "--download-threads=4"]),
+  );
 };
