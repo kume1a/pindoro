@@ -64,7 +64,7 @@ services:
       - ${TILES_DIR:-./tiles}:/tiles:ro
 
   packs:
-    image: caddy:2
+    image: caddy:2.11.9
     command: ["caddy", "file-server", "--root", "/srv", "--listen", ":80", "--browse"]
     ports:
       - "8080:80"
