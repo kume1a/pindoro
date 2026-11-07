@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The brand pin as the notification's status-bar icon (white silhouette; Android tints it). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M12,22.2C12,22.2 4.6,14.6 4.6,9.4A7.4,7.4 0,0 1,19.4 9.4C19.4,14.6 12,22.2 12,22.2ZM12,12.3A2.9,2.9 0,1 0,12 6.5A2.9,2.9 0,0 0,12 12.3Z" />
+</vector>

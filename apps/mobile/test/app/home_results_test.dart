@@ -12,11 +12,13 @@ import 'package:pindoro/core/launch_overlay.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
+import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 void main() {
   late AppDatabase db;
+  late _FakeReminders reminders;
   late List<Street> streets;
 
   setUpAll(() {
@@ -32,12 +34,14 @@ void main() {
         closeStreamsSynchronously: true,
       ),
     );
+    reminders = _FakeReminders();
   });
   tearDown(() => db.close());
 
   Widget appAt(String location, {bool coldStart = false}) => ProviderScope(
     overrides: [
       databaseProvider.overrideWithValue(db),
+      remindersProvider.overrideWithValue(reminders),
       packRepositoryProvider.overrideWith((ref) async {
         final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
         ref.onDispose(repo.close);
@@ -338,5 +342,56 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets('the reminder asks first, then schedules the next one', (
+      tester,
+    ) async {
+      phone(tester);
+      await pumpApp(tester, Routes.settings);
+      await tester.tap(find.text('Reminder'));
+      await settle(tester);
+      final settings = await tester.runAsync(() => SettingsDao(db).read());
+      expect(settings!.reminder, isTrue);
+      expect(reminders.scheduled.single.hour, StreakRules.reminderHour);
+
+      await tester.tap(find.text('Reminder'));
+      await settle(tester);
+      expect(reminders.cancels, 1);
+    });
+
+    testWidgets('without permission the reminder stays off', (tester) async {
+      phone(tester);
+      reminders.allowed = false;
+      await pumpApp(tester, Routes.settings);
+      await tester.tap(find.text('Reminder'));
+      await settle(tester);
+      expect(
+        find.text(
+          "Notifications are off for Pindoro. Turn them on in your phone's "
+          'settings.',
+        ),
+        findsOneWidget,
+      );
+      final settings = await tester.runAsync(() => SettingsDao(db).read());
+      expect(settings!.reminder, isFalse);
+      expect(reminders.scheduled, isEmpty);
+    });
   });
+}
+
+/// Records what would be scheduled; [allowed] answers the permission prompt.
+class _FakeReminders implements Reminders {
+  bool allowed = true;
+  final List<DateTime> scheduled = [];
+  int cancels = 0;
+
+  @override
+  Future<bool> requestPermission() async => allowed;
+
+  @override
+  Future<void> schedule(ReminderNotice notice) async =>
+      scheduled.add(notice.at);
+
+  @override
+  Future<void> cancel() async => cancels++;
 }

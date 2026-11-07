@@ -10,7 +10,10 @@ import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/core/toast.dart';
+import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/progress/ui/daily_goal.dart';
+import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -72,6 +75,20 @@ class SettingsScreen extends ConsumerWidget {
               trailing: const PindoroIcon(PindoroGlyph.chevronRight),
               onTap: () => showDailyGoalSheet(context, ref),
             ),
+            _ToggleRow(
+              title: l10n.settingsReminder,
+              subtitle: l10n.settingsReminderSubtitle(
+                MaterialLocalizations.of(context).formatTimeOfDay(
+                  const TimeOfDay(hour: StreakRules.reminderHour, minute: 0),
+                  alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(
+                    context,
+                  ),
+                ),
+              ),
+              glyph: PindoroGlyph.bell,
+              value: settings.reminder,
+              onChanged: (on) => _setReminder(context, ref, on: on),
+            ),
           ],
         ),
         SectionTitle(l10n.settingsDisplay),
@@ -125,6 +142,26 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ],
     );
+  }
+}
+
+/// On asks for notification permission first; without it the switch stays
+/// off and a toast says where to allow it. Off cancels the scheduled one.
+Future<void> _setReminder(
+  BuildContext context,
+  WidgetRef ref, {
+  required bool on,
+}) async {
+  final dao = ref.read(settingsDaoProvider);
+  final reminders = ref.read(remindersProvider);
+  ref.read(feedbackProvider).tap();
+  if (!on) {
+    await dao.setReminder(on: false);
+    await reminders.cancel();
+  } else if (await reminders.requestPermission()) {
+    await dao.setReminder(on: true);
+  } else if (context.mounted) {
+    showToast(context, context.l10n.settingsReminderDenied);
   }
 }
 
