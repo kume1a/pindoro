@@ -148,45 +148,11 @@ class CityCard extends StatelessWidget {
               style: PindoroType.bodySm.copyWith(color: c.textSecondary),
             ),
           for (final d in home.recent)
-            Semantics(
-              button: true,
-              child: InkWell(
-                onTap: () => onDistrict(d.district.id),
-                mouseCursor: SystemMouseCursors.click,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: PindoroSpace.s2,
-                  ),
-                  child: Row(
-                    spacing: PindoroSpace.s3,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          districtName(d.district, settings),
-                          style: PindoroType.titleSm.copyWith(
-                            color: c.textPrimary,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Minibar(
-                          value: d.count.fraction,
-                          from: before?.byDistrict[d.district.id]?.fraction,
-                          delay: HomeIntroAt.streets,
-                        ),
-                      ),
-                      Text(
-                        '${formatNumber(d.count.known)} / '
-                        '${formatNumber(d.count.total)}',
-                        style: PindoroType.numericSm.copyWith(
-                          color: c.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            _DistrictRow(
+              d,
+              name: districtName(d.district, settings),
+              from: before?.byDistrict[d.district.id]?.fraction,
+              onTap: () => onDistrict(d.district.id),
             ),
           if (home.districts.isNotEmpty)
             PindoroButton(
@@ -195,6 +161,73 @@ class CityCard extends StatelessWidget {
               onPressed: onAll,
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// A recently played district: its swatch, name, streets known; mastered
+/// ones read as complete.
+class _DistrictRow extends StatelessWidget {
+  const _DistrictRow(
+    this.district, {
+    required this.name,
+    required this.from,
+    required this.onTap,
+  });
+
+  final DistrictCount district;
+  final String name;
+
+  /// Where the bar starts during Home's intro.
+  final double? from;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final c = PindoroTheme.of(context).colors;
+    final count = district.count;
+    final progress = _progress(count);
+    final known = formatNumber(count.known);
+    final total = formatNumber(count.total);
+    return Semantics(
+      button: true,
+      label: progress == DistrictProgress.complete
+          ? l10n.a11yDistrictRowComplete(name, known, total)
+          : l10n.a11yDistrictRow(name, known, total),
+      excludeSemantics: true,
+      onTap: onTap,
+      child: InkWell(
+        onTap: onTap,
+        mouseCursor: SystemMouseCursors.click,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: PindoroSpace.s2),
+          child: Row(
+            spacing: PindoroSpace.s3,
+            children: [
+              Swatch(progress: progress, size: 22),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  name,
+                  style: PindoroType.titleSm.copyWith(color: c.textPrimary),
+                ),
+              ),
+              Expanded(
+                child: Minibar(
+                  value: count.fraction,
+                  from: from,
+                  delay: HomeIntroAt.streets,
+                ),
+              ),
+              Text(
+                '$known / $total',
+                style: PindoroType.numericSm.copyWith(color: c.textSecondary),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

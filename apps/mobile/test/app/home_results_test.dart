@@ -397,6 +397,96 @@ void main() {
       expect(reminders.scheduled, isEmpty);
     });
   });
+
+  group('pit stop', () {
+    final today = calendarDay(DateTime.now());
+
+    /// The fixture's first streets in the Pit stop, due [dueIn] days from
+    /// today (negative: overdue).
+    Future<void> review(int count, {int dueIn = -1}) => db.batch(
+      (b) => b.insertAll(db.reviewItems, [
+        for (final s in streets.take(count))
+          ReviewItemsCompanion.insert(
+            cityId: 'tbilisi',
+            streetId: s.id,
+            step: 1,
+            greatRun: 0,
+            dueOn: dayKey(today.add(Duration(days: dueIn))),
+            lastTier: Tier.miss,
+            lastAt: DateTime.now().subtract(const Duration(days: 1)),
+          ),
+      ]),
+    );
+
+    testWidgets('home shows due streets; Review opens the Pit stop', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        await review(6);
+        await SettingsDao(db).markHomeCoachSeen();
+      });
+      await pumpApp(tester, Routes.home);
+      expect(find.text('6 streets due today'), findsOneWidget);
+
+      await tester.tap(find.text('Review'));
+      await settle(tester);
+      expect(find.text('6 streets to tune up'), findsOneWidget);
+      expect(find.text('+ 2 more streets'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(RegExp(r'Miss, 1 day ago\. Review step 1 of 4')),
+        findsNWidgets(4),
+      );
+      expect(find.text('Start Pit stop · 6 streets'), findsOneWidget);
+    });
+
+    testWidgets('nothing due: all tuned up, with the next review', (
+      tester,
+    ) async {
+      await tester.runAsync(() => review(3, dueIn: 1));
+      await pumpApp(tester, Routes.pitStop);
+      expect(find.text('All tuned up'), findsOneWidget);
+      expect(find.text('Next review: tomorrow · 3 streets'), findsOneWidget);
+    });
+
+    testWidgets('a Pit stop round ends in Pit stop results', (tester) async {
+      late String id;
+      await tester.runAsync(() async {
+        id = await ProgressDao(db).startRound(
+          cityId: 'tbilisi',
+          area: vake,
+          difficulty: Difficulty.expert,
+          packVersion: 'v1',
+          streetIds: [streets[0].id, streets[1].id],
+          pitStop: true,
+        );
+        for (final (s, tier) in [
+          (streets[0], Tier.great),
+          (streets[1], Tier.miss),
+        ]) {
+          await ProgressDao(db).recordAnswer(
+            roundId: id,
+            streetId: s.id,
+            pin: s.midpoint,
+            distanceM: 42,
+            tier: tier,
+            xp: tier == Tier.great ? 80 : 0,
+            packVersion: 'v1',
+          );
+        }
+        await ProgressDao(db).finishRound(id);
+      });
+      await pumpApp(tester, Routes.resultsOf(id));
+      expect(find.text('Pit stop complete'), findsOneWidget);
+      expect(find.text('1 to your Pit stop'), findsOneWidget);
+      expect(find.text('Play a new round'), findsOneWidget);
+      await tester.drag(find.byType(ListView), const Offset(0, -600));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('in your Pit stop', findRichText: true),
+        findsOneWidget,
+      );
+    });
+  });
 }
 
 /// Records what would be scheduled; [allowed] answers the permission prompt.

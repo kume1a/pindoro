@@ -153,6 +153,7 @@ class ListRow extends StatelessWidget {
     final enabled = onTap != null || toggled == null;
     final check = this.check;
     return Semantics(
+      container: semanticsLabel != null,
       button: onTap != null && toggled == null && check == null,
       toggled: toggled,
       checked: check?.isChecked,
