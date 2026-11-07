@@ -7,6 +7,7 @@ import 'package:pindoro/app/app.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
+import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/launch_overlay.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -227,5 +228,75 @@ void main() {
   testWidgets('results without a round go home', (tester) async {
     await pumpApp(tester, Routes.results);
     expect(find.text('Streets you know'), findsOneWidget);
+  });
+
+  group('streak', () {
+    final today = calendarDay(DateTime.now());
+
+    /// A phone tall enough for the whole Streak screen without scrolling.
+    void phone(WidgetTester tester) {
+      tester.view
+        ..physicalSize = const Size(1080, 2400)
+        ..devicePixelRatio = 2.75;
+      addTearDown(tester.view.reset);
+    }
+
+    /// Goal days from [from] days ago to [to] days ago.
+    Future<void> goalDays(int from, int to) => db.batch(
+      (b) => b.insertAll(db.goalDays, [
+        for (var d = from; d >= to; d--)
+          GoalDaysCompanion.insert(
+            date: dayKey(today.subtract(Duration(days: d))),
+          ),
+      ]),
+    );
+
+    testWidgets('home shows the pill and ring; the pill opens Streak', (
+      tester,
+    ) async {
+      phone(tester);
+      await tester.runAsync(() async {
+        await roundWithAnswers(10);
+        await goalDays(1, 0);
+        await SettingsDao(db).markHomeCoachSeen();
+      });
+      await pumpApp(tester, Routes.home);
+      expect(
+        find.bySemanticsLabel('2-day streak. Goal met today.'),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel('Daily goal met, 600 of 500 XP'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.bySemanticsLabel('2-day streak. Goal met today.'));
+      await settle(tester);
+      expect(find.text('Streak'), findsOneWidget);
+      expect(find.text('day streak'), findsOneWidget);
+      expect(find.text('Your best: 2 days'), findsOneWidget);
+      expect(find.text('No streak freeze yet'), findsOneWidget);
+      expect(find.text('Met today with 600 XP'), findsOneWidget);
+    });
+
+    testWidgets('streak shows a held freeze; Change saves a new goal', (
+      tester,
+    ) async {
+      phone(tester);
+      await tester.runAsync(() => goalDays(7, 1));
+      await pumpApp(tester, Routes.streak);
+      expect(find.text('Streak freeze equipped · 1 of 2'), findsOneWidget);
+      expect(find.text('0 of 500 XP today'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('Change'));
+      await tester.pump();
+      await tester.tap(find.text('Change'));
+      await settle(tester);
+      await tester.tap(find.text('${formatNumber(1000)} XP a day'));
+      await settle(tester);
+      expect(find.text('Daily goal: ${formatNumber(1000)} XP'), findsOneWidget);
+      final settings = await tester.runAsync(() => SettingsDao(db).read());
+      expect(settings!.dailyGoal, 1000);
+    });
   });
 }

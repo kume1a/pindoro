@@ -100,6 +100,8 @@ class DailyGoalRing extends StatelessWidget {
     );
     return Semantics(
       label: semanticLabel,
+      container: true,
+      image: true,
       excludeSemantics: true,
       child: SizedBox.square(
         dimension: size,
@@ -236,6 +238,8 @@ class StreakCalendar extends StatelessWidget {
     ];
     return Semantics(
       label: semanticLabel,
+      container: true,
+      image: true,
       excludeSemantics: true,
       child: SizedBox(
         width: 7 * _disc + 6 * _gap,

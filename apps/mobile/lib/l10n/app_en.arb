@@ -710,5 +710,204 @@
         "type": "String"
       }
     }
-  }
+  },
+  "streakDays": "{days}-day streak",
+  "@streakDays": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "streakA11yActive": "{days}-day streak. Goal met today.",
+  "@streakA11yActive": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "streakA11yOpen": "{days}-day streak. Today's goal isn't met yet.",
+  "@streakA11yOpen": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "streakA11yRisk": "{days}-day streak. It ends at midnight unless you meet today's goal.",
+  "@streakA11yRisk": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "streakA11yFrozen": "{days}-day streak. A streak freeze covered yesterday.",
+  "@streakA11yFrozen": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "streakA11yNone": "No streak yet. Meet today's goal to start one.",
+  "streakTitle": "Streak",
+  "streakDayStreak": "day streak",
+  "streakBest": "{count, plural, =1{Your best: {days} day} other{Your best: {days} days}}",
+  "@streakBest": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "streakLegend": "Goal met · frozen · today",
+  "streakCalendarMet": "Goal met on {days}",
+  "@streakCalendarMet": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "streakCalendarFrozen": "covered by a streak freeze on {days}",
+  "@streakCalendarFrozen": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "streakCalendarNone": "No goal days yet",
+  "streakCalendarToday": "today is the {day}",
+  "@streakCalendarToday": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "streakFreezeHeld": "Streak freeze equipped · {held} of {max}",
+  "@streakFreezeHeld": {
+    "placeholders": {
+      "held": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "streakFreezeBody": "Miss a day and your streak stays put. You earn one for every 7 days in a row.",
+  "streakFreezeNone": "No streak freeze yet",
+  "streakFreezeNoneBody": "You earn one for every 7 days in a row.",
+  "streakPlay": "Play a round",
+  "dailyGoalTitle": "Daily goal: {goal} XP",
+  "@dailyGoalTitle": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "dailyGoalMetToday": "Met today with {xp} XP",
+  "@dailyGoalMetToday": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "dailyGoalToday": "{xp} of {goal} XP today",
+  "@dailyGoalToday": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "dailyGoalA11y": "Daily goal: {xp} of {goal} XP",
+  "@dailyGoalA11y": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "dailyGoalA11yMet": "Daily goal met, {xp} of {goal} XP",
+  "@dailyGoalA11yMet": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "dailyGoalChange": "Change",
+  "dailyGoalSheetTitle": "Daily goal",
+  "dailyGoalPerDay": "{goal} XP a day",
+  "@dailyGoalPerDay": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "dailyGoalRounds": "{rounds, plural, =1{About one round} =2{About two rounds} other{About {rounds} rounds}}",
+  "@dailyGoalRounds": {
+    "placeholders": {
+      "rounds": {
+        "type": "int"
+      }
+    }
+  },
+  "dailyGoalKeepsStreak": "{rounds} · keeps your streak going",
+  "@dailyGoalKeepsStreak": {
+    "placeholders": {
+      "rounds": {
+        "type": "String"
+      }
+    }
+  },
+  "resultsStreakA11y": "Daily goal met, {days}-day streak",
+  "@resultsStreakA11y": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsDailyGoal": "Daily goal",
+  "settingsReminder": "Reminder",
+  "settingsReminderSubtitle": "{time}, only if today's goal isn't met",
+  "@settingsReminderSubtitle": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsReminderDenied": "Notifications are off for Pindoro. Turn them on in your phone's settings.",
+  "reminderStreak": "Your {days}-day streak ends at midnight. One round keeps it going.",
+  "@reminderStreak": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderNoStreak": "Today's goal is waiting. One round gets your streak going.",
+  "reminderChannel": "Daily reminder"
 }

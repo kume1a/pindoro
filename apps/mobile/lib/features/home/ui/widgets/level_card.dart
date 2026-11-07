@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/features/home/ui/widgets/home_intro.dart';
+import 'package:pindoro/features/progress/data/streak.dart';
+import 'package:pindoro/features/progress/ui/daily_goal.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -10,11 +12,15 @@ class LevelCard extends StatelessWidget {
     required this.level,
     required this.totalXp,
     this.intro,
+    this.streak,
   });
 
   final LevelProgress level;
   final int totalXp;
   final HomeIntro? intro;
+
+  /// Today's goal ring sits at the end of the first row.
+  final StreakView? streak;
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +60,7 @@ class LevelCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (streak case final streak?) GoalRing(streak),
             ],
           ),
           XpBar(

@@ -12,6 +12,7 @@ import 'package:pindoro/features/setup/ui/area_screen.dart';
 import 'package:pindoro/features/setup/ui/city_screen.dart';
 import 'package:pindoro/features/setup/ui/difficulty_screen.dart';
 import 'package:pindoro/features/setup/ui/welcome_screen.dart';
+import 'package:pindoro/features/streak/ui/streak_screen.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// Home and Results arrive with a fade rather than a slide (canvas M-40, M-43).
@@ -78,6 +79,7 @@ GoRouter buildRouter(String initialLocation) => GoRouter(
         ),
       ],
     ),
+    GoRoute(path: Routes.streak, builder: (_, _) => const StreakScreen()),
     GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
     GoRoute(path: Routes.credits, builder: (_, _) => const CreditsScreen()),
   ],
