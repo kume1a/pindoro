@@ -15,18 +15,18 @@ Me screen with the level card, four stat tiles, the cities with progress and the
 
 ## Decisions
 
-| Topic                | Decision                                                                                              |
-| -------------------- | ----------------------------------------------------------------------------------------------------- |
-| Home's Pit stop card | Dropped (canvas r4): the tab badge carries the due count. Card, `HomeData.pitStopDue` and strings go   |
-| Lessons, Road trips  | All four tiles now; Lessons and Road trips read 0 until R4b / R4c wire them (TODO.md)                  |
+| Topic                | Decision                                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------------------------- |
+| Home's Pit stop card | Dropped (canvas r4): the tab badge carries the due count. Card, `HomeData.pitStopDue` and strings go    |
+| Lessons, Road trips  | All four tiles now; Lessons and Road trips read 0 until R4b / R4c wire them (TODO.md)                   |
 | Tab badge            | Cobalt count pill (`color.primary.base` / `.on`), `label.sm` tabular, 18 dp, 2 dp `surface.raised` ring |
-| Back at a tab root   | Pit stop or Me → Free play; Free play → leaves the app                                                 |
-| Pushed screens       | Every non-tab route stays top-level (root navigator) and covers the bar, as now                       |
-| Re-tap active tab    | Scrolls that tab to the top (canvas R4-14)                                                             |
-| Switching tabs       | Cross-fade `duration.fast` (200 ms), no slide; reduce motion: instant; `selectionClick` (R4-63)        |
-| Me city row          | Chooses that city and opens Free play                                                                  |
-| Me tiles             | Best streak opens Streak; the others aren't tappable until their lists exist (TODO.md)                |
-| Results Done         | Unchanged: Free play with the Home intro, also after a Pit stop round                                  |
+| Back at a tab root   | Pit stop or Me → Free play; Free play → leaves the app                                                  |
+| Pushed screens       | Every non-tab route stays top-level (root navigator) and covers the bar, as now                         |
+| Re-tap active tab    | Scrolls that tab to the top (canvas R4-14)                                                              |
+| Switching tabs       | Cross-fade `duration.fast` (200 ms), no slide; reduce motion: instant; `selectionClick` (R4-63)         |
+| Me city row          | Chooses that city and opens Free play                                                                   |
+| Me tiles             | Best streak opens Streak; the others aren't tappable until their lists exist (TODO.md)                  |
+| Results Done         | Unchanged: Free play with the Home intro, also after a Pit stop round                                   |
 
 ## Design system (`packages/pindoro_design`)
 
