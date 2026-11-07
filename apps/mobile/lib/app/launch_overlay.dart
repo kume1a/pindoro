@@ -24,13 +24,16 @@ class LaunchOverlay extends ConsumerStatefulWidget {
   ConsumerState<LaunchOverlay> createState() => _LaunchOverlayState();
 }
 
+/// When the first page starts to open out of the yellow dot.
+const Duration launchReveal = Duration(milliseconds: 1500);
+
 /// Milliseconds into the launch where each phase starts.
 abstract final class _At {
   static const double hop = 700;
   static const double fall = 1000;
   static const double land = 1220;
   static const double settle = 1280;
-  static const double reveal = 1500;
+  static final double reveal = launchReveal.inMilliseconds.toDouble();
   static const double end = 1860;
 }
 
@@ -91,12 +94,19 @@ class _LaunchOverlayState extends ConsumerState<LaunchOverlay>
     );
   }
 
-  /// The launch [ms] milliseconds in.
+  /// The launch [ms] milliseconds in. The wordmark isn't on the native
+  /// splash (it can't be localised there), so it fades in on the first frame.
   Widget _frame(bool dark, double ms) => LayoutBuilder(
     builder: (context, box) {
       final dot =
           box.biggest.center(Offset.zero) - const Offset(0, _dotAboveCentre);
       final pin = _pinPose(ms);
+      final wordmark = _phase(
+        ms,
+        0,
+        PindoroMotion.durationBase.inMilliseconds.toDouble(),
+        PindoroMotion.easeStandard,
+      );
       return ClipPath(
         clipper: _Hole(
           dot,
@@ -143,6 +153,22 @@ class _LaunchOverlayState extends ConsumerState<LaunchOverlay>
                       : PindoroPalette.cobalt200,
                   dot: PindoroPalette.yellow400,
                   width: PinMark.gridWidth * _unit,
+                ),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: MediaQuery.paddingOf(context).bottom + PindoroSpace.s12,
+              child: Opacity(
+                opacity: wordmark,
+                child: Center(
+                  child: Wordmark(
+                    georgian:
+                        Localizations.localeOf(context).languageCode == 'ka',
+                    height: PindoroSpace.s8,
+                    ground: dark ? WordmarkGround.dark : WordmarkGround.brand,
+                  ),
                 ),
               ),
             ),
