@@ -11,6 +11,7 @@ import 'app/app.dart';
 import 'app/config.dart';
 import 'app/database.dart';
 import 'app/router.dart';
+import 'features/map/city_tiles.dart';
 import 'features/pack/pack_store.dart';
 import 'features/pack/sqlite_pack_repository.dart';
 
@@ -28,6 +29,7 @@ Future<void> main() async {
     apiBaseUrl: AppConfig.apiBaseUrl,
   );
   final container = ProviderContainer(
+    observers: [CityTilesObserver(docs)],
     overrides: [
       databaseProvider.overrideWithValue(db),
       packStoreProvider.overrideWithValue(store),

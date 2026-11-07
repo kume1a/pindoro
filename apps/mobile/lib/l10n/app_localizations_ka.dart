@@ -337,6 +337,10 @@ class AppLocalizationsKa extends AppLocalizations {
       'შენი ქუჩა სათამაშო არეალის შიგნითაა. აქაც შეგიძლია დაადასტურო.';
 
   @override
+  String get toastOffline =>
+      'ინტერნეტი არ გაქვს. რუკაზე ხარვეზებია, მაგრამ რაუნდი გრძელდება.';
+
+  @override
   String toastRoundResumed(int question) {
     return 'კეთილი იყოს შენი დაბრუნება. რაუნდი გრძელდება: კითხვა $question.';
   }

@@ -632,6 +632,12 @@ abstract class AppLocalizations {
   /// **'Your street is inside the play area. You can still confirm here.'**
   String get toastPinOutsideArea;
 
+  /// No description provided for @toastOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'You’re offline. The map has gaps, but your round still works.'**
+  String get toastOffline;
+
   /// No description provided for @toastRoundResumed.
   ///
   /// In en, this message translates to:

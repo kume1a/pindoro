@@ -248,6 +248,7 @@
   "quizLeaveKeepPlaying": "Keep playing",
   "quizLeaveConfirm": "Leave for now",
   "toastPinOutsideArea": "Your street is inside the play area. You can still confirm here.",
+  "toastOffline": "You’re offline. The map has gaps, but your round still works.",
   "toastRoundResumed": "Welcome back. Your round continues at question {question}.",
   "@toastRoundResumed": {
     "placeholders": {

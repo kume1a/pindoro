@@ -342,6 +342,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your street is inside the play area. You can still confirm here.';
 
   @override
+  String get toastOffline =>
+      'You’re offline. The map has gaps, but your round still works.';
+
+  @override
   String toastRoundResumed(int question) {
     return 'Welcome back. Your round continues at question $question.';
   }
