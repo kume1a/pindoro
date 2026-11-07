@@ -8,15 +8,21 @@
   written in the repo; it needs a native review.
 - **Designed in text, not drawn** — the 2026-11-07 design pass (map greys, 104-area picker, city
   pack download, Miss directions) lives in `tokens.json` and `docs/design/v1-screens.md`; the
-  claude.ai canvas has no boards for it yet (chips at both zoom bands, narrow with Undo, All areas,
-  pack download and failure, offline Vake).
-- **Left out of that pass:** download progress in the City row (choosing a city opens the Area
-  picker at once, so the wait shows there); district names along their outlines from zoom 12 (no
-  glyphs); chips that step aside instead of hiding (MapLibre's variable anchors are text-only);
-  sticky district rows in All areas; the pack panel's motion and a city outline on the empty map
-  while it downloads; a "Free up space" button and a free-space check before downloading; Miss
-  distances rounded to 10 m (they would disagree with the map chip). The bundled Vake pack holds
-  only the district, not its quarters and neighbourhoods.
+  claude.ai canvas has no boards for it yet (chips at both zoom bands, district names along
+  outlines, narrow with Undo, All areas, pack download and failure, offline Vake).
+- **Left out of that pass, on purpose:**
+  - Download progress in the City row: tapping a city opens the Area picker at once, so the row is
+    gone before a bar could show. The wait shows in the Area picker's panel instead.
+  - Chips that step aside instead of hiding: MapLibre only shifts text labels
+    (`text-variable-anchor`), and the map style has no fonts, so chips are images. It would need
+    FiraGO map glyphs generated and served, and every chip redrawn as map text.
+  - A city outline on the empty map while the pack downloads: the catalog has only a bbox, so it
+    would need the boundary in the manifest, the API and the app, for a wait of 1–2 s.
+  - A "Free up space" button and a free-space check before downloading: native code (Android
+    `StorageManager.getAllocatableBytes`, `ACTION_MANAGE_STORAGE`) for a 1 MB pack. A full phone
+    is caught when saving fails and gets its own copy.
+  - The progress bar's finishing touches from the research (red on failure, a check when done):
+    the panel goes away as soon as the pack opens.
 - Map labels (area names, the distance chip) are images drawn by `MapChip`, because the self-hosted
   map style has no glyphs.
 
