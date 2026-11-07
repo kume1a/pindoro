@@ -7,7 +7,7 @@ x-database-url: &database-url postgres://${POSTGRES_USER:-pindoro}:${POSTGRES_PA
 
 services:
   postgis:
-    image: postgis/postgis:16-3.4
+    image: postgis/postgis:18-3.6
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-pindoro}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pindoro}
@@ -24,7 +24,7 @@ services:
       retries: 20
 
   api:
-    image: node:24-bookworm-slim
+    image: node:25-bookworm-slim
     working_dir: /repo
     # Host node_modules may be Windows junctions, so the container installs its own into volumes.
     command: >-
