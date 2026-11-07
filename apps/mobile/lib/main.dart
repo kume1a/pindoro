@@ -6,14 +6,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
-
-import 'app/app.dart';
-import 'app/config.dart';
-import 'app/database.dart';
-import 'app/router.dart';
-import 'features/map/city_tiles.dart';
-import 'features/pack/pack_store.dart';
-import 'features/pack/sqlite_pack_repository.dart';
+import 'package:pindoro/app/app.dart';
+import 'package:pindoro/app/router.dart';
+import 'package:pindoro/core/config.dart';
+import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/features/map/data/city_tiles.dart';
+import 'package:pindoro/features/pack/data/pack_store.dart';
+import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
