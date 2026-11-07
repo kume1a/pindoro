@@ -30,11 +30,13 @@ the reminder logic. The screens read the provider. Four new `pindoro_design` wid
 ### Task 1: Streak rules (`pindoro_core`)
 
 **Files:**
+
 - Create: `packages/pindoro_core/lib/src/progress/streak.dart`
 - Modify: `packages/pindoro_core/lib/pindoro_core.dart` (export)
 - Test: `packages/pindoro_core/test/streak_test.dart`
 
 **Produces:**
+
 - `DateTime calendarDay(DateTime local)` (UTC midnight of the local date),
   `String dayKey(DateTime day)`, `DateTime parseDayKey(String key)`
 - `abstract final class StreakRules { goals, defaultGoal, freezeEvery, maxFreezes, riskHour,
@@ -63,6 +65,7 @@ the reminder logic. The screens read the provider. Four new `pindoro_design` wid
 ### Task 2: Data — schema 6, goal days, streak provider
 
 **Files:**
+
 - Modify: `apps/mobile/lib/core/database/database.dart` (`GoalDays` table, `dailyGoal`, `reminder`,
   `schemaVersion` 6, `from5To6`)
 - Modify: `apps/mobile/lib/core/database/settings_dao.dart` (`setDailyGoal`, `setReminder`, defaults)
@@ -75,6 +78,7 @@ the reminder logic. The screens read the provider. Four new `pindoro_design` wid
   `apps/mobile/test/core/database/settings_dao_test.dart`; migration test runs as is
 
 **Produces:**
+
 - `ProgressDao.markGoalIfMet(DateTime now, {String? roundId})`, `Future<Set<DateTime>> goalDays()`,
   `Future<int> xpOn(DateTime day)`, `Future<String?> goalRoundOn(DateTime day)`
 - `SettingsDao.setDailyGoal(int goal)`, `setReminder({required bool on})`
@@ -90,6 +94,7 @@ the reminder logic. The screens read the provider. Four new `pindoro_design` wid
 ### Task 3: Design widgets
 
 **Files:**
+
 - Create: `packages/pindoro_design/lib/src/widgets/streak.dart` (`StreakPill`, `DailyGoalRing`,
   `StreakCalendar`, `StreakDay`, `StreakFreezeCard`)
 - Modify: `round_hud.dart` (`Pill` gains `tone: PillTone` and `iconAccent`), `graphics.dart`
@@ -98,6 +103,7 @@ the reminder logic. The screens read the provider. Four new `pindoro_design` wid
   goldens)
 
 **Produces:**
+
 - `enum PillTone { normal, off, risk, frozen }`
 - `StreakPill({required String label, required StreakPillState state, required String
   semanticLabel, VoidCallback? onPressed})`
@@ -114,6 +120,7 @@ the reminder logic. The screens read the provider. Four new `pindoro_design` wid
 ### Task 4: Home, Streak screen, daily goal sheet
 
 **Files:**
+
 - Create: `apps/mobile/lib/features/streak/ui/streak_screen.dart`
 - Create: `apps/mobile/lib/features/progress/ui/daily_goal_sheet.dart` (`showDailyGoalSheet`)
 - Create: `apps/mobile/lib/features/progress/ui/streak_labels.dart` (pill semantics, goal ring
@@ -129,6 +136,7 @@ the reminder logic. The screens read the provider. Four new `pindoro_design` wid
 ### Task 5: Results chip and Settings goal row
 
 **Files:**
+
 - Modify: `results_screen.dart` (flame chip, count-up when this round met the goal, big
   celebration on milestones, `feedback.streak()`), `core/settings.dart` (`GameFeedback.streak`),
   `settings_screen.dart` (Daily goal section with the goal row), `.arb` files
@@ -137,6 +145,7 @@ the reminder logic. The screens read the provider. Four new `pindoro_design` wid
 ### Task 6: Reminder
 
 **Files:**
+
 - Modify: `apps/mobile/pubspec.yaml` (`flutter_local_notifications`, `timezone`)
 - Create: `apps/mobile/lib/features/progress/data/reminders.dart` (`nextReminder`, `Reminders`,
   `remindersProvider`, `reminderPlanProvider`, `syncReminder`)

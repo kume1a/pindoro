@@ -18,19 +18,19 @@ that meets the goal, and Settings changes the goal and the reminder.
 
 ## Decisions
 
-| Topic          | Decision                                                                                     |
-| -------------- | -------------------------------------------------------------------------------------------- |
-| Storage        | Only goal-met days are stored (`goal_day`); everything else comes from them in `pindoro_core` |
-| Daily goal     | 250, 500 or 1 000 XP; default 500. All XP counts: rounds and retries                         |
-| Day            | The device's local calendar date                                                             |
-| Streak count   | Goal-met days in the unbroken run. A frozen day keeps the run alive and adds nothing          |
-| Freezes        | One earned on every 7th goal day of the run, at most 2 held, one used per missed day         |
-| Goal changes   | Apply from now on. Lowering it below today's XP marks today met; past days never change       |
-| History        | Starts fresh: days before the update aren't backfilled                                       |
-| Reminder       | Off by default; turning it on asks for notification permission. Fixed at 19:00               |
-| Reminder rule  | Fires only when that day's goal isn't met; text names the streak at stake                    |
-| Calendar       | Current month only (the board has no month arrows)                                           |
-| Sound          | None: the streak sound waits for the designed sound kit (`docs/TODO.md`)                     |
+| Topic         | Decision                                                                                      |
+| ------------- | --------------------------------------------------------------------------------------------- |
+| Storage       | Only goal-met days are stored (`goal_day`); everything else comes from them in `pindoro_core` |
+| Daily goal    | 250, 500 or 1 000 XP; default 500. All XP counts: rounds and retries                          |
+| Day           | The device's local calendar date                                                              |
+| Streak count  | Goal-met days in the unbroken run. A frozen day keeps the run alive and adds nothing          |
+| Freezes       | One earned on every 7th goal day of the run, at most 2 held, one used per missed day          |
+| Goal changes  | Apply from now on. Lowering it below today's XP marks today met; past days never change       |
+| History       | Starts fresh: days before the update aren't backfilled                                        |
+| Reminder      | Off by default; turning it on asks for notification permission. Fixed at 19:00                |
+| Reminder rule | Fires only when that day's goal isn't met; text names the streak at stake                     |
+| Calendar      | Current month only (the board has no month arrows)                                            |
+| Sound         | None: the streak sound waits for the designed sound kit (`docs/TODO.md`)                      |
 
 ## Rules (`pindoro_core`, `streak.dart`)
 
@@ -51,12 +51,12 @@ doesn't play today (the reminder uses it).
 
 Pill state, from the summary and the local hour:
 
-| State    | When                                                   | Look (`.pd-pill--*`)                         |
-| -------- | ------------------------------------------------------ | -------------------------------------------- |
-| active   | today's goal met                                       | flame in `color.streak.flame` / `.core`      |
-| atRisk   | not met, `days > 0`, after 18:00                       | `color.warning.soft`, warning text and lip   |
-| frozen   | not met, yesterday was frozen                          | `color.streak.freeze.fill`, `freeze` icon    |
-| off      | anything else, including 0                             | flame in locked grey, secondary text         |
+| State  | When                             | Look (`.pd-pill--*`)                       |
+| ------ | -------------------------------- | ------------------------------------------ |
+| active | today's goal met                 | flame in `color.streak.flame` / `.core`    |
+| atRisk | not met, `days > 0`, after 18:00 | `color.warning.soft`, warning text and lip |
+| frozen | not met, yesterday was frozen    | `color.streak.freeze.fill`, `freeze` icon  |
+| off    | anything else, including 0       | flame in locked grey, secondary text       |
 
 atRisk wins over frozen: it's more urgent.
 
