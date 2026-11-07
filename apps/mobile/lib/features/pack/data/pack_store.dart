@@ -153,21 +153,7 @@ class PackStore {
     id: entry['id']! as String,
     nameKa: entry['name_ka']! as String,
     nameEn: entry['name_en']! as String,
-    bbox: switch (entry['bbox']) {
-      {
-        'min_lat': final num minLat,
-        'min_lon': final num minLon,
-        'max_lat': final num maxLat,
-        'max_lon': final num maxLon,
-      } =>
-        Bbox(
-          minLat.toDouble(),
-          minLon.toDouble(),
-          maxLat.toDouble(),
-          maxLon.toDouble(),
-        ),
-      _ => null,
-    },
+    bbox: Bbox.tryParse(entry['bbox']),
   );
 
   Future<List<Map<String, Object?>>> _catalogCities() async {

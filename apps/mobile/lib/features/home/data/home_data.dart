@@ -14,8 +14,6 @@ typedef HomeSavedRound = ({
   DateTime at,
 });
 
-typedef HomeCounts = ({KnownCount city, Map<String, KnownCount> byDistrict});
-
 typedef HomeData = ({
   PackRepository pack,
   int totalXp,
@@ -23,7 +21,7 @@ typedef HomeData = ({
   KnownCount cityKnown,
   List<DistrictCount> districts,
   List<DistrictCount> recent,
-  HomeCounts? before,
+  KnownCounts? before,
 });
 
 /// Home's data; with [introBefore], also the counts before that moment, where
@@ -39,16 +37,13 @@ final homeProvider = FutureProvider.autoDispose.family<HomeData, DateTime?>((
   final progress = round == null ? null : await dao.roundProgress(round.id);
   final streets = await ref.watch(cityStreetsProvider.future);
   final partsByDistrict = pack.partsByDistrict();
-  Future<HomeCounts> countsAt({DateTime? before}) async => knownCounts(
+  Future<KnownCounts> countsAt({DateTime? before}) async => knownCounts(
     streets: streets,
     partsByDistrict: partsByDistrict,
-    known: {
-      for (final MapEntry(key: id, value: tier) in bestTierPerStreet(
-        await dao.bestTierByPart(city.id, before: before),
-        streets,
-      ).entries)
-        if (isKnownTier(tier)) id,
-    },
+    known: knownStreetIds(
+      await dao.bestTierByPart(city.id, before: before),
+      streets,
+    ),
   );
   final counts = await countsAt();
   final districts = [

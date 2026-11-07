@@ -190,8 +190,9 @@ class _RoundView extends ConsumerWidget {
                     ? (at) {
                         feedback.pinDrop();
                         controller.placePin(at);
-                        final inside = round.shape.boundary.any(
-                          (polygon) => polygonContains(polygon, at),
+                        final inside = boundaryContains(
+                          round.shape.boundary,
+                          at,
                         );
                         if (!inside) {
                           showToast(

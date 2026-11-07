@@ -156,8 +156,17 @@ void main() {
       final street = groupByName([long, short]).single;
       // 25 m north of the short primary part: within primary's 30 m Perfect.
       const pin = LatLng(41.702225, 44.7005);
-      expect(street.nearest(pin).part.id, 's');
-      expect(street.score(pin, Difficulty.medium).tier, Tier.perfect);
+      final n = street.nearest(pin);
+      expect(n.part.id, 's');
+      expect(
+        scoreAnswer(n.distanceM, n.part.roadClass, Difficulty.medium).tier,
+        Tier.perfect,
+      );
+    });
+
+    test('a street keeps one geometry list across reads', () {
+      final street = groupByName([long, short]).single;
+      expect(identical(street.geometry, street.geometry), isTrue);
     });
   });
 
@@ -177,6 +186,29 @@ void main() {
         'kind': 'districts',
         'ids': ['osm:r1', 'osm:r2'],
       });
+    });
+
+    test('unreadable JSON is a FormatException, never a TypeError', () {
+      for (final bad in [
+        {
+          'kind': 'districts',
+          'ids': [1],
+        },
+        {
+          'kind': 'districts',
+          'ids': ['osm:r1', null],
+        },
+        {'kind': 'rect', 'min_lat': 41.69},
+      ]) {
+        expect(() => Area.fromJson(bad), throwsFormatException, reason: '$bad');
+      }
+    });
+
+    test('a rectangle around a centre has the asked sides', () {
+      final rect = RectArea.around(const LatLng(41.7, 44.75), 2600, 3000);
+      expect(rect.bounds.center.lat, closeTo(41.7, 1e-9));
+      expect(rect.bounds.widthM, closeTo(2600, 0.5));
+      expect(rect.bounds.heightM, closeTo(3000, 0.5));
     });
 
     test('reads the M1 one-district form and rejects the rest', () {

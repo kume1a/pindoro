@@ -26,7 +26,7 @@ List<DistrictGroup> groupByDistrict(List<District> areas) {
     if (n.kind == DistrictKind.district || districts.isEmpty) continue;
     final home =
         districts
-            .where((d) => d.boundary.any((p) => polygonContains(p, n.center)))
+            .where((d) => boundaryContains(d.boundary, n.center))
             .firstOrNull ??
         (districts.toList()..sort(
               (a, b) => distanceBetween(

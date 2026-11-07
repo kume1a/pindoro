@@ -82,6 +82,14 @@ void main() {
         expect(decodePolyline6(v['encoded']! as String), _line(v['decoded']));
       });
     }
+    for (final v in _cases(scoring, 'polyline6_invalid')) {
+      test('rejects ${v['name']}', () {
+        expect(
+          () => decodePolyline6(v['encoded']! as String),
+          throwsFormatException,
+        );
+      });
+    }
   });
 
   group('levels', () {

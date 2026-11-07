@@ -33,13 +33,7 @@ final resultsProvider = FutureProvider.autoDispose.family<ResultsData, String>((
     round.cityId,
     before: round.startedAt,
   );
-  final knownBefore = {
-    for (final MapEntry(key: id, value: tier) in bestTierPerStreet(
-      bestBefore,
-      streets,
-    ).entries)
-      if (isKnownTier(tier)) id,
-  };
+  final knownBefore = knownStreetIds(bestBefore, streets);
   return (
     round: round,
     shape: parseArea(round.areaJson)?.shapeIn(pack),

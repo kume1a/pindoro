@@ -10,6 +10,9 @@ import '../scoring/scoring.dart';
 /// the districts' names joined; null for circles and rectangles.
 typedef AreaShape = ({String? name, Bbox bbox, List<List<Polyline>> boundary});
 
+/// Step for [lengthInside]'s walk along a street.
+const double _lengthStepM = 25;
+
 /// A part is in an area when at least this much of it lies inside...
 const double inAreaMinLengthM = 150;
 
@@ -23,9 +26,9 @@ sealed class Area {
   /// Parses `user_settings.last_area_json` / `round.area_json`; the M1
   /// one-district form still reads. Throws [FormatException] otherwise.
   factory Area.fromJson(Map<String, Object?> json) => switch (json) {
-    {'kind': 'districts', 'ids': final List<Object?> ids} => DistrictsArea(
-      ids.cast<String>().toSet(),
-    ),
+    {'kind': 'districts', 'ids': final List<Object?> ids}
+        when ids.every((id) => id is String) =>
+      DistrictsArea(ids.cast<String>().toSet()),
     {'kind': 'district', 'district_id': final String id} => DistrictsArea({id}),
     {
       'kind': 'circle',
@@ -34,21 +37,9 @@ sealed class Area {
       'radius_m': final num radius,
     } =>
       CircleArea(LatLng(lat.toDouble(), lon.toDouble()), radius.toDouble()),
-    {
-      'kind': 'rect',
-      'min_lat': final num minLat,
-      'min_lon': final num minLon,
-      'max_lat': final num maxLat,
-      'max_lon': final num maxLon,
-    } =>
-      RectArea(
-        Bbox(
-          minLat.toDouble(),
-          minLon.toDouble(),
-          maxLat.toDouble(),
-          maxLon.toDouble(),
-        ),
-      ),
+    {'kind': 'rect'} when Bbox.tryParse(json) != null => RectArea(
+      Bbox.tryParse(json)!,
+    ),
     _ => throw FormatException('Not an area: $json'),
   };
 
@@ -130,10 +121,13 @@ sealed class DrawnArea extends Area {
       (name: null, bbox: bbox, boundary: [ring]);
 
   @override
-  List<Street> streetsIn(PackRepository pack, Set<Difficulty> difficulties) => [
-    for (final s in pack.streets(difficulties: difficulties))
-      if (s.bbox.intersects(bbox) && _counts(s)) s,
-  ];
+  List<Street> streetsIn(PackRepository pack, Set<Difficulty> difficulties) {
+    final box = bbox;
+    return [
+      for (final s in pack.streets(difficulties: difficulties))
+        if (s.bbox.intersects(box) && _counts(s)) s,
+    ];
+  }
 
   bool _counts(Street s) {
     final inside = lengthInside(s.geometry, contains);
@@ -184,19 +178,21 @@ final class CircleArea extends DrawnArea {
 final class RectArea extends DrawnArea {
   const RectArea(this.bounds);
 
+  /// A [widthM] × [heightM] rectangle centred on [center].
+  factory RectArea.around(LatLng center, double widthM, double heightM) {
+    final proj = LocalProjection(center);
+    final sw = proj.unproject((-widthM / 2, -heightM / 2));
+    final ne = proj.unproject((widthM / 2, heightM / 2));
+    return RectArea(Bbox(sw.lat, sw.lon, ne.lat, ne.lon));
+  }
+
   static const double minSideM = 500;
   static const double maxSideM = 10000;
 
   final Bbox bounds;
 
   @override
-  Map<String, Object?> toJson() => {
-    'kind': 'rect',
-    'min_lat': bounds.minLat,
-    'min_lon': bounds.minLon,
-    'max_lat': bounds.maxLat,
-    'max_lon': bounds.maxLon,
-  };
+  Map<String, Object?> toJson() => {'kind': 'rect', ...bounds.toJson()};
 
   @override
   List<Polyline> get ring => [
@@ -217,18 +213,14 @@ final class RectArea extends DrawnArea {
 }
 
 /// Metres of [geometry] inside a shape: each segment is walked in steps of at
-/// most [stepM] and a step counts when its midpoint is inside.
-double lengthInside(
-  MultiPolyline geometry,
-  bool Function(LatLng) contains, {
-  double stepM = 25,
-}) {
+/// most 25 m and a step counts when its midpoint is inside.
+double lengthInside(MultiPolyline geometry, bool Function(LatLng) contains) {
   var inside = 0.0;
   for (final line in geometry) {
     for (var i = 0; i + 1 < line.length; i++) {
       final a = line[i], b = line[i + 1];
       final length = distanceBetween(a, b);
-      final steps = math.max(1, (length / stepM).ceil());
+      final steps = math.max(1, (length / _lengthStepM).ceil());
       for (var k = 0; k < steps; k++) {
         final t = (k + 0.5) / steps;
         final mid = LatLng(

@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
-const double earthRadiusM = 6371008.8;
+const double _earthRadiusM = 6371008.8;
 const double _rad = math.pi / 180;
-const double _mPerDeg = earthRadiusM * _rad;
+const double _mPerDeg = _earthRadiusM * _rad;
 
 class LatLng {
   const LatLng(this.lat, this.lon);
@@ -60,7 +60,40 @@ class Bbox {
   final double maxLat;
   final double maxLon;
 
+  /// `{min_lat, min_lon, max_lat, max_lon}` (packs, manifests, saved areas);
+  /// null when [json] is anything else.
+  static Bbox? tryParse(Object? json) => switch (json) {
+    {
+      'min_lat': final num minLat,
+      'min_lon': final num minLon,
+      'max_lat': final num maxLat,
+      'max_lon': final num maxLon,
+    } =>
+      Bbox(
+        minLat.toDouble(),
+        minLon.toDouble(),
+        maxLat.toDouble(),
+        maxLon.toDouble(),
+      ),
+    _ => null,
+  };
+
+  Map<String, Object?> toJson() => {
+    'min_lat': minLat,
+    'min_lon': minLon,
+    'max_lat': maxLat,
+    'max_lon': maxLon,
+  };
+
   LatLng get center => LatLng((minLat + maxLat) / 2, (minLon + maxLon) / 2);
+
+  /// East–west extent through the centre, in metres.
+  double get widthM =>
+      distanceBetween(LatLng(center.lat, minLon), LatLng(center.lat, maxLon));
+
+  /// North–south extent through the centre, in metres.
+  double get heightM =>
+      distanceBetween(LatLng(minLat, center.lon), LatLng(maxLat, center.lon));
 
   LatLng clamp(LatLng p) =>
       LatLng(_clamp(p.lat, minLat, maxLat), _clamp(p.lon, minLon, maxLon));
@@ -188,3 +221,7 @@ bool polygonContains(List<Polyline> polygon, LatLng p) {
   }
   return inside;
 }
+
+/// Whether [p] lies inside any polygon of a multipolygon [boundary].
+bool boundaryContains(List<List<Polyline>> boundary, LatLng p) =>
+    boundary.any((polygon) => polygonContains(polygon, p));

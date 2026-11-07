@@ -1,4 +1,4 @@
-import 'package:pindoro/features/home/data/home_data.dart';
+import 'package:pindoro_core/pindoro_core.dart';
 
 /// When each part of Home's intro after a round starts (canvas M-43).
 abstract final class HomeIntroAt {
@@ -12,6 +12,6 @@ abstract final class HomeIntroAt {
 typedef HomeIntro = ({
   int xpBefore,
   int roundXp,
-  HomeCounts before,
+  KnownCounts before,
   bool settled,
 });
