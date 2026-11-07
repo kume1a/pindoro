@@ -16,7 +16,6 @@
   Miss sentence's compass form. Align them when the design lands.
 - Map labels (area names, the distance chip) are images drawn by `MapChip`, because the self-hosted
   map style has no glyphs.
-- **App identity** — final bundle id (`app.pindoro.pindoro` for now).
 - **Code licence** — not chosen yet (data is ODbL, font is OFL).
 
 ## Gameplay
