@@ -1,5 +1,5 @@
 # Pipeline image: osmium-tool + osm2pgsql + pmtiles + the TypeScript CLI. Build context = repo root.
-FROM node:24-bookworm-slim
+FROM node:25-bookworm-slim
 
 ARG PMTILES_VERSION=1.31.2
 ARG TARGETARCH
