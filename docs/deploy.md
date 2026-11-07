@@ -72,14 +72,26 @@ Edit `.env`:
 ## 4. First deploy
 
 ```sh
-just deploy        # git pull && docker compose -f infra/docker-compose.prod.yml up -d --build
-dc ps              # all services healthy; cloudflared shows "Registered tunnel connection"
+just server-setup
+```
+
+It runs `just deploy` (`git pull` + `docker compose up -d --build`), installs the systemd units
+from `infra/systemd/` and enables their timers (sections 6 and 7), downloads the Georgia tiles,
+restarts Martin and builds the first Tbilisi pack by starting `pindoro-packs.service`. Then check:
+
+```sh
+dc ps                                  # all healthy; cloudflared shows "Registered tunnel connection"
 curl https://api.$DOMAIN/health
+curl https://tiles.$DOMAIN/georgia     # TileJSON
+curl https://api.$DOMAIN/v1/catalog    # lists tbilisi
+journalctl -u pindoro-packs.service    # the first pack's build log
 ```
 
 The API runs its database migrations on start. Swagger UI (`/docs`) is disabled in production.
 
-## 5. Tiles and the first pack
+## 5. Tiles and packs by hand
+
+The same steps `just server-setup` and the pack timer run:
 
 ```sh
 dc run --rm pipeline tiles             # pmtiles extract of Protomaps daily build -> infra/tiles/georgia.pmtiles
@@ -98,86 +110,25 @@ ids survive: `git add data/cities && git commit -m "data: refresh tbilisi identi
 
 ## 6. Monthly pack refresh (systemd timer)
 
-`/etc/systemd/system/pindoro-packs.service`:
-
-```ini
-[Unit]
-Description=Pindoro monthly city pack refresh
-Requires=docker.service
-After=docker.service network-online.target
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-WorkingDirectory=/opt/pindoro
-ExecStartPre=/usr/bin/docker compose --env-file .env -f infra/docker-compose.prod.yml build pipeline
-ExecStart=/usr/bin/docker compose --env-file .env -f infra/docker-compose.prod.yml run --rm pipeline fetch tbilisi
-ExecStart=/usr/bin/docker compose --env-file .env -f infra/docker-compose.prod.yml run --rm pipeline build tbilisi
-ExecStart=/usr/bin/docker compose --env-file .env -f infra/docker-compose.prod.yml run --rm pipeline validate tbilisi
-ExecStart=/usr/bin/docker compose --env-file .env -f infra/docker-compose.prod.yml run --rm pipeline publish tbilisi
-```
-
-`/etc/systemd/system/pindoro-packs.timer`:
-
-```ini
-[Unit]
-Description=Run the Pindoro pack refresh monthly
-
-[Timer]
-OnCalendar=*-*-02 04:00:00
-RandomizedDelaySec=30m
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-```
+`infra/systemd/pindoro-packs.service` rebuilds the pipeline image, then fetches, builds, validates
+and publishes Tbilisi; `pindoro-packs.timer` runs it on the 2nd of each month at 04:00.
+`just server-setup` installs and enables both.
 
 ```sh
-sudo systemctl daemon-reload
-sudo systemctl enable --now pindoro-packs.timer
 systemctl list-timers pindoro-packs.timer
 sudo systemctl start pindoro-packs.service && journalctl -u pindoro-packs.service -f   # manual run
 ```
 
 `ExecStart` lines run in order and stop at the first failure, so a broken build never gets
 published. Old pack versions stay on disk (immutable URLs); prune them by hand when space matters.
+After editing a unit in the repo, copy it again and `sudo systemctl daemon-reload`.
 
 ## 7. Backups
 
 The `backup` service writes `infra/backups/pindoro-YYYY-MM-DD.dump` (`pg_dump -Fc`) every night at
-03:00 UTC and deletes dumps older than 14 days. Copy them to a second disk with another timer.
-
-`/etc/systemd/system/pindoro-backup-copy.service`:
-
-```ini
-[Unit]
-Description=Copy Pindoro database dumps to the backup disk
-ConditionPathIsMountPoint=/mnt/backup
-
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/mkdir -p /mnt/backup/pindoro
-ExecStart=/usr/bin/rsync -a /opt/pindoro/infra/backups/ /mnt/backup/pindoro/
-ExecStart=/usr/bin/find /mnt/backup/pindoro -name 'pindoro-*.dump' -mtime +90 -delete
-```
-
-`/etc/systemd/system/pindoro-backup-copy.timer`:
-
-```ini
-[Unit]
-Description=Copy Pindoro dumps daily after the nightly dump
-
-[Timer]
-OnCalendar=*-*-* 04:00:00 UTC
-Persistent=true
-
-[Install]
-WantedBy=timers.target
-```
-
-```sh
-sudo systemctl daemon-reload && sudo systemctl enable --now pindoro-backup-copy.timer
-```
+03:00 UTC and deletes dumps older than 14 days. `infra/systemd/pindoro-backup-copy.timer` copies
+them to `/mnt/backup/pindoro` daily at 04:00 UTC and keeps 90 days there (installed by
+`just server-setup`).
 
 `ConditionPathIsMountPoint` skips the copy when the disk is not mounted instead of filling the
 root filesystem. Keep a copy of `.env` somewhere safe too; it is not in git.
@@ -200,3 +151,33 @@ Packs and tiles are rebuilt from OSM data (steps 5); only the database and
 just deploy                      # pulls, rebuilds the api image, recreates changed services
 dc logs -f api caddy cloudflared
 ```
+
+## 9. App store builds
+
+The app reads its server URLs at build time; `just release` points them at `api.`, `packs.` and
+`tiles.` of your domain over HTTPS (bump `version` in `apps/mobile/pubspec.yaml` first).
+
+**Android.** Create the upload key once and keep it, with its passwords, outside the repo; Google
+Play needs the same key for every update:
+
+```sh
+keytool -genkeypair -keystore ~/pindoro-upload.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000
+```
+
+Then write `apps/mobile/android/key.properties` (gitignored):
+
+```properties
+storeFile=/home/you/pindoro-upload.jks
+storePassword=…
+keyAlias=upload
+keyPassword=…
+```
+
+```sh
+just release appbundle pindoro.app   # → apps/mobile/build/app/outputs/bundle/release/app-release.aab
+```
+
+Without `key.properties` the bundle is signed with the debug key, which Play rejects.
+
+**iOS** (macOS with Xcode, an Apple Developer account and the `app.pindoro` bundle id registered):
+`just release ipa pindoro.app`, then upload `apps/mobile/build/ios/ipa/*.ipa` with Transporter.
