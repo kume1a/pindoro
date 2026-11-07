@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' show DatabaseConnection;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/app/app.dart';
@@ -8,6 +9,7 @@ import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/routes.dart';
+import 'package:pindoro/features/home/ui/home_screen.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/setup/ui/area_map.dart';
@@ -131,9 +133,59 @@ void main() {
     expect(find.text('Streets you know'), findsOneWidget);
   });
 
-  testWidgets('settings lead to the map data credits', (tester) async {
+  /// The system back button (Android back, the iOS edge swipe's pop).
+  Future<void> systemBack(WidgetTester tester) async {
+    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+      'flutter/navigation',
+      const JSONMethodCodec().encodeMethodCall(const MethodCall('popRoute')),
+      (_) {},
+    );
+    await tester.pumpAndSettle();
+  }
+
+  Finder freePlayList() => find
+      .descendant(
+        of: find.byType(HomeScreen),
+        matching: find.byType(Scrollable),
+      )
+      .first;
+
+  testWidgets('tabs keep their place; back goes to Free play first', (
+    tester,
+  ) async {
     await tester.runAsync(() => SettingsDao(db).markHomeCoachSeen());
+    tester.view
+      ..physicalSize = const Size(1080, 1400)
+      ..devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
     await pumpApp(tester, Routes.home);
+    expect(find.bySemanticsLabel('Settings'), findsNothing);
+
+    await tester.drag(freePlayList(), const Offset(0, -200));
+    await tester.pumpAndSettle();
+    double offset() =>
+        tester.state<ScrollableState>(freePlayList()).position.pixels;
+    expect(offset(), greaterThan(0));
+
+    await tapLabelled(tester, 'Me');
+    // Me's numbers load from the database on real async.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Lessons'), findsOneWidget);
+    expect(find.text('Streets you know'), findsNothing);
+
+    await systemBack(tester);
+    expect(find.text('Streets you know'), findsOneWidget);
+    expect(offset(), greaterThan(0), reason: 'the tab kept its scroll');
+
+    await tapLabelled(tester, 'Free play');
+    expect(offset(), 0, reason: 'tapping the open tab scrolls it up');
+  });
+
+  testWidgets('settings lead to the map data credits', (tester) async {
+    await pumpApp(tester, Routes.me);
     await tapLabelled(tester, 'Settings');
     await tester.scrollUntilVisible(find.text('Map data credits'), 200);
     await tapAndSettle(tester, 'Map data credits');

@@ -4,7 +4,8 @@ Offline-first: progress in Drift (SQLite), city data from read-only SQLite packs
 
 ```
 lib/main.dart                  open AppDatabase, pick the initial route, runApp
-lib/app/                       shell: PindoroApp, router (the only place that imports screens)
+lib/app/                       shell: PindoroApp, router (the only place that imports screens),
+                               TabShell (bottom navigation)
 lib/core/                      shared by every feature: routes (paths + RoundSummary), config, format,
                                labels, settings, location, online, toast, page scaffold, launch overlay,
                                database/ (Drift tables, migrations, .drift trigger, SettingsDao)
@@ -14,7 +15,7 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                features: progress (ProgressDao: rounds + answer log + goal days +
                                Pit stop; streakProvider, reminders, the daily goal ring and sheet),
                                pack, map, home, setup (welcome, city, area, difficulty), quiz (round),
-                               results (results, street, level up), settings, streak, pitstop
+                               results (results, street, level up), settings, streak, pitstop, me
 lib/features/quiz/ui/round_controller.dart   round state machine; resumes from round_question + answers;
                                questions are NamedStreets (cityStreetsProvider); retries set round.retry_of,
                                Pit stop rounds round.pit_stop
@@ -29,7 +30,7 @@ test/drift/                    generated schema helpers + migration test
 
 - **Layers, lowest first:** `l10n` → `core` → `features/progress` → `features/pack` →
   `features/map` → screen features (`home`, `setup`, `quiz`, `results`, `settings`, `streak`,
-  `pitstop`) → `app` → `main.dart`. A file imports its own slice or a lower layer only; screen features never import
+  `pitstop`, `me`) → `app` → `main.dart`. A file imports its own slice or a lower layer only; screen features never import
   each other. Something two features need moves down (to `core`, or to `progress`/`pack`/`map`).
   `test/architecture_test.dart` enforces this, and that `ui/` never imports Drift; a new feature
   gets a layer there. Imports are `package:pindoro/...` (lint
@@ -38,9 +39,15 @@ test/drift/                    generated schema helpers + migration test
 - **Riverpod 3, no codegen.** Plain `Provider` / `FutureProvider` declared next to what they
   provide. `databaseProvider` is overridden in `main()` and in tests. Widgets read with
   `ref.watch` in build, `ref.read` in callbacks.
-- **Routing:** go_router, paths in `Routes` (v1-screens.md § Navigation): `/` Home, `/welcome`,
+- **Routing:** go_router, paths in `Routes` (v1-screens.md § Navigation). The tabs are a
+  `StatefulShellRoute` (`TabShell`, a `FadeIndexedStack` of one page per branch): `/` Free play
+  (Home), `/pit-stop`, `/me`; `go` to one of them switches tab, back on Pit stop or Me goes to Free
+  play first, and each tab page gets its own `PrimaryScrollController` (a tap on the open tab
+  scrolls it up). Every other route sits on the root navigator, over the bar: `/welcome`,
   `/city`, `/area`, `/difficulty`, `/round` (`?round=` resumes, `?retry=` retries, `?pit-stop`
-  plays the Pit stop), `/results`, `/streak`, `/pit-stop`, `/settings`, `/settings/credits`. Welcome opens until the first round is finished.
+  plays the Pit stop), `/results`, `/streak`, `/settings`, `/settings/credits`. Welcome opens
+  until the first round is finished. Footers end 12 dp above the bar on a tab
+  (`bottomActionGap`).
 - **Strings:** every UI string comes from `lib/l10n/app_{en,ka}.arb` (gen-l10n, `context.l10n`);
   `just gen` writes `app_localizations*.dart` (not committed). Georgian is a draft awaiting native
   review.

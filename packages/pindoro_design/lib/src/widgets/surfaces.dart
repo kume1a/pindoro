@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
+import 'tappable.dart';
 
 /// A flat face sitting on a solid bottom lip: the system's only depth.
 /// Cards, list groups, chips, pills and buttons are all built from it.
@@ -58,6 +59,77 @@ class LipBox extends StatelessWidget {
         child: child,
       ),
     );
+  }
+}
+
+/// One number and its label (`.pd-stattile`), for lesson complete and Me:
+/// a [LipBox] with `radius.lg`, an optional 20 dp [glyph] (default colour
+/// `color.primary.text`) 6 dp before the `label.md` label, the value in
+/// `numeric.md`. Reads as one label, "[label], [value]" unless
+/// [semanticLabel] says otherwise.
+class StatTile extends StatelessWidget {
+  const StatTile({
+    super.key,
+    required this.label,
+    required this.value,
+    this.glyph,
+    this.glyphColor,
+    this.semanticLabel,
+    this.onTap,
+  });
+
+  final String label;
+  final String value;
+  final PindoroGlyph? glyph;
+  final Color? glyphColor;
+  final String? semanticLabel;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    final glyph = this.glyph;
+    final tile = LipBox(
+      border: c.lineBase,
+      radius: PindoroRadius.lg,
+      padding: const EdgeInsets.all(PindoroSpace.s3),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 2,
+        children: [
+          Row(
+            spacing: 6,
+            children: [
+              if (glyph != null)
+                PindoroIcon(
+                  glyph,
+                  size: PindoroSize.iconSm,
+                  color: glyphColor ?? c.primaryText,
+                ),
+              Flexible(
+                child: Text(
+                  label,
+                  style: PindoroType.labelMd.copyWith(color: c.textSecondary),
+                ),
+              ),
+            ],
+          ),
+          Text(
+            value,
+            style: PindoroType.numericMd.copyWith(color: c.textPrimary),
+          ),
+        ],
+      ),
+    );
+    final a11y = semanticLabel ?? '$label, $value';
+    return onTap == null
+        ? Semantics(
+            container: true,
+            label: a11y,
+            excludeSemantics: true,
+            child: tile,
+          )
+        : Tappable(onTap: onTap, label: a11y, child: tile);
   }
 }
 
@@ -126,6 +198,7 @@ class ListRow extends StatelessWidget {
     this.semanticsLabel,
     this.toggled,
     this.check,
+    this.below,
   });
 
   final String title;
@@ -146,6 +219,9 @@ class ListRow extends StatelessWidget {
   /// Set for a checkbox row: the box sits before [trailing] and the row is
   /// announced as a checkbox (partial as mixed).
   final CheckState? check;
+
+  /// Under the subtitle, 6 dp below it (Me's city minibar).
+  final Widget? below;
 
   @override
   Widget build(BuildContext context) {
@@ -198,6 +274,11 @@ class ListRow extends StatelessWidget {
                             style: PindoroType.bodySm.copyWith(
                               color: c.textSecondary,
                             ),
+                          ),
+                        if (below case final below?)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: below,
                           ),
                       ],
                     ),

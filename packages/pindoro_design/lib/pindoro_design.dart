@@ -10,6 +10,7 @@ export 'src/widgets/feedback_badge.dart';
 export 'src/widgets/graphics.dart';
 export 'src/widgets/map_marks.dart';
 export 'src/widgets/motion.dart';
+export 'src/widgets/navigation.dart';
 export 'src/widgets/pindoro_button.dart';
 export 'src/widgets/progress.dart';
 export 'src/widgets/results.dart';

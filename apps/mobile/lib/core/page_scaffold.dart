@@ -168,6 +168,9 @@ class BottomPanel extends StatelessWidget {
   }
 }
 
-/// Primary actions end 26 dp above the bottom safe area.
+/// Primary actions end 26 dp above the bottom safe area; on a tab, 12 dp
+/// above the bottom navigation (canvas R4-14).
 double bottomActionGap(BuildContext context) =>
-    MediaQuery.paddingOf(context).bottom + 26;
+    StatefulNavigationShell.maybeOf(context) == null
+    ? MediaQuery.paddingOf(context).bottom + 26
+    : PindoroSpace.s3;

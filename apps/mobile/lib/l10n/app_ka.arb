@@ -241,8 +241,6 @@
   "revealToPitStop": "დაემატა პიტ-სტოპს",
   "resultsToPitStop": "{count} პიტ-სტოპში",
   "resultsPitStopTitle": "პიტ-სტოპი დასრულდა",
-  "homePitStopDue": "{count, plural, other{დღეს {count} ქუჩაა გასამეორებელი}}",
-  "homePitStopReview": "გამეორება",
   "pitStopTitle": "პიტ-სტოპი",
   "pitStopToTuneUp": "{count, plural, other{{count} ქუჩა გასამართი}}",
   "pitStopRule": "გამოტოვებული ქუჩები ბრუნდება 1, 3, 7 და 21 დღეში. ორი ზედიზედ „კარგი“ და ქუჩა დასრულებულია.",
@@ -257,5 +255,16 @@
   "pitStopAge": "{days, plural, =0{დღეს} other{{days} დღის წინ}}",
   "pitStopStep": "გამეორების ეტაპი {step} / {steps}",
   "a11yDistrictRow": "{name}, ცნობილია {known} / {total} ქუჩა",
-  "a11yDistrictRowComplete": "{name}, ცნობილია {known} / {total} ქუჩა, დასრულებული"
+  "a11yDistrictRowComplete": "{name}, ცნობილია {known} / {total} ქუჩა, დასრულებული",
+  "meTitle": "მე",
+  "meCities": "ქალაქები",
+  "meStreetsKnown": "ნაცნობი ქუჩები",
+  "meLessons": "გაკვეთილები",
+  "meRoadTrips": "მოგზაურობები",
+  "meBestStreak": "საუკეთესო სერია",
+  "meDays": "{count, plural, other{{count} დღე}}",
+  "meXpSince": "სულ {xp} XP · დაწყება: {month}",
+  "meCityStreets": "{known} / {total} ქუჩა",
+  "tabFreePlay": "თავისუფალი თამაში",
+  "a11yPitStopTab": "{count, plural, other{პიტ-სტოპი, გასამეორებელია {count} ქუჩა}}"
 }

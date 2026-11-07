@@ -15,7 +15,6 @@ import 'package:pindoro/features/home/ui/widgets/city_card.dart';
 import 'package:pindoro/features/home/ui/widgets/home_intro.dart';
 import 'package:pindoro/features/home/ui/widgets/home_streak_pill.dart';
 import 'package:pindoro/features/home/ui/widgets/level_card.dart';
-import 'package:pindoro/features/home/ui/widgets/pit_stop_card.dart';
 import 'package:pindoro/features/home/ui/widgets/saved_card.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/pack/ui/pack_pending.dart';
@@ -153,11 +152,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       ),
                     ),
-                    PindoroIconButton(
-                      glyph: PindoroGlyph.settings,
-                      semanticLabel: l10n.a11ySettings,
-                      onPressed: () => open(Routes.settings),
-                    ),
                   ],
                 ),
               ),
@@ -167,12 +161,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 padding: const EdgeInsets.all(PindoroSpace.s4),
                 children: [
                   for (final card in [
-                    if (home.pitStopDue > 0)
-                      PitStopCard(
-                        due: home.pitStopDue,
-                        onReview: () => open(Routes.pitStop),
-                      ),
-                    LevelCard(
+                    HomeLevelCard(
                       level: level,
                       totalXp: home.totalXp,
                       intro: intro,
