@@ -10,5 +10,6 @@ export 'src/geo/polyline6.dart';
 export 'src/pack/models.dart';
 export 'src/pack/pack_repository.dart';
 export 'src/progress/levels.dart';
+export 'src/progress/review.dart';
 export 'src/progress/streak.dart';
 export 'src/scoring/scoring.dart';
