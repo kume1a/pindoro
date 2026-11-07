@@ -1,8 +1,7 @@
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
@@ -42,11 +41,7 @@ class _DifficultyScreenState extends ConsumerState<DifficultyScreen> {
       footer: PindoroButton(
         label: l10n.difficultyStart,
         onPressed: () async {
-          await ref
-              .read(databaseProvider)
-              .updateSettings(
-                UserSettingsCompanion(lastDifficulty: Value(selected)),
-              );
+          await ref.read(settingsDaoProvider).chooseDifficulty(selected);
           if (context.mounted) context.go(Routes.round);
         },
       ),

@@ -1,11 +1,10 @@
-import 'dart:convert';
 import 'dart:math' as math;
 
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
@@ -203,13 +202,8 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
     final area = _area();
     if (area == null) return;
     await ref
-        .read(databaseProvider)
-        .updateSettings(
-          UserSettingsCompanion(
-            lastCity: Value(pack.city().id),
-            lastAreaJson: Value(jsonEncode(area.toJson())),
-          ),
-        );
+        .read(settingsDaoProvider)
+        .chooseArea(area, cityId: pack.city().id);
     if (mounted) await context.push(Routes.difficulty);
   }
 

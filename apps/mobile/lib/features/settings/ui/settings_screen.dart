@@ -1,8 +1,8 @@
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
@@ -19,11 +19,11 @@ class SettingsScreen extends ConsumerWidget {
     final l10n = context.l10n;
     final settings = ref.watch(settingsProvider).value;
     if (settings == null) return const Scaffold();
-    final db = ref.read(databaseProvider);
+    final dao = ref.read(settingsDaoProvider);
     final feedback = ref.read(feedbackProvider);
-    void save(UserSettingsCompanion changes) {
+    void save(Future<void> Function() write) {
       feedback.tap();
-      db.updateSettings(changes);
+      write();
     }
 
     final language =
@@ -43,8 +43,7 @@ class SettingsScreen extends ConsumerWidget {
               AppLanguage.ka: 'ქართული',
             },
             selected: language,
-            onChanged: (v) =>
-                save(UserSettingsCompanion(appLanguage: Value(v))),
+            onChanged: (v) => save(() => dao.setLanguage(v)),
           ),
         ),
         _Labelled(
@@ -56,8 +55,7 @@ class SettingsScreen extends ConsumerWidget {
               StreetNameMode.english: l10n.settingsStreetNamesEnglish,
             },
             selected: settings.streetNames,
-            onChanged: (v) =>
-                save(UserSettingsCompanion(streetNames: Value(v))),
+            onChanged: (v) => save(() => dao.setStreetNames(v)),
           ),
         ),
         SectionTitle(l10n.settingsDisplay),
@@ -70,7 +68,7 @@ class SettingsScreen extends ConsumerWidget {
               ThemePreference.system: l10n.settingsThemeSystem,
             },
             selected: settings.theme,
-            onChanged: (v) => save(UserSettingsCompanion(theme: Value(v))),
+            onChanged: (v) => save(() => dao.setTheme(v)),
           ),
         ),
         ListGroup(
@@ -82,7 +80,7 @@ class SettingsScreen extends ConsumerWidget {
                   ? PindoroGlyph.soundOn
                   : PindoroGlyph.soundOff,
               value: settings.sound,
-              onChanged: (v) => save(UserSettingsCompanion(sound: Value(v))),
+              onChanged: (v) => save(() => dao.setSound(on: v)),
             ),
             _ToggleRow(
               title: l10n.settingsHaptics,
@@ -92,7 +90,7 @@ class SettingsScreen extends ConsumerWidget {
               // Only buzz when haptics stays on.
               onChanged: (v) {
                 if (v) feedback.tap();
-                db.updateSettings(UserSettingsCompanion(haptics: Value(v)));
+                dao.setHaptics(on: v);
               },
             ),
           ],

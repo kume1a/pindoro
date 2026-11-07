@@ -7,11 +7,12 @@ lib/main.dart                  open AppDatabase, pick the initial route, runApp
 lib/app/                       shell: PindoroApp, router (the only place that imports screens)
 lib/core/                      shared by every feature: routes (paths + RoundSummary), config, format,
                                labels, settings, location, online, toast, page scaffold, launch overlay,
-                               database/ (Drift tables + queries, .drift trigger, migration steps)
-lib/features/<feature>/data/   repositories, stores and providers over the database or packs
-lib/features/<feature>/ui/     screens, widgets and controllers (Riverpod notifiers)
-                               features: pack, map, home, setup (welcome, city, area, difficulty),
-                               quiz (round), results (results, street, level up), settings
+                               database/ (Drift tables, migrations, .drift trigger, SettingsDao)
+lib/features/<feature>/data/   DAOs, repositories, stores and providers over the database or packs
+lib/features/<feature>/ui/     screens, widgets and controllers (Riverpod notifiers); never Drift
+                               features: progress (ProgressDao: rounds + answer log), pack, map,
+                               home, setup (welcome, city, area, difficulty), quiz (round),
+                               results (results, street, level up), settings
 lib/features/quiz/ui/round_controller.dart   round state machine; resumes from round_question + answers;
                                questions are NamedStreets (cityStreetsProvider); retries set round.retry_of
 lib/features/pack/data/pack_store.dart       catalog download + sha256/size check -> <docs>/packs/<city>/<version>.sqlite (2 kept)
@@ -23,11 +24,12 @@ test/drift/                    generated schema helpers + migration test
 
 ## Conventions
 
-- **Layers, lowest first:** `l10n` → `core` → `features/pack` → `features/map` → screen features
-  (`home`, `setup`, `quiz`, `results`, `settings`) → `app` → `main.dart`. A file imports its own
-  slice or a lower layer only; screen features never import each other. Something two features
-  need moves down (to `core`, or to `pack`/`map`). `test/architecture_test.dart` enforces this; a
-  new feature gets a layer there. Imports are `package:pindoro/...` (lint
+- **Layers, lowest first:** `l10n` → `core` → `features/progress` → `features/pack` →
+  `features/map` → screen features (`home`, `setup`, `quiz`, `results`, `settings`) → `app` →
+  `main.dart`. A file imports its own slice or a lower layer only; screen features never import
+  each other. Something two features need moves down (to `core`, or to `progress`/`pack`/`map`).
+  `test/architecture_test.dart` enforces this, and that `ui/` never imports Drift; a new feature
+  gets a layer there. Imports are `package:pindoro/...` (lint
   `always_use_package_imports`), so every import names its layer. `pindoro_core` is the domain
   layer, so features have no `domain/` folder.
 - **Riverpod 3, no codegen.** Plain `Provider` / `FutureProvider` declared next to what they
@@ -47,8 +49,14 @@ test/drift/                    generated schema helpers + migration test
   per game event behind the Haptics toggle; the Sound toggle gates nothing until a sound kit exists.
 - **Drift defaults are literals** (`Constant('local')`): drift copies them into the generated
   migration steps, which can't see app enums. No Flutter imports in `database.dart` either.
-- **Database:** client ids are UUIDv7 (`newId()`). `answer` is an append-only log, enforced by the
-  `answer_immutable` trigger. Changing a table: bump `schemaVersion`, add a migration, run
+- **Database:** `database.dart` holds only tables and migrations. Queries live in Drift DAOs
+  (`@DriftAccessor`, built without `daos:` so `core` never imports a feature): `SettingsDao`
+  (`core/database/`, `settingsDaoProvider`) owns the settings row with typed writes
+  (`chooseCity` clears another city's area, `chooseArea`, `chooseDifficulty`, `setTheme`, …);
+  `ProgressDao` (`features/progress/data/`, `progressDaoProvider`) owns rounds, planned questions
+  and the answer log, and the rules read from them (saved round, retry set, recent streets).
+  Screens call these providers, never `databaseProvider`. Client ids are UUIDv7 (`newId()`).
+  `answer` is an append-only log, enforced by the `answer_immutable` trigger. Changing a table: bump `schemaVersion`, add a migration, run
   `just gen` (it runs `drift_dev make-migrations`, then build_runner) and commit the new dump in
   `drift_schemas/`. Generated Dart (`*.g.dart`, `database.steps.dart`, `test/drift/**/generated/`)
   is never committed: `just gen` rebuilds it from the dumps, and `just gen-check` fails in CI

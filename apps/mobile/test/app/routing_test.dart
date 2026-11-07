@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' show DatabaseConnection, Value;
+import 'package:drift/drift.dart' show DatabaseConnection;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/app/app.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -91,7 +92,7 @@ void main() {
     await tapAndSettle(tester, 'Start');
     expect(find.text('Confirm'), findsOneWidget);
 
-    final settings = (await tester.runAsync(db.readSettings))!;
+    final settings = (await tester.runAsync(SettingsDao(db).read))!;
     expect(settings.lastCity, 'tbilisi');
     expect(settings.area, const DistrictsArea({AppConfig.fixtureDistrictId}));
     expect(settings.lastDifficulty, Difficulty.expert);
@@ -105,16 +106,12 @@ void main() {
     await tapAndSettle(tester, 'Circle');
     expect(find.byType(Slider), findsOneWidget);
     await tapAndSettle(tester, 'Next');
-    final area = (await tester.runAsync(db.readSettings))!.area;
+    final area = (await tester.runAsync(SettingsDao(db).read))!.area;
     expect(area, isA<CircleArea>());
   });
 
   testWidgets('settings lead to the map data credits', (tester) async {
-    await tester.runAsync(
-      () => db.updateSettings(
-        const UserSettingsCompanion(homeCoachSeen: Value(true)),
-      ),
-    );
+    await tester.runAsync(() => SettingsDao(db).markHomeCoachSeen());
     await pumpApp(tester, Routes.home);
     await tapLabelled(tester, 'Settings');
     await tester.scrollUntilVisible(find.text('Map data credits'), 200);
@@ -126,7 +123,7 @@ void main() {
     await pumpApp(tester, Routes.settings);
     await tapAndSettle(tester, 'Dark');
     await tapAndSettle(tester, 'ქართული');
-    final settings = (await tester.runAsync(db.readSettings))!;
+    final settings = (await tester.runAsync(SettingsDao(db).read))!;
     expect(settings.theme, ThemePreference.dark);
     expect(settings.appLanguage, AppLanguage.ka);
     expect(

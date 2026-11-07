@@ -1,8 +1,8 @@
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
@@ -45,14 +45,8 @@ class SetupStates extends ConsumerWidget {
               ),
         onSecondary: () async {
           await ref
-              .read(databaseProvider)
-              .updateSettings(
-                UserSettingsCompanion(
-                  lastDifficulty: Value(
-                    Difficulty.values[difficulty.index + 1],
-                  ),
-                ),
-              );
+              .read(settingsDaoProvider)
+              .chooseDifficulty(Difficulty.values[difficulty.index + 1]);
           await onRetry();
         },
       ),
