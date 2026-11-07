@@ -22,5 +22,5 @@ just run-mobile          # Android emulator reaches the host via 10.0.2.2
 
 ## Licences
 
-Code: TBD (see `docs/TODO.md`). Map data © OpenStreetMap contributors, ODbL 1.0
+Code: all rights reserved (`LICENSE`). Map data © OpenStreetMap contributors, ODbL 1.0
 (`data/LICENSE-ODbL.md`). Tiles: Protomaps basemap from OpenStreetMap. Font: FiraGO, SIL OFL 1.1.
