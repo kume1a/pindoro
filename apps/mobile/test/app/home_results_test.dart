@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' show DatabaseConnection;
+import 'package:drift/drift.dart' show DatabaseConnection, Value;
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -297,6 +297,46 @@ void main() {
       expect(find.text('Daily goal: ${formatNumber(1000)} XP'), findsOneWidget);
       final settings = await tester.runAsync(() => SettingsDao(db).read());
       expect(settings!.dailyGoal, 1000);
+    });
+
+    testWidgets('results show the streak once the round met today\'s goal', (
+      tester,
+    ) async {
+      phone(tester);
+      late String id;
+      await tester.runAsync(() async {
+        id = await roundWithAnswers(10);
+        await goalDays(1, 1);
+        await db
+            .into(db.goalDays)
+            .insert(
+              GoalDaysCompanion.insert(date: dayKey(today), roundId: Value(id)),
+            );
+      });
+      await pumpApp(tester, Routes.resultsOf(id));
+      expect(find.text('2-day streak'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Daily goal met, 2-day streak'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('settings change the daily goal', (tester) async {
+      phone(tester);
+      await pumpApp(tester, Routes.settings);
+      expect(find.text('500 XP a day'), findsOneWidget);
+      expect(
+        find.text('About two rounds · keeps your streak going'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('500 XP a day'));
+      await settle(tester);
+      await tester.tap(find.text('250 XP a day'));
+      await settle(tester);
+      expect(
+        find.text('About one round · keeps your streak going'),
+        findsOneWidget,
+      );
     });
   });
 }

@@ -102,6 +102,7 @@ class Pill extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
     return Semantics(
+      container: semanticLabel != null,
       label: semanticLabel,
       excludeSemantics: semanticLabel != null,
       child: AccentRing(

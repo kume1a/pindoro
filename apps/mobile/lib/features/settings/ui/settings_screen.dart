@@ -10,6 +10,7 @@ import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/progress/ui/daily_goal.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -58,6 +59,20 @@ class SettingsScreen extends ConsumerWidget {
             selected: settings.streetNames,
             onChanged: (v) => save(() => dao.setStreetNames(v)),
           ),
+        ),
+        SectionTitle(l10n.settingsDailyGoal),
+        ListGroup(
+          children: [
+            ListRow(
+              title: l10n.dailyGoalPerDay(formatNumber(settings.dailyGoal)),
+              subtitle: l10n.dailyGoalKeepsStreak(
+                goalRounds(context, settings.dailyGoal),
+              ),
+              leading: const RowTile(PindoroGlyph.flame),
+              trailing: const PindoroIcon(PindoroGlyph.chevronRight),
+              onTap: () => showDailyGoalSheet(context, ref),
+            ),
+          ],
         ),
         SectionTitle(l10n.settingsDisplay),
         _Labelled(

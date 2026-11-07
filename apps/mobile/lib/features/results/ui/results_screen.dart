@@ -9,6 +9,7 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/progress/data/streak.dart';
 import 'package:pindoro/features/results/data/results_data.dart';
 import 'package:pindoro/features/results/ui/level_up_screen.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
@@ -78,6 +79,11 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
     for (final e in data.entries) {
       counts.update(e.answer.tier, (n) => n + 1, ifAbsent: () => 1);
     }
+    final streak = ref.watch(streakProvider).value;
+    final streakDays = streak?.summary.days ?? 0;
+    final metGoal = streak?.summary.metToday ?? false;
+    // This round met today's goal: the streak grows by a day as it lands.
+    final grewStreak = metGoal && streak?.goalRoundId == widget.roundId;
     // Chips pop in with the arrival; the level chip right after the level up.
     final chips = [
       if (data.newlyKnown > 0)
@@ -87,6 +93,23 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
             label: l10n.resultsStreetsKnown(data.newlyKnown),
             icon: PindoroGlyph.checkCircle,
             iconColor: c.successBase,
+          ),
+        ),
+      if (metGoal)
+        PopIn(
+          delay: _Arrival.chips,
+          child: CountUp(
+            value: streakDays,
+            from: grewStreak ? streakDays - 1 : streakDays,
+            delay: _Arrival.chips,
+            onEnd: grewStreak ? ref.read(feedbackProvider).streak : null,
+            builder: (context, days) => Pill(
+              label: l10n.streakDays(formatNumber(days)),
+              icon: PindoroGlyph.flame,
+              iconColor: c.streakFlame,
+              iconAccent: c.streakCore,
+              semanticLabel: l10n.resultsStreakA11y(formatNumber(streakDays)),
+            ),
           ),
         ),
       if (_levelUpOver)
@@ -268,7 +291,10 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
         page,
         Positioned.fill(
           child: Celebration(
-            size: data.firstPerfect || data.retryCount == 0
+            size:
+                data.firstPerfect ||
+                    data.retryCount == 0 ||
+                    (grewStreak && StreakRules.milestones.contains(streakDays))
                 ? CelebrationSize.big
                 : CelebrationSize.medium,
             burstCenter: const Alignment(-0.2, -0.6),
