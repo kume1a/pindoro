@@ -63,6 +63,12 @@ class UserSettings extends Table {
   BoolColumn get homeCoachSeen =>
       boolean().withDefault(const Constant(false))();
 
+  /// XP a day that counts toward the streak (pindoro_core `StreakRules`).
+  IntColumn get dailyGoal => integer().withDefault(const Constant(500))();
+
+  /// The 19:00 reminder when today's goal isn't met.
+  BoolColumn get reminder => boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -122,8 +128,25 @@ class RoundQuestions extends Table {
   Set<Column<Object>> get primaryKey => {roundId, position};
 }
 
+/// Local dates when the daily XP goal was met; the streak, its freezes and
+/// the best run are derived from them (pindoro_core `streakOf`).
+@DataClassName('GoalDay')
+class GoalDays extends Table {
+  @override
+  String get tableName => 'goal_day';
+
+  /// The local date as `YYYY-MM-DD` (pindoro_core `dayKey`).
+  TextColumn get date => text()();
+
+  /// The round whose answer reached the goal; null when lowering it did.
+  TextColumn get roundId => text().nullable().references(Rounds, #id)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {date};
+}
+
 @DriftDatabase(
-  tables: [UserSettings, Rounds, Answers, RoundQuestions],
+  tables: [UserSettings, Rounds, Answers, RoundQuestions, GoalDays],
   include: {'answer_immutable.drift'},
 )
 class AppDatabase extends _$AppDatabase {
@@ -131,7 +154,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'pindoro'));
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -156,6 +179,11 @@ class AppDatabase extends _$AppDatabase {
       },
       from4To5: (m, schema) =>
           m.addColumn(schema.userSettings, schema.userSettings.homeCoachSeen),
+      from5To6: (m, schema) async {
+        await m.createTable(schema.goalDay);
+        await m.addColumn(schema.userSettings, schema.userSettings.dailyGoal);
+        await m.addColumn(schema.userSettings, schema.userSettings.reminder);
+      },
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

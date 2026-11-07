@@ -11,6 +11,7 @@ abstract final class Routes {
 
   /// `?round=<id>`; `/results/street/<index>?round=<id>` opens one answer.
   static const String results = '/results';
+  static const String streak = '/streak';
   static const String settings = '/settings';
   static const String credits = '/settings/credits';
 

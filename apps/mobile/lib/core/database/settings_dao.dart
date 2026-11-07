@@ -22,6 +22,8 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
     sound: true,
     haptics: true,
     homeCoachSeen: false,
+    dailyGoal: StreakRules.defaultGoal,
+    reminder: false,
   );
 
   SimpleSelectStatement<$UserSettingsTable, Settings> get _row =>
@@ -71,6 +73,12 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> setHaptics({required bool on}) =>
       _update(UserSettingsCompanion(haptics: Value(on)));
+
+  Future<void> setDailyGoal(int goal) =>
+      _update(UserSettingsCompanion(dailyGoal: Value(goal)));
+
+  Future<void> setReminder({required bool on}) =>
+      _update(UserSettingsCompanion(reminder: Value(on)));
 
   Future<void> markHomeCoachSeen() =>
       _update(const UserSettingsCompanion(homeCoachSeen: Value(true)));

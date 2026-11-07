@@ -54,6 +54,8 @@ void main() {
   }
 
   Future<void> tapAndSettle(WidgetTester tester, String label) async {
+    await tester.ensureVisible(find.text(label));
+    await tester.pump();
     await tester.runAsync(() async {
       await tester.tap(find.text(label));
       // Drift work happens on real async; give it a moment to finish.
@@ -141,6 +143,9 @@ void main() {
   testWidgets('settings apply at once and persist', (tester) async {
     await pumpApp(tester, Routes.settings);
     await tapAndSettle(tester, 'Dark');
+    // Back to the top, where the language control is.
+    await tester.drag(find.byType(ListView), const Offset(0, 2000));
+    await tester.pumpAndSettle();
     await tapAndSettle(tester, 'ქართული');
     final settings = (await tester.runAsync(SettingsDao(db).read))!;
     expect(settings.theme, ThemePreference.dark);

@@ -15,6 +15,7 @@ const _layers = <Set<String>>[
     'features/quiz',
     'features/results',
     'features/settings',
+    'features/streak',
   },
   {'app'},
   {'main.dart'},

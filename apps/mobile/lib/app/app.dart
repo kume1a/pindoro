@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +7,8 @@ import 'package:go_router/go_router.dart';
 import 'package:pindoro/app/router.dart';
 import 'package:pindoro/core/launch_overlay.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/progress/data/reminders.dart';
+import 'package:pindoro/features/progress/data/streak.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -30,8 +34,27 @@ class PindoroApp extends ConsumerStatefulWidget {
 class _PindoroAppState extends ConsumerState<PindoroApp> {
   late final GoRouter _router = buildRouter(widget.initialLocation);
 
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    // The date may have changed while the app was away.
+    _lifecycle = AppLifecycleListener(
+      onResume: () => ref.invalidate(streakProvider),
+    );
+    // Keeps the one reminder in step with the streak and the settings;
+    // switching it off in Settings cancels it there.
+    ref.listenManual(reminderProvider, (_, next) {
+      if (next case AsyncData(value: final notice?)) {
+        unawaited(ref.read(remindersProvider).schedule(notice));
+      }
+    }, fireImmediately: true);
+  }
+
   @override
   void dispose() {
+    _lifecycle.dispose();
     _router.dispose();
     super.dispose();
   }

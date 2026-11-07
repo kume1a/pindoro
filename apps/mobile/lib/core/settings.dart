@@ -45,6 +45,9 @@ class GameFeedback {
   /// The round's reward total lands after counting up.
   void reward() => _haptic(HapticFeedback.mediumImpact);
 
+  /// The streak grows by a day (component Streak § Streak increase).
+  void streak() => _haptic(HapticFeedback.mediumImpact);
+
   void tier(Tier tier) => switch (tier) {
     Tier.perfect => _sequence([
       HapticFeedback.heavyImpact,

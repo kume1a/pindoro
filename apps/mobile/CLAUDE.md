@@ -11,9 +11,10 @@ lib/core/                      shared by every feature: routes (paths + RoundSum
 lib/features/<feature>/data/   DAOs, repositories, stores and providers over the database or packs
 lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), their parts in ui/widgets/;
                                never Drift
-                               features: progress (ProgressDao: rounds + answer log), pack, map,
+                               features: progress (ProgressDao: rounds + answer log + goal days;
+                               streakProvider, reminders, the daily goal ring and sheet), pack, map,
                                home, setup (welcome, city, area, difficulty), quiz (round),
-                               results (results, street, level up), settings
+                               results (results, street, level up), settings, streak
 lib/features/quiz/ui/round_controller.dart   round state machine; resumes from round_question + answers;
                                questions are NamedStreets (cityStreetsProvider); retries set round.retry_of
 lib/features/pack/data/pack_store.dart       catalog download + sha256/size check -> <docs>/packs/<city>/<version>.sqlite (2 kept)
@@ -26,8 +27,8 @@ test/drift/                    generated schema helpers + migration test
 ## Conventions
 
 - **Layers, lowest first:** `l10n` → `core` → `features/progress` → `features/pack` →
-  `features/map` → screen features (`home`, `setup`, `quiz`, `results`, `settings`) → `app` →
-  `main.dart`. A file imports its own slice or a lower layer only; screen features never import
+  `features/map` → screen features (`home`, `setup`, `quiz`, `results`, `settings`, `streak`) →
+  `app` → `main.dart`. A file imports its own slice or a lower layer only; screen features never import
   each other. Something two features need moves down (to `core`, or to `progress`/`pack`/`map`).
   `test/architecture_test.dart` enforces this, and that `ui/` never imports Drift; a new feature
   gets a layer there. Imports are `package:pindoro/...` (lint
@@ -38,24 +39,32 @@ test/drift/                    generated schema helpers + migration test
   `ref.watch` in build, `ref.read` in callbacks.
 - **Routing:** go_router, paths in `Routes` (v1-screens.md § Navigation): `/` Home, `/welcome`,
   `/city`, `/area`, `/difficulty`, `/round` (`?round=` resumes, `?retry=` retries), `/results`,
-  `/settings`, `/settings/credits`. Welcome opens until the first round is finished.
+  `/streak`, `/settings`, `/settings/credits`. Welcome opens until the first round is finished.
 - **Strings:** every UI string comes from `lib/l10n/app_{en,ka}.arb` (gen-l10n, `context.l10n`);
   `just gen` writes `app_localizations*.dart` (not committed). Georgian is a draft awaiting native
   review.
   Numbers through `formatNumber` (narrow no-break space groups), distances through
   `formatDistance`. Never uppercase.
 - **Settings** (`user_settings`, watched by `settingsProvider`): language (null = device),
-  street names, theme, sound, haptics (plus the first Home's coach-mark flag); they apply
-  immediately. `feedbackProvider` plays haptics
+  street names, theme, sound, haptics, daily goal, reminder (plus the first Home's coach-mark
+  flag); they apply immediately. `feedbackProvider` plays haptics
   per game event behind the Haptics toggle; the Sound toggle gates nothing until a sound kit exists.
+- **Streak:** only goal-met days are stored (`goal_day`, written by `ProgressDao.markGoalIfMet`
+  with the answer that reaches the goal, or by `streakProvider` when today's XP already meets it:
+  a lowered goal, XP from before R2). `streakProvider` derives the
+  streak, freezes and pill state with pindoro_core `streakOf`; the app root refreshes it on
+  resume. One reminder is scheduled at a time (`reminderProvider` → `Reminders`, listened to at
+  the app root); Settings turns it off and cancels it. Tests override `remindersProvider`: the
+  notifications plugin has no platform side there.
 - **Drift defaults are literals** (`Constant('local')`): drift copies them into the generated
   migration steps, which can't see app enums. No Flutter imports in `database.dart` either.
 - **Database:** `database.dart` holds only tables and migrations. Queries live in Drift DAOs
   (`@DriftAccessor`, built without `daos:` so `core` never imports a feature): `SettingsDao`
   (`core/database/`, `settingsDaoProvider`) owns the settings row with typed writes
   (`chooseCity` clears another city's area, `chooseArea`, `chooseDifficulty`, `setTheme`, …);
-  `ProgressDao` (`features/progress/data/`, `progressDaoProvider`) owns rounds, planned questions
-  and the answer log, and the rules read from them (saved round, retry set, recent streets).
+  `ProgressDao` (`features/progress/data/`, `progressDaoProvider`) owns rounds, planned questions,
+  the answer log and goal days, and the rules read from them (saved round, retry set, recent
+  streets, today's XP).
   Screens call these providers, never `databaseProvider`. Client ids are UUIDv7 (`newId()`).
   `answer` is an append-only log, enforced by the `answer_immutable` trigger. Changing a table: bump `schemaVersion`, add a migration, run
   `just gen` (it runs `drift_dev make-migrations`, then build_runner) and commit the new dump in

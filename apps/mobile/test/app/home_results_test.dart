@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' show DatabaseConnection;
+import 'package:drift/drift.dart' show DatabaseConnection, Value;
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,15 +7,18 @@ import 'package:pindoro/app/app.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
+import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/launch_overlay.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
+import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 void main() {
   late AppDatabase db;
+  late _FakeReminders reminders;
   late List<Street> streets;
 
   setUpAll(() {
@@ -31,12 +34,14 @@ void main() {
         closeStreamsSynchronously: true,
       ),
     );
+    reminders = _FakeReminders();
   });
   tearDown(() => db.close());
 
   Widget appAt(String location, {bool coldStart = false}) => ProviderScope(
     overrides: [
       databaseProvider.overrideWithValue(db),
+      remindersProvider.overrideWithValue(reminders),
       packRepositoryProvider.overrideWith((ref) async {
         final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
         ref.onDispose(repo.close);
@@ -53,7 +58,12 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// On a phone-sized screen (the emulator's 1080 × 2400).
   Future<void> pumpApp(WidgetTester tester, String location) async {
+    tester.view
+      ..physicalSize = const Size(1080, 2400)
+      ..devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(appAt(location));
     await settle(tester);
   }
@@ -228,4 +238,180 @@ void main() {
     await pumpApp(tester, Routes.results);
     expect(find.text('Streets you know'), findsOneWidget);
   });
+
+  group('streak', () {
+    final today = calendarDay(DateTime.now());
+
+    /// Goal days from [from] days ago to [to] days ago.
+    Future<void> goalDays(int from, int to) => db.batch(
+      (b) => b.insertAll(db.goalDays, [
+        for (var d = from; d >= to; d--)
+          GoalDaysCompanion.insert(
+            date: dayKey(today.subtract(Duration(days: d))),
+          ),
+      ]),
+    );
+
+    testWidgets('home shows the pill and ring; the pill opens Streak', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        await roundWithAnswers(10);
+        await goalDays(1, 0);
+        await SettingsDao(db).markHomeCoachSeen();
+      });
+      await pumpApp(tester, Routes.home);
+      expect(
+        find.bySemanticsLabel('2-day streak. Goal met today.'),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel('Daily goal met, 600 of 500 XP'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.bySemanticsLabel('2-day streak. Goal met today.'));
+      await settle(tester);
+      expect(find.text('Streak'), findsOneWidget);
+      expect(find.text('day streak'), findsOneWidget);
+      expect(find.text('Your best: 2 days'), findsOneWidget);
+      expect(find.text('No streak freeze yet'), findsOneWidget);
+      expect(find.text('Met today with 600 XP'), findsOneWidget);
+    });
+
+    testWidgets('streak shows a held freeze; Change saves a new goal', (
+      tester,
+    ) async {
+      await tester.runAsync(() => goalDays(7, 1));
+      await pumpApp(tester, Routes.streak);
+      expect(find.text('Streak freeze equipped · 1 of 2'), findsOneWidget);
+      expect(find.text('0 of 500 XP today'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('Change'));
+      await tester.pump();
+      await tester.tap(find.text('Change'));
+      await settle(tester);
+      await tester.tap(find.text('${formatNumber(1000)} XP a day'));
+      await settle(tester);
+      expect(find.text('Daily goal: ${formatNumber(1000)} XP'), findsOneWidget);
+      final settings = await tester.runAsync(() => SettingsDao(db).read());
+      expect(settings!.dailyGoal, 1000);
+    });
+
+    testWidgets('results show the streak once the round met today\'s goal', (
+      tester,
+    ) async {
+      late String id;
+      await tester.runAsync(() async {
+        id = await roundWithAnswers(10);
+        await goalDays(1, 1);
+        await db
+            .into(db.goalDays)
+            .insert(
+              GoalDaysCompanion.insert(date: dayKey(today), roundId: Value(id)),
+            );
+      });
+      await pumpApp(tester, Routes.resultsOf(id));
+      expect(find.text('2-day streak'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Daily goal met, 2-day streak'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('settings show and change the daily goal', (tester) async {
+      await pumpApp(tester, Routes.settings);
+      expect(find.text('500 XP a day'), findsOneWidget);
+      expect(
+        find.text('About two rounds · keeps your streak going'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('500 XP a day'));
+      await settle(tester);
+      await tester.tap(find.text('250 XP a day'));
+      await settle(tester);
+      expect(
+        find.text('About one round · keeps your streak going'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a goal lowered below today\'s XP marks today', (tester) async {
+      await tester.runAsync(() => roundWithAnswers(5)); // 300 XP
+      await pumpApp(tester, Routes.streak);
+      expect(find.text('300 of 500 XP today'), findsOneWidget);
+      await tester.ensureVisible(find.text('Change'));
+      await tester.pump();
+      await tester.tap(find.text('Change'));
+      await settle(tester);
+      await tester.tap(find.text('250 XP a day'));
+      await settle(tester);
+      expect(find.text('Met today with 300 XP'), findsOneWidget);
+      final days = await tester.runAsync(ProgressDao(db).goalDayRounds);
+      expect(days, {today: null});
+    });
+
+    testWidgets('XP from before the streak existed counts for today', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        await roundWithAnswers(10); // 600 XP, no goal day written
+        await SettingsDao(db).markHomeCoachSeen();
+      });
+      await pumpApp(tester, Routes.home);
+      expect(
+        find.bySemanticsLabel('1-day streak. Goal met today.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the reminder asks first, then schedules the next one', (
+      tester,
+    ) async {
+      await pumpApp(tester, Routes.settings);
+      await tester.tap(find.text('Reminder'));
+      await settle(tester);
+      final settings = await tester.runAsync(() => SettingsDao(db).read());
+      expect(settings!.reminder, isTrue);
+      expect(reminders.scheduled.single.hour, StreakRules.reminderHour);
+
+      await tester.tap(find.text('Reminder'));
+      await settle(tester);
+      expect(reminders.cancels, 1);
+    });
+
+    testWidgets('without permission the reminder stays off', (tester) async {
+      reminders.allowed = false;
+      await pumpApp(tester, Routes.settings);
+      await tester.tap(find.text('Reminder'));
+      await settle(tester);
+      expect(
+        find.text(
+          "Notifications are off for Pindoro. Turn them on in your phone's "
+          'settings.',
+        ),
+        findsOneWidget,
+      );
+      final settings = await tester.runAsync(() => SettingsDao(db).read());
+      expect(settings!.reminder, isFalse);
+      expect(reminders.scheduled, isEmpty);
+    });
+  });
+}
+
+/// Records what would be scheduled; [allowed] answers the permission prompt.
+class _FakeReminders implements Reminders {
+  bool allowed = true;
+  final List<DateTime> scheduled = [];
+  int cancels = 0;
+
+  @override
+  Future<bool> requestPermission() async => allowed;
+
+  @override
+  Future<void> schedule(ReminderNotice notice) async =>
+      scheduled.add(notice.at);
+
+  @override
+  Future<void> cancel() async => cancels++;
 }

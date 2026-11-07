@@ -13,10 +13,12 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/home/data/home_data.dart';
 import 'package:pindoro/features/home/ui/widgets/city_card.dart';
 import 'package:pindoro/features/home/ui/widgets/home_intro.dart';
+import 'package:pindoro/features/home/ui/widgets/home_streak_pill.dart';
 import 'package:pindoro/features/home/ui/widgets/level_card.dart';
 import 'package:pindoro/features/home/ui/widgets/saved_card.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/pack/ui/pack_pending.dart';
+import 'package:pindoro/features/progress/data/streak.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -75,6 +77,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final home = ref.watch(homeProvider(_summary?.startedAt)).value;
     final settings = ref.watch(settingsProvider).value;
+    final streak = ref.watch(streakProvider).value;
     if (home == null) {
       return PackPending(pack: ref.watch(packRepositoryProvider));
     }
@@ -120,8 +123,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Row(
                   spacing: PindoroSpace.s2,
                   children: [
-                    // The space after the name is reserved for the streak pill
-                    // (release 2).
                     Expanded(
                       child: Align(
                         alignment: AlignmentDirectional.centerStart,
@@ -132,6 +133,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       ),
                     ),
+                    if (streak != null)
+                      HomeStreakPill(
+                        streak,
+                        onPressed: () => open(Routes.streak),
+                      ),
                     CountUp(
                       value: home.totalXp,
                       from: intro?.xpBefore ?? home.totalXp,
@@ -164,6 +170,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       level: level,
                       totalXp: home.totalXp,
                       intro: intro,
+                      streak: streak,
                     ),
                     if (saved != null) SavedCard(saved: saved),
                     CityCard(
