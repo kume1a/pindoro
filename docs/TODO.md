@@ -46,3 +46,7 @@
 - Store releases: create the Android upload key and `key.properties`, then
   `just release appbundle <domain>` (`docs/deploy.md` section 9).
 - iOS is built unsigned in CI (macOS runner) but has never run on a device or simulator.
+- Move `drizzle-kit` to 1.0 once it is stable: it drops `@esbuild-kit`, which brings in the old
+  esbuild behind the dismissed Dependabot alert #1.
+- Dependabot ignores Node and PostGIS major versions: bump those by hand (PostGIS needs a dump and
+  restore).
