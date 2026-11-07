@@ -46,9 +46,17 @@
     (`UNUserNotificationCenter` delegate in `AppDelegate`) isn't set up.
 - Pit stop (R3), left out on purpose:
   - Answers from before the R3 update don't enter the Pit stop (it starts empty).
-  - The Results chip "n to your Pit stop" isn't tappable; Home's card is the way in.
-  - The Pit stop tab, its due badge and the Pit stop on the lesson path wait for R4.
+  - The Results chip "n to your Pit stop" isn't tappable; the Pit stop tab is the way in.
+  - The Pit stop on the lesson path waits for R4b.
   - Review items of a retired street stay in the table; readers skip them (`dueIn`).
+- Tabs and Me (R4a), left out on purpose:
+  - Me's Lessons and Road trips tiles read 0 until R4b (lessons) and R4c (road trips) count them.
+  - Only Best streak opens something (Streak); the lists behind the other tiles don't exist yet.
+  - Me's city rows say "180 / 1 240 streets"; the canvas's "Unit 2 · Vake ·" prefix needs R4b.
+  - The Path tab, and tapping it to scroll to the current stop, arrive with R4b.
+  - A played city whose pack isn't on the phone is left out of Me's cities.
+  - After a Pit stop round, Done still lands on Free play (with the Home intro), not the Pit stop
+    tab.
 
 ## Data / pipeline
 
