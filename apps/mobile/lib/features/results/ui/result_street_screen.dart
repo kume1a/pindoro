@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/results/data/results_data.dart';
-import 'package:pindoro/features/results/ui/results_screen.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 

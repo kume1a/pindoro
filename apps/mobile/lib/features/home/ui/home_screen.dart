@@ -11,6 +11,10 @@ import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/home/data/home_data.dart';
+import 'package:pindoro/features/home/ui/widgets/city_card.dart';
+import 'package:pindoro/features/home/ui/widgets/home_intro.dart';
+import 'package:pindoro/features/home/ui/widgets/level_card.dart';
+import 'package:pindoro/features/home/ui/widgets/saved_card.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/pack/ui/pack_pending.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -20,39 +24,6 @@ import 'package:pindoro_design/pindoro_design.dart';
 // ponytail: lives as long as the process; a restart never replays an intro
 // anyway, because the summary only travels with Results' Done.
 final _introsPlayed = <String>{};
-
-extension on KnownCount {
-  double get fraction => total == 0 ? 0 : known / total;
-}
-
-DistrictProgress _progress(KnownCount c) => c.known == 0
-    ? DistrictProgress.notStarted
-    : c.known >= c.total
-    ? DistrictProgress.complete
-    : DistrictProgress.inProgress;
-
-/// The city's districts (not neighbourhoods), filled by each one's [count].
-DistrictMiniMap _miniMap(
-  List<DistrictCount> districts,
-  KnownCount Function(DistrictCount d) count,
-) => DistrictMiniMap(
-  districts: [
-    for (final d in districts)
-      if (d.district.kind == DistrictKind.district)
-        (boundary: d.district.boundary, progress: _progress(count(d))),
-  ],
-);
-
-/// When each part of Home's intro after a round starts (canvas M-43).
-abstract final class _IntroAt {
-  static const Duration xp = Duration(milliseconds: 300);
-  static const Duration bar = Duration(milliseconds: 450);
-  static const Duration streets = Duration(milliseconds: 950);
-  static const Duration settle = Duration(milliseconds: 2600);
-}
-
-/// Where the intro's numbers start, and whether its ring and tip still show.
-typedef _Intro = ({int xpBefore, int roundXp, HomeCounts before, bool settled});
 
 /// Level, XP and the streets you know in the city, district by district;
 /// Play (or Continue round) pinned in the thumb zone. Right after a round
@@ -80,12 +51,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.dispose();
   }
 
-  _Intro? _intro(HomeData home) {
+  HomeIntro? _intro(HomeData home) {
     final summary = _summary;
     final before = home.before;
     if (summary == null || before == null) return null;
     _settle ??= Timer(
-      MediaQuery.disableAnimationsOf(context) ? Duration.zero : _IntroAt.settle,
+      MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : HomeIntroAt.settle,
       () {
         if (mounted) setState(() => _settled = true);
       },
@@ -163,7 +136,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     CountUp(
                       value: home.totalXp,
                       from: intro?.xpBefore ?? home.totalXp,
-                      delay: _IntroAt.xp,
+                      delay: HomeIntroAt.xp,
                       builder: (context, xp) => Pill(
                         label: formatNumber(xp),
                         icon: PindoroGlyph.xp,
@@ -188,13 +161,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 padding: const EdgeInsets.all(PindoroSpace.s4),
                 children: [
                   for (final card in [
-                    _LevelCard(
+                    LevelCard(
                       level: level,
                       totalXp: home.totalXp,
                       intro: intro,
                     ),
-                    if (saved != null) _SavedCard(saved: saved),
-                    _CityCard(
+                    if (saved != null) SavedCard(saved: saved),
+                    CityCard(
                       home: home,
                       intro: intro,
                       settings: settings,
@@ -260,384 +233,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _LevelCard extends StatelessWidget {
-  const _LevelCard({required this.level, required this.totalXp, this.intro});
-
-  final LevelProgress level;
-  final int totalXp;
-  final _Intro? intro;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final c = PindoroTheme.of(context).colors;
-    final into = formatNumber(level.xpIntoLevel);
-    final needed = formatNumber(level.xpForLevel);
-    final secondary = PindoroType.labelMd.copyWith(color: c.textSecondary);
-    final intro = this.intro;
-    final start = intro == null ? null : progressWithinLevel(intro.xpBefore);
-    return LipBox(
-      border: c.lineBase,
-      padding: const EdgeInsets.all(PindoroSpace.s4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        spacing: PindoroSpace.s3,
-        children: [
-          Row(
-            spacing: PindoroSpace.s3,
-            children: [
-              LevelBadge(level.level),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.homeLevel(level.level),
-                      style: PindoroType.titleLg.copyWith(color: c.textPrimary),
-                    ),
-                    Text(
-                      l10n.homeXpToNextLevel(
-                        formatNumber(level.xpForLevel - level.xpIntoLevel),
-                        level.level + 1,
-                      ),
-                      style: secondary,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          XpBar(
-            value: level.fraction,
-            from: start == null
-                ? null
-                : start.level == level.level
-                ? start.fraction
-                : 0,
-            delay: intro == null ? Duration.zero : _IntroAt.bar,
-            tip: intro == null || intro.roundXp == 0
-                ? null
-                : l10n.commonXp(formatNumber(intro.roundXp)),
-            tipShown: !(intro?.settled ?? true),
-            semanticLabel: l10n.a11yLevelProgress(level.level, into, needed),
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.homeXpTotal(formatNumber(totalXp)),
-                  style: secondary,
-                ),
-              ),
-              Text(
-                '$into / $needed XP',
-                style: PindoroType.numericSm.copyWith(color: c.textSecondary),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SavedCard extends StatelessWidget {
-  const _SavedCard({required this.saved});
-
-  final HomeSavedRound saved;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final c = PindoroTheme.of(context).colors;
-    return LipBox(
-      face: c.primarySoft,
-      lip: c.primaryBase,
-      border: c.primaryBase,
-      padding: const EdgeInsets.all(PindoroSpace.s4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            l10n.homeSavedTitle,
-            style: PindoroType.titleMd.copyWith(color: c.primaryText),
-          ),
-          Text(
-            l10n.homeSavedProgress(
-              saved.answered + 1,
-              saved.total,
-              formatNumber(saved.xp),
-            ),
-            style: PindoroType.bodyMd.copyWith(color: c.textPrimary),
-          ),
-          Text(
-            l10n.homeSavedAgo(
-              formatAgo(DateTime.now().difference(saved.at), l10n),
-            ),
-            style: PindoroType.bodySm.copyWith(color: c.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CityCard extends StatelessWidget {
-  const _CityCard({
-    required this.home,
-    required this.settings,
-    required this.onDistrict,
-    required this.onAll,
-    required this.onCoachClosed,
-    this.intro,
-  });
-
-  final HomeData home;
-  final _Intro? intro;
-  final Settings? settings;
-  final VoidCallback onCoachClosed;
-  final ValueChanged<String> onDistrict;
-  final VoidCallback onAll;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final c = PindoroTheme.of(context).colors;
-    final known = home.cityKnown;
-    final before = intro?.before;
-    final newlyKnown = known.known - (before?.city.known ?? known.known);
-    return LipBox(
-      border: c.lineBase,
-      padding: const EdgeInsets.all(PindoroSpace.s4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        spacing: PindoroSpace.s3,
-        children: [
-          Row(
-            spacing: PindoroSpace.s2,
-            children: [
-              Expanded(
-                child: Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: _Coach(
-                    show: !(settings?.homeCoachSeen ?? true),
-                    onClose: onCoachClosed,
-                    child: Text(
-                      l10n.homeKnownTitle,
-                      style: PindoroType.titleMd.copyWith(color: c.textPrimary),
-                    ),
-                  ),
-                ),
-              ),
-              if (newlyKnown > 0)
-                PopIn(
-                  delay: _IntroAt.streets,
-                  child: Pill(label: '+${formatNumber(newlyKnown)}'),
-                ),
-              CountUp(
-                value: known.known,
-                from: before?.city.known ?? known.known,
-                delay: _IntroAt.streets,
-                builder: (context, n) => Text(
-                  l10n.homeKnownOf(formatNumber(n), formatNumber(known.total)),
-                  style: PindoroType.numericMd.copyWith(color: c.textPrimary),
-                ),
-              ),
-            ],
-          ),
-          if (home.districts.isNotEmpty) ...[
-            if (before == null)
-              _miniMap(home.districts, (d) => d.count)
-            else
-              // Districts that changed state fade in with the streets.
-              Stack(
-                children: [
-                  _miniMap(
-                    home.districts,
-                    (d) =>
-                        before.byDistrict[d.district.id] ??
-                        (known: 0, total: 0),
-                  ),
-                  Builder(
-                    builder: (context) {
-                      final (duration, curve) = delayedMotion(
-                        context,
-                        _IntroAt.streets,
-                        PindoroMotion.durationQuick,
-                        Curves.linear,
-                      );
-                      return TweenAnimationBuilder<double>(
-                        tween: Tween(begin: 0, end: 1),
-                        duration: duration,
-                        curve: curve,
-                        builder: (_, t, child) =>
-                            Opacity(opacity: t, child: child),
-                        child: _miniMap(home.districts, (d) => d.count),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            Wrap(
-              spacing: PindoroSpace.s4,
-              runSpacing: PindoroSpace.s1,
-              children: [
-                Swatch(
-                  progress: DistrictProgress.inProgress,
-                  label: l10n.homeLegendInProgress,
-                ),
-                Swatch(
-                  progress: DistrictProgress.complete,
-                  label: l10n.homeLegendComplete,
-                ),
-                Swatch(
-                  progress: DistrictProgress.notStarted,
-                  label: l10n.homeLegendNotStarted,
-                ),
-              ],
-            ),
-          ],
-          if (known.known == 0)
-            Text(
-              l10n.homeEmptyCity,
-              style: PindoroType.bodySm.copyWith(color: c.textSecondary),
-            ),
-          for (final d in home.recent)
-            Semantics(
-              button: true,
-              child: InkWell(
-                onTap: () => onDistrict(d.district.id),
-                mouseCursor: SystemMouseCursors.click,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: PindoroSpace.s2,
-                  ),
-                  child: Row(
-                    spacing: PindoroSpace.s3,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Text(
-                          districtName(d.district, settings),
-                          style: PindoroType.titleSm.copyWith(
-                            color: c.textPrimary,
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Minibar(
-                          value: d.count.fraction,
-                          from: before?.byDistrict[d.district.id]?.fraction,
-                          delay: _IntroAt.streets,
-                        ),
-                      ),
-                      Text(
-                        '${formatNumber(d.count.known)} / '
-                        '${formatNumber(d.count.total)}',
-                        style: PindoroType.numericSm.copyWith(
-                          color: c.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          if (home.districts.isNotEmpty)
-            PindoroButton(
-              label: l10n.homeAllDistricts(home.districts.length),
-              variant: PindoroButtonVariant.tertiary,
-              onPressed: onAll,
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The first Home's coach mark (canvas M-13), hanging under [child] while
-/// [show]. Any tap closes it.
-class _Coach extends StatefulWidget {
-  const _Coach({
-    required this.show,
-    required this.onClose,
-    required this.child,
-  });
-
-  final bool show;
-  final VoidCallback onClose;
-  final Widget child;
-
-  @override
-  State<_Coach> createState() => _CoachState();
-}
-
-class _CoachState extends State<_Coach> {
-  final _portal = OverlayPortalController();
-  final _link = LayerLink();
-
-  @override
-  void initState() {
-    super.initState();
-    // The overlay can't change while the tree builds.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _sync());
-  }
-
-  @override
-  void didUpdateWidget(_Coach oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.show != oldWidget.show) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _sync());
-    }
-  }
-
-  void _sync() {
-    if (!mounted) return;
-    widget.show ? _portal.show() : _portal.hide();
-  }
-
-  void _close() {
-    _portal.hide();
-    widget.onClose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    return OverlayPortal(
-      controller: _portal,
-      overlayChildBuilder: (context) => Positioned.fill(
-        child: Semantics(
-          button: true,
-          label: l10n.homeCoachTitle,
-          hint: l10n.homeCoachBody,
-          onTap: _close,
-          excludeSemantics: true,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _close,
-            child: Stack(
-              children: [
-                CompositedTransformFollower(
-                  link: _link,
-                  targetAnchor: Alignment.bottomLeft,
-                  offset: const Offset(-PindoroSpace.s2, PindoroSpace.s2),
-                  child: CoachBubble(
-                    title: l10n.homeCoachTitle,
-                    body: l10n.homeCoachBody,
-                    pointsUp: true,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-      child: CompositedTransformTarget(link: _link, child: widget.child),
     );
   }
 }

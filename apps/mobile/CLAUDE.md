@@ -9,7 +9,8 @@ lib/core/                      shared by every feature: routes (paths + RoundSum
                                labels, settings, location, online, toast, page scaffold, launch overlay,
                                database/ (Drift tables, migrations, .drift trigger, SettingsDao)
 lib/features/<feature>/data/   DAOs, repositories, stores and providers over the database or packs
-lib/features/<feature>/ui/     screens, widgets and controllers (Riverpod notifiers); never Drift
+lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), their parts in ui/widgets/;
+                               never Drift
                                features: progress (ProgressDao: rounds + answer log), pack, map,
                                home, setup (welcome, city, area, difficulty), quiz (round),
                                results (results, street, level up), settings

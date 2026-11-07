@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
-import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
