@@ -7,8 +7,9 @@ import 'package:pindoro/features/setup/ui/widgets/area_sheet.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// The 90 % sheet with every area: a checkbox row per district, its quarters
-/// and neighbourhoods folded under it, and a search over both scripts.
+/// The 90 % sheet with every area: a checkbox row per district that stays on
+/// top while its quarters and neighbourhoods scroll under it, and a search
+/// over both scripts.
 class AllAreasSheet extends StatefulWidget {
   const AllAreasSheet({
     super.key,
@@ -189,17 +190,30 @@ class _AllAreasSheetState extends State<AllAreasSheet> {
                     textAlign: TextAlign.center,
                     style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
                   )
-                : ListView(
-                    children: [
-                      for (final (:group, :shown) in sections) ...[
-                        districtRow(group),
-                        if (query.isNotEmpty ||
-                            _open.contains(group.district.id))
-                          for (final d
-                              in shown.toList()
-                                ..sort((a, b) => _name(a).compareTo(_name(b))))
-                            partRow(group.district, d),
-                      ],
+                : CustomScrollView(
+                    slivers: [
+                      for (final (:group, :shown) in sections)
+                        SliverMainAxisGroup(
+                          slivers: [
+                            PinnedHeaderSliver(
+                              child: ColoredBox(
+                                color: c.surfaceOverlay,
+                                child: districtRow(group),
+                              ),
+                            ),
+                            if (query.isNotEmpty ||
+                                _open.contains(group.district.id))
+                              SliverList.list(
+                                children: [
+                                  for (final d
+                                      in shown.toList()..sort(
+                                        (a, b) => _name(a).compareTo(_name(b)),
+                                      ))
+                                    partRow(group.district, d),
+                                ],
+                              ),
+                          ],
+                        ),
                     ],
                   ),
           ),
