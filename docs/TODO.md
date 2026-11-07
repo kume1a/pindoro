@@ -24,6 +24,17 @@
   refreshed; delete it when `georgia.pmtiles` updates (no tiles version to compare yet).
 - The offline toast probes the API's `/health`; there is no live connectivity listener.
 
+## App structure (follow-ups to the feature-first layout)
+
+- Screens write to the database themselves (`db.updateSettings` in six screens, answer inserts in
+  `round_controller`). Move the writes into each feature's `data/` (Drift DAOs per feature).
+- Game-rule queries still live in `core/database/database.dart` (saved round, retry set, recent
+  districts, best tier per part): move them to the owning features' DAOs.
+- Split the long screens (`area_screen` ~800 lines, `home_screen`, `quiz_screen`) into
+  `ui/widgets/`.
+- Drift's generated `RoundQuestion` row class and `round_controller`'s `typedef RoundQuestion`
+  share a name; rename one before a file needs both.
+
 ## Data / pipeline
 
 - Neighbourhoods come from OSM `place=quarter|neighbourhood`; `curation/neighbourhoods.geojson` is

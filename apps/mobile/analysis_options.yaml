@@ -8,3 +8,11 @@ analyzer:
     - "test/drift/**/generated/**"
     - android/**
     - ios/**
+    # gen-l10n output imports its locale files relatively.
+    - lib/l10n/app_localizations*.dart
+
+linter:
+  rules:
+    # Every import names its layer (app/, core/, features/<f>/); test/architecture_test.dart checks the direction.
+    always_use_package_imports: true
+    directives_ordering: true

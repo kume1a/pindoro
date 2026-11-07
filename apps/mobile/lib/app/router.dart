@@ -1,40 +1,17 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/routes.dart';
+import 'package:pindoro/features/home/ui/home_screen.dart';
+import 'package:pindoro/features/quiz/ui/quiz_screen.dart';
+import 'package:pindoro/features/results/ui/result_street_screen.dart';
+import 'package:pindoro/features/results/ui/results_screen.dart';
+import 'package:pindoro/features/settings/ui/settings_screen.dart';
+import 'package:pindoro/features/setup/ui/area_screen.dart';
+import 'package:pindoro/features/setup/ui/city_screen.dart';
+import 'package:pindoro/features/setup/ui/difficulty_screen.dart';
+import 'package:pindoro/features/setup/ui/welcome_screen.dart';
 import 'package:pindoro_design/pindoro_design.dart';
-
-import '../features/home/home_screen.dart';
-import '../features/quiz/quiz_screen.dart';
-import '../features/quiz/result_street_screen.dart';
-import '../features/quiz/results_screen.dart';
-import '../features/settings/settings_screen.dart';
-import '../features/setup/area_screen.dart';
-import '../features/setup/city_screen.dart';
-import '../features/setup/difficulty_screen.dart';
-import '../features/setup/welcome_screen.dart';
-import 'database.dart';
-
-/// Paths from docs/design/v1-screens.md § Navigation.
-abstract final class Routes {
-  static const String home = '/';
-  static const String welcome = '/welcome';
-  static const String city = '/city';
-  static const String area = '/area';
-  static const String difficulty = '/difficulty';
-
-  /// `?round=<id>` resumes, `?retry=<id>` plays that round's missed streets.
-  static const String round = '/round';
-
-  /// `?round=<id>`; `/results/street/<index>?round=<id>` opens one answer.
-  static const String results = '/results';
-  static const String settings = '/settings';
-  static const String credits = '/settings/credits';
-
-  static String resume(String roundId) => '$round?round=$roundId';
-  static String retry(String roundId) => '$round?retry=$roundId';
-  static String resultsOf(String roundId) => '$results?round=$roundId';
-  static String resultStreet(String roundId, int index) =>
-      '$results/street/$index?round=$roundId';
-}
 
 /// Home and Results arrive with a fade rather than a slide (canvas M-40, M-43).
 Page<void> _fadePage(GoRouterState state, Widget child) =>

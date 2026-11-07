@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- HTTPS everywhere, except the loopback server the offline map download reads its style from
-     (lib/features/map/city_tiles.dart). -->
+     (lib/features/map/data/city_tiles.dart). -->
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">127.0.0.1</domain>

@@ -58,9 +58,9 @@ no S3/R2 (packs are static files served by Caddy). See `docs/adr/0001-architectu
 
 | Command             | Does                                                                 |
 | ------------------- | -------------------------------------------------------------------- |
-| `just setup`        | `pnpm install` + `flutter pub get` (pnpm + Dart pub workspaces)      |
-| `just gen`          | Regenerate design tokens and Drift code                              |
-| `just gen-check`    | Regenerate tokens + Drift and fail on a diff (CI)                    |
+| `just setup`        | `pnpm install` + `flutter pub get`, then `just gen`                  |
+| `just gen`          | Generate tokens, l10n and Drift code (gitignored, never committed)   |
+| `just gen-check`    | `gen`, then fail if it needed an uncommitted source (CI)             |
 | `just api-check`    | Regenerate `openapi.json` + Drizzle migrations, fail on a diff (CI)  |
 | `just goldens`      | Regenerate design goldens on Linux (pinned Flutter, as CI)           |
 | `just branding`     | App icon + splash from `apps/mobile/assets/branding` (design assets) |

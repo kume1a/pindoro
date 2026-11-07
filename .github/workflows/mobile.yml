@@ -40,5 +40,8 @@ jobs:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
+      - uses: extractions/setup-just@v4
+      - run: flutter pub get
+      - run: just gen
       - run: flutter build ios --release --no-codesign
         working-directory: apps/mobile

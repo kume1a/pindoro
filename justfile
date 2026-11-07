@@ -13,14 +13,17 @@ fixture_pack := "../../apps/mobile/assets/packs_fixture/tbilisi_vake_fixture.sql
 default:
     @just --list
 
-# Install pnpm and Dart workspace dependencies
-setup:
+# Install pnpm and Dart workspace dependencies, then generate code
+setup: && gen
     pnpm install
     flutter pub get
 
-# Generate code: design tokens and Drift
+# Generate code (never committed): design tokens, gen-l10n, Drift migration steps + test helpers
+# from drift_schemas/, then build_runner. Its stdout is only a migration template, so it's dropped.
 gen:
     dart run packages/pindoro_design/tool/generate_tokens.dart
+    cd apps/mobile && flutter gen-l10n
+    cd apps/mobile && dart run drift_dev make-migrations > /dev/null
     cd apps/mobile && dart run build_runner build
 
 # Native app icon and splash from the branding assets (design-system asset groups)
@@ -30,9 +33,9 @@ branding:
     cp apps/mobile/assets/branding/png/splash-mark.png apps/mobile/android/app/src/main/res/drawable-xxxhdpi/splash.png
     cp apps/mobile/assets/branding/png/splash-mark-dark.png apps/mobile/android/app/src/main/res/drawable-night-xxxhdpi/splash.png
 
-# Fail when generated code (design tokens, Drift) is stale
+# Fail when generating code needed a source that isn't committed (e.g. a new Drift schema dump)
 gen-check: gen
-    test -z "$(git status --porcelain -- packages/pindoro_design/lib/src/generated apps/mobile/lib)"
+    test -z "$(git status --porcelain -- apps/mobile packages/pindoro_design)"
 
 # Fail when openapi.json or the Drizzle migrations are stale
 api-check:

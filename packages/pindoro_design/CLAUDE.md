@@ -20,7 +20,8 @@ as parameters; strings live in the app.
   (primitives), `PindoroColors.light` / `.dark` (semantic + component colours, aliases resolved),
   `PindoroSpace.s4`, `PindoroRadius.lg`, `PindoroElevation.e2`, `PindoroSize`, `PindoroStroke`,
   `PindoroMotion`, `PindoroOpacity`, `PindoroShadow`, `PindoroCamera` and `PindoroType` roles.
-  **Never hand-edit generated code** — run `just gen` and commit both. CI runs `just tokens-check`.
+  **Never hand-edit generated code** — commit the token JSON and run `just gen`; the generated
+  Dart is not committed (`just setup` and CI generate it).
 - No literal colours, radii, spacing or durations in widgets. Theme-dependent colours come from
   `PindoroTheme.of(context).colors`, never from `PindoroPalette` directly.
 

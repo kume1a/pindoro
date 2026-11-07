@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pindoro/app/router.dart';
+import 'package:pindoro/core/launch_overlay.dart';
+import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_design/pindoro_design.dart';
-
-import '../l10n/app_localizations.dart';
-import 'launch_overlay.dart';
-import 'router.dart';
-import 'settings.dart';
 
 class PindoroApp extends ConsumerStatefulWidget {
   const PindoroApp({

@@ -1,7 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pindoro/app/database.dart';
+import 'package:pindoro/core/database/database.dart';
 
 import 'generated/schema.dart';
 
