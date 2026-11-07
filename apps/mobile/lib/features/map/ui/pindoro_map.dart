@@ -10,12 +10,15 @@ import 'package:pindoro/core/location.dart';
 import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/map/data/geojson.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
+import 'package:pindoro/features/map/data/maplibre_convert.dart';
+import 'package:pindoro/features/map/ui/map_work.dart';
 import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
+import 'package:pindoro/features/map/ui/widgets/map_zoom_controls.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// GeoJSON source ids.
-abstract final class MapSources {
+abstract final class _MapSources {
   static const String areaMask = 'area-mask';
   static const String youPin = 'you-pin';
   static const String truthStreet = 'truth-street';
@@ -40,7 +43,7 @@ final pindoroMapBuilderProvider = Provider<Widget Function(PindoroMap map)>(
 /// pin, truth street and measure line passed in by the caller. [bottomInset]
 /// is the height of whatever covers the bottom of the map (button, sheet):
 /// controls and attribution sit above it and the camera frames above it.
-class PindoroMap extends StatefulWidget {
+class PindoroMap extends ConsumerStatefulWidget {
   const PindoroMap({
     super.key,
     required this.area,
@@ -65,11 +68,13 @@ class PindoroMap extends StatefulWidget {
   final bool showControls;
 
   @override
-  State<PindoroMap> createState() => _PindoroMapState();
+  ConsumerState<PindoroMap> createState() => _PindoroMapState();
 }
 
-class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
+class _PindoroMapState extends ConsumerState<PindoroMap>
+    with TickerProviderStateMixin {
   ml.MapLibreMapController? _controller;
+  bool _locating = false;
 
   /// The pin drop: falls 24 dp and bounces once (`motion.pin-drop`).
   late final AnimationController _drop = AnimationController(
@@ -125,10 +130,14 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
     return clipToCircle(truth, from, _paintReachM * eased);
   }
 
-  void _paintTick() => _controller?.setGeoJsonSource(
-    MapSources.truthStreet,
-    linesGeoJson(_paintedTruth),
-  );
+  // Ticks skip frames while a new style (theme change) lacks the sources.
+  void _paintTick() {
+    if (!_overlaysReady) return;
+    _controller?.setGeoJsonSource(
+      _MapSources.truthStreet,
+      linesGeoJson(_paintedTruth),
+    );
+  }
 
   void _startPaint() {
     final from = widget.measure?.to;
@@ -140,10 +149,11 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
   }
 
   void _dropTick() {
+    if (!_overlaysReady) return;
     final fall = 24 * (1 - Curves.bounceOut.transform(_drop.value));
     // setLayerProperties replaces every property, so send them all.
     _controller?.setLayerProperties(
-      '${MapSources.youPin}-pin',
+      '${_MapSources.youPin}-pin',
       _pinLayer(PinMark.tipInset - fall),
     );
   }
@@ -161,7 +171,11 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
     if (widget.truth != null && widget.measure?.to != oldWidget.measure?.to) {
       _startPaint();
     }
-    unawaited(_syncOverlays());
+    if (widget.pin != oldWidget.pin ||
+        widget.truth != oldWidget.truth ||
+        widget.measure != oldWidget.measure) {
+      runMapWork(_syncOverlays);
+    }
     if (widget.truth != null && widget.truth != oldWidget.truth) {
       unawaited(_fit([...widget.truth!.expand((l) => l), ?widget.pin]));
     } else if (widget.truth == null && oldWidget.truth != null) {
@@ -175,13 +189,9 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
   }
 
   Future<void> _fit(List<LatLng> points) async {
-    final b = Bbox.of(points);
     await _controller?.animateCamera(
       ml.CameraUpdate.newLatLngBounds(
-        ml.LatLngBounds(
-          southwest: ml.LatLng(b.minLat, b.minLon),
-          northeast: ml.LatLng(b.maxLat, b.maxLon),
-        ),
+        Bbox.of(points).toMapLibre,
         left: PindoroCamera.fitPaddingX,
         top: widget.topInset + PindoroSpace.s6,
         right: PindoroCamera.fitPaddingX,
@@ -205,19 +215,19 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
     // Overlays must stay non-interactive: maplibre_gl reports taps on interactive
     // layers as feature taps instead of map clicks, which would block pin drops.
     await c.addGeoJsonSource(
-      MapSources.areaMask,
+      _MapSources.areaMask,
       areaMaskGeoJson(widget.area.boundary),
     );
     await c.addFillLayer(
-      MapSources.areaMask,
-      '${MapSources.areaMask}-fill',
+      _MapSources.areaMask,
+      '${_MapSources.areaMask}-fill',
       ml.FillLayerProperties(
-        fillColor: _hex(colors.mapMask),
+        fillColor: hexColor(colors.mapMask),
         fillOpacity: PindoroOpacity.mask,
       ),
       enableInteraction: false,
     );
-    await c.addGeoJsonSource(MapSources.truthStreet, linesGeoJson(const []));
+    await c.addGeoJsonSource(_MapSources.truthStreet, linesGeoJson(const []));
     // Yellow paint over an ink casing: on light maps the casing carries contrast.
     for (final (id, color, width) in [
       (
@@ -228,10 +238,10 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
       ('line', colors.mapAnswerLine, PindoroStroke.answer),
     ]) {
       await c.addLineLayer(
-        MapSources.truthStreet,
-        '${MapSources.truthStreet}-$id',
+        _MapSources.truthStreet,
+        '${_MapSources.truthStreet}-$id',
         ml.LineLayerProperties(
-          lineColor: _hex(color),
+          lineColor: hexColor(color),
           lineWidth: width,
           lineCap: 'round',
           lineJoin: 'round',
@@ -239,12 +249,12 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
         enableInteraction: false,
       );
     }
-    await c.addGeoJsonSource(MapSources.measure, linesGeoJson(const []));
+    await c.addGeoJsonSource(_MapSources.measure, linesGeoJson(const []));
     await c.addLineLayer(
-      MapSources.measure,
-      '${MapSources.measure}-line',
+      _MapSources.measure,
+      '${_MapSources.measure}-line',
       ml.LineLayerProperties(
-        lineColor: _hex(colors.mapMeasureLine),
+        lineColor: hexColor(colors.mapMeasureLine),
         lineWidth: PindoroStroke.thick,
         lineCap: 'round',
         // Dots: zero-length dashes with round caps; dash units are line widths.
@@ -252,22 +262,22 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
       ),
       enableInteraction: false,
     );
-    await c.addGeoJsonSource(MapSources.measureEnd, pointsGeoJson(const []));
+    await c.addGeoJsonSource(_MapSources.measureEnd, pointsGeoJson(const []));
     await c.addCircleLayer(
-      MapSources.measureEnd,
-      '${MapSources.measureEnd}-ring',
+      _MapSources.measureEnd,
+      '${_MapSources.measureEnd}-ring',
       ml.CircleLayerProperties(
-        circleColor: _hex(colors.mapPlayerHalo),
+        circleColor: hexColor(colors.mapPlayerHalo),
         circleRadius: PindoroStroke.thick + PindoroStroke.base,
-        circleStrokeColor: _hex(colors.mapMeasureLine),
+        circleStrokeColor: hexColor(colors.mapMeasureLine),
         circleStrokeWidth: PindoroStroke.base,
       ),
       enableInteraction: false,
     );
-    await c.addGeoJsonSource(MapSources.measureLabel, pointsGeoJson(const []));
+    await c.addGeoJsonSource(_MapSources.measureLabel, pointsGeoJson(const []));
     await c.addSymbolLayer(
-      MapSources.measureLabel,
-      '${MapSources.measureLabel}-chip',
+      _MapSources.measureLabel,
+      '${_MapSources.measureLabel}-chip',
       const ml.SymbolLayerProperties(
         iconImage: ['get', 'icon'],
         iconAllowOverlap: true,
@@ -276,10 +286,10 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
       enableInteraction: false,
     );
     _measureImages.clear();
-    await c.addGeoJsonSource(MapSources.youPin, pointsGeoJson(const []));
+    await c.addGeoJsonSource(_MapSources.youPin, pointsGeoJson(const []));
     await c.addSymbolLayer(
-      MapSources.youPin,
-      '${MapSources.youPin}-pin',
+      _MapSources.youPin,
+      '${_MapSources.youPin}-pin',
       _pinLayer(PinMark.tipInset),
       enableInteraction: false,
     );
@@ -294,23 +304,23 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
     final c = _controller!;
     final pin = widget.pin;
     final measure = widget.measure;
-    await c.setGeoJsonSource(MapSources.youPin, pointsGeoJson([?pin]));
+    await c.setGeoJsonSource(_MapSources.youPin, pointsGeoJson([?pin]));
     await c.setGeoJsonSource(
-      MapSources.truthStreet,
+      _MapSources.truthStreet,
       linesGeoJson(_paintedTruth),
     );
     await c.setGeoJsonSource(
-      MapSources.measure,
+      _MapSources.measure,
       linesGeoJson([
         if (measure != null) [measure.from, measure.to],
       ]),
     );
     await c.setGeoJsonSource(
-      MapSources.measureEnd,
+      _MapSources.measureEnd,
       pointsGeoJson([?measure?.to]),
     );
     await c.setGeoJsonSource(
-      MapSources.measureLabel,
+      _MapSources.measureLabel,
       measure == null ? pointsGeoJson(const []) : await _measureChip(measure),
     );
   }
@@ -323,38 +333,33 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
       final chip = MapChip.distance(m.label, PindoroTheme.of(context).colors);
       await _controller!.addImage(icon, await chip.toPng(_pixelRatio));
     }
-    return {
-      'type': 'FeatureCollection',
-      'features': [
-        {
-          'type': 'Feature',
-          'properties': {'icon': icon},
-          'geometry': {
-            'type': 'Point',
-            'coordinates': [
-              (m.from.lon + m.to.lon) / 2,
-              (m.from.lat + m.to.lat) / 2,
-            ],
-          },
-        },
+    return pointsGeoJson(
+      [
+        Bbox.of([m.from, m.to]).center,
       ],
-    };
+      properties: {'icon': icon},
+    );
   }
 
+  /// One locate at a time: the permission prompt answers only the first.
   Future<void> _goToMyLocation() async {
-    final result = await ProviderScope.containerOf(
-      context,
-    ).read(locationServiceProvider).locate();
-    if (!mounted) return;
-    switch (result) {
-      case Located(:final position):
-        await _controller?.animateCamera(
-          ml.CameraUpdate.newLatLng(ml.LatLng(position.lat, position.lon)),
-        );
-      case LocationDenied():
-        showToast(context, context.l10n.cityLocationDenied);
-      case LocationUnavailable():
-        showToast(context, context.l10n.locationUnavailable);
+    if (_locating) return;
+    _locating = true;
+    try {
+      final result = await ref.read(locationServiceProvider).locate();
+      if (!mounted) return;
+      switch (result) {
+        case Located(:final position):
+          await _controller?.animateCamera(
+            ml.CameraUpdate.newLatLng(position.toMapLibre),
+          );
+        case LocationDenied():
+          showToast(context, context.l10n.cityLocationDenied);
+        case LocationUnavailable():
+          showToast(context, context.l10n.locationUnavailable);
+      }
+    } finally {
+      _locating = false;
     }
   }
 
@@ -372,13 +377,12 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
               child: ml.MapLibreMap(
                 styleString: style.data!,
                 initialCameraPosition: ml.CameraPosition(
-                  target: ml.LatLng(center.lat, center.lon),
+                  target: center.toMapLibre,
                   zoom: PindoroCamera.zoom,
                 ),
                 onMapCreated: (c) => _controller = c,
-                onStyleLoadedCallback: _addOverlays,
-                onMapClick: (_, at) =>
-                    widget.onTap?.call(LatLng(at.latitude, at.longitude)),
+                onStyleLoadedCallback: () => runMapWork(_addOverlays),
+                onMapClick: (_, at) => widget.onTap?.call(at.toCore),
                 rotateGesturesEnabled: false,
                 tiltGesturesEnabled: false,
                 compassEnabled: false,
@@ -403,17 +407,8 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
                     semanticLabel: l10n.a11yRecentre,
                     onPressed: _fitArea,
                   ),
-                  MapControl(
-                    glyph: PindoroGlyph.zoomIn,
-                    semanticLabel: l10n.a11yZoomIn,
-                    onPressed: () =>
-                        _controller?.animateCamera(ml.CameraUpdate.zoomIn()),
-                  ),
-                  MapControl(
-                    glyph: PindoroGlyph.zoomOut,
-                    semanticLabel: l10n.a11yZoomOut,
-                    onPressed: () =>
-                        _controller?.animateCamera(ml.CameraUpdate.zoomOut()),
+                  MapZoomControls(
+                    onCamera: (update) => _controller?.animateCamera(update),
                   ),
                 ],
               ),
@@ -428,6 +423,3 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
     },
   );
 }
-
-String _hex(Color c) =>
-    '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';

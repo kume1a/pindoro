@@ -99,10 +99,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // homeProvider follows progress and settings, so nothing reloads here.
     Future<void> open(String location) => context.push(location);
 
-    Future<void> openDistrict(String id) async {
-      await ref.read(settingsDaoProvider).chooseArea(DistrictsArea({id}));
-      await open(Routes.area);
-    }
+    Future<void> openDistrict(String id) => open(Routes.areaFrom(id));
 
     final resumes = area == null || difficulty == null
         ? null

@@ -12,9 +12,15 @@ final class Located extends LocationResult {
   final LatLng position;
 }
 
-/// Permission refused, or location services off: the UI points to Settings.
-final class LocationDenied extends LocationResult {
+/// Permission refused: the UI points to the app's settings.
+class LocationDenied extends LocationResult {
   const LocationDenied();
+}
+
+/// Location services are off; only the system's location settings turn them
+/// on (the app's own settings page can't).
+final class LocationServicesOff extends LocationDenied {
+  const LocationServicesOff();
 }
 
 /// No fix in time and none remembered.
@@ -27,12 +33,18 @@ class LocationService {
   const LocationService();
 
   Future<LocationResult> locate() async {
-    if (!await Geolocator.isLocationServiceEnabled()) {
-      return const LocationDenied();
-    }
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+    LocationPermission permission;
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) {
+        return const LocationServicesOff();
+      }
+      permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+    } on Object {
+      // e.g. a second request while the system dialog is still up.
+      return const LocationUnavailable();
     }
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
@@ -54,7 +66,12 @@ class LocationService {
         : Located(LatLng(p.latitude, p.longitude));
   }
 
-  Future<void> openSettings() => Geolocator.openAppSettings();
+  /// The settings page that fixes [denial].
+  Future<void> openSettings(LocationDenied denial) async {
+    await (denial is LocationServicesOff
+        ? Geolocator.openLocationSettings()
+        : Geolocator.openAppSettings());
+  }
 }
 
 /// Overridden in tests.

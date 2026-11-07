@@ -12,6 +12,7 @@ import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/setup/ui/area_map.dart';
 import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro_design/pindoro_design.dart';
 
 void main() {
   late AppDatabase db;
@@ -112,6 +113,20 @@ void main() {
     await tapAndSettle(tester, 'Next');
     final area = (await tester.runAsync(SettingsDao(db).read))!.area;
     expect(area, isA<CircleArea>());
+  });
+
+  testWidgets('a district from Home starts the picker without saving it', (
+    tester,
+  ) async {
+    await pumpApp(tester, Routes.areaFrom(AppConfig.fixtureDistrictId));
+    final chips = tester.widgetList<PindoroChip>(find.byType(PindoroChip));
+    expect(chips.where((c) => c.selected), hasLength(1));
+    expect(find.text('Pick an area first'), findsNothing);
+    expect((await tester.runAsync(SettingsDao(db).read))!.area, isNull);
+
+    // Opened as the only page, back goes Home instead of failing.
+    await tapLabelled(tester, 'Back');
+    expect(find.text('Streets you know'), findsOneWidget);
   });
 
   testWidgets('settings lead to the map data credits', (tester) async {

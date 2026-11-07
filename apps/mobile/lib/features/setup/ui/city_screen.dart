@@ -27,6 +27,7 @@ class CityScreen extends ConsumerStatefulWidget {
 class _CityScreenState extends ConsumerState<CityScreen> {
   final _query = TextEditingController();
   _Locating _locating = _Locating.idle;
+  LocationDenied _denial = const LocationDenied();
 
   @override
   void dispose() {
@@ -43,15 +44,20 @@ class _CityScreenState extends ConsumerState<CityScreen> {
   Future<void> _useLocation() async {
     final location = ref.read(locationServiceProvider);
     if (_locating == _Locating.denied) {
-      await location.openSettings();
+      await location.openSettings(_denial);
+      // Back from Settings, the next tap asks for the location again.
+      if (mounted) setState(() => _locating = _Locating.idle);
       return;
     }
     setState(() => _locating = _Locating.busy);
     final result = await location.locate();
     if (!mounted) return;
     switch (result) {
-      case LocationDenied():
-        setState(() => _locating = _Locating.denied);
+      case final LocationDenied denial:
+        setState(() {
+          _locating = _Locating.denied;
+          _denial = denial;
+        });
       case LocationUnavailable():
         setState(() => _locating = _Locating.idle);
         showToast(context, context.l10n.locationUnavailable);

@@ -14,6 +14,8 @@ abstract final class Routes {
   static const String settings = '/settings';
   static const String credits = '/settings/credits';
 
+  /// The area picker starting from one district (nothing saved until Next).
+  static String areaFrom(String districtId) => '$area?district=$districtId';
   static String resume(String roundId) => '$round?round=$roundId';
   static String retry(String roundId) => '$round?retry=$roundId';
   static String resultsOf(String roundId) => '$results?round=$roundId';
