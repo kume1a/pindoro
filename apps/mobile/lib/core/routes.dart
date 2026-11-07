@@ -12,6 +12,10 @@ abstract final class Routes {
   /// `?round=<id>`; `/results/street/<index>?round=<id>` opens one answer.
   static const String results = '/results';
   static const String streak = '/streak';
+  static const String pitStop = '/pit-stop';
+
+  /// The Pit stop's due streets as a round.
+  static const String pitStopRound = '$round?pit-stop=1';
   static const String settings = '/settings';
   static const String credits = '/settings/credits';
 

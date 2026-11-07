@@ -112,6 +112,11 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
             ),
           ),
         ),
+      if (data.retryCount > 0)
+        PopIn(
+          delay: _Arrival.chips,
+          child: PitStopChip(l10n.resultsToPitStop(data.retryCount)),
+        ),
       if (_levelUpOver)
         PopIn(
           delay: PindoroMotion.durationSlow,
@@ -130,7 +135,9 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
     void goHome() => context.go(Routes.home, extra: summary);
     void playAgain() => context.go(Routes.round);
     void retry() => context.go(Routes.retry(widget.roundId));
-    final isRetry = data.round.retryOf != null;
+    final pitStop = data.round.pitStop;
+    // A retry or Pit stop replays streets: no retry of its own.
+    final isRetry = data.round.retryOf != null || pitStop;
     // A tough round (canvas M-42) makes Retry the main action.
     final tough = !isRetry && data.retryCount >= _toughRetries;
     final (secondary, primary) = isRetry
@@ -145,7 +152,9 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
             (l10n.resultsPlayAgain, playAgain),
           );
     final page = PageScaffold(
-      title: isRetry
+      title: pitStop
+          ? l10n.resultsPitStopTitle
+          : isRetry
           ? l10n.resultsRetryTitle
           : data.retryCount == 0
           ? l10n.resultsFlawless
@@ -319,7 +328,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
     final rest = a.tier == Tier.perfect
         ? ' · ${l10n.resultsOnStreet}'
         : ' · $distance'
-              '${isRetryTier(a.tier) ? ' · ${l10n.resultsToRetry}' : ''}';
+              '${isRetryTier(a.tier) ? ' · ${l10n.resultsInPitStop}' : ''}';
     return ResultRow(
       tier: a.tier,
       street: name,

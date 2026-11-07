@@ -340,7 +340,7 @@
       }
     }
   },
-  "tierMissSentence": "{distance} away. {hint} You’ll see it again on your results.",
+  "tierMissSentence": "{distance} away. {hint}",
   "@tierMissSentence": {
     "placeholders": {
       "distance": {
@@ -392,7 +392,7 @@
     }
   },
   "resultsNoRetry": "No streets to retry",
-  "resultsToRetry": "to retry",
+  "resultsInPitStop": "in your Pit stop",
   "resultsOnStreet": "On the street",
   "resultsPlayAgain": "Play again",
   "resultsNewRound": "Play a new round",
@@ -909,5 +909,136 @@
     }
   },
   "reminderNoStreak": "Today's goal is waiting. One round gets your streak going.",
-  "reminderChannel": "Daily reminder"
+  "reminderChannel": "Daily reminder",
+  "revealToPitStop": "Added to your Pit stop",
+  "resultsToPitStop": "{count} to your Pit stop",
+  "@resultsToPitStop": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "resultsPitStopTitle": "Pit stop complete",
+  "homePitStopDue": "{count, plural, =1{1 street due today} other{{count} streets due today}}",
+  "@homePitStopDue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homePitStopReview": "Review",
+  "pitStopTitle": "Pit stop",
+  "pitStopToTuneUp": "{count, plural, =1{1 street to tune up} other{{count} streets to tune up}}",
+  "@pitStopToTuneUp": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pitStopRule": "Missed streets come back after 1, 3, 7 and 21 days. Two Greats in a row and a street graduates.",
+  "pitStopMore": "{count, plural, =1{+ 1 more street} other{+ {count} more streets}}",
+  "@pitStopMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pitStopStart": "{count, plural, =1{Start Pit stop · 1 street} other{Start Pit stop · {count} streets}}",
+  "@pitStopStart": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pitStopLast": "Your last Pit stop",
+  "pitStopLastA11y": "Last Pit stop: {perfect} Perfect, {great} Great, {close} Close, {miss} Miss",
+  "@pitStopLastA11y": {
+    "placeholders": {
+      "perfect": {
+        "type": "int"
+      },
+      "great": {
+        "type": "int"
+      },
+      "close": {
+        "type": "int"
+      },
+      "miss": {
+        "type": "int"
+      }
+    }
+  },
+  "pitStopEmptyTitle": "All tuned up",
+  "pitStopEmptyBody": "Streets you miss come back here when they’re due. Nothing is due today.",
+  "pitStopStreets": "{count, plural, =1{1 street} other{{count} streets}}",
+  "@pitStopStreets": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pitStopNext": "{days, plural, =1{Next review: tomorrow · {streets}} other{Next review: in {days} days · {streets}}}",
+  "@pitStopNext": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "streets": {
+        "type": "String"
+      }
+    }
+  },
+  "pitStopAge": "{days, plural, =0{today} =1{1 day ago} other{{days} days ago}}",
+  "@pitStopAge": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "pitStopStep": "Review step {step} of {steps}",
+  "@pitStopStep": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "steps": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yDistrictRow": "{name}, {known} of {total} streets known",
+  "@a11yDistrictRow": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "known": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yDistrictRowComplete": "{name}, {known} of {total} streets known, complete",
+  "@a11yDistrictRowComplete": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "known": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  }
 }

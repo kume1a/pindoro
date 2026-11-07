@@ -23,14 +23,20 @@ import 'package:pindoro/features/quiz/ui/widgets/round_reveal.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// Plays a round: resumes [roundId], retries [retryOf]'s missed streets, or
-/// starts one from the saved area and difficulty. Setup states, the
-/// question and the reveal are one route.
+/// Plays a round: resumes [roundId], retries [retryOf]'s missed streets,
+/// plays the [pitStop], or starts one from the saved area and difficulty.
+/// Setup states, the question and the reveal are one route.
 class QuizScreen extends ConsumerStatefulWidget {
-  const QuizScreen({super.key, this.roundId, this.retryOf});
+  const QuizScreen({
+    super.key,
+    this.roundId,
+    this.retryOf,
+    this.pitStop = false,
+  });
 
   final String? roundId;
   final String? retryOf;
+  final bool pitStop;
 
   @override
   ConsumerState<QuizScreen> createState() => _QuizScreenState();
@@ -78,6 +84,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     final retryOf = widget.retryOf;
     if (retryOf != null) return controller.startRetry(retryOf);
     final settings = await ref.read(settingsDaoProvider).read();
+    if (widget.pitStop) return controller.startPitStop(settings.difficulty);
     await controller.start(settings.area, settings.difficulty);
   }
 
@@ -87,6 +94,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       switch (next) {
         case RoundFinished(:final roundId):
           context.go(Routes.resultsOf(roundId));
+        case RoundNothingDue():
+          context.go(Routes.pitStop);
         case RoundRevealed(:final answer) when previous is! RoundRevealed:
           _announce(context, answer);
         case RoundAsking() when previous is! RoundAsking:

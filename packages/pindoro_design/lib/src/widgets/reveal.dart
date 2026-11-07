@@ -31,7 +31,9 @@ class RevealSheet extends StatelessWidget {
 
   /// "+74 XP"; null for a Miss.
   final String? xpLabel;
-  final List<String> chips;
+
+  /// Usually [Pill]s ("3 in a row", "Added to your Pit stop").
+  final List<Widget> chips;
 
   /// The tier-coloured Next / Got it button.
   final Widget action;
@@ -103,9 +105,7 @@ class RevealSheet extends StatelessWidget {
                         Wrap(
                           spacing: PindoroSpace.s2,
                           runSpacing: PindoroSpace.s2,
-                          children: [
-                            for (final chip in chips) Pill(label: chip),
-                          ],
+                          children: [...chips],
                         ),
                     ],
                   ),

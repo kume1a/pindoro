@@ -44,6 +44,11 @@
   - Days before the R2 update aren't backfilled: streaks start with it.
   - iOS: the reminder has never run on a device; foreground presentation
     (`UNUserNotificationCenter` delegate in `AppDelegate`) isn't set up.
+- Pit stop (R3), left out on purpose:
+  - Answers from before the R3 update don't enter the Pit stop (it starts empty).
+  - The Results chip "n to your Pit stop" isn't tappable; Home's card is the way in.
+  - The Pit stop tab, its due badge and the Pit stop on the lesson path wait for R4.
+  - Review items of a retired street stay in the table; readers skip them (`dueIn`).
 
 ## Data / pipeline
 

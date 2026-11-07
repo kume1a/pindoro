@@ -35,18 +35,36 @@ extension RoundProgressRules on RoundProgress {
         if (missed.contains(id)) id,
     ];
   }
-
-  /// How far each answer's pin was from its street, by street id.
-  Map<String, double> get distanceByStreet => {
-    for (final a in answers) a.streetId: a.distanceM,
-  };
 }
 
-/// Rounds, the append-only answer log and the goal-met days: what the player
-/// has played, and the rules read from it (saved round, retry set, recent
-/// streets, the daily goal).
+extension ReviewItemState on ReviewItem {
+  ReviewState get state =>
+      (step: step, greatRun: greatRun, dueOn: parseDayKey(dueOn));
+
+  /// Due on or before the calendar day [today].
+  bool dueBy(DateTime today) => !parseDayKey(dueOn).isAfter(today);
+}
+
+extension PitStopItems on Iterable<ReviewItem> {
+  /// Items due by [today] whose street is still in the pack's [streets].
+  Iterable<ReviewItem> dueIn(
+    Map<String, NamedStreet> streets,
+    DateTime today,
+  ) => where((i) => i.dueBy(today) && streets.containsKey(i.streetId));
+}
+
+/// Rounds, the append-only answer log, goal-met days and the Pit stop: what
+/// the player has played, and the rules read from it (saved round, retry set,
+/// recent streets, the daily goal, streets to review).
 @DriftAccessor(
-  tables: [Rounds, Answers, RoundQuestions, GoalDays, UserSettings],
+  tables: [
+    Rounds,
+    Answers,
+    RoundQuestions,
+    GoalDays,
+    UserSettings,
+    ReviewItems,
+  ],
 )
 class ProgressDao extends DatabaseAccessor<AppDatabase>
     with _$ProgressDaoMixin {
@@ -104,6 +122,7 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     required String packVersion,
     required List<String> streetIds,
     String? retryOf,
+    bool pitStop = false,
   }) => transaction(() async {
     final round = await into(rounds).insertReturning(
       RoundsCompanion.insert(
@@ -112,6 +131,7 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
         difficulty: difficulty,
         packVersion: packVersion,
         retryOf: Value(retryOf),
+        pitStop: Value(pitStop),
       ),
     );
     await batch(
@@ -127,8 +147,9 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     return round.id;
   });
 
-  /// Appends one answer to the log (the `answer_immutable` trigger keeps it)
-  /// and marks today when this answer reached the daily goal.
+  /// Appends one answer to the log (the `answer_immutable` trigger keeps it),
+  /// moves its street in the Pit stop, and marks today when this answer
+  /// reached the daily goal.
   Future<Answer> recordAnswer({
     required String roundId,
     required String streetId,
@@ -150,9 +171,53 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
         packVersion: packVersion,
       ),
     );
+    await _review(answer);
     await markGoalIfMet(answer.createdAt, roundId: roundId);
     return answer;
   });
+
+  /// Applies [answer] to its street's place in its city's Pit stop.
+  Future<void> _review(Answer answer) async {
+    final city =
+        await (select(rounds)..where((r) => r.id.equals(answer.roundId)))
+            .map((r) => r.cityId)
+            .getSingle();
+    Expression<bool> isItem(ReviewItems r) =>
+        r.cityId.equals(city) & r.streetId.equals(answer.streetId);
+    final current = await (select(
+      reviewItems,
+    )..where(isItem)).getSingleOrNull();
+    final next = nextReview(
+      current?.state,
+      answer.tier,
+      calendarDay(answer.createdAt),
+    );
+    if (next == null) {
+      await (delete(reviewItems)..where(isItem)).go();
+      return;
+    }
+    await into(reviewItems).insertOnConflictUpdate(
+      ReviewItemsCompanion.insert(
+        cityId: city,
+        streetId: answer.streetId,
+        step: next.step,
+        greatRun: next.greatRun,
+        dueOn: dayKey(next.dueOn),
+        lastTier: answer.tier,
+        lastAt: answer.createdAt,
+      ),
+    );
+  }
+
+  /// The Pit stop of [cityId], most overdue first.
+  Future<List<ReviewItem>> pitStop(String cityId) =>
+      (select(reviewItems)
+            ..where((r) => r.cityId.equals(cityId))
+            ..orderBy([
+              (r) => OrderingTerm.asc(r.dueOn),
+              (r) => OrderingTerm.asc(r.lastAt),
+            ]))
+          .get();
 
   /// Marks the day of [now] once its XP reaches the daily goal; the round
   /// that got there first keeps the mark.
@@ -253,6 +318,44 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
             ..where((a) => a.roundId.equals(roundId))
             ..orderBy([(_) => OrderingTerm.asc(_rowid)]))
           .get();
+
+  /// The answers of [cityId]'s most recent finished Pit stop round; empty
+  /// before the first one.
+  Future<List<Answer>> lastPitStopAnswers(String cityId) async {
+    final round =
+        await (select(rounds)
+              ..where(
+                (r) =>
+                    r.cityId.equals(cityId) &
+                    r.pitStop.equals(true) &
+                    r.finishedAt.isNotNull(),
+              )
+              ..orderBy([(r) => OrderingTerm.desc(r.finishedAt)])
+              ..limit(1))
+            .getSingleOrNull();
+    return round == null ? const [] : answersForRound(round.id);
+  }
+
+  /// How far the pin was the last time each of [roundId]'s streets was
+  /// answered in another round of its city (the plate's "you were 1.2 km
+  /// away" in retry and Pit stop rounds).
+  Future<Map<String, double>> previousDistances(String roundId) async {
+    final progress = await roundProgress(roundId);
+    final query =
+        select(
+            answers,
+          ).join([innerJoin(rounds, rounds.id.equalsExp(answers.roundId))])
+          ..where(
+            rounds.cityId.equals(progress.round.cityId) &
+                answers.roundId.equals(roundId).not() &
+                answers.streetId.isIn(progress.planned),
+          )
+          ..orderBy([OrderingTerm.asc(answers.createdAt)]);
+    return {
+      for (final row in await query.get())
+        if (row.readTable(answers) case final a) a.streetId: a.distanceM,
+    };
+  }
 
   /// Best tier per answered part id in [cityId], from answers created before
   /// [before] when given.

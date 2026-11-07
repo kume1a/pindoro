@@ -48,8 +48,9 @@ class RoundReveal extends StatelessWidget {
           : l10n.commonXp(formatNumber(xp)),
       chips: [
         if (answer.tier == Tier.perfect && round.perfects > 1)
-          l10n.revealPerfectRepeat(round.perfects),
-        if (round.streak >= 2) l10n.revealStreak(round.streak),
+          Pill(label: l10n.revealPerfectRepeat(round.perfects)),
+        if (round.streak >= 2) Pill(label: l10n.revealStreak(round.streak)),
+        if (isRetryTier(answer.tier)) PitStopChip(l10n.revealToPitStop),
       ],
       mascot: Pindo(switch (answer.tier) {
         Tier.perfect || Tier.great => PindoExpression.cheering,
