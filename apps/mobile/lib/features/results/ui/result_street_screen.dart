@@ -26,18 +26,28 @@ class ResultStreetScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final data = ref.watch(resultsProvider(roundId)).value;
     final shape = data?.shape;
-    if (data == null || shape == null || index >= data.entries.length) {
+    final entry = data?.entries.elementAtOrNull(index);
+    final street = entry?.street;
+    if (data == null || shape == null || entry == null || street == null) {
       return const Scaffold();
     }
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
     final settings = ref.watch(settingsProvider).value;
-    final entry = data.entries[index];
     final answer = entry.answer;
-    final street = entry.street!;
+    // Steps skip answers whose street was retired from the pack since.
+    int? step(int from, int by) {
+      for (var i = from + by; i >= 0 && i < data.entries.length; i += by) {
+        if (data.entries[i].street != null) return i;
+      }
+      return null;
+    }
+
+    final previous = step(index, -1);
+    final next = step(index, 1);
     final pin = LatLng(answer.pinLat, answer.pinLon);
     final nearest = street.nearest(pin).nearestPoint;
-    final name = settings?.streetName(street) ?? street.name;
+    final name = streetName(street, settings);
     final other = name == street.name ? street.nameEn : street.name;
     final tier = PindoroTheme.of(context).tier(answer.tier);
     final distance = formatDistance(answer.distanceM, l10n);
@@ -127,16 +137,16 @@ class ResultStreetScreen extends ConsumerWidget {
                         child: PindoroButton(
                           label: l10n.resultsPreviousStreet,
                           variant: PindoroButtonVariant.secondary,
-                          onPressed: index == 0 ? null : () => go(index - 1),
+                          onPressed: previous == null
+                              ? null
+                              : () => go(previous),
                         ),
                       ),
                       Expanded(
                         child: PindoroButton(
                           label: l10n.resultsNextStreet,
                           variant: PindoroButtonVariant.secondary,
-                          onPressed: index == data.entries.length - 1
-                              ? null
-                              : () => go(index + 1),
+                          onPressed: next == null ? null : () => go(next),
                         ),
                       ),
                     ],

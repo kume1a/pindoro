@@ -78,10 +78,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     final retryOf = widget.retryOf;
     if (retryOf != null) return controller.startRetry(retryOf);
     final settings = await ref.read(settingsDaoProvider).read();
-    await controller.start(
-      settings.area,
-      settings.lastDifficulty ?? Difficulty.easy,
-    );
+    await controller.start(settings.area, settings.difficulty);
   }
 
   @override
@@ -90,9 +87,8 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       switch (next) {
         case RoundFinished(:final roundId):
           context.go(Routes.resultsOf(roundId));
-        case RoundRevealed(:final round, :final answer)
-            when previous is! RoundRevealed:
-          _announce(context, round, answer);
+        case RoundRevealed(:final answer) when previous is! RoundRevealed:
+          _announce(context, answer);
         case RoundAsking() when previous is! RoundAsking:
           unawaited(_checkOnline());
         default:
@@ -104,7 +100,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     };
   }
 
-  void _announce(BuildContext context, RoundContext round, Answer answer) {
+  void _announce(BuildContext context, Answer answer) {
     final l10n = context.l10n;
     ref.read(feedbackProvider).tier(answer.tier);
     unawaited(
@@ -169,7 +165,7 @@ class _RoundView extends ConsumerWidget {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) unawaited(_confirmLeave(context, round));
+        if (!didPop) unawaited(_leave(context, ref));
       },
       child: Scaffold(
         body: Stack(
@@ -178,11 +174,11 @@ class _RoundView extends ConsumerWidget {
               PindoroMap(
                 area: round.shape,
                 pin: pin,
-                truth: revealed?.round.current.geometry,
+                truth: revealed == null ? null : street.geometry,
                 measure: revealed == null
                     ? null
                     : (
-                        from: pin!,
+                        from: revealed.pin,
                         to: revealed.nearest,
                         label: formatDistance(revealed.answer.distanceM, l10n),
                       ),
@@ -231,52 +227,8 @@ class _RoundView extends ConsumerWidget {
                 child: Column(
                   spacing: PindoroSpace.s4,
                   children: [
-                    Row(
-                      spacing: PindoroSpace.s3,
-                      children: [
-                        PindoroIconButton(
-                          glyph: PindoroGlyph.close,
-                          semanticLabel: l10n.a11yLeaveRound,
-                          onPressed: () => _confirmLeave(context, round),
-                        ),
-                        Expanded(
-                          child: QuestionBar(
-                            tiers: [for (final a in round.answers) a.tier],
-                            total: round.total,
-                            semanticLabel: l10n.commonQuestionProgress(
-                              round.number,
-                              round.total,
-                            ),
-                          ),
-                        ),
-                        Pill(
-                          label: formatNumber(round.xp),
-                          icon: PindoroGlyph.xp,
-                          iconColor: PindoroTheme.of(context).colors.xpFill,
-                          floating: true,
-                          semanticLabel: l10n.a11yRoundXp(
-                            formatNumber(round.xp),
-                          ),
-                        ),
-                      ],
-                    ),
-                    AnimatedSwitcher(
-                      duration: PindoroMotion.durationBase,
-                      reverseDuration: PindoroMotion.durationFast,
-                      switchInCurve: PindoroMotion.easeDecelerate,
-                      switchOutCurve: PindoroMotion.easeAccelerate,
-                      transitionBuilder: (child, animation) => FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: animation.drive(
-                            Tween(
-                              begin: const Offset(0, 0.15),
-                              end: Offset.zero,
-                            ),
-                          ),
-                          child: child,
-                        ),
-                      ),
+                    _TopBar(round, onLeave: () => _leave(context, ref)),
+                    RiseSwitcher(
                       child: QuestionPlate(
                         key: ValueKey(round.currentId),
                         street: street,
@@ -335,14 +287,21 @@ class _RoundView extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirmLeave(BuildContext context, RoundContext round) async {
+  /// Asks before leaving; the round stays saved at the next unanswered
+  /// question. After the last answer the round is already finished, so
+  /// leaving goes to its results.
+  Future<void> _leave(BuildContext context, WidgetRef ref) async {
+    final round = play.round;
+    final controller = ref.read(roundControllerProvider.notifier);
+    if (play is RoundRevealed && round.isLast) return controller.next();
     final l10n = context.l10n;
+    final resumesAt = play is RoundRevealed ? round.number + 1 : round.number;
     final leave = await showDialog<bool>(
       context: context,
       builder: (context) => PindoroDialog(
         title: l10n.quizLeaveTitle,
         body: l10n.quizLeaveBody(
-          round.answers.length + 1,
+          resumesAt,
           round.total,
           formatNumber(round.xp),
         ),
@@ -351,5 +310,46 @@ class _RoundView extends ConsumerWidget {
       ),
     );
     if ((leave ?? false) && context.mounted) context.go(Routes.home);
+  }
+}
+
+/// Leave, the question bar and the round's XP.
+class _TopBar extends StatelessWidget {
+  const _TopBar(this.round, {required this.onLeave});
+
+  final RoundContext round;
+  final VoidCallback onLeave;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final xp = formatNumber(round.xp);
+    return Row(
+      spacing: PindoroSpace.s3,
+      children: [
+        PindoroIconButton(
+          glyph: PindoroGlyph.close,
+          semanticLabel: l10n.a11yLeaveRound,
+          onPressed: onLeave,
+        ),
+        Expanded(
+          child: QuestionBar(
+            tiers: [for (final a in round.answers) a.tier],
+            total: round.total,
+            semanticLabel: l10n.commonQuestionProgress(
+              round.number,
+              round.total,
+            ),
+          ),
+        ),
+        Pill(
+          label: xp,
+          icon: PindoroGlyph.xp,
+          iconColor: PindoroTheme.of(context).colors.xpFill,
+          floating: true,
+          semanticLabel: l10n.a11yRoundXp(xp),
+        ),
+      ],
+    );
   }
 }

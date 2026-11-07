@@ -221,7 +221,6 @@ void main() {
 
     test('resolves district shapes from the pack', () {
       final vake = const DistrictsArea({'osm:r1'}).shapeIn(pack)!;
-      expect(vake.name, 'ვაკე');
       expect(vake.boundary, [_square]);
       expect(const DistrictsArea({'osm:r1', 'osm:r9'}).shapeIn(pack), isNull);
     });
@@ -234,7 +233,6 @@ void main() {
       for (final p in ring) {
         expect(distanceBetween(circle.center, p), closeTo(1000, 1));
       }
-      expect(circle.shapeIn(pack).name, isNull);
     });
   });
 

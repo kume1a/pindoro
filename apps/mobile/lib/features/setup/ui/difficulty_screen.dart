@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
@@ -29,7 +30,7 @@ class _DifficultyScreenState extends ConsumerState<DifficultyScreen> {
     final c = PindoroTheme.of(context).colors;
     final selected =
         _picked ??
-        ref.watch(settingsProvider).value?.lastDifficulty ??
+        ref.watch(settingsProvider).value?.difficulty ??
         Difficulty.medium;
     final f = ScoringConfig.difficultyFactor(selected);
     final great = formatDistance(ScoringConfig.greatMaxM * f, l10n);

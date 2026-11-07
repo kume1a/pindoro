@@ -97,21 +97,24 @@ void main() {
     expect(resumed.round.current.id, round.questions[1].id);
   });
 
-  test('the tenth answer finishes the round', () async {
+  test('the tenth answer finishes the round, before Next', () async {
     final c = container();
     final controller = c.read(roundControllerProvider.notifier);
     await controller.start(vake, Difficulty.expert);
     final id = (c.read(roundControllerProvider) as RoundAsking).round.id;
     for (var i = 0; i < QuestionSelector.roundSize; i++) {
       await answerCurrent(controller, c);
-      await controller.next();
+      if (i < QuestionSelector.roundSize - 1) await controller.next();
     }
-    expect(c.read(roundControllerProvider), isA<RoundFinished>());
+    expect(c.read(roundControllerProvider), isA<RoundRevealed>());
     expect(
       (await ProgressDao(db).roundProgress(id)).round.finishedAt,
       isNotNull,
+      reason: 'leaving on the last reveal must not leave it to resume',
     );
     expect(await ProgressDao(db).resumableRound(DateTime.now()), isNull);
+    await controller.next();
+    expect(c.read(roundControllerProvider), isA<RoundFinished>());
   });
 
   test('a retry round asks the Close and Miss streets of a round', () async {
@@ -142,7 +145,7 @@ void main() {
       await controller.next();
     }
     expect(c.read(roundControllerProvider), isA<RoundFinished>());
-    expect(await ProgressDao(db).retrySet(retry.id), isEmpty);
+    expect((await ProgressDao(db).roundProgress(retry.id)).retryIds, isEmpty);
   });
 
   test('a pool smaller than a round is reported', () async {

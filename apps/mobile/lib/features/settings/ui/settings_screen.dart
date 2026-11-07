@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/database/database.dart';
@@ -87,10 +90,11 @@ class SettingsScreen extends ConsumerWidget {
               subtitle: l10n.settingsHapticsSubtitle,
               glyph: PindoroGlyph.haptics,
               value: settings.haptics,
-              // Only buzz when haptics stays on.
+              // Turning haptics on buzzes once to show them; feedback still
+              // has them off until the setting saves.
               onChanged: (v) {
-                if (v) feedback.tap();
-                dao.setHaptics(on: v);
+                if (v) unawaited(HapticFeedback.selectionClick());
+                unawaited(dao.setHaptics(on: v));
               },
             ),
           ],

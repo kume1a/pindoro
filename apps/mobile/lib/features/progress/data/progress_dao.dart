@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/database/database.dart';
-import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
 part 'progress_dao.g.dart';
@@ -15,6 +14,33 @@ typedef RoundProgress = ({
   List<String> planned,
   List<Answer> answers,
 });
+
+extension AnswerLog on Iterable<Answer> {
+  /// XP these answers earned.
+  int get xp => fold(0, (sum, a) => sum + a.xp);
+}
+
+extension RoundProgressRules on RoundProgress {
+  /// The last answer's time, or the start of a round without answers.
+  DateTime get lastActiveAt => answers.lastOrNull?.createdAt ?? round.startedAt;
+
+  /// Planned street ids answered Close or Miss, in position order.
+  List<String> get retryIds {
+    final missed = {
+      for (final a in answers)
+        if (isRetryTier(a.tier)) a.streetId,
+    };
+    return [
+      for (final id in planned)
+        if (missed.contains(id)) id,
+    ];
+  }
+
+  /// How far each answer's pin was from its street, by street id.
+  Map<String, double> get distanceByStreet => {
+    for (final a in answers) a.streetId: a.distanceM,
+  };
+}
 
 /// Rounds and the append-only answer log: what the player has played, and the
 /// rules read from it (saved round, retry set, recent streets).
@@ -142,16 +168,17 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     return now.difference(active) > savedRoundLifetime ? null : latest;
   }
 
-  /// [resumableRound] when it is for the current settings' city and area.
-  Future<Round?> savedRound(DateTime now) async {
+  /// [resumableRound] when it was played in the chosen [cityId] (any city
+  /// before one is chosen) and [area].
+  Future<Round?> savedRound(
+    DateTime now, {
+    required String? cityId,
+    required Area? area,
+  }) async {
     final round = await resumableRound(now);
     if (round == null) return null;
-    final settings = await SettingsDao(attachedDatabase).read();
-    final city = settings.lastCity;
-    final sameCity = city == null || city == round.cityId;
-    return sameCity && parseArea(round.areaJson) == settings.area
-        ? round
-        : null;
+    final sameCity = cityId == null || cityId == round.cityId;
+    return sameCity && parseArea(round.areaJson) == area ? round : null;
   }
 
   Future<RoundProgress> roundProgress(String roundId) async => (
@@ -167,10 +194,11 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     answers: await answersForRound(roundId),
   );
 
+  /// Stamps the round finished; a finished round keeps its first stamp.
   Future<void> finishRound(String roundId) =>
-      (update(rounds)..where((r) => r.id.equals(roundId))).write(
-        RoundsCompanion(finishedAt: Value(DateTime.now())),
-      );
+      (update(rounds)
+            ..where((r) => r.id.equals(roundId) & r.finishedAt.isNull()))
+          .write(RoundsCompanion(finishedAt: Value(DateTime.now())));
 
   Future<List<Answer>> answersForRound(String roundId) =>
       (select(answers)
@@ -213,21 +241,15 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
         q.streetId,
     };
   }
-
-  /// The round's planned street ids answered Close or Miss, in position order.
-  Future<List<String>> retrySet(String roundId) async {
-    final progress = await roundProgress(roundId);
-    final missed = {
-      for (final a in progress.answers)
-        if (isRetryTier(a.tier)) a.streetId,
-    };
-    return [
-      for (final id in progress.planned)
-        if (missed.contains(id)) id,
-    ];
-  }
 }
 
 final progressDaoProvider = Provider<ProgressDao>(
   (ref) => ProgressDao(ref.watch(databaseProvider)),
 );
+
+/// Ticks whenever a round or answer is written, so screens showing progress
+/// reload even when they stayed in the navigator during the round.
+final progressChangesProvider = StreamProvider<Set<TableUpdate>>((ref) {
+  final db = ref.watch(databaseProvider);
+  return db.tableUpdates(TableUpdateQuery.onAllTables([db.rounds, db.answers]));
+});

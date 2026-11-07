@@ -58,13 +58,18 @@ void main() {
     await settle(tester);
   }
 
+  const vake = DistrictsArea({AppConfig.fixtureDistrictId});
+
+  /// A round in Vake with [answered] answers; also picks Vake unless
+  /// [pickArea] is false (a settings write while the app runs would wait on
+  /// its settings query, which only advances when the test pumps).
   Future<String> roundWithAnswers(
     int answered, {
     Tier tier = Tier.great,
     int xp = 60,
+    bool pickArea = true,
   }) async {
-    const vake = DistrictsArea({AppConfig.fixtureDistrictId});
-    await SettingsDao(db).chooseArea(vake, cityId: 'tbilisi');
+    if (pickArea) await SettingsDao(db).chooseArea(vake, cityId: 'tbilisi');
     final id = await ProgressDao(db).startRound(
       cityId: 'tbilisi',
       area: vake,
@@ -147,6 +152,20 @@ void main() {
     expect(find.text('Round in progress'), findsOneWidget);
     expect(find.text('Continue round'), findsOneWidget);
     expect(find.text('Start a new round instead'), findsOneWidget);
+  });
+
+  testWidgets('home picks up a round played while it waited underneath', (
+    tester,
+  ) async {
+    await tester.runAsync(
+      () => SettingsDao(db).chooseArea(vake, cityId: 'tbilisi'),
+    );
+    await pumpApp(tester, Routes.home);
+    expect(find.text('Round in progress'), findsNothing);
+    // The quiz writes while Home stays in the navigator, then goes back to it.
+    await tester.runAsync(() => roundWithAnswers(1, pickArea: false));
+    await settle(tester);
+    expect(find.text('Round in progress'), findsOneWidget);
   });
 
   testWidgets('results list each answer with its street and the level', (

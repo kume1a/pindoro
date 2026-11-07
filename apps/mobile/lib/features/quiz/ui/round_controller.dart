@@ -50,8 +50,13 @@ class RoundContext {
   /// For a retry: how far the pin was last time, by question id.
   final Map<String, double> previousDistanceM;
 
-  String get currentId => questions[index].id;
-  int get xp => answers.fold(0, (sum, a) => sum + a.xp);
+  PlannedQuestion get question => questions[index];
+  String get currentId => question.id;
+  NamedStreet get current => question.street;
+  int get number => index + 1;
+  int get total => questions.length;
+  bool get isLast => index == questions.length - 1;
+  int get xp => answers.xp;
 
   /// Consecutive Great-or-better answers ending with the latest one.
   int get streak {
@@ -65,31 +70,19 @@ class RoundContext {
 
   int get perfects => answers.where((a) => a.tier == Tier.perfect).length;
 
-  RoundContext withAnswer(Answer answer) => RoundContext(
+  RoundContext withAnswer(Answer answer) =>
+      _copyWith(answers: [...answers, answer]);
+
+  RoundContext advance() => _copyWith(index: index + 1);
+
+  RoundContext _copyWith({int? index, List<Answer>? answers}) => RoundContext(
     id: id,
     shape: shape,
     difficulty: difficulty,
     packVersion: packVersion,
     questions: questions,
-    index: index,
-    answers: [...answers, answer],
-    retryOf: retryOf,
-    previousDistanceM: previousDistanceM,
-  );
-
-  NamedStreet get current => questions[index].street;
-  int get number => index + 1;
-  int get total => questions.length;
-  bool get isLast => index == questions.length - 1;
-
-  RoundContext advance() => RoundContext(
-    id: id,
-    shape: shape,
-    difficulty: difficulty,
-    packVersion: packVersion,
-    questions: questions,
-    index: index + 1,
-    answers: answers,
+    index: index ?? this.index,
+    answers: answers ?? this.answers,
     retryOf: retryOf,
     previousDistanceM: previousDistanceM,
   );
@@ -142,6 +135,9 @@ final class RoundRevealed extends RoundInPlay {
 
   /// Closest point of the street to the pin (end of the measure line).
   final LatLng nearest;
+
+  @override
+  LatLng get pin => super.pin!;
 }
 
 class RoundController extends Notifier<RoundState> {
@@ -150,22 +146,26 @@ class RoundController extends Notifier<RoundState> {
   @override
   RoundState build() => const RoundLoading();
 
+  // Leaving the round disposes this controller and its ref: methods take the
+  // DAO before their first await and check ref.mounted before using ref or
+  // state again, so a round left while loading starts nothing.
   ProgressDao get _progress => ref.read(progressDaoProvider);
 
   Future<void> start(Area? area, Difficulty difficulty) async {
     state = const RoundLoading();
+    final dao = _progress;
     final pack = await ref.read(packRepositoryProvider.future);
+    if (!ref.mounted) return;
     final shape = area?.shapeIn(pack);
     if (area == null || shape == null) {
-      if (ref.mounted) state = const RoundAreaMissing();
+      state = const RoundAreaMissing();
       return;
     }
     final cityId = pack.city().id;
     final streets = await ref.read(cityStreetsProvider.future);
-    final best = bestTierPerStreet(
-      await _progress.bestTierByPart(cityId),
-      streets,
-    );
+    final best = bestTierPerStreet(await dao.bestTierByPart(cityId), streets);
+    final recent = await dao.askedInLastRounds(cityId);
+    if (!ref.mounted) return;
     final selection = ref
         .read(questionSelectorProvider)
         .select(
@@ -176,18 +176,15 @@ class RoundController extends Notifier<RoundState> {
             for (final MapEntry(key: id, value: tier) in best.entries)
               id: knowledgeFrom(tier),
           },
-          recentStreets: {
-            for (final id in await _progress.askedInLastRounds(cityId))
-              ?streets[id]?.id,
-          },
+          recentStreets: {for (final id in recent) ?streets[id]?.id},
         );
     switch (selection) {
       case NotEnoughStreets(:final count):
-        if (ref.mounted) state = RoundNotEnough(count);
+        state = RoundNotEnough(count);
       case SelectedQuestions(:final streetIds):
         final questions = resolveQuestions(streets, streetIds);
         final version = packVersion(pack);
-        final roundId = await _progress.startRound(
+        final roundId = await dao.startRound(
           cityId: cityId,
           area: area,
           difficulty: difficulty,
@@ -212,27 +209,30 @@ class RoundController extends Notifier<RoundState> {
   /// city, area and difficulty. An empty retry set starts nothing.
   Future<void> startRetry(String roundId) async {
     state = const RoundLoading();
+    final dao = _progress;
     final pack = await ref.read(packRepositoryProvider.future);
-    final original = (await _progress.roundProgress(roundId)).round;
-    final area = parseArea(original.areaJson);
+    final original = await dao.roundProgress(roundId);
+    if (!ref.mounted) return;
+    final area = parseArea(original.round.areaJson);
     final shape = area?.shapeIn(pack);
     if (area == null || shape == null) {
-      if (ref.mounted) state = const RoundAreaMissing();
+      state = const RoundAreaMissing();
       return;
     }
     final questions = resolveQuestions(
       await ref.read(cityStreetsProvider.future),
-      await _progress.retrySet(roundId),
+      original.retryIds,
     );
+    if (!ref.mounted) return;
     if (questions.isEmpty) {
-      if (ref.mounted) state = RoundFinished(roundId);
+      state = RoundFinished(roundId);
       return;
     }
     final version = packVersion(pack);
-    final retryId = await _progress.startRound(
-      cityId: original.cityId,
+    final retryId = await dao.startRound(
+      cityId: original.round.cityId,
       area: area,
-      difficulty: original.difficulty,
+      difficulty: original.round.difficulty,
       packVersion: version,
       streetIds: [for (final q in questions) q.id],
       retryOf: roundId,
@@ -242,26 +242,23 @@ class RoundController extends Notifier<RoundState> {
       RoundContext(
         id: retryId,
         shape: shape,
-        difficulty: original.difficulty,
+        difficulty: original.round.difficulty,
         packVersion: version,
         questions: questions,
         index: 0,
         retryOf: roundId,
-        previousDistanceM: await _distancesOf(roundId),
+        previousDistanceM: original.distanceByStreet,
       ),
     );
   }
 
-  Future<Map<String, double>> _distancesOf(String roundId) async => {
-    for (final a in await _progress.answersForRound(roundId))
-      a.streetId: a.distanceM,
-  };
-
   Future<void> resume(String roundId) async {
     state = const RoundLoading();
+    final dao = _progress;
     final pack = await ref.read(packRepositoryProvider.future);
+    if (!ref.mounted) return;
     final streets = await ref.read(cityStreetsProvider.future);
-    final progress = await _progress.roundProgress(roundId);
+    final progress = await dao.roundProgress(roundId);
     if (!ref.mounted) return;
     final shape = parseArea(progress.round.areaJson)?.shapeIn(pack);
     if (shape == null) {
@@ -272,14 +269,14 @@ class RoundController extends Notifier<RoundState> {
     final answered = {for (final a in progress.answers) a.streetId};
     final index = questions.indexWhere((q) => !answered.contains(q.id));
     if (index == -1) {
-      await _progress.finishRound(roundId);
+      await dao.finishRound(roundId);
       if (ref.mounted) state = RoundFinished(roundId);
       return;
     }
     final retryOf = progress.round.retryOf;
     final previous = retryOf == null
         ? const <String, double>{}
-        : await _distancesOf(retryOf);
+        : (await dao.roundProgress(retryOf)).distanceByStreet;
     if (!ref.mounted) return;
     state = RoundAsking(
       RoundContext(
@@ -300,19 +297,22 @@ class RoundController extends Notifier<RoundState> {
     if (state case RoundAsking(:final round)) state = RoundAsking(round, pin);
   }
 
+  /// Scores and saves the pin. The last answer also finishes the round, so a
+  /// fully answered round is never left to resume.
   Future<void> confirm() async {
     if (_saving) return;
     if (state case RoundAsking(:final round, pin: final pin?)) {
       _saving = true;
       try {
-        final question = round.questions[round.index];
+        final dao = _progress;
+        final question = round.question;
         final nearest = question.street.nearest(pin);
         final score = scoreAnswer(
           nearest.distanceM,
           nearest.part.roadClass,
           round.difficulty,
         );
-        final answer = await _progress.recordAnswer(
+        final answer = await dao.recordAnswer(
           roundId: round.id,
           streetId: question.id,
           pin: pin,
@@ -321,6 +321,7 @@ class RoundController extends Notifier<RoundState> {
           xp: score.xp,
           packVersion: round.packVersion,
         );
+        if (round.isLast) await dao.finishRound(round.id);
         if (ref.mounted) {
           state = RoundRevealed(
             round.withAnswer(answer),
@@ -335,14 +336,12 @@ class RoundController extends Notifier<RoundState> {
     }
   }
 
+  /// The next question, or the results after the last one.
   Future<void> next() async {
     if (state case RoundRevealed(:final round)) {
-      if (!round.isLast) {
-        state = RoundAsking(round.advance());
-        return;
-      }
-      await _progress.finishRound(round.id);
-      if (ref.mounted) state = RoundFinished(round.id);
+      state = round.isLast
+          ? RoundFinished(round.id)
+          : RoundAsking(round.advance());
     }
   }
 }

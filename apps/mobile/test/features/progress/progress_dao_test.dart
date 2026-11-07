@@ -43,12 +43,25 @@ void main() {
         packVersion: 'v1',
       );
 
-  test('welcome shows until the first round is finished', () async {
-    expect(await initialLocation(db), Routes.welcome);
+  test('welcome shows until a first round is finished or saved', () async {
+    expect(await startLocation(db), Routes.welcome);
     final id = await round(['a']);
-    expect(await initialLocation(db), Routes.welcome);
+    expect(
+      await startLocation(db),
+      Routes.home,
+      reason: 'Home offers to continue the saved first round',
+    );
     await progress.finishRound(id);
-    expect(await initialLocation(db), Routes.home);
+    expect(await startLocation(db), Routes.home);
+  });
+
+  test('a finished round keeps its first finish time', () async {
+    final id = await round(['a']);
+    await progress.finishRound(id);
+    final first = (await progress.roundProgress(id)).round.finishedAt;
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+    await progress.finishRound(id);
+    expect((await progress.roundProgress(id)).round.finishedAt, first);
   });
 
   test('startRound stores the planned streets, area and retry link', () async {
@@ -100,9 +113,14 @@ void main() {
       final settings = SettingsDao(db);
       await settings.chooseArea(vake, cityId: 'tbilisi');
       final id = await round(['a']);
-      expect((await progress.savedRound(now))?.id, id);
+      Future<Round?> saved() async {
+        final s = await settings.read();
+        return progress.savedRound(now, cityId: s.lastCity, area: s.area);
+      }
+
+      expect((await saved())?.id, id);
       await settings.chooseArea(const DistrictsArea({'osm:r2'}));
-      expect(await progress.savedRound(now), isNull);
+      expect(await saved(), isNull);
     });
   });
 
@@ -148,13 +166,13 @@ void main() {
     });
   });
 
-  test('retrySet is the Close and Miss streets in round order', () async {
+  test('retryIds are the Close and Miss streets in round order', () async {
     final id = await round(['a', 'b', 'c', 'd']);
     await answer(id, 'd', Tier.miss);
     await answer(id, 'a', Tier.close);
     await answer(id, 'b', Tier.perfect);
     await answer(id, 'c', Tier.great);
-    expect(await progress.retrySet(id), ['a', 'd']);
+    expect((await progress.roundProgress(id)).retryIds, ['a', 'd']);
   });
 
   test('recent cities and districts list the latest first', () async {

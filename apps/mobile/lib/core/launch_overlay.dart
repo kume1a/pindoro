@@ -51,7 +51,7 @@ class _LaunchOverlayState extends ConsumerState<LaunchOverlay>
     super.didChangeDependencies();
     if (_t.status != AnimationStatus.dismissed) return;
     _calm = MediaQuery.disableAnimationsOf(context);
-    if (_calm) _t.duration = const Duration(milliseconds: 150);
+    if (_calm) _t.duration = calmFade;
     _t
       ..addListener(_onTick)
       ..forward().whenCompleteOrCancel(() {

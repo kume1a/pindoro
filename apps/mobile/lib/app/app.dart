@@ -8,6 +8,9 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
+final _lightTheme = buildPindoroTheme(Brightness.light);
+final _darkTheme = buildPindoroTheme(Brightness.dark);
+
 class PindoroApp extends ConsumerStatefulWidget {
   const PindoroApp({
     super.key,
@@ -35,15 +38,20 @@ class _PindoroAppState extends ConsumerState<PindoroApp> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(settingsProvider).value;
+    // Only theme and language rebuild the app; other settings writes don't.
+    final (themeMode, locale) = ref.watch(
+      settingsProvider.select(
+        (s) => (s.value?.themeMode ?? ThemeMode.system, s.value?.locale),
+      ),
+    );
     return MaterialApp.router(
       title: 'Pindoro',
       debugShowCheckedModeBanner: false,
-      theme: buildPindoroTheme(Brightness.light),
-      darkTheme: buildPindoroTheme(Brightness.dark),
-      themeMode: settings?.themeMode ?? ThemeMode.system,
+      theme: _lightTheme,
+      darkTheme: _darkTheme,
+      themeMode: themeMode,
       themeAnimationDuration: PindoroMotion.durationBase,
-      locale: settings?.locale,
+      locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const [
         AppLocalizations.delegate,

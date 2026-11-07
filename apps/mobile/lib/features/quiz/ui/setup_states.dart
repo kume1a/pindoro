@@ -26,7 +26,7 @@ class SetupStates extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final settings = ref.watch(settingsProvider).value;
-    final difficulty = settings?.lastDifficulty ?? Difficulty.easy;
+    final difficulty = settings?.difficulty ?? Difficulty.medium;
     return switch (state) {
       RoundNotEnough(:final count) => _Message(
         expression: PindoExpression.encouraging,

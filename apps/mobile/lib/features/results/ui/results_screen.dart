@@ -149,9 +149,9 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
         ],
       ),
       children: [
-        if (data.shape?.name case final name?)
+        if (data.area case final area? when data.shape != null)
           Text(
-            name,
+            areaLabel(context, area, data.pack, settings),
             style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
           ),
         Row(
@@ -215,12 +215,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
           distance: PindoroSpace.s4,
           child: TierTally(
             counts: counts,
-            labels: {
-              Tier.perfect: l10n.tierPerfectWord,
-              Tier.great: l10n.tierGreatWord,
-              Tier.close: l10n.tierClose,
-              Tier.miss: l10n.tierMissWord,
-            },
+            labels: {for (final t in Tier.values) t: tierWord(l10n, t)},
             semanticLabel: l10n.a11yTierTally(
               counts[Tier.perfect] ?? 0,
               counts[Tier.great] ?? 0,
@@ -292,9 +287,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
   ) {
     final a = e.answer;
     final street = e.street;
-    final name = street == null
-        ? a.streetId
-        : settings?.streetName(street) ?? street.name;
+    final name = street == null ? a.streetId : streetName(street, settings);
     final distance = formatDistance(a.distanceM, l10n);
     final word = tierWord(l10n, a.tier);
     final rest = a.tier == Tier.perfect
