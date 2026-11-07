@@ -32,6 +32,9 @@
   background once a downloaded pack opens, as a MapLibre offline region. The region is never
   refreshed; delete it when `georgia.pmtiles` updates (no tiles version to compare yet).
 - The offline toast probes the API's `/health`; there is no live connectivity listener.
+- Keyboard and D-pad focus: the design system's custom controls (`Tappable` in pindoro_design)
+  take taps and screen-reader taps but can't be focused from a keyboard; `color.focus.ring` is
+  unused. Build `Tappable` on `FocusableActionDetector` with a focus-ring outline when needed.
 
 ## Data / pipeline
 

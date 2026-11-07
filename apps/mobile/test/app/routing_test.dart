@@ -120,7 +120,7 @@ void main() {
   ) async {
     await pumpApp(tester, Routes.areaFrom(AppConfig.fixtureDistrictId));
     final chips = tester.widgetList<PindoroChip>(find.byType(PindoroChip));
-    expect(chips.where((c) => c.selected), hasLength(1));
+    expect(chips.where((c) => c.selected ?? false), hasLength(1));
     expect(find.text('Pick an area first'), findsNothing);
     expect((await tester.runAsync(SettingsDao(db).read))!.area, isNull);
 

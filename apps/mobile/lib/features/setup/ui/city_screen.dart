@@ -85,7 +85,7 @@ class _CityScreenState extends ConsumerState<CityScreen> {
     Widget row(CatalogCity city) => ListRow(
       title: name(city),
       subtitle: other(city),
-      leading: const RowTile(child: PindoroIcon(PindoroGlyph.city)),
+      leading: const RowTile(PindoroGlyph.city),
       trailing: const PindoroIcon(PindoroGlyph.chevronRight),
       onTap: () => unawaited(_pick(city.id)),
     );
@@ -150,7 +150,7 @@ class _CityScreenState extends ConsumerState<CityScreen> {
                   _Locating.busy => l10n.cityLocationLocating,
                   _Locating.denied => l10n.cityLocationDenied,
                 },
-                leading: const RowTile(child: PindoroIcon(PindoroGlyph.locate)),
+                leading: const RowTile(PindoroGlyph.locate),
                 trailing: _locating == _Locating.busy
                     ? const LaneLoader()
                     : null,

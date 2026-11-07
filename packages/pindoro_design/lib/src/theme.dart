@@ -164,6 +164,7 @@ ThemeData buildPindoroTheme(Brightness brightness) {
     fontFamily: PindoroType.family,
     package: PindoroType.package,
     scaffoldBackgroundColor: c.surfaceBase,
+    iconTheme: IconThemeData(color: c.textPrimary, size: PindoroSize.iconMd),
     progressIndicatorTheme: ProgressIndicatorThemeData(
       color: c.xpFill,
       linearTrackColor: c.xpTrack,
@@ -195,15 +196,72 @@ ThemeData buildPindoroTheme(Brightness brightness) {
       ),
       activeTickMarkColor: c.sliderThumb,
       inactiveTickMarkColor: c.lineStrong,
-      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 16),
+      thumbShape: _RingThumb(ring: c.sliderThumbBorder),
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: c.surfaceOverlay,
+      barrierColor: c.scrim,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(PindoroRadius.xl),
       ),
     ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: c.surfaceOverlay,
+      modalBackgroundColor: c.surfaceOverlay,
+      modalBarrierColor: c.scrim,
+      elevation: 0,
+      modalElevation: 0,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(PindoroRadius.r2xl),
+        ),
+      ),
+      showDragHandle: true,
+      dragHandleColor: c.lineStrong,
+      dragHandleSize: const Size(PindoroSize.sheetHandle, PindoroSpace.s1),
+    ),
     extensions: [pindoro],
   );
+}
+
+/// The slider's white thumb inside a `color.slider.thumb-border` ring, so it
+/// stays visible on the white sheet it sits on.
+class _RingThumb extends SliderComponentShape {
+  const _RingThumb({required this.ring});
+
+  final Color ring;
+
+  static const double _radius = 16;
+
+  @override
+  Size getPreferredSize(bool isEnabled, bool isDiscrete) =>
+      const Size.fromRadius(_radius);
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset center, {
+    required Animation<double> activationAnimation,
+    required Animation<double> enableAnimation,
+    required bool isDiscrete,
+    required TextPainter labelPainter,
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required TextDirection textDirection,
+    required double value,
+    required double textScaleFactor,
+    required Size sizeWithOverflow,
+  }) {
+    context.canvas
+      ..drawCircle(center, _radius, Paint()..color = sliderTheme.thumbColor!)
+      ..drawCircle(
+        center,
+        _radius - PindoroStroke.base / 2,
+        Paint()
+          ..color = ring
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = PindoroStroke.base,
+      );
+  }
 }

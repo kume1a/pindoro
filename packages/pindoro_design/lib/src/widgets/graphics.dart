@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 
 const String _package = 'pindoro_design';
@@ -100,10 +99,10 @@ class PindoroIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The theme's IconTheme carries the token defaults (textPrimary, iconMd).
     final iconTheme = IconTheme.of(context);
-    final size = this.size ?? iconTheme.size ?? PindoroSize.iconMd;
-    final ink =
-        color ?? iconTheme.color ?? PindoroTheme.of(context).colors.textPrimary;
+    final size = this.size ?? iconTheme.size!;
+    final ink = color ?? iconTheme.color!;
     return SvgPicture(
       SvgAssetLoader(
         'assets/icons/${glyph.file}.svg',

@@ -119,6 +119,7 @@ class ListRow extends StatelessWidget {
     super.key,
     required this.title,
     this.subtitle,
+    this.subtitleSpan,
     this.leading,
     this.trailing,
     this.onTap,
@@ -129,6 +130,9 @@ class ListRow extends StatelessWidget {
 
   final String title;
   final String? subtitle;
+
+  /// A styled subtitle (e.g. a coloured word), instead of [subtitle].
+  final InlineSpan? subtitleSpan;
 
   /// Usually a [RowTile] with an icon.
   final Widget? leading;
@@ -154,6 +158,9 @@ class ListRow extends StatelessWidget {
       checked: check?.isChecked,
       mixed: check == null ? null : check == CheckState.partial,
       label: semanticsLabel,
+      // A labelled row drops the InkWell's semantics, its tap with them, so
+      // the row's own node carries the tap.
+      onTap: semanticsLabel == null ? null : onTap,
       excludeSemantics: semanticsLabel != null,
       child: Material(
         type: MaterialType.transparency,
@@ -184,9 +191,9 @@ class ListRow extends StatelessWidget {
                             color: enabled ? c.textPrimary : c.textDisabled,
                           ),
                         ),
-                        if (subtitle != null)
-                          Text(
-                            subtitle!,
+                        if (subtitleSpan ?? _span(subtitle) case final span?)
+                          Text.rich(
+                            span,
                             style: PindoroType.bodySm.copyWith(
                               color: c.textSecondary,
                             ),
@@ -258,9 +265,9 @@ class _CheckBox extends StatelessWidget {
 /// The 40 dp leading tile of a [ListRow]: `color.primary.soft` behind a
 /// `color.primary.text` glyph.
 class RowTile extends StatelessWidget {
-  const RowTile({super.key, required this.child});
+  const RowTile(this.glyph, {super.key});
 
-  final Widget child;
+  final PindoroGlyph glyph;
 
   @override
   Widget build(BuildContext context) {
@@ -273,10 +280,9 @@ class RowTile extends StatelessWidget {
         color: c.primarySoft,
         borderRadius: BorderRadius.circular(PindoroRadius.md),
       ),
-      child: IconTheme(
-        data: IconThemeData(color: c.primaryText, size: PindoroSize.iconMd),
-        child: child,
-      ),
+      child: PindoroIcon(glyph, color: c.primaryText, cut: c.primarySoft),
     );
   }
 }
+
+InlineSpan? _span(String? text) => text == null ? null : TextSpan(text: text);

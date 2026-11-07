@@ -181,18 +181,14 @@ void main() {
                   ListRow(
                     title: 'Sound',
                     subtitle: 'Chimes, taps and celebrations',
-                    leading: const RowTile(
-                      child: PindoroIcon(PindoroGlyph.soundOn),
-                    ),
+                    leading: const RowTile(PindoroGlyph.soundOn),
                     trailing: PindoroToggle(value: true, onChanged: (_) {}),
                     toggled: true,
                     onTap: () {},
                   ),
                   ListRow(
                     title: 'Haptics',
-                    leading: const RowTile(
-                      child: PindoroIcon(PindoroGlyph.haptics),
-                    ),
+                    leading: const RowTile(PindoroGlyph.haptics),
                     trailing: PindoroToggle(value: false, onChanged: (_) {}),
                     toggled: false,
                     onTap: () {},

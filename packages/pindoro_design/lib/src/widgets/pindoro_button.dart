@@ -4,6 +4,7 @@ import 'package:pindoro_core/pindoro_core.dart';
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
+import 'tappable.dart';
 
 enum PindoroButtonVariant { primary, secondary, tertiary, reward }
 
@@ -41,6 +42,13 @@ class _PindoroButtonState extends State<PindoroButton> {
 
   void _setPressed(bool value) {
     if (widget.onPressed != null) setState(() => _pressed = value);
+  }
+
+  @override
+  void didUpdateWidget(PindoroButton old) {
+    super.didUpdateWidget(old);
+    // Disabled mid-press, the release would be ignored and the face stay down.
+    if (widget.onPressed == null) _pressed = false;
   }
 
   @override
@@ -84,50 +92,46 @@ class _PindoroButtonState extends State<PindoroButton> {
     final lipHeight = _pressed ? 0.0 : fullLip;
     final label = Text(
       widget.label,
+      textAlign: TextAlign.center,
       style: PindoroType.labelButton.copyWith(color: text),
     );
 
-    return Semantics(
-      button: true,
-      enabled: enabled,
-      child: MouseRegion(
-        cursor: enabled
-            ? SystemMouseCursors.click
-            : SystemMouseCursors.forbidden,
-        child: GestureDetector(
-          onTap: widget.onPressed,
-          onTapDown: (_) => _setPressed(true),
-          onTapUp: (_) => _setPressed(false),
-          onTapCancel: () => _setPressed(false),
-          child: AnimatedContainer(
-            duration: PindoroMotion.durationInstant,
-            curve: PindoroMotion.easePress,
-            margin: EdgeInsets.only(top: fullLip - lipHeight),
-            padding: EdgeInsets.only(bottom: lipHeight),
-            decoration: BoxDecoration(color: lip, borderRadius: radius),
-            child: Container(
-              height: PindoroSize.buttonLg,
-              padding: const EdgeInsets.symmetric(horizontal: PindoroSpace.s6),
-              decoration: BoxDecoration(
-                color: face,
-                borderRadius: radius,
-                border: border == null
-                    ? null
-                    : Border.all(color: border, width: PindoroStroke.base),
-              ),
-              alignment: Alignment.center,
-              child: widget.icon == null
-                  ? label
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      spacing: PindoroSpace.s2,
-                      children: [
-                        PindoroIcon(widget.icon!, color: text, cut: face),
-                        label,
-                      ],
-                    ),
-            ),
+    return Tappable(
+      onTap: widget.onPressed,
+      onTapDown: (_) => _setPressed(true),
+      onTapUp: (_) => _setPressed(false),
+      onTapCancel: () => _setPressed(false),
+      child: AnimatedContainer(
+        duration: PindoroMotion.durationInstant,
+        curve: PindoroMotion.easePress,
+        margin: EdgeInsets.only(top: fullLip - lipHeight),
+        padding: EdgeInsets.only(bottom: lipHeight),
+        decoration: BoxDecoration(color: lip, borderRadius: radius),
+        // At least 56 dp; a label wrapping at large text sizes grows it.
+        child: Container(
+          constraints: const BoxConstraints(minHeight: PindoroSize.buttonLg),
+          padding: const EdgeInsets.symmetric(
+            horizontal: PindoroSpace.s6,
+            vertical: PindoroSpace.s2,
           ),
+          decoration: BoxDecoration(
+            color: face,
+            borderRadius: radius,
+            border: border == null
+                ? null
+                : Border.all(color: border, width: PindoroStroke.base),
+          ),
+          alignment: Alignment.center,
+          child: widget.icon == null
+              ? label
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  spacing: PindoroSpace.s2,
+                  children: [
+                    PindoroIcon(widget.icon!, color: text, cut: face),
+                    Flexible(child: label),
+                  ],
+                ),
         ),
       ),
     );
