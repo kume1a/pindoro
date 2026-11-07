@@ -1,12 +1,17 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:pindoro/core/config.dart';
+import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/database/settings_dao.dart';
+import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/pack/data/cities.dart';
 import 'package:pindoro/features/pack/data/pack_store.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -20,6 +25,39 @@ void main() {
   setUp(() => root = Directory.systemTemp.createTempSync('packs'));
   tearDown(() => root.deleteSync(recursive: true));
 
+  http.Response catalog(
+    String version, {
+    String? hash,
+    int? size,
+    int format = PackStore.supportedFormatVersion,
+  }) => http.Response(
+    jsonEncode({
+      'cities': [
+        {
+          'id': 'tbilisi',
+          'name_ka': 'თბილისი',
+          'name_en': 'Tbilisi',
+          'bbox': {
+            'min_lat': 41.6,
+            'min_lon': 44.6,
+            'max_lat': 41.8,
+            'max_lon': 45,
+          },
+          'pack': {
+            'format_version': format,
+            'version': version,
+            'url': 'http://packs.test/tbilisi/$version.sqlite.gz',
+            'sha256': hash ?? sha,
+            'size': size ?? gz.length,
+            'osm_timestamp': '2026-11-04T21:21:03Z',
+          },
+        },
+      ],
+    }),
+    200,
+    headers: {'content-type': 'application/json; charset=utf-8'},
+  );
+
   PackStore store(
     String version, {
     String? hash,
@@ -30,32 +68,11 @@ void main() {
     apiBaseUrl: 'http://api.test',
     client: MockClient(
       (req) async => switch (req.url.path) {
-        '/v1/catalog' => http.Response(
-          jsonEncode({
-            'cities': [
-              {
-                'id': 'tbilisi',
-                'name_ka': 'თბილისი',
-                'name_en': 'Tbilisi',
-                'bbox': {
-                  'min_lat': 41.6,
-                  'min_lon': 44.6,
-                  'max_lat': 41.8,
-                  'max_lon': 45,
-                },
-                'pack': {
-                  'format_version': format,
-                  'version': version,
-                  'url': 'http://packs.test/tbilisi/$version.sqlite.gz',
-                  'sha256': hash ?? sha,
-                  'size': size ?? gz.length,
-                  'osm_timestamp': '2026-11-04T21:21:03Z',
-                },
-              },
-            ],
-          }),
-          200,
-          headers: {'content-type': 'application/json; charset=utf-8'},
+        '/v1/catalog' => catalog(
+          version,
+          hash: hash,
+          size: size,
+          format: format,
         ),
         final path when path.endsWith('.sqlite.gz') => http.Response.bytes(
           gz,
@@ -73,6 +90,34 @@ void main() {
           .map((f) => f.uri.pathSegments.last)
           .toList()
         ..sort();
+
+  PackStore offline() => PackStore(
+    root: root,
+    apiBaseUrl: 'http://api.test',
+    client: MockClient((_) async => throw const SocketException('offline')),
+  );
+
+  /// The app's providers over [store], with [lastCity] already chosen.
+  /// Settings stay listened, as the app root does: an unlistened stream
+  /// provider is paused and never emits.
+  Future<ProviderContainer> app(PackStore store, {String? lastCity}) async {
+    TestWidgetsFlutterBinding.ensureInitialized(); // rootBundle
+    final db = AppDatabase(NativeDatabase.memory());
+    if (lastCity != null) await SettingsDao(db).chooseCity(lastCity);
+    final c = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWithValue(db),
+        packStoreProvider.overrideWithValue(store),
+      ],
+    );
+    final settings = c.listen(settingsProvider, (_, _) {});
+    addTearDown(() async {
+      settings.close();
+      c.dispose();
+      await db.close();
+    });
+    return c;
+  }
 
   test('the catalog lists cities with their bounds', () async {
     final cities = await store('20261105T000000Z').cities();
@@ -132,14 +177,48 @@ void main() {
     expect(files(), ['20261102T000000Z.sqlite', '20261103T000000Z.sqlite']);
   });
 
-  test('the active pack downloads when missing', () async {
-    TestWidgetsFlutterBinding.ensureInitialized(); // rootBundle
-    final c = ProviderContainer(
-      overrides: [
-        packStoreProvider.overrideWithValue(store('20261106T000000Z')),
-      ],
+  test('a stalled download times out instead of hanging', () async {
+    final stalled = PackStore(
+      root: root,
+      apiBaseUrl: 'http://api.test',
+      timeout: const Duration(milliseconds: 50),
+      client: MockClient.streaming((req, _) async {
+        if (req.url.path != '/v1/catalog') {
+          final silent = StreamController<List<int>>();
+          addTearDown(silent.close);
+          return http.StreamedResponse(silent.stream, 200);
+        }
+        final r = catalog('20261106T000000Z');
+        return http.StreamedResponse(Stream.value(r.bodyBytes), 200);
+      }),
     );
-    addTearDown(c.dispose);
+    await expectLater(
+      stalled.refresh('tbilisi'),
+      throwsA(isA<TimeoutException>()),
+    );
+  });
+
+  test('a replaced pack stays open for screens still showing it', () async {
+    final s = store('20261106T000000Z');
+    await s.refresh('tbilisi');
+    final c = await app(s);
+    final old = await c.read(packRepositoryProvider.future);
+    c.invalidate(packRepositoryProvider);
+    expect(await c.read(packRepositoryProvider.future), isNot(same(old)));
+    expect(old.streets(), isNotEmpty);
+  });
+
+  test('the chosen city loads, not the default one first', () async {
+    final c = await app(offline(), lastCity: 'batumi');
+    await expectLater(
+      c.read(packRepositoryProvider.future),
+      throwsA(isA<PackUnavailable>()),
+    );
+    expect(files(), isEmpty, reason: 'no Tbilisi fallback was copied');
+  });
+
+  test('the active pack downloads when missing', () async {
+    final c = await app(store('20261106T000000Z'));
     final seen = <int>[];
     c.listen(packDownloadProvider, (_, p) {
       if (p != null) seen.add(p.received);
@@ -155,13 +234,8 @@ void main() {
       downloadPack(_FullStore(root), 'tbilisi'),
       throwsA(isA<PackUnavailable>().having((e) => e.noSpace, 'noSpace', true)),
     );
-    final offline = PackStore(
-      root: root,
-      apiBaseUrl: 'http://api.test',
-      client: MockClient((_) async => throw const SocketException('offline')),
-    );
     await expectLater(
-      downloadPack(offline, 'batumi'),
+      downloadPack(offline(), 'batumi'),
       throwsA(
         isA<PackUnavailable>().having((e) => e.noSpace, 'noSpace', false),
       ),
@@ -169,16 +243,7 @@ void main() {
   });
 
   test('offline, Tbilisi fails until the player picks Vake', () async {
-    TestWidgetsFlutterBinding.ensureInitialized(); // rootBundle
-    final offline = PackStore(
-      root: root,
-      apiBaseUrl: 'http://api.test',
-      client: MockClient((_) async => throw const SocketException('offline')),
-    );
-    final c = ProviderContainer(
-      overrides: [packStoreProvider.overrideWithValue(offline)],
-    );
-    addTearDown(c.dispose);
+    final c = await app(offline());
     await expectLater(
       c.read(packRepositoryProvider.future),
       throwsA(isA<PackUnavailable>()),

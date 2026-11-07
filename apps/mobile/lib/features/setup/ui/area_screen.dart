@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
@@ -239,7 +240,11 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
     final packState = ref.watch(packRepositoryProvider);
     final pack = packState.value;
     final settings = ref.watch(settingsProvider).value;
-    if (pack == null || settings == null) {
+    // While a newly chosen city loads, the provider still holds the previous
+    // city's pack; picking on it would save the wrong city.
+    if (pack == null ||
+        settings == null ||
+        pack.city().id != (settings.lastCity ?? AppConfig.cityId)) {
       return PackPending(pack: packState);
     }
     final offline = isFixturePack(pack);

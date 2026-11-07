@@ -23,22 +23,21 @@ class WelcomeScreen extends ConsumerWidget {
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
     final settings = ref.watch(settingsProvider).value;
-    final pack = ref.watch(packRepositoryProvider).value;
     final recents = ref.watch(recentCityIdsProvider).value ?? const [];
     final area = settings?.area;
     final difficulty = settings?.lastDifficulty;
-    final canResume =
-        recents.isNotEmpty &&
-        area != null &&
-        difficulty != null &&
-        pack != null;
     final georgian = Localizations.localeOf(context).languageCode == 'ka';
-    final resumes = canResume
-        ? [
-            georgian ? pack.city().nameKa : pack.city().nameEn,
-            areaLabel(context, area, pack, settings),
-            difficultyName(l10n, difficulty),
-          ].join(' · ')
+    // Only a resumable player needs the pack; watching it on first run would
+    // download the default city before one is chosen.
+    final resumes = recents.isNotEmpty && area != null && difficulty != null
+        ? switch (ref.watch(packRepositoryProvider).value) {
+            final pack? => [
+              georgian ? pack.city().nameKa : pack.city().nameEn,
+              areaLabel(context, area, pack, settings),
+              difficultyName(l10n, difficulty),
+            ].join(' · '),
+            null => null,
+          }
         : null;
 
     return Scaffold(

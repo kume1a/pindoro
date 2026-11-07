@@ -186,12 +186,12 @@ class RoundController extends Notifier<RoundState> {
         if (ref.mounted) state = RoundNotEnough(count);
       case SelectedQuestions(:final streetIds):
         final questions = resolveQuestions(streets, streetIds);
-        final packVersion = pack.meta()['version']!;
+        final version = packVersion(pack);
         final roundId = await _progress.startRound(
           cityId: cityId,
           area: area,
           difficulty: difficulty,
-          packVersion: packVersion,
+          packVersion: version,
           streetIds: [for (final q in questions) q.id],
         );
         if (!ref.mounted) return;
@@ -200,7 +200,7 @@ class RoundController extends Notifier<RoundState> {
             id: roundId,
             shape: shape,
             difficulty: difficulty,
-            packVersion: packVersion,
+            packVersion: version,
             questions: questions,
             index: 0,
           ),
@@ -228,12 +228,12 @@ class RoundController extends Notifier<RoundState> {
       if (ref.mounted) state = RoundFinished(roundId);
       return;
     }
-    final packVersion = pack.meta()['version']!;
+    final version = packVersion(pack);
     final retryId = await _progress.startRound(
       cityId: original.cityId,
       area: area,
       difficulty: original.difficulty,
-      packVersion: packVersion,
+      packVersion: version,
       streetIds: [for (final q in questions) q.id],
       retryOf: roundId,
     );
@@ -243,7 +243,7 @@ class RoundController extends Notifier<RoundState> {
         id: retryId,
         shape: shape,
         difficulty: original.difficulty,
-        packVersion: packVersion,
+        packVersion: version,
         questions: questions,
         index: 0,
         retryOf: roundId,
@@ -286,7 +286,7 @@ class RoundController extends Notifier<RoundState> {
         id: roundId,
         shape: shape,
         difficulty: progress.round.difficulty,
-        packVersion: pack.meta()['version']!,
+        packVersion: packVersion(pack),
         questions: questions,
         index: index,
         answers: progress.answers,
