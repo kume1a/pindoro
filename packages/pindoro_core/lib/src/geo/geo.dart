@@ -115,6 +115,55 @@ NearestPoint pointToPolylineDistance(LatLng point, MultiPolyline lines) {
   return (distanceMeters: best, nearestPoint: proj.unproject(bestXy));
 }
 
+/// The parts of [lines] within [radiusM] of [center], cut where they cross
+/// the circle.
+MultiPolyline clipToCircle(MultiPolyline lines, LatLng center, double radiusM) {
+  final proj = LocalProjection(center);
+  final out = <Polyline>[];
+  for (final line in lines) {
+    var piece = <LatLng>[];
+    for (var i = 0; i + 1 < line.length; i++) {
+      final a = proj.project(line[i]), b = proj.project(line[i + 1]);
+      final span = _spanInsideCircle(a, b, radiusM);
+      if (span == null) {
+        if (piece.length > 1) out.add(piece);
+        piece = [];
+        continue;
+      }
+      final (t0, t1) = span;
+      if (piece.isEmpty) {
+        piece.add(t0 == 0 ? line[i] : proj.unproject(_lerp(a, b, t0)));
+      }
+      piece.add(t1 == 1 ? line[i + 1] : proj.unproject(_lerp(a, b, t1)));
+      if (t1 < 1) {
+        out.add(piece);
+        piece = [];
+      }
+    }
+    if (piece.length > 1) out.add(piece);
+  }
+  return out;
+}
+
+Xy _lerp(Xy a, Xy b, double t) =>
+    (a.$1 + t * (b.$1 - a.$1), a.$2 + t * (b.$2 - a.$2));
+
+/// The interval of t in [0, 1] where a + t·(b − a) lies within [r] of the
+/// origin, or null when the segment stays outside.
+(double, double)? _spanInsideCircle(Xy a, Xy b, double r) {
+  final dx = b.$1 - a.$1, dy = b.$2 - a.$2;
+  final qa = dx * dx + dy * dy;
+  final qb = 2 * (a.$1 * dx + a.$2 * dy);
+  final qc = a.$1 * a.$1 + a.$2 * a.$2 - r * r;
+  if (qa == 0) return qc <= 0 ? (0, 1) : null;
+  final disc = qb * qb - 4 * qa * qc;
+  if (disc <= 0) return null;
+  final sq = math.sqrt(disc);
+  final t0 = math.max(0.0, (-qb - sq) / (2 * qa));
+  final t1 = math.min(1.0, (-qb + sq) / (2 * qa));
+  return t0 < t1 ? (t0, t1) : null;
+}
+
 enum CompassPoint { n, ne, e, se, s, sw, w, nw }
 
 /// Which of the eight compass points [to] lies in, seen from [from].

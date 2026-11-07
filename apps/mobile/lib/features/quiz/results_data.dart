@@ -15,6 +15,7 @@ typedef ResultsData = ({
   int roundXp,
   int retryCount,
   int newlyKnown,
+  bool firstPerfect,
 });
 
 /// Everything Results and its street view show for one round.
@@ -28,9 +29,13 @@ final resultsProvider = FutureProvider.autoDispose.family<ResultsData, String>((
   final progress = await db.roundProgress(roundId);
   final round = progress.round;
   final answers = progress.answers;
+  final bestBefore = await db.bestTierByPart(
+    round.cityId,
+    before: round.startedAt,
+  );
   final knownBefore = {
     for (final MapEntry(key: id, value: tier) in bestTierPerStreet(
-      await db.bestTierByPart(round.cityId, before: round.startedAt),
+      bestBefore,
       streets,
     ).entries)
       if (isKnownTier(tier)) id,
@@ -51,5 +56,9 @@ final resultsProvider = FutureProvider.autoDispose.family<ResultsData, String>((
           if (streets[a.streetId] case final s?) (street: s.id, tier: a.tier),
       ],
     ).length,
+    // ponytail: first Perfect in this city, not across cities.
+    firstPerfect:
+        !bestBefore.values.contains(Tier.perfect) &&
+        answers.any((a) => a.tier == Tier.perfect),
   );
 });

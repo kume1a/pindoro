@@ -6,6 +6,28 @@ import 'package:pindoro_design/pindoro_design.dart';
 import '../../app/format.dart';
 import '../../app/page_scaffold.dart';
 
+/// The level-up moment as a full-screen route growing out of [from] (the XP
+/// bar's centre) in a circle; a fade with reduce motion on or without [from].
+Route<void> levelUpRoute({
+  required int level,
+  required int totalXp,
+  Offset? from,
+}) => PageRouteBuilder<void>(
+  fullscreenDialog: true,
+  transitionDuration: PindoroMotion.durationSlow,
+  reverseTransitionDuration: PindoroMotion.durationBase,
+  pageBuilder: (_, _, _) => LevelUpScreen(level: level, totalXp: totalXp),
+  transitionsBuilder: (context, animation, _, child) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: PindoroMotion.easeStandard,
+    );
+    return from == null || MediaQuery.disableAnimationsOf(context)
+        ? FadeTransition(opacity: curved, child: child)
+        : CircleReveal(progress: curved, center: from, child: child);
+  },
+);
+
 /// The full-screen level-up moment over cobalt: rays, the shield with the new
 /// number, Pindo, the total and what comes next. Several levels crossed in one
 /// round play once, with the final level.

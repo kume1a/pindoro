@@ -29,7 +29,8 @@ test/drift/                    generated schema helpers + migration test
   Numbers through `formatNumber` (narrow no-break space groups), distances through
   `formatDistance`. Never uppercase.
 - **Settings** (`user_settings`, watched by `settingsProvider`): language (null = device),
-  street names, theme, sound, haptics; they apply immediately. `feedbackProvider` plays haptics
+  street names, theme, sound, haptics (plus the first Home's coach-mark flag); they apply
+  immediately. `feedbackProvider` plays haptics
   per game event behind the Haptics toggle; the Sound toggle gates nothing until a sound kit exists.
 - **Drift defaults are literals** (`Constant('local')`): drift copies them into the generated
   migration steps, which can't see app enums. No Flutter imports in `database.dart` either.

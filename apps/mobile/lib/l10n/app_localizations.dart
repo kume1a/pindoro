@@ -224,6 +224,18 @@ abstract class AppLocalizations {
   /// **'Streets you know'**
   String get homeKnownTitle;
 
+  /// No description provided for @homeCoachTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your city fills in here'**
+  String get homeCoachTitle;
+
+  /// No description provided for @homeCoachBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Every Great or Perfect adds a street you know. Tap anywhere to close.'**
+  String get homeCoachBody;
+
   /// No description provided for @homeLegendInProgress.
   ///
   /// In en, this message translates to:
@@ -620,6 +632,12 @@ abstract class AppLocalizations {
   /// **'Your street is inside the play area. You can still confirm here.'**
   String get toastPinOutsideArea;
 
+  /// No description provided for @toastOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'You’re offline. The map has gaps, but your round still works.'**
+  String get toastOffline;
+
   /// No description provided for @toastRoundResumed.
   ///
   /// In en, this message translates to:
@@ -691,6 +709,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{distance} away. {hint} You’ll see it again on your results.'**
   String tierMissSentence(String distance, String hint);
+
+  /// Chip on a round's second and later Perfect.
+  ///
+  /// In en, this message translates to:
+  /// **'Perfect ×{count}'**
+  String revealPerfectRepeat(int count);
 
   /// No description provided for @revealStreak.
   ///
@@ -769,6 +793,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Play again'**
   String get resultsPlayAgain;
+
+  /// No description provided for @resultsNewRound.
+  ///
+  /// In en, this message translates to:
+  /// **'Play a new round'**
+  String get resultsNewRound;
 
   /// No description provided for @levelUpTitle.
   ///

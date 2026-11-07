@@ -5,13 +5,21 @@ import 'package:go_router/go_router.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 import '../l10n/app_localizations.dart';
+import 'launch_overlay.dart';
 import 'router.dart';
 import 'settings.dart';
 
 class PindoroApp extends ConsumerStatefulWidget {
-  const PindoroApp({super.key, required this.initialLocation});
+  const PindoroApp({
+    super.key,
+    required this.initialLocation,
+    this.coldStart = false,
+  });
 
   final String initialLocation;
+
+  /// Plays the launch moment over the first page.
+  final bool coldStart;
 
   @override
   ConsumerState<PindoroApp> createState() => _PindoroAppState();
@@ -45,6 +53,9 @@ class _PindoroAppState extends ConsumerState<PindoroApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       routerConfig: _router,
+      builder: widget.coldStart
+          ? (context, child) => LaunchOverlay(child: child!)
+          : null,
     );
   }
 }

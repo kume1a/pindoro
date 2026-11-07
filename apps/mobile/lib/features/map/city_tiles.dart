@@ -1,0 +1,94 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:maplibre_gl/maplibre_gl.dart' as ml;
+import 'package:pindoro_core/pindoro_core.dart';
+
+import '../pack/sqlite_pack_repository.dart';
+import 'pindoro_map.dart';
+
+/// Zooms kept offline: the city whole down to the tiles' own maximum (maps
+/// zoomed in further draw from zoom 15).
+const double _minZoom = 10;
+const double _maxZoom = 15;
+
+/// Cities whose tiles are downloading or downloaded this session.
+final _kept = <String>{};
+
+/// Keeps [city]'s map tiles on the phone as a MapLibre offline region, so
+/// maps work offline once it has downloaded. Runs in the background; an
+/// interrupted download starts over next launch.
+Future<void> keepCityTilesOffline(City city, Directory dir) async {
+  if (!_kept.add(city.id)) return;
+  try {
+    final regions = [
+      for (final r in await ml.getListOfRegions())
+        if (r.metadata['city'] == city.id) r,
+    ];
+    if (regions.any((r) => r.metadata['complete'] == true)) return;
+    for (final r in regions) {
+      await ml.deleteOfflineRegion(r.id);
+    }
+    // MapLibre downloads a region from a style URL; the bundled style lives
+    // in a string, so it goes to a file first. Both themes share the tiles.
+    final style = File('${dir.path}/offline_style.json');
+    await style.writeAsString(await loadMapStyle(Brightness.light));
+    final done = Completer<void>();
+    final b = city.bbox;
+    final region = await ml.downloadOfflineRegion(
+      ml.OfflineRegionDefinition(
+        bounds: ml.LatLngBounds(
+          southwest: ml.LatLng(b.minLat, b.minLon),
+          northeast: ml.LatLng(b.maxLat, b.maxLon),
+        ),
+        mapStyleUrl: style.uri.toString(),
+        minZoom: _minZoom,
+        maxZoom: _maxZoom,
+      ),
+      metadata: {'city': city.id},
+      onEvent: (event) => switch (event) {
+        ml.Success() => done.complete(),
+        ml.Error(:final cause) => done.completeError(cause),
+        _ => null,
+      },
+    );
+    await done.future;
+    await ml.updateOfflineRegionMetadata(region.id, {
+      'city': city.id,
+      'complete': true,
+    });
+  } catch (e) {
+    _kept.remove(city.id);
+    if (kDebugMode) debugPrint('city tiles for ${city.id} failed: $e');
+  }
+}
+
+/// Starts [keepCityTilesOffline] whenever a downloaded city pack opens,
+/// without opening one itself.
+final class CityTilesObserver extends ProviderObserver {
+  CityTilesObserver(this.dir);
+
+  final Directory dir;
+
+  @override
+  void didAddProvider(ProviderObserverContext context, Object? value) =>
+      _onPack(context, value);
+
+  @override
+  void didUpdateProvider(
+    ProviderObserverContext context,
+    Object? previousValue,
+    Object? newValue,
+  ) => _onPack(context, newValue);
+
+  void _onPack(ProviderObserverContext context, Object? value) {
+    if (context.provider != packRepositoryProvider) return;
+    if (value case AsyncData(
+      value: final PackRepository pack,
+    ) when !isFixturePack(pack)) {
+      unawaited(keepCityTilesOffline(pack.city(), dir));
+    }
+  }
+}

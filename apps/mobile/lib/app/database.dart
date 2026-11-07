@@ -59,6 +59,10 @@ class UserSettings extends Table {
   BoolColumn get sound => boolean().withDefault(const Constant(true))();
   BoolColumn get haptics => boolean().withDefault(const Constant(true))();
 
+  /// The first Home's coach mark was closed.
+  BoolColumn get homeCoachSeen =>
+      boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -133,7 +137,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'pindoro'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -156,6 +160,8 @@ class AppDatabase extends _$AppDatabase {
           ),
         );
       },
+      from4To5: (m, schema) =>
+          m.addColumn(schema.userSettings, schema.userSettings.homeCoachSeen),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );
@@ -170,6 +176,7 @@ class AppDatabase extends _$AppDatabase {
         theme: ThemePreference.system,
         sound: true,
         haptics: true,
+        homeCoachSeen: false,
       );
 
   /// The settings row as it changes; defaults until the first write.

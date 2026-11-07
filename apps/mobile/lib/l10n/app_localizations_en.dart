@@ -83,6 +83,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeKnownTitle => 'Streets you know';
 
   @override
+  String get homeCoachTitle => 'Your city fills in here';
+
+  @override
+  String get homeCoachBody =>
+      'Every Great or Perfect adds a street you know. Tap anywhere to close.';
+
+  @override
   String get homeLegendInProgress => 'In progress';
 
   @override
@@ -335,6 +342,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your street is inside the play area. You can still confirm here.';
 
   @override
+  String get toastOffline =>
+      'You’re offline. The map has gaps, but your round still works.';
+
+  @override
   String toastRoundResumed(int question) {
     return 'Welcome back. Your round continues at question $question.';
   }
@@ -376,6 +387,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String tierMissSentence(String distance, String hint) {
     return '$distance away. $hint You’ll see it again on your results.';
+  }
+
+  @override
+  String revealPerfectRepeat(int count) {
+    return 'Perfect ×$count';
   }
 
   @override
@@ -428,6 +444,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get resultsPlayAgain => 'Play again';
+
+  @override
+  String get resultsNewRound => 'Play a new round';
 
   @override
   String levelUpTitle(int level) {

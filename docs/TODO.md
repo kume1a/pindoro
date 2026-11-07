@@ -21,7 +21,13 @@
 
 ## Gameplay
 
-- Offline maps: rounds work offline, but tiles need the server or MapLibre's cache.
+- Offline maps: the city's tiles (zoom 10–15, about 1 500 tiles for Tbilisi) download in the
+  background once a downloaded pack opens, as a MapLibre offline region. The region is never
+  refreshed; delete it when `georgia.pmtiles` updates (no tiles version to compare yet).
+- The offline toast probes the API's `/health`; there is no live connectivity listener.
+- Launch: the native splash has no wordmark (the canvas shows one at the bottom), so the launch
+  moment leaves it out too; Pindo doesn't wave on Welcome and Home's district map doesn't
+  cross-fade changed districts.
 
 ## Data / pipeline
 

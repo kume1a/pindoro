@@ -7,6 +7,7 @@ import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'controls.dart';
 import 'graphics.dart';
+import 'motion.dart';
 import 'surfaces.dart';
 
 /// A 56 dp search field on a 2 dp lip; the border and lip turn cobalt while
@@ -489,13 +490,29 @@ class _DistrictPainter extends CustomPainter {
 
 /// A 6 dp bar of a district's known streets.
 class Minibar extends StatelessWidget {
-  const Minibar({super.key, required this.value});
+  const Minibar({
+    super.key,
+    required this.value,
+    this.from,
+    this.delay = Duration.zero,
+  });
 
   final double value;
+
+  /// Grows from here to [value] after [delay] (`duration.slow`) on first
+  /// build; null draws [value] as is.
+  final double? from;
+  final Duration delay;
 
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
+    final (duration, curve) = delayedMotion(
+      context,
+      delay,
+      PindoroMotion.durationSlow,
+      PindoroMotion.easeStandard,
+    );
     return Container(
       height: 6,
       decoration: BoxDecoration(
@@ -503,12 +520,20 @@ class Minibar extends StatelessWidget {
         borderRadius: BorderRadius.circular(3),
       ),
       alignment: Alignment.centerLeft,
-      child: FractionallySizedBox(
-        widthFactor: value.clamp(0, 1),
-        child: Container(
-          decoration: BoxDecoration(
-            color: c.xpFill,
-            borderRadius: BorderRadius.circular(3),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(
+          begin: (from ?? value).clamp(0, 1),
+          end: value.clamp(0, 1),
+        ),
+        duration: from == null ? Duration.zero : duration,
+        curve: curve,
+        builder: (_, v, _) => FractionallySizedBox(
+          widthFactor: v,
+          child: Container(
+            decoration: BoxDecoration(
+              color: c.xpFill,
+              borderRadius: BorderRadius.circular(3),
+            ),
           ),
         ),
       ),

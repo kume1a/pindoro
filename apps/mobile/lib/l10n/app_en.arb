@@ -62,6 +62,8 @@
     }
   },
   "homeKnownTitle": "Streets you know",
+  "homeCoachTitle": "Your city fills in here",
+  "homeCoachBody": "Every Great or Perfect adds a street you know. Tap anywhere to close.",
   "homeLegendInProgress": "In progress",
   "homeLegendComplete": "Complete",
   "homeLegendNotStarted": "Not started",
@@ -246,6 +248,7 @@
   "quizLeaveKeepPlaying": "Keep playing",
   "quizLeaveConfirm": "Leave for now",
   "toastPinOutsideArea": "Your street is inside the play area. You can still confirm here.",
+  "toastOffline": "You’re offline. The map has gaps, but your round still works.",
   "toastRoundResumed": "Welcome back. Your round continues at question {question}.",
   "@toastRoundResumed": {
     "placeholders": {
@@ -292,6 +295,15 @@
       }
     }
   },
+  "revealPerfectRepeat": "Perfect ×{count}",
+  "@revealPerfectRepeat": {
+    "description": "Chip on a round's second and later Perfect.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "revealStreak": "{count} in a row",
   "@revealStreak": {
     "placeholders": {
@@ -326,6 +338,7 @@
   "resultsToRetry": "to retry",
   "resultsOnStreet": "On the street",
   "resultsPlayAgain": "Play again",
+  "resultsNewRound": "Play a new round",
   "levelUpTitle": "Level {level}!",
   "@levelUpTitle": {
     "placeholders": {

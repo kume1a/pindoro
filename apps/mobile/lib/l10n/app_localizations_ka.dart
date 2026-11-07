@@ -82,6 +82,13 @@ class AppLocalizationsKa extends AppLocalizations {
   String get homeKnownTitle => 'ქუჩები, რომლებიც იცი';
 
   @override
+  String get homeCoachTitle => 'აქ შენი ქალაქი ივსება';
+
+  @override
+  String get homeCoachBody =>
+      'ყოველი შესანიშნავი ან იდეალური პასუხი ახალ ნაცნობ ქუჩას ამატებს. დასახურად შეეხე ეკრანს.';
+
+  @override
   String get homeLegendInProgress => 'მიმდინარე';
 
   @override
@@ -330,6 +337,10 @@ class AppLocalizationsKa extends AppLocalizations {
       'შენი ქუჩა სათამაშო არეალის შიგნითაა. აქაც შეგიძლია დაადასტურო.';
 
   @override
+  String get toastOffline =>
+      'ინტერნეტი არ გაქვს. რუკაზე ხარვეზებია, მაგრამ რაუნდი გრძელდება.';
+
+  @override
   String toastRoundResumed(int question) {
     return 'კეთილი იყოს შენი დაბრუნება. რაუნდი გრძელდება: კითხვა $question.';
   }
@@ -371,6 +382,11 @@ class AppLocalizationsKa extends AppLocalizations {
   @override
   String tierMissSentence(String distance, String hint) {
     return 'დაშორება: $distance. $hint შედეგებში კიდევ შეხვდები.';
+  }
+
+  @override
+  String revealPerfectRepeat(int count) {
+    return 'იდეალური ×$count';
   }
 
   @override
@@ -422,6 +438,9 @@ class AppLocalizationsKa extends AppLocalizations {
 
   @override
   String get resultsPlayAgain => 'ახლიდან თამაში';
+
+  @override
+  String get resultsNewRound => 'ახალი რაუნდი';
 
   @override
   String levelUpTitle(int level) {

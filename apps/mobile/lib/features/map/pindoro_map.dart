@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math show max;
 import 'dart:math' show Point;
 
 import 'package:flutter/material.dart';
@@ -67,8 +68,7 @@ class PindoroMap extends StatefulWidget {
   State<PindoroMap> createState() => _PindoroMapState();
 }
 
-class _PindoroMapState extends State<PindoroMap>
-    with SingleTickerProviderStateMixin {
+class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
   ml.MapLibreMapController? _controller;
 
   /// The pin drop: falls 24 dp and bounces once (`motion.pin-drop`).
@@ -76,6 +76,13 @@ class _PindoroMapState extends State<PindoroMap>
     vsync: this,
     duration: PindoroMotion.pinDrop,
   )..addListener(_dropTick);
+
+  /// The answer paint spreading out from the point nearest the pin.
+  late final AnimationController _paint = AnimationController(
+    vsync: this,
+    duration: PindoroMotion.durationBase,
+  )..addListener(_paintTick);
+  double _paintReachM = 0;
   double _pixelRatio = 1;
   Brightness? _brightness;
   Future<String>? _style;
@@ -105,7 +112,31 @@ class _PindoroMapState extends State<PindoroMap>
   @override
   void dispose() {
     _drop.dispose();
+    _paint.dispose();
     super.dispose();
+  }
+
+  /// The truth street as painted so far.
+  MultiPolyline get _paintedTruth {
+    final truth = widget.truth ?? const [];
+    final from = widget.measure?.to;
+    if (from == null || !_paint.isAnimating) return truth;
+    final eased = PindoroMotion.easeStandard.transform(_paint.value);
+    return clipToCircle(truth, from, _paintReachM * eased);
+  }
+
+  void _paintTick() => _controller?.setGeoJsonSource(
+    MapSources.truthStreet,
+    _lines(_paintedTruth),
+  );
+
+  void _startPaint() {
+    final from = widget.measure?.to;
+    if (from == null || MediaQuery.disableAnimationsOf(context)) return;
+    _paintReachM = widget.truth!
+        .expand((l) => l)
+        .fold(0, (far, p) => math.max(far, distanceBetween(from, p)));
+    unawaited(_paint.forward(from: 0));
   }
 
   void _dropTick() {
@@ -126,6 +157,9 @@ class _PindoroMapState extends State<PindoroMap>
         widget.truth == null &&
         !MediaQuery.disableAnimationsOf(context)) {
       unawaited(_drop.forward(from: 0));
+    }
+    if (widget.truth != null && widget.measure?.to != oldWidget.measure?.to) {
+      _startPaint();
     }
     unawaited(_syncOverlays());
     if (widget.truth != null && widget.truth != oldWidget.truth) {
@@ -261,10 +295,7 @@ class _PindoroMapState extends State<PindoroMap>
     final pin = widget.pin;
     final measure = widget.measure;
     await c.setGeoJsonSource(MapSources.youPin, _points([?pin]));
-    await c.setGeoJsonSource(
-      MapSources.truthStreet,
-      _lines(widget.truth ?? []),
-    );
+    await c.setGeoJsonSource(MapSources.truthStreet, _lines(_paintedTruth));
     await c.setGeoJsonSource(
       MapSources.measure,
       _lines([
