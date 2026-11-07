@@ -153,11 +153,11 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
 
   it("adds OSM quarters and neighbourhoods: the smallest per name, none without streets", async () => {
     const rows = await sql`
-      SELECT id, osm_relation_id::float8 AS relation, name_ka, name_en FROM pipeline.district
-      WHERE kind = 'neighbourhood' ORDER BY id`;
+      SELECT id, kind, osm_relation_id::float8 AS relation, name_ka, name_en FROM pipeline.district
+      WHERE kind <> 'district' ORDER BY id`;
     expect(rows).toEqual([
-      { id: "osm:r1004", relation: 1004, name_ka: "შუა", name_en: "Middle" },
-      { id: "osm:w114", relation: null, name_ka: "ტყუპი", name_en: null },
+      { id: "osm:r1004", kind: "quarter", relation: 1004, name_ka: "შუა", name_en: "Middle" },
+      { id: "osm:w114", kind: "neighbourhood", relation: null, name_ka: "ტყუპი", name_en: null },
     ]);
     expect(await districtsOf("Twin Street")).toContain("osm:w114");
     expect(await districtsOf("Split Street")).toContain("osm:r1004");

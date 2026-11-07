@@ -14,7 +14,13 @@ import postgres from "postgres";
 import { cityDir, databaseUrl, extractPath, fixturePath, loadCity, OUT_DIR } from "./config.ts";
 import { matchIdentities, readIdentities, writeIdentities } from "./identity.ts";
 import { extractCity, loadOsm, readNeighbourhoods, run, runSqlSteps } from "./load.ts";
-import { finalisePack, type Manifest, packVersion, writePack } from "./pack.ts";
+import {
+  finalisePack,
+  type Manifest,
+  PACK_FORMAT_VERSION,
+  packVersion,
+  writePack,
+} from "./pack.ts";
 
 const DAY_MS = 86_400_000;
 
@@ -105,7 +111,7 @@ export const build = async (cityId: string, opts: { fixture: boolean }): Promise
                ST_YMax(geom) AS max_lat, ST_XMax(geom) AS max_lon
         FROM pipeline.pack_area WHERE id = 'city'`;
       const manifest = finalisePack(file, join(out, "manifest.json"), {
-        format_version: 1,
+        format_version: PACK_FORMAT_VERSION,
         city: cityId,
         name_ka: city.name_ka,
         name_en: city.name_en,

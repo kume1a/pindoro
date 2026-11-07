@@ -9,9 +9,9 @@ void main() {
   setUpAll(() => pack = SqlitePackRepository.open(AppConfig.fixturePackAsset));
   tearDownAll(() => pack.close());
 
-  test('meta describes a v1 fixture pack with attribution', () {
+  test('meta describes a v2 fixture pack with attribution', () {
     final meta = pack.meta();
-    expect(meta['format_version'], '1');
+    expect(meta['format_version'], '2');
     expect(meta['scope'], 'fixture');
     expect(meta['version'], isNotEmpty);
     expect(meta['attribution'], contains('OpenStreetMap'));

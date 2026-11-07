@@ -34,13 +34,7 @@ District _area(
 void main() {
   final west = _area('west', DistrictKind.district, 41.7, 44.7, 0.1);
   final east = _area('east', DistrictKind.district, 41.7, 44.8, 0.1);
-  final quarter = _area(
-    'quarter',
-    DistrictKind.neighbourhood,
-    41.72,
-    44.72,
-    0.04,
-  );
+  final quarter = _area('quarter', DistrictKind.quarter, 41.72, 44.72, 0.04);
   final corner = _area(
     'corner',
     DistrictKind.neighbourhood,

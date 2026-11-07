@@ -35,7 +35,7 @@ class PackStore {
   PackStore({required this.root, required this.apiBaseUrl, http.Client? client})
     : _client = client ?? http.Client();
 
-  static const int supportedFormatVersion = 1;
+  static const int supportedFormatVersion = 2;
   static const int keptVersions = 2;
 
   final Directory root;

@@ -94,7 +94,7 @@ export const validatePack = (file: string): boolean => {
     d.kind === "district" ? d.expert < MIN_EXPERT_STREETS : d.streets < MIN_AREA_STREETS,
   );
   check(
-    `>= ${MIN_EXPERT_STREETS} expert streets per district, ${MIN_AREA_STREETS} per neighbourhood`,
+    `>= ${MIN_EXPERT_STREETS} expert streets per district, ${MIN_AREA_STREETS} per smaller area`,
     districts.length > 0 && thin.length === 0,
     thin.map((d) => d.id).join(", "),
   );

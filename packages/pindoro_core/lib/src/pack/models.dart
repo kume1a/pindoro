@@ -67,7 +67,9 @@ class City {
   final List<List<Polyline>> boundary;
 }
 
-enum DistrictKind { district, neighbourhood }
+/// A district (raion), or one of the smaller areas inside: an OSM quarter
+/// (they tile most of a city) or neighbourhood (smaller, may overlap).
+enum DistrictKind { district, quarter, neighbourhood }
 
 class District {
   const District({

@@ -20,47 +20,51 @@ void main() {
   setUp(() => root = Directory.systemTemp.createTempSync('packs'));
   tearDown(() => root.deleteSync(recursive: true));
 
-  PackStore store(String version, {String? hash, int? size, int format = 1}) =>
-      PackStore(
-        root: root,
-        apiBaseUrl: 'http://api.test',
-        client: MockClient(
-          (req) async => switch (req.url.path) {
-            '/v1/catalog' => http.Response(
-              jsonEncode({
-                'cities': [
-                  {
-                    'id': 'tbilisi',
-                    'name_ka': 'თბილისი',
-                    'name_en': 'Tbilisi',
-                    'bbox': {
-                      'min_lat': 41.6,
-                      'min_lon': 44.6,
-                      'max_lat': 41.8,
-                      'max_lon': 45,
-                    },
-                    'pack': {
-                      'format_version': format,
-                      'version': version,
-                      'url': 'http://packs.test/tbilisi/$version.sqlite.gz',
-                      'sha256': hash ?? sha,
-                      'size': size ?? gz.length,
-                      'osm_timestamp': '2026-11-04T21:21:03Z',
-                    },
-                  },
-                ],
-              }),
-              200,
-              headers: {'content-type': 'application/json; charset=utf-8'},
-            ),
-            final path when path.endsWith('.sqlite.gz') => http.Response.bytes(
-              gz,
-              200,
-            ),
-            _ => http.Response('', 404),
-          },
+  PackStore store(
+    String version, {
+    String? hash,
+    int? size,
+    int format = PackStore.supportedFormatVersion,
+  }) => PackStore(
+    root: root,
+    apiBaseUrl: 'http://api.test',
+    client: MockClient(
+      (req) async => switch (req.url.path) {
+        '/v1/catalog' => http.Response(
+          jsonEncode({
+            'cities': [
+              {
+                'id': 'tbilisi',
+                'name_ka': 'თბილისი',
+                'name_en': 'Tbilisi',
+                'bbox': {
+                  'min_lat': 41.6,
+                  'min_lon': 44.6,
+                  'max_lat': 41.8,
+                  'max_lon': 45,
+                },
+                'pack': {
+                  'format_version': format,
+                  'version': version,
+                  'url': 'http://packs.test/tbilisi/$version.sqlite.gz',
+                  'sha256': hash ?? sha,
+                  'size': size ?? gz.length,
+                  'osm_timestamp': '2026-11-04T21:21:03Z',
+                },
+              },
+            ],
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
         ),
-      );
+        final path when path.endsWith('.sqlite.gz') => http.Response.bytes(
+          gz,
+          200,
+        ),
+        _ => http.Response('', 404),
+      },
+    ),
+  );
 
   List<String> files() =>
       root
@@ -108,7 +112,10 @@ void main() {
 
   test('skips packs in a newer format', () async {
     expect(
-      await store('20261106T000000Z', format: 2).refresh('tbilisi'),
+      await store(
+        '20261106T000000Z',
+        format: PackStore.supportedFormatVersion + 1,
+      ).refresh('tbilisi'),
       isNull,
     );
     expect(files(), isEmpty);

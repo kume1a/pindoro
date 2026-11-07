@@ -64,6 +64,7 @@ class AreaScreen extends ConsumerStatefulWidget {
 class _AreaScreenState extends ConsumerState<AreaScreen> {
   AreaMode? _mode;
   Set<String> _picked = {};
+  String? _lastTapped;
   double _radiusM = 2000;
   double _widthM = 2600;
   double _heightM = 3000;
@@ -148,6 +149,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
   void _toggle(String id) {
     ref.read(feedbackProvider).tap();
     setState(() {
+      _lastTapped = id;
       _picked = {..._picked};
       if (!_picked.remove(id)) _picked.add(id);
     });
@@ -227,7 +229,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
 
     final names = {for (final d in districts) d.id: districtName(d, settings)};
     final here = _center ?? city.center;
-    final level = levelAt(_zoom);
+    final detail = detailAt(_zoom);
     final picked = [
       for (final d in districts)
         if (_picked.contains(d.id)) d,
@@ -238,8 +240,8 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
           for (final d in districts)
             if (!_picked.contains(d.id)) d,
         ]..sort((a, b) {
-          final byLevel = (a.kind == level ? 0 : 1).compareTo(
-            b.kind == level ? 0 : 1,
+          final byLevel = (isDetail(a) == detail ? 0 : 1).compareTo(
+            isDetail(b) == detail ? 0 : 1,
           );
           return byLevel != 0
               ? byLevel
@@ -278,6 +280,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                     districts: districts,
                     names: names,
                     picked: mode == AreaMode.districts ? _picked : const {},
+                    lastTapped: _lastTapped,
                     initialBounds: city.bbox,
                     focus: _focus,
                     showDistricts: mode == AreaMode.districts,

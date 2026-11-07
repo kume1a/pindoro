@@ -38,7 +38,7 @@ export const district = pgTable(
     cityId: text()
       .notNull()
       .references(() => city.id),
-    kind: text({ enum: ["district", "neighbourhood"] }).notNull(),
+    kind: text({ enum: ["district", "quarter", "neighbourhood"] }).notNull(),
     osmRelationId: osmRelationId(),
     nameKa: text().notNull(),
     nameEn: text(),

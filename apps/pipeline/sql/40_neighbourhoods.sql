@@ -10,15 +10,16 @@ SELECT 'curated:' || n.slug,
          ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(n.geojson), 4326), p.utm_srid)), 3))
 FROM pipeline.neighbourhood_raw n, pipeline.params p;
 
--- OpenStreetMap quarters and neighbourhoods (place=quarter|neighbourhood areas), clipped to the city.
--- When several share a name, only the smallest is kept.
+-- OpenStreetMap quarters and neighbourhoods (place=quarter|neighbourhood areas, kind = the place tag),
+-- clipped to the city. When several share a name, only the smallest is kept.
 
 INSERT INTO pipeline.district (id, kind, osm_relation_id, name_ka, name_en, geom)
-SELECT ranked.id, 'neighbourhood', ranked.osm_relation_id, ranked.name_ka, ranked.name_en, ranked.geom
+SELECT ranked.id, ranked.place, ranked.osm_relation_id, ranked.name_ka, ranked.name_en, ranked.geom
 FROM (
   SELECT x.*, row_number() OVER (PARTITION BY x.name_ka ORDER BY ST_Area(x.geom), x.id) AS nth
   FROM (
     SELECT 'osm:' || lower(a.osm_type) || a.osm_id AS id,
+           a.place,
            CASE WHEN a.osm_type = 'R' THEN a.osm_id END AS osm_relation_id,
            btrim(coalesce(nullif(btrim(a.name_ka), ''), a.name)) AS name_ka,
            nullif(btrim(a.name_en), '') AS name_en,

@@ -6,7 +6,7 @@ import Database from "better-sqlite3";
 import type { Sql } from "postgres";
 import type { CityConfig } from "./config.ts";
 
-export const PACK_FORMAT_VERSION = 1;
+export const PACK_FORMAT_VERSION = 2;
 
 // Mirrors docs/pack-format.md exactly; `validate` diffs packs against it.
 export const PACK_DDL = `
@@ -32,7 +32,7 @@ CREATE TABLE city (
 
 CREATE TABLE district (
   id              TEXT PRIMARY KEY,
-  kind            TEXT NOT NULL CHECK (kind IN ('district', 'neighbourhood')),
+  kind            TEXT NOT NULL CHECK (kind IN ('district', 'quarter', 'neighbourhood')),
   osm_relation_id INTEGER,
   name_ka         TEXT NOT NULL,
   name_en         TEXT,
