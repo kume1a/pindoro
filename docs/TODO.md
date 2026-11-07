@@ -35,6 +35,15 @@
 - Keyboard and D-pad focus: the design system's custom controls (`Tappable` in pindoro_design)
   take taps and screen-reader taps but can't be focused from a keyboard; `color.focus.ring` is
   unused. Build `Tappable` on `FocusableActionDetector` with a focus-ring outline when needed.
+- Streak (R2), left out on purpose:
+  - The streak sound ("whoosh + ding") waits for the sound kit.
+  - The reminder is fixed at 19:00 (the board has no time picker).
+  - The Streak calendar shows the current month only (the board has no month arrows).
+  - The pill doesn't turn "at risk" at 18:00 while the app stays open; it updates on the next
+    resume or progress change.
+  - Days before the R2 update aren't backfilled: streaks start with it.
+  - iOS: the reminder has never run on a device; foreground presentation
+    (`UNUserNotificationCenter` delegate in `AppDelegate`) isn't set up.
 
 ## Data / pipeline
 

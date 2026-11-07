@@ -1,7 +1,7 @@
 # R2 · v1.1 — Daily habit
 
 - Date: 2026-11-07
-- Status: proposed
+- Status: implemented
 - Builds on: the MVP (`docs/design/v1-screens.md` § MVP screens)
 - Source: `docs/design/v1-screens.md` § R2 · v1.1 Daily habit; claude.ai screens canvas boards
   R2-01 Home, R2-02 Streak, R2-03 Results, R2-04 Settings (`StreakScreen`, and `HomeScreen`,
@@ -122,14 +122,14 @@ cross-fade.
   turn notifications on in system settings.
 
 **Daily goal sheet** (from Settings and Streak). A bottom sheet with three rows: 250 XP "About
-one round", 500 XP "About two rounds", 1 000 XP "About four rounds", with the current goal
+one round", 500 XP "About two rounds", 1 000 XP "About 4 rounds", with the current goal
 checked. Choosing a row saves it and closes the sheet.
 
 ## Reminder
 
 `flutter_local_notifications`. Exactly one reminder is scheduled at a time:
 
-- With the reminder off, or no permission: cancel it.
+- Turning it off in Settings cancels it; without permission it can't be turned on.
 - Otherwise schedule the next 19:00 local whose day isn't met: today's 19:00 when it is still ahead
   and today isn't met, else tomorrow's 19:00.
 - Text: "Your 13-day streak ends at midnight. One round keeps it going." with that day's streak
@@ -139,7 +139,7 @@ checked. Choosing a row saves it and closes the sheet.
   package is needed. Android uses inexact scheduling: there's no exact-alarm permission.
 - It's rescheduled at app start and resume, after every answer, and when the goal or the switch
   changes, by listening to `streakProvider` and settings at the app root.
-- The next-reminder choice is a pure function (`nextReminder(view, now)` → time and streak days),
+- The next-reminder choice is a pure function (`nextReminder(metDays, now)` → time and streak days),
   unit-tested. The plugin call itself sits behind it, untested.
 
 Platform setup: Android core-library desugaring, `POST_NOTIFICATIONS`, the plugin's boot receiver
@@ -150,8 +150,9 @@ for alert permission only when the switch is turned on.
 
 New widgets, tokens only, with goldens:
 
-- `StreakPill(days, state)`: `Pill` gains a `tone` (normal, off, risk, frozen) for the three
-  streak looks, so the pill keeps one implementation.
+- `StreakPill(label, state)`: `Pill` gains `face`, `lip`, `foreground` and `iconAccent` (the
+  flame's core, through `PindoroIcon.accent`) for the three streak looks, so the pill keeps one
+  implementation.
 - `DailyGoalRing(progress, size)`: a `CustomPainter` ring with the flame inside; the fill animates
   with `motion.duration.slow`.
 - `StreakCalendar(month, days, today, firstWeekday)`: the `.pd-cal` grid, 36 dp discs, 6 dp gaps.
