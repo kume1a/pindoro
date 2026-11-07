@@ -14,11 +14,17 @@ updates:
     directory: /
     schedule: { interval: monthly }
     groups: { all: { patterns: ["*"] } }
+  # Node stays on the LTS line; a Postgres major needs a dump and restore. Bump those by hand.
   - package-ecosystem: docker
     directories: [/apps/api, /apps/pipeline]
     schedule: { interval: monthly }
     groups: { all: { patterns: ["*"] } }
+    ignore:
+      - { dependency-name: node, update-types: [version-update:semver-major] }
   - package-ecosystem: docker-compose
     directory: /infra
     schedule: { interval: monthly }
     groups: { all: { patterns: ["*"] } }
+    ignore:
+      - { dependency-name: node, update-types: [version-update:semver-major] }
+      - { dependency-name: postgis/postgis, update-types: [version-update:semver-major] }
