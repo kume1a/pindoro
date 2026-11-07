@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/l10n/app_localizations.dart';
 
 void main() {
   test('numbers group by three with a narrow no-break space', () {
@@ -18,8 +19,10 @@ void main() {
     expect(latinGeorgian('Vake 2'), 'Vake 2');
   });
 
+  final en = lookupAppLocalizations(const Locale('en'));
+  final ka = lookupAppLocalizations(const Locale('ka'));
+
   test('distances: metres, up to the next 10 m from 100 m, km from 1 km', () {
-    const en = Locale('en'), ka = Locale('ka');
     expect(formatDistance(84.4, en), '84 m');
     expect(formatDistance(99.6, en), '100 m');
     expect(formatDistance(842, en), '850 m');
@@ -33,11 +36,15 @@ void main() {
   });
 
   test('area sizes drop a trailing .0 and use one unit for both sides', () {
-    const en = Locale('en'), ka = Locale('ka');
     expect(formatSize(500, en), '500 m');
     expect(formatSize(1500, en), '1.5 km');
     expect(formatSize(3000, en), '3 km');
     expect(formatSides(2600, 3000, en), '2.6 × 3 km');
     expect(formatSides(2600, 3000, ka), '2,6 × 3 კმ');
+  });
+
+  test('download sizes in MB with one decimal, per locale', () {
+    expect(formatMegabytes(1_100_000, en), '1.1 MB');
+    expect(formatMegabytes(400_000, ka), '0,4 მბ');
   });
 }

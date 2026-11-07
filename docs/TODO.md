@@ -4,8 +4,8 @@
 
 - **Sound kit** — the design's 14 sounds don't exist yet; the Sound toggle and `GameFeedback`
   are in place, so add an audio player there once the files are designed.
-- **Georgian copy** — `apps/mobile/lib/l10n/app_ka.arb` is the copy deck's draft plus a few strings
-  written in the repo; it needs a native review.
+- **Georgian translation** — `apps/mobile/lib/l10n/app_ka.arb` is a draft; it needs a native
+  review.
 - **Designed in text, not drawn** — the 2026-11-07 design pass (map greys, 104-area picker, city
   pack download, Miss directions) lives in `tokens.json` and `docs/design/v1-screens.md`; the
   claude.ai canvas has no boards for it yet (chips at both zoom bands, district names along

@@ -157,10 +157,10 @@ void main() {
                 ],
               ),
               const StreetPlate(
-                'დავით აღმაშენებლის გამზირი',
+                'Davit Aghmashenebeli Avenue',
                 prompt: 'Try again: drop a pin on',
                 promptGlyph: PindoroGlyph.reroute,
-                subline: 'Davit Aghmashenebeli Avenue · you were 1.2 km away',
+                subline: 'Vake · you were 1.2 km away',
               ),
               const Row(
                 spacing: 12,
@@ -228,7 +228,7 @@ void main() {
                   ),
                 ],
               ),
-              const Center(child: Wordmark(georgian: true, height: 40)),
+              const Center(child: Wordmark(height: 40)),
               const RevealSheet(
                 tier: Tier.great,
                 label: 'Great!',
@@ -241,7 +241,7 @@ void main() {
                 children: [
                   ResultRow(
                     tier: Tier.close,
-                    street: 'დავით აღმაშენებლის გამზირი',
+                    street: 'Davit Aghmashenebeli Avenue',
                     detail: (tierWord: 'Close', rest: ' · 240 m · to retry'),
                     xp: 39,
                     semanticLabel: 'Question 2',

@@ -187,17 +187,10 @@ enum WordmarkGround {
   final String _suffix;
 }
 
-/// "pindoro" / "პინდორო" in the UI language, coloured for [ground]
-/// (default: the theme's surface).
+/// "pindoro", coloured for [ground] (default: the theme's surface).
 class Wordmark extends StatelessWidget {
-  const Wordmark({
-    super.key,
-    required this.georgian,
-    this.height = 52,
-    this.ground,
-  });
+  const Wordmark({super.key, this.height = 52, this.ground});
 
-  final bool georgian;
   final double height;
   final WordmarkGround? ground;
 
@@ -208,12 +201,11 @@ class Wordmark extends StatelessWidget {
         (Theme.of(context).brightness == Brightness.dark
             ? WordmarkGround.dark
             : WordmarkGround.light);
-    final script = georgian ? 'georgian' : 'latin';
     return SvgPicture.asset(
-      'assets/logos/pindoro-wordmark-$script${ground._suffix}.svg',
+      'assets/logos/pindoro-wordmark${ground._suffix}.svg',
       package: _package,
       height: height,
-      semanticsLabel: georgian ? 'პინდორო' : 'Pindoro',
+      semanticsLabel: 'Pindoro',
     );
   }
 }

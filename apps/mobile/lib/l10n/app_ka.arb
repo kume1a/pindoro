@@ -1,6 +1,6 @@
 {
   "@@locale": "ka",
-  "@@x-note": "Georgian strings are drafts from the design copy deck; they need a native review.",
+  "@@x-note": "Draft translation; it needs a native review.",
   "commonPlay": "ითამაშე",
   "commonNext": "შემდეგი",
   "commonConfirm": "დადასტურება",
@@ -197,5 +197,8 @@
   "homeSavedProgress": "კითხვა {question} / {total} · ჯერჯერობით {xp} XP",
   "unitMinutes": "{count} წთ",
   "unitHours": "{count} სთ",
-  "unitDays": "{count} დღე"
+  "unitDays": "{count} დღე",
+  "unitMetres": "{value} მ",
+  "unitKilometres": "{value} კმ",
+  "unitMegabytes": "{value} მბ"
 }

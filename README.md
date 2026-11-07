@@ -1,4 +1,4 @@
-# Pindoro · პინდორო
+# Pindoro
 
 Learn a city's streets: see a street name, drop a pin on an unlabelled map, get scored by how far
 you were from the real street. First city: Tbilisi.

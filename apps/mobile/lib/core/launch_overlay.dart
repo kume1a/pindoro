@@ -94,7 +94,7 @@ class _LaunchOverlayState extends ConsumerState<LaunchOverlay>
   }
 
   /// The launch [ms] milliseconds in. The wordmark isn't on the native
-  /// splash (it can't be localised there), so it fades in on the first frame.
+  /// splash, so it fades in on the first frame.
   Widget _frame(bool dark, double ms) => LayoutBuilder(
     builder: (context, box) {
       final dot =
@@ -163,8 +163,6 @@ class _LaunchOverlayState extends ConsumerState<LaunchOverlay>
                 opacity: wordmark,
                 child: Center(
                   child: Wordmark(
-                    georgian:
-                        Localizations.localeOf(context).languageCode == 'ka',
                     height: PindoroSpace.s8,
                     ground: dark ? WordmarkGround.dark : WordmarkGround.brand,
                   ),

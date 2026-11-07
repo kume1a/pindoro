@@ -18,7 +18,7 @@ Speak like a friend in the passenger seat: quick, warm, a little cheeky, never s
 - Second person, present tense, short sentences: "Drop a pin on…", "So close to perfect.", "You know this city."
 - Celebrate effort as much as accuracy. After a miss, point the way rather than scold: "Not this time. It runs along the river, east of the old bridge." Never "Wrong" or "Incorrect".
 - Numbers are the reward, so show them plainly: "84 m", "+80 XP", "12-day streak".
-- Sentence case everywhere. **Never all caps** (see Every script, equally).
+- Sentence case everywhere. **Never all caps** (see Every language, equally).
 - Buttons are verbs: Confirm, Next, Start, Keep going, Claim. Never "OK".
 - No emoji in UI copy; icons and Pindo carry the emotion.
 
@@ -48,12 +48,13 @@ Use it where it is clearer or more fun, never where it confuses.
 | Streak reminder | Your 12-day streak is running on fumes. One lesson keeps it going. |
 | Empty Pit stop | All tuned up. Missed streets will show up here. |
 
-## Every script, equally
+## Every language, equally
 
-- The UI supports Latin and Georgian scripts equally from launch; the wordmark exists as a matching pair, "pindoro" and "პინდორო". Design every text component so another script can follow.
+- English is the default UI language; every other language is a translation of the same strings, and none gets its own design. Design every text component so any language and script can follow.
+- The wordmark is always "pindoro", in every language.
 - Show street names as the city writes them; when the city's script differs from the UI language, add the transliteration beneath in `body.sm`.
-- Localised strings often run longer than English: components wrap street names rather than truncating them. Test with long names in both scripts, e.g. "Grand Union Canal Embankment North" and "დავით აღმაშენებლის გამზირი".
-- **No uppercase transforms.** Uppercasing Georgian turns Mkhedruli into Mtavruli capitals, and FiraGO has no Mtavruli glyphs. Never call `toUpperCase()` on UI strings; emphasise with weight and colour.
+- Localised strings often run longer than English: components wrap street names rather than truncating them. Test with long names, e.g. "Grand Union Canal Embankment North".
+- **No uppercase transforms.** Some scripts have capital forms FiraGO doesn't draw, and caps read as shouting in any language. Never call `toUpperCase()` on UI strings; emphasise with weight and colour.
 - Scores, distances, XP and timers use tabular figures.
 
 ## Colour
@@ -72,9 +73,9 @@ Primitives (`color.cobalt.*`, `color.yellow.*`, `color.aqua.*`, `color.orange.*`
 
 ## Type
 
-**FiraGO** (SIL OFL) for everything: full Latin and Georgian in six weights (400–900), with tabular figures. Display and headlines run at 800–900; roundness comes from shapes, not the font, because no rounded face covers Georgian well. Fallback: Noto Sans Georgian → Noto Sans → system.
+**FiraGO** (SIL OFL) for everything: Latin, Greek, Cyrillic, Georgian and more in six weights (400–900), with tabular figures. Display and headlines run at 800–900; roundness comes from shapes, not the font, so every script keeps the same face. Fallback: Noto Sans → system.
 
-Use roles, not sizes: `display.*` for celebration moments (one line), `headline.lg` for tier labels, `headline.md` for the street name on the plate, `title.*` for headers, `body.*` for copy, `label.*` for controls (`label.button` for button labels), `numeric.*` for scores, distances, XP and timers (always tabular figures). Letter-spacing is 0 everywhere; line heights are generous for Mkhedruli's tall ascenders and deep descenders.
+Use roles, not sizes: `display.*` for celebration moments (one line), `headline.lg` for tier labels, `headline.md` for the street name on the plate, `title.*` for headers, `body.*` for copy, `label.*` for controls (`label.button` for button labels), `numeric.*` for scores, distances, XP and timers (always tabular figures). Letter-spacing is 0 everywhere; line heights are generous so scripts with tall ascenders and deep descenders fit.
 
 ## Shape, space and depth
 
@@ -116,5 +117,5 @@ Springy and fast: press 80 ms, cards 280 ms, the pin drop 520 ms with one bounce
 
 - `tokens.json`: every token (primitive, semantic, component; light and dark), dot-named for direct mapping to Dart.
 - `handoff/pindoro_tokens.dart`: Dart constants generated from tokens.json (see Flutter handoff).
-- Asset groups: **Logos** (wordmarks, pair lockup, mark), **App icon** (iOS light/dark/tinted, Android adaptive layers and themed icon, Play Store), **Splash**, **Mascot**, **Icons** (62 SVGs).
+- Asset groups: **Logos** (wordmark, mark), **App icon** (iOS light/dark/tinted, Android adaptive layers and themed icon, Play Store), **Splash**, **Mascot**, **Icons** (62 SVGs).
 - `components/bundle.css` and `components/bundle.js` only power the previews on this page (web stand-ins for the Flutter widgets); they are not shipped in the app.

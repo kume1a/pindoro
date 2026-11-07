@@ -37,7 +37,7 @@ class _PindoroAppState extends ConsumerState<PindoroApp> {
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider).value;
     return MaterialApp.router(
-      title: 'პინდორო',
+      title: 'Pindoro',
       debugShowCheckedModeBanner: false,
       theme: buildPindoroTheme(Brightness.light),
       darkTheme: buildPindoroTheme(Brightness.dark),

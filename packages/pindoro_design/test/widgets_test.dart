@@ -5,11 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-const _longGeorgian =
-    'თამარ მეფის გამზირის მეორე შესახვევი და კიდევ უფრო გრძელი სახელი';
-const _longLatin =
+const _longName =
     'Ilia Chavchavadze Avenue second dead-end lane with an extraordinarily long name';
-const _shortName = 'ვაკე';
+const _shortName = 'Vake';
 
 Widget _host(Widget child, {Brightness brightness = Brightness.light}) =>
     MaterialApp(
@@ -37,25 +35,23 @@ void main() {
     ) async {
       await tester.binding.setSurfaceSize(const Size(360, 640));
       addTearDown(() => tester.binding.setSurfaceSize(null));
-      for (final name in [_longGeorgian, _longLatin]) {
-        await tester.pumpWidget(_host(StreetPlate(name)));
-        final size = _fontSizeOf(tester, name);
-        expect(size, lessThan(PindoroType.headlineMd.fontSize!));
-        expect(size, greaterThanOrEqualTo(PindoroSize.plateNameMin));
-        final text = tester.widget<Text>(find.text(name));
-        expect(text.maxLines, isNull);
-        expect(text.overflow, isNot(TextOverflow.ellipsis));
-      }
+      await tester.pumpWidget(_host(const StreetPlate(_longName)));
+      final size = _fontSizeOf(tester, _longName);
+      expect(size, lessThan(PindoroType.headlineMd.fontSize!));
+      expect(size, greaterThanOrEqualTo(PindoroSize.plateNameMin));
+      final text = tester.widget<Text>(find.text(_longName));
+      expect(text.maxLines, isNull);
+      expect(text.overflow, isNot(TextOverflow.ellipsis));
     });
 
     test('plateFontSize steps down in 2 dp steps', () {
       const style = PindoroType.headlineMd;
-      final size = plateFontSize(_longLatin, style, maxWidth: 300);
+      final size = plateFontSize(_longName, style, maxWidth: 300);
       final steps = (style.fontSize! - size) / 2;
       expect(steps, steps.roundToDouble());
       expect(plateFontSize('x', style, maxWidth: 300), style.fontSize);
       expect(
-        plateFontSize(_longGeorgian * 4, style, maxWidth: 100),
+        plateFontSize(_longName * 4, style, maxWidth: 100),
         PindoroSize.plateNameMin,
       );
     });
@@ -122,9 +118,9 @@ void main() {
             spacing: 12,
             children: [
               const StreetPlate(_shortName),
-              const StreetPlate(_longGeorgian),
-              const StreetPlate(_longLatin),
-              PindoroButton(label: 'დაწყება', onPressed: () {}),
+              const StreetPlate('Grand Union Canal Embankment North'),
+              const StreetPlate(_longName),
+              PindoroButton(label: 'start', onPressed: () {}),
               PindoroButton(
                 label: 'settings',
                 variant: PindoroButtonVariant.secondary,
@@ -142,7 +138,7 @@ void main() {
                   FeedbackBadge(Tier.perfect),
                   FeedbackBadge(Tier.great),
                   FeedbackBadge(Tier.close),
-                  FeedbackBadge(Tier.miss, label: 'აცდენა 1234 მ'),
+                  FeedbackBadge(Tier.miss, label: 'missed by 1.2 km'),
                 ],
               ),
             ],

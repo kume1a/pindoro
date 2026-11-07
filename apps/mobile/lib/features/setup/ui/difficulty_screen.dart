@@ -27,14 +27,13 @@ class _DifficultyScreenState extends ConsumerState<DifficultyScreen> {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
-    final locale = Localizations.localeOf(context);
     final selected =
         _picked ??
         ref.watch(settingsProvider).value?.lastDifficulty ??
         Difficulty.medium;
     final f = ScoringConfig.difficultyFactor(selected);
-    final great = formatDistance(ScoringConfig.greatMaxM * f, locale);
-    final close = formatDistance(ScoringConfig.closeMaxM * f, locale);
+    final great = formatDistance(ScoringConfig.greatMaxM * f, l10n);
+    final close = formatDistance(ScoringConfig.closeMaxM * f, l10n);
 
     return PageScaffold(
       title: l10n.difficultyTitle,

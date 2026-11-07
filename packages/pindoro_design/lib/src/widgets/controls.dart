@@ -124,7 +124,7 @@ class SegmentedControl<T> extends StatelessWidget {
                               )
                             : null,
                       ),
-                      // Long labels ("მართკუთხედი") shrink instead of wrapping.
+                      // Long translated labels shrink instead of wrapping.
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(

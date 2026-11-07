@@ -13,8 +13,8 @@ import 'package:pindoro/features/pack/data/cities.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// First run until a round is finished: Pindo, the wordmark in the UI
-/// language and the way in (choose a city, or play the saved settings).
+/// First run until a round is finished: Pindo, the wordmark and the way in
+/// (choose a city, or play the saved settings).
 class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
 
@@ -71,7 +71,7 @@ class WelcomeScreen extends ConsumerWidget {
                     spacing: PindoroSpace.s4,
                     children: [
                       const _WavingPindo(),
-                      Wordmark(georgian: georgian),
+                      const Wordmark(),
                       Text(
                         l10n.welcomeTagline,
                         textAlign: TextAlign.center,

@@ -18,10 +18,7 @@ class RoundReveal extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final answer = revealed.answer;
-    final distance = formatDistance(
-      answer.distanceM,
-      Localizations.localeOf(context),
-    );
+    final distance = formatDistance(answer.distanceM, l10n);
     final sentence = switch (answer.tier) {
       Tier.perfect => l10n.tierPerfectSentence,
       Tier.great => l10n.tierGreatSentence(distance),

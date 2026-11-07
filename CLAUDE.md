@@ -1,4 +1,4 @@
-# Pindoro (პინდორო)
+# Pindoro
 
 Mobile game for learning a city's streets: the player sees a street name, drops a pin on an
 **unlabelled** map and is scored by the distance to the real street. First city: Tbilisi.

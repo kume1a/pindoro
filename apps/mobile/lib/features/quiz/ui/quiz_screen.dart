@@ -112,7 +112,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         View.of(context),
         l10n.a11yReveal(
           tierLabel(l10n, answer.tier),
-          formatDistance(answer.distanceM, Localizations.localeOf(context)),
+          formatDistance(answer.distanceM, l10n),
           formatNumber(answer.xp),
         ),
         Directionality.of(context),
@@ -184,10 +184,7 @@ class _RoundView extends ConsumerWidget {
                     : (
                         from: pin!,
                         to: revealed.nearest,
-                        label: formatDistance(
-                          revealed.answer.distanceM,
-                          Localizations.localeOf(context),
-                        ),
+                        label: formatDistance(revealed.answer.distanceM, l10n),
                       ),
                 onTap: revealed == null
                     ? (at) {

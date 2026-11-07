@@ -31,9 +31,7 @@ class QuestionPlate extends StatelessWidget {
         : street.nameEn;
     final distance = retryDistance == null
         ? null
-        : l10n.quizRetryPreviousDistance(
-            formatDistance(retryDistance!, Localizations.localeOf(context)),
-          );
+        : l10n.quizRetryPreviousDistance(formatDistance(retryDistance!, l10n));
     return StreetPlate(
       name,
       compact: compact,

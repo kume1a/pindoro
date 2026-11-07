@@ -295,11 +295,11 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
             : l10n.areaHelp,
       ),
       AreaMode.circle => (
-        '${l10n.areaPlayArea} · ${formatSize(_radiusM, locale)}',
+        '${l10n.areaPlayArea} · ${formatSize(_radiusM, l10n)}',
         l10n.areaCircleHelp,
       ),
       AreaMode.rectangle => (
-        '${l10n.areaPlayArea} · ${formatSides(_widthM, _heightM, locale)}',
+        '${l10n.areaPlayArea} · ${formatSides(_widthM, _heightM, l10n)}',
         l10n.areaRectangleHelp,
       ),
     };
@@ -337,7 +337,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                   Positioned.fill(
                     child: CircleOverlay(
                       radiusPx: _radiusM / mpp,
-                      label: formatSize(_radiusM, locale),
+                      label: formatSize(_radiusM, l10n),
                       onResize: (px) {
                         final r = _clampRadius(px * mpp);
                         if (r != _radiusM) {
@@ -351,7 +351,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                   Positioned.fill(
                     child: RectOverlay(
                       size: Size(_widthM / mpp, _heightM / mpp),
-                      label: formatSides(_widthM, _heightM, locale),
+                      label: formatSides(_widthM, _heightM, l10n),
                       onResize: (size) => setState(() {
                         _widthM = _clampSide(size.width * mpp);
                         _heightM = _clampSide(size.height * mpp);
@@ -426,8 +426,8 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                 min: CircleArea.minRadiusM,
                 max: CircleArea.maxRadiusM,
                 divisions: 9,
-                label: formatSize(_radiusM, locale),
-                semanticFormatterCallback: (v) => formatSize(v, locale),
+                label: formatSize(_radiusM, l10n),
+                semanticFormatterCallback: (v) => formatSize(v, l10n),
                 onChanged: (v) {
                   ref.read(feedbackProvider).tap();
                   setState(() => _radiusM = v);

@@ -68,7 +68,6 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
     if (data == null) return const Scaffold();
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
-    final locale = Localizations.localeOf(context);
     final settings = ref.watch(settingsProvider).value;
     final before = progressWithinLevel(data.totalXp - data.roundXp);
     final after = progressWithinLevel(data.totalXp);
@@ -262,7 +261,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
                 RiseIn(
                   delay: _Arrival.rows + PindoroMotion.stagger * i,
                   distance: PindoroSpace.s4,
-                  child: _row(context, l10n, locale, settings, i, e),
+                  child: _row(context, l10n, settings, i, e),
                 ),
             ],
           ),
@@ -287,7 +286,6 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
   Widget _row(
     BuildContext context,
     AppLocalizations l10n,
-    Locale locale,
     Settings? settings,
     int index,
     ResultEntry e,
@@ -297,7 +295,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
     final name = street == null
         ? a.streetId
         : settings?.streetName(street) ?? street.name;
-    final distance = formatDistance(a.distanceM, locale);
+    final distance = formatDistance(a.distanceM, l10n);
     final word = tierWord(l10n, a.tier);
     final rest = a.tier == Tier.perfect
         ? ' · ${l10n.resultsOnStreet}'

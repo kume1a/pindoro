@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:intl/intl.dart';
 
 import 'package:pindoro/l10n/app_localizations.dart';
 
@@ -30,43 +31,34 @@ String formatNumber(int n) {
 }
 
 /// Whole metres below 100 m ("84 m"), then up to the next 10 m ("850 m"),
-/// from 1 km km with one decimal ("1.2 km"); Georgian uses a decimal comma
-/// and its own units ("1,2 კმ"). Rounding up keeps a distance on its tier's
-/// side of the limits, which are all multiples of 10 m.
-String formatDistance(double metres, Locale locale) {
-  final ka = locale.languageCode == 'ka';
+/// from 1 km in km with one decimal ("1.2 km"), in the locale's units and
+/// decimal separator. Rounding up keeps a distance on its tier's side of the
+/// limits, which are all multiples of 10 m.
+String formatDistance(double metres, AppLocalizations l10n) {
   final m = metres < 99.5 ? metres.round() : (metres / 10).ceil() * 10;
-  if (m < 1000) return '$m ${ka ? 'მ' : 'm'}';
-  final km = (metres / 1000).toStringAsFixed(1);
-  return ka ? '${km.replaceFirst('.', ',')} კმ' : '$km km';
+  if (m < 1000) return l10n.unitMetres('$m');
+  return l10n.unitKilometres(_decimal('0.0', metres / 1000, l10n));
 }
 
 /// "500 m", "1.5 km", "3 km": an area dimension (one decimal, no ".0").
-String formatSize(double metres, Locale locale) {
-  final ka = locale.languageCode == 'ka';
-  if (metres < 999.5) return '${metres.round()} ${ka ? 'მ' : 'm'}';
-  return '${_km(metres, ka)} ${ka ? 'კმ' : 'km'}';
+String formatSize(double metres, AppLocalizations l10n) {
+  if (metres < 999.5) return l10n.unitMetres('${metres.round()}');
+  return l10n.unitKilometres(_km(metres, l10n));
 }
 
 /// "2.6 × 3 km": a rectangle's sides.
-String formatSides(double width, double height, Locale locale) {
-  final ka = locale.languageCode == 'ka';
-  return '${_km(width, ka)} × ${_km(height, ka)} ${ka ? 'კმ' : 'km'}';
-}
+String formatSides(double width, double height, AppLocalizations l10n) =>
+    l10n.unitKilometres('${_km(width, l10n)} × ${_km(height, l10n)}');
 
 /// "1.3 MB" (one decimal) for a download size.
-String formatMegabytes(int bytes, Locale locale) {
-  final ka = locale.languageCode == 'ka';
-  final mb = (bytes / 1e6).toStringAsFixed(1);
-  return ka ? '${mb.replaceFirst('.', ',')} მბ' : '$mb MB';
-}
+String formatMegabytes(int bytes, AppLocalizations l10n) =>
+    l10n.unitMegabytes(_decimal('0.0', bytes / 1e6, l10n));
 
-String _km(double metres, bool ka) {
-  final km = (metres / 1000)
-      .toStringAsFixed(1)
-      .replaceFirst(RegExp(r'\.0$'), '');
-  return ka ? km.replaceFirst('.', ',') : km;
-}
+String _km(double metres, AppLocalizations l10n) =>
+    _decimal('0.#', metres / 1000, l10n);
+
+String _decimal(String pattern, double value, AppLocalizations l10n) =>
+    NumberFormat(pattern, l10n.localeName).format(value);
 
 /// "5 min", "2 h", "3 d" for how long ago something happened.
 String formatAgo(Duration ago, AppLocalizations l10n) {

@@ -118,8 +118,8 @@ class PackPending extends ConsumerWidget {
         ),
         Text(
           l10n.packDownloadSize(
-            formatMegabytes(progress.received, locale),
-            formatMegabytes(progress.total, locale),
+            formatMegabytes(progress.received, l10n),
+            formatMegabytes(progress.total, l10n),
           ),
           style: PindoroType.labelMd.copyWith(color: c.textSecondary),
         ),

@@ -686,5 +686,29 @@
         "type": "int"
       }
     }
+  },
+  "unitMetres": "{value} m",
+  "@unitMetres": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "unitKilometres": "{value} km",
+  "@unitKilometres": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "unitMegabytes": "{value} MB",
+  "@unitMegabytes": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
   }
 }

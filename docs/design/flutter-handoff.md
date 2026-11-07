@@ -14,7 +14,7 @@ How the tokens become a Material 3 theme. Two layers: the standard `ThemeData` (
 
 Regenerate it whenever tokens change; never edit it by hand.
 
-## 2. Fonts (Georgian + Latin)
+## 2. Fonts
 
 ```yaml
 # pubspec.yaml
@@ -31,9 +31,9 @@ flutter:
 ```
 
 - Ship FiraGO as TTF/OTF in the app (the `.woff2` files in this system's `fonts/` are for the web previews; the same OFL family is available as desktop/mobile formats from the FiraGO project). Include `FiraGO-OFL.txt` in the app's licences (`LicenseRegistry`).
-- Set `fontFamily: 'FiraGO'` and `fontFamilyFallback: ['Noto Sans Georgian', 'Noto Sans']` on the `TextTheme`.
-- Add `Locale('ka')` and `Locale('en')` to `supportedLocales` with `flutter_localizations`.
-- **Never call `toUpperCase()`** on UI strings (Georgian Mkhedruli → Mtavruli, which FiraGO doesn't contain). Lint for it.
+- Set `fontFamily: 'FiraGO'` and `fontFamilyFallback: ['Noto Sans']` on the `TextTheme`.
+- Add `Locale('en')` (the template and default) and every translated locale to `supportedLocales` with `flutter_localizations`.
+- **Never call `toUpperCase()`** on UI strings (some scripts' capital forms aren't in FiraGO). Lint for it.
 - Numeric text: use `PindoroType.numeric*` (tabular figures) for scores, distances, XP, timers.
 - Test text scaling with `MediaQuery(data: …copyWith(textScaler: TextScaler.linear(2.0)))`; don't clamp below 2.0.
 

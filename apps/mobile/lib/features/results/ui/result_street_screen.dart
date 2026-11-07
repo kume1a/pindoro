@@ -40,10 +40,7 @@ class ResultStreetScreen extends ConsumerWidget {
     final name = settings?.streetName(street) ?? street.name;
     final other = name == street.name ? street.nameEn : street.name;
     final tier = PindoroTheme.of(context).tier(answer.tier);
-    final distance = formatDistance(
-      answer.distanceM,
-      Localizations.localeOf(context),
-    );
+    final distance = formatDistance(answer.distanceM, l10n);
     void go(int i) => context.pushReplacement(Routes.resultStreet(roundId, i));
 
     return Scaffold(

@@ -18,14 +18,13 @@ String areaLabel(
   Settings? settings,
 ) {
   final l10n = AppLocalizations.of(context);
-  final locale = Localizations.localeOf(context);
   return switch (area) {
     DistrictsArea(:final ids) => districtNames(l10n, [
       for (final d in pack.districts())
         if (ids.contains(d.id)) districtName(d, settings),
     ]),
     CircleArea(:final radiusM) => l10n.areaCircleName(
-      formatSize(radiusM, locale),
+      formatSize(radiusM, l10n),
     ),
     RectArea(:final bounds) => l10n.areaRectangleName(
       formatSides(
@@ -37,7 +36,7 @@ String areaLabel(
           LatLng(bounds.minLat, bounds.minLon),
           LatLng(bounds.maxLat, bounds.minLon),
         ),
-        locale,
+        l10n,
       ),
     ),
   };

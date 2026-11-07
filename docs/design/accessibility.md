@@ -54,5 +54,5 @@ Use Flutter `Semantics` with `header`, `button`, `liveRegion` (reveal, toasts) a
 
 ## Language
 
-- `Locale('ka')` and `Locale('en')` at launch, every string externalised; Georgian strings are written natively, not machine-translated.
-- Never uppercase UI strings (Georgian Mtavruli issue); use weight and colour for emphasis.
+- English (`Locale('en')`) is the default; every string is externalised and each further locale is a translation written natively, not machine-translated.
+- Never uppercase UI strings (some scripts have capitals FiraGO doesn't draw); use weight and colour for emphasis.
