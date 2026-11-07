@@ -63,6 +63,8 @@ class RoundContext {
     return n;
   }
 
+  int get perfects => answers.where((a) => a.tier == Tier.perfect).length;
+
   RoundContext withAnswer(Answer answer) => RoundContext(
     id: id,
     shape: shape,

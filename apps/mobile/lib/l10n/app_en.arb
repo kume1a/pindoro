@@ -292,6 +292,15 @@
       }
     }
   },
+  "revealPerfectRepeat": "Perfect ×{count}",
+  "@revealPerfectRepeat": {
+    "description": "Chip on a round's second and later Perfect.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "revealStreak": "{count} in a row",
   "@revealStreak": {
     "placeholders": {

@@ -100,6 +100,7 @@
   "tierGreatSentence": "დაშორება: {distance}. იდეალურთან ძალიან ახლოს.",
   "tierCloseSentence": "დაშორება: {distance}. სწორ უბანში ხარ.",
   "tierMissSentence": "დაშორება: {distance}. {hint} შედეგებში კიდევ შეხვდები.",
+  "revealPerfectRepeat": "იდეალური ×{count}",
   "revealStreak": "{count} ზედიზედ",
   "revealGotIt": "გასაგებია",
   "revealSeeResults": "შედეგების ნახვა",

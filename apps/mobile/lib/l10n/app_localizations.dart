@@ -692,6 +692,12 @@ abstract class AppLocalizations {
   /// **'{distance} away. {hint} You’ll see it again on your results.'**
   String tierMissSentence(String distance, String hint);
 
+  /// Chip on a round's second and later Perfect.
+  ///
+  /// In en, this message translates to:
+  /// **'Perfect ×{count}'**
+  String revealPerfectRepeat(int count);
+
   /// No description provided for @revealStreak.
   ///
   /// In en, this message translates to:

@@ -374,6 +374,11 @@ class AppLocalizationsKa extends AppLocalizations {
   }
 
   @override
+  String revealPerfectRepeat(int count) {
+    return 'იდეალური ×$count';
+  }
+
+  @override
   String revealStreak(int count) {
     return '$count ზედიზედ';
   }

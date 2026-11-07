@@ -146,7 +146,11 @@ class _RoundView extends ConsumerWidget {
     final topInset = MediaQuery.paddingOf(context).top + 180;
     final celebration = revealed == null
         ? null
-        : celebrationFor(revealed.answer.tier);
+        : celebrationFor(
+            revealed.answer.tier,
+            perfectsThisRound: round.perfects,
+            inARow: round.streak,
+          );
 
     return PopScope(
       canPop: false,
@@ -424,7 +428,11 @@ class _Reveal extends StatelessWidget {
       xpLabel: answer.tier == Tier.miss
           ? null
           : l10n.commonXp(formatNumber(xp)),
-      chips: [if (round.streak >= 2) l10n.revealStreak(round.streak)],
+      chips: [
+        if (answer.tier == Tier.perfect && round.perfects > 1)
+          l10n.revealPerfectRepeat(round.perfects),
+        if (round.streak >= 2) l10n.revealStreak(round.streak),
+      ],
       mascot: Pindo(switch (answer.tier) {
         Tier.perfect || Tier.great => PindoExpression.cheering,
         Tier.close => PindoExpression.happy,

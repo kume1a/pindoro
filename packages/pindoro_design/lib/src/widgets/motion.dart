@@ -141,9 +141,17 @@ class RiseIn extends StatelessWidget {
 enum CelebrationSize { small, medium, big }
 
 /// The celebration for a tier: big for a Perfect, medium for a Great, small
-/// for a Close, none for a Miss.
-CelebrationSize? celebrationFor(Tier tier) => switch (tier) {
+/// for a Close, none for a Miss. Repeats calm down: a round's second Perfect
+/// gets the medium one, and from the fifth Great-or-better in a row a Great
+/// only pops its badge.
+CelebrationSize? celebrationFor(
+  Tier tier, {
+  int perfectsThisRound = 1,
+  int inARow = 1,
+}) => switch (tier) {
+  Tier.perfect when perfectsThisRound > 1 => CelebrationSize.medium,
   Tier.perfect => CelebrationSize.big,
+  Tier.great when inARow >= 5 => null,
   Tier.great => CelebrationSize.medium,
   Tier.close => CelebrationSize.small,
   Tier.miss => null,

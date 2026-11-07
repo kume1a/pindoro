@@ -379,6 +379,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String revealPerfectRepeat(int count) {
+    return 'Perfect ×$count';
+  }
+
+  @override
   String revealStreak(int count) {
     return '$count in a row';
   }

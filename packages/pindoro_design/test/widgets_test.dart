@@ -88,6 +88,17 @@ void main() {
     });
   });
 
+  test('celebrations calm down on repeats', () {
+    expect(celebrationFor(Tier.perfect), CelebrationSize.big);
+    expect(
+      celebrationFor(Tier.perfect, perfectsThisRound: 2),
+      CelebrationSize.medium,
+    );
+    expect(celebrationFor(Tier.great, inARow: 4), CelebrationSize.medium);
+    expect(celebrationFor(Tier.great, inARow: 5), isNull);
+    expect(celebrationFor(Tier.miss), isNull);
+  });
+
   testWidgets('FeedbackBadge shows the tier icon and name', (tester) async {
     await tester.pumpWidget(_host(const FeedbackBadge(Tier.perfect)));
     expect(
