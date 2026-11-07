@@ -11,7 +11,7 @@ const USAGE = `usage: pipeline <command>
   fetch <city>              download the OSM extract from city.yaml (skipped when fresh)
   build <city> [--fixture]  osmium + osm2pgsql + SQL steps + stable ids + pack export
   validate <pack|city>      check a .sqlite / .sqlite.gz pack (or a city's last build) and print a summary
-  publish <city>            copy the last built pack into PACKS_DIR, rewrite catalog.json
+  publish <city>            copy the last built pack into PACKS_DIR, commit its street ids, rewrite catalog.json
   tiles [--styles-only]     extract Georgia from the latest Protomaps build + write map styles`;
 
 const { positionals, values } = parseArgs({
