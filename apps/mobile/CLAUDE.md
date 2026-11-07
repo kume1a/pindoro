@@ -62,8 +62,8 @@ test/drift/                    generated schema helpers + migration test
   `drift_schemas/`. Generated Dart (`*.g.dart`, `database.steps.dart`, `test/drift/**/generated/`)
   is never committed: `just gen` rebuilds it from the dumps, and `just gen-check` fails in CI
   when a dump is missing.
-- **Config** only via `--dart-define` (`AppConfig`): `PINDORO_ENV`, `API_BASE_URL`,
-  `PACKS_BASE_URL`, `TILES_BASE_URL`. Dev defaults use 10.0.2.2 (Android emulator → host).
+- **Config** only via `--dart-define` (`AppConfig`): `API_BASE_URL`, `TILES_BASE_URL` (pack
+  URLs come absolute from the API catalog). Dev defaults use 10.0.2.2 (Android emulator → host).
   Cleartext HTTP is allowed only in the debug/profile manifests.
 
 ## Map

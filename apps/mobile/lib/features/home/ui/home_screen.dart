@@ -81,9 +81,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final intro = _intro(home);
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
-    final locale = Localizations.localeOf(context);
     final city = home.pack.city();
-    final cityName = locale.languageCode == 'ka' ? city.nameKa : city.nameEn;
+    final cityName = context.localName(ka: city.nameKa, en: city.nameEn);
     final level = progressWithinLevel(home.totalXp);
     // Areas picked in another pack (offline, the Vake one stands in) aren't
     // playable here, so Play asks for an area instead.
@@ -103,8 +102,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final resumes = area == null || difficulty == null
         ? null
-        : '$cityName · ${areaLabel(context, area, home.pack, settings)} · '
-              '${difficultyName(l10n, difficulty)}';
+        : resumeLabel(context, home.pack, area, difficulty, settings);
 
     return Scaffold(
       body: SafeArea(

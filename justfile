@@ -106,9 +106,8 @@ run-mobile *ARGS:
 
 # Store build against the production server: `just release appbundle pindoro.app` (`ipa` on macOS)
 release TARGET DOMAIN:
-    cd apps/mobile && flutter build {{ TARGET }} --release --dart-define=PINDORO_ENV=prod \
+    cd apps/mobile && flutter build {{ TARGET }} --release \
       --dart-define=API_BASE_URL=https://api.{{ DOMAIN }} \
-      --dart-define=PACKS_BASE_URL=https://packs.{{ DOMAIN }} \
       --dart-define=TILES_BASE_URL=https://tiles.{{ DOMAIN }}
 
 # On the server: pull and (re)start the production stack

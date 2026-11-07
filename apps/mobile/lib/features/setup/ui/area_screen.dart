@@ -234,7 +234,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
     // city's pack; picking on it would save the wrong city.
     if (pack == null ||
         settings == null ||
-        pack.city().id != (settings.lastCity ?? AppConfig.cityId)) {
+        pack.city().id != (settings.lastCity ?? AppConfig.defaultCityId)) {
       return PackPending(pack: packState);
     }
     final offline = isFixturePack(pack);
@@ -243,10 +243,8 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
     final picks = _picked.value;
     final streets = ref.watch(areaStreetsProvider).value;
     final l10n = context.l10n;
-    final locale = Localizations.localeOf(context);
     final districts = pack.districts();
     final city = pack.city();
-    final georgian = locale.languageCode == 'ka';
     final mode = _mode!;
     final mpp = metresPerPixel(_zoom, _center?.lat ?? city.center.lat);
 
@@ -371,7 +369,10 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                               : context.go(Routes.home),
                         ),
                         Pill(
-                          label: georgian ? city.nameKa : city.nameEn,
+                          label: context.localName(
+                            ka: city.nameKa,
+                            en: city.nameEn,
+                          ),
                           icon: PindoroGlyph.city,
                           floating: true,
                         ),

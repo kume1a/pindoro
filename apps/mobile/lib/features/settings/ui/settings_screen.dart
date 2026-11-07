@@ -31,9 +31,7 @@ class SettingsScreen extends ConsumerWidget {
 
     final language =
         settings.appLanguage ??
-        (Localizations.localeOf(context).languageCode == 'ka'
-            ? AppLanguage.ka
-            : AppLanguage.en);
+        (context.georgian ? AppLanguage.ka : AppLanguage.en);
     return PageScaffold(
       title: l10n.settingsTitle,
       children: [
