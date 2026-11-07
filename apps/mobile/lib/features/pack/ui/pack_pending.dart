@@ -12,7 +12,8 @@ import 'package:pindoro_design/pindoro_design.dart';
 
 /// What a screen shows until the chosen city's pack is open: a panel at the
 /// bottom with the first download's progress or its failure, nothing while a
-/// local pack opens. Offline, Tbilisi offers the bundled Vake pack.
+/// local pack opens. Offline, Tbilisi offers the bundled Vake pack. The panel
+/// rises 8 dp as it appears and again when a download fails.
 class PackPending extends ConsumerWidget {
   const PackPending({super.key, required this.pack});
 
@@ -46,13 +47,18 @@ class PackPending extends ConsumerWidget {
               ),
             ),
           ),
-          if (content != null) BottomPanel(child: content),
+          if (content case (:final failed, :final child))
+            RiseIn(
+              key: ValueKey(failed),
+              distance: PindoroSpace.s2,
+              child: BottomPanel(child: child),
+            ),
         ],
       ),
     );
   }
 
-  Widget? _content(BuildContext context, WidgetRef ref) {
+  ({bool failed, Widget child})? _content(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
     Widget title(String text) =>
@@ -72,25 +78,28 @@ class PackPending extends ConsumerWidget {
     if (pack.error case final error? when progress == null && !pack.isLoading) {
       final noSpace = error is PackUnavailable && error.noSpace;
       final vake = error is PackUnavailable && error.city == AppConfig.cityId;
-      return Semantics(
-        liveRegion: true,
-        child: column([
-          title(noSpace ? l10n.packNoSpaceTitle : l10n.packFailedTitle),
-          body(noSpace ? l10n.packNoSpaceBody : l10n.packFailedBody),
-          if (vake) body(l10n.packVakeOffline),
-          PindoroButton(
-            label: vake ? l10n.packPlayVake : l10n.packChooseCity,
-            variant: PindoroButtonVariant.secondary,
-            onPressed: vake
-                ? () => ref.read(offlineVakeProvider.notifier).set(true)
-                : () => context.go(Routes.city),
-          ),
-          PindoroButton(
-            label: l10n.commonTryAgain,
-            icon: PindoroGlyph.retry,
-            onPressed: () => ref.invalidate(packRepositoryProvider),
-          ),
-        ]),
+      return (
+        failed: true,
+        child: Semantics(
+          liveRegion: true,
+          child: column([
+            title(noSpace ? l10n.packNoSpaceTitle : l10n.packFailedTitle),
+            body(noSpace ? l10n.packNoSpaceBody : l10n.packFailedBody),
+            if (vake) body(l10n.packVakeOffline),
+            PindoroButton(
+              label: vake ? l10n.packPlayVake : l10n.packChooseCity,
+              variant: PindoroButtonVariant.secondary,
+              onPressed: vake
+                  ? () => ref.read(offlineVakeProvider.notifier).set(true)
+                  : () => context.go(Routes.city),
+            ),
+            PindoroButton(
+              label: l10n.commonTryAgain,
+              icon: PindoroGlyph.retry,
+              onPressed: () => ref.invalidate(packRepositoryProvider),
+            ),
+          ]),
+        ),
       );
     }
     if (progress == null) return null;
@@ -98,20 +107,23 @@ class PackPending extends ConsumerWidget {
     final city = locale.languageCode == 'ka'
         ? progress.city.nameKa
         : progress.city.nameEn;
-    return column([
-      title(l10n.packGettingReady(city)),
-      body(l10n.packDownloadBody),
-      Semantics(
-        value: '${(100 * progress.received / progress.total).round()}%',
-        child: Minibar(value: progress.received / progress.total),
-      ),
-      Text(
-        l10n.packDownloadSize(
-          formatMegabytes(progress.received, locale),
-          formatMegabytes(progress.total, locale),
+    return (
+      failed: false,
+      child: column([
+        title(l10n.packGettingReady(city)),
+        body(l10n.packDownloadBody),
+        Semantics(
+          value: '${(100 * progress.received / progress.total).round()}%',
+          child: Minibar(value: progress.received / progress.total),
         ),
-        style: PindoroType.labelMd.copyWith(color: c.textSecondary),
-      ),
-    ]);
+        Text(
+          l10n.packDownloadSize(
+            formatMegabytes(progress.received, locale),
+            formatMegabytes(progress.total, locale),
+          ),
+          style: PindoroType.labelMd.copyWith(color: c.textSecondary),
+        ),
+      ]),
+    );
   }
 }

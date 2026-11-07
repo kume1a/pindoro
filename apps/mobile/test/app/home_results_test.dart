@@ -98,6 +98,18 @@ void main() {
     expect(find.text('Streets you know'), findsOneWidget);
   });
 
+  testWidgets('home asks for an area the open pack lacks (offline Vake)', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      final dao = SettingsDao(db);
+      await dao.chooseArea(const DistrictsArea({'osm:r1'}), cityId: 'tbilisi');
+      await dao.chooseDifficulty(Difficulty.easy);
+    });
+    await pumpApp(tester, Routes.home);
+    expect(find.text('Choose an area'), findsOneWidget);
+  });
+
   testWidgets('a cold start plays the launch, then leaves home usable', (
     tester,
   ) async {

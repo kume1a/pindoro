@@ -29,11 +29,14 @@ String formatNumber(int n) {
   return '${n < 0 ? '−' : ''}${groups.join(' ')}';
 }
 
-/// Metres below 1 km ("84 m"), else km with one decimal ("1.2 km"); Georgian
-/// uses a decimal comma and its own units ("1,2 კმ").
+/// Whole metres below 100 m ("84 m"), then up to the next 10 m ("850 m"),
+/// from 1 km km with one decimal ("1.2 km"); Georgian uses a decimal comma
+/// and its own units ("1,2 კმ"). Rounding up keeps a distance on its tier's
+/// side of the limits, which are all multiples of 10 m.
 String formatDistance(double metres, Locale locale) {
   final ka = locale.languageCode == 'ka';
-  if (metres < 999.5) return '${metres.round()} ${ka ? 'მ' : 'm'}';
+  final m = metres < 99.5 ? metres.round() : (metres / 10).ceil() * 10;
+  if (m < 1000) return '$m ${ka ? 'მ' : 'm'}';
   final km = (metres / 1000).toStringAsFixed(1);
   return ka ? '${km.replaceFirst('.', ',')} კმ' : '$km km';
 }

@@ -68,7 +68,7 @@
   "homeLegendInProgress": "In progress",
   "homeLegendComplete": "Complete",
   "homeLegendNotStarted": "Not started",
-  "homeAllDistricts": "{count, plural, =1{{count} district} other{All {count} districts}}",
+  "homeAllDistricts": "{count, plural, =1{{count} area} other{All {count} areas}}",
   "@homeAllDistricts": {
     "placeholders": {
       "count": {

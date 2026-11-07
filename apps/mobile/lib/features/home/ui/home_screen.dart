@@ -85,7 +85,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final city = home.pack.city();
     final cityName = locale.languageCode == 'ka' ? city.nameKa : city.nameEn;
     final level = progressWithinLevel(home.totalXp);
-    final area = settings?.area;
+    // Areas picked in another pack (offline, the Vake one stands in) aren't
+    // playable here, so Play asks for an area instead.
+    final area = switch (settings?.area) {
+      DistrictsArea(:final ids)
+          when !home.pack.districts().any((d) => ids.contains(d.id)) =>
+        null,
+      final area => area,
+    };
     final difficulty = settings?.lastDifficulty;
     final saved = home.saved;
 

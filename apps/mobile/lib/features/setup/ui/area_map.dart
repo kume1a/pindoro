@@ -7,6 +7,7 @@ import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
+import 'package:pindoro/features/setup/ui/outline_labels.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -82,6 +83,7 @@ const String _labelSource = 'areas-labels';
 const String _districtOutlines = '$_allSource-district';
 const String _quarterOutlines = '$_allSource-quarter';
 const String _districtLabels = '$_labelSource-district';
+const String _outlineLabels = 'areas-outline-names';
 const String _detailLabels = '$_labelSource-detail';
 const String _pickedLabels = '$_labelSource-picked';
 
@@ -92,6 +94,7 @@ const List<String> _pickingLayers = [
   _districtLabels,
   _detailLabels,
   _pickedLabels,
+  _outlineLabels,
 ];
 
 /// Outline widths from v1-screens.md (Area picker): districts thinner while
@@ -154,6 +157,70 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
 
   String _image(String id, {required bool picked}) =>
       picked ? 'area:$id:picked' : 'area:$id';
+
+  /// Zoomed in, district names run along their outlines, on the district's
+  /// side, so the player still knows which district a quarter is in.
+  Future<void> _addOutlineLabels() async {
+    final c = _controller!;
+    final colors = PindoroTheme.of(context).colors;
+    final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final districts = widget.districts.where((d) => !isDetail(d)).toList();
+    await Future.wait([
+      for (final d in districts)
+        () async {
+          await c.addImage(
+            'outline:${d.id}',
+            await outlineLabelPng(
+              widget.names[d.id] ?? d.nameKa,
+              colors,
+              pixelRatio,
+            ),
+          );
+        }(),
+    ]);
+    await c.addGeoJsonSource(_outlineLabels, {
+      'type': 'FeatureCollection',
+      'features': [
+        for (final d in districts)
+          for (final spot in outlineSpots(d.boundary))
+            {
+              'type': 'Feature',
+              'properties': {
+                'icon': 'outline:${d.id}',
+                'rotate': spot.rotate,
+                'below': spot.insideBelow,
+              },
+              'geometry': {
+                'type': 'Point',
+                'coordinates': [spot.at.lon, spot.at.lat],
+              },
+            },
+      ],
+    });
+    await c.addSymbolLayer(
+      _outlineLabels,
+      _outlineLabels,
+      const ml.SymbolLayerProperties(
+        iconImage: ['get', 'icon'],
+        iconRotate: ['get', 'rotate'],
+        iconRotationAlignment: 'map',
+        iconOffset: [
+          'case',
+          ['get', 'below'],
+          [
+            'literal',
+            [0, PindoroSpace.s3],
+          ],
+          [
+            'literal',
+            [0, -PindoroSpace.s3],
+          ],
+        ],
+      ),
+      minzoom: PindoroCamera.areaDetailZoom,
+      enableInteraction: false,
+    );
+  }
 
   Future<void> _addImages(Iterable<District> areas, {required bool picked}) {
     final c = _controller!;
@@ -236,6 +303,8 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
       ),
       enableInteraction: false,
     );
+    // Below the chips, so they make way for them.
+    await _addOutlineLabels();
     await c.addGeoJsonSource(_labelSource, _labels());
     const unpicked = [
       '!',

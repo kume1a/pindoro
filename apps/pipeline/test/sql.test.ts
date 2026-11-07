@@ -65,6 +65,28 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
              ST_NumGeometries(geom) AS parts
       FROM pipeline.street WHERE norm_name = pipeline.normalise_name(${name}) ORDER BY key`) as never;
 
+  /** Exports the synthetic city's pack (a fixture pack with [districtId]) and opens it. */
+  const exportPack = async (districtId?: string): Promise<Database.Database> => {
+    const keys = (await sql`SELECT key::float8 AS key FROM pipeline.street`).map(
+      (r) => r.key as number,
+    );
+    const file = join(mkdtempSync(join(tmpdir(), "pindoro-pack-")), "synth.sqlite");
+    await writePack(sql, file, {
+      city: {
+        id: "synth",
+        name_ka: "სინთი",
+        name_en: "Synth",
+        osm_relation_id: 1000,
+      } as CityConfig,
+      ids: new Map(keys.map((k) => [k, crypto.randomUUID()])),
+      version: "20261105T000000Z",
+      osmTimestamp: "",
+      generatedAt: "2026-11-05T00:00:00Z",
+      districtId,
+    });
+    return new Database(file, { readonly: true });
+  };
+
   const districtsOf = async (name: string): Promise<string[]> =>
     (
       await sql`
@@ -119,25 +141,7 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
   });
 
   it("exports a pack with decodable polyline6 geometry", async () => {
-    const keys = (await sql`SELECT key::float8 AS key FROM pipeline.street`).map(
-      (r) => r.key as number,
-    );
-    const city = {
-      id: "synth",
-      name_ka: "სინთი",
-      name_en: "Synth",
-      osm_relation_id: 1000,
-    } as CityConfig;
-    const file = join(mkdtempSync(join(tmpdir(), "pindoro-pack-")), "synth.sqlite");
-    await writePack(sql, file, {
-      city,
-      ids: new Map(keys.map((k) => [k, crypto.randomUUID()])),
-      version: "20261105T000000Z",
-      osmTimestamp: "",
-      generatedAt: "2026-11-05T00:00:00Z",
-    });
-
-    const db = new Database(file, { readonly: true });
+    const db = await exportPack();
     expect(db.prepare("SELECT count(*) FROM street").pluck().get()).toBe(5);
     expect(db.prepare("SELECT count(*) FROM district").pluck().get()).toBe(4);
     const split = db
@@ -161,6 +165,23 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
     ]);
     expect(await districtsOf("Twin Street")).toContain("osm:w114");
     expect(await districtsOf("Split Street")).toContain("osm:r1004");
+  });
+
+  it("a fixture pack keeps one district, the areas inside it and only its streets", async () => {
+    const db = await exportPack("osm:r1001");
+    expect(db.prepare("SELECT id FROM district ORDER BY id").pluck().all()).toEqual([
+      "osm:r1001",
+      "osm:r1004",
+      "osm:w114",
+    ]);
+    const strays = db
+      .prepare(
+        "SELECT count(*) FROM street_district WHERE street_id NOT IN (SELECT id FROM street)",
+      )
+      .pluck()
+      .get();
+    expect(strays).toBe(0);
+    db.close();
   });
 
   it("adds curated neighbourhoods from GeoJSON", async () => {

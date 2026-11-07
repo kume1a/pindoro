@@ -154,8 +154,9 @@ CREATE INDEX street_district_district ON street_district (district_id);
 ### Fixture scope
 
 `pipeline build <city> --fixture` writes a pack with `meta.scope = 'fixture'` containing the full
-`city` row, only the fixture district (Vake, `osm:r11300449` for Tbilisi) and the streets assigned
-to it. The app bundles it as `apps/mobile/assets/packs_fixture/tbilisi_vake_fixture.sqlite`
+`city` row, the fixture district (Vake, `osm:r11300449` for Tbilisi), the quarters and
+neighbourhoods whose centre lies in it, and only the streets assigned to the district (the smaller
+areas link only those). The app bundles it as `apps/mobile/assets/packs_fixture/tbilisi_vake_fixture.sqlite`
 (not gzipped).
 
 ## Licence

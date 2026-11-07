@@ -314,6 +314,38 @@ class MapChip {
   }
 }
 
+/// A district's name as small grey map text with a land-coloured halo, as a
+/// PNG for a symbol layer placed along the district's outline.
+Future<Uint8List> outlineLabelPng(
+  String label,
+  PindoroColors c,
+  double pixelRatio,
+) {
+  TextPainter painter(Paint paint) => TextPainter(
+    text: TextSpan(
+      text: label,
+      style: PindoroType.labelSm.copyWith(foreground: paint),
+    ),
+    textDirection: TextDirection.ltr,
+    maxLines: 1,
+  )..layout();
+  const halo = PindoroStroke.thick;
+  final outline = painter(
+    Paint()
+      ..color = c.mapBasemapLand
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = halo
+      ..strokeJoin = StrokeJoin.round,
+  );
+  final fill = painter(Paint()..color = c.textSecondary);
+  return _png(Size(fill.width + 2 * halo, fill.height + 2 * halo), pixelRatio, (
+    canvas,
+  ) {
+    outline.paint(canvas, const Offset(halo, halo));
+    fill.paint(canvas, const Offset(halo, halo));
+  });
+}
+
 Future<Uint8List> _png(
   Size size,
   double pixelRatio,
