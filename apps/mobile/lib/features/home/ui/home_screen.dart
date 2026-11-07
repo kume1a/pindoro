@@ -1,11 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
@@ -124,13 +123,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     Future<void> openDistrict(String id) async {
-      await ref
-          .read(databaseProvider)
-          .updateSettings(
-            UserSettingsCompanion(
-              lastAreaJson: Value(jsonEncode(DistrictsArea({id}).toJson())),
-            ),
-          );
+      await ref.read(settingsDaoProvider).chooseArea(DistrictsArea({id}));
       await open(Routes.area);
     }
 
@@ -207,13 +200,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       settings: settings,
                       onDistrict: openDistrict,
                       onAll: () => open(Routes.area),
-                      onCoachClosed: () => ref
-                          .read(databaseProvider)
-                          .updateSettings(
-                            const UserSettingsCompanion(
-                              homeCoachSeen: Value(true),
-                            ),
-                          ),
+                      onCoachClosed: () =>
+                          ref.read(settingsDaoProvider).markHomeCoachSeen(),
                     ),
                   ])
                     ContentColumn(

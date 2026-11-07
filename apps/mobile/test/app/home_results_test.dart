@@ -1,6 +1,4 @@
-import 'dart:convert';
-
-import 'package:drift/drift.dart' show DatabaseConnection, Value;
+import 'package:drift/drift.dart' show DatabaseConnection;
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,9 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/app/app.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/launch_overlay.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
+import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -64,13 +64,8 @@ void main() {
     int xp = 60,
   }) async {
     const vake = DistrictsArea({AppConfig.fixtureDistrictId});
-    await db.updateSettings(
-      UserSettingsCompanion(
-        lastCity: const Value('tbilisi'),
-        lastAreaJson: Value(jsonEncode(vake.toJson())),
-      ),
-    );
-    final id = await db.startRound(
+    await SettingsDao(db).chooseArea(vake, cityId: 'tbilisi');
+    final id = await ProgressDao(db).startRound(
       cityId: 'tbilisi',
       area: vake,
       difficulty: Difficulty.expert,
@@ -130,7 +125,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Your city fills in here'), findsNothing);
-    final settings = (await tester.runAsync(db.readSettings))!;
+    final settings = (await tester.runAsync(SettingsDao(db).read))!;
     expect(settings.homeCoachSeen, isTrue);
   });
 

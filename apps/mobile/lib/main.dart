@@ -10,6 +10,7 @@ import 'package:pindoro/app/app.dart';
 import 'package:pindoro/app/router.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/features/map/data/city_tiles.dart';
 import 'package:pindoro/features/pack/data/pack_store.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -36,7 +37,7 @@ Future<void> main() async {
   );
   // A pack installed in the background is used right away; a round in play
   // keeps the streets it already loaded.
-  final city = (await db.readSettings()).lastCity ?? AppConfig.cityId;
+  final city = (await SettingsDao(db).read()).lastCity ?? AppConfig.cityId;
   unawaited(
     refreshQuietly(store, city).then((installed) {
       if (installed) container.invalidate(packRepositoryProvider);

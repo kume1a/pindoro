@@ -1,7 +1,6 @@
-import 'dart:convert';
 import 'dart:math';
 
-import 'package:drift/drift.dart' show DatabaseConnection, Value;
+import 'package:drift/drift.dart' show DatabaseConnection;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/app/app.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -41,18 +41,13 @@ void main() {
     tester,
   ) async {
     PindoroMap? map;
-    await tester.runAsync(
-      () => db.updateSettings(
-        UserSettingsCompanion(
-          lastAreaJson: Value(
-            jsonEncode(
-              const DistrictsArea({AppConfig.fixtureDistrictId}).toJson(),
-            ),
-          ),
-          lastDifficulty: const Value(Difficulty.expert),
-        ),
-      ),
-    );
+    await tester.runAsync(() async {
+      final settings = SettingsDao(db);
+      await settings.chooseArea(
+        const DistrictsArea({AppConfig.fixtureDistrictId}),
+      );
+      await settings.chooseDifficulty(Difficulty.expert);
+    });
     await tester.pumpWidget(
       ProviderScope(
         overrides: [

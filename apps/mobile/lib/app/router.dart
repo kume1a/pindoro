@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
+import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/quiz/ui/quiz_screen.dart';
 import 'package:pindoro/features/results/ui/result_street_screen.dart';
 import 'package:pindoro/features/results/ui/results_screen.dart';
@@ -25,7 +26,7 @@ Page<void> _fadePage(GoRouterState state, Widget child) =>
 
 /// Welcome shows until the player finishes a first round; then Home.
 Future<String> initialLocation(AppDatabase db) async =>
-    await db.hasFinishedRound() ? Routes.home : Routes.welcome;
+    await ProgressDao(db).hasFinishedRound() ? Routes.home : Routes.welcome;
 
 GoRouter buildRouter(String initialLocation) => GoRouter(
   initialLocation: initialLocation,

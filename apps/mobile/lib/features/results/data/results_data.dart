@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
+import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
 /// One answered question with its street (null when retired from the pack).
@@ -22,13 +23,13 @@ final resultsProvider = FutureProvider.autoDispose.family<ResultsData, String>((
   ref,
   roundId,
 ) async {
-  final db = ref.watch(databaseProvider);
+  final dao = ref.watch(progressDaoProvider);
   final pack = await ref.watch(packRepositoryProvider.future);
   final streets = await ref.watch(cityStreetsProvider.future);
-  final progress = await db.roundProgress(roundId);
+  final progress = await dao.roundProgress(roundId);
   final round = progress.round;
   final answers = progress.answers;
-  final bestBefore = await db.bestTierByPart(
+  final bestBefore = await dao.bestTierByPart(
     round.cityId,
     before: round.startedAt,
   );
@@ -45,9 +46,9 @@ final resultsProvider = FutureProvider.autoDispose.family<ResultsData, String>((
     entries: [
       for (final a in answers) (answer: a, street: streets[a.streetId]),
     ],
-    totalXp: await db.totalXp(),
+    totalXp: await dao.totalXp(),
     roundXp: answers.fold(0, (sum, a) => sum + a.xp),
-    retryCount: (await db.retrySet(roundId)).length,
+    retryCount: (await dao.retrySet(roundId)).length,
     newlyKnown: newlyKnown(
       knownBefore: knownBefore,
       roundAnswers: [

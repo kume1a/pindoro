@@ -1,10 +1,9 @@
 import 'dart:async';
 
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/location.dart';
 import 'package:pindoro/core/page_scaffold.dart';
@@ -37,17 +36,7 @@ class _CityScreenState extends ConsumerState<CityScreen> {
 
   Future<void> _pick(String cityId) async {
     ref.read(feedbackProvider).tap();
-    final db = ref.read(databaseProvider);
-    final settings = await db.readSettings();
-    await db.updateSettings(
-      UserSettingsCompanion(
-        lastCity: Value(cityId),
-        // Another city's area doesn't apply here.
-        lastAreaJson: cityId == settings.lastCity
-            ? const Value.absent()
-            : const Value(null),
-      ),
-    );
+    await ref.read(settingsDaoProvider).chooseCity(cityId);
     if (mounted) await context.push(Routes.area);
   }
 

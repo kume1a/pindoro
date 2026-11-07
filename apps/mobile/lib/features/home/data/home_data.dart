@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
+import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
 typedef DistrictCount = ({District district, KnownCount count});
@@ -31,11 +32,11 @@ final homeProvider = FutureProvider.autoDispose.family<HomeData, DateTime?>((
   ref,
   introBefore,
 ) async {
-  final db = ref.watch(databaseProvider);
+  final dao = ref.watch(progressDaoProvider);
   final pack = await ref.watch(packRepositoryProvider.future);
   final city = pack.city();
-  final round = await db.savedRound(DateTime.now());
-  final progress = round == null ? null : await db.roundProgress(round.id);
+  final round = await dao.savedRound(DateTime.now());
+  final progress = round == null ? null : await dao.roundProgress(round.id);
   final streets = await ref.watch(cityStreetsProvider.future);
   final partsByDistrict = pack.partsByDistrict();
   Future<HomeCounts> countsAt({DateTime? before}) async => knownCounts(
@@ -43,7 +44,7 @@ final homeProvider = FutureProvider.autoDispose.family<HomeData, DateTime?>((
     partsByDistrict: partsByDistrict,
     known: {
       for (final MapEntry(key: id, value: tier) in bestTierPerStreet(
-        await db.bestTierByPart(city.id, before: before),
+        await dao.bestTierByPart(city.id, before: before),
         streets,
       ).entries)
         if (isKnownTier(tier)) id,
@@ -57,7 +58,7 @@ final homeProvider = FutureProvider.autoDispose.family<HomeData, DateTime?>((
   final byId = {for (final d in districts) d.district.id: d};
   return (
     pack: pack,
-    totalXp: await db.totalXp(),
+    totalXp: await dao.totalXp(),
     saved: progress == null
         ? null
         : (
@@ -72,7 +73,7 @@ final homeProvider = FutureProvider.autoDispose.family<HomeData, DateTime?>((
     cityKnown: counts.city,
     districts: districts,
     recent: [
-      for (final id in await db.recentDistrictIds(city.id)) ?byId[id],
+      for (final id in await dao.recentDistrictIds(city.id)) ?byId[id],
     ].take(2).toList(),
     before: introBefore == null ? null : await countsAt(before: introBefore),
   );

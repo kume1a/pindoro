@@ -5,6 +5,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/online.dart';
 import 'package:pindoro/core/page_scaffold.dart';
@@ -12,6 +13,7 @@ import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/quiz/ui/round_controller.dart';
 import 'package:pindoro/features/quiz/ui/setup_states.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
@@ -72,7 +74,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     }
     final retryOf = widget.retryOf;
     if (retryOf != null) return controller.startRetry(retryOf);
-    final settings = await ref.read(databaseProvider).readSettings();
+    final settings = await ref.read(settingsDaoProvider).read();
     await controller.start(
       settings.area,
       settings.lastDifficulty ?? Difficulty.easy,
@@ -125,7 +127,7 @@ String tierLabel(AppLocalizations l10n, Tier tier) => switch (tier) {
 
 /// Whether this is the very first question the player sees (coach mark).
 final _firstQuestionEverProvider = FutureProvider.autoDispose<bool>(
-  (ref) async => !await ref.watch(databaseProvider).hasAnswered(),
+  (ref) async => !await ref.watch(progressDaoProvider).hasAnswered(),
 );
 
 class _RoundView extends ConsumerWidget {

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
+import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/quiz/ui/round_controller.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
@@ -60,7 +61,7 @@ void main() {
     expect(state.round.questions, hasLength(QuestionSelector.roundSize));
     expect(state.round.number, 1);
     expect(state.pin, isNull);
-    final progress = await db.roundProgress(state.round.id);
+    final progress = await ProgressDao(db).roundProgress(state.round.id);
     expect(progress.planned, [for (final s in state.round.questions) s.id]);
   });
 
@@ -76,7 +77,10 @@ void main() {
     expect(revealed.answer.distanceM, closeTo(0, 0.5));
     expect(revealed.answer.tier, Tier.perfect);
     expect(revealed.answer.xp, 100, reason: 'XP is the same at every level');
-    expect(await db.answersForRound(revealed.round.id), hasLength(1));
+    expect(
+      await ProgressDao(db).answersForRound(revealed.round.id),
+      hasLength(1),
+    );
   });
 
   test('a new controller resumes at the next unanswered street', () async {
@@ -103,8 +107,11 @@ void main() {
       await controller.next();
     }
     expect(c.read(roundControllerProvider), isA<RoundFinished>());
-    expect((await db.roundProgress(id)).round.finishedAt, isNotNull);
-    expect(await db.resumableRound(DateTime.now()), isNull);
+    expect(
+      (await ProgressDao(db).roundProgress(id)).round.finishedAt,
+      isNotNull,
+    );
+    expect(await ProgressDao(db).resumableRound(DateTime.now()), isNull);
   });
 
   test('a retry round asks the Close and Miss streets of a round', () async {
@@ -125,14 +132,17 @@ void main() {
       [for (final q in retry.questions) q.id],
       [first.questions[1].id, first.questions[4].id],
     );
-    expect((await db.roundProgress(retry.id)).round.retryOf, first.id);
+    expect(
+      (await ProgressDao(db).roundProgress(retry.id)).round.retryOf,
+      first.id,
+    );
 
     for (var i = 0; i < retry.total; i++) {
       await answerCurrent(controller, c);
       await controller.next();
     }
     expect(c.read(roundControllerProvider), isA<RoundFinished>());
-    expect(await db.retrySet(retry.id), isEmpty);
+    expect(await ProgressDao(db).retrySet(retry.id), isEmpty);
   });
 
   test('a pool smaller than a round is reported', () async {

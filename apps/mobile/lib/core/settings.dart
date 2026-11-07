@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
 /// The settings row, live: theme, language and toggles apply immediately.
 final settingsProvider = StreamProvider<Settings>(
-  (ref) => ref.watch(databaseProvider).watchSettings(),
+  (ref) => ref.watch(settingsDaoProvider).watch(),
 );
 
 extension SettingsPresentation on Settings {
