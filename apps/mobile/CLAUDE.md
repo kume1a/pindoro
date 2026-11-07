@@ -37,7 +37,8 @@ test/drift/                    generated schema helpers + migration test
   `/city`, `/area`, `/difficulty`, `/round` (`?round=` resumes, `?retry=` retries), `/results`,
   `/settings`, `/settings/credits`. Welcome opens until the first round is finished.
 - **Strings:** every UI string comes from `lib/l10n/app_{en,ka}.arb` (gen-l10n, `context.l10n`);
-  the generated `app_localizations*.dart` are committed. Georgian is a draft awaiting native review.
+  `just gen` writes `app_localizations*.dart` (not committed). Georgian is a draft awaiting native
+  review.
   Numbers through `formatNumber` (narrow no-break space groups), distances through
   `formatDistance`. Never uppercase.
 - **Settings** (`user_settings`, watched by `settingsProvider`): language (null = device),
@@ -48,8 +49,10 @@ test/drift/                    generated schema helpers + migration test
   migration steps, which can't see app enums. No Flutter imports in `database.dart` either.
 - **Database:** client ids are UUIDv7 (`newId()`). `answer` is an append-only log, enforced by the
   `answer_immutable` trigger. Changing a table: bump `schemaVersion`, add a migration, run
-  `dart run drift_dev make-migrations` and commit the new dump + generated helpers. Run
-  `just gen` after editing tables; commit `*.g.dart`.
+  `just gen` (it runs `drift_dev make-migrations`, then build_runner) and commit the new dump in
+  `drift_schemas/`. Generated Dart (`*.g.dart`, `database.steps.dart`, `test/drift/**/generated/`)
+  is never committed: `just gen` rebuilds it from the dumps, and `just gen-check` fails in CI
+  when a dump is missing.
 - **Config** only via `--dart-define` (`AppConfig`): `PINDORO_ENV`, `API_BASE_URL`,
   `PACKS_BASE_URL`, `TILES_BASE_URL`. Dev defaults use 10.0.2.2 (Android emulator → host).
   Cleartext HTTP is allowed only in the debug/profile manifests.
