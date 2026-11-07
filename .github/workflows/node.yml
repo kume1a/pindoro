@@ -31,9 +31,9 @@ jobs:
       PGPASSWORD: pindoro
       PINDORO_REQUIRE_OSM_TOOLS: "1"
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -42,7 +42,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Create test databases
         run: psql -d pindoro -c "CREATE DATABASE pindoro_test" -c "CREATE DATABASE pindoro_pipeline_test"
-      - uses: extractions/setup-just@v3
+      - uses: extractions/setup-just@v4
       - run: pnpm exec biome ci .
       - run: pnpm -r typecheck
       - name: openapi.json and Drizzle migrations are up to date
@@ -62,7 +62,7 @@ jobs:
   images:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: docker build -f apps/api/Dockerfile .
       - run: docker build -f apps/pipeline/Dockerfile .
       - name: Production compose file is valid

@@ -17,13 +17,13 @@ jobs:
   mobile:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
-      - uses: extractions/setup-just@v3
+      - uses: extractions/setup-just@v4
       - run: flutter pub get
       - run: just gen-check
       - run: dart format --set-exit-if-changed .
@@ -34,7 +34,7 @@ jobs:
     # Unsigned store build: proves the iOS side compiles; signing happens on a Mac (docs/deploy.md).
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
