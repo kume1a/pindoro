@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pindoro_design/pindoro_design.dart';
 
 typedef ToastAction = ({String label, VoidCallback onPressed});
 
@@ -16,7 +17,12 @@ void showToast(
     ..showSnackBar(
       SnackBar(
         content: Text(message),
-        margin: EdgeInsets.fromLTRB(16, 0, 16, 16 + above),
+        margin: EdgeInsets.fromLTRB(
+          PindoroSpace.s4,
+          0,
+          PindoroSpace.s4,
+          PindoroSpace.s4 + above,
+        ),
         duration: Duration(seconds: action == null ? 3 : 5),
         persist: false,
         action: action == null

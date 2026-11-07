@@ -146,11 +146,11 @@ final packRepositoryProvider = FutureProvider<PackRepository>((ref) async {
   final store = ref.watch(packStoreProvider);
   final city =
       await ref.watch(settingsProvider.selectAsync((s) => s.lastCity)) ??
-      AppConfig.cityId;
+      AppConfig.defaultCityId;
   final offlineVake = ref.watch(offlineVakeProvider);
   final file =
       store.newest(city) ??
-      (offlineVake && city == AppConfig.cityId
+      (offlineVake && city == AppConfig.defaultCityId
           ? await copyFixture(store.root)
           : await _download(ref, store, city));
   // A rebuild (another city, Try again) superseded this one.

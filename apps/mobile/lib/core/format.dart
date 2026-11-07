@@ -5,6 +5,13 @@ import 'package:pindoro/l10n/app_localizations.dart';
 
 extension L10n on BuildContext {
   AppLocalizations get l10n => AppLocalizations.of(this);
+
+  /// Whether the UI is in Georgian.
+  bool get georgian => Localizations.localeOf(this).languageCode == 'ka';
+
+  /// A name kept in both scripts (cities), in the UI's language.
+  String localName({required String ka, required String en}) =>
+      georgian ? ka : en;
 }
 
 const Map<String, String> _georgianLatin = {

@@ -50,7 +50,7 @@ decompressing. `bbox` is the city's bounding box, so the app can find the city t
 }
 ```
 
-`url` is relative to the packs base URL (`PACKS_BASE_URL` in the app).
+`url` is relative to the packs host; the API catalog (`/v1/catalog`) gives the app absolute URLs.
 
 ## Encodings
 

@@ -79,9 +79,8 @@ class _CityScreenState extends ConsumerState<CityScreen> {
     final c = PindoroTheme.of(context).colors;
     final cities = ref.watch(cityListProvider).value ?? const [];
     final recentIds = ref.watch(recentCityIdsProvider).value ?? const [];
-    final georgian = Localizations.localeOf(context).languageCode == 'ka';
-    String name(CatalogCity city) => georgian ? city.nameKa : city.nameEn;
-    String other(CatalogCity city) => georgian ? city.nameEn : city.nameKa;
+    String name(CatalogCity c) => context.localName(ka: c.nameKa, en: c.nameEn);
+    String other(CatalogCity c) => context.georgian ? c.nameEn : c.nameKa;
     Widget row(CatalogCity city) => ListRow(
       title: name(city),
       subtitle: other(city),

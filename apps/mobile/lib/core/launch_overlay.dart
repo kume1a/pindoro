@@ -74,21 +74,24 @@ class _LaunchOverlayState extends ConsumerState<LaunchOverlay>
 
   @override
   Widget build(BuildContext context) {
-    if (_done) return widget.child;
     final dark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+    // The app keeps its place in the tree when the overlay goes, so the
+    // router underneath isn't rebuilt from scratch.
     return Stack(
+      fit: StackFit.expand,
       children: [
         widget.child,
-        Positioned.fill(
-          child: AbsorbPointer(
-            child: AnimatedBuilder(
-              animation: _t,
-              builder: (context, _) => _calm
-                  ? Opacity(opacity: 1 - _t.value, child: _frame(dark, 0))
-                  : _frame(dark, _t.value * _At.end),
+        if (!_done)
+          Positioned.fill(
+            child: AbsorbPointer(
+              child: AnimatedBuilder(
+                animation: _t,
+                builder: (context, _) => _calm
+                    ? Opacity(opacity: 1 - _t.value, child: _frame(dark, 0))
+                    : _frame(dark, _t.value * _At.end),
+              ),
             ),
           ),
-        ),
       ],
     );
   }

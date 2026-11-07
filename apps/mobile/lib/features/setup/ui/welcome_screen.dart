@@ -26,16 +26,17 @@ class WelcomeScreen extends ConsumerWidget {
     final recents = ref.watch(recentCityIdsProvider).value ?? const [];
     final area = settings?.area;
     final difficulty = settings?.lastDifficulty;
-    final georgian = Localizations.localeOf(context).languageCode == 'ka';
     // Only a resumable player needs the pack; watching it on first run would
     // download the default city before one is chosen.
     final resumes = recents.isNotEmpty && area != null && difficulty != null
         ? switch (ref.watch(packRepositoryProvider).value) {
-            final pack? => [
-              georgian ? pack.city().nameKa : pack.city().nameEn,
-              areaLabel(context, area, pack, settings),
-              difficultyName(l10n, difficulty),
-            ].join(' · '),
+            final pack? => resumeLabel(
+              context,
+              pack,
+              area,
+              difficulty,
+              settings,
+            ),
             null => null,
           }
         : null;

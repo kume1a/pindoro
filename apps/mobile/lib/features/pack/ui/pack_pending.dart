@@ -77,7 +77,8 @@ class PackPending extends ConsumerWidget {
     // progress (or nothing) instead.
     if (pack.error case final error? when progress == null && !pack.isLoading) {
       final noSpace = error is PackUnavailable && error.noSpace;
-      final vake = error is PackUnavailable && error.city == AppConfig.cityId;
+      final vake =
+          error is PackUnavailable && error.city == AppConfig.defaultCityId;
       return (
         failed: true,
         child: Semantics(
@@ -103,10 +104,10 @@ class PackPending extends ConsumerWidget {
       );
     }
     if (progress == null) return null;
-    final locale = Localizations.localeOf(context);
-    final city = locale.languageCode == 'ka'
-        ? progress.city.nameKa
-        : progress.city.nameEn;
+    final city = context.localName(
+      ka: progress.city.nameKa,
+      en: progress.city.nameEn,
+    );
     return (
       failed: false,
       child: column([

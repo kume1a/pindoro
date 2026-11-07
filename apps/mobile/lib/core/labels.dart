@@ -41,6 +41,22 @@ String areaLabel(
   };
 }
 
+/// "Tbilisi · Vake and Vere · Medium": what Play starts or resumes.
+String resumeLabel(
+  BuildContext context,
+  PackRepository pack,
+  Area area,
+  Difficulty difficulty,
+  Settings? settings,
+) {
+  final city = pack.city();
+  return [
+    context.localName(ka: city.nameKa, en: city.nameEn),
+    areaLabel(context, area, pack, settings),
+    difficultyName(AppLocalizations.of(context), difficulty),
+  ].join(' · ');
+}
+
 /// One, two, or "first + n more" district names.
 String districtNames(AppLocalizations l10n, List<String> names) =>
     switch (names) {
