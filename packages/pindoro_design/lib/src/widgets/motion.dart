@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -436,4 +437,80 @@ class Wiggle extends StatelessWidget {
           ),
           child: child,
         );
+}
+
+/// An [IndexedStack] that cross-fades to [index] (`duration.fast`); every
+/// child keeps its state, the hidden ones offstage with tickers off.
+/// Instant with reduce motion on.
+class FadeIndexedStack extends StatefulWidget {
+  const FadeIndexedStack({
+    super.key,
+    required this.index,
+    required this.children,
+  });
+
+  final int index;
+  final List<Widget> children;
+
+  @override
+  State<FadeIndexedStack> createState() => _FadeIndexedStackState();
+}
+
+class _FadeIndexedStackState extends State<FadeIndexedStack>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _fade = AnimationController(
+    vsync: this,
+    duration: PindoroMotion.durationFast,
+    value: 1,
+  )..addStatusListener(_settled);
+
+  /// The child fading out, until the fade ends.
+  int? _leaving;
+
+  void _settled(AnimationStatus status) {
+    if (status.isCompleted) setState(() => _leaving = null);
+  }
+
+  @override
+  void didUpdateWidget(FadeIndexedStack old) {
+    super.didUpdateWidget(old);
+    if (old.index == widget.index) return;
+    if (_calm(context)) {
+      _leaving = null;
+      _fade.value = 1;
+      return;
+    }
+    _leaving = old.index;
+    unawaited(_fade.forward(from: 0));
+  }
+
+  @override
+  void dispose() {
+    _fade.dispose();
+    super.dispose();
+  }
+
+  Animation<double> _opacity(int i) => i == widget.index
+      ? _fade
+      : i == _leaving
+      ? ReverseAnimation(_fade)
+      : kAlwaysCompleteAnimation;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    fit: StackFit.expand,
+    children: [
+      for (final (i, child) in widget.children.indexed)
+        Offstage(
+          offstage: i != widget.index && i != _leaving,
+          child: TickerMode(
+            enabled: i == widget.index,
+            child: IgnorePointer(
+              ignoring: i != widget.index,
+              child: FadeTransition(opacity: _opacity(i), child: child),
+            ),
+          ),
+        ),
+    ],
+  );
 }

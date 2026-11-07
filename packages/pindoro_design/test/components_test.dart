@@ -153,6 +153,77 @@ void main() {
     );
   });
 
+  testWidgets('the nav bar reports taps and reads the current tab and badge', (
+    tester,
+  ) async {
+    int? tapped;
+    await tester.pumpWidget(
+      _host(
+        PindoroNavBar(
+          items: const [
+            (
+              glyph: PindoroGlyph.map,
+              label: 'Free play',
+              badge: null,
+              semanticLabel: null,
+            ),
+            (
+              glyph: PindoroGlyph.wrench,
+              label: 'Pit stop',
+              badge: 7,
+              semanticLabel: 'Pit stop, 7 streets due',
+            ),
+          ],
+          current: 0,
+          onSelect: (i) => tapped = i,
+        ),
+      ),
+    );
+    expect(find.text('7'), findsOneWidget);
+    expect(
+      tester.getSemantics(find.bySemanticsLabel('Free play')),
+      isSemantics(isButton: true, isSelected: true),
+    );
+    expect(
+      tester.getSemantics(find.bySemanticsLabel('Pit stop, 7 streets due')),
+      isSemantics(isButton: true, isSelected: false),
+    );
+    await tester.tap(find.bySemanticsLabel('Pit stop, 7 streets due'));
+    expect(tapped, 1);
+  });
+
+  testWidgets('a stat tile reads as one label', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        const StatTile(
+          glyph: PindoroGlyph.flame,
+          label: 'Best streak',
+          value: '21 days',
+        ),
+      ),
+    );
+    expect(find.bySemanticsLabel('Best streak, 21 days'), findsOneWidget);
+  });
+
+  testWidgets('the fade stack shows the old child only while fading', (
+    tester,
+  ) async {
+    Widget stack(int index) => MaterialApp(
+      home: FadeIndexedStack(
+        index: index,
+        children: const [Text('a'), Text('b')],
+      ),
+    );
+    await tester.pumpWidget(stack(0));
+    expect(find.text('b'), findsNothing);
+    await tester.pumpWidget(stack(1));
+    await tester.pump(PindoroMotion.durationFast ~/ 2);
+    expect(find.text('a'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('a'), findsNothing);
+    expect(find.text('b'), findsOneWidget);
+  });
+
   testWidgets('the calendar reads as one image and starts on firstWeekday', (
     tester,
   ) async {
@@ -323,6 +394,95 @@ void main() {
         await expectLater(
           find.byType(Scaffold),
           matchesGoldenFile('goldens/components_${brightness.name}.png'),
+        );
+      });
+    }
+
+    for (final brightness in Brightness.values) {
+      testWidgets('navigation ${brightness.name}', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(400, 420));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        PindoroNavBar bar(int current, int due) => PindoroNavBar(
+          items: [
+            (
+              glyph: PindoroGlyph.map,
+              label: 'Free play',
+              badge: null,
+              semanticLabel: null,
+            ),
+            (
+              glyph: PindoroGlyph.wrench,
+              label: 'Pit stop',
+              badge: due,
+              semanticLabel: null,
+            ),
+            (
+              glyph: PindoroGlyph.user,
+              label: 'Me',
+              badge: null,
+              semanticLabel: null,
+            ),
+          ],
+          current: current,
+          onSelect: (_) {},
+        );
+        Widget pair(Widget a, Widget b) => IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: 8,
+            children: [
+              Expanded(child: a),
+              Expanded(child: b),
+            ],
+          ),
+        );
+        await tester.pumpWidget(
+          _host(
+            brightness: brightness,
+            Builder(
+              builder: (context) {
+                final c = PindoroTheme.of(context).colors;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: 12,
+                  children: [
+                    bar(0, 7),
+                    bar(1, 12),
+                    pair(
+                      const StatTile(
+                        glyph: PindoroGlyph.pin,
+                        label: 'Streets known',
+                        value: '180',
+                      ),
+                      const StatTile(
+                        glyph: PindoroGlyph.road,
+                        label: 'Lessons',
+                        value: '14',
+                      ),
+                    ),
+                    pair(
+                      const StatTile(
+                        glyph: PindoroGlyph.car,
+                        label: 'Road trips',
+                        value: '9',
+                      ),
+                      StatTile(
+                        glyph: PindoroGlyph.flame,
+                        glyphColor: c.streakFlame,
+                        label: 'Best streak',
+                        value: '21 days',
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await expectLater(
+          find.byType(Scaffold),
+          matchesGoldenFile('goldens/navigation_${brightness.name}.png'),
         );
       });
     }
