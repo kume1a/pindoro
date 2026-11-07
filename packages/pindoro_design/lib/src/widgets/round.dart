@@ -411,17 +411,18 @@ class CoachBubble extends StatelessWidget {
         liveRegion: true,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 300),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (pointsUp)
-                CustomPaint(
-                  size: const Size(18, 9),
-                  painter: _TailPainter(c.coachBg, down: false),
-                ),
-              _bubble(c),
-            ],
-          ),
+          child: pointsUp
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CustomPaint(
+                      size: const Size(18, 9),
+                      painter: _TailPainter(c.coachBg, down: false),
+                    ),
+                    _bubble(c),
+                  ],
+                )
+              : _bubble(c),
         ),
       ),
     );
