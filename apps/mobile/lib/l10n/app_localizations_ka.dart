@@ -440,6 +440,9 @@ class AppLocalizationsKa extends AppLocalizations {
   String get resultsPlayAgain => 'ახლიდან თამაში';
 
   @override
+  String get resultsNewRound => 'ახალი რაუნდი';
+
+  @override
   String levelUpTitle(int level) {
     return 'დონე $level!';
   }

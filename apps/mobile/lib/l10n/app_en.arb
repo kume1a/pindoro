@@ -338,6 +338,7 @@
   "resultsToRetry": "to retry",
   "resultsOnStreet": "On the street",
   "resultsPlayAgain": "Play again",
+  "resultsNewRound": "Play a new round",
   "levelUpTitle": "Level {level}!",
   "@levelUpTitle": {
     "placeholders": {

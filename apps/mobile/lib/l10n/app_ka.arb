@@ -117,6 +117,7 @@
   "resultsToRetry": "გასამეორებელი",
   "resultsOnStreet": "ქუჩაზე",
   "resultsPlayAgain": "ახლიდან თამაში",
+  "resultsNewRound": "ახალი რაუნდი",
   "levelUpTitle": "დონე {level}!",
   "levelUpBody": "სულ {xp} XP. აქამდე ყოველმა კარგმა პასუხმა მოგიყვანა.",
   "levelUpNext": "შემდეგი: დონე {level}",

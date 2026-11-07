@@ -179,6 +179,17 @@ void main() {
     ))!;
     await pumpApp(tester, '${Routes.results}?round=$missed');
     expect(find.text('Retry 3 missed'), findsOneWidget);
+    expect(find.text('Change settings'), findsOneWidget);
+  });
+
+  testWidgets('a tough round makes retry the main action', (tester) async {
+    final tough = (await tester.runAsync(
+      () => roundWithAnswers(5, tier: Tier.miss),
+    ))!;
+    await pumpApp(tester, '${Routes.results}?round=$tough');
+    expect(find.text('Retry 5 missed'), findsOneWidget);
+    expect(find.text('Play again'), findsOneWidget);
+    expect(find.text('Change settings'), findsNothing);
   });
 
   testWidgets('results without Close or Miss offer no retry', (tester) async {

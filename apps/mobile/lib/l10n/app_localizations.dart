@@ -794,6 +794,12 @@ abstract class AppLocalizations {
   /// **'Play again'**
   String get resultsPlayAgain;
 
+  /// No description provided for @resultsNewRound.
+  ///
+  /// In en, this message translates to:
+  /// **'Play a new round'**
+  String get resultsNewRound;
+
   /// No description provided for @levelUpTitle.
   ///
   /// In en, this message translates to:

@@ -446,6 +446,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get resultsPlayAgain => 'Play again';
 
   @override
+  String get resultsNewRound => 'Play a new round';
+
+  @override
   String levelUpTitle(int level) {
     return 'Level $level!';
   }

@@ -16,6 +16,9 @@ import '../home/home_screen.dart';
 import 'level_up_screen.dart';
 import 'results_data.dart';
 
+/// Close and Miss answers that make a round tough.
+const int _toughRetries = 5;
+
 /// When each part of the results arrival starts (canvas M-40).
 abstract final class _Arrival {
   static const Duration reward = Duration(milliseconds: 200);
@@ -97,8 +100,25 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
       startedAt: data.round.startedAt,
       roundXp: data.roundXp,
     );
+    void goHome() => context.go(Routes.home, extra: summary);
+    void playAgain() => context.go(Routes.round);
+    void retry() => context.go(Routes.retry(widget.roundId));
+    final isRetry = data.round.retryOf != null;
+    // A tough round (canvas M-42) makes Retry the main action.
+    final tough = !isRetry && data.retryCount >= _toughRetries;
+    final (secondary, primary) = isRetry
+        ? ((l10n.commonDone, goHome), (l10n.resultsNewRound, playAgain))
+        : tough
+        ? (
+            (l10n.resultsPlayAgain, playAgain),
+            (l10n.resultsRetryMissed(data.retryCount), retry),
+          )
+        : (
+            (l10n.commonChangeSettings, () => context.go(Routes.area)),
+            (l10n.resultsPlayAgain, playAgain),
+          );
     final page = PageScaffold(
-      title: data.round.retryOf != null
+      title: isRetry
           ? l10n.resultsRetryTitle
           : data.retryCount == 0
           ? l10n.resultsFlawless
@@ -106,7 +126,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
       trailing: PindoroIconButton(
         glyph: PindoroGlyph.close,
         semanticLabel: l10n.commonDone,
-        onPressed: () => context.go(Routes.home, extra: summary),
+        onPressed: goHome,
       ),
       showBack: false,
       footer: Row(
@@ -114,16 +134,13 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
         children: [
           Expanded(
             child: PindoroButton(
-              label: l10n.commonChangeSettings,
+              label: secondary.$1,
               variant: PindoroButtonVariant.secondary,
-              onPressed: () => context.go(Routes.area),
+              onPressed: secondary.$2,
             ),
           ),
           Expanded(
-            child: PindoroButton(
-              label: l10n.resultsPlayAgain,
-              onPressed: () => context.go(Routes.round),
-            ),
+            child: PindoroButton(label: primary.$1, onPressed: primary.$2),
           ),
         ],
       ),
@@ -136,7 +153,12 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
         Row(
           spacing: PindoroSpace.s3,
           children: [
-            const PopIn(child: Pindo(PindoExpression.proud, height: 64)),
+            PopIn(
+              child: Pindo(
+                tough ? PindoExpression.encouraging : PindoExpression.proud,
+                height: 64,
+              ),
+            ),
             Expanded(
               child: Align(
                 alignment: Alignment.centerLeft,
@@ -218,12 +240,14 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
           child: Row(
             children: [
               Expanded(child: SectionTitle(l10n.resultsYourStreets)),
-              if (data.retryCount > 0)
+              if (tough)
+                const SizedBox.shrink()
+              else if (data.retryCount > 0)
                 PindoroButton(
                   label: l10n.resultsRetryMissed(data.retryCount),
                   icon: PindoroGlyph.reroute,
                   variant: PindoroButtonVariant.secondary,
-                  onPressed: () => context.go(Routes.retry(widget.roundId)),
+                  onPressed: retry,
                 )
               else
                 Text(
@@ -254,7 +278,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
         page,
         Positioned.fill(
           child: Celebration(
-            size: data.firstPerfect
+            size: data.firstPerfect || data.retryCount == 0
                 ? CelebrationSize.big
                 : CelebrationSize.medium,
             burstCenter: const Alignment(-0.2, -0.6),
