@@ -2,18 +2,21 @@
 
 ## Placeholders to replace
 
-- **App-only tokens** — `packages/pindoro_design/tokens/app.json` values were picked in the repo,
-  not designed: basemap building / railway / boundary colours, the area mask, the measure-line dots,
-  camera framing and the zoom where the area picker switches to neighbourhoods. Design them on
-  claude.ai and move them into the design system.
 - **Sound kit** — the design's 14 sounds don't exist yet; the Sound toggle and `GameFeedback`
   are in place, so add an audio player there once the files are designed.
 - **Georgian copy** — `apps/mobile/lib/l10n/app_ka.arb` is the copy deck's draft plus a few strings
   written in the repo; it needs a native review.
-- **Built without a design yet** (prompt for claude.ai given 2026-11-07): the first pack download's
-  progress and failure states, the area picker at 104 presets (which level shows at which zoom,
-  the "All" sheet grouped by district, the word for a mix of districts and neighbourhoods) and the
-  Miss sentence's compass form. Align them when the design lands.
+- **Designed in text, not drawn** — the 2026-11-07 design pass (map greys, 104-area picker, city
+  pack download, Miss directions) lives in `tokens.json` and `docs/design/v1-screens.md`; the
+  claude.ai canvas has no boards for it yet (chips at both zoom bands, narrow with Undo, All areas,
+  pack download and failure, offline Vake).
+- **Left out of that pass:** download progress in the City row (choosing a city opens the Area
+  picker at once, so the wait shows there); district names along their outlines from zoom 12 (no
+  glyphs); chips that step aside instead of hiding (MapLibre's variable anchors are text-only);
+  sticky district rows in All areas; the pack panel's motion and a city outline on the empty map
+  while it downloads; a "Free up space" button and a free-space check before downloading; Miss
+  distances rounded to 10 m (they would disagree with the map chip). The bundled Vake pack holds
+  only the district, not its quarters and neighbourhoods.
 - Map labels (area names, the distance chip) are images drawn by `MapChip`, because the self-hosted
   map style has no glyphs.
 

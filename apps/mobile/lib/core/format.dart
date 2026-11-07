@@ -6,6 +6,19 @@ extension L10n on BuildContext {
   AppLocalizations get l10n => AppLocalizations.of(this);
 }
 
+const Map<String, String> _georgianLatin = {
+  'ა': 'a', 'ბ': 'b', 'გ': 'g', 'დ': 'd', 'ე': 'e', 'ვ': 'v', 'ზ': 'z', //
+  'თ': 't', 'ი': 'i', 'კ': 'k', 'ლ': 'l', 'მ': 'm', 'ნ': 'n', 'ო': 'o', //
+  'პ': 'p', 'ჟ': 'zh', 'რ': 'r', 'ს': 's', 'ტ': 't', 'უ': 'u', 'ფ': 'p', //
+  'ქ': 'k', 'ღ': 'gh', 'ყ': 'q', 'შ': 'sh', 'ჩ': 'ch', 'ც': 'ts', 'ძ': 'dz', //
+  'წ': 'ts', 'ჭ': 'ch', 'ხ': 'kh', 'ჯ': 'j', 'ჰ': 'h',
+};
+
+/// Georgian letters in the national romanisation ("ვაკე" → "vake"), so a
+/// Latin keyboard finds Georgian names.
+String latinGeorgian(String s) =>
+    s.split('').map((ch) => _georgianLatin[ch] ?? ch).join();
+
 /// Groups of three with a narrow no-break space: "3 555" (copy deck format).
 String formatNumber(int n) {
   final digits = n.abs().toString();

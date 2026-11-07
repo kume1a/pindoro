@@ -1,7 +1,11 @@
-# City pack format (v1)
+# City pack format (v2)
 
 A city pack is a read-only SQLite database built by `pipeline` from OpenStreetMap data and
 downloaded by the app. Packs are immutable: a new build gets a new `version` and a new file name.
+
+v2 (2026-11) adds the `quarter` area kind (OSM `place=quarter`, which v1 stored as
+`neighbourhood`) and puts area centres at the pole of inaccessibility. The app downloads only the
+format it supports; v1 packs already on a phone still open.
 
 ## Files
 
@@ -19,7 +23,7 @@ downloaded by the app. Packs are immutable: a new build gets a new `version` and
 
 ```json
 {
-  "format_version": 1,
+  "format_version": 2,
   "city": "tbilisi",
   "name_ka": "თბილისი",
   "name_en": "Tbilisi",
@@ -61,7 +65,7 @@ zone. Street geometry is simplified to 3 m.
 
 ## Schema
 
-`PRAGMA user_version = 1` equals `format_version`.
+`PRAGMA user_version = 2` equals `format_version`.
 
 ```sql
 CREATE TABLE meta (
@@ -88,11 +92,11 @@ CREATE TABLE city (
 
 CREATE TABLE district (
   id              TEXT PRIMARY KEY,      -- 'osm:r<relation id>', 'osm:w<way id>' or 'curated:<slug>'
-  kind            TEXT NOT NULL CHECK (kind IN ('district', 'neighbourhood')),
-  osm_relation_id INTEGER,               -- NULL for curated and way-drawn neighbourhoods
+  kind            TEXT NOT NULL CHECK (kind IN ('district', 'quarter', 'neighbourhood')),
+  osm_relation_id INTEGER,               -- NULL for curated and way-drawn areas
   name_ka         TEXT NOT NULL,
   name_en         TEXT,
-  center_lat      REAL NOT NULL,         -- point on surface, for labels/camera
+  center_lat      REAL NOT NULL,         -- pole of inaccessibility, for labels/camera
   center_lon      REAL NOT NULL,
   min_lat         REAL NOT NULL,
   min_lon         REAL NOT NULL,
@@ -139,11 +143,13 @@ CREATE INDEX street_district_district ON street_district (district_id);
   expert = unclassified/residential/living_street.
 - `street_district`: a street belongs to a district when its length inside is ≥ 150 m or its share
   is ≥ 0.3. A street can belong to several districts.
-- Districts are the `subarea` members of the city relation (any `admin_level`). Neighbourhoods are
-  OSM `place=quarter|neighbourhood` areas (closed ways or multipolygons) clipped to the city, plus
-  curated ones from `data/cities/<city>/curation/neighbourhoods.geojson`. When OSM areas share a
-  name only the smallest is kept, and a neighbourhood with fewer than 10 streets is dropped (too
-  small for a round). Neighbourhoods may overlap each other and districts.
+- Districts are the `subarea` members of the city relation (any `admin_level`). Quarters and
+  neighbourhoods are OSM `place=quarter` and `place=neighbourhood` areas (closed ways or
+  multipolygons) clipped to the city, their kind taken from the tag, plus curated neighbourhoods
+  from `data/cities/<city>/curation/neighbourhoods.geojson`. When OSM areas share a name only the
+  smallest is kept, and an area with fewer than 10 streets is dropped (too small for a round).
+  Quarters tile most of a city; neighbourhoods are smaller and may overlap quarters, each other and
+  districts.
 
 ### Fixture scope
 

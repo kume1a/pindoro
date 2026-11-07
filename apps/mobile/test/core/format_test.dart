@@ -11,6 +11,13 @@ void main() {
     expect(formatNumber(1234567), '1 234 567');
   });
 
+  test('Georgian names romanise for Latin search', () {
+    expect(latinGeorgian('ვაკე'), 'vake');
+    expect(latinGeorgian('სოლოლაკი'), 'sololaki');
+    expect(latinGeorgian('ჩუღურეთი'), 'chughureti');
+    expect(latinGeorgian('Vake 2'), 'Vake 2');
+  });
+
   test('distances: metres under 1 km, else km with one decimal', () {
     const en = Locale('en'), ka = Locale('ka');
     expect(formatDistance(84.4, en), '84 m');

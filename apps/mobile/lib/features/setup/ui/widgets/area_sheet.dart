@@ -1,8 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/page_scaffold.dart';
+import 'package:pindoro/features/setup/data/area_tree.dart';
+import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 enum AreaMode { districts, circle, rectangle }
+
+/// "0 of 104 areas" before a pick, then "2 areas · 312 streets".
+String areaCountLine(
+  AppLocalizations l10n,
+  int total,
+  Set<String> picked,
+  Map<String, Set<String>>? streets,
+) {
+  if (picked.isEmpty || streets == null) {
+    return l10n.areaCount(total, picked.length);
+  }
+  final n = streetCount(streets, picked);
+  return '${l10n.areaPickedCount(picked.length)} · '
+      '${l10n.areaStreetCount(n, formatNumber(n))}';
+}
 
 class AreaSheet extends StatelessWidget {
   const AreaSheet({
@@ -33,68 +51,47 @@ class AreaSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
-    return Container(
-      decoration: BoxDecoration(
-        color: c.surfaceOverlay,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(PindoroRadius.r2xl),
-        ),
-        border: Border(
-          top: BorderSide(color: c.lineBase, width: PindoroStroke.base),
-        ),
-      ),
-      child: ContentColumn(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            PindoroSpace.s4,
-            PindoroSpace.s4,
-            PindoroSpace.s4,
-            bottomActionGap(context),
+    return BottomPanel(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: PindoroSpace.s3,
+        children: [
+          if (modes.length > 1)
+            SegmentedControl(
+              segments: modes,
+              selected: mode,
+              onChanged: onMode,
+            ),
+          Text(
+            title,
+            style: PindoroType.titleLg.copyWith(color: c.textPrimary),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            spacing: PindoroSpace.s3,
-            children: [
-              if (modes.length > 1)
-                SegmentedControl(
-                  segments: modes,
-                  selected: mode,
-                  onChanged: onMode,
-                ),
-              Text(
-                title,
-                style: PindoroType.titleLg.copyWith(color: c.textPrimary),
-              ),
-              if (count != null)
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        count!,
-                        style: PindoroType.labelMd.copyWith(
-                          color: c.textSecondary,
-                        ),
-                      ),
-                    ),
-                    ?all,
-                  ],
-                ),
-              Text(
-                help,
-                style: PindoroType.bodySm.copyWith(color: c.textSecondary),
-              ),
-              if (content != null)
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.sizeOf(context).height * 0.25,
+          if (count != null)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    count!,
+                    style: PindoroType.labelMd.copyWith(color: c.textSecondary),
                   ),
-                  child: SingleChildScrollView(child: content),
                 ),
-              next,
-            ],
+                ?all,
+              ],
+            ),
+          Text(
+            help,
+            style: PindoroType.bodySm.copyWith(color: c.textSecondary),
           ),
-        ),
+          if (content != null)
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.25,
+              ),
+              child: SingleChildScrollView(child: content),
+            ),
+          next,
+        ],
       ),
     );
   }

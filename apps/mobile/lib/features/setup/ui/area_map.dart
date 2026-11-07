@@ -10,11 +10,11 @@ import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// Districts show below [PindoroCamera.areaDetailZoom], neighbourhoods from
-/// it on.
-DistrictKind levelAt(double zoom) => zoom < PindoroCamera.areaDetailZoom
-    ? DistrictKind.district
-    : DistrictKind.neighbourhood;
+/// Districts show below [PindoroCamera.areaDetailZoom]; from it on, the
+/// smaller areas inside them (quarters and neighbourhoods).
+bool detailAt(double zoom) => zoom >= PindoroCamera.areaDetailZoom;
+
+bool isDetail(District d) => d.kind != DistrictKind.district;
 
 /// The area a tap at [at] picks: the smallest one of the zoom's level that
 /// contains it, else the smallest of any level.
@@ -23,12 +23,13 @@ District? areaAt(List<District> areas, LatLng at, double zoom) {
     for (final d in areas)
       if (d.boundary.any((p) => polygonContains(p, at))) d,
   ]..sort((a, b) => a.areaM2.compareTo(b.areaM2));
-  final level = levelAt(zoom);
-  return hits.where((d) => d.kind == level).firstOrNull ?? hits.firstOrNull;
+  final detail = detailAt(zoom);
+  return hits.where((d) => isDetail(d) == detail).firstOrNull ??
+      hits.firstOrNull;
 }
 
 /// The area picker's map: outlines and name chips of the zoom's level (see
-/// [levelAt]), picked areas in "you" cobalt at every zoom. Reports taps and
+/// [detailAt]), picked areas in "you" cobalt at every zoom. Reports taps and
 /// the camera (centre + zoom) so shapes can be drawn over it.
 class AreaPickerMap extends StatefulWidget {
   const AreaPickerMap({
@@ -39,6 +40,7 @@ class AreaPickerMap extends StatefulWidget {
     required this.initialBounds,
     required this.onTap,
     required this.onCamera,
+    this.lastTapped,
     this.focus,
     this.showDistricts = true,
   });
@@ -48,6 +50,10 @@ class AreaPickerMap extends StatefulWidget {
   /// Each area's display name, by id.
   final Map<String, String> names;
   final Set<String> picked;
+
+  /// The area the player touched last: its chip wins collisions after the
+  /// picked ones.
+  final String? lastTapped;
   final Bbox initialBounds;
   final ValueChanged<LatLng> onTap;
   final void Function(LatLng center, double zoom) onCamera;
@@ -73,12 +79,30 @@ const String _allSource = 'areas-all';
 const String _pickedSource = 'areas-picked';
 const String _labelSource = 'areas-labels';
 
-/// Layers shown only while picking areas, with the level each one draws.
-const List<(String layer, DistrictKind level)> _levelLayers = [
-  ('$_allSource-district', DistrictKind.district),
-  ('$_allSource-neighbourhood', DistrictKind.neighbourhood),
-  ('$_labelSource-district', DistrictKind.district),
-  ('$_labelSource-neighbourhood', DistrictKind.neighbourhood),
+const String _districtOutlines = '$_allSource-district';
+const String _quarterOutlines = '$_allSource-quarter';
+const String _districtLabels = '$_labelSource-district';
+const String _detailLabels = '$_labelSource-detail';
+const String _pickedLabels = '$_labelSource-picked';
+
+/// Layers shown only while picking areas.
+const List<String> _pickingLayers = [
+  _districtOutlines,
+  _quarterOutlines,
+  _districtLabels,
+  _detailLabels,
+  _pickedLabels,
+];
+
+/// Outline widths from v1-screens.md (Area picker): districts thinner while
+/// they are the level being picked, quarters thinnest.
+const double _districtFarOutline = 1.5;
+const double _quarterOutline = 1;
+
+const List<Object> _isDistrict = [
+  '==',
+  ['get', 'kind'],
+  'district',
 ];
 
 class _AreaPickerMapState extends State<AreaPickerMap> {
@@ -103,7 +127,9 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
   void didUpdateWidget(AreaPickerMap old) {
     super.didUpdateWidget(old);
     if (!_ready) return;
-    if (old.picked != widget.picked) unawaited(_syncPicked());
+    if (old.picked != widget.picked || old.lastTapped != widget.lastTapped) {
+      unawaited(_syncPicked());
+    }
     if (old.showDistricts != widget.showDistricts) {
       unawaited(_syncVisibility());
     }
@@ -155,21 +181,41 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
     _pickedImages.clear();
     await _addImages(widget.districts, picked: false);
     await c.addGeoJsonSource(_allSource, _polygons(widget.districts));
-    for (final (layer, level) in _levelLayers.take(2)) {
-      await c.addLineLayer(
-        _allSource,
-        layer,
-        ml.LineLayerProperties(
-          lineColor: _hex(colors.mapRegionOutline),
-          lineWidth: PindoroStroke.base,
-          lineJoin: 'round',
-        ),
-        filter: ['==', 'kind', level.name],
-        minzoom: _minZoom(level),
-        maxzoom: _maxZoom(level),
-        enableInteraction: false,
-      );
-    }
+    // Districts frame the map at every zoom. Neighbourhoods overlap the
+    // quarters, so only a picked one gets an outline (the picked layer).
+    await c.addLineLayer(
+      _allSource,
+      _districtOutlines,
+      ml.LineLayerProperties(
+        lineColor: _hex(colors.mapRegionOutline),
+        lineWidth: [
+          'step',
+          ['zoom'],
+          _districtFarOutline,
+          PindoroCamera.areaDetailZoom,
+          PindoroStroke.base,
+        ],
+        lineJoin: 'round',
+      ),
+      filter: _isDistrict,
+      enableInteraction: false,
+    );
+    await c.addLineLayer(
+      _allSource,
+      _quarterOutlines,
+      ml.LineLayerProperties(
+        lineColor: _hex(colors.mapRegionOutline),
+        lineWidth: _quarterOutline,
+        lineJoin: 'round',
+      ),
+      filter: [
+        '==',
+        ['get', 'kind'],
+        DistrictKind.quarter.name,
+      ],
+      minzoom: PindoroCamera.areaDetailZoom,
+      enableInteraction: false,
+    );
     await c.addGeoJsonSource(_pickedSource, _polygons(const []));
     await c.addFillLayer(
       _pickedSource,
@@ -191,7 +237,14 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
       enableInteraction: false,
     );
     await c.addGeoJsonSource(_labelSource, _labels());
-    for (final (layer, level) in _levelLayers.skip(2)) {
+    const unpicked = [
+      '!',
+      ['get', 'picked'],
+    ];
+    for (final (layer, filter, minzoom, maxzoom) in [
+      (_districtLabels, _isDistrict, null, PindoroCamera.areaDetailZoom),
+      (_detailLabels, ['!', _isDistrict], PindoroCamera.areaDetailZoom, null),
+    ]) {
       await c.addSymbolLayer(
         _labelSource,
         layer,
@@ -199,28 +252,29 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
           iconImage: ['get', 'icon'],
           symbolSortKey: ['get', 'sort'],
         ),
-        // Picked areas keep their chip at every zoom.
-        filter: [
-          'any',
-          ['==', 'kind', level.name],
-          ['==', 'picked', true],
-        ],
-        minzoom: _minZoom(level),
-        maxzoom: _maxZoom(level),
+        filter: ['all', filter, unpicked],
+        minzoom: minzoom,
+        maxzoom: maxzoom,
         enableInteraction: false,
       );
     }
+    // Added last, so placed first: picked chips show at every zoom and the
+    // others make way for them.
+    await c.addSymbolLayer(
+      _labelSource,
+      _pickedLabels,
+      const ml.SymbolLayerProperties(
+        iconImage: ['get', 'icon'],
+        iconAllowOverlap: true,
+      ),
+      filter: ['get', 'picked'],
+      enableInteraction: false,
+    );
     _ready = true;
     await _syncPicked();
     await _syncVisibility();
     await _moveTo(widget.focus ?? widget.initialBounds);
   }
-
-  static double? _minZoom(DistrictKind level) =>
-      level == DistrictKind.neighbourhood ? PindoroCamera.areaDetailZoom : null;
-
-  static double? _maxZoom(DistrictKind level) =>
-      level == DistrictKind.district ? PindoroCamera.areaDetailZoom : null;
 
   Future<void> _syncPicked() async {
     final c = _controller!;
@@ -238,13 +292,13 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
   }
 
   Future<void> _syncVisibility() async {
-    for (final (layer, _) in _levelLayers) {
+    for (final layer in _pickingLayers) {
       await _controller?.setLayerVisibility(layer, widget.showDistricts);
     }
   }
 
-  /// One point per area at its centre; bigger areas win label collisions,
-  /// picked ones beat all.
+  /// One point per area at its centre. Among unpicked chips the one touched
+  /// last wins collisions, then the bigger area.
   Map<String, dynamic> _labels() => {
     'type': 'FeatureCollection',
     'features': [
@@ -255,7 +309,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
             'kind': d.kind.name,
             'picked': widget.picked.contains(d.id),
             'icon': _image(d.id, picked: widget.picked.contains(d.id)),
-            'sort': widget.picked.contains(d.id) ? -1e12 : -d.areaM2,
+            'sort': d.id == widget.lastTapped ? -1e12 : -d.areaM2,
           },
           'geometry': {
             'type': 'Point',

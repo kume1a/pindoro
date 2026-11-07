@@ -959,7 +959,7 @@
         "building_part"
       ],
       "paint": {
-        "fill-color": "#efefeb",
+        "fill-color": "#e9e9e4",
         "fill-opacity": 0.5
       }
     },
@@ -1681,7 +1681,7 @@
           0.75
         ],
         "line-opacity": 0.5,
-        "line-color": "#d6d6d2",
+        "line-color": "#cfcfca",
         "line-width": [
           "interpolate",
           [
@@ -1711,7 +1711,7 @@
         2
       ],
       "paint": {
-        "line-color": "#c8c8c4",
+        "line-color": "#bdbdb8",
         "line-width": 0.7,
         "line-dasharray": [
           "step",
@@ -1747,7 +1747,7 @@
         2
       ],
       "paint": {
-        "line-color": "#c8c8c4",
+        "line-color": "#bdbdb8",
         "line-width": 0.4,
         "line-dasharray": [
           "step",

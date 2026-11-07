@@ -6,6 +6,7 @@
   "commonBack": "Back",
   "commonContinue": "Continue",
   "commonDone": "Done",
+  "commonUndo": "Undo",
   "commonCancel": "Cancel",
   "commonTryAgain": "Try again",
   "commonXp": "+{xp} XP",
@@ -112,7 +113,7 @@
     }
   },
   "cityNoResultsBody": "Check the spelling. Pindoro has these cities so far.",
-  "areaModeDistricts": "Districts",
+  "areaModeAreas": "Areas",
   "areaModeCircle": "Circle",
   "areaModeRectangle": "Rectangle",
   "areaNamesTwo": "{first} and {second}",
@@ -137,8 +138,8 @@
       }
     }
   },
-  "areaDistrictCount": "{total, plural, =1{{count} of {total} district} other{{count} of {total} districts}}",
-  "@areaDistrictCount": {
+  "areaCount": "{total, plural, =1{{count} of {total} area} other{{count} of {total} areas}}",
+  "@areaCount": {
     "placeholders": {
       "total": {
         "type": "int"
@@ -148,9 +149,30 @@
       }
     }
   },
-  "areaHelp": "Tap districts on the map or here. Pick one or more.",
-  "areaNoneTitle": "Pick your districts",
-  "areaNoneButton": "Pick a district first",
+  "areaPickedCount": "{count, plural, =1{1 area} other{{count} areas}}",
+  "@areaPickedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "areaStreetCount": "{count, plural, =1{1 street} other{{n} streets}}",
+  "@areaStreetCount": {
+    "description": "{count} picks the plural; {n} is the same number grouped for display.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "areaFewStreets": "Few streets: some may repeat",
+  "areaHelp": "Tap areas on the map or here. Pick one or more.",
+  "areaNoneTitle": "Pick your areas",
+  "areaNoneButton": "Pick an area first",
   "areaAllChip": "All {count}",
   "@areaAllChip": {
     "placeholders": {
@@ -159,9 +181,9 @@
       }
     }
   },
-  "areaAllTitle": "All districts",
-  "areaSearchHint": "Search districts",
-  "areaNoResults": "No districts called “{query}”",
+  "areaAllTitle": "All areas",
+  "areaSearchHint": "Search areas",
+  "areaNoResults": "No areas called “{query}”",
   "@areaNoResults": {
     "placeholders": {
       "query": {
@@ -169,15 +191,45 @@
       }
     }
   },
-  "areaOffline": "You're offline, so only Vake works until Tbilisi downloads.",
-  "packDownloading": "Downloading {city}",
-  "@packDownloading": {
+  "areaDistrictTag": "District",
+  "areaIncluded": "In {name}",
+  "@areaIncluded": {
+    "description": "A smaller area covered by its picked district.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "areaNarrowed": "Only {name} now",
+  "@areaNarrowed": {
+    "description": "Toast after a tap inside a picked district narrowed the pick to one area.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "areaShowParts": "Areas in {name}",
+  "@areaShowParts": {
+    "description": "Screen-reader label of the button that opens a district's areas.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "areaClear": "Clear",
+  "areaOffline": "Offline: only Vake is available",
+  "packGettingReady": "Getting {city} ready",
+  "@packGettingReady": {
     "placeholders": {
       "city": {
         "type": "String"
       }
     }
   },
+  "packDownloadBody": "Streets and areas download once, then work offline.",
   "packDownloadSize": "{received} of {total}",
   "@packDownloadSize": {
     "placeholders": {
@@ -190,7 +242,12 @@
     }
   },
   "packFailedTitle": "Couldn't download this city",
-  "packFailedBody": "Check your connection and try again, or choose another city.",
+  "packFailedBody": "Check your connection and try again.",
+  "packVakeOffline": "Available without internet: Vake.",
+  "packPlayVake": "Play Vake",
+  "packChooseCity": "Choose another city",
+  "packNoSpaceTitle": "Not enough space",
+  "packNoSpaceBody": "Free up a little space on your phone and try again.",
   "areaPlayArea": "Play area",
   "areaCircleHelp": "Drag the map to move the circle. Drag its handle or the slider to resize it.",
   "areaRectangleHelp": "Drag the map to move the rectangle. Drag a corner to resize it.",

@@ -13,11 +13,11 @@ WHERE s.length_m > 0
 
 CREATE INDEX ON pipeline.street_district (district_id);
 
--- Neighbourhoods with too few streets for a round are dropped.
+-- Quarters and neighbourhoods with too few streets for a round are dropped.
 
 DELETE FROM pipeline.district d
 USING pipeline.params p
-WHERE d.kind = 'neighbourhood'
+WHERE d.kind <> 'district'
   AND (SELECT count(*) FROM pipeline.street_district sd WHERE sd.district_id = d.id)
       < p.min_area_streets;
 

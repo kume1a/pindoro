@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pindoro/features/setup/data/area_tree.dart';
 import 'package:pindoro/features/setup/ui/area_map.dart';
-import 'package:pindoro/features/setup/ui/area_screen.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
 District _area(
@@ -34,13 +34,7 @@ District _area(
 void main() {
   final west = _area('west', DistrictKind.district, 41.7, 44.7, 0.1);
   final east = _area('east', DistrictKind.district, 41.7, 44.8, 0.1);
-  final quarter = _area(
-    'quarter',
-    DistrictKind.neighbourhood,
-    41.72,
-    44.72,
-    0.04,
-  );
+  final quarter = _area('quarter', DistrictKind.quarter, 41.72, 44.72, 0.04);
   final corner = _area(
     'corner',
     DistrictKind.neighbourhood,
@@ -74,5 +68,31 @@ void main() {
       'west': ['quarter', 'corner'],
       'east': ['outside'],
     });
+  });
+
+  test('a district takes its areas in; a tap inside it narrows the pick', () {
+    final tree = AreaTree(areas);
+    var picked = {'corner', 'outside'};
+    bool tap(String id) {
+      final step = tree.toggle(picked, id);
+      picked = step.picked;
+      return step.narrowed;
+    }
+
+    expect(tap('west'), isFalse);
+    expect(picked, {'outside', 'west'});
+    expect(tap('quarter'), isTrue);
+    expect(picked, {'outside', 'quarter'});
+    expect(tap('quarter'), isFalse);
+    expect(picked, {'outside'});
+    expect(tree.normalise({'west', 'corner', 'east'}), {'west', 'east'});
+  });
+
+  test('street counts join the areas without counting a street twice', () {
+    const byArea = {
+      'west': {'a', 'b'},
+      'quarter': {'b', 'c'},
+    };
+    expect(streetCount(byArea, ['west', 'quarter', 'unknown']), 3);
   });
 }

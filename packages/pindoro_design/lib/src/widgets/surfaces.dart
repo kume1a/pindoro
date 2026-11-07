@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
+import 'graphics.dart';
 
 /// A flat face sitting on a solid bottom lip: the system's only depth.
 /// Cards, list groups, chips, pills and buttons are all built from it.
@@ -123,6 +124,7 @@ class ListRow extends StatelessWidget {
     this.onTap,
     this.semanticsLabel,
     this.toggled,
+    this.check,
   });
 
   final String title;
@@ -137,13 +139,20 @@ class ListRow extends StatelessWidget {
   /// Set for a row whose trailing slot is a toggle: announced as a switch.
   final bool? toggled;
 
+  /// Set for a checkbox row: the box sits before [trailing] and the row is
+  /// announced as a checkbox (partial as mixed).
+  final CheckState? check;
+
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
     final enabled = onTap != null || toggled == null;
+    final check = this.check;
     return Semantics(
-      button: onTap != null && toggled == null,
+      button: onTap != null && toggled == null && check == null,
       toggled: toggled,
+      checked: check?.isChecked,
+      mixed: check == null ? null : check == CheckState.partial,
       label: semanticsLabel,
       excludeSemantics: semanticsLabel != null,
       child: Material(
@@ -185,6 +194,7 @@ class ListRow extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (check != null) _CheckBox(check),
                   ?trailing,
                 ],
               ),
@@ -192,6 +202,55 @@ class ListRow extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A checkbox [ListRow]'s state. [included] is checked by a parent pick (a
+/// district covers its quarters): ticked, but in the soft tint.
+enum CheckState {
+  off,
+  on,
+  partial,
+  included;
+
+  bool get isChecked => this == on || this == included;
+}
+
+class _CheckBox extends StatelessWidget {
+  const _CheckBox(this.state);
+
+  final CheckState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    final (fill, ink, glyph) = switch (state) {
+      CheckState.off => (null, null, null),
+      CheckState.on => (c.primaryBase, c.primaryOn, PindoroGlyph.check),
+      CheckState.partial => (c.primaryBase, c.primaryOn, PindoroGlyph.minus),
+      CheckState.included => (c.primarySoft, c.primaryText, PindoroGlyph.check),
+    };
+    return Container(
+      width: PindoroSize.iconMd,
+      height: PindoroSize.iconMd,
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(PindoroRadius.xs),
+        border: fill == null
+            ? Border.all(color: c.lineStrong, width: PindoroStroke.base)
+            : null,
+      ),
+      child: glyph == null
+          ? null
+          : Center(
+              child: PindoroIcon(
+                glyph,
+                size: PindoroSize.iconSm,
+                color: ink,
+                cut: fill,
+              ),
+            ),
     );
   }
 }

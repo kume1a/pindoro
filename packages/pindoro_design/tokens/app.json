@@ -1,55 +1,6 @@
 {
   "name": "Pindoro app tokens",
   "meta": {
-    "note": "Tokens the app needs that the claude.ai design system (tokens.json, copied verbatim) does not define. Same format; values may alias tokens.json. When the design system gains one of these, delete it here: the generator fails on duplicates."
-  },
-  "color": {
-    "tokens": [
-      {
-        "name": "color.map.basemap.building",
-        "value": { "light": "#efefeb", "dark": "#2e2e2e" },
-        "usage": "Building footprints on the self-hosted vector basemap."
-      },
-      {
-        "name": "color.map.basemap.railway",
-        "value": { "light": "#d6d6d2", "dark": "#3a3a3a" },
-        "usage": "Railway lines on the self-hosted vector basemap."
-      },
-      {
-        "name": "color.map.basemap.boundary",
-        "value": { "light": "#c8c8c4", "dark": "#4a4a4a" },
-        "usage": "Administrative boundaries on the self-hosted vector basemap."
-      },
-      {
-        "name": "color.map.mask",
-        "value": { "light": "{color.asphalt.900}", "dark": "{color.asphalt.975}" },
-        "usage": "Dims the map outside the round's area, at opacity.mask."
-      }
-    ]
-  },
-  "opacity": {
-    "tokens": [
-      { "name": "opacity.mask", "value": "0.35", "usage": "Map outside the round's area." }
-    ]
-  },
-  "size": {
-    "tokens": [
-      {
-        "name": "size.map.measure-gap",
-        "value": "6px",
-        "usage": "Gap between the dots of the measure line (dotted 0/6, Map overlays)."
-      }
-    ]
-  },
-  "camera": {
-    "tokens": [
-      { "name": "camera.zoom", "value": "13.5", "usage": "Initial zoom before the camera fits the area." },
-      {
-        "name": "camera.area-detail-zoom",
-        "value": "12",
-        "usage": "Area picker: from this zoom the map shows neighbourhoods instead of districts."
-      },
-      { "name": "camera.fit-padding-x", "value": "32px", "usage": "Side padding when fitting the area or the reveal." }
-    ]
+    "note": "Tokens the app needs that the claude.ai design system (tokens.json, copied verbatim) does not define. Same format as tokens.json (groups of {name, value, usage}); values may alias tokens.json. Empty while the design system covers everything. When the design system gains one of these, delete it here: the generator fails on duplicates."
   }
 }

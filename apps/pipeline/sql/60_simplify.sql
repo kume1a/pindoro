@@ -1,5 +1,6 @@
 -- Pack-ready WGS84 geometry: simplified to 3 m in UTM. The midpoint is taken on the simplified line so it
--- always lies on the geometry the app draws.
+-- always lies on the geometry the app draws. An area's centre (where its map chip sits) is its pole of
+-- inaccessibility, so oddly shaped areas keep the chip well inside.
 
 CREATE TABLE pipeline.pack_street AS
 SELECT s.key,
@@ -14,7 +15,7 @@ CROSS JOIN LATERAL (
 CREATE TABLE pipeline.pack_area AS
 SELECT d.id,
        ST_Area(d.geom) AS area_m2,
-       ST_Transform(ST_PointOnSurface(d.geom), 4326) AS center,
+       ST_Transform((ST_MaximumInscribedCircle(d.geom)).center, 4326) AS center,
        ST_Transform(ST_Multi(ST_SimplifyPreserveTopology(d.geom, 3)), 4326) AS geom
 FROM pipeline.district d
 UNION ALL
