@@ -1,7 +1,7 @@
 import type { FastifyPluginAsyncTypebox } from "@fastify/type-provider-typebox";
 import { sql } from "drizzle-orm";
 import { Type } from "typebox";
-import type { Db } from "../db/client.ts";
+import type { Db } from "../../db/client.ts";
 
 const Health = Type.Object({
   status: Type.Union([Type.Literal("ok"), Type.Literal("unavailable")]),

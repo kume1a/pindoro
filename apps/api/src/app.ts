@@ -5,8 +5,8 @@ import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { Config } from "./config.ts";
 import { createDb } from "./db/client.ts";
-import { catalogRoutes } from "./routes/catalog.ts";
-import { healthRoutes } from "./routes/health.ts";
+import { catalogRoutes } from "./modules/catalog/catalog.routes.ts";
+import { healthRoutes } from "./modules/health/health.routes.ts";
 
 export const buildApp = async (config: Config): Promise<FastifyInstance> => {
   const app = Fastify({

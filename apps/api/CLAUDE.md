@@ -22,8 +22,13 @@ docker build -f apps/api/Dockerfile .   # from the repo root
   PostGIS. Vars: `NODE_ENV`, `HOST`, `PORT`, `LOG_LEVEL`, `DATABASE_URL`, `PACKS_DIR`,
   `PACKS_PUBLIC_URL`.
 - `src/app.ts` – `buildApp(config)`; registers sensible, swagger (+ swagger-ui at `/docs` outside
-  production) and the route plugins. Closing the app ends the DB pool.
-- `src/routes/` – `GET /health` (DB + PostGIS check, 503 when down), `GET /v1/catalog`.
+  production) and one plugin per module. Closing the app ends the DB pool.
+- `src/modules/<module>/` – one vertical slice per feature, registered in `app.ts` as a Fastify
+  plugin (its hooks and decorators stay private to it): `<module>.routes.ts` (HTTP),
+  `<module>.schemas.ts` (TypeBox contract, when the module has more than a route-local schema), and
+  a `<module>.service.ts` only once logic outgrows the handler. Modules never import each other;
+  shared infrastructure lives in `src/db/`. Today: `health` (`GET /health`, DB + PostGIS check,
+  503 when down) and `catalog` (`GET /v1/catalog`).
 - `src/db/schema.ts` – tables `city`, `district`, `street`, `street_district`, `pack`; geometry via
   a `customType` (`geometry(MultiPolygon|MultiLineString, 4326)`), PostGIS functions only through
   drizzle `sql```.
