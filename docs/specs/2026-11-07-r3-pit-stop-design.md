@@ -1,7 +1,7 @@
 # R3 · v1.2 — Pit stop and mastery
 
 - Date: 2026-11-07
-- Status: proposed
+- Status: implemented
 - Builds on: R2 (`docs/specs/2026-11-07-r2-daily-habit-design.md`)
 - Source: `docs/design/v1-screens.md` § R3 · v1.2 Pit stop and mastery; claude.ai screens canvas boards
   R3-01 Home, R3-02 Pit stop, R3-03 Reveal Miss, R3-04 Results (`PitStopScreen`, and `HomeScreen`,
@@ -17,17 +17,17 @@ swatch and screen-reader label they're still missing on Home's district rows.
 
 ## Decisions
 
-| Topic         | Decision                                                                                 |
-| ------------- | ---------------------------------------------------------------------------------------- |
-| Storage       | A `review_item` table, updated with every answer (the board's ReviewItem)                |
-| History       | Starts empty at the update; answers from before it don't enter the Pit stop              |
-| What counts   | Every answer to a street in the Pit stop is a review, in any kind of round               |
-| Close         | Advances a step and breaks the run of Greats                                             |
-| Round size    | Up to 10 streets, most overdue first; the rest wait for the next Pit stop                |
-| Scope         | Per city; streets retired from the pack drop out of the list and the rounds              |
-| Due           | On calendar days: due once today reaches `due_on`                                        |
-| Round         | The districts holding the due streets, the saved difficulty, the existing "Try again" plate |
-| Mastery       | Already drawn on the mini map; district rows gain the swatch and ", complete"           |
+| Topic       | Decision                                                                                    |
+| ----------- | ------------------------------------------------------------------------------------------- |
+| Storage     | A `review_item` table, updated with every answer (the board's ReviewItem)                   |
+| History     | Starts empty at the update; answers from before it don't enter the Pit stop                 |
+| What counts | Every answer to a street in the Pit stop is a review, in any kind of round                  |
+| Close       | Advances a step and breaks the run of Greats                                                |
+| Round size  | Up to 10 streets, most overdue first; the rest wait for the next Pit stop                   |
+| Scope       | Per city; streets retired from the pack drop out of the list and the rounds                 |
+| Due         | On calendar days: due once today reaches `due_on`                                           |
+| Round       | The districts holding the due streets, the saved difficulty, the existing "Try again" plate |
+| Mastery     | Already drawn on the mini map; district rows gain the swatch and ", complete"               |
 
 ## Rules (`pindoro_core`, `review.dart`)
 
@@ -36,10 +36,10 @@ Pure Dart. `ReviewRules.intervals = [1, 3, 7, 21]` (days per step), `ReviewRules
 `ReviewState? nextReview(ReviewState? current, Tier tier, DateTime day)`, where
 `ReviewState = ({int step, int greatRun, DateTime dueOn})` and `day` is the answer's calendar day:
 
-| Current     | Miss                  | Close                         | Great or Perfect                                 |
-| ----------- | --------------------- | ----------------------------- | ------------------------------------------------ |
-| none        | step 1, due day + 1   | step 1, due day + 1           | none (nothing to review)                         |
-| step s      | step 1, run 0, due +1 | step min(s + 1, 4), run 0     | run + 1; at 2 graduates (none), else step min(s + 1, 4) |
+| Current | Miss                  | Close                     | Great or Perfect                                        |
+| ------- | --------------------- | ------------------------- | ------------------------------------------------------- |
+| none    | step 1, due day + 1   | step 1, due day + 1       | none (nothing to review)                                |
+| step s  | step 1, run 0, due +1 | step min(s + 1, 4), run 0 | run + 1; at 2 graduates (none), else step min(s + 1, 4) |
 
 The due day is `day + intervals[step − 1]`. Graduating returns null and the row is deleted.
 
