@@ -24,11 +24,6 @@
   refreshed; delete it when `georgia.pmtiles` updates (no tiles version to compare yet).
 - The offline toast probes the API's `/health`; there is no live connectivity listener.
 
-## App structure (follow-ups to the feature-first layout)
-
-- Split the long screens (`area_screen` ~800 lines, `home_screen`, `quiz_screen`) into
-  `ui/widgets/`.
-
 ## Data / pipeline
 
 - Neighbourhoods come from OSM `place=quarter|neighbourhood`; `curation/neighbourhoods.geojson` is

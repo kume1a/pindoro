@@ -59,3 +59,19 @@ String difficultyName(AppLocalizations l10n, Difficulty d) => switch (d) {
   Difficulty.hard => l10n.difficultyHard,
   Difficulty.expert => l10n.difficultyExpert,
 };
+
+/// A tier's localised label.
+String tierLabel(AppLocalizations l10n, Tier tier) => switch (tier) {
+  Tier.perfect => l10n.tierPerfect,
+  Tier.great => l10n.tierGreat,
+  Tier.close => l10n.tierClose,
+  Tier.miss => l10n.tierMiss,
+};
+
+/// A tier as one word, for result rows.
+String tierWord(AppLocalizations l10n, Tier tier) => switch (tier) {
+  Tier.perfect => l10n.tierPerfectWord,
+  Tier.great => l10n.tierGreatWord,
+  Tier.close => l10n.tierClose,
+  Tier.miss => l10n.tierMissWord,
+};

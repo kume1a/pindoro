@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
@@ -323,13 +324,6 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
     );
   }
 }
-
-String tierWord(AppLocalizations l10n, Tier tier) => switch (tier) {
-  Tier.perfect => l10n.tierPerfectWord,
-  Tier.great => l10n.tierGreatWord,
-  Tier.close => l10n.tierClose,
-  Tier.miss => l10n.tierMissWord,
-};
 
 /// "Level 3" with the XP bar and "1 305 / 1 500"; the bar fills from [from]
 /// to [value] (default: the level's progress) after [delay] and calls

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/map/data/geojson.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
 void main() {

@@ -8,7 +8,9 @@ import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/location.dart';
 import 'package:pindoro/core/toast.dart';
+import 'package:pindoro/features/map/data/geojson.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
+import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -125,7 +127,7 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
 
   void _paintTick() => _controller?.setGeoJsonSource(
     MapSources.truthStreet,
-    _lines(_paintedTruth),
+    linesGeoJson(_paintedTruth),
   );
 
   void _startPaint() {
@@ -215,7 +217,7 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
       ),
       enableInteraction: false,
     );
-    await c.addGeoJsonSource(MapSources.truthStreet, _lines(const []));
+    await c.addGeoJsonSource(MapSources.truthStreet, linesGeoJson(const []));
     // Yellow paint over an ink casing: on light maps the casing carries contrast.
     for (final (id, color, width) in [
       (
@@ -237,7 +239,7 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
         enableInteraction: false,
       );
     }
-    await c.addGeoJsonSource(MapSources.measure, _lines(const []));
+    await c.addGeoJsonSource(MapSources.measure, linesGeoJson(const []));
     await c.addLineLayer(
       MapSources.measure,
       '${MapSources.measure}-line',
@@ -250,7 +252,7 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
       ),
       enableInteraction: false,
     );
-    await c.addGeoJsonSource(MapSources.measureEnd, _points(const []));
+    await c.addGeoJsonSource(MapSources.measureEnd, pointsGeoJson(const []));
     await c.addCircleLayer(
       MapSources.measureEnd,
       '${MapSources.measureEnd}-ring',
@@ -262,7 +264,7 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
       ),
       enableInteraction: false,
     );
-    await c.addGeoJsonSource(MapSources.measureLabel, _points(const []));
+    await c.addGeoJsonSource(MapSources.measureLabel, pointsGeoJson(const []));
     await c.addSymbolLayer(
       MapSources.measureLabel,
       '${MapSources.measureLabel}-chip',
@@ -274,7 +276,7 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
       enableInteraction: false,
     );
     _measureImages.clear();
-    await c.addGeoJsonSource(MapSources.youPin, _points(const []));
+    await c.addGeoJsonSource(MapSources.youPin, pointsGeoJson(const []));
     await c.addSymbolLayer(
       MapSources.youPin,
       '${MapSources.youPin}-pin',
@@ -292,18 +294,24 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
     final c = _controller!;
     final pin = widget.pin;
     final measure = widget.measure;
-    await c.setGeoJsonSource(MapSources.youPin, _points([?pin]));
-    await c.setGeoJsonSource(MapSources.truthStreet, _lines(_paintedTruth));
+    await c.setGeoJsonSource(MapSources.youPin, pointsGeoJson([?pin]));
+    await c.setGeoJsonSource(
+      MapSources.truthStreet,
+      linesGeoJson(_paintedTruth),
+    );
     await c.setGeoJsonSource(
       MapSources.measure,
-      _lines([
+      linesGeoJson([
         if (measure != null) [measure.from, measure.to],
       ]),
     );
-    await c.setGeoJsonSource(MapSources.measureEnd, _points([?measure?.to]));
+    await c.setGeoJsonSource(
+      MapSources.measureEnd,
+      pointsGeoJson([?measure?.to]),
+    );
     await c.setGeoJsonSource(
       MapSources.measureLabel,
-      measure == null ? _points(const []) : await _measureChip(measure),
+      measure == null ? pointsGeoJson(const []) : await _measureChip(measure),
     );
   }
 
@@ -421,82 +429,5 @@ class _PindoroMapState extends State<PindoroMap> with TickerProviderStateMixin {
   );
 }
 
-/// "© OpenStreetMap contributors, Protomaps" on every map: `label.sm` on a
-/// raised chip. Not interactive; the full credits are in Settings.
-class MapAttribution extends StatelessWidget {
-  const MapAttribution({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = PindoroTheme.of(context).colors;
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.sizeOf(context).width - 2 * PindoroSpace.s4,
-      ),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.mapAttributionBg,
-          borderRadius: BorderRadius.circular(PindoroRadius.sm),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: PindoroSpace.s2,
-            vertical: 2,
-          ),
-          child: Text(
-            context.l10n.commonAttribution,
-            style: PindoroType.labelSm.copyWith(
-              color: colors.mapAttributionText,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 String _hex(Color c) =>
     '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
-
-List<double> _coord(LatLng p) => [p.lon, p.lat];
-
-Map<String, dynamic> _collection(List<Map<String, dynamic>> geometries) => {
-  'type': 'FeatureCollection',
-  'features': [
-    for (final g in geometries)
-      {'type': 'Feature', 'properties': <String, dynamic>{}, 'geometry': g},
-  ],
-};
-
-Map<String, dynamic> _points(List<LatLng> points) => _collection([
-  for (final p in points) {'type': 'Point', 'coordinates': _coord(p)},
-]);
-
-Map<String, dynamic> _lines(MultiPolyline lines) => _collection([
-  if (lines.isNotEmpty)
-    {
-      'type': 'MultiLineString',
-      'coordinates': [
-        for (final line in lines) [for (final p in line) _coord(p)],
-      ],
-    },
-]);
-
-/// The world with every area polygon cut out; filled, it dims all but the area.
-Map<String, dynamic> areaMaskGeoJson(List<List<Polyline>> boundary) =>
-    _collection([
-      {
-        'type': 'Polygon',
-        'coordinates': [
-          const [
-            [-180.0, -85.0],
-            [180.0, -85.0],
-            [180.0, 85.0],
-            [-180.0, 85.0],
-            [-180.0, -85.0],
-          ],
-          for (final polygon in boundary)
-            [for (final p in polygon.first) _coord(p)],
-        ],
-      },
-    ]);

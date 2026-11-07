@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/online.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
@@ -16,7 +17,9 @@ import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/quiz/ui/round_controller.dart';
 import 'package:pindoro/features/quiz/ui/setup_states.dart';
-import 'package:pindoro/l10n/app_localizations.dart';
+import 'package:pindoro/features/quiz/ui/widgets/question_plate.dart';
+import 'package:pindoro/features/quiz/ui/widgets/reticle.dart';
+import 'package:pindoro/features/quiz/ui/widgets/round_reveal.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -118,13 +121,6 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   }
 }
 
-String tierLabel(AppLocalizations l10n, Tier tier) => switch (tier) {
-  Tier.perfect => l10n.tierPerfect,
-  Tier.great => l10n.tierGreat,
-  Tier.close => l10n.tierClose,
-  Tier.miss => l10n.tierMiss,
-};
-
 /// Whether this is the very first question the player sees (coach mark).
 final _firstQuestionEverProvider = FutureProvider.autoDispose<bool>(
   (ref) async => !await ref.watch(progressDaoProvider).hasAnswered(),
@@ -217,7 +213,7 @@ class _RoundView extends ConsumerWidget {
               ),
             ),
             if (coach) ...[
-              const Center(child: _Reticle()),
+              const Center(child: Reticle()),
               Align(
                 alignment: const Alignment(0, -0.25),
                 child: Padding(
@@ -283,7 +279,7 @@ class _RoundView extends ConsumerWidget {
                           child: child,
                         ),
                       ),
-                      child: _Plate(
+                      child: QuestionPlate(
                         key: ValueKey(round.currentId),
                         street: street,
                         settings: settings,
@@ -320,7 +316,10 @@ class _RoundView extends ConsumerWidget {
                   constraints: const BoxConstraints(maxWidth: 600),
                   child: RiseIn(
                     key: ValueKey(revealed.answer.id),
-                    child: _Reveal(revealed: revealed, onNext: controller.next),
+                    child: RoundReveal(
+                      revealed: revealed,
+                      onNext: controller.next,
+                    ),
                   ),
                 ),
               ),
@@ -355,162 +354,4 @@ class _RoundView extends ConsumerWidget {
     );
     if ((leave ?? false) && context.mounted) context.go(Routes.home);
   }
-}
-
-class _Plate extends StatelessWidget {
-  const _Plate({
-    super.key,
-    required this.street,
-    required this.settings,
-    required this.compact,
-    this.retryDistance,
-  });
-
-  final NamedStreet street;
-  final Settings? settings;
-  final bool compact;
-  final double? retryDistance;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final english = settings?.streetNames == StreetNameMode.english;
-    final name = settings?.streetName(street) ?? street.name;
-    // The other script on the sub-line: English under a local name, the local
-    // name under an English one.
-    final other = english
-        ? (name == street.name ? null : street.name)
-        : street.nameEn;
-    final distance = retryDistance == null
-        ? null
-        : l10n.quizRetryPreviousDistance(
-            formatDistance(retryDistance!, Localizations.localeOf(context)),
-          );
-    return StreetPlate(
-      name,
-      compact: compact,
-      prompt: retryDistance == null ? l10n.quizPrompt : l10n.quizRetryPrompt,
-      promptGlyph: retryDistance == null
-          ? PindoroGlyph.pin
-          : PindoroGlyph.reroute,
-      subline: [?other, ?distance].join(' · ').nullIfEmpty,
-      semanticLabel: other == null
-          ? l10n.a11yFindStreetName(name)
-          : l10n.a11yFindStreet(name, other),
-    );
-  }
-}
-
-extension on String {
-  String? get nullIfEmpty => isEmpty ? null : this;
-}
-
-class _Reveal extends StatelessWidget {
-  const _Reveal({required this.revealed, required this.onNext});
-
-  final RoundRevealed revealed;
-  final Future<void> Function() onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final answer = revealed.answer;
-    final distance = formatDistance(
-      answer.distanceM,
-      Localizations.localeOf(context),
-    );
-    final sentence = switch (answer.tier) {
-      Tier.perfect => l10n.tierPerfectSentence,
-      Tier.great => l10n.tierGreatSentence(distance),
-      Tier.close => l10n.tierCloseSentence(distance),
-      Tier.miss => l10n.tierMissSentence(
-        distance,
-        l10n.revealMissDirection(
-          compassPoint(revealed.pin!, revealed.nearest).name,
-        ),
-      ),
-    };
-    return CountUp(
-      value: answer.xp,
-      builder: (context, xp) => _sheet(l10n, sentence, xp),
-    );
-  }
-
-  Widget _sheet(AppLocalizations l10n, String sentence, int xp) {
-    final answer = revealed.answer;
-    final round = revealed.round;
-    return RevealSheet(
-      tier: answer.tier,
-      label: tierLabel(l10n, answer.tier),
-      sentence: sentence,
-      xpLabel: answer.tier == Tier.miss
-          ? null
-          : l10n.commonXp(formatNumber(xp)),
-      chips: [
-        if (answer.tier == Tier.perfect && round.perfects > 1)
-          l10n.revealPerfectRepeat(round.perfects),
-        if (round.streak >= 2) l10n.revealStreak(round.streak),
-      ],
-      mascot: Pindo(switch (answer.tier) {
-        Tier.perfect || Tier.great => PindoExpression.cheering,
-        Tier.close => PindoExpression.happy,
-        Tier.miss => PindoExpression.encouraging,
-      }, height: 80),
-      action: PindoroButton(
-        tier: answer.tier,
-        label: answer.tier == Tier.miss
-            ? l10n.revealGotIt
-            : round.isLast
-            ? l10n.revealSeeResults
-            : l10n.commonNext,
-        onPressed: () => unawaited(onNext()),
-      ),
-    );
-  }
-}
-
-/// Dashed cobalt ring at the map centre: where a first tap would land.
-class _Reticle extends StatelessWidget {
-  const _Reticle();
-
-  @override
-  Widget build(BuildContext context) => IgnorePointer(
-    child: CustomPaint(
-      size: const Size.square(48),
-      painter: _ReticlePainter(PindoroTheme.of(context).colors),
-    ),
-  );
-}
-
-class _ReticlePainter extends CustomPainter {
-  _ReticlePainter(this.colors);
-
-  final PindoroColors colors;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final ring = Paint()
-      ..color = colors.mapReticle
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = PindoroStroke.thick
-      ..strokeCap = StrokeCap.round;
-    const dashes = 12;
-    final rect = Rect.fromCircle(center: center, radius: size.width / 2 - 2);
-    for (var i = 0; i < dashes; i++) {
-      canvas.drawArc(
-        rect,
-        i * 2 * 3.14159 / dashes,
-        3.14159 / dashes,
-        false,
-        ring,
-      );
-    }
-    canvas
-      ..drawCircle(center, 6, Paint()..color = colors.mapPlayerHalo)
-      ..drawCircle(center, 4, Paint()..color = colors.mapReticle);
-  }
-
-  @override
-  bool shouldRepaint(_ReticlePainter old) => old.colors != colors;
 }

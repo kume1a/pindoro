@@ -7,16 +7,16 @@ import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
-import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/pack/ui/pack_pending.dart';
 import 'package:pindoro/features/setup/ui/area_map.dart';
+import 'package:pindoro/features/setup/ui/widgets/all_areas_sheet.dart';
+import 'package:pindoro/features/setup/ui/widgets/area_sheet.dart';
+import 'package:pindoro/features/setup/ui/widgets/shape_overlays.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
-
-enum AreaMode { districts, circle, rectangle }
 
 const double _metresPerDegree = 111195;
 
@@ -162,7 +162,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
         builder: (context) => FractionallySizedBox(
           heightFactor: 0.9,
           child: StatefulBuilder(
-            builder: (context, setSheetState) => _AllAreasSheet(
+            builder: (context, setSheetState) => AllAreasSheet(
               groups: groupByDistrict(areas),
               names: names,
               picked: _picked,
@@ -295,7 +295,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                 ),
                 if (mode == AreaMode.circle)
                   Positioned.fill(
-                    child: _CircleOverlay(
+                    child: CircleOverlay(
                       radiusPx: _radiusM / mpp,
                       label: formatSize(_radiusM, locale),
                       onResize: (px) {
@@ -309,7 +309,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                   ),
                 if (mode == AreaMode.rectangle)
                   Positioned.fill(
-                    child: _RectOverlay(
+                    child: RectOverlay(
                       size: Size(_widthM / mpp, _heightM / mpp),
                       label: formatSides(_widthM, _heightM, locale),
                       onResize: (size) => setState(() {
@@ -341,7 +341,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
               ],
             ),
           ),
-          _Sheet(
+          AreaSheet(
             modes: {
               if (districts.isNotEmpty)
                 AreaMode.districts: l10n.areaModeDistricts,
@@ -406,391 +406,4 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
       ),
     );
   }
-}
-
-class _AllAreasSheet extends StatefulWidget {
-  const _AllAreasSheet({
-    required this.groups,
-    required this.names,
-    required this.picked,
-    required this.onToggle,
-  });
-
-  final List<({District district, List<District> parts})> groups;
-  final Map<String, String> names;
-  final Set<String> picked;
-  final ValueChanged<String> onToggle;
-
-  @override
-  State<_AllAreasSheet> createState() => _AllAreasSheetState();
-}
-
-class _AllAreasSheetState extends State<_AllAreasSheet> {
-  final _query = TextEditingController();
-
-  @override
-  void dispose() {
-    _query.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final c = PindoroTheme.of(context).colors;
-    final query = _query.text.trim().toLowerCase();
-    bool matches(District d) =>
-        widget.names[d.id]!.toLowerCase().contains(query);
-    String name(District d) => widget.names[d.id]!;
-    final sections = [
-      for (final g in widget.groups)
-        (
-          title: name(g.district),
-          areas: [
-            g.district,
-            ...g.parts..sort((a, b) => name(a).compareTo(name(b))),
-          ].where(matches).toList(),
-        ),
-    ]..sort((a, b) => a.title.compareTo(b.title));
-    final shown = sections.where((s) => s.areas.isNotEmpty).toList();
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        PindoroSpace.s4,
-        PindoroSpace.s4,
-        PindoroSpace.s4,
-        bottomActionGap(context),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        spacing: PindoroSpace.s3,
-        children: [
-          Text(
-            l10n.areaAllTitle,
-            style: PindoroType.titleLg.copyWith(color: c.textPrimary),
-          ),
-          SearchField(
-            controller: _query,
-            placeholder: l10n.areaSearchHint,
-            clearLabel: l10n.cityClearSearch,
-            onChanged: (_) => setState(() {}),
-          ),
-          Expanded(
-            child: shown.isEmpty
-                ? Text(
-                    l10n.areaNoResults(_query.text.trim()),
-                    textAlign: TextAlign.center,
-                    style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
-                  )
-                : ListView(
-                    children: [
-                      for (final s in shown) ...[
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            top: PindoroSpace.s3,
-                            bottom: PindoroSpace.s2,
-                          ),
-                          child: SectionTitle(s.title),
-                        ),
-                        Wrap(
-                          spacing: PindoroSpace.s2,
-                          runSpacing: PindoroSpace.s2,
-                          children: [
-                            for (final d in s.areas)
-                              PindoroChip(
-                                label: name(d),
-                                selected: widget.picked.contains(d.id),
-                                onPressed: () => widget.onToggle(d.id),
-                              ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-          ),
-          PindoroButton(
-            label: l10n.commonDone,
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Sheet extends StatelessWidget {
-  const _Sheet({
-    required this.modes,
-    required this.mode,
-    required this.onMode,
-    required this.title,
-    required this.help,
-    required this.next,
-    this.count,
-    this.all,
-    this.content,
-  });
-
-  final Map<AreaMode, String> modes;
-  final AreaMode mode;
-  final ValueChanged<AreaMode> onMode;
-  final String title;
-  final String help;
-  final String? count;
-
-  /// The "All n" chip that opens every area, on the count line.
-  final Widget? all;
-  final Widget? content;
-  final Widget next;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = PindoroTheme.of(context).colors;
-    return Container(
-      decoration: BoxDecoration(
-        color: c.surfaceOverlay,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(PindoroRadius.r2xl),
-        ),
-        border: Border(
-          top: BorderSide(color: c.lineBase, width: PindoroStroke.base),
-        ),
-      ),
-      child: ContentColumn(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            PindoroSpace.s4,
-            PindoroSpace.s4,
-            PindoroSpace.s4,
-            bottomActionGap(context),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            spacing: PindoroSpace.s3,
-            children: [
-              if (modes.length > 1)
-                SegmentedControl(
-                  segments: modes,
-                  selected: mode,
-                  onChanged: onMode,
-                ),
-              Text(
-                title,
-                style: PindoroType.titleLg.copyWith(color: c.textPrimary),
-              ),
-              if (count != null)
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        count!,
-                        style: PindoroType.labelMd.copyWith(
-                          color: c.textSecondary,
-                        ),
-                      ),
-                    ),
-                    ?all,
-                  ],
-                ),
-              Text(
-                help,
-                style: PindoroType.bodySm.copyWith(color: c.textSecondary),
-              ),
-              if (content != null)
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.sizeOf(context).height * 0.25,
-                  ),
-                  child: SingleChildScrollView(child: content),
-                ),
-              next,
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The play circle in the middle of the map: dashed cobalt outline, centre
-/// dot, radius pill and a resize handle on the right edge.
-class _CircleOverlay extends StatelessWidget {
-  const _CircleOverlay({
-    required this.radiusPx,
-    required this.label,
-    required this.onResize,
-  });
-
-  final double radiusPx;
-  final String label;
-
-  /// The new radius in logical pixels.
-  final ValueChanged<double> onResize;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, box) {
-      final center = box.biggest.center(Offset.zero);
-      final colors = PindoroTheme.of(context).colors;
-      return Stack(
-        children: [
-          IgnorePointer(
-            child: CustomPaint(
-              size: box.biggest,
-              painter: _ShapePainter(
-                colors: colors,
-                rect: Rect.fromCircle(center: center, radius: radiusPx),
-                circle: true,
-              ),
-            ),
-          ),
-          Positioned(
-            left: center.dx - 60,
-            width: 120,
-            top: center.dy - radiusPx - 18,
-            child: IgnorePointer(
-              child: Center(child: Pill(label: label)),
-            ),
-          ),
-          _Handle(
-            at: center + Offset(radiusPx, 0),
-            onDrag: (p) => onResize((p - center).distance),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-/// The play rectangle with a size pill and four corner handles.
-class _RectOverlay extends StatelessWidget {
-  const _RectOverlay({
-    required this.size,
-    required this.label,
-    required this.onResize,
-  });
-
-  final Size size;
-  final String label;
-
-  /// The new size in logical pixels (symmetric about the centre).
-  final ValueChanged<Size> onResize;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, box) {
-      final center = box.biggest.center(Offset.zero);
-      final rect = Rect.fromCenter(
-        center: center,
-        width: size.width,
-        height: size.height,
-      );
-      final colors = PindoroTheme.of(context).colors;
-      void drag(Offset p) => onResize(
-        Size(2 * (p.dx - center.dx).abs(), 2 * (p.dy - center.dy).abs()),
-      );
-      return Stack(
-        children: [
-          IgnorePointer(
-            child: CustomPaint(
-              size: box.biggest,
-              painter: _ShapePainter(colors: colors, rect: rect, circle: false),
-            ),
-          ),
-          Positioned(
-            left: center.dx - 80,
-            width: 160,
-            top: rect.top - 18,
-            child: IgnorePointer(
-              child: Center(child: Pill(label: label)),
-            ),
-          ),
-          for (final corner in [
-            rect.topLeft,
-            rect.topRight,
-            rect.bottomLeft,
-            rect.bottomRight,
-          ])
-            _Handle(at: corner, onDrag: drag),
-        ],
-      );
-    },
-  );
-}
-
-/// A 48 dp target with a 20 dp white dot in a 3 dp cobalt ring.
-class _Handle extends StatelessWidget {
-  const _Handle({required this.at, required this.onDrag});
-
-  final Offset at;
-  final ValueChanged<Offset> onDrag;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = PindoroTheme.of(context).colors;
-    return Positioned(
-      left: at.dx - PindoroSize.tapMin / 2,
-      top: at.dy - PindoroSize.tapMin / 2,
-      child: GestureDetector(
-        onPanUpdate: (d) => onDrag(at + d.delta),
-        child: MouseRegion(
-          cursor: SystemMouseCursors.resizeUpLeftDownRight,
-          child: SizedBox.square(
-            dimension: PindoroSize.tapMin,
-            child: Center(
-              child: Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: colors.mapPlayerHalo,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: colors.mapAreaStroke,
-                    width: PindoroStroke.thick,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ShapePainter extends CustomPainter {
-  _ShapePainter({
-    required this.colors,
-    required this.rect,
-    required this.circle,
-  });
-
-  final PindoroColors colors;
-  final Rect rect;
-  final bool circle;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = circle ? (Path()..addOval(rect)) : (Path()..addRect(rect));
-    canvas.drawPath(path, Paint()..color = colors.mapAreaFill);
-    final stroke = Paint()
-      ..color = colors.mapAreaStroke
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = PindoroStroke.base;
-    // Dashed 6/5 outline.
-    for (final metric in path.computeMetrics()) {
-      for (var d = 0.0; d < metric.length; d += 11) {
-        canvas.drawPath(metric.extractPath(d, d + 6), stroke);
-      }
-    }
-    if (circle) {
-      canvas
-        ..drawCircle(rect.center, 7, Paint()..color = colors.mapPlayerHalo)
-        ..drawCircle(rect.center, 5, Paint()..color = colors.mapAreaCenter);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_ShapePainter old) =>
-      old.rect != rect || old.colors != colors || old.circle != circle;
 }
