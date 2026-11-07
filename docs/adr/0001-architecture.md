@@ -29,8 +29,12 @@ with Tbilisi, and run on a single self-hosted Ubuntu server with no paid cloud s
 6. **One scoring truth, two languages.** Geometry, scoring and levels exist in Dart
    (`pindoro_core`) and TypeScript (`@pindoro/geo`); both must pass the same golden vectors in
    `shared/fixtures/`.
-7. **Monorepo tooling.** Dart pub workspace + Melos (configured in the root `pubspec.yaml`), pnpm
-   workspace + Biome + Vitest + tsx, and a root `justfile` as the single command entry point.
+7. **Monorepo tooling.** Each language uses its own native workspace: a Dart pub workspace (root
+   `pubspec.yaml`) and a pnpm workspace + Biome + Vitest + tsx. A root `justfile` is the single
+   command entry point. Runnable things live in `apps/`, libraries in `packages/`. There is no
+   monorepo framework. Turborepo only sees the JS half. The TS packages have no build step to
+   cache. Nx and moon are too heavy for six packages. Melos was dropped once pub workspaces made
+   its bootstrap redundant.
 
 ## Consequences
 

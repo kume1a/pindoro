@@ -16,8 +16,8 @@ infra/tiles/*
 infra/backups/*
 !infra/backups/.gitkeep
 infra/packs/
-pipeline/.cache/
-pipeline/out/
+apps/pipeline/.cache/
+apps/pipeline/out/
 
 # editors / os
 .idea/

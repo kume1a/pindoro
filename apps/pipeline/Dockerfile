@@ -15,14 +15,14 @@ WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/
 COPY packages/geo/package.json packages/geo/
-COPY pipeline/package.json pipeline/
+COPY apps/pipeline/package.json apps/pipeline/
 RUN corepack enable && pnpm install --frozen-lockfile --filter pindoro --filter "@pindoro/pipeline..."
 
 COPY tsconfig.base.json ./
 COPY packages/geo packages/geo
 COPY packages/pindoro_design/tokens packages/pindoro_design/tokens
 COPY data data
-COPY pipeline pipeline
+COPY apps/pipeline apps/pipeline
 
-WORKDIR /repo/pipeline
+WORKDIR /repo/apps/pipeline
 ENTRYPOINT ["/repo/node_modules/.bin/tsx", "src/cli.ts"]

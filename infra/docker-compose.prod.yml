@@ -100,7 +100,7 @@ services:
     profiles: [pipeline]
     build:
       context: ..
-      dockerfile: pipeline/Dockerfile
+      dockerfile: apps/pipeline/Dockerfile
     image: pindoro-pipeline
     networks: [default, egress]
     environment:
@@ -112,8 +112,8 @@ services:
       - ../packages/pindoro_design/tokens:/repo/packages/pindoro_design/tokens:ro
       - ${TILES_DIR:-./tiles}:/repo/infra/tiles
       - ${PACKS_DIR:-./packs}:/packs
-      - pipeline-cache:/repo/pipeline/.cache
-      - ../pipeline/out:/repo/pipeline/out
+      - pipeline-cache:/repo/apps/pipeline/.cache
+      - ../apps/pipeline/out:/repo/apps/pipeline/out
     depends_on:
       postgis:
         condition: service_healthy

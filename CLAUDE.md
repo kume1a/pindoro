@@ -12,7 +12,7 @@ Mobile game for learning a city's streets: the player sees a street name, drops 
 | `packages/pindoro_core`   | Pure Dart: geometry, scoring, levels, question selection, pack models       |
 | `packages/pindoro_design` | Flutter design system: tokens → generated Dart, theme, widgets, FiraGO font |
 | `packages/geo`            | `@pindoro/geo`: TS twin of pindoro_core geometry + scoring + levels         |
-| `pipeline`                | `@pindoro/pipeline`: OSM → PostGIS → city packs; tiles + map styles         |
+| `apps/pipeline`           | `@pindoro/pipeline`: OSM → PostGIS → city packs; tiles + map styles         |
 | `data/cities/<city>`      | `city.yaml`, curated neighbourhoods, `identity.json` (stable street ids)    |
 | `shared/fixtures`         | Golden vectors used by BOTH Dart and TS tests                               |
 | `shared/openapi`          | `openapi.json` exported from the API                                        |
@@ -58,13 +58,14 @@ no S3/R2 (packs are static files served by Caddy). See `docs/adr/0001-architectu
 
 | Command             | Does                                                                 |
 | ------------------- | -------------------------------------------------------------------- |
-| `just setup`        | `pnpm install` + `melos bootstrap`                                   |
+| `just setup`        | `pnpm install` + `flutter pub get` (pnpm + Dart pub workspaces)      |
 | `just gen`          | Regenerate design tokens and Drift code                              |
 | `just tokens-check` | Regenerate tokens and fail on a diff                                 |
 | `just goldens`      | Regenerate design goldens on Linux (pinned Flutter, as CI)           |
 | `just branding`     | App icon + splash from `apps/mobile/assets/branding` (design assets) |
 | `just lint`         | Biome, tsc, dart format, flutter analyze                             |
-| `just test`         | Melos tests, geo + API tests, pipeline tests in the pipeline image   |
+| `just test`         | `test-dart`, geo + API tests, pipeline tests in the pipeline image   |
+| `just test-dart`    | pindoro_core, pindoro_design and mobile tests                        |
 | `just dev`          | PostGIS, API (tsx watch), Martin, packs server                       |
 | `just fixture`      | Fetch OSM, build + validate the Vake fixture pack bundled in the app |
 | `just pack CITY`    | Fetch, build, validate and publish a full city pack                  |

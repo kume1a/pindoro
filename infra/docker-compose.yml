@@ -48,7 +48,7 @@ services:
       - api-modules:/repo/apps/api/node_modules
       # Mask the other importers too, or pnpm in here would prune the host copies.
       - api-geo-modules:/repo/packages/geo/node_modules
-      - api-pipeline-modules:/repo/pipeline/node_modules
+      - api-pipeline-modules:/repo/apps/pipeline/node_modules
       - ${PACKS_DIR:-./packs}:/packs:ro
     depends_on:
       postgis:
@@ -75,7 +75,7 @@ services:
     profiles: [pipeline]
     build:
       context: ..
-      dockerfile: pipeline/Dockerfile
+      dockerfile: apps/pipeline/Dockerfile
     environment:
       DATABASE_URL: *database-url
       PACKS_DIR: /packs
@@ -85,13 +85,13 @@ services:
       - ../packages/pindoro_design/tokens:/repo/packages/pindoro_design/tokens:ro
       - ${TILES_DIR:-./tiles}:/repo/infra/tiles
       - ${PACKS_DIR:-./packs}:/packs
-      - pipeline-cache:/repo/pipeline/.cache
-      - ../pipeline/out:/repo/pipeline/out
+      - pipeline-cache:/repo/apps/pipeline/.cache
+      - ../apps/pipeline/out:/repo/apps/pipeline/out
       # Source mounts so code edits apply without rebuilding the image.
-      - ../pipeline/src:/repo/pipeline/src:ro
-      - ../pipeline/sql:/repo/pipeline/sql:ro
-      - ../pipeline/osm2pgsql:/repo/pipeline/osm2pgsql:ro
-      - ../pipeline/test:/repo/pipeline/test:ro
+      - ../apps/pipeline/src:/repo/apps/pipeline/src:ro
+      - ../apps/pipeline/sql:/repo/apps/pipeline/sql:ro
+      - ../apps/pipeline/osm2pgsql:/repo/apps/pipeline/osm2pgsql:ro
+      - ../apps/pipeline/test:/repo/apps/pipeline/test:ro
       - ../packages/geo/src:/repo/packages/geo/src:ro
     depends_on:
       postgis:

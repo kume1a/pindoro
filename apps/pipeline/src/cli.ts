@@ -28,10 +28,10 @@ const required = (): string => {
   return arg;
 };
 
-// pnpm runs the script inside pipeline/; resolve user paths against where it was invoked.
+// pnpm runs the script inside apps/pipeline/; resolve user paths against where it was invoked.
 const userPath = (p: string): string => resolve(process.env.INIT_CWD ?? process.cwd(), p);
 
-// A city id resolves to its last built pack in pipeline/out/<city>.
+// A city id resolves to its last built pack in apps/pipeline/out/<city>.
 const packPath = (arg: string): string => {
   const path = userPath(arg);
   if (existsSync(path)) return path;
