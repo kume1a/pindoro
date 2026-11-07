@@ -16,8 +16,6 @@
   Miss sentence's compass form. Align them when the design lands.
 - Map labels (area names, the distance chip) are images drawn by `MapChip`, because the self-hosted
   map style has no glyphs.
-- **App identity** — final bundle id (`app.pindoro.pindoro` for now).
-- **Code licence** — not chosen yet (data is ODbL, font is OFL).
 
 ## Gameplay
 
@@ -25,9 +23,6 @@
   background once a downloaded pack opens, as a MapLibre offline region. The region is never
   refreshed; delete it when `georgia.pmtiles` updates (no tiles version to compare yet).
 - The offline toast probes the API's `/health`; there is no live connectivity listener.
-- Launch: the native splash has no wordmark (the canvas shows one at the bottom), so the launch
-  moment leaves it out too; Pindo doesn't wave on Welcome and Home's district map doesn't
-  cross-fade changed districts.
 
 ## Data / pipeline
 
@@ -46,6 +41,8 @@
 - CI runs on GitHub Actions (kume1a/pindoro); `act` reproduces it locally.
 - Flutter is pinned to 3.47.9 in CI and `just goldens`; the bootstrap machine ran a 3.41.2 checkout
   (Dart 3.13). Align local Flutter with the pinned version, and bump both together later.
-- Real server setup per `docs/deploy.md`: Cloudflare Tunnel token, public hostnames, systemd timers
-  for pack refresh and the second-disk backup copy.
-- iOS has not been built or run (no macOS in the bootstrap environment).
+- Production server: once the server, a Cloudflare domain and the tunnel token exist, fill `.env`
+  and run `just server-setup` (`docs/deploy.md`).
+- Store releases: create the Android upload key and `key.properties`, then
+  `just release appbundle <domain>` (`docs/deploy.md` section 9).
+- iOS is built unsigned in CI (macOS runner) but has never run on a device or simulator.

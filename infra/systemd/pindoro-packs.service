@@ -1,0 +1,14 @@
+[Unit]
+Description=Pindoro monthly city pack refresh
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/pindoro
+ExecStartPre=/usr/bin/docker compose --env-file .env -f infra/docker-compose.prod.yml build pipeline
+ExecStart=/usr/bin/docker compose --env-file .env -f infra/docker-compose.prod.yml run --rm pipeline fetch tbilisi
+ExecStart=/usr/bin/docker compose --env-file .env -f infra/docker-compose.prod.yml run --rm pipeline build tbilisi
+ExecStart=/usr/bin/docker compose --env-file .env -f infra/docker-compose.prod.yml run --rm pipeline validate tbilisi
+ExecStart=/usr/bin/docker compose --env-file .env -f infra/docker-compose.prod.yml run --rm pipeline publish tbilisi

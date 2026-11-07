@@ -105,6 +105,18 @@ DistrictProgress _progress(KnownCount c) => c.known == 0
     ? DistrictProgress.complete
     : DistrictProgress.inProgress;
 
+/// The city's districts (not neighbourhoods), filled by each one's [count].
+DistrictMiniMap _miniMap(
+  List<_DistrictCount> districts,
+  KnownCount Function(_DistrictCount d) count,
+) => DistrictMiniMap(
+  districts: [
+    for (final d in districts)
+      if (d.district.kind == DistrictKind.district)
+        (boundary: d.district.boundary, progress: _progress(count(d))),
+  ],
+);
+
 /// When each part of Home's intro after a round starts (canvas M-43).
 abstract final class _IntroAt {
   static const Duration xp = Duration(milliseconds: 300);
@@ -523,16 +535,38 @@ class _CityCard extends StatelessWidget {
             ],
           ),
           if (home.districts.isNotEmpty) ...[
-            DistrictMiniMap(
-              districts: [
-                for (final d in home.districts)
-                  if (d.district.kind == DistrictKind.district)
-                    (
-                      boundary: d.district.boundary,
-                      progress: _progress(d.count),
-                    ),
-              ],
-            ),
+            if (before == null)
+              _miniMap(home.districts, (d) => d.count)
+            else
+              // Districts that changed state fade in with the streets.
+              Stack(
+                children: [
+                  _miniMap(
+                    home.districts,
+                    (d) =>
+                        before.byDistrict[d.district.id] ??
+                        (known: 0, total: 0),
+                  ),
+                  Builder(
+                    builder: (context) {
+                      final (duration, curve) = delayedMotion(
+                        context,
+                        _IntroAt.streets,
+                        PindoroMotion.durationQuick,
+                        Curves.linear,
+                      );
+                      return TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0, end: 1),
+                        duration: duration,
+                        curve: curve,
+                        builder: (_, t, child) =>
+                            Opacity(opacity: t, child: child),
+                        child: _miniMap(home.districts, (d) => d.count),
+                      );
+                    },
+                  ),
+                ],
+              ),
             Wrap(
               spacing: PindoroSpace.s4,
               runSpacing: PindoroSpace.s1,

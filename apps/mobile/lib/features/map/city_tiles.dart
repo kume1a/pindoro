@@ -20,8 +20,9 @@ final _kept = <String>{};
 /// Keeps [city]'s map tiles on the phone as a MapLibre offline region, so
 /// maps work offline once it has downloaded. Runs in the background; an
 /// interrupted download starts over next launch.
-Future<void> keepCityTilesOffline(City city, Directory dir) async {
+Future<void> keepCityTilesOffline(City city) async {
   if (!_kept.add(city.id)) return;
+  HttpServer? style;
   try {
     final regions = [
       for (final r in await ml.getListOfRegions())
@@ -31,10 +32,10 @@ Future<void> keepCityTilesOffline(City city, Directory dir) async {
     for (final r in regions) {
       await ml.deleteOfflineRegion(r.id);
     }
-    // MapLibre downloads a region from a style URL; the bundled style lives
-    // in a string, so it goes to a file first. Both themes share the tiles.
-    final style = File('${dir.path}/offline_style.json');
-    await style.writeAsString(await loadMapStyle(Brightness.light));
+    // MapLibre fetches a region's style over HTTP only (file:// fails), so
+    // the bundled style is served on loopback while the download runs. Both
+    // themes share the tiles.
+    style = await _serve(await loadMapStyle(Brightness.light));
     final done = Completer<void>();
     final b = city.bbox;
     final region = await ml.downloadOfflineRegion(
@@ -43,7 +44,7 @@ Future<void> keepCityTilesOffline(City city, Directory dir) async {
           southwest: ml.LatLng(b.minLat, b.minLon),
           northeast: ml.LatLng(b.maxLat, b.maxLon),
         ),
-        mapStyleUrl: style.uri.toString(),
+        mapStyleUrl: 'http://127.0.0.1:${style.port}/style.json',
         minZoom: _minZoom,
         maxZoom: _maxZoom,
       ),
@@ -62,16 +63,26 @@ Future<void> keepCityTilesOffline(City city, Directory dir) async {
   } catch (e) {
     _kept.remove(city.id);
     if (kDebugMode) debugPrint('city tiles for ${city.id} failed: $e');
+  } finally {
+    await style?.close(force: true);
   }
+}
+
+/// A loopback server answering every request with [json].
+Future<HttpServer> _serve(String json) async {
+  final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+  server.listen(
+    (request) => request.response
+      ..headers.contentType = ContentType.json
+      ..write(json)
+      ..close(),
+  );
+  return server;
 }
 
 /// Starts [keepCityTilesOffline] whenever a downloaded city pack opens,
 /// without opening one itself.
 final class CityTilesObserver extends ProviderObserver {
-  CityTilesObserver(this.dir);
-
-  final Directory dir;
-
   @override
   void didAddProvider(ProviderObserverContext context, Object? value) =>
       _onPack(context, value);
@@ -88,7 +99,7 @@ final class CityTilesObserver extends ProviderObserver {
     if (value case AsyncData(
       value: final PackRepository pack,
     ) when !isFixturePack(pack)) {
-      unawaited(keepCityTilesOffline(pack.city(), dir));
+      unawaited(keepCityTilesOffline(pack.city()));
     }
   }
 }

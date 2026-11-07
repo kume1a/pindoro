@@ -1,0 +1,11 @@
+Copyright (c) 2026 kume1a. All rights reserved.
+
+The source code in this repository is published so it can be read. No licence is granted to
+copy, modify, distribute or use it, in whole or in part, without the copyright holder's written
+permission.
+
+Third-party parts keep their own licences:
+
+- Map data © OpenStreetMap contributors, Open Database License 1.0 (data/LICENSE-ODbL.md).
+- Map tiles: Protomaps basemap built from OpenStreetMap data.
+- FiraGO font: SIL Open Font License 1.1 (packages/pindoro_design/fonts/OFL.txt).

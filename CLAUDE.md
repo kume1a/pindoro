@@ -72,6 +72,8 @@ no S3/R2 (packs are static files served by Caddy). See `docs/adr/0001-architectu
 | `just openapi`      | Write `shared/openapi/openapi.json`                                  |
 | `just run-mobile`   | `flutter run` in `apps/mobile` (args pass through)                   |
 | `just deploy`       | On the server: `git pull` + prod compose up                          |
+| `just server-setup` | On the server, once: deploy, systemd timers, tiles, first pack       |
+| `just release T D`  | Store build (`appbundle` / `ipa`) against the server at domain `D`   |
 
 On Windows `just` works from PowerShell or Git Bash: recipes run in Git for Windows' `sh`
 (`justfile` `windows-shell`). Dev PostGIS listens on host port 5433.

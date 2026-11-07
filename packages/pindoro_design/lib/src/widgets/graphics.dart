@@ -176,19 +176,41 @@ class Pindo extends StatelessWidget {
   );
 }
 
-/// "pindoro" / "პინდორო" in the UI language, coloured for the theme.
+/// What the wordmark sits on; picks its letter and pin colours.
+enum WordmarkGround {
+  light(''),
+  dark('-dark'),
+  brand('-reversed');
+
+  const WordmarkGround(this._suffix);
+
+  final String _suffix;
+}
+
+/// "pindoro" / "პინდორო" in the UI language, coloured for [ground]
+/// (default: the theme's surface).
 class Wordmark extends StatelessWidget {
-  const Wordmark({super.key, required this.georgian, this.height = 52});
+  const Wordmark({
+    super.key,
+    required this.georgian,
+    this.height = 52,
+    this.ground,
+  });
 
   final bool georgian;
   final double height;
+  final WordmarkGround? ground;
 
   @override
   Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    final ground =
+        this.ground ??
+        (Theme.of(context).brightness == Brightness.dark
+            ? WordmarkGround.dark
+            : WordmarkGround.light);
     final script = georgian ? 'georgian' : 'latin';
     return SvgPicture.asset(
-      'assets/logos/pindoro-wordmark-$script${dark ? '-dark' : ''}.svg',
+      'assets/logos/pindoro-wordmark-$script${ground._suffix}.svg',
       package: _package,
       height: height,
       semanticsLabel: georgian ? 'პინდორო' : 'Pindoro',

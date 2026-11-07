@@ -87,7 +87,23 @@ openapi:
 run-mobile *ARGS:
     cd apps/mobile && flutter run {{ ARGS }}
 
+# Store build against the production server: `just release appbundle pindoro.app` (`ipa` on macOS)
+release TARGET DOMAIN:
+    cd apps/mobile && flutter build {{ TARGET }} --release --dart-define=PINDORO_ENV=prod \
+      --dart-define=API_BASE_URL=https://api.{{ DOMAIN }} \
+      --dart-define=PACKS_BASE_URL=https://packs.{{ DOMAIN }} \
+      --dart-define=TILES_BASE_URL=https://tiles.{{ DOMAIN }}
+
 # On the server: pull and (re)start the production stack
 deploy:
     git pull --ff-only
     {{ dc_prod }} up -d --build
+
+# On the server, once after `.env` is filled in: stack, systemd timers, tiles, first Tbilisi pack
+server-setup: deploy
+    sudo cp infra/systemd/pindoro-* /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl enable --now pindoro-packs.timer pindoro-backup-copy.timer
+    {{ dc_prod }} run --rm --build pipeline tiles
+    {{ dc_prod }} restart martin
+    sudo systemctl start pindoro-packs.service

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -6,6 +7,7 @@ import 'package:pindoro_design/pindoro_design.dart';
 import '../../app/area_label.dart';
 import '../../app/database.dart';
 import '../../app/format.dart';
+import '../../app/launch_overlay.dart';
 import '../../app/page_scaffold.dart';
 import '../../app/router.dart';
 import '../../app/settings.dart';
@@ -71,7 +73,7 @@ class WelcomeScreen extends ConsumerWidget {
                   child: Column(
                     spacing: PindoroSpace.s4,
                     children: [
-                      const Pindo(PindoExpression.happy, height: 104),
+                      const _WavingPindo(),
                       Wordmark(georgian: georgian),
                       Text(
                         l10n.welcomeTagline,
@@ -153,6 +155,78 @@ class WelcomeScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Whether Pindo already waved in this launch.
+bool _waved = false;
+
+/// Pindo waves in once per launch as the launch reveal opens: it pops up
+/// and rocks on its tip with `spring.bouncy`. Static after that and with
+/// reduce motion.
+class _WavingPindo extends StatefulWidget {
+  const _WavingPindo();
+
+  @override
+  State<_WavingPindo> createState() => _WavingPindoState();
+}
+
+class _WavingPindoState extends State<_WavingPindo>
+    with SingleTickerProviderStateMixin {
+  static const Duration _wave = Duration(milliseconds: 700);
+  static const double _tilt = 0.35;
+  static const Widget _pindo = Pindo(PindoExpression.happy, height: 104);
+
+  late final AnimationController _t = AnimationController(
+    vsync: this,
+    duration: launchReveal + _wave,
+  );
+  final SpringSimulation _spring = SpringSimulation(
+    PindoroMotion.springBouncy,
+    1,
+    0,
+    0,
+  );
+  final bool _plays = !_waved;
+
+  @override
+  void initState() {
+    super.initState();
+    _waved = true;
+    if (_plays) _t.forward();
+  }
+
+  @override
+  void dispose() {
+    _t.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_plays || MediaQuery.disableAnimationsOf(context)) return _pindo;
+    return AnimatedBuilder(
+      animation: _t,
+      builder: (context, child) {
+        final elapsed =
+            _t.value * _t.duration!.inMilliseconds -
+            launchReveal.inMilliseconds;
+        final off = elapsed < 0 ? 1.0 : _spring.x(elapsed / 1000);
+        return Opacity(
+          opacity: (1 - off).clamp(0.0, 1.0),
+          child: Transform.rotate(
+            angle: -_tilt * off,
+            alignment: Alignment.bottomCenter,
+            child: Transform.scale(
+              scale: 1 - 0.4 * off,
+              alignment: Alignment.bottomCenter,
+              child: child,
+            ),
+          ),
+        );
+      },
+      child: _pindo,
     );
   }
 }
