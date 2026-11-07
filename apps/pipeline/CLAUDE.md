@@ -23,7 +23,7 @@ Env: `DATABASE_URL` (default `postgres://pindoro:pindoro@localhost:5433/pindoro`
 (default `infra/packs`). Tests: `TEST_DATABASE_URL` (default `…:5433/pindoro_pipeline_test`);
 `PINDORO_REQUIRE_OSM_TOOLS=1` turns the skip into a failure (CI).
 
-Outputs: cache `pipeline/.cache/<city>/`, builds `pipeline/out/<city>/` (pack, `.gz`, `manifest.json`,
+Outputs: cache `apps/pipeline/.cache/<city>/`, builds `apps/pipeline/out/<city>/` (pack, `.gz`, `manifest.json`,
 `identity-diff-<version>.json`), fixture `apps/mobile/assets/packs_fixture/<city>_<name>_fixture.sqlite`,
 styles `apps/mobile/assets/map_styles/pindoro_{light,dark}.json`, tiles `infra/tiles/georgia.pmtiles`.
 

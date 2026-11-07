@@ -7,7 +7,7 @@ RUN corepack enable
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/geo/package.json packages/geo/
-COPY pipeline/package.json pipeline/
+COPY apps/pipeline/package.json apps/pipeline/
 COPY apps/api apps/api
 # --legacy: the API has no workspace dependencies, so nothing needs injecting.
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \

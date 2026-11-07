@@ -21,12 +21,11 @@ jobs:
           flutter-version: 3.47.9
           cache: true
       - uses: extractions/setup-just@v3
-      - run: dart run melos bootstrap
+      - run: flutter pub get
       - run: just tokens-check
       - run: dart format --set-exit-if-changed .
-      - run: dart run melos run analyze
-      # pindoro_core runs the shared golden vectors (shared/fixtures) here.
-      - run: dart run melos run test
+      - run: flutter analyze --fatal-infos
+      - run: just test-dart
 
   ios:
     # Unsigned store build: proves the iOS side compiles; signing happens on a Mac (docs/deploy.md).

@@ -10,7 +10,7 @@ and, for running the app, an Android emulator or iOS simulator.
 
 ```sh
 cp .env.example .env     # only needed for production compose
-just setup               # pnpm install + melos bootstrap
+just setup               # pnpm install + flutter pub get
 just dev                 # PostGIS, API on :3000, Martin tiles on :3001, packs on :8080
 just tiles               # once: Georgia vector tiles (+ map styles)
 just run-mobile          # Android emulator reaches the host via 10.0.2.2

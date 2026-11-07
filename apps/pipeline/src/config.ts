@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { parse } from "yaml";
 
-export const REPO_ROOT = resolve(import.meta.dirname, "../..");
-export const PIPELINE_DIR = join(REPO_ROOT, "pipeline");
+export const REPO_ROOT = resolve(import.meta.dirname, "../../..");
+export const PIPELINE_DIR = join(REPO_ROOT, "apps/pipeline");
 export const CACHE_DIR = join(PIPELINE_DIR, ".cache");
 export const OUT_DIR = join(PIPELINE_DIR, "out");
 /** The claude.ai design system's tokens, then the app-only ones. */

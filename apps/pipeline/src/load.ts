@@ -95,7 +95,7 @@ export interface StepParams {
   minAreaStreets?: number;
 }
 
-/** Recreates schema `pipeline` and runs pipeline/sql/*.sql in file-name order. */
+/** Recreates schema `pipeline` and runs apps/pipeline/sql/*.sql in file-name order. */
 export const runSqlSteps = async (sql: Sql, p: StepParams): Promise<void> => {
   await sql.unsafe(`
     DROP SCHEMA IF EXISTS pipeline CASCADE;

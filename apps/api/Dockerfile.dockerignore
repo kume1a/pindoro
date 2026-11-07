@@ -4,7 +4,7 @@
 !pnpm-lock.yaml
 !pnpm-workspace.yaml
 !packages/geo/package.json
-!pipeline/package.json
+!apps/pipeline/package.json
 !apps/api
 apps/api/node_modules
 apps/api/test

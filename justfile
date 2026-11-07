@@ -5,11 +5,10 @@ set windows-shell := ["C:/Program Files/Git/bin/sh.exe", "-cu"]
 
 dc := "docker compose -f infra/docker-compose.yml"
 dc_prod := "docker compose --env-file .env -f infra/docker-compose.prod.yml"
-melos := "dart run melos"
 # Flutter that renders goldens; keep equal to flutter-version in .github/workflows/mobile.yml.
 flutter_version := "3.47.9"
-# Relative to the pipeline container workdir (/repo/pipeline); absolute paths get mangled by Git Bash.
-fixture_pack := "../apps/mobile/assets/packs_fixture/tbilisi_vake_fixture.sqlite"
+# Relative to the pipeline container workdir (/repo/apps/pipeline); absolute paths get mangled by Git Bash.
+fixture_pack := "../../apps/mobile/assets/packs_fixture/tbilisi_vake_fixture.sqlite"
 
 default:
     @just --list
@@ -17,7 +16,7 @@ default:
 # Install pnpm and Dart workspace dependencies
 setup:
     pnpm install
-    {{ melos }} bootstrap
+    flutter pub get
 
 # Generate code: design tokens and Drift
 gen:
@@ -48,15 +47,20 @@ lint:
     pnpm exec biome check .
     pnpm -r typecheck
     dart format --set-exit-if-changed .
-    {{ melos }} run analyze
+    flutter analyze --fatal-infos
 
 # Every test suite (pipeline DB tests run inside the pipeline image, which has osm2pgsql)
-test:
-    {{ melos }} run test
+test: test-dart
     {{ dc }} up -d --wait postgis
     pnpm --filter @pindoro/geo test
     pnpm --filter @pindoro/api test
     {{ dc }} run --rm --build -e PINDORO_REQUIRE_OSM_TOOLS=1 -e TEST_DATABASE_URL=postgres://pindoro:pindoro@postgis:5432/pindoro_pipeline_test --entrypoint pnpm pipeline test
+
+# Dart and Flutter package tests (pindoro_core runs the shared golden vectors)
+test-dart:
+    cd packages/pindoro_core && dart test
+    cd packages/pindoro_design && flutter test
+    cd apps/mobile && flutter test
 
 # Dev stack: PostGIS, API (tsx watch), Martin tiles, packs file server
 dev:

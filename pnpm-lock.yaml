@@ -58,13 +58,11 @@ importers:
         specifier: ^0.31.11
         version: 0.31.11
 
-  packages/geo: {}
-
-  pipeline:
+  apps/pipeline:
     dependencies:
       '@pindoro/geo':
         specifier: workspace:*
-        version: link:../packages/geo
+        version: link:../../packages/geo
       '@protomaps/basemaps':
         specifier: ^5.7.2
         version: 5.7.2
@@ -81,6 +79,8 @@ importers:
       '@types/better-sqlite3':
         specifier: ^9.6.0
         version: 9.6.0
+
+  packages/geo: {}
 
 packages:
 

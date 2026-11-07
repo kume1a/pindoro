@@ -1,7 +1,7 @@
 packages:
   - apps/api
   - packages/geo
-  - pipeline
+  - apps/pipeline
 
 onlyBuiltDependencies:
   - better-sqlite3

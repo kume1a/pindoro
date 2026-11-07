@@ -7,7 +7,7 @@
 !packages/geo
 !packages/pindoro_design/tokens
 !data
-!pipeline
+!apps/pipeline
 **/node_modules
-pipeline/.cache
-pipeline/out
+apps/pipeline/.cache
+apps/pipeline/out
