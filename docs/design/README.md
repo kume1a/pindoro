@@ -23,9 +23,8 @@ app icon, splash) come from the design system's asset store; see `packages/pindo
   self-hosted Protomaps vector tiles in MapLibre (`docs/adr/0001-architecture.md`), so the basemap is
   coloured from `color.map.basemap.*` and the attribution reads "© OpenStreetMap contributors,
   Protomaps".
-- **App-only tokens** live in `packages/pindoro_design/tokens/app.json` (vector basemap layers the
-  design system has no colour for, the area mask, camera framing). Move them into the design system
-  when they should be shared.
+- **App-only tokens** would live in `packages/pindoro_design/tokens/app.json`; it is empty now that
+  the design system defines the vector basemap layers, the area mask and the camera framing.
 - **Generated Dart.** `lib/src/generated/pindoro_tokens.dart` is generated from both token files by
   `tool/generate_tokens.dart`; the artifact's `handoff/pindoro_tokens.dart` is not used. Type roles
   all carry tabular figures and skip the Noto fallback (the system font covers missing glyphs).

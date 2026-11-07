@@ -2,10 +2,6 @@
 
 ## Placeholders to replace
 
-- **App-only tokens** — `packages/pindoro_design/tokens/app.json` values were picked in the repo,
-  not designed: basemap building / railway / boundary colours, the area mask, the measure-line dots,
-  camera framing and the zoom where the area picker switches to neighbourhoods. Design them on
-  claude.ai and move them into the design system.
 - **Sound kit** — the design's 14 sounds don't exist yet; the Sound toggle and `GameFeedback`
   are in place, so add an audio player there once the files are designed.
 - **Georgian copy** — `apps/mobile/lib/l10n/app_ka.arb` is the copy deck's draft plus a few strings
