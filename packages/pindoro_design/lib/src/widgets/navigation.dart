@@ -19,8 +19,9 @@ typedef PindoroNavItem = ({
 /// The bottom navigation (`.pd-nav`): `color.surface.raised` under a 2 dp
 /// `color.line.base` rule; each item a 56 × 34 icon pill 10 dp from the top
 /// (`color.tab.active.bg` on [current]) over its `label.md` label, 3 dp
-/// apart. The labels reach into the bottom inset, as on iOS: 84 dp on a
-/// 34 dp inset, at least 8 dp under them anywhere.
+/// apart. The labels stay above the bottom inset, at least 8 dp under them:
+/// the canvas lets them dip into the iPhone's 34 dp inset (84 dp in all),
+/// but Android's gesture handle and 3-button bar sit right there.
 class PindoroNavBar extends StatelessWidget {
   const PindoroNavBar({
     super.key,
@@ -47,7 +48,7 @@ class PindoroNavBar extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.only(
           top: 10,
-          bottom: math.max(inset - 15, PindoroSpace.s2),
+          bottom: math.max(inset, PindoroSpace.s2),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
