@@ -126,6 +126,13 @@ void main() {
     expect(find.bySemanticsLabel('Question 3 of 10'), findsOneWidget);
   });
 
+  testWidgets('the review gauge reads its step', (tester) async {
+    await tester.pumpWidget(
+      _host(const ReviewGauge(2, semanticLabel: 'Review step 2 of 4')),
+    );
+    expect(find.bySemanticsLabel('Review step 2 of 4'), findsOneWidget);
+  });
+
   testWidgets('the streak pill is one labelled button', (tester) async {
     var taps = 0;
     await tester.pumpWidget(
@@ -271,7 +278,7 @@ void main() {
                 label: 'Great!',
                 sentence: '84 m away. So close to perfect.',
                 xpLabel: '+74 XP',
-                chips: ['2 in a row'],
+                chips: [Pill(label: '2 in a row')],
                 action: SizedBox(height: 56),
               ),
               ListGroup(
@@ -316,6 +323,73 @@ void main() {
         await expectLater(
           find.byType(Scaffold),
           matchesGoldenFile('goldens/components_${brightness.name}.png'),
+        );
+      });
+    }
+
+    for (final brightness in Brightness.values) {
+      testWidgets('pit stop ${brightness.name}', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(400, 400));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await tester.pumpWidget(
+          _host(
+            brightness: brightness,
+            Builder(
+              builder: (context) {
+                final c = PindoroTheme.of(context).colors;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: 12,
+                  children: [
+                    Row(
+                      spacing: 12,
+                      children: [
+                        RowTile(
+                          PindoroGlyph.wrench,
+                          face: c.pathNodeReviewFill,
+                          ink: c.pathNodeReviewIcon,
+                          lip: c.pathNodeReviewLip,
+                        ),
+                        for (var step = 1; step <= 4; step++)
+                          ReviewGauge(step, semanticLabel: '$step'),
+                      ],
+                    ),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: PitStopChip('Added to your Pit stop'),
+                    ),
+                    ListGroup(
+                      children: [
+                        for (final (tier, step) in [
+                          (Tier.miss, 1),
+                          (Tier.close, 3),
+                        ])
+                          ListRow(
+                            title: 'Davit Aghmashenebeli Avenue',
+                            subtitle: 'Missed · 1 day ago',
+                            leading: TierBadge(tier),
+                            trailing: ReviewGauge(step, semanticLabel: ''),
+                          ),
+                      ],
+                    ),
+                    const Row(
+                      spacing: 8,
+                      children: [
+                        Swatch(progress: DistrictProgress.notStarted, size: 22),
+                        Swatch(progress: DistrictProgress.inProgress, size: 22),
+                        Swatch(progress: DistrictProgress.complete, size: 22),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await expectLater(
+          find.byType(Scaffold),
+          matchesGoldenFile('goldens/pit_stop_${brightness.name}.png'),
         );
       });
     }

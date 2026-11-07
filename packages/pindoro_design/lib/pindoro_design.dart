@@ -13,6 +13,7 @@ export 'src/widgets/motion.dart';
 export 'src/widgets/pindoro_button.dart';
 export 'src/widgets/progress.dart';
 export 'src/widgets/results.dart';
+export 'src/widgets/review.dart';
 export 'src/widgets/reveal.dart';
 export 'src/widgets/round_hud.dart';
 export 'src/widgets/setup.dart';

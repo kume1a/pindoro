@@ -157,30 +157,40 @@ class Minibar extends StatelessWidget {
   }
 }
 
-/// A legend square for [DistrictMiniMap].
+/// A [DistrictMiniMap] colour square: with [label] in the legend, alone
+/// (and larger) before a district's row.
 class Swatch extends StatelessWidget {
-  const Swatch({super.key, required this.progress, required this.label});
+  const Swatch({super.key, required this.progress, this.label, this.size = 12});
 
   final DistrictProgress progress;
-  final String label;
+  final String? label;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
     final (fill, stroke) = progress.colorsIn(c);
+    final label = this.label;
+    final square = Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: fill ?? c.surfaceRaised,
+        border: Border.all(
+          color: stroke,
+          width: label == null ? PindoroStroke.thick : PindoroStroke.base,
+        ),
+        borderRadius: BorderRadius.circular(
+          label == null ? PindoroRadius.xs : 3,
+        ),
+      ),
+    );
+    if (label == null) return square;
     return Row(
       mainAxisSize: MainAxisSize.min,
       spacing: PindoroSpace.s1,
       children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: fill ?? c.surfaceRaised,
-            border: Border.all(color: stroke, width: PindoroStroke.base),
-            borderRadius: BorderRadius.circular(3),
-          ),
-        ),
+        square,
         Flexible(
           child: Text(
             label,

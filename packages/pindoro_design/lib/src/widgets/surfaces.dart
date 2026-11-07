@@ -263,24 +263,42 @@ class _CheckBox extends StatelessWidget {
 }
 
 /// The 40 dp leading tile of a [ListRow]: `color.primary.soft` behind a
-/// `color.primary.text` glyph.
+/// `color.primary.text` glyph, or [face] and [ink] with a [lip] (the Pit
+/// stop's review tile).
 class RowTile extends StatelessWidget {
-  const RowTile(this.glyph, {super.key});
+  const RowTile(this.glyph, {super.key, this.face, this.ink, this.lip});
 
   final PindoroGlyph glyph;
+  final Color? face;
+  final Color? ink;
+  final Color? lip;
 
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
+    final face = this.face ?? c.primarySoft;
+    final icon = PindoroIcon(glyph, color: ink ?? c.primaryText, cut: face);
+    final lip = this.lip;
+    if (lip != null) {
+      return LipBox(
+        face: face,
+        lip: lip,
+        radius: PindoroRadius.md,
+        child: SizedBox.square(
+          dimension: 40 - PindoroElevation.e1,
+          child: Center(child: icon),
+        ),
+      );
+    }
     return Container(
       width: 40,
       height: 40,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: c.primarySoft,
+        color: face,
         borderRadius: BorderRadius.circular(PindoroRadius.md),
       ),
-      child: PindoroIcon(glyph, color: c.primaryText, cut: c.primarySoft),
+      child: icon,
     );
   }
 }
