@@ -8,6 +8,9 @@ import '../theme.dart';
 
 bool _calm(BuildContext context) => MediaQuery.disableAnimationsOf(context);
 
+/// What a rise or slide becomes with reduce motion on: a short cross-fade.
+const Duration calmFade = Duration(milliseconds: 150);
+
 /// Duration and curve for an implicit animation that waits [delay], then runs
 /// [duration] with [curve]; instant with reduce motion on.
 (Duration, Curve) delayedMotion(
@@ -146,10 +149,7 @@ class RiseIn extends StatelessWidget {
   Widget build(BuildContext context) {
     final calm = _calm(context);
     final total =
-        (calm
-            ? const Duration(milliseconds: 150)
-            : PindoroMotion.durationBase) +
-        delay;
+(calm ? calmFade : PindoroMotion.durationBase) + delay;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: total,
@@ -164,6 +164,38 @@ class RiseIn extends StatelessWidget {
           offset: Offset(0, calm ? 0 : distance * (1 - t)),
           child: child,
         ),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// Swaps its keyed [child]: the new one rises in (`duration.base`,
+/// decelerate) as the old one leaves (`duration.fast`, accelerate); a
+/// [calmFade] cross-fade when reduce motion is on.
+class RiseSwitcher extends StatelessWidget {
+  const RiseSwitcher({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final calm = _calm(context);
+    return AnimatedSwitcher(
+      duration: calm ? calmFade : PindoroMotion.durationBase,
+      reverseDuration: calm ? calmFade : PindoroMotion.durationFast,
+      switchInCurve: PindoroMotion.easeDecelerate,
+      switchOutCurve: PindoroMotion.easeAccelerate,
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: calm
+            ? child
+            : SlideTransition(
+                position: animation.drive(
+                  Tween(begin: const Offset(0, 0.15), end: Offset.zero),
+                ),
+                child: child,
+              ),
       ),
       child: child,
     );

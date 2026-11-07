@@ -26,7 +26,7 @@ class RoundReveal extends StatelessWidget {
       Tier.miss => l10n.tierMissSentence(
         distance,
         l10n.revealMissDirection(
-          compassPoint(revealed.pin!, revealed.nearest).name,
+          compassPoint(revealed.pin, revealed.nearest).name,
         ),
       ),
     };

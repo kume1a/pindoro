@@ -96,11 +96,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final difficulty = settings?.lastDifficulty;
     final saved = home.saved;
 
-    // Back from a pushed screen: the round or progress may have changed.
-    Future<void> open(String location) async {
-      await context.push(location);
-      if (context.mounted) ref.invalidate(homeProvider);
-    }
+    // homeProvider follows progress and settings, so nothing reloads here.
+    Future<void> open(String location) => context.push(location);
 
     Future<void> openDistrict(String id) async {
       await ref.read(settingsDaoProvider).chooseArea(DistrictsArea({id}));

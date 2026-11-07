@@ -24,9 +24,15 @@ Page<void> _fadePage(GoRouterState state, Widget child) =>
           FadeTransition(opacity: animation, child: child),
     );
 
-/// Welcome shows until the player finishes a first round; then Home.
-Future<String> initialLocation(AppDatabase db) async =>
-    await ProgressDao(db).hasFinishedRound() ? Routes.home : Routes.welcome;
+/// Welcome shows until the player finishes a first round or has one saved
+/// (Home offers to continue it); then Home.
+Future<String> startLocation(AppDatabase db) async {
+  final progress = ProgressDao(db);
+  return await progress.hasFinishedRound() ||
+          await progress.resumableRound(DateTime.now()) != null
+      ? Routes.home
+      : Routes.welcome;
+}
 
 GoRouter buildRouter(String initialLocation) => GoRouter(
   initialLocation: initialLocation,

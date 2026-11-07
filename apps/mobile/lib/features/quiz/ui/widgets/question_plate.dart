@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/format.dart';
-import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/core/labels.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -23,7 +23,7 @@ class QuestionPlate extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final english = settings?.streetNames == StreetNameMode.english;
-    final name = settings?.streetName(street) ?? street.name;
+    final name = streetName(street, settings);
     // The other script on the sub-line: English under a local name, the local
     // name under an English one.
     final other = english

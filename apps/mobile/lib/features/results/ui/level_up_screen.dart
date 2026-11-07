@@ -51,6 +51,7 @@ class LevelUpScreen extends StatelessWidget {
           ),
           const Positioned.fill(child: Celebration(size: CelebrationSize.big)),
           SafeArea(
+            bottom: false,
             child: Column(
               children: [
                 const Spacer(),
@@ -103,8 +104,7 @@ class LevelUpScreen extends StatelessWidget {
                     PindoroSpace.s4,
                     0,
                     PindoroSpace.s4,
-                    bottomActionGap(context) -
-                        MediaQuery.paddingOf(context).bottom,
+                    bottomActionGap(context),
                   ),
                   child: PindoroButton(
                     label: l10n.commonContinue,

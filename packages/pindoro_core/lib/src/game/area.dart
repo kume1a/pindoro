@@ -6,9 +6,8 @@ import '../pack/models.dart';
 import '../pack/pack_repository.dart';
 import '../scoring/scoring.dart';
 
-/// Outline of an area for framing the map and dimming outside it. [name] is
-/// the districts' names joined; null for circles and rectangles.
-typedef AreaShape = ({String? name, Bbox bbox, List<List<Polyline>> boundary});
+/// Outline of an area for framing the map and dimming outside it.
+typedef AreaShape = ({Bbox bbox, List<List<Polyline>> boundary});
 
 /// Step for [lengthInside]'s walk along a street.
 const double _lengthStepM = 25;
@@ -79,7 +78,6 @@ final class DistrictsArea extends Area {
     ];
     if (picked.isEmpty || picked.length < ids.length) return null;
     return (
-      name: picked.map((d) => d.nameKa).join(', '),
       bbox: Bbox.of([
         for (final d in picked) ...[
           LatLng(d.bbox.minLat, d.bbox.minLon),
@@ -118,7 +116,7 @@ sealed class DrawnArea extends Area {
 
   @override
   AreaShape shapeIn(PackRepository pack) =>
-      (name: null, bbox: bbox, boundary: [ring]);
+      (bbox: bbox, boundary: [ring]);
 
   @override
   List<Street> streetsIn(PackRepository pack, Set<Difficulty> difficulties) {

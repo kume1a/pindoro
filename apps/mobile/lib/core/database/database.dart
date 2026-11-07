@@ -27,6 +27,9 @@ Area? parseArea(String? json) {
 extension SettingsArea on Settings {
   /// The saved area; null until the player picks one.
   Area? get area => parseArea(lastAreaJson);
+
+  /// The saved difficulty; medium (the picker's default) until one is picked.
+  Difficulty get difficulty => lastDifficulty ?? Difficulty.medium;
 }
 
 enum AppLanguage { en, ka }

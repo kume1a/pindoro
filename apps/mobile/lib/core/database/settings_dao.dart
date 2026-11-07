@@ -14,24 +14,24 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
     with _$SettingsDaoMixin {
   SettingsDao(super.attachedDatabase);
 
-  Future<Settings> read() async =>
-      await (select(
-        userSettings,
-      )..where((s) => s.id.equals(1))).getSingleOrNull() ??
-      const Settings(
-        id: 1,
-        streetNames: StreetNameMode.local,
-        theme: ThemePreference.system,
-        sound: true,
-        haptics: true,
-        homeCoachSeen: false,
-      );
+  /// The row before anything was saved; matches the table's defaults.
+  static const _defaults = Settings(
+    id: 1,
+    streetNames: StreetNameMode.local,
+    theme: ThemePreference.system,
+    sound: true,
+    haptics: true,
+    homeCoachSeen: false,
+  );
+
+  SimpleSelectStatement<$UserSettingsTable, Settings> get _row =>
+      select(userSettings)..where((s) => s.id.equals(1));
+
+  Future<Settings> read() async => await _row.getSingleOrNull() ?? _defaults;
 
   /// The settings row as it changes; defaults until the first write.
   Stream<Settings> watch() =>
-      (select(userSettings)..where((s) => s.id.equals(1)))
-          .watchSingleOrNull()
-          .asyncMap((row) async => row ?? await read());
+      _row.watchSingleOrNull().map((row) => row ?? _defaults);
 
   /// Another city's area doesn't apply there, so a new city clears the area.
   Future<void> chooseCity(String cityId) async {

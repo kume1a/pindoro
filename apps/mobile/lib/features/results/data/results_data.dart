@@ -9,6 +9,10 @@ typedef ResultEntry = ({Answer answer, NamedStreet? street});
 
 typedef ResultsData = ({
   Round round,
+  PackRepository pack,
+
+  /// The round's area; [shape] is null when the pack lacks its districts.
+  Area? area,
   AreaShape? shape,
   List<ResultEntry> entries,
   int totalXp,
@@ -34,15 +38,18 @@ final resultsProvider = FutureProvider.autoDispose.family<ResultsData, String>((
     before: round.startedAt,
   );
   final knownBefore = knownStreetIds(bestBefore, streets);
+  final area = parseArea(round.areaJson);
   return (
     round: round,
-    shape: parseArea(round.areaJson)?.shapeIn(pack),
+    pack: pack,
+    area: area,
+    shape: area?.shapeIn(pack),
     entries: [
       for (final a in answers) (answer: a, street: streets[a.streetId]),
     ],
     totalXp: await dao.totalXp(),
-    roundXp: answers.fold(0, (sum, a) => sum + a.xp),
-    retryCount: (await dao.retrySet(roundId)).length,
+    roundXp: answers.xp,
+    retryCount: progress.retryIds.length,
     newlyKnown: newlyKnown(
       knownBefore: knownBefore,
       roundAnswers: [

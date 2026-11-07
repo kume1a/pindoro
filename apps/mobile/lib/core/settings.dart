@@ -24,11 +24,6 @@ extension SettingsPresentation on Settings {
     null => null,
     final language => Locale(language.name),
   };
-
-  /// A street's name as the player chose to see it.
-  String streetName(NamedStreet street) => streetNames == StreetNameMode.english
-      ? street.nameEn ?? street.name
-      : street.name;
 }
 
 /// Haptics per game event, behind the Haptics toggle; sounds behind the Sound
