@@ -191,15 +191,10 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     if (before != null) {
       query.where(answers.createdAt.isSmallerThanValue(before));
     }
-    final best = <String, Tier>{};
-    for (final row in await query.get()) {
-      final a = row.readTable(answers);
-      final current = best[a.streetId];
-      if (current == null || a.tier.index < current.index) {
-        best[a.streetId] = a.tier;
-      }
-    }
-    return best;
+    return bestTiers([
+      for (final row in await query.get())
+        if (row.readTable(answers) case final a) (a.streetId, a.tier),
+    ]);
   }
 
   /// Street ids planned in the [count] most recent rounds of [cityId].
@@ -224,7 +219,7 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     final progress = await roundProgress(roundId);
     final missed = {
       for (final a in progress.answers)
-        if (a.tier == Tier.close || a.tier == Tier.miss) a.streetId,
+        if (isRetryTier(a.tier)) a.streetId,
     };
     return [
       for (final id in progress.planned)

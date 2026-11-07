@@ -1,6 +1,5 @@
 import '../geo/geo.dart';
 import '../pack/models.dart';
-import '../scoring/scoring.dart';
 
 /// Nearby pack rows sharing a `name_ka`: one street to the player. The
 /// pipeline splits same-name parts more than 30 m apart into separate rows.
@@ -17,9 +16,10 @@ class NamedStreet {
 
   String? get nameEn => parts.map((p) => p.nameEn).nonNulls.firstOrNull;
 
-  double get lengthM => parts.fold(0, (sum, p) => sum + p.lengthM);
+  late final double lengthM = parts.fold(0, (sum, p) => sum + p.lengthM);
 
-  MultiPolyline get geometry => [for (final p in parts) ...p.geometry];
+  /// One list per street, so maps can tell a new street from a rebuild.
+  late final MultiPolyline geometry = [for (final p in parts) ...p.geometry];
 
   /// The part nearest to [pin], the distance to it and the closest point on it.
   ({Street part, double distanceM, LatLng nearestPoint}) nearest(LatLng pin) {
@@ -35,12 +35,6 @@ class NamedStreet {
       }
     }
     return best!;
-  }
-
-  /// Scores a pin against the nearest part, using that part's road class.
-  Score score(LatLng pin, Difficulty difficulty) {
-    final n = nearest(pin);
-    return scoreAnswer(n.distanceM, n.part.roadClass, difficulty);
   }
 }
 

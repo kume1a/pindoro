@@ -44,6 +44,7 @@ interface ScoringVectors {
     xp: number;
   }[];
   polyline6: { name: string; points: number[][]; encoded: string; decoded: number[][] }[];
+  polyline6_invalid: { name: string; encoded: string }[];
 }
 
 interface LevelsVectors {
@@ -92,6 +93,10 @@ describe("polyline6", () => {
   it.each(s.polyline6)("$name", (v) => {
     expect(encodePolyline6(v.points.map(ll))).toBe(v.encoded);
     expect(decodePolyline6(v.encoded).map((p) => [p.lat, p.lon])).toEqual(v.decoded);
+  });
+
+  it.each(s.polyline6_invalid)("rejects $name", (v) => {
+    expect(() => decodePolyline6(v.encoded)).toThrow(RangeError);
   });
 });
 

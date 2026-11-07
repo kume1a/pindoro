@@ -22,7 +22,7 @@ bool isDetail(District d) => d.kind != DistrictKind.district;
 District? areaAt(List<District> areas, LatLng at, double zoom) {
   final hits = [
     for (final d in areas)
-      if (d.boundary.any((p) => polygonContains(p, at))) d,
+      if (boundaryContains(d.boundary, at)) d,
   ]..sort((a, b) => a.areaM2.compareTo(b.areaM2));
   final detail = detailAt(zoom);
   return hits.where((d) => isDetail(d) == detail).firstOrNull ??

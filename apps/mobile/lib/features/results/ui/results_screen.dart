@@ -300,7 +300,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
     final rest = a.tier == Tier.perfect
         ? ' · ${l10n.resultsOnStreet}'
         : ' · $distance'
-              '${a.tier == Tier.close || a.tier == Tier.miss ? ' · ${l10n.resultsToRetry}' : ''}';
+              '${isRetryTier(a.tier) ? ' · ${l10n.resultsToRetry}' : ''}';
     return ResultRow(
       tier: a.tier,
       street: name,

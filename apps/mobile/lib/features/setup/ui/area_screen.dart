@@ -21,8 +21,6 @@ import 'package:pindoro/features/setup/ui/widgets/shape_overlays.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-const double _metresPerDegree = 111195;
-
 /// Unpicked chips in the sheet: the areas nearest the map's centre.
 const int _nearbyChips = 6;
 
@@ -91,24 +89,14 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
         _focus = CircleArea(center, radiusM).bbox;
       case RectArea(:final bounds):
         _mode = AreaMode.rectangle;
-        _widthM = _side(bounds, horizontal: true);
-        _heightM = _side(bounds, horizontal: false);
+        _widthM = bounds.widthM;
+        _heightM = bounds.heightM;
         _focus = bounds;
         _center = bounds.center;
       default:
         _mode = known.isNotEmpty ? AreaMode.districts : AreaMode.circle;
     }
   }
-
-  static double _side(Bbox b, {required bool horizontal}) => horizontal
-      ? distanceBetween(
-          LatLng(b.center.lat, b.minLon),
-          LatLng(b.center.lat, b.maxLon),
-        )
-      : distanceBetween(
-          LatLng(b.minLat, b.center.lon),
-          LatLng(b.maxLat, b.center.lon),
-        );
 
   /// A new mode starts from the old shape: districts become the circle
   /// around them, a circle the rectangle around it, and back.
@@ -120,13 +108,10 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
             when _picked.value.isNotEmpty:
           final box = DistrictsArea(_picked.value).shapeIn(pack)?.bbox;
           if (box != null) {
-            final half = math.max(
-              _side(box, horizontal: true),
-              _side(box, horizontal: false),
-            );
-            _radiusM = _clampRadius(half / 2);
-            _widthM = _clampSide(_side(box, horizontal: true));
-            _heightM = _clampSide(_side(box, horizontal: false));
+            final longestSide = math.max(box.widthM, box.heightM);
+            _radiusM = _clampRadius(longestSide / 2);
+            _widthM = _clampSide(box.widthM);
+            _heightM = _clampSide(box.heightM);
             _focus = box;
           }
         case (AreaMode.circle, AreaMode.rectangle):
@@ -208,19 +193,10 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
       AreaMode.districts =>
         _picked.value.isEmpty ? null : DistrictsArea(_picked.value),
       AreaMode.circle when center != null => CircleArea(center, _radiusM),
-      AreaMode.rectangle when center != null => RectArea(
-        Bbox(
-          center.lat - _heightM / 2 / _metresPerDegree,
-          center.lon -
-              _widthM /
-                  2 /
-                  (_metresPerDegree * math.cos(center.lat * math.pi / 180)),
-          center.lat + _heightM / 2 / _metresPerDegree,
-          center.lon +
-              _widthM /
-                  2 /
-                  (_metresPerDegree * math.cos(center.lat * math.pi / 180)),
-        ),
+      AreaMode.rectangle when center != null => RectArea.around(
+        center,
+        _widthM,
+        _heightM,
       ),
       _ => null,
     };

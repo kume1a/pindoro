@@ -49,9 +49,10 @@ export const tierFor = (distanceM: number, t: TierThresholds): Tier => {
   return "miss";
 };
 
-export const xpFor = (distanceM: number, t: TierThresholds): number => {
+/** XP for a pin distanceM away that scored `tier` (from tierFor). */
+export const xpFor = (tier: Tier, distanceM: number, t: TierThresholds): number => {
   const d = distanceM / t.factor;
-  switch (tierFor(distanceM, t)) {
+  switch (tier) {
     case "perfect":
       return ScoringConfig.perfectXp;
     case "great":
@@ -79,5 +80,6 @@ export const scoreAnswer = (
   difficulty: Difficulty,
 ): Score => {
   const t = thresholdsForStreet(roadClass, difficulty);
-  return { tier: tierFor(distanceM, t), xp: xpFor(distanceM, t) };
+  const tier = tierFor(distanceM, t);
+  return { tier, xp: xpFor(tier, distanceM, t) };
 };

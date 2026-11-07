@@ -25,12 +25,16 @@ void _encodeValue(int v, StringBuffer out) {
   out.writeCharCode(n + 63);
 }
 
+/// Throws [FormatException] on a truncated string, as @pindoro/geo does.
 Polyline decodePolyline6(String encoded) {
   final points = <LatLng>[];
   var i = 0, lat = 0, lon = 0;
   int next() {
     var result = 0, shift = 0, b = 0;
     do {
+      if (i >= encoded.length) {
+        throw FormatException('truncated polyline6', encoded, i);
+      }
       b = encoded.codeUnitAt(i++) - 63;
       result |= (b & 0x1f) << shift;
       shift += 5;

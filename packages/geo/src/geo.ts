@@ -6,19 +6,19 @@ export interface LatLng {
 export type Polyline = LatLng[];
 export type MultiPolyline = Polyline[];
 
-export const EARTH_RADIUS_M = 6_371_008.8;
+const EARTH_RADIUS_M = 6_371_008.8;
 const RAD = Math.PI / 180;
 const M_PER_DEG = EARTH_RADIUS_M * RAD;
 
 type XY = [x: number, y: number];
 
-export interface LocalProjection {
+interface LocalProjection {
   project: (p: LatLng) => XY;
   unproject: (xy: XY) => LatLng;
 }
 
 // Equirectangular projection in metres around `origin`; accurate to well under 0.5 m at city scale.
-export const localProjection = (origin: LatLng): LocalProjection => {
+const localProjection = (origin: LatLng): LocalProjection => {
   const kx = M_PER_DEG * Math.cos(origin.lat * RAD);
   return {
     project: (p: LatLng): XY => [(p.lon - origin.lon) * kx, (p.lat - origin.lat) * M_PER_DEG],
@@ -36,7 +36,7 @@ export interface Bbox {
   maxLon: number;
 }
 
-export const bboxOf = (line: Polyline): Bbox => {
+const bboxOf = (line: Polyline): Bbox => {
   const b = { minLat: Infinity, minLon: Infinity, maxLat: -Infinity, maxLon: -Infinity };
   for (const p of line) {
     b.minLat = Math.min(b.minLat, p.lat);
@@ -48,6 +48,9 @@ export const bboxOf = (line: Polyline): Bbox => {
 };
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
+
+// Same arithmetic as Dart's _length (Math.hypot can differ in the last bit at a tier boundary).
+const length = (x: number, y: number): number => Math.sqrt(x * x + y * y);
 
 export interface NearestPoint {
   distanceMeters: number;
@@ -67,7 +70,7 @@ export const pointToPolylineDistance = (point: LatLng, lines: MultiPolyline): Ne
       lat: clamp(point.lat, b.minLat, b.maxLat),
       lon: clamp(point.lon, b.minLon, b.maxLon),
     });
-    if (Math.hypot(bx, by) >= best) continue;
+    if (length(bx, by) >= best) continue;
     const xy = line.map(proj.project);
     for (let i = 0; i < xy.length; i++) {
       const [ax, ay] = xy[i] as XY;
@@ -78,7 +81,7 @@ export const pointToPolylineDistance = (point: LatLng, lines: MultiPolyline): Ne
       const t = len2 === 0 ? 0 : clamp(-(ax * dx + ay * dy) / len2, 0, 1);
       const px = ax + t * dx;
       const py = ay + t * dy;
-      const d = Math.hypot(px, py);
+      const d = length(px, py);
       if (d < best) {
         best = d;
         bestXY = [px, py];
@@ -117,6 +120,7 @@ export const encodePolyline6 = (points: Polyline): string => {
   return out;
 };
 
+/** Throws on a truncated string (reading past the end would decode garbage), as Dart does. */
 export const decodePolyline6 = (encoded: string): Polyline => {
   const points: Polyline = [];
   let i = 0;
@@ -127,6 +131,7 @@ export const decodePolyline6 = (encoded: string): Polyline => {
     let shift = 0;
     let b: number;
     do {
+      if (i >= encoded.length) throw new RangeError(`decodePolyline6: truncated at ${i}`);
       b = encoded.charCodeAt(i++) - 63;
       result |= (b & 0x1f) << shift;
       shift += 5;

@@ -88,9 +88,10 @@ class TierThresholds {
     return Tier.miss;
   }
 
-  int xpFor(double distanceM) {
+  /// XP for a pin [distanceM] away that scored [tier] (from [tierFor]).
+  int xpFor(Tier tier, double distanceM) {
     final d = distanceM / factor;
-    return switch (tierFor(distanceM)) {
+    return switch (tier) {
       Tier.perfect => ScoringConfig.perfectXp,
       Tier.great =>
         (ScoringConfig.greatXpAt -
@@ -110,5 +111,6 @@ typedef Score = ({Tier tier, int xp});
 /// Scores a pin [distanceM] from the nearest part of a street of [roadClass].
 Score scoreAnswer(double distanceM, String roadClass, Difficulty difficulty) {
   final t = TierThresholds.forStreet(roadClass, difficulty);
-  return (tier: t.tierFor(distanceM), xp: t.xpFor(distanceM));
+  final tier = t.tierFor(distanceM);
+  return (tier: tier, xp: t.xpFor(tier, distanceM));
 }

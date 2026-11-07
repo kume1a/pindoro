@@ -8,10 +8,6 @@ import 'package:pindoro/features/home/ui/widgets/home_intro.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-extension on KnownCount {
-  double get fraction => total == 0 ? 0 : known / total;
-}
-
 DistrictProgress _progress(KnownCount c) => c.known == 0
     ? DistrictProgress.notStarted
     : c.known >= c.total

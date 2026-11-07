@@ -25,12 +25,8 @@ List<List<Polyline>> decodeMultipolygon6(String json) => [
 LatLng _latLng(PackRow r, String prefix) =>
     LatLng(_d(r['${prefix}_lat']), _d(r['${prefix}_lon']));
 
-Bbox _bbox(PackRow r) => Bbox(
-  _d(r['min_lat']),
-  _d(r['min_lon']),
-  _d(r['max_lat']),
-  _d(r['max_lon']),
-);
+Bbox _bbox(PackRow r) =>
+    Bbox.tryParse(r) ?? (throw FormatException('row without a bbox', r));
 
 double _d(Object? v) => (v! as num).toDouble();
 
