@@ -95,6 +95,57 @@ void main() {
     expect(celebrationFor(Tier.miss), isNull);
   });
 
+  testWidgets('labelled controls keep their tap for screen readers', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(
+      _host(
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            PindoroIconButton(
+              glyph: PindoroGlyph.close,
+              semanticLabel: 'Close',
+              onPressed: () {},
+            ),
+            PindoroChip(label: 'Vake', selected: false, onPressed: () {}),
+            PindoroChip.action(label: 'All 104', onPressed: () {}),
+            MapControl(
+              glyph: PindoroGlyph.zoomIn,
+              semanticLabel: 'Zoom in',
+              onPressed: () {},
+            ),
+            SegmentedControl(
+              segments: const {1: 'Light', 2: 'Dark'},
+              selected: 1,
+              onChanged: (_) {},
+            ),
+          ],
+        ),
+      ),
+    );
+    for (final label in [
+      'Close',
+      'Vake',
+      'All 104',
+      'Zoom in',
+      'Dark, 2 / 2',
+    ]) {
+      expect(
+        tester.getSemantics(find.bySemanticsLabel(label)),
+        isSemantics(label: label, hasTapAction: true),
+        reason: label,
+      );
+    }
+    expect(
+      tester.getSemantics(find.bySemanticsLabel('All 104')),
+      isSemantics(isButton: true, hasCheckedState: false),
+      reason: 'an action chip is a button, not an unchecked box',
+    );
+    semantics.dispose();
+  });
+
   testWidgets('FeedbackBadge shows the tier icon and name', (tester) async {
     await tester.pumpWidget(_host(const FeedbackBadge(Tier.perfect)));
     expect(

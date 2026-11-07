@@ -104,7 +104,7 @@ class SettingsScreen extends ConsumerWidget {
           children: [
             ListRow(
               title: l10n.creditsTitle,
-              leading: const RowTile(child: PindoroIcon(PindoroGlyph.map)),
+              leading: const RowTile(PindoroGlyph.map),
               trailing: const PindoroIcon(PindoroGlyph.chevronRight),
               onTap: () => context.push(Routes.credits),
             ),
@@ -160,7 +160,7 @@ class _ToggleRow extends StatelessWidget {
   Widget build(BuildContext context) => ListRow(
     title: title,
     subtitle: subtitle,
-    leading: RowTile(child: PindoroIcon(glyph)),
+    leading: RowTile(glyph),
     trailing: ExcludeSemantics(
       child: PindoroToggle(value: value, onChanged: onChanged),
     ),
@@ -192,18 +192,18 @@ class CreditsScreen extends StatelessWidget {
             ListRow(
               title: l10n.creditsOsm,
               subtitle: l10n.creditsOsmLicence,
-              leading: const RowTile(child: PindoroIcon(PindoroGlyph.map)),
+              leading: const RowTile(PindoroGlyph.map),
               trailing: const PindoroIcon(PindoroGlyph.share),
               semanticsLabel: '${l10n.creditsOsm}. ${l10n.creditsOsmLink}',
               onTap: () => launchUrl(_osmCopyright),
             ),
             ListRow(
               title: l10n.creditsTiles,
-              leading: const RowTile(child: PindoroIcon(PindoroGlyph.layers)),
+              leading: const RowTile(PindoroGlyph.layers),
             ),
             ListRow(
               title: l10n.creditsFont,
-              leading: const RowTile(child: PindoroIcon(PindoroGlyph.book)),
+              leading: const RowTile(PindoroGlyph.book),
               trailing: const PindoroIcon(PindoroGlyph.chevronRight),
               onTap: () => showLicensePage(context: context),
             ),

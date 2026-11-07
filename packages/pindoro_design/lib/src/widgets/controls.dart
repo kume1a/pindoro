@@ -5,6 +5,7 @@ import '../theme.dart';
 import 'graphics.dart';
 import 'pindoro_button.dart';
 import 'surfaces.dart';
+import 'tappable.dart';
 
 /// A 56 × 32 switch; put it in a [ListRow] so the whole row is the target.
 class PindoroToggle extends StatelessWidget {
@@ -66,7 +67,8 @@ class PindoroToggle extends StatelessWidget {
 }
 
 /// Two to four exclusive options in a sunken track; the selected segment is
-/// raised on a 2 dp lip. Announced as a tab list.
+/// raised on a 2 dp lip. Announced as selectable buttons; tapping the
+/// selected one changes nothing.
 class SegmentedControl<T> extends StatelessWidget {
   const SegmentedControl({
     super.key,
@@ -83,8 +85,10 @@ class SegmentedControl<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
     final entries = segments.entries.toList();
+    // The track's top and bottom padding sit inside each segment's target:
+    // 52 dp tall to the finger, 44 dp to the eye.
     return Container(
-      padding: const EdgeInsets.all(PindoroSpace.s1),
+      padding: const EdgeInsets.symmetric(horizontal: PindoroSpace.s1),
       decoration: BoxDecoration(
         color: c.surfaceSunken,
         borderRadius: BorderRadius.circular(PindoroRadius.lg),
@@ -93,53 +97,13 @@ class SegmentedControl<T> extends StatelessWidget {
         children: [
           for (final (i, MapEntry(key: value, value: label)) in entries.indexed)
             Expanded(
-              child: Semantics(
+              child: _Segment(
+                label: label,
+                semanticLabel: '$label, ${i + 1} / ${entries.length}',
                 selected: value == selected,
-                button: true,
-                label: '$label, ${i + 1} / ${entries.length}',
-                excludeSemantics: true,
-                child: GestureDetector(
-                  onTap: () => onChanged(value),
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    child: AnimatedContainer(
-                      duration: PindoroMotion.durationQuick,
-                      curve: PindoroMotion.easeStandard,
-                      constraints: const BoxConstraints(minHeight: 44),
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: PindoroSpace.s2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: value == selected
-                            ? c.surfaceRaised
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(PindoroRadius.md),
-                        border: value == selected
-                            ? Border(
-                                bottom: BorderSide(
-                                  color: c.lineBase,
-                                  width: PindoroElevation.e1,
-                                ),
-                              )
-                            : null,
-                      ),
-                      // Long translated labels shrink instead of wrapping.
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          label,
-                          maxLines: 1,
-                          style: PindoroType.labelLg.copyWith(
-                            color: value == selected
-                                ? c.primaryText
-                                : c.textSecondary,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                onTap: () {
+                  if (value != selected) onChanged(value);
+                },
               ),
             ),
         ],
@@ -148,13 +112,68 @@ class SegmentedControl<T> extends StatelessWidget {
   }
 }
 
-/// Three lane dashes driving left to right: the system's loading indicator.
-/// Stands still when reduce motion is on.
-class LaneLoader extends StatefulWidget {
-  const LaneLoader({super.key, this.color});
+class _Segment extends StatelessWidget {
+  const _Segment({
+    required this.label,
+    required this.semanticLabel,
+    required this.selected,
+    required this.onTap,
+  });
 
-  /// Defaults to `color.primary.base`.
-  final Color? color;
+  final String label;
+  final String semanticLabel;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    return Tappable(
+      selected: selected,
+      label: semanticLabel,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: PindoroSpace.s1),
+        child: AnimatedContainer(
+          duration: PindoroMotion.durationQuick,
+          curve: PindoroMotion.easeStandard,
+          constraints: const BoxConstraints(minHeight: 44),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: PindoroSpace.s2),
+          decoration: BoxDecoration(
+            color: selected ? c.surfaceRaised : Colors.transparent,
+            borderRadius: BorderRadius.circular(PindoroRadius.md),
+            border: selected
+                ? Border(
+                    bottom: BorderSide(
+                      color: c.lineBase,
+                      width: PindoroElevation.e1,
+                    ),
+                  )
+                : null,
+          ),
+          // Long translated labels shrink instead of wrapping.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              style: PindoroType.labelLg.copyWith(
+                color: selected ? c.primaryText : c.textSecondary,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Three lane dashes driving left to right: the system's loading indicator.
+/// Stands still when reduce motion is on. Decorative: the text beside it says
+/// what is loading.
+class LaneLoader extends StatefulWidget {
+  const LaneLoader({super.key});
 
   @override
   State<LaneLoader> createState() => _LaneLoaderState();
@@ -185,9 +204,8 @@ class _LaneLoaderState extends State<LaneLoader>
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.color ?? PindoroTheme.of(context).colors.primaryBase;
-    return Semantics(
-      label: MaterialLocalizations.of(context).refreshIndicatorSemanticLabel,
+    final color = PindoroTheme.of(context).colors.primaryBase;
+    return ExcludeSemantics(
       child: SizedBox(
         width: 48,
         height: 8,
@@ -248,25 +266,19 @@ class PindoroIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
-    return Semantics(
-      button: true,
+    return Tappable(
       label: semanticLabel,
-      excludeSemantics: true,
-      child: GestureDetector(
-        onTap: onPressed,
-        child: MouseRegion(
-          cursor: onPressed == null
-              ? SystemMouseCursors.forbidden
-              : SystemMouseCursors.click,
-          child: LipBox(
-            radius: PindoroRadius.md,
-            border: c.buttonSecondaryBorder,
-            child: SizedBox.square(
-              dimension: PindoroSize.tapMin - PindoroElevation.e1,
-              child: Center(
-                child: PindoroIcon(glyph, color: c.buttonSecondaryText),
-              ),
-            ),
+      onTap: onPressed,
+      child: LipBox(
+        radius: PindoroRadius.md,
+        border: c.buttonSecondaryBorder,
+        // 48 × 48 counting the border and the lip.
+        child: SizedBox(
+          width: PindoroSize.tapMin - 2 * PindoroStroke.base,
+          height:
+              PindoroSize.tapMin - PindoroElevation.e1 - 2 * PindoroStroke.base,
+          child: Center(
+            child: PindoroIcon(glyph, color: c.buttonSecondaryText),
           ),
         ),
       ),

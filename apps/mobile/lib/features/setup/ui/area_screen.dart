@@ -403,9 +403,8 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                         ref.read(offlineVakeProvider.notifier).set(false),
                   )
                 : mode == AreaMode.districts
-                ? PindoroChip(
+                ? PindoroChip.action(
                     label: l10n.areaAllChip(districts.length),
-                    selected: false,
                     onPressed: () => _showAll(names),
                   )
                 : null,
