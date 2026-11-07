@@ -77,7 +77,7 @@ void main() {
 
     await tapAndSettle(tester, 'Choose a city');
     await tapAndSettle(tester, 'Tbilisi');
-    expect(find.text('Pick a district first'), findsOneWidget);
+    expect(find.text('Pick an area first'), findsOneWidget);
 
     await tapAndSettle(tester, 'ვაკის რაიონი');
     await tapAndSettle(tester, 'Next');

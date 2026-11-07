@@ -49,6 +49,44 @@ void main() {
     expect(picked, 'b');
   });
 
+  testWidgets('a check row is a checkbox: partial reads as mixed', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(
+      _host(
+        ListGroup(
+          children: [
+            for (final (title, check) in [
+              ('Partial', CheckState.partial),
+              ('Included', CheckState.included),
+            ])
+              ListRow(title: title, check: check, onTap: () {}),
+          ],
+        ),
+      ),
+    );
+    expect(
+      tester.getSemantics(find.text('Partial')),
+      containsSemantics(
+        label: 'Partial',
+        hasCheckedState: true,
+        isCheckStateMixed: true,
+        isButton: false,
+      ),
+    );
+    expect(
+      tester.getSemantics(find.text('Included')),
+      containsSemantics(
+        label: 'Included',
+        hasCheckedState: true,
+        isChecked: true,
+        isButton: false,
+      ),
+    );
+    semantics.dispose();
+  });
+
   testWidgets('a toggle row flips on a tap anywhere in the row', (
     tester,
   ) async {
@@ -159,6 +197,22 @@ void main() {
                     toggled: false,
                     onTap: () {},
                   ),
+                ],
+              ),
+              ListGroup(
+                children: [
+                  for (final (title, check) in [
+                    ('Vake', CheckState.partial),
+                    ('Vazha-Pshavela Blocks', CheckState.on),
+                    ('Lisi', CheckState.off),
+                    ('Sololaki', CheckState.included),
+                  ])
+                    ListRow(
+                      title: title,
+                      subtitle: '312 streets',
+                      check: check,
+                      onTap: () {},
+                    ),
                 ],
               ),
               const Row(

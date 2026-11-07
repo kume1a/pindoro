@@ -1,8 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/page_scaffold.dart';
+import 'package:pindoro/features/setup/data/area_tree.dart';
+import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 enum AreaMode { districts, circle, rectangle }
+
+/// "0 of 104 areas" before a pick, then "2 areas · 312 streets".
+String areaCountLine(
+  AppLocalizations l10n,
+  int total,
+  Set<String> picked,
+  Map<String, Set<String>>? streets,
+) {
+  if (picked.isEmpty || streets == null) {
+    return l10n.areaCount(total, picked.length);
+  }
+  final n = streetCount(streets, picked);
+  return '${l10n.areaPickedCount(picked.length)} · '
+      '${l10n.areaStreetCount(n, formatNumber(n))}';
+}
 
 class AreaSheet extends StatelessWidget {
   const AreaSheet({

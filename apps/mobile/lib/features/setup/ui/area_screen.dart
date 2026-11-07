@@ -9,8 +9,10 @@ import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/pack/ui/pack_pending.dart';
+import 'package:pindoro/features/setup/data/area_tree.dart';
 import 'package:pindoro/features/setup/ui/area_map.dart';
 import 'package:pindoro/features/setup/ui/widgets/all_areas_sheet.dart';
 import 'package:pindoro/features/setup/ui/widgets/area_sheet.dart';
@@ -22,34 +24,6 @@ const double _metresPerDegree = 111195;
 
 /// Unpicked chips in the sheet: the areas nearest the map's centre.
 const int _nearbyChips = 6;
-
-/// Each district with the neighbourhoods whose centre lies in it (else the
-/// nearest district), districts by name.
-List<({District district, List<District> parts})> groupByDistrict(
-  List<District> areas,
-) {
-  final districts = [
-    for (final d in areas)
-      if (d.kind == DistrictKind.district) d,
-  ];
-  final parts = {for (final d in districts) d.id: <District>[]};
-  for (final n in areas) {
-    if (n.kind == DistrictKind.district || districts.isEmpty) continue;
-    final home =
-        districts
-            .where((d) => d.boundary.any((p) => polygonContains(p, n.center)))
-            .firstOrNull ??
-        (districts.toList()..sort(
-              (a, b) => distanceBetween(
-                n.center,
-                a.center,
-              ).compareTo(distanceBetween(n.center, b.center)),
-            ))
-            .first;
-    parts[home.id]!.add(n);
-  }
-  return [for (final d in districts) (district: d, parts: parts[d.id]!)];
-}
 
 /// Where the round's streets come from: districts, a circle or a rectangle.
 /// Circle and rectangle stay in the middle of the map; the map pans under
@@ -63,8 +37,12 @@ class AreaScreen extends ConsumerStatefulWidget {
 
 class _AreaScreenState extends ConsumerState<AreaScreen> {
   AreaMode? _mode;
-  Set<String> _picked = {};
+
+  /// Shared with the "All" sheet, which rebuilds on its own.
+  final _picked = ValueNotifier<Set<String>>({});
   String? _lastTapped;
+  AreaTree? _tree;
+  PackRepository? _treePack;
   double _radiusM = 2000;
   double _widthM = 2600;
   double _heightM = 3000;
@@ -72,6 +50,28 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
   double _zoom = PindoroCamera.zoom;
   Bbox? _focus;
   bool _seeded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _picked.addListener(_rebuild);
+  }
+
+  @override
+  void dispose() {
+    _picked.dispose();
+    super.dispose();
+  }
+
+  void _rebuild() => setState(() {});
+
+  AreaTree _treeOf(PackRepository pack) {
+    if (_treePack != pack) {
+      _treePack = pack;
+      _tree = AreaTree(pack.districts());
+    }
+    return _tree!;
+  }
 
   void _seedFrom(Settings? settings, PackRepository pack) {
     if (_seeded) return;
@@ -82,7 +82,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
       case DistrictsArea(:final ids) when known.isNotEmpty:
         _mode = AreaMode.districts;
         // Areas this pack lacks (offline stand-in, retired) are dropped.
-        _picked = ids.intersection(known);
+        _picked.value = _treeOf(pack).normalise(ids.intersection(known));
       case CircleArea(:final center, :final radiusM):
         _mode = AreaMode.circle;
         _radiusM = radiusM;
@@ -116,8 +116,8 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
     setState(() {
       switch ((_mode, next)) {
         case (AreaMode.districts, AreaMode.circle || AreaMode.rectangle)
-            when _picked.isNotEmpty:
-          final box = DistrictsArea(_picked).shapeIn(pack)?.bbox;
+            when _picked.value.isNotEmpty:
+          final box = DistrictsArea(_picked.value).shapeIn(pack)?.bbox;
           if (box != null) {
             final half = math.max(
               _side(box, horizontal: true),
@@ -146,32 +146,56 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
   static double _clampSide(double m) =>
       ((m / 100).round() * 100.0).clamp(RectArea.minSideM, RectArea.maxSideM);
 
-  void _toggle(String id) {
+  /// Picks or unpicks [id] by the area tree's rules; narrowing a picked
+  /// district to one of its areas says so in a toast with Undo, shown in
+  /// [toastContext]'s messenger.
+  void _toggle(
+    String id,
+    Map<String, String> names,
+    BuildContext toastContext,
+  ) {
+    final l10n = context.l10n;
+    final before = _picked.value;
+    final step = _tree!.toggle(before, id);
     ref.read(feedbackProvider).tap();
-    setState(() {
-      _lastTapped = id;
-      _picked = {..._picked};
-      if (!_picked.remove(id)) _picked.add(id);
-    });
+    _lastTapped = id;
+    _picked.value = step.picked;
+    if (step.narrowed) {
+      showToast(
+        toastContext,
+        l10n.areaNarrowed(names[id]!),
+        action: (
+          label: l10n.commonUndo,
+          onPressed: () {
+            if (mounted) _picked.value = before;
+          },
+        ),
+      );
+    }
   }
 
-  /// The 90 % sheet with every area, grouped by district, and a search.
-  Future<void> _showAll(List<District> areas, Map<String, String> names) =>
+  /// The 90 % sheet with every area, grouped by district, and a search. It
+  /// has its own messenger, so toasts show over it.
+  Future<void> _showAll(Map<String, String> names) =>
       showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
         useSafeArea: true,
         builder: (context) => FractionallySizedBox(
           heightFactor: 0.9,
-          child: StatefulBuilder(
-            builder: (context, setSheetState) => AllAreasSheet(
-              groups: groupByDistrict(areas),
-              names: names,
-              picked: _picked,
-              onToggle: (id) {
-                _toggle(id);
-                setSheetState(() {});
-              },
+          child: ScaffoldMessenger(
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              body: Consumer(
+                builder: (context, ref, _) => AllAreasSheet(
+                  tree: _tree!,
+                  names: names,
+                  streets: ref.watch(areaStreetsProvider).value,
+                  picked: _picked,
+                  onToggle: (id, sheet) => _toggle(id, names, sheet),
+                  onClear: () => _picked.value = {},
+                ),
+              ),
             ),
           ),
         ),
@@ -180,7 +204,8 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
   Area? _area() {
     final center = _center;
     return switch (_mode) {
-      AreaMode.districts => _picked.isEmpty ? null : DistrictsArea(_picked),
+      AreaMode.districts =>
+        _picked.value.isEmpty ? null : DistrictsArea(_picked.value),
       AreaMode.circle when center != null => CircleArea(center, _radiusM),
       AreaMode.rectangle when center != null => RectArea(
         Bbox(
@@ -218,7 +243,10 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
       return PackPending(pack: packState);
     }
     final offline = isFixturePack(pack);
+    _treeOf(pack);
     _seedFrom(settings, pack);
+    final picks = _picked.value;
+    final streets = ref.watch(areaStreetsProvider).value;
     final l10n = context.l10n;
     final locale = Localizations.localeOf(context);
     final districts = pack.districts();
@@ -232,13 +260,13 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
     final detail = detailAt(_zoom);
     final picked = [
       for (final d in districts)
-        if (_picked.contains(d.id)) d,
+        if (picks.contains(d.id)) d,
     ]..sort((a, b) => names[a.id]!.compareTo(names[b.id]!));
     // The zoom's level first, then the nearest to the map's centre.
     final nearest =
         [
           for (final d in districts)
-            if (!_picked.contains(d.id)) d,
+            if (!picks.contains(d.id)) d,
         ]..sort((a, b) {
           final byLevel = (isDetail(a) == detail ? 0 : 1).compareTo(
             isDetail(b) == detail ? 0 : 1,
@@ -254,8 +282,12 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
 
     final (title, help) = switch (mode) {
       AreaMode.districts => (
-        _picked.isEmpty ? l10n.areaNoneTitle : districtNames(l10n, pickedNames),
-        offline ? l10n.areaOffline : l10n.areaHelp,
+        picks.isEmpty ? l10n.areaNoneTitle : districtNames(l10n, pickedNames),
+        offline
+            ? l10n.areaOffline
+            : fewStreets(picks, streets)
+            ? l10n.areaFewStreets
+            : l10n.areaHelp,
       ),
       AreaMode.circle => (
         '${l10n.areaPlayArea} · ${formatSize(_radiusM, locale)}',
@@ -279,7 +311,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                     key: ObjectKey(pack),
                     districts: districts,
                     names: names,
-                    picked: mode == AreaMode.districts ? _picked : const {},
+                    picked: mode == AreaMode.districts ? picks : const {},
                     lastTapped: _lastTapped,
                     initialBounds: city.bbox,
                     focus: _focus,
@@ -287,7 +319,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                     onTap: (at) {
                       if (mode != AreaMode.districts) return;
                       if (areaAt(districts, at, _zoom) case final d?) {
-                        _toggle(d.id);
+                        _toggle(d.id, names, context);
                       }
                     },
                     onCamera: (center, zoom) => setState(() {
@@ -346,8 +378,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
           ),
           AreaSheet(
             modes: {
-              if (districts.isNotEmpty)
-                AreaMode.districts: l10n.areaModeDistricts,
+              if (districts.isNotEmpty) AreaMode.districts: l10n.areaModeAreas,
               AreaMode.circle: l10n.areaModeCircle,
               AreaMode.rectangle: l10n.areaModeRectangle,
             },
@@ -356,7 +387,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
             title: title,
             help: help,
             count: mode == AreaMode.districts
-                ? l10n.areaDistrictCount(districts.length, _picked.length)
+                ? areaCountLine(l10n, districts.length, picks, streets)
                 : null,
             all: offline
                 ? PindoroButton(
@@ -368,7 +399,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                 ? PindoroChip(
                     label: l10n.areaAllChip(districts.length),
                     selected: false,
-                    onPressed: () => _showAll(districts, names),
+                    onPressed: () => _showAll(names),
                   )
                 : null,
             content: switch (mode) {
@@ -379,8 +410,8 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                   for (final d in [...picked, ...nearest.take(_nearbyChips)])
                     PindoroChip(
                       label: names[d.id]!,
-                      selected: _picked.contains(d.id),
-                      onPressed: () => _toggle(d.id),
+                      selected: picks.contains(d.id),
+                      onPressed: () => _toggle(d.id, names, context),
                     ),
                 ],
               ),
@@ -399,7 +430,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
               AreaMode.rectangle => null,
             },
             next: PindoroButton(
-              label: mode == AreaMode.districts && _picked.isEmpty
+              label: mode == AreaMode.districts && picks.isEmpty
                   ? l10n.areaNoneButton
                   : l10n.commonNext,
               onPressed: _area() == null ? null : () => _next(pack),
