@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/app/router.dart';
@@ -187,5 +188,58 @@ void main() {
     await round(['c']);
     expect(await progress.recentCityIds(), ['tbilisi', 'batumi']);
     expect(await progress.recentDistrictIds('tbilisi'), ['osm:r1', 'osm:r2']);
+  });
+
+  group('daily goal', () {
+    final today = calendarDay(DateTime.now());
+
+    /// [count] answers of 100 XP each.
+    Future<void> earn(String roundId, int count) async {
+      for (var i = 0; i < count; i++) {
+        await answer(roundId, 's$i', Tier.perfect);
+      }
+    }
+
+    test('marks today once, by the round that reached the goal', () async {
+      final first = await round(['a']);
+      await earn(first, 4);
+      expect(await progress.goalDayRounds(), isEmpty);
+      await earn(first, 1);
+      final second = await round(['b']);
+      await earn(second, 5);
+      expect(await progress.goalDayRounds(), {today: first});
+      expect(await progress.xpOn(today), 1000);
+    });
+
+    test('lowering the goal below today\'s XP marks today, no round', () async {
+      await earn(await round(['a']), 3);
+      await SettingsDao(db).setDailyGoal(250);
+      await progress.markGoalIfMet(DateTime.now());
+      expect(await progress.goalDayRounds(), {today: null});
+    });
+
+    test('xpOn counts only that local day', () async {
+      final id = await round(['a']);
+      await earn(id, 1);
+      await db
+          .into(db.answers)
+          .insert(
+            AnswersCompanion.insert(
+              roundId: id,
+              streetId: 'b',
+              pinLat: 0,
+              pinLon: 0,
+              distanceM: 0,
+              tier: Tier.great,
+              xp: 70,
+              packVersion: 'v1',
+              createdAt: Value(
+                DateTime.now().subtract(const Duration(days: 1)),
+              ),
+            ),
+          );
+      expect(await progress.xpOn(today), 100);
+      expect(await progress.xpOn(today.subtract(const Duration(days: 1))), 70);
+    });
   });
 }

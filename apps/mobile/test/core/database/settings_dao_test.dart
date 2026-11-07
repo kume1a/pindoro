@@ -57,11 +57,20 @@ void main() {
     await settings.setTheme(ThemePreference.dark);
     await settings.setHaptics(on: false);
     await settings.markHomeCoachSeen();
+    await settings.setDailyGoal(1000);
+    await settings.setReminder(on: true);
     final now = await settings.read();
     expect(now.lastDifficulty, Difficulty.hard);
     expect(now.theme, ThemePreference.dark);
     expect(now.haptics, isFalse);
     expect(now.sound, isTrue);
     expect(now.homeCoachSeen, isTrue);
+    expect(now.dailyGoal, 1000);
+    expect(now.reminder, isTrue);
+  });
+
+  test('the daily goal starts at 500 with the reminder off', () async {
+    final now = await settings.read();
+    expect((now.dailyGoal, now.reminder), (500, false));
   });
 }

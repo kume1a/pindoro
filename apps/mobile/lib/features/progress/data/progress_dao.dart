@@ -42,9 +42,12 @@ extension RoundProgressRules on RoundProgress {
   };
 }
 
-/// Rounds and the append-only answer log: what the player has played, and the
-/// rules read from it (saved round, retry set, recent streets).
-@DriftAccessor(tables: [Rounds, Answers, RoundQuestions])
+/// Rounds, the append-only answer log and the goal-met days: what the player
+/// has played, and the rules read from it (saved round, retry set, recent
+/// streets, the daily goal).
+@DriftAccessor(
+  tables: [Rounds, Answers, RoundQuestions, GoalDays, UserSettings],
+)
 class ProgressDao extends DatabaseAccessor<AppDatabase>
     with _$ProgressDaoMixin {
   ProgressDao(super.attachedDatabase);
@@ -124,7 +127,8 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     return round.id;
   });
 
-  /// Appends one answer to the log (the `answer_immutable` trigger keeps it).
+  /// Appends one answer to the log (the `answer_immutable` trigger keeps it)
+  /// and marks today when this answer reached the daily goal.
   Future<Answer> recordAnswer({
     required String roundId,
     required String streetId,
@@ -133,18 +137,62 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     required Tier tier,
     required int xp,
     required String packVersion,
-  }) => into(answers).insertReturning(
-    AnswersCompanion.insert(
-      roundId: roundId,
-      streetId: streetId,
-      pinLat: pin.lat,
-      pinLon: pin.lon,
-      distanceM: distanceM,
-      tier: tier,
-      xp: xp,
-      packVersion: packVersion,
-    ),
-  );
+  }) => transaction(() async {
+    final answer = await into(answers).insertReturning(
+      AnswersCompanion.insert(
+        roundId: roundId,
+        streetId: streetId,
+        pinLat: pin.lat,
+        pinLon: pin.lon,
+        distanceM: distanceM,
+        tier: tier,
+        xp: xp,
+        packVersion: packVersion,
+      ),
+    );
+    await markGoalIfMet(answer.createdAt, roundId: roundId);
+    return answer;
+  });
+
+  /// Marks the day of [now] once its XP reaches the daily goal; the round
+  /// that got there first keeps the mark.
+  Future<void> markGoalIfMet(DateTime now, {String? roundId}) async {
+    final day = calendarDay(now);
+    if (await xpOn(day) < await _dailyGoal()) return;
+    await into(goalDays).insert(
+      GoalDaysCompanion.insert(date: dayKey(day), roundId: Value(roundId)),
+      mode: InsertMode.insertOrIgnore,
+    );
+  }
+
+  Future<int> _dailyGoal() async =>
+      (await (select(
+        userSettings,
+      )..where((s) => s.id.equals(1))).getSingleOrNull())?.dailyGoal ??
+      StreakRules.defaultGoal;
+
+  /// XP earned on the local calendar [day] (a pindoro_core `calendarDay`).
+  Future<int> xpOn(DateTime day) async {
+    final sum = answers.xp.sum();
+    final query = selectOnly(answers)
+      ..addColumns([sum])
+      ..where(
+        answers.createdAt.isBiggerOrEqualValue(
+              DateTime(day.year, day.month, day.day),
+            ) &
+            answers.createdAt.isSmallerThanValue(
+              DateTime(day.year, day.month, day.day + 1),
+            ),
+      );
+    return (await query.getSingle()).read(sum) ?? 0;
+  }
+
+  /// Every goal-met day with the round that reached the goal (null when
+  /// lowering the goal did).
+  Future<Map<DateTime, String?>> goalDayRounds() async => {
+    for (final g in await select(goalDays).get())
+      parseDayKey(g.date): g.roundId,
+  };
 
   /// A saved round expires this long after its last answer (or its start).
   static const Duration savedRoundLifetime = Duration(days: 7);
@@ -247,9 +295,11 @@ final progressDaoProvider = Provider<ProgressDao>(
   (ref) => ProgressDao(ref.watch(databaseProvider)),
 );
 
-/// Ticks whenever a round or answer is written, so screens showing progress
-/// reload even when they stayed in the navigator during the round.
+/// Ticks whenever a round, answer or goal day is written, so screens showing
+/// progress reload even when they stayed in the navigator during the round.
 final progressChangesProvider = StreamProvider<Set<TableUpdate>>((ref) {
   final db = ref.watch(databaseProvider);
-  return db.tableUpdates(TableUpdateQuery.onAllTables([db.rounds, db.answers]));
+  return db.tableUpdates(
+    TableUpdateQuery.onAllTables([db.rounds, db.answers, db.goalDays]),
+  );
 });
