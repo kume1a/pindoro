@@ -60,10 +60,12 @@ no S3/R2 (packs are static files served by Caddy). See `docs/adr/0001-architectu
 | ------------------- | -------------------------------------------------------------------- |
 | `just setup`        | `pnpm install` + `flutter pub get` (pnpm + Dart pub workspaces)      |
 | `just gen`          | Regenerate design tokens and Drift code                              |
-| `just tokens-check` | Regenerate tokens and fail on a diff                                 |
+| `just gen-check`    | Regenerate tokens + Drift and fail on a diff (CI)                    |
+| `just api-check`    | Regenerate `openapi.json` + Drizzle migrations, fail on a diff (CI)  |
 | `just goldens`      | Regenerate design goldens on Linux (pinned Flutter, as CI)           |
 | `just branding`     | App icon + splash from `apps/mobile/assets/branding` (design assets) |
 | `just lint`         | Biome, tsc, dart format, flutter analyze                             |
+| `just format`       | Biome fixes + dart format, in place                                  |
 | `just test`         | `test-dart`, geo + API tests, pipeline tests in the pipeline image   |
 | `just test-dart`    | pindoro_core, pindoro_design and mobile tests                        |
 | `just dev`          | PostGIS, API (tsx watch), Martin, packs server                       |
@@ -81,9 +83,10 @@ On Windows `just` works from PowerShell or Git Bash: recipes run in Git for Wind
 
 ## Definition of done
 
-- `just lint` and `just test` green; `just tokens-check` clean.
+- `just lint` and `just test` green; `just gen-check` and `just api-check` clean.
 - Both scoring implementations pass the shared vectors when either changes.
-- API route changes → `just openapi` committed. Pack format changes → `docs/pack-format.md`,
+- API route changes → `just openapi` committed; schema changes → `pnpm --filter @pindoro/api
+  db:generate` committed. Pack format changes → `docs/pack-format.md`,
   pipeline export, Dart pack models and `format_version` updated together.
 - New UI uses `pindoro_design` widgets and tokens only; no uppercase strings; maps keep attribution.
 - Visual changes to design widgets → `just goldens` and commit the PNGs (goldens are Linux-only).

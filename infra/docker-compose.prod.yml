@@ -6,10 +6,18 @@ name: pindoro
 
 x-database-url: &database-url postgres://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@postgis:5432/${POSTGRES_DB:?}
 
+# Docker never rotates json-file logs on its own: cap each long-running service at 30 MB.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
 services:
   postgis:
     image: postgis/postgis:16-3.4
     restart: unless-stopped
+    logging: *logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
@@ -28,6 +36,7 @@ services:
       dockerfile: apps/api/Dockerfile
     image: pindoro-api
     restart: unless-stopped
+    logging: *logging
     environment:
       DATABASE_URL: *database-url
       PACKS_DIR: /packs
@@ -42,13 +51,15 @@ services:
   martin:
     image: ghcr.io/maplibre/martin:1.16.1
     restart: unless-stopped
+    logging: *logging
     command: ["/tiles"]
     volumes:
       - ${TILES_DIR:-./tiles}:/tiles:ro
 
   caddy:
-    image: caddy:2
+    image: caddy:2.11.9
     restart: unless-stopped
+    logging: *logging
     environment:
       DOMAIN: ${DOMAIN:?}
     # Optional local admin access (also add networks: [default, egress], internal networks
@@ -63,8 +74,9 @@ services:
     depends_on: [api, martin]
 
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    image: cloudflare/cloudflared:2026.10.7
     restart: unless-stopped
+    logging: *logging
     command: ["tunnel", "--no-autoupdate", "run"]
     networks: [default, egress]
     environment:
@@ -75,6 +87,7 @@ services:
   backup:
     image: postgis/postgis:16-3.4
     restart: unless-stopped
+    logging: *logging
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |

@@ -42,8 +42,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Create test databases
         run: psql -d pindoro -c "CREATE DATABASE pindoro_test" -c "CREATE DATABASE pindoro_pipeline_test"
+      - uses: extractions/setup-just@v3
       - run: pnpm exec biome ci .
       - run: pnpm -r typecheck
+      - name: openapi.json and Drizzle migrations are up to date
+        run: just api-check
       - name: Test @pindoro/geo (shared golden vectors)
         run: pnpm --filter @pindoro/geo test
       - name: Test @pindoro/api
@@ -54,3 +57,16 @@ jobs:
         run: pnpm --filter @pindoro/pipeline test
         env:
           TEST_DATABASE_URL: postgres://pindoro:pindoro@localhost:5432/pindoro_pipeline_test
+
+  # What `just deploy` builds on the server, so a broken image fails here first.
+  images:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build -f apps/api/Dockerfile .
+      - run: docker build -f apps/pipeline/Dockerfile .
+      - name: Production compose file is valid
+        run: docker compose --env-file .env.example -f infra/docker-compose.prod.yml config -q
+        env:
+          # .env.example leaves it empty, which `:?` rejects.
+          CLOUDFLARE_TUNNEL_TOKEN: ci

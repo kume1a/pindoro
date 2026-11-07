@@ -5,7 +5,7 @@ set windows-shell := ["C:/Program Files/Git/bin/sh.exe", "-cu"]
 
 dc := "docker compose -f infra/docker-compose.yml"
 dc_prod := "docker compose --env-file .env -f infra/docker-compose.prod.yml"
-# Flutter that renders goldens; keep equal to flutter-version in .github/workflows/mobile.yml.
+# Flutter that renders goldens; keep equal to FLUTTER_VERSION in .github/workflows/mobile.yml.
 flutter_version := "3.47.9"
 # Relative to the pipeline container workdir (/repo/apps/pipeline); absolute paths get mangled by Git Bash.
 fixture_pack := "../../apps/mobile/assets/packs_fixture/tbilisi_vake_fixture.sqlite"
@@ -30,10 +30,15 @@ branding:
     cp apps/mobile/assets/branding/png/splash-mark.png apps/mobile/android/app/src/main/res/drawable-xxxhdpi/splash.png
     cp apps/mobile/assets/branding/png/splash-mark-dark.png apps/mobile/android/app/src/main/res/drawable-night-xxxhdpi/splash.png
 
-# Fail when generated tokens are stale
-tokens-check:
-    dart run packages/pindoro_design/tool/generate_tokens.dart
-    git diff --exit-code -- packages/pindoro_design/lib/src/generated
+# Fail when generated code (design tokens, Drift) is stale
+gen-check: gen
+    test -z "$(git status --porcelain -- packages/pindoro_design/lib/src/generated apps/mobile/lib)"
+
+# Fail when openapi.json or the Drizzle migrations are stale
+api-check:
+    pnpm --filter @pindoro/api openapi
+    pnpm --filter @pindoro/api db:generate
+    test -z "$(git status --porcelain -- shared/openapi apps/api/drizzle)"
 
 # Regenerate pindoro_design goldens on Linux, the only platform that compares them
 goldens:
@@ -48,6 +53,11 @@ lint:
     pnpm -r typecheck
     dart format --set-exit-if-changed .
     flutter analyze --fatal-infos
+
+# Biome fixes + dart format, in place
+format:
+    pnpm exec biome check --write .
+    dart format .
 
 # Every test suite (pipeline DB tests run inside the pipeline image, which has osm2pgsql)
 test: test-dart
