@@ -82,6 +82,13 @@ class AppLocalizationsKa extends AppLocalizations {
   String get homeKnownTitle => 'ქუჩები, რომლებიც იცი';
 
   @override
+  String get homeCoachTitle => 'აქ შენი ქალაქი ივსება';
+
+  @override
+  String get homeCoachBody =>
+      'ყოველი შესანიშნავი ან იდეალური პასუხი ახალ ნაცნობ ქუჩას ამატებს. დასახურად შეეხე ეკრანს.';
+
+  @override
   String get homeLegendInProgress => 'მიმდინარე';
 
   @override

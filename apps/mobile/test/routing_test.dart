@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' show DatabaseConnection;
+import 'package:drift/drift.dart' show DatabaseConnection, Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -110,6 +110,11 @@ void main() {
   });
 
   testWidgets('settings lead to the map data credits', (tester) async {
+    await tester.runAsync(
+      () => db.updateSettings(
+        const UserSettingsCompanion(homeCoachSeen: Value(true)),
+      ),
+    );
     await pumpApp(tester, Routes.home);
     await tapLabelled(tester, 'Settings');
     await tester.scrollUntilVisible(find.text('Map data credits'), 200);

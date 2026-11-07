@@ -83,6 +83,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeKnownTitle => 'Streets you know';
 
   @override
+  String get homeCoachTitle => 'Your city fills in here';
+
+  @override
+  String get homeCoachBody =>
+      'Every Great or Perfect adds a street you know. Tap anywhere to close.';
+
+  @override
   String get homeLegendInProgress => 'In progress';
 
   @override

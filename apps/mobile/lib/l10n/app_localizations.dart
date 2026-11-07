@@ -224,6 +224,18 @@ abstract class AppLocalizations {
   /// **'Streets you know'**
   String get homeKnownTitle;
 
+  /// No description provided for @homeCoachTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your city fills in here'**
+  String get homeCoachTitle;
+
+  /// No description provided for @homeCoachBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Every Great or Perfect adds a street you know. Tap anywhere to close.'**
+  String get homeCoachBody;
+
   /// No description provided for @homeLegendInProgress.
   ///
   /// In en, this message translates to:

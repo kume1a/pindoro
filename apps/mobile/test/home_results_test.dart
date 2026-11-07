@@ -2,11 +2,13 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart' show DatabaseConnection, Value;
 import 'package:drift/native.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/app/app.dart';
 import 'package:pindoro/app/config.dart';
 import 'package:pindoro/app/database.dart';
+import 'package:pindoro/app/launch_overlay.dart';
 import 'package:pindoro/app/router.dart';
 import 'package:pindoro/features/pack/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -32,24 +34,28 @@ void main() {
   });
   tearDown(() => db.close());
 
-  Future<void> pumpApp(WidgetTester tester, String location) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          databaseProvider.overrideWithValue(db),
-          packRepositoryProvider.overrideWith((ref) async {
-            final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
-            ref.onDispose(repo.close);
-            return repo;
-          }),
-        ],
-        child: PindoroApp(initialLocation: location),
-      ),
-    );
+  Widget appAt(String location, {bool coldStart = false}) => ProviderScope(
+    overrides: [
+      databaseProvider.overrideWithValue(db),
+      packRepositoryProvider.overrideWith((ref) async {
+        final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
+        ref.onDispose(repo.close);
+        return repo;
+      }),
+    ],
+    child: PindoroApp(initialLocation: location, coldStart: coldStart),
+  );
+
+  Future<void> settle(WidgetTester tester) async {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 100)),
     );
     await tester.pumpAndSettle();
+  }
+
+  Future<void> pumpApp(WidgetTester tester, String location) async {
+    await tester.pumpWidget(appAt(location));
+    await settle(tester);
   }
 
   Future<String> roundWithAnswers(
@@ -95,6 +101,37 @@ void main() {
     expect(find.text('Choose an area'), findsOneWidget);
     expect(find.text('Level 1'), findsOneWidget);
     expect(find.text('Streets you know'), findsOneWidget);
+  });
+
+  testWidgets('a cold start plays the launch, then leaves home usable', (
+    tester,
+  ) async {
+    final launchPin = find.descendant(
+      of: find.byType(LaunchOverlay),
+      matching: find.byType(PinMark),
+    );
+    await tester.pumpWidget(appAt(Routes.home, coldStart: true));
+    expect(launchPin, findsOneWidget);
+
+    await settle(tester);
+    expect(launchPin, findsNothing);
+    expect(find.text('Streets you know'), findsOneWidget);
+  });
+
+  testWidgets('the first home shows one coach mark; a tap closes it for good', (
+    tester,
+  ) async {
+    await pumpApp(tester, Routes.home);
+    expect(find.text('Your city fills in here'), findsOneWidget);
+
+    await tester.tapAt(const Offset(10, 10));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Your city fills in here'), findsNothing);
+    final settings = (await tester.runAsync(db.readSettings))!;
+    expect(settings.homeCoachSeen, isTrue);
   });
 
   testWidgets('home offers to continue an unfinished round', (tester) async {

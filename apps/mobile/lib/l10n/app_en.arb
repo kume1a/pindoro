@@ -62,6 +62,8 @@
     }
   },
   "homeKnownTitle": "Streets you know",
+  "homeCoachTitle": "Your city fills in here",
+  "homeCoachBody": "Every Great or Perfect adds a street you know. Tap anywhere to close.",
   "homeLegendInProgress": "In progress",
   "homeLegendComplete": "Complete",
   "homeLegendNotStarted": "Not started",

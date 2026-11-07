@@ -22,6 +22,8 @@
   "homeXpToNextLevel": "მე-{level} დონემდე {xp} XP",
   "homeXpTotal": "სულ {xp} XP",
   "homeKnownTitle": "ქუჩები, რომლებიც იცი",
+  "homeCoachTitle": "აქ შენი ქალაქი ივსება",
+  "homeCoachBody": "ყოველი შესანიშნავი ან იდეალური პასუხი ახალ ნაცნობ ქუჩას ამატებს. დასახურად შეეხე ეკრანს.",
   "homeLegendInProgress": "მიმდინარე",
   "homeLegendComplete": "დასრულებული",
   "homeLegendNotStarted": "დაუწყებელი",

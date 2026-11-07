@@ -1238,6 +1238,21 @@ class $UserSettingsTable extends UserSettings
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _homeCoachSeenMeta = const VerificationMeta(
+    'homeCoachSeen',
+  );
+  @override
+  late final GeneratedColumn<bool> homeCoachSeen = GeneratedColumn<bool>(
+    'home_coach_seen',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("home_coach_seen" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1249,6 +1264,7 @@ class $UserSettingsTable extends UserSettings
     theme,
     sound,
     haptics,
+    homeCoachSeen,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1290,6 +1306,15 @@ class $UserSettingsTable extends UserSettings
       context.handle(
         _hapticsMeta,
         haptics.isAcceptableOrUnknown(data['haptics']!, _hapticsMeta),
+      );
+    }
+    if (data.containsKey('home_coach_seen')) {
+      context.handle(
+        _homeCoachSeenMeta,
+        homeCoachSeen.isAcceptableOrUnknown(
+          data['home_coach_seen']!,
+          _homeCoachSeenMeta,
+        ),
       );
     }
     return context;
@@ -1345,6 +1370,10 @@ class $UserSettingsTable extends UserSettings
         DriftSqlType.bool,
         data['${effectivePrefix}haptics'],
       )!,
+      homeCoachSeen: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}home_coach_seen'],
+      )!,
     );
   }
 
@@ -1385,6 +1414,9 @@ class Settings extends DataClass implements Insertable<Settings> {
   final ThemePreference theme;
   final bool sound;
   final bool haptics;
+
+  /// The first Home's coach mark was closed.
+  final bool homeCoachSeen;
   const Settings({
     required this.id,
     this.lastCity,
@@ -1395,6 +1427,7 @@ class Settings extends DataClass implements Insertable<Settings> {
     required this.theme,
     required this.sound,
     required this.haptics,
+    required this.homeCoachSeen,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1428,6 +1461,7 @@ class Settings extends DataClass implements Insertable<Settings> {
     }
     map['sound'] = Variable<bool>(sound);
     map['haptics'] = Variable<bool>(haptics);
+    map['home_coach_seen'] = Variable<bool>(homeCoachSeen);
     return map;
   }
 
@@ -1450,6 +1484,7 @@ class Settings extends DataClass implements Insertable<Settings> {
       theme: Value(theme),
       sound: Value(sound),
       haptics: Value(haptics),
+      homeCoachSeen: Value(homeCoachSeen),
     );
   }
 
@@ -1476,6 +1511,7 @@ class Settings extends DataClass implements Insertable<Settings> {
       ),
       sound: serializer.fromJson<bool>(json['sound']),
       haptics: serializer.fromJson<bool>(json['haptics']),
+      homeCoachSeen: serializer.fromJson<bool>(json['homeCoachSeen']),
     );
   }
   @override
@@ -1499,6 +1535,7 @@ class Settings extends DataClass implements Insertable<Settings> {
       ),
       'sound': serializer.toJson<bool>(sound),
       'haptics': serializer.toJson<bool>(haptics),
+      'homeCoachSeen': serializer.toJson<bool>(homeCoachSeen),
     };
   }
 
@@ -1512,6 +1549,7 @@ class Settings extends DataClass implements Insertable<Settings> {
     ThemePreference? theme,
     bool? sound,
     bool? haptics,
+    bool? homeCoachSeen,
   }) => Settings(
     id: id ?? this.id,
     lastCity: lastCity.present ? lastCity.value : this.lastCity,
@@ -1524,6 +1562,7 @@ class Settings extends DataClass implements Insertable<Settings> {
     theme: theme ?? this.theme,
     sound: sound ?? this.sound,
     haptics: haptics ?? this.haptics,
+    homeCoachSeen: homeCoachSeen ?? this.homeCoachSeen,
   );
   Settings copyWithCompanion(UserSettingsCompanion data) {
     return Settings(
@@ -1544,6 +1583,9 @@ class Settings extends DataClass implements Insertable<Settings> {
       theme: data.theme.present ? data.theme.value : this.theme,
       sound: data.sound.present ? data.sound.value : this.sound,
       haptics: data.haptics.present ? data.haptics.value : this.haptics,
+      homeCoachSeen: data.homeCoachSeen.present
+          ? data.homeCoachSeen.value
+          : this.homeCoachSeen,
     );
   }
 
@@ -1558,7 +1600,8 @@ class Settings extends DataClass implements Insertable<Settings> {
           ..write('streetNames: $streetNames, ')
           ..write('theme: $theme, ')
           ..write('sound: $sound, ')
-          ..write('haptics: $haptics')
+          ..write('haptics: $haptics, ')
+          ..write('homeCoachSeen: $homeCoachSeen')
           ..write(')'))
         .toString();
   }
@@ -1574,6 +1617,7 @@ class Settings extends DataClass implements Insertable<Settings> {
     theme,
     sound,
     haptics,
+    homeCoachSeen,
   );
   @override
   bool operator ==(Object other) =>
@@ -1587,7 +1631,8 @@ class Settings extends DataClass implements Insertable<Settings> {
           other.streetNames == this.streetNames &&
           other.theme == this.theme &&
           other.sound == this.sound &&
-          other.haptics == this.haptics);
+          other.haptics == this.haptics &&
+          other.homeCoachSeen == this.homeCoachSeen);
 }
 
 class UserSettingsCompanion extends UpdateCompanion<Settings> {
@@ -1600,6 +1645,7 @@ class UserSettingsCompanion extends UpdateCompanion<Settings> {
   final Value<ThemePreference> theme;
   final Value<bool> sound;
   final Value<bool> haptics;
+  final Value<bool> homeCoachSeen;
   const UserSettingsCompanion({
     this.id = const Value.absent(),
     this.lastCity = const Value.absent(),
@@ -1610,6 +1656,7 @@ class UserSettingsCompanion extends UpdateCompanion<Settings> {
     this.theme = const Value.absent(),
     this.sound = const Value.absent(),
     this.haptics = const Value.absent(),
+    this.homeCoachSeen = const Value.absent(),
   });
   UserSettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -1621,6 +1668,7 @@ class UserSettingsCompanion extends UpdateCompanion<Settings> {
     this.theme = const Value.absent(),
     this.sound = const Value.absent(),
     this.haptics = const Value.absent(),
+    this.homeCoachSeen = const Value.absent(),
   });
   static Insertable<Settings> custom({
     Expression<int>? id,
@@ -1632,6 +1680,7 @@ class UserSettingsCompanion extends UpdateCompanion<Settings> {
     Expression<String>? theme,
     Expression<bool>? sound,
     Expression<bool>? haptics,
+    Expression<bool>? homeCoachSeen,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1643,6 +1692,7 @@ class UserSettingsCompanion extends UpdateCompanion<Settings> {
       if (theme != null) 'theme': theme,
       if (sound != null) 'sound': sound,
       if (haptics != null) 'haptics': haptics,
+      if (homeCoachSeen != null) 'home_coach_seen': homeCoachSeen,
     });
   }
 
@@ -1656,6 +1706,7 @@ class UserSettingsCompanion extends UpdateCompanion<Settings> {
     Value<ThemePreference>? theme,
     Value<bool>? sound,
     Value<bool>? haptics,
+    Value<bool>? homeCoachSeen,
   }) {
     return UserSettingsCompanion(
       id: id ?? this.id,
@@ -1667,6 +1718,7 @@ class UserSettingsCompanion extends UpdateCompanion<Settings> {
       theme: theme ?? this.theme,
       sound: sound ?? this.sound,
       haptics: haptics ?? this.haptics,
+      homeCoachSeen: homeCoachSeen ?? this.homeCoachSeen,
     );
   }
 
@@ -1710,6 +1762,9 @@ class UserSettingsCompanion extends UpdateCompanion<Settings> {
     if (haptics.present) {
       map['haptics'] = Variable<bool>(haptics.value);
     }
+    if (homeCoachSeen.present) {
+      map['home_coach_seen'] = Variable<bool>(homeCoachSeen.value);
+    }
     return map;
   }
 
@@ -1724,7 +1779,8 @@ class UserSettingsCompanion extends UpdateCompanion<Settings> {
           ..write('streetNames: $streetNames, ')
           ..write('theme: $theme, ')
           ..write('sound: $sound, ')
-          ..write('haptics: $haptics')
+          ..write('haptics: $haptics, ')
+          ..write('homeCoachSeen: $homeCoachSeen')
           ..write(')'))
         .toString();
   }
@@ -3038,6 +3094,7 @@ typedef $$UserSettingsTableCreateCompanionBuilder =
       Value<ThemePreference> theme,
       Value<bool> sound,
       Value<bool> haptics,
+      Value<bool> homeCoachSeen,
     });
 typedef $$UserSettingsTableUpdateCompanionBuilder =
     UserSettingsCompanion Function({
@@ -3050,6 +3107,7 @@ typedef $$UserSettingsTableUpdateCompanionBuilder =
       Value<ThemePreference> theme,
       Value<bool> sound,
       Value<bool> haptics,
+      Value<bool> homeCoachSeen,
     });
 
 class $$UserSettingsTableFilterComposer
@@ -3109,6 +3167,11 @@ class $$UserSettingsTableFilterComposer
     column: $table.haptics,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<bool> get homeCoachSeen => $composableBuilder(
+    column: $table.homeCoachSeen,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$UserSettingsTableOrderingComposer
@@ -3164,6 +3227,11 @@ class $$UserSettingsTableOrderingComposer
     column: $table.haptics,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get homeCoachSeen => $composableBuilder(
+    column: $table.homeCoachSeen,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$UserSettingsTableAnnotationComposer
@@ -3212,6 +3280,11 @@ class $$UserSettingsTableAnnotationComposer
 
   GeneratedColumn<bool> get haptics =>
       $composableBuilder(column: $table.haptics, builder: (column) => column);
+
+  GeneratedColumn<bool> get homeCoachSeen => $composableBuilder(
+    column: $table.homeCoachSeen,
+    builder: (column) => column,
+  );
 }
 
 class $$UserSettingsTableTableManager
@@ -3254,6 +3327,7 @@ class $$UserSettingsTableTableManager
                 Value<ThemePreference> theme = const Value.absent(),
                 Value<bool> sound = const Value.absent(),
                 Value<bool> haptics = const Value.absent(),
+                Value<bool> homeCoachSeen = const Value.absent(),
               }) => UserSettingsCompanion(
                 id: id,
                 lastCity: lastCity,
@@ -3264,6 +3338,7 @@ class $$UserSettingsTableTableManager
                 theme: theme,
                 sound: sound,
                 haptics: haptics,
+                homeCoachSeen: homeCoachSeen,
               ),
           createCompanionCallback:
               ({
@@ -3276,6 +3351,7 @@ class $$UserSettingsTableTableManager
                 Value<ThemePreference> theme = const Value.absent(),
                 Value<bool> sound = const Value.absent(),
                 Value<bool> haptics = const Value.absent(),
+                Value<bool> homeCoachSeen = const Value.absent(),
               }) => UserSettingsCompanion.insert(
                 id: id,
                 lastCity: lastCity,
@@ -3286,6 +3362,7 @@ class $$UserSettingsTableTableManager
                 theme: theme,
                 sound: sound,
                 haptics: haptics,
+                homeCoachSeen: homeCoachSeen,
               ),
           withReferenceMapper: (p0) => p0
               .map(

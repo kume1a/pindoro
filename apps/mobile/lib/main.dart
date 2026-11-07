@@ -44,7 +44,10 @@ Future<void> main() async {
   runApp(
     UncontrolledProviderScope(
       container: container,
-      child: PindoroApp(initialLocation: await initialLocation(db)),
+      child: PindoroApp(
+        initialLocation: await initialLocation(db),
+        coldStart: true,
+      ),
     ),
   );
 }
