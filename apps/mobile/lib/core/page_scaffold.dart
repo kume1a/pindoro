@@ -133,6 +133,41 @@ class PinnedFooter extends StatelessWidget {
   }
 }
 
+/// A sheet docked under a map (`color.surface.overlay`, top `radius.2xl`),
+/// its content ending 26 dp above the bottom safe area.
+class BottomPanel extends StatelessWidget {
+  const BottomPanel({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    return Container(
+      decoration: BoxDecoration(
+        color: c.surfaceOverlay,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(PindoroRadius.r2xl),
+        ),
+        border: Border(
+          top: BorderSide(color: c.lineBase, width: PindoroStroke.base),
+        ),
+      ),
+      child: ContentColumn(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            PindoroSpace.s4,
+            PindoroSpace.s4,
+            PindoroSpace.s4,
+            bottomActionGap(context),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
 /// Primary actions end 26 dp above the bottom safe area.
 double bottomActionGap(BuildContext context) =>
     MediaQuery.paddingOf(context).bottom + 26;

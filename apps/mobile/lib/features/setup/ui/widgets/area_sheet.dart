@@ -51,68 +51,47 @@ class AreaSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
-    return Container(
-      decoration: BoxDecoration(
-        color: c.surfaceOverlay,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(PindoroRadius.r2xl),
-        ),
-        border: Border(
-          top: BorderSide(color: c.lineBase, width: PindoroStroke.base),
-        ),
-      ),
-      child: ContentColumn(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            PindoroSpace.s4,
-            PindoroSpace.s4,
-            PindoroSpace.s4,
-            bottomActionGap(context),
+    return BottomPanel(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: PindoroSpace.s3,
+        children: [
+          if (modes.length > 1)
+            SegmentedControl(
+              segments: modes,
+              selected: mode,
+              onChanged: onMode,
+            ),
+          Text(
+            title,
+            style: PindoroType.titleLg.copyWith(color: c.textPrimary),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            spacing: PindoroSpace.s3,
-            children: [
-              if (modes.length > 1)
-                SegmentedControl(
-                  segments: modes,
-                  selected: mode,
-                  onChanged: onMode,
-                ),
-              Text(
-                title,
-                style: PindoroType.titleLg.copyWith(color: c.textPrimary),
-              ),
-              if (count != null)
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        count!,
-                        style: PindoroType.labelMd.copyWith(
-                          color: c.textSecondary,
-                        ),
-                      ),
-                    ),
-                    ?all,
-                  ],
-                ),
-              Text(
-                help,
-                style: PindoroType.bodySm.copyWith(color: c.textSecondary),
-              ),
-              if (content != null)
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.sizeOf(context).height * 0.25,
+          if (count != null)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    count!,
+                    style: PindoroType.labelMd.copyWith(color: c.textSecondary),
                   ),
-                  child: SingleChildScrollView(child: content),
                 ),
-              next,
-            ],
+                ?all,
+              ],
+            ),
+          Text(
+            help,
+            style: PindoroType.bodySm.copyWith(color: c.textSecondary),
           ),
-        ),
+          if (content != null)
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.25,
+              ),
+              child: SingleChildScrollView(child: content),
+            ),
+          next,
+        ],
       ),
     );
   }

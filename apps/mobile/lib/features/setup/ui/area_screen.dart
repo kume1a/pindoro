@@ -393,7 +393,8 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                 ? PindoroButton(
                     label: l10n.commonTryAgain,
                     variant: PindoroButtonVariant.tertiary,
-                    onPressed: () => ref.invalidate(packRepositoryProvider),
+                    onPressed: () =>
+                        ref.read(offlineVakeProvider.notifier).set(false),
                   )
                 : mode == AreaMode.districts
                 ? PindoroChip(

@@ -83,11 +83,26 @@ Future<File> copyFixture(Directory root) async {
   return file;
 }
 
-/// A city with no pack on the phone whose download failed.
+/// A city with no pack on the phone whose download failed: offline, or
+/// [noSpace] when the phone is full.
 class PackUnavailable implements Exception {
-  const PackUnavailable(this.city);
+  const PackUnavailable(this.city, {this.noSpace = false});
 
   final String city;
+  final bool noSpace;
+}
+
+/// The player chose to play the bundled Vake pack while Tbilisi can't
+/// download; Try again turns it off.
+final offlineVakeProvider = NotifierProvider<OfflineVakeNotifier, bool>(
+  OfflineVakeNotifier.new,
+);
+
+class OfflineVakeNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool on) => state = on;
 }
 
 /// The first download of the chosen city's pack, while it runs.
@@ -104,34 +119,42 @@ class PackDownloadNotifier extends Notifier<PackProgress?> {
 }
 
 /// The chosen city's newest pack: downloaded on first use (progress in
-/// [packDownloadProvider]); offline, the bundled fixture stands in for
-/// Tbilisi and other cities fail with [PackUnavailable]. main() invalidates
-/// it when a background download finishes.
-final packRepositoryProvider = FutureProvider<PackRepository>((ref) async {
-  final store = ref.watch(packStoreProvider);
-  final city =
-      ref.watch(settingsProvider.select((s) => s.value?.lastCity)) ??
-      AppConfig.cityId;
-  final progress = ref.read(packDownloadProvider.notifier);
-  final file =
-      store.newest(city) ??
-      await downloadPack(
-        store,
-        city,
-        onProgress: progress.report,
-      ).whenComplete(() => progress.report(null));
-  final repo = SqlitePackRepository.open(file.path);
-  // Screens keep showing the previous pack while a new one loads, so a pack
-  // is closed when its replacement opens, not when the provider reloads.
-  final open = ref.read(_openPacksProvider);
-  for (final old in open) {
-    old.close();
-  }
-  open
-    ..clear()
-    ..add(repo);
-  return repo;
-});
+/// [packDownloadProvider]); a failed download throws [PackUnavailable], and
+/// the bundled fixture stands in for Tbilisi once the player picks it
+/// ([offlineVakeProvider]). main() invalidates it when a background download
+/// finishes. A failure stays until the player taps Try again: no automatic
+/// retries.
+final packRepositoryProvider = FutureProvider<PackRepository>(
+  retry: (_, _) => null,
+  (ref) async {
+    final store = ref.watch(packStoreProvider);
+    final city =
+        ref.watch(settingsProvider.select((s) => s.value?.lastCity)) ??
+        AppConfig.cityId;
+    final offlineVake = ref.watch(offlineVakeProvider);
+    final progress = ref.read(packDownloadProvider.notifier);
+    final file =
+        store.newest(city) ??
+        (offlineVake && city == AppConfig.cityId
+            ? await copyFixture(store.root)
+            : await downloadPack(
+                store,
+                city,
+                onProgress: progress.report,
+              ).whenComplete(() => progress.report(null)));
+    final repo = SqlitePackRepository.open(file.path);
+    // Screens keep showing the previous pack while a new one loads, so a pack
+    // is closed when its replacement opens, not when the provider reloads.
+    final open = ref.read(_openPacksProvider);
+    for (final old in open) {
+      old.close();
+    }
+    open
+      ..clear()
+      ..add(repo);
+    return repo;
+  },
+);
 
 /// The pack [packRepositoryProvider] last returned; all closed with the app.
 final _openPacksProvider = Provider<List<SqlitePackRepository>>((ref) {
@@ -144,18 +167,26 @@ final _openPacksProvider = Provider<List<SqlitePackRepository>>((ref) {
   return open;
 });
 
-/// Downloads [city]'s pack; offline, Tbilisi falls back to the bundled
-/// fixture and other cities throw [PackUnavailable].
+/// ENOSPC on Android and iOS.
+const int _noSpaceLeft = 28;
+
+/// Downloads [city]'s pack, or throws [PackUnavailable].
 Future<File> downloadPack(
   PackStore store,
   String city, {
   void Function(PackProgress progress)? onProgress,
 }) async {
-  final file = await store
-      .refresh(city, onProgress: onProgress)
-      .catchError((Object _) => null);
-  if (file != null) return file;
-  if (city == AppConfig.cityId) return copyFixture(store.root);
+  try {
+    if (await store.refresh(city, onProgress: onProgress) case final file?) {
+      return file;
+    }
+  } on FileSystemException catch (e) {
+    if (e.osError?.errorCode == _noSpaceLeft) {
+      throw PackUnavailable(city, noSpace: true);
+    }
+  } on Object {
+    // Offline, server down or a bad file: the player can try again.
+  }
   throw PackUnavailable(city);
 }
 

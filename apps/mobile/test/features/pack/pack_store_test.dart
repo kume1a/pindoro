@@ -150,7 +150,11 @@ void main() {
     expect(c.read(packDownloadProvider), isNull);
   });
 
-  test('offline, another city fails instead of falling back', () async {
+  test('a full phone fails as no space, offline as unavailable', () async {
+    await expectLater(
+      downloadPack(_FullStore(root), 'tbilisi'),
+      throwsA(isA<PackUnavailable>().having((e) => e.noSpace, 'noSpace', true)),
+    );
     final offline = PackStore(
       root: root,
       apiBaseUrl: 'http://api.test',
@@ -158,11 +162,13 @@ void main() {
     );
     await expectLater(
       downloadPack(offline, 'batumi'),
-      throwsA(isA<PackUnavailable>()),
+      throwsA(
+        isA<PackUnavailable>().having((e) => e.noSpace, 'noSpace', false),
+      ),
     );
   });
 
-  test('offline, the active pack falls back to the bundled fixture', () async {
+  test('offline, Tbilisi fails until the player picks Vake', () async {
     TestWidgetsFlutterBinding.ensureInitialized(); // rootBundle
     final offline = PackStore(
       root: root,
@@ -173,8 +179,24 @@ void main() {
       overrides: [packStoreProvider.overrideWithValue(offline)],
     );
     addTearDown(c.dispose);
+    await expectLater(
+      c.read(packRepositoryProvider.future),
+      throwsA(isA<PackUnavailable>()),
+    );
+    c.read(offlineVakeProvider.notifier).set(true);
     final pack = await c.read(packRepositoryProvider.future);
     expect(pack.meta()['scope'], 'fixture');
     expect(files(), ['tbilisi_vake_fixture.sqlite']);
   });
+}
+
+/// Every write fails as on a full phone.
+class _FullStore extends PackStore {
+  _FullStore(Directory root) : super(root: root, apiBaseUrl: 'http://api.test');
+
+  @override
+  Future<File?> refresh(
+    String city, {
+    void Function(PackProgress progress)? onProgress,
+  }) => throw const FileSystemException('write', 'pack', OSError('full', 28));
 }

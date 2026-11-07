@@ -221,14 +221,15 @@
   },
   "areaClear": "Clear",
   "areaOffline": "Offline: only Vake is available",
-  "packDownloading": "Downloading {city}",
-  "@packDownloading": {
+  "packGettingReady": "Getting {city} ready",
+  "@packGettingReady": {
     "placeholders": {
       "city": {
         "type": "String"
       }
     }
   },
+  "packDownloadBody": "Streets and areas download once, then work offline.",
   "packDownloadSize": "{received} of {total}",
   "@packDownloadSize": {
     "placeholders": {
@@ -241,7 +242,12 @@
     }
   },
   "packFailedTitle": "Couldn't download this city",
-  "packFailedBody": "Check your connection and try again, or choose another city.",
+  "packFailedBody": "Check your connection and try again.",
+  "packVakeOffline": "Available without internet: Vake.",
+  "packPlayVake": "Play Vake",
+  "packChooseCity": "Choose another city",
+  "packNoSpaceTitle": "Not enough space",
+  "packNoSpaceBody": "Free up a little space on your phone and try again.",
   "areaPlayArea": "Play area",
   "areaCircleHelp": "Drag the map to move the circle. Drag its handle or the slider to resize it.",
   "areaRectangleHelp": "Drag the map to move the rectangle. Drag a corner to resize it.",
