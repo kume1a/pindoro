@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/settings.dart';
-import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/streak.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -34,8 +33,8 @@ class GoalRing extends StatelessWidget {
 String goalRounds(BuildContext context, int goal) =>
     context.l10n.dailyGoalRounds(goal ~/ StreakRules.goals.first);
 
-/// The 250 / 500 / 1 000 XP choice; picking one saves it, marks today when
-/// its XP already reaches the new goal, and closes the sheet.
+/// The 250 / 500 / 1 000 XP choice; picking one saves it and closes the
+/// sheet (`streakProvider` marks today if its XP meets the new goal).
 Future<void> showDailyGoalSheet(BuildContext context, WidgetRef ref) {
   final current = ref.read(settingsProvider).value?.dailyGoal;
   return showModalBottomSheet<void>(
@@ -71,7 +70,9 @@ Future<void> showDailyGoalSheet(BuildContext context, WidgetRef ref) {
                     onTap: () {
                       ref.read(feedbackProvider).tap();
                       Navigator.of(sheet).pop();
-                      unawaited(_saveGoal(ref, goal));
+                      unawaited(
+                        ref.read(settingsDaoProvider).setDailyGoal(goal),
+                      );
                     },
                   ),
               ],
@@ -81,9 +82,4 @@ Future<void> showDailyGoalSheet(BuildContext context, WidgetRef ref) {
       );
     },
   );
-}
-
-Future<void> _saveGoal(WidgetRef ref, int goal) async {
-  await ref.read(settingsDaoProvider).setDailyGoal(goal);
-  await ref.read(progressDaoProvider).markGoalIfMet(DateTime.now());
 }

@@ -22,21 +22,29 @@ extension StreakViewGoal on StreakView {
 }
 
 /// Reloads with progress and the daily goal; the app root also refreshes it
-/// on resume, when the date may have changed.
+/// on resume, when the date may have changed. Today's XP meeting the goal
+/// with no mark yet (a lowered goal, or XP from before the streak existed)
+/// marks it here.
 final streakProvider = FutureProvider<StreakView>((ref) async {
   ref.watch(progressChangesProvider);
   final goal = await ref.watch(
     settingsProvider.selectAsync((s) => s.dailyGoal),
   );
   final dao = ref.watch(progressDaoProvider);
-  final today = calendarDay(DateTime.now());
+  final now = DateTime.now();
+  final today = calendarDay(now);
   final rounds = await dao.goalDayRounds();
+  final todayXp = await dao.xpOn(today);
+  if (todayXp >= goal && !rounds.containsKey(today)) {
+    await dao.markGoalIfMet(now);
+    rounds[today] = null;
+  }
   final metDays = rounds.keys.toSet();
   return (
     summary: streakOf(metDays, today),
     metDays: metDays,
     goal: goal,
-    todayXp: await dao.xpOn(today),
+    todayXp: todayXp,
     goalRoundId: rounds[today],
   );
 });

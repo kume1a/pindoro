@@ -50,7 +50,8 @@ test/drift/                    generated schema helpers + migration test
   flag); they apply immediately. `feedbackProvider` plays haptics
   per game event behind the Haptics toggle; the Sound toggle gates nothing until a sound kit exists.
 - **Streak:** only goal-met days are stored (`goal_day`, written by `ProgressDao.markGoalIfMet`
-  with the answer that reaches the goal, or after lowering it). `streakProvider` derives the
+  with the answer that reaches the goal, or by `streakProvider` when today's XP already meets it:
+  a lowered goal, XP from before R2). `streakProvider` derives the
   streak, freezes and pill state with pindoro_core `streakOf`; the app root refreshes it on
   resume. One reminder is scheduled at a time (`reminderProvider` → `Reminders`, listened to at
   the app root); Settings turns it off and cancels it. Tests override `remindersProvider`: the

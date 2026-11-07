@@ -58,7 +58,12 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// On a phone-sized screen (the emulator's 1080 × 2400).
   Future<void> pumpApp(WidgetTester tester, String location) async {
+    tester.view
+      ..physicalSize = const Size(1080, 2400)
+      ..devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(appAt(location));
     await settle(tester);
   }
@@ -237,14 +242,6 @@ void main() {
   group('streak', () {
     final today = calendarDay(DateTime.now());
 
-    /// A phone tall enough for the whole Streak screen without scrolling.
-    void phone(WidgetTester tester) {
-      tester.view
-        ..physicalSize = const Size(1080, 2400)
-        ..devicePixelRatio = 2.75;
-      addTearDown(tester.view.reset);
-    }
-
     /// Goal days from [from] days ago to [to] days ago.
     Future<void> goalDays(int from, int to) => db.batch(
       (b) => b.insertAll(db.goalDays, [
@@ -258,7 +255,6 @@ void main() {
     testWidgets('home shows the pill and ring; the pill opens Streak', (
       tester,
     ) async {
-      phone(tester);
       await tester.runAsync(() async {
         await roundWithAnswers(10);
         await goalDays(1, 0);
@@ -286,7 +282,6 @@ void main() {
     testWidgets('streak shows a held freeze; Change saves a new goal', (
       tester,
     ) async {
-      phone(tester);
       await tester.runAsync(() => goalDays(7, 1));
       await pumpApp(tester, Routes.streak);
       expect(find.text('Streak freeze equipped · 1 of 2'), findsOneWidget);
@@ -306,7 +301,6 @@ void main() {
     testWidgets('results show the streak once the round met today\'s goal', (
       tester,
     ) async {
-      phone(tester);
       late String id;
       await tester.runAsync(() async {
         id = await roundWithAnswers(10);
@@ -325,8 +319,7 @@ void main() {
       );
     });
 
-    testWidgets('settings change the daily goal', (tester) async {
-      phone(tester);
+    testWidgets('settings show and change the daily goal', (tester) async {
       await pumpApp(tester, Routes.settings);
       expect(find.text('500 XP a day'), findsOneWidget);
       expect(
@@ -343,10 +336,38 @@ void main() {
       );
     });
 
+    testWidgets('a goal lowered below today\'s XP marks today', (tester) async {
+      await tester.runAsync(() => roundWithAnswers(5)); // 300 XP
+      await pumpApp(tester, Routes.streak);
+      expect(find.text('300 of 500 XP today'), findsOneWidget);
+      await tester.ensureVisible(find.text('Change'));
+      await tester.pump();
+      await tester.tap(find.text('Change'));
+      await settle(tester);
+      await tester.tap(find.text('250 XP a day'));
+      await settle(tester);
+      expect(find.text('Met today with 300 XP'), findsOneWidget);
+      final days = await tester.runAsync(ProgressDao(db).goalDayRounds);
+      expect(days, {today: null});
+    });
+
+    testWidgets('XP from before the streak existed counts for today', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        await roundWithAnswers(10); // 600 XP, no goal day written
+        await SettingsDao(db).markHomeCoachSeen();
+      });
+      await pumpApp(tester, Routes.home);
+      expect(
+        find.bySemanticsLabel('1-day streak. Goal met today.'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('the reminder asks first, then schedules the next one', (
       tester,
     ) async {
-      phone(tester);
       await pumpApp(tester, Routes.settings);
       await tester.tap(find.text('Reminder'));
       await settle(tester);
@@ -360,7 +381,6 @@ void main() {
     });
 
     testWidgets('without permission the reminder stays off', (tester) async {
-      phone(tester);
       reminders.allowed = false;
       await pumpApp(tester, Routes.settings);
       await tester.tap(find.text('Reminder'));

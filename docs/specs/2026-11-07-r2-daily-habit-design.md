@@ -66,7 +66,7 @@ Schema version 6:
 
 - New table `goal_day(date TEXT PRIMARY KEY, round_id TEXT NULL REFERENCES round(id))`. `date` is
   the local date as `YYYY-MM-DD`. `round_id` is the round whose answer reached the goal (null when
-  lowering the goal did it).
+  a lowered goal or XP from before the update met it).
 - `user_settings` gains `daily_goal INTEGER DEFAULT 500` and `reminder BOOLEAN DEFAULT false`.
 - Migration test for 5 → 6; the new schema dump is committed in `drift_schemas/`.
 
@@ -74,8 +74,9 @@ Schema version 6:
 
 - `markGoalIfMet(DateTime now, {String? roundId})`: sums today's XP from `answer` and, when it's at
   least the goal, inserts today's `goal_day` row if none exists. `recordAnswer` calls it in the same
-  transaction. Settings calls it after lowering the goal.
-- `goalDays()` and `xpOn(DateTime day)` for the summary and the ring.
+  transaction. `streakProvider` calls it when today's XP meets the goal with no row yet (a
+  lowered goal, or XP earned today before the update).
+- `goalDayRounds()` and `xpOn(DateTime day)` for the summary and the ring.
 
 `streakProvider` (in `features/progress`, so every screen can use it) builds a `StreakView`:
 the summary, today's XP, the goal, the pill state and `goalRoundId` (the round that met today's
