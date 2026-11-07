@@ -65,12 +65,17 @@ class QuestionBar extends StatelessWidget {
 }
 
 /// A raised pill (XP, city, area size); floats over the map with a shadow.
+/// [face], [lip] and [foreground] recolour it (the streak pill's states).
 class Pill extends StatelessWidget {
   const Pill({
     super.key,
     required this.label,
     this.icon,
     this.iconColor,
+    this.iconAccent,
+    this.face,
+    this.lip,
+    this.foreground,
     this.floating = false,
     this.ring = false,
     this.semanticLabel,
@@ -79,6 +84,14 @@ class Pill extends StatelessWidget {
   final String label;
   final PindoroGlyph? icon;
   final Color? iconColor;
+
+  /// [PindoroIcon.accent], e.g. the flame's core.
+  final Color? iconAccent;
+  final Color? face;
+  final Color? lip;
+
+  /// The label's colour; defaults to `color.text.primary`.
+  final Color? foreground;
   final bool floating;
 
   /// The accent ring, while the value changes (Home after a round).
@@ -96,6 +109,8 @@ class Pill extends StatelessWidget {
         radius: PindoroRadius.full,
         child: LipBox(
           radius: PindoroRadius.full,
+          face: face,
+          lip: lip,
           shadow: floating,
           padding: const EdgeInsets.symmetric(
             horizontal: PindoroSpace.s3,
@@ -110,10 +125,14 @@ class Pill extends StatelessWidget {
                   icon!,
                   size: PindoroSize.iconSm,
                   color: iconColor ?? c.textPrimary,
+                  accent: iconAccent,
+                  cut: face,
                 ),
               Text(
                 label,
-                style: PindoroType.numericSm.copyWith(color: c.textPrimary),
+                style: PindoroType.numericSm.copyWith(
+                  color: foreground ?? c.textPrimary,
+                ),
               ),
             ],
           ),

@@ -78,7 +78,8 @@ enum PindoroGlyph {
 
 /// An icon in [color] (default: the ambient [IconTheme]). The SVGs are drawn
 /// in asphalt ink with white details; ink becomes [color] and white becomes
-/// [cut], the surface behind (default `color.surface.raised`).
+/// [cut], the surface behind (default `color.surface.raised`). [accent]
+/// recolours the second tone (the flame's yellow core).
 class PindoroIcon extends StatelessWidget {
   const PindoroIcon(
     this.glyph, {
@@ -86,6 +87,7 @@ class PindoroIcon extends StatelessWidget {
     this.size,
     this.color,
     this.cut,
+    this.accent,
     this.semanticLabel,
   });
 
@@ -93,6 +95,7 @@ class PindoroIcon extends StatelessWidget {
   final double? size;
   final Color? color;
   final Color? cut;
+  final Color? accent;
 
   /// Null for decorative icons (most icons sit next to a text label).
   final String? semanticLabel;
@@ -110,6 +113,7 @@ class PindoroIcon extends StatelessWidget {
         colorMapper: _InkMapper(
           ink: ink,
           cut: cut ?? PindoroTheme.of(context).colors.surfaceRaised,
+          accent: accent,
         ),
       ),
       width: size,
@@ -121,13 +125,17 @@ class PindoroIcon extends StatelessWidget {
 }
 
 class _InkMapper extends ColorMapper {
-  const _InkMapper({required this.ink, required this.cut});
+  const _InkMapper({required this.ink, required this.cut, this.accent});
 
   final Color ink;
   final Color cut;
+  final Color? accent;
 
   static const int _assetInk = 0xFF1B2133;
   static const int _white = 0xFFFFFFFF;
+
+  /// The second tone drawn into the assets (`color.streak.core`).
+  static const int _assetAccent = 0xFFFFD662;
 
   @override
   Color substitute(
@@ -138,15 +146,21 @@ class _InkMapper extends ColorMapper {
   ) => switch (color.toARGB32() | 0xFF000000) {
     _assetInk => ink.withValues(alpha: color.a * ink.a),
     _white => cut.withValues(alpha: color.a * cut.a),
+    _assetAccent when accent != null => accent!.withValues(
+      alpha: color.a * accent!.a,
+    ),
     _ => color,
   };
 
   @override
   bool operator ==(Object other) =>
-      other is _InkMapper && other.ink == ink && other.cut == cut;
+      other is _InkMapper &&
+      other.ink == ink &&
+      other.cut == cut &&
+      other.accent == accent;
 
   @override
-  int get hashCode => Object.hash(ink, cut);
+  int get hashCode => Object.hash(ink, cut, accent);
 }
 
 enum PindoExpression { happy, cheering, thinking, encouraging, sleepy, proud }

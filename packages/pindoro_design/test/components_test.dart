@@ -126,6 +126,47 @@ void main() {
     expect(find.bySemanticsLabel('Question 3 of 10'), findsOneWidget);
   });
 
+  testWidgets('the streak pill is one labelled button', (tester) async {
+    var taps = 0;
+    await tester.pumpWidget(
+      _host(
+        StreakPill(
+          label: '13',
+          state: StreakPillState.atRisk,
+          semanticLabel: '13-day streak',
+          onPressed: () => taps++,
+        ),
+      ),
+    );
+    await tester.tap(find.bySemanticsLabel('13-day streak'));
+    expect(taps, 1);
+    expect(
+      tester.getSize(find.byType(StreakPill)).height,
+      greaterThanOrEqualTo(PindoroSize.tapMin),
+    );
+  });
+
+  testWidgets('the calendar reads as one image and starts on firstWeekday', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        StreakCalendar(
+          month: DateTime(2026, 11),
+          dayState: (_) => StreakDay.plain,
+          weekdays: const ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+          firstWeekday: DateTime.sunday,
+          semanticLabel: 'November',
+        ),
+      ),
+    );
+    expect(find.bySemanticsLabel('November'), findsOneWidget);
+    final first = find.byType(Text).first;
+    expect(tester.widget<Text>(first).data, 'S');
+    // November 2026 starts on a Sunday: day 1 sits under the first header.
+    expect(tester.getCenter(find.text('1')).dx, tester.getCenter(first).dx);
+  });
+
   group('goldens', skip: _goldensSkip, () {
     Future<void> pumpGallery(WidgetTester tester, Brightness brightness) async {
       await tester.binding.setSurfaceSize(const Size(400, 1500));
@@ -275,6 +316,67 @@ void main() {
         await expectLater(
           find.byType(Scaffold),
           matchesGoldenFile('goldens/components_${brightness.name}.png'),
+        );
+      });
+    }
+
+    for (final brightness in Brightness.values) {
+      testWidgets('streak ${brightness.name}', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(400, 640));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        const met = {1, 2, 4, 5};
+        await tester.pumpWidget(
+          _host(
+            brightness: brightness,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 12,
+              children: [
+                Row(
+                  spacing: 8,
+                  children: [
+                    for (final state in StreakPillState.values)
+                      StreakPill(
+                        label: '13',
+                        state: state,
+                        semanticLabel: state.name,
+                      ),
+                  ],
+                ),
+                const Row(
+                  spacing: 12,
+                  children: [
+                    DailyGoalRing(progress: 0.64, semanticLabel: '320 of 500'),
+                    DailyGoalRing(progress: 1, semanticLabel: 'met'),
+                  ],
+                ),
+                StreakCalendar(
+                  month: DateTime(2026, 11),
+                  today: 5,
+                  dayState: (d) => met.contains(d)
+                      ? StreakDay.met
+                      : d == 3
+                      ? StreakDay.frozen
+                      : d < 5
+                      ? StreakDay.missed
+                      : StreakDay.plain,
+                  weekdays: const ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+                  semanticLabel: 'November',
+                ),
+                const StreakFreezeCard(
+                  title: 'Streak freeze equipped · 1 of 2',
+                  body:
+                      'Miss a day and your streak stays put. You earn one '
+                      'for every 7 days in a row.',
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await expectLater(
+          find.byType(Scaffold),
+          matchesGoldenFile('goldens/streak_${brightness.name}.png'),
         );
       });
     }
