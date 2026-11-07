@@ -13,6 +13,7 @@ import '../../app/format.dart';
 import '../../app/page_scaffold.dart';
 import '../../app/router.dart';
 import '../../app/settings.dart';
+import '../pack/pack_pending.dart';
 import '../pack/sqlite_pack_repository.dart';
 import '../quiz/setup_states.dart';
 
@@ -35,19 +36,17 @@ final _homeProvider = FutureProvider.autoDispose<_Home>((ref) async {
   final city = pack.city();
   final round = await db.savedRound(DateTime.now());
   final progress = round == null ? null : await db.roundProgress(round.id);
-  final bestById = await db.bestTierByStreet(city.id);
-  final known = {
-    for (final MapEntry(key: name, value: tier) in bestTierByName(
-      bestById,
-      pack.streetNames(bestById.keys),
-    ).entries)
-      if (isKnownTier(tier)) name,
-  };
-  final index = pack.streetNameIndex();
+  final streets = await ref.watch(cityStreetsProvider.future);
   final counts = knownCounts(
-    cityNames: index.city,
-    namesByDistrict: index.byDistrict,
-    knownNames: known,
+    streets: streets,
+    partsByDistrict: pack.partsByDistrict(),
+    known: {
+      for (final MapEntry(key: id, value: tier) in bestTierPerStreet(
+        await db.bestTierByPart(city.id),
+        streets,
+      ).entries)
+        if (isKnownTier(tier)) id,
+    },
   );
   final districts = [
     for (final d in pack.districts())
@@ -91,7 +90,9 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final home = ref.watch(_homeProvider).value;
     final settings = ref.watch(settingsProvider).value;
-    if (home == null) return const Scaffold();
+    if (home == null) {
+      return PackPending(pack: ref.watch(packRepositoryProvider));
+    }
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
     final locale = Localizations.localeOf(context);
@@ -140,15 +141,18 @@ class HomeScreen extends ConsumerWidget {
                 child: Row(
                   spacing: PindoroSpace.s2,
                   children: [
-                    Flexible(
-                      child: CitySwitcher(
-                        city: cityName,
-                        semanticLabel: l10n.a11yCitySwitcher(cityName),
-                        onPressed: () => open(Routes.city),
+                    // The space after the name is reserved for the streak pill
+                    // (release 2).
+                    Expanded(
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: CitySwitcher(
+                          city: cityName,
+                          semanticLabel: l10n.a11yCitySwitcher(cityName),
+                          onPressed: () => open(Routes.city),
+                        ),
                       ),
                     ),
-                    // Reserved for the streak pill (release 2).
-                    const Spacer(),
                     Pill(
                       label: formatNumber(home.totalXp),
                       icon: PindoroGlyph.xp,
@@ -395,7 +399,11 @@ class _CityCard extends StatelessWidget {
             DistrictMiniMap(
               districts: [
                 for (final d in home.districts)
-                  (boundary: d.district.boundary, progress: _progress(d.count)),
+                  if (d.district.kind == DistrictKind.district)
+                    (
+                      boundary: d.district.boundary,
+                      progress: _progress(d.count),
+                    ),
               ],
             ),
             Wrap(

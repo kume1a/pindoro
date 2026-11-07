@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Sql } from "postgres";
-import { PIPELINE_DIR } from "./config.ts";
+import { MIN_AREA_STREETS, PIPELINE_DIR } from "./config.ts";
 
 const LUA = join(PIPELINE_DIR, "osm2pgsql/pindoro.lua");
 const SQL_DIR = join(PIPELINE_DIR, "sql");
@@ -91,6 +91,8 @@ export interface StepParams {
   utmSrid: number;
   expectRelations: number[];
   neighbourhoods: Neighbourhood[];
+  /** Neighbourhoods with fewer streets are dropped; defaults to MIN_AREA_STREETS. */
+  minAreaStreets?: number;
 }
 
 /** Recreates schema `pipeline` and runs pipeline/sql/*.sql in file-name order. */
@@ -101,7 +103,8 @@ export const runSqlSteps = async (sql: Sql, p: StepParams): Promise<void> => {
     CREATE TABLE pipeline.params (
       city_relation_id bigint NOT NULL,
       utm_srid int NOT NULL,
-      expect_relations bigint[] NOT NULL
+      expect_relations bigint[] NOT NULL,
+      min_area_streets int NOT NULL
     );
     CREATE TABLE pipeline.neighbourhood_raw (
       slug text PRIMARY KEY,
@@ -110,7 +113,8 @@ export const runSqlSteps = async (sql: Sql, p: StepParams): Promise<void> => {
       geojson text NOT NULL
     );
   `);
-  await sql`INSERT INTO pipeline.params VALUES (${p.cityRelationId}, ${p.utmSrid}, ${p.expectRelations})`;
+  await sql`INSERT INTO pipeline.params VALUES (${p.cityRelationId}, ${p.utmSrid}, ${p.expectRelations},
+    ${p.minAreaStreets ?? MIN_AREA_STREETS})`;
   for (const n of p.neighbourhoods) {
     await sql`INSERT INTO pipeline.neighbourhood_raw
       VALUES (${n.slug}, ${n.name_ka}, ${n.name_en ?? null}, ${JSON.stringify(n.geometry)})`;

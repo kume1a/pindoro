@@ -95,6 +95,8 @@ export interface Manifest {
   size: number;
   osm_timestamp: string;
   generated_at: string;
+  /** The city's bounding box, so clients can tell which city a position is in. */
+  bbox: { min_lat: number; min_lon: number; max_lat: number; max_lon: number };
 }
 
 type Position = [lon: number, lat: number];

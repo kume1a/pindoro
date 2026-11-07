@@ -51,23 +51,46 @@ void main() {
       expect(knowledgeFrom(Tier.miss), StreetKnowledge.missed);
     });
 
-    test('is per name: a later miss never un-knows a street', () {
-      final best = bestTierByName(
-        {'a1': Tier.great, 'a2': Tier.miss, 'b': Tier.close},
-        {'a1': 'A', 'a2': 'A', 'b': 'B'},
-      );
-      expect(best, {'A': Tier.great, 'B': Tier.close});
+    // a1 and a2 are parts of one street; a3 shares its name 5.5 km away.
+    final streets = streetsByPartId([
+      _street('a1', 'A', 300, [
+        [_p(41.70, 44.70), _p(41.70, 44.703)],
+      ]),
+      _street('a2', 'A', 200, [
+        [_p(41.701, 44.70), _p(41.701, 44.702)],
+      ]),
+      _street('a3', 'A', 200, [
+        [_p(41.75, 44.70), _p(41.75, 44.702)],
+      ]),
+      _street('b', 'B', 200, [
+        [_p(41.72, 44.70), _p(41.72, 44.702)],
+      ]),
+    ]);
+
+    test('is per street: a later miss never un-knows it', () {
+      final best = bestTierPerStreet({
+        'a2': Tier.great,
+        'a1': Tier.miss,
+        'b': Tier.close,
+        'retired': Tier.perfect,
+      }, streets);
+      expect(best, {'a1': Tier.great, 'b': Tier.close});
     });
 
-    test('newlyKnown counts a name once and skips ones known before', () {
+    test('a same-name street elsewhere stays unknown', () {
+      final best = bestTierPerStreet({'a1': Tier.perfect}, streets);
+      expect(best.containsKey('a3'), isFalse);
+    });
+
+    test('newlyKnown counts a street once and skips ones known before', () {
       expect(
         newlyKnown(
           knownBefore: {'A'},
           roundAnswers: [
-            (name: 'A', tier: Tier.perfect),
-            (name: 'B', tier: Tier.great),
-            (name: 'B', tier: Tier.perfect),
-            (name: 'C', tier: Tier.close),
+            (street: 'A', tier: Tier.perfect),
+            (street: 'B', tier: Tier.great),
+            (street: 'B', tier: Tier.perfect),
+            (street: 'C', tier: Tier.close),
           ],
         ),
         {'B'},
@@ -76,12 +99,12 @@ void main() {
 
     test('knownCounts per city and district', () {
       final counts = knownCounts(
-        cityNames: {'A', 'B', 'C'},
-        namesByDistrict: {
-          'd1': {'A', 'B'},
-          'd2': {'C'},
+        streets: streets,
+        partsByDistrict: {
+          'd1': {'a1', 'a2', 'b'},
+          'd2': {'a3'},
         },
-        knownNames: {'A'},
+        known: {'a1'},
       );
       expect(counts.city, (known: 1, total: 3));
       expect(counts.byDistrict['d1'], (known: 1, total: 2));
@@ -291,20 +314,7 @@ class _FakePack implements PackRepository {
       streetRows;
 
   @override
-  List<Street> streetsNamed(Set<String> names) => [
-    for (final s in streetRows)
-      if (names.contains(s.nameKa)) s,
-  ];
-
-  @override
-  List<StreetDistrict> streetDistricts(String streetId) => const [];
-
-  @override
-  Map<String, String> streetNames(Iterable<String> ids) => const {};
-
-  @override
-  ({Set<String> city, Map<String, Set<String>> byDistrict}) streetNameIndex() =>
-      (city: const {}, byDistrict: const {});
+  Map<String, Set<String>> partsByDistrict() => const {};
 
   @override
   void close() {}

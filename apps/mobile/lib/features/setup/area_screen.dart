@@ -14,12 +14,44 @@ import '../../app/format.dart';
 import '../../app/page_scaffold.dart';
 import '../../app/router.dart';
 import '../../app/settings.dart';
+import '../pack/pack_pending.dart';
 import '../pack/sqlite_pack_repository.dart';
 import 'area_map.dart';
 
 enum AreaMode { districts, circle, rectangle }
 
 const double _metresPerDegree = 111195;
+
+/// Unpicked chips in the sheet: the areas nearest the map's centre.
+const int _nearbyChips = 6;
+
+/// Each district with the neighbourhoods whose centre lies in it (else the
+/// nearest district), districts by name.
+List<({District district, List<District> parts})> groupByDistrict(
+  List<District> areas,
+) {
+  final districts = [
+    for (final d in areas)
+      if (d.kind == DistrictKind.district) d,
+  ];
+  final parts = {for (final d in districts) d.id: <District>[]};
+  for (final n in areas) {
+    if (n.kind == DistrictKind.district || districts.isEmpty) continue;
+    final home =
+        districts
+            .where((d) => d.boundary.any((p) => polygonContains(p, n.center)))
+            .firstOrNull ??
+        (districts.toList()..sort(
+              (a, b) => distanceBetween(
+                n.center,
+                a.center,
+              ).compareTo(distanceBetween(n.center, b.center)),
+            ))
+            .first;
+    parts[home.id]!.add(n);
+  }
+  return [for (final d in districts) (district: d, parts: parts[d.id]!)];
+}
 
 /// Where the round's streets come from: districts, a circle or a rectangle.
 /// Circle and rectangle stay in the middle of the map; the map pans under
@@ -45,12 +77,13 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
   void _seedFrom(Settings? settings, PackRepository pack) {
     if (_seeded) return;
     _seeded = true;
-    final hasDistricts = pack.districts().isNotEmpty;
+    final known = {for (final d in pack.districts()) d.id};
     _center = pack.city().center;
     switch (settings?.lastCity == pack.city().id ? settings?.area : null) {
-      case DistrictsArea(:final ids) when hasDistricts:
+      case DistrictsArea(:final ids) when known.isNotEmpty:
         _mode = AreaMode.districts;
-        _picked = {...ids};
+        // Areas this pack lacks (offline stand-in, retired) are dropped.
+        _picked = ids.intersection(known);
       case CircleArea(:final center, :final radiusM):
         _mode = AreaMode.circle;
         _radiusM = radiusM;
@@ -63,7 +96,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
         _focus = bounds;
         _center = bounds.center;
       default:
-        _mode = hasDistricts ? AreaMode.districts : AreaMode.circle;
+        _mode = known.isNotEmpty ? AreaMode.districts : AreaMode.circle;
     }
   }
 
@@ -122,6 +155,28 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
     });
   }
 
+  /// The 90 % sheet with every area, grouped by district, and a search.
+  Future<void> _showAll(List<District> areas, Map<String, String> names) =>
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        builder: (context) => FractionallySizedBox(
+          heightFactor: 0.9,
+          child: StatefulBuilder(
+            builder: (context, setSheetState) => _AllAreasSheet(
+              groups: groupByDistrict(areas),
+              names: names,
+              picked: _picked,
+              onToggle: (id) {
+                _toggle(id);
+                setSheetState(() {});
+              },
+            ),
+          ),
+        ),
+      );
+
   Area? _area() {
     final center = _center;
     return switch (_mode) {
@@ -161,9 +216,13 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pack = ref.watch(packRepositoryProvider).value;
+    final packState = ref.watch(packRepositoryProvider);
+    final pack = packState.value;
     final settings = ref.watch(settingsProvider).value;
-    if (pack == null || settings == null) return const Scaffold();
+    if (pack == null || settings == null) {
+      return PackPending(pack: packState);
+    }
+    final offline = isFixturePack(pack);
     _seedFrom(settings, pack);
     final l10n = context.l10n;
     final locale = Localizations.localeOf(context);
@@ -173,24 +232,35 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
     final mode = _mode!;
     final mpp = metresPerPixel(_zoom, _center?.lat ?? city.center.lat);
 
-    final sorted = [...districts]
-      ..sort((a, b) {
-        final picked = (_picked.contains(b.id) ? 1 : 0).compareTo(
-          _picked.contains(a.id) ? 1 : 0,
-        );
-        return picked != 0
-            ? picked
-            : districtName(a, settings).compareTo(districtName(b, settings));
-      });
-    final pickedNames = [
-      for (final d in sorted)
-        if (_picked.contains(d.id)) districtName(d, settings),
-    ];
+    final names = {for (final d in districts) d.id: districtName(d, settings)};
+    final here = _center ?? city.center;
+    final level = levelAt(_zoom);
+    final picked = [
+      for (final d in districts)
+        if (_picked.contains(d.id)) d,
+    ]..sort((a, b) => names[a.id]!.compareTo(names[b.id]!));
+    // The zoom's level first, then the nearest to the map's centre.
+    final nearest =
+        [
+          for (final d in districts)
+            if (!_picked.contains(d.id)) d,
+        ]..sort((a, b) {
+          final byLevel = (a.kind == level ? 0 : 1).compareTo(
+            b.kind == level ? 0 : 1,
+          );
+          return byLevel != 0
+              ? byLevel
+              : distanceBetween(
+                  here,
+                  a.center,
+                ).compareTo(distanceBetween(here, b.center));
+        });
+    final pickedNames = [for (final d in picked) names[d.id]!];
 
     final (title, help) = switch (mode) {
       AreaMode.districts => (
         _picked.isEmpty ? l10n.areaNoneTitle : districtNames(l10n, pickedNames),
-        l10n.areaHelp,
+        offline ? l10n.areaOffline : l10n.areaHelp,
       ),
       AreaMode.circle => (
         '${l10n.areaPlayArea} · ${formatSize(_radiusM, locale)}',
@@ -210,18 +280,18 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
               children: [
                 ref.watch(areaPickerMapBuilderProvider)(
                   AreaPickerMap(
+                    // A new pack (first download, update) rebuilds the layers.
+                    key: ObjectKey(pack),
                     districts: districts,
+                    names: names,
                     picked: mode == AreaMode.districts ? _picked : const {},
                     initialBounds: city.bbox,
                     focus: _focus,
                     showDistricts: mode == AreaMode.districts,
                     onTap: (at) {
                       if (mode != AreaMode.districts) return;
-                      for (final d in districts) {
-                        if (d.boundary.any((p) => polygonContains(p, at))) {
-                          _toggle(d.id);
-                          return;
-                        }
+                      if (areaAt(districts, at, _zoom) case final d?) {
+                        _toggle(d.id);
                       }
                     },
                     onCamera: (center, zoom) => setState(() {
@@ -292,13 +362,27 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
             count: mode == AreaMode.districts
                 ? l10n.areaDistrictCount(districts.length, _picked.length)
                 : null,
+            all: offline
+                ? PindoroButton(
+                    label: l10n.commonTryAgain,
+                    variant: PindoroButtonVariant.tertiary,
+                    onPressed: () => ref.invalidate(packRepositoryProvider),
+                  )
+                : mode == AreaMode.districts
+                ? PindoroChip(
+                    label: l10n.areaAllChip(districts.length),
+                    selected: false,
+                    onPressed: () => _showAll(districts, names),
+                  )
+                : null,
             content: switch (mode) {
               AreaMode.districts => Wrap(
                 spacing: PindoroSpace.s2,
+                runSpacing: PindoroSpace.s2,
                 children: [
-                  for (final d in sorted)
+                  for (final d in [...picked, ...nearest.take(_nearbyChips)])
                     PindoroChip(
-                      label: districtName(d, settings),
+                      label: names[d.id]!,
                       selected: _picked.contains(d.id),
                       onPressed: () => _toggle(d.id),
                     ),
@@ -331,6 +415,115 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
   }
 }
 
+class _AllAreasSheet extends StatefulWidget {
+  const _AllAreasSheet({
+    required this.groups,
+    required this.names,
+    required this.picked,
+    required this.onToggle,
+  });
+
+  final List<({District district, List<District> parts})> groups;
+  final Map<String, String> names;
+  final Set<String> picked;
+  final ValueChanged<String> onToggle;
+
+  @override
+  State<_AllAreasSheet> createState() => _AllAreasSheetState();
+}
+
+class _AllAreasSheetState extends State<_AllAreasSheet> {
+  final _query = TextEditingController();
+
+  @override
+  void dispose() {
+    _query.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final c = PindoroTheme.of(context).colors;
+    final query = _query.text.trim().toLowerCase();
+    bool matches(District d) =>
+        widget.names[d.id]!.toLowerCase().contains(query);
+    String name(District d) => widget.names[d.id]!;
+    final sections = [
+      for (final g in widget.groups)
+        (
+          title: name(g.district),
+          areas: [
+            g.district,
+            ...g.parts..sort((a, b) => name(a).compareTo(name(b))),
+          ].where(matches).toList(),
+        ),
+    ]..sort((a, b) => a.title.compareTo(b.title));
+    final shown = sections.where((s) => s.areas.isNotEmpty).toList();
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        PindoroSpace.s4,
+        PindoroSpace.s4,
+        PindoroSpace.s4,
+        bottomActionGap(context),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: PindoroSpace.s3,
+        children: [
+          Text(
+            l10n.areaAllTitle,
+            style: PindoroType.titleLg.copyWith(color: c.textPrimary),
+          ),
+          SearchField(
+            controller: _query,
+            placeholder: l10n.areaSearchHint,
+            clearLabel: l10n.cityClearSearch,
+            onChanged: (_) => setState(() {}),
+          ),
+          Expanded(
+            child: shown.isEmpty
+                ? Text(
+                    l10n.areaNoResults(_query.text.trim()),
+                    textAlign: TextAlign.center,
+                    style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
+                  )
+                : ListView(
+                    children: [
+                      for (final s in shown) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            top: PindoroSpace.s3,
+                            bottom: PindoroSpace.s2,
+                          ),
+                          child: SectionTitle(s.title),
+                        ),
+                        Wrap(
+                          spacing: PindoroSpace.s2,
+                          runSpacing: PindoroSpace.s2,
+                          children: [
+                            for (final d in s.areas)
+                              PindoroChip(
+                                label: name(d),
+                                selected: widget.picked.contains(d.id),
+                                onPressed: () => widget.onToggle(d.id),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+          ),
+          PindoroButton(
+            label: l10n.commonDone,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Sheet extends StatelessWidget {
   const _Sheet({
     required this.modes,
@@ -340,6 +533,7 @@ class _Sheet extends StatelessWidget {
     required this.help,
     required this.next,
     this.count,
+    this.all,
     this.content,
   });
 
@@ -349,6 +543,9 @@ class _Sheet extends StatelessWidget {
   final String title;
   final String help;
   final String? count;
+
+  /// The "All n" chip that opens every area, on the count line.
+  final Widget? all;
   final Widget? content;
   final Widget next;
 
@@ -389,9 +586,18 @@ class _Sheet extends StatelessWidget {
                 style: PindoroType.titleLg.copyWith(color: c.textPrimary),
               ),
               if (count != null)
-                Text(
-                  count!,
-                  style: PindoroType.labelMd.copyWith(color: c.textSecondary),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        count!,
+                        style: PindoroType.labelMd.copyWith(
+                          color: c.textSecondary,
+                        ),
+                      ),
+                    ),
+                    ?all,
+                  ],
                 ),
               Text(
                 help,

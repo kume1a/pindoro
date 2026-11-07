@@ -28,12 +28,13 @@ downloaded by the app. Packs are immutable: a new build gets a new `version` and
   "sha256": "<hex sha256 of the .gz file>",
   "size": 1234567,
   "osm_timestamp": "2026-11-04T20:21:42Z",
-  "generated_at": "2026-11-05T22:17:00Z"
+  "generated_at": "2026-11-05T22:17:00Z",
+  "bbox": { "min_lat": 41.57, "min_lon": 44.59, "max_lat": 41.84, "max_lon": 45.02 }
 }
 ```
 
 `sha256` and `size` describe the `.gz` file the client downloads; the client verifies them before
-decompressing.
+decompressing. `bbox` is the city's bounding box, so the app can find the city the player is in.
 
 ### catalog.json
 
@@ -86,9 +87,9 @@ CREATE TABLE city (
 );
 
 CREATE TABLE district (
-  id              TEXT PRIMARY KEY,      -- 'osm:r<relation id>' or 'curated:<slug>'
+  id              TEXT PRIMARY KEY,      -- 'osm:r<relation id>', 'osm:w<way id>' or 'curated:<slug>'
   kind            TEXT NOT NULL CHECK (kind IN ('district', 'neighbourhood')),
-  osm_relation_id INTEGER,               -- NULL for curated neighbourhoods
+  osm_relation_id INTEGER,               -- NULL for curated and way-drawn neighbourhoods
   name_ka         TEXT NOT NULL,
   name_en         TEXT,
   center_lat      REAL NOT NULL,         -- point on surface, for labels/camera
@@ -138,8 +139,11 @@ CREATE INDEX street_district_district ON street_district (district_id);
   expert = unclassified/residential/living_street.
 - `street_district`: a street belongs to a district when its length inside is ≥ 150 m or its share
   is ≥ 0.3. A street can belong to several districts.
-- Districts are the `subarea` members of the city relation (any `admin_level`); curated
-  neighbourhoods come from `data/cities/<city>/curation/neighbourhoods.geojson`.
+- Districts are the `subarea` members of the city relation (any `admin_level`). Neighbourhoods are
+  OSM `place=quarter|neighbourhood` areas (closed ways or multipolygons) clipped to the city, plus
+  curated ones from `data/cities/<city>/curation/neighbourhoods.geojson`. When OSM areas share a
+  name only the smallest is kept, and a neighbourhood with fewer than 10 streets is dropped (too
+  small for a round). Neighbourhoods may overlap each other and districts.
 
 ### Fixture scope
 

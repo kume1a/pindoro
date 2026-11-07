@@ -35,8 +35,9 @@ Future<void> main() async {
   );
   // A pack installed in the background is used right away; a round in play
   // keeps the streets it already loaded.
+  final city = (await db.readSettings()).lastCity ?? AppConfig.cityId;
   unawaited(
-    refreshQuietly(store).then((installed) {
+    refreshQuietly(store, city).then((installed) {
       if (installed) container.invalidate(packRepositoryProvider);
     }),
   );

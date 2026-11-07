@@ -181,19 +181,7 @@ class _TinyPack implements PackRepository {
   List<District> districts() => _inner.districts();
 
   @override
-  List<StreetDistrict> streetDistricts(String streetId) =>
-      _inner.streetDistricts(streetId);
-
-  @override
-  List<Street> streetsNamed(Set<String> names) => _inner.streetsNamed(names);
-
-  @override
-  Map<String, String> streetNames(Iterable<String> ids) =>
-      _inner.streetNames(ids);
-
-  @override
-  ({Set<String> city, Map<String, Set<String>> byDistrict}) streetNameIndex() =>
-      _inner.streetNameIndex();
+  Map<String, Set<String>> partsByDistrict() => _inner.partsByDistrict();
 
   @override
   void close() => _inner.close();

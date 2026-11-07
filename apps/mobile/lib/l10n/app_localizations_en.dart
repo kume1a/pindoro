@@ -30,6 +30,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonCancel => 'Cancel';
 
   @override
+  String get commonTryAgain => 'Try again';
+
+  @override
   String commonXp(String xp) {
     return '+$xp XP';
   }
@@ -196,6 +199,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get areaNoneButton => 'Pick a district first';
+
+  @override
+  String areaAllChip(int count) {
+    return 'All $count';
+  }
+
+  @override
+  String get areaAllTitle => 'All districts';
+
+  @override
+  String get areaSearchHint => 'Search districts';
+
+  @override
+  String areaNoResults(String query) {
+    return 'No districts called “$query”';
+  }
+
+  @override
+  String get areaOffline =>
+      'You\'re offline, so only Vake works until Tbilisi downloads.';
+
+  @override
+  String packDownloading(String city) {
+    return 'Downloading $city';
+  }
+
+  @override
+  String packDownloadSize(String received, String total) {
+    return '$received of $total';
+  }
+
+  @override
+  String get packFailedTitle => 'Couldn\'t download this city';
+
+  @override
+  String get packFailedBody =>
+      'Check your connection and try again, or choose another city.';
 
   @override
   String get areaPlayArea => 'Play area';
@@ -612,6 +652,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cityNoneNearby => 'No city near you yet. Pick one from the list.';
+
+  @override
+  String get locationUnavailable =>
+      'Couldn\'t find where you are. Try again, or pick a city from the list.';
 
   @override
   String get cityAll => 'All cities';

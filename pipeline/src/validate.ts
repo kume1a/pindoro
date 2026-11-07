@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { decodePolyline6, type LatLng } from "@pindoro/geo";
 import Database from "better-sqlite3";
-import { loadCity } from "./config.ts";
+import { loadCity, MIN_AREA_STREETS } from "./config.ts";
 import { META_KEYS, PACK_DDL, PACK_FORMAT_VERSION } from "./pack.ts";
 
 export const MIN_EXPERT_STREETS = 30;
@@ -82,17 +82,19 @@ export const validatePack = (file: string): boolean => {
 
   const districts = db
     .prepare(
-      `SELECT d.id, d.name_ka AS name, count(s.id) AS streets,
+      `SELECT d.id, d.kind, d.name_ka AS name, count(s.id) AS streets,
               coalesce(sum(s.difficulty = 'expert'), 0) AS expert
        FROM district d
        LEFT JOIN street_district sd ON sd.district_id = d.id
        LEFT JOIN street s ON s.id = sd.street_id
        GROUP BY d.id ORDER BY d.id`,
     )
-    .all() as { id: string; name: string; streets: number; expert: number }[];
-  const thin = districts.filter((d) => d.expert < MIN_EXPERT_STREETS);
+    .all() as { id: string; kind: string; name: string; streets: number; expert: number }[];
+  const thin = districts.filter((d) =>
+    d.kind === "district" ? d.expert < MIN_EXPERT_STREETS : d.streets < MIN_AREA_STREETS,
+  );
   check(
-    `>= ${MIN_EXPERT_STREETS} expert streets per district`,
+    `>= ${MIN_EXPERT_STREETS} expert streets per district, ${MIN_AREA_STREETS} per neighbourhood`,
     districts.length > 0 && thin.length === 0,
     thin.map((d) => d.id).join(", "),
   );

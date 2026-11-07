@@ -10,6 +10,10 @@
     w2007 service, w2009 footway, w2010 access=private, w2011 primary_link -> dropped
     w2006          "Cross Avenue" (primary), ~830 m in each district -> both districts
     w2008          "Edge Lane" (tertiary), ~83 m (17 %) in East -> West only
+  Places drawn as areas:
+    r1004 quarter "შუა" (lat 41.705-41.745, lon 44.705-44.735)              -> neighbourhood
+    w114 / w115 neighbourhoods "ტყუპი" around Twin Street w2003            -> only the smaller w114
+    w116 neighbourhood "ცარიელი" with no streets                            -> dropped as too thin
 -->
 <osm version="0.6" generator="hand">
   <node id="1" version="1" lat="41.70" lon="44.70"/>
@@ -40,6 +44,22 @@
     <tag k="place" v="neighbourhood"/>
     <tag k="name" v="Test Place"/>
   </node>
+  <node id="501" version="1" lat="41.718" lon="44.708"/>
+  <node id="502" version="1" lat="41.718" lon="44.717"/>
+  <node id="503" version="1" lat="41.722" lon="44.717"/>
+  <node id="504" version="1" lat="41.722" lon="44.708"/>
+  <node id="505" version="1" lat="41.716" lon="44.706"/>
+  <node id="506" version="1" lat="41.716" lon="44.719"/>
+  <node id="507" version="1" lat="41.724" lon="44.719"/>
+  <node id="508" version="1" lat="41.724" lon="44.706"/>
+  <node id="509" version="1" lat="41.745" lon="44.77"/>
+  <node id="510" version="1" lat="41.745" lon="44.79"/>
+  <node id="511" version="1" lat="41.749" lon="44.79"/>
+  <node id="512" version="1" lat="41.749" lon="44.77"/>
+  <node id="513" version="1" lat="41.705" lon="44.705"/>
+  <node id="514" version="1" lat="41.705" lon="44.735"/>
+  <node id="515" version="1" lat="41.745" lon="44.735"/>
+  <node id="516" version="1" lat="41.745" lon="44.705"/>
 
   <way id="101" version="1">
     <nd ref="1"/><nd ref="5"/><nd ref="2"/><nd ref="3"/><nd ref="6"/><nd ref="4"/><nd ref="1"/>
@@ -52,6 +72,25 @@
   </way>
   <way id="113" version="1">
     <nd ref="301"/><nd ref="302"/><nd ref="303"/><nd ref="304"/><nd ref="301"/>
+  </way>
+
+  <way id="114" version="1">
+    <nd ref="501"/><nd ref="502"/><nd ref="503"/><nd ref="504"/><nd ref="501"/>
+    <tag k="place" v="neighbourhood"/>
+    <tag k="name" v="ტყუპი"/>
+  </way>
+  <way id="115" version="1">
+    <nd ref="505"/><nd ref="506"/><nd ref="507"/><nd ref="508"/><nd ref="505"/>
+    <tag k="place" v="neighbourhood"/>
+    <tag k="name" v="ტყუპი"/>
+  </way>
+  <way id="116" version="1">
+    <nd ref="509"/><nd ref="510"/><nd ref="511"/><nd ref="512"/><nd ref="509"/>
+    <tag k="place" v="neighbourhood"/>
+    <tag k="name" v="ცარიელი"/>
+  </way>
+  <way id="117" version="1">
+    <nd ref="513"/><nd ref="514"/><nd ref="515"/><nd ref="516"/><nd ref="513"/>
   </way>
 
   <way id="2001" version="1">
@@ -144,5 +183,12 @@
     <tag k="boundary" v="administrative"/>
     <tag k="admin_level" v="7"/>
     <tag k="name" v="Decoy"/>
+  </relation>
+  <relation id="1004" version="1">
+    <member type="way" ref="117" role="outer"/>
+    <tag k="type" v="multipolygon"/>
+    <tag k="place" v="quarter"/>
+    <tag k="name" v="შუა"/>
+    <tag k="name:en" v="Middle"/>
   </relation>
 </osm>

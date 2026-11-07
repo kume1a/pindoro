@@ -30,6 +30,9 @@ class AppLocalizationsKa extends AppLocalizations {
   String get commonCancel => 'გაუქმება';
 
   @override
+  String get commonTryAgain => 'თავიდან ცდა';
+
+  @override
   String commonXp(String xp) {
     return '+$xp XP';
   }
@@ -192,6 +195,43 @@ class AppLocalizationsKa extends AppLocalizations {
 
   @override
   String get areaNoneButton => 'ჯერ აირჩიე უბანი';
+
+  @override
+  String areaAllChip(int count) {
+    return 'ყველა $count';
+  }
+
+  @override
+  String get areaAllTitle => 'ყველა უბანი';
+
+  @override
+  String get areaSearchHint => 'უბნის ძებნა';
+
+  @override
+  String areaNoResults(String query) {
+    return 'უბანი „$query“ ვერ მოიძებნა';
+  }
+
+  @override
+  String get areaOffline =>
+      'ინტერნეტი არ არის: სანამ თბილისი ჩამოიტვირთება, მხოლოდ ვაკეა ხელმისაწვდომი.';
+
+  @override
+  String packDownloading(String city) {
+    return '$city იტვირთება';
+  }
+
+  @override
+  String packDownloadSize(String received, String total) {
+    return '$received / $total';
+  }
+
+  @override
+  String get packFailedTitle => 'ქალაქი ვერ ჩამოიტვირთა';
+
+  @override
+  String get packFailedBody =>
+      'შეამოწმე ინტერნეტი და სცადე თავიდან, ან აირჩიე სხვა ქალაქი.';
 
   @override
   String get areaPlayArea => 'სათამაშო არეალი';
@@ -606,6 +646,10 @@ class AppLocalizationsKa extends AppLocalizations {
   @override
   String get cityNoneNearby =>
       'შენს ახლოს ქალაქი ჯერ არ გვაქვს. აირჩიე სიიდან.';
+
+  @override
+  String get locationUnavailable =>
+      'ვერ დავადგინეთ, სად ხარ. სცადე თავიდან ან აირჩიე ქალაქი სიიდან.';
 
   @override
   String get cityAll => 'ყველა ქალაქი';

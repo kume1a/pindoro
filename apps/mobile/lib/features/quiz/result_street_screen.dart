@@ -55,7 +55,7 @@ class ResultStreetScreen extends ConsumerWidget {
               area: shape,
               pin: pin,
               truth: street.geometry,
-              measure: (pin, nearest),
+              measure: (from: pin, to: nearest, label: distance),
               topInset: MediaQuery.paddingOf(context).top + 80,
               bottomInset: 260 + MediaQuery.paddingOf(context).bottom,
               showControls: false,

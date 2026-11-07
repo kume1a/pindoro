@@ -31,6 +31,7 @@ const params: StepParams = {
   utmSrid: 32638,
   expectRelations: [1001, 1002],
   neighbourhoods: [],
+  minAreaStreets: 1,
 };
 
 describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
@@ -100,7 +101,9 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
   });
 
   it("takes districts from subarea members only, whatever their admin_level", async () => {
-    const ids = (await sql`SELECT id FROM pipeline.district ORDER BY id`).map((r) => r.id);
+    const ids = (
+      await sql`SELECT id FROM pipeline.district WHERE kind = 'district' ORDER BY id`
+    ).map((r) => r.id);
     expect(ids).toEqual(["osm:r1001", "osm:r1002"]);
   });
 
@@ -136,7 +139,7 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
 
     const db = new Database(file, { readonly: true });
     expect(db.prepare("SELECT count(*) FROM street").pluck().get()).toBe(5);
-    expect(db.prepare("SELECT count(*) FROM district").pluck().get()).toBe(2);
+    expect(db.prepare("SELECT count(*) FROM district").pluck().get()).toBe(4);
     const split = db
       .prepare("SELECT geometry FROM street WHERE name_ka = 'Split Street'")
       .pluck()
@@ -146,6 +149,18 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
     expect(parts[0]?.at(0)).toEqual({ lat: 41.71, lon: 44.71 });
     expect(parts[0]?.at(-1)).toEqual({ lat: 41.71, lon: 44.73 });
     db.close();
+  });
+
+  it("adds OSM quarters and neighbourhoods: the smallest per name, none without streets", async () => {
+    const rows = await sql`
+      SELECT id, osm_relation_id::float8 AS relation, name_ka, name_en FROM pipeline.district
+      WHERE kind = 'neighbourhood' ORDER BY id`;
+    expect(rows).toEqual([
+      { id: "osm:r1004", relation: 1004, name_ka: "შუა", name_en: "Middle" },
+      { id: "osm:w114", relation: null, name_ka: "ტყუპი", name_en: null },
+    ]);
+    expect(await districtsOf("Twin Street")).toContain("osm:w114");
+    expect(await districtsOf("Split Street")).toContain("osm:r1004");
   });
 
   it("adds curated neighbourhoods from GeoJSON", async () => {

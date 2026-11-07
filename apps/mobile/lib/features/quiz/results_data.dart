@@ -3,7 +3,6 @@ import 'package:pindoro_core/pindoro_core.dart';
 
 import '../../app/database.dart';
 import '../pack/sqlite_pack_repository.dart';
-import 'round_controller.dart';
 
 /// One answered question with its street (null when retired from the pack).
 typedef ResultEntry = ({Answer answer, NamedStreet? street});
@@ -25,29 +24,16 @@ final resultsProvider = FutureProvider.autoDispose.family<ResultsData, String>((
 ) async {
   final db = ref.watch(databaseProvider);
   final pack = await ref.watch(packRepositoryProvider.future);
+  final streets = await ref.watch(cityStreetsProvider.future);
   final progress = await db.roundProgress(roundId);
   final round = progress.round;
   final answers = progress.answers;
-  final streets = {
-    for (final q in resolveQuestions(pack, [
-      for (final a in answers) a.streetId,
-    ]))
-      q.id: q.street,
-  };
-  final bestBefore = await db.bestTierByStreet(
-    round.cityId,
-    before: round.startedAt,
-  );
-  final names = pack.streetNames({
-    ...bestBefore.keys,
-    for (final a in answers) a.streetId,
-  });
   final knownBefore = {
-    for (final MapEntry(key: name, value: tier) in bestTierByName(
-      bestBefore,
-      names,
+    for (final MapEntry(key: id, value: tier) in bestTierPerStreet(
+      await db.bestTierByPart(round.cityId, before: round.startedAt),
+      streets,
     ).entries)
-      if (isKnownTier(tier)) name,
+      if (isKnownTier(tier)) id,
   };
   return (
     round: round,
@@ -62,7 +48,7 @@ final resultsProvider = FutureProvider.autoDispose.family<ResultsData, String>((
       knownBefore: knownBefore,
       roundAnswers: [
         for (final a in answers)
-          if (names[a.streetId] case final name?) (name: name, tier: a.tier),
+          if (streets[a.streetId] case final s?) (street: s.id, tier: a.tier),
       ],
     ).length,
   );

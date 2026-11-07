@@ -315,10 +315,10 @@ class AppDatabase extends _$AppDatabase {
             ..orderBy([(_) => OrderingTerm.asc(_rowid)]))
           .get();
 
-  /// Best tier per answered street in [cityId], from answers created before
+  /// Best tier per answered part id in [cityId], from answers created before
   /// [before] when given.
   // ponytail: reads the city's answer log; aggregate in SQL past ~100k answers.
-  Future<Map<String, Tier>> bestTierByStreet(
+  Future<Map<String, Tier>> bestTierByPart(
     String cityId, {
     DateTime? before,
   }) async {

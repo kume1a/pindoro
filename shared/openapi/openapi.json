@@ -121,6 +121,29 @@
                           "name_en": {
                             "type": "string"
                           },
+                          "bbox": {
+                            "type": "object",
+                            "required": [
+                              "min_lat",
+                              "min_lon",
+                              "max_lat",
+                              "max_lon"
+                            ],
+                            "properties": {
+                              "min_lat": {
+                                "type": "number"
+                              },
+                              "min_lon": {
+                                "type": "number"
+                              },
+                              "max_lat": {
+                                "type": "number"
+                              },
+                              "max_lon": {
+                                "type": "number"
+                              }
+                            }
+                          },
                           "pack": {
                             "type": "object",
                             "required": [

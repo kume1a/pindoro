@@ -159,28 +159,28 @@ class RoundController extends Notifier<RoundState> {
       return;
     }
     final cityId = pack.city().id;
-    final bestById = await _db.bestTierByStreet(cityId);
-    final recentIds = await _db.askedInLastRounds(cityId);
-    final names = pack.streetNames({...bestById.keys, ...recentIds});
+    final streets = await ref.read(cityStreetsProvider.future);
+    final best = bestTierPerStreet(await _db.bestTierByPart(cityId), streets);
     final selection = ref
         .read(questionSelectorProvider)
         .select(
           area.streetsIn(pack, difficulty.pool),
           bounds: shape.bbox,
+          cityStreets: streets,
           knowledge: {
-            for (final MapEntry(key: name, value: tier) in bestTierByName(
-              bestById,
-              names,
-            ).entries)
-              name: knowledgeFrom(tier),
+            for (final MapEntry(key: id, value: tier) in best.entries)
+              id: knowledgeFrom(tier),
           },
-          recentNames: {for (final id in recentIds) ?names[id]},
+          recentStreets: {
+            for (final id in await _db.askedInLastRounds(cityId))
+              ?streets[id]?.id,
+          },
         );
     switch (selection) {
       case NotEnoughStreets(:final count):
         if (ref.mounted) state = RoundNotEnough(count);
       case SelectedQuestions(:final streetIds):
-        final questions = resolveQuestions(pack, streetIds);
+        final questions = resolveQuestions(streets, streetIds);
         final packVersion = pack.meta()['version']!;
         final roundId = await _db.startRound(
           cityId: cityId,
@@ -215,7 +215,10 @@ class RoundController extends Notifier<RoundState> {
       if (ref.mounted) state = const RoundAreaMissing();
       return;
     }
-    final questions = resolveQuestions(pack, await _db.retrySet(roundId));
+    final questions = resolveQuestions(
+      await ref.read(cityStreetsProvider.future),
+      await _db.retrySet(roundId),
+    );
     if (questions.isEmpty) {
       if (ref.mounted) state = RoundFinished(roundId);
       return;
@@ -251,6 +254,7 @@ class RoundController extends Notifier<RoundState> {
   Future<void> resume(String roundId) async {
     state = const RoundLoading();
     final pack = await ref.read(packRepositoryProvider.future);
+    final streets = await ref.read(cityStreetsProvider.future);
     final progress = await _db.roundProgress(roundId);
     if (!ref.mounted) return;
     final shape = parseArea(progress.round.areaJson)?.shapeIn(pack);
@@ -258,7 +262,7 @@ class RoundController extends Notifier<RoundState> {
       state = const RoundAreaMissing();
       return;
     }
-    final questions = resolveQuestions(pack, progress.planned);
+    final questions = resolveQuestions(streets, progress.planned);
     final answered = {for (final a in progress.answers) a.streetId};
     final index = questions.indexWhere((q) => !answered.contains(q.id));
     if (index == -1) {
@@ -342,16 +346,12 @@ class RoundController extends Notifier<RoundState> {
   }
 }
 
-/// Planned ids → their named streets (every nearby same-name part in the
-/// city). Ids are stable across pack versions; ones retired since are skipped.
-List<RoundQuestion> resolveQuestions(PackRepository pack, List<String> ids) {
-  final names = pack.streetNames(ids).values.toSet();
-  final byPartId = {
-    for (final s in groupByName(pack.streetsNamed(names)))
-      for (final part in s.parts) part.id: s,
-  };
-  return [
-    for (final id in ids)
-      if (byPartId[id] case final street?) (id: id, street: street),
-  ];
-}
+/// Planned ids → their streets in [cityStreets]. Ids are stable across pack
+/// versions; ones retired since are skipped.
+List<RoundQuestion> resolveQuestions(
+  Map<String, NamedStreet> cityStreets,
+  List<String> ids,
+) => [
+  for (final id in ids)
+    if (cityStreets[id] case final street?) (id: id, street: street),
+];

@@ -140,6 +140,12 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get commonCancel;
 
+  /// No description provided for @commonTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get commonTryAgain;
+
   /// No description provided for @commonXp.
   ///
   /// In en, this message translates to:
@@ -385,6 +391,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Pick a district first'**
   String get areaNoneButton;
+
+  /// No description provided for @areaAllChip.
+  ///
+  /// In en, this message translates to:
+  /// **'All {count}'**
+  String areaAllChip(int count);
+
+  /// No description provided for @areaAllTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'All districts'**
+  String get areaAllTitle;
+
+  /// No description provided for @areaSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search districts'**
+  String get areaSearchHint;
+
+  /// No description provided for @areaNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No districts called “{query}”'**
+  String areaNoResults(String query);
+
+  /// No description provided for @areaOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re offline, so only Vake works until Tbilisi downloads.'**
+  String get areaOffline;
+
+  /// No description provided for @packDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {city}'**
+  String packDownloading(String city);
+
+  /// No description provided for @packDownloadSize.
+  ///
+  /// In en, this message translates to:
+  /// **'{received} of {total}'**
+  String packDownloadSize(String received, String total);
+
+  /// No description provided for @packFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t download this city'**
+  String get packFailedTitle;
+
+  /// No description provided for @packFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your connection and try again, or choose another city.'**
+  String get packFailedBody;
 
   /// No description provided for @areaPlayArea.
   ///
@@ -1039,6 +1099,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No city near you yet. Pick one from the list.'**
   String get cityNoneNearby;
+
+  /// No description provided for @locationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t find where you are. Try again, or pick a city from the list.'**
+  String get locationUnavailable;
 
   /// No description provided for @cityAll.
   ///

@@ -7,6 +7,7 @@
   "commonContinue": "Continue",
   "commonDone": "Done",
   "commonCancel": "Cancel",
+  "commonTryAgain": "Try again",
   "commonXp": "+{xp} XP",
   "@commonXp": {
     "placeholders": {
@@ -148,6 +149,46 @@
   "areaHelp": "Tap districts on the map or here. Pick one or more.",
   "areaNoneTitle": "Pick your districts",
   "areaNoneButton": "Pick a district first",
+  "areaAllChip": "All {count}",
+  "@areaAllChip": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "areaAllTitle": "All districts",
+  "areaSearchHint": "Search districts",
+  "areaNoResults": "No districts called “{query}”",
+  "@areaNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "areaOffline": "You're offline, so only Vake works until Tbilisi downloads.",
+  "packDownloading": "Downloading {city}",
+  "@packDownloading": {
+    "placeholders": {
+      "city": {
+        "type": "String"
+      }
+    }
+  },
+  "packDownloadSize": "{received} of {total}",
+  "@packDownloadSize": {
+    "placeholders": {
+      "received": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "packFailedTitle": "Couldn't download this city",
+  "packFailedBody": "Check your connection and try again, or choose another city.",
   "areaPlayArea": "Play area",
   "areaCircleHelp": "Drag the map to move the circle. Drag its handle or the slider to resize it.",
   "areaRectangleHelp": "Drag the map to move the rectangle. Drag a corner to resize it.",
@@ -504,6 +545,7 @@
   },
   "cityNoneNearby": "No city near you yet. Pick one from the list.",
   "@cityNoneNearby": {},
+  "locationUnavailable": "Couldn't find where you are. Try again, or pick a city from the list.",
   "cityAll": "All cities",
   "@cityAll": {},
   "cityClearSearch": "Clear search",

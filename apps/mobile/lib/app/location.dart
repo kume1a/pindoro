@@ -17,6 +17,11 @@ final class LocationDenied extends LocationResult {
   const LocationDenied();
 }
 
+/// No fix in time and none remembered.
+final class LocationUnavailable extends LocationResult {
+  const LocationUnavailable();
+}
+
 /// The device's position, asking for permission when needed.
 class LocationService {
   const LocationService();
@@ -33,13 +38,20 @@ class LocationService {
         permission == LocationPermission.deniedForever) {
       return const LocationDenied();
     }
-    final p = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.medium,
-        timeLimit: Duration(seconds: 20),
-      ),
-    );
-    return Located(LatLng(p.latitude, p.longitude));
+    Position? p;
+    try {
+      p = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 20),
+        ),
+      );
+    } on Object {
+      p = await Geolocator.getLastKnownPosition();
+    }
+    return p == null
+        ? const LocationUnavailable()
+        : Located(LatLng(p.latitude, p.longitude));
   }
 
   Future<void> openSettings() => Geolocator.openAppSettings();

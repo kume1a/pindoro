@@ -35,11 +35,6 @@
   "size": {
     "tokens": [
       {
-        "name": "size.map.pin-dot",
-        "value": "28px",
-        "usage": "Player pin drawn as a dot until the pin marker (size.pin.player) ships."
-      },
-      {
         "name": "size.map.measure-gap",
         "value": "6px",
         "usage": "Gap between the dots of the measure line (dotted 0/6, Map overlays)."
@@ -49,12 +44,12 @@
   "camera": {
     "tokens": [
       { "name": "camera.zoom", "value": "13.5", "usage": "Initial zoom before the camera fits the area." },
-      { "name": "camera.fit-padding-x", "value": "32px", "usage": "Side padding when fitting the area or the reveal." },
       {
-        "name": "camera.fit-padding-y",
-        "value": "170px",
-        "usage": "Top and bottom padding when fitting: clears the street plate and the bottom buttons."
-      }
+        "name": "camera.area-detail-zoom",
+        "value": "12",
+        "usage": "Area picker: from this zoom the map shows neighbourhoods instead of districts."
+      },
+      { "name": "camera.fit-padding-x", "value": "32px", "usage": "Side padding when fitting the area or the reveal." }
     ]
   }
 }
