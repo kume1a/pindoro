@@ -151,7 +151,7 @@ class ListRow extends StatelessWidget {
     return Semantics(
       button: onTap != null && toggled == null && check == null,
       toggled: toggled,
-      checked: check == null ? null : check.isChecked,
+      checked: check?.isChecked,
       mixed: check == null ? null : check == CheckState.partial,
       label: semanticsLabel,
       excludeSemantics: semanticsLabel != null,

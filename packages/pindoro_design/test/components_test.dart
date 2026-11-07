@@ -68,7 +68,7 @@ void main() {
     );
     expect(
       tester.getSemantics(find.text('Partial')),
-      containsSemantics(
+      isSemantics(
         label: 'Partial',
         hasCheckedState: true,
         isCheckStateMixed: true,
@@ -77,7 +77,7 @@ void main() {
     );
     expect(
       tester.getSemantics(find.text('Included')),
-      containsSemantics(
+      isSemantics(
         label: 'Included',
         hasCheckedState: true,
         isChecked: true,
