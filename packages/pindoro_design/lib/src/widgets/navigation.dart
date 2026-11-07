@@ -85,6 +85,7 @@ class _NavItem extends StatelessWidget {
       selected: selected,
       label: item.semanticLabel ?? item.label,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         spacing: 3,
         children: [
           Stack(

@@ -192,6 +192,29 @@ void main() {
     expect(tapped, 1);
   });
 
+  testWidgets('the nav bar keeps its height under a Scaffold', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildPindoroTheme(Brightness.light),
+        home: Scaffold(
+          bottomNavigationBar: PindoroNavBar(
+            items: const [
+              (
+                glyph: PindoroGlyph.user,
+                label: 'Me',
+                badge: null,
+                semanticLabel: null,
+              ),
+            ],
+            current: 0,
+            onSelect: (_) {},
+          ),
+        ),
+      ),
+    );
+    expect(tester.getSize(find.byType(PindoroNavBar)).height, lessThan(84));
+  });
+
   testWidgets('a stat tile reads as one label', (tester) async {
     await tester.pumpWidget(
       _host(
