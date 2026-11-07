@@ -47,6 +47,12 @@ describe("api", () => {
     await writeFile(join(packsDir, "tbilisi", "manifest.json"), JSON.stringify(manifest));
     await mkdir(join(packsDir, "broken"));
     await writeFile(join(packsDir, "broken", "manifest.json"), "{ not json");
+    // A file name outside the city's dir must never become a pack url.
+    await mkdir(join(packsDir, "escape"));
+    await writeFile(
+      join(packsDir, "escape", "manifest.json"),
+      JSON.stringify({ ...manifest, city: "escape", file: "../tbilisi/x.sqlite.gz" }),
+    );
     app = await appWith({ PACKS_DIR: packsDir });
   });
 

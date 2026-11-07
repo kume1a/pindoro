@@ -1,14 +1,11 @@
-import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Sql } from "postgres";
 import { MIN_AREA_STREETS, PIPELINE_DIR } from "./config.ts";
+import { run } from "./io.ts";
 
 const LUA = join(PIPELINE_DIR, "osm2pgsql/pindoro.lua");
 const SQL_DIR = join(PIPELINE_DIR, "sql");
-
-export const run = (cmd: string, args: string[]): string =>
-  execFileSync(cmd, args, { encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] });
 
 interface Feature {
   type: "Feature";
@@ -69,14 +66,15 @@ export const loadOsm = async (sql: Sql, pbf: string, databaseUrl: string): Promi
     DROP SCHEMA IF EXISTS osm CASCADE;
     CREATE SCHEMA osm;
   `);
-  run("osm2pgsql", [
-    "--create",
-    "--output=flex",
-    `--style=${LUA}`,
-    `--database=${databaseUrl}`,
-    "--log-level=warn",
-    pbf,
-  ]);
+  // The password goes through the environment: argv is visible to every user in `ps`.
+  const url = new URL(databaseUrl);
+  const password = decodeURIComponent(url.password);
+  url.password = "";
+  run(
+    "osm2pgsql",
+    ["--create", "--output=flex", `--style=${LUA}`, `--database=${url}`, "--log-level=warn", pbf],
+    password ? { PGPASSWORD: password } : undefined,
+  );
 };
 
 export interface Neighbourhood {

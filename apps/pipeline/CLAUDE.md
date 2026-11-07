@@ -24,7 +24,7 @@ Env: `DATABASE_URL` (default `postgres://pindoro:pindoro@localhost:5433/pindoro`
 `PINDORO_REQUIRE_OSM_TOOLS=1` turns the skip into a failure (CI).
 
 Outputs: cache `apps/pipeline/.cache/<city>/`, builds `apps/pipeline/out/<city>/` (pack, `.gz`, `manifest.json`,
-`identity-diff-<version>.json`), fixture `apps/mobile/assets/packs_fixture/<city>_<name>_fixture.sqlite`,
+`identity.json` staged for publish, `identity-diff-<version>.json`), fixture `apps/mobile/assets/packs_fixture/<city>_<name>_fixture.sqlite`,
 styles `apps/mobile/assets/map_styles/pindoro_{light,dark}.json`, tiles `infra/tiles/georgia.pmtiles`.
 
 ## Build steps
@@ -41,7 +41,9 @@ styles `apps/mobile/assets/map_styles/pindoro_{light,dark}.json`, tiles `infra/t
    `60_simplify` 3 m pack geometry + midpoints.
 4. `src/identity.ts`: stable UUIDs in `data/cities/<city>/identity.json` (same normalised name + way-id
    Jaccard ≥ 0.3, one-to-one, best first; unmatched → new id; vanished → `retired_at`). Always computed
-   over the whole city, also for `--fixture`. **Stable street ids are sacred**: never regenerate or
+   over the whole city, also for `--fixture`. A full build stages them in `out/<city>/identity.json`
+   and `publish` commits them to `data/` right before the pack goes live, so a rejected build retires
+   nothing; `--fixture` writes `data/` directly. **Stable street ids are sacred**: never regenerate or
    hand-edit identity.json; review the diff report instead.
 5. `src/pack.ts`: better-sqlite3 pack (polyline6 via `@pindoro/geo`) → gzip → `manifest.json`.
 

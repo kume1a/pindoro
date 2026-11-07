@@ -15,17 +15,30 @@ const listDirs = async (dir: string): Promise<string[]> => {
   }
 };
 
-const readManifests = async (dir: string, log: FastifyBaseLogger): Promise<Manifest[]> => {
-  const manifests: Manifest[] = [];
-  for (const name of (await listDirs(dir)).sort()) {
-    const path = join(dir, name, "manifest.json");
-    const json: unknown = await readFile(path, "utf8")
-      .then(JSON.parse)
-      .catch(() => undefined);
-    if (Value.Check(Manifest, json)) manifests.push(json);
-    else log.warn({ path }, "skipping pack dir without a valid manifest.json");
+/** A pack dir's manifest, or undefined (logged with the reason) when it is missing or invalid. */
+const readManifest = async (
+  path: string,
+  log: FastifyBaseLogger,
+): Promise<Manifest | undefined> => {
+  let json: unknown;
+  try {
+    json = JSON.parse(await readFile(path, "utf8"));
+  } catch (err) {
+    log.warn({ path, err }, "skipping pack dir without a readable manifest.json");
+    return undefined;
   }
-  return manifests;
+  if (Value.Check(Manifest, json)) return json;
+  const [error] = Value.Errors(Manifest, json);
+  log.warn({ path, error }, "skipping pack dir with an invalid manifest.json");
+  return undefined;
+};
+
+const readManifests = async (dir: string, log: FastifyBaseLogger): Promise<Manifest[]> => {
+  const names = (await listDirs(dir)).sort();
+  const manifests = await Promise.all(
+    names.map((name) => readManifest(join(dir, name, "manifest.json"), log)),
+  );
+  return manifests.filter((m) => m !== undefined);
 };
 
 export const catalogRoutes: FastifyPluginAsyncTypebox<{
