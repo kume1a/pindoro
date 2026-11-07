@@ -169,6 +169,55 @@ void main() {
         .start(const DistrictsArea({'osm:r1'}), Difficulty.expert);
     expect(c.read(roundControllerProvider), isA<RoundAreaMissing>());
   });
+
+  group('Pit stop', () {
+    final today = calendarDay(DateTime.now());
+
+    /// [count] distinct streets in the Pit stop, the first most overdue;
+    /// the last one isn't due until tomorrow.
+    Future<List<String>> pitStop(ProviderContainer c, int count) async {
+      final streets = await c.read(cityStreetsProvider.future);
+      final ids = {for (final s in streets.values) s.id}.take(count).toList();
+      await db.batch(
+        (b) => b.insertAll(db.reviewItems, [
+          for (final (i, id) in ids.indexed)
+            ReviewItemsCompanion.insert(
+              cityId: 'tbilisi',
+              streetId: id,
+              step: 1,
+              greatRun: 0,
+              dueOn: dayKey(today.add(Duration(days: i - count + 2))),
+              lastTier: Tier.miss,
+              lastAt: DateTime.now(),
+            ),
+        ]),
+      );
+      return ids;
+    }
+
+    test('asks up to 10 due streets, most overdue first', () async {
+      final c = container();
+      final ids = await pitStop(c, 13);
+      await c
+          .read(roundControllerProvider.notifier)
+          .startPitStop(Difficulty.expert);
+      final round = (c.read(roundControllerProvider) as RoundAsking).round;
+      expect([for (final q in round.questions) q.id], ids.take(10));
+      expect(
+        (await ProgressDao(db).roundProgress(round.id)).round.pitStop,
+        isTrue,
+      );
+    });
+
+    test('nothing due is reported', () async {
+      final c = container();
+      await pitStop(c, 1); // due tomorrow
+      await c
+          .read(roundControllerProvider.notifier)
+          .startPitStop(Difficulty.expert);
+      expect(c.read(roundControllerProvider), isA<RoundNothingDue>());
+    });
+  });
 }
 
 /// The fixture with only three streets in any query.

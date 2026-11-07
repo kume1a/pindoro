@@ -45,6 +45,14 @@ extension ReviewItemState on ReviewItem {
   bool dueBy(DateTime today) => !parseDayKey(dueOn).isAfter(today);
 }
 
+extension PitStopItems on Iterable<ReviewItem> {
+  /// Items due by [today] whose street is still in the pack's [streets].
+  Iterable<ReviewItem> dueIn(
+    Map<String, NamedStreet> streets,
+    DateTime today,
+  ) => where((i) => i.dueBy(today) && streets.containsKey(i.streetId));
+}
+
 /// Rounds, the append-only answer log, goal-met days and the Pit stop: what
 /// the player has played, and the rules read from it (saved round, retry set,
 /// recent streets, the daily goal, streets to review).

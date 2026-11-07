@@ -106,6 +106,11 @@ final class RoundAreaMissing extends RoundState {
   const RoundAreaMissing();
 }
 
+/// A Pit stop with nothing due (it emptied since the screen was opened).
+final class RoundNothingDue extends RoundState {
+  const RoundNothingDue();
+}
+
 final class RoundFinished extends RoundState {
   const RoundFinished(this.roundId);
 
@@ -253,6 +258,51 @@ class RoundController extends Notifier<RoundState> {
     );
   }
 
+  /// Plays the open city's Pit stop: up to [ReviewRules.pitStopSize] due
+  /// streets, most overdue first, framed by the districts that hold them.
+  Future<void> startPitStop(Difficulty difficulty) async {
+    state = const RoundLoading();
+    final dao = _progress;
+    final pack = await ref.read(packRepositoryProvider.future);
+    if (!ref.mounted) return;
+    final cityId = pack.city().id;
+    final streets = await ref.read(cityStreetsProvider.future);
+    final today = calendarDay(DateTime.now());
+    final due = (await dao.pitStop(cityId)).dueIn(streets, today);
+    final questions = resolveQuestions(streets, [
+      for (final item in due.take(ReviewRules.pitStopSize)) item.streetId,
+    ]);
+    if (!ref.mounted) return;
+    final area = DistrictsArea(districtsHolding(pack, questions));
+    final shape = area.shapeIn(pack);
+    if (questions.isEmpty || shape == null) {
+      state = const RoundNothingDue();
+      return;
+    }
+    final version = packVersion(pack);
+    final roundId = await dao.startRound(
+      cityId: cityId,
+      area: area,
+      difficulty: difficulty,
+      packVersion: version,
+      streetIds: [for (final q in questions) q.id],
+      pitStop: true,
+    );
+    final previous = await dao.previousDistances(roundId);
+    if (!ref.mounted) return;
+    state = RoundAsking(
+      RoundContext(
+        id: roundId,
+        shape: shape,
+        difficulty: difficulty,
+        packVersion: version,
+        questions: questions,
+        index: 0,
+        previousDistanceM: previous,
+      ),
+    );
+  }
+
   Future<void> resume(String roundId) async {
     state = const RoundLoading();
     final dao = _progress;
@@ -357,3 +407,24 @@ List<PlannedQuestion> resolveQuestions(
   for (final id in ids)
     if (cityStreets[id] case final street?) (id: id, street: street),
 ];
+
+/// The city districts (not quarters or neighbourhoods) holding any part of
+/// [questions]' streets: a Pit stop round's area.
+Set<String> districtsHolding(
+  PackRepository pack,
+  List<PlannedQuestion> questions,
+) {
+  final parts = {
+    for (final q in questions)
+      for (final p in q.street.parts) p.id,
+  };
+  final districts = {
+    for (final d in pack.districts())
+      if (d.kind == DistrictKind.district) d.id,
+  };
+  return {
+    for (final MapEntry(key: id, value: inside)
+        in pack.partsByDistrict().entries)
+      if (districts.contains(id) && inside.any(parts.contains)) id,
+  };
+}

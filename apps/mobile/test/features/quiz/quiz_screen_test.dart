@@ -37,10 +37,10 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('confirm reveals the score, next asks the following street', (
-    tester,
-  ) async {
-    PindoroMap? map;
+  PindoroMap? map;
+
+  /// A round in the fixture's Vake at Expert, at question 1.
+  Future<void> pumpRound(WidgetTester tester) async {
     await tester.runAsync(() async {
       final settings = SettingsDao(db);
       await settings.chooseArea(
@@ -69,6 +69,22 @@ void main() {
       ),
     );
     await settle(tester);
+  }
+
+  testWidgets('a Miss goes to the Pit stop', (tester) async {
+    await pumpRound(tester);
+    map!.onTap!(const LatLng(41.9, 45.2));
+    await tester.pump();
+    await tester.tap(find.text('Confirm'));
+    await settle(tester);
+    expect(find.text('Not this time'), findsOneWidget);
+    expect(find.text('Added to your Pit stop'), findsOneWidget);
+  });
+
+  testWidgets('confirm reveals the score, next asks the following street', (
+    tester,
+  ) async {
+    await pumpRound(tester);
 
     expect(find.bySemanticsLabel('Question 1 of 10'), findsOneWidget);
     PindoroButton button(String label) =>
