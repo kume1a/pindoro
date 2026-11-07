@@ -9,6 +9,10 @@ concurrency:
   group: mobile-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Pinned so goldens match; keep equal to `flutter_version` in the justfile.
+  FLUTTER_VERSION: 3.47.9
+
 jobs:
   mobile:
     runs-on: ubuntu-24.04
@@ -17,12 +21,11 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          # Pinned so goldens match; keep equal to `flutter_version` in the justfile.
-          flutter-version: 3.47.9
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - uses: extractions/setup-just@v3
       - run: flutter pub get
-      - run: just tokens-check
+      - run: just gen-check
       - run: dart format --set-exit-if-changed .
       - run: flutter analyze --fatal-infos
       - run: just test-dart
@@ -35,7 +38,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.47.9
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter build ios --release --no-codesign
         working-directory: apps/mobile
