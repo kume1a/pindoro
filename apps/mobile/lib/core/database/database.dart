@@ -89,6 +89,9 @@ class Rounds extends Table {
   /// The round whose Close and Miss streets this round retries.
   TextColumn get retryOf => text().nullable().references(Rounds, #id)();
 
+  /// A Pit stop round: the due streets of the Pit stop.
+  BoolColumn get pitStop => boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -145,8 +148,40 @@ class GoalDays extends Table {
   Set<Column<Object>> get primaryKey => {date};
 }
 
+/// A street in the Pit stop (pindoro_core `nextReview`), kept with every
+/// answer; graduated streets have no row.
+@DataClassName('ReviewItem')
+class ReviewItems extends Table {
+  @override
+  String get tableName => 'review_item';
+
+  TextColumn get cityId => text()();
+  TextColumn get streetId => text()();
+
+  /// 1–4: due 1, 3, 7 or 21 days after the last answer.
+  IntColumn get step => integer()();
+
+  /// Great-or-better answers in a row.
+  IntColumn get greatRun => integer()();
+
+  /// The calendar day it's due (`YYYY-MM-DD`, pindoro_core `dayKey`).
+  TextColumn get dueOn => text()();
+  TextColumn get lastTier => textEnum<Tier>()();
+  DateTimeColumn get lastAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {cityId, streetId};
+}
+
 @DriftDatabase(
-  tables: [UserSettings, Rounds, Answers, RoundQuestions, GoalDays],
+  tables: [
+    UserSettings,
+    Rounds,
+    Answers,
+    RoundQuestions,
+    GoalDays,
+    ReviewItems,
+  ],
   include: {'answer_immutable.drift'},
 )
 class AppDatabase extends _$AppDatabase {
@@ -154,7 +189,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'pindoro'));
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -183,6 +218,10 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(schema.goalDay);
         await m.addColumn(schema.userSettings, schema.userSettings.dailyGoal);
         await m.addColumn(schema.userSettings, schema.userSettings.reminder);
+      },
+      from6To7: (m, schema) async {
+        await m.createTable(schema.reviewItem);
+        await m.addColumn(schema.round, schema.round.pitStop);
       },
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),

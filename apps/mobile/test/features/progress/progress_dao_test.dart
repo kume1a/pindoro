@@ -24,6 +24,7 @@ void main() {
     List<String> streets, {
     String cityId = 'tbilisi',
     String? retryOf,
+    bool pitStop = false,
   }) => progress.startRound(
     cityId: cityId,
     area: vake,
@@ -31,18 +32,23 @@ void main() {
     packVersion: 'v1',
     streetIds: streets,
     retryOf: retryOf,
+    pitStop: pitStop,
   );
 
-  Future<Answer> answer(String roundId, String streetId, Tier tier) =>
-      progress.recordAnswer(
-        roundId: roundId,
-        streetId: streetId,
-        pin: const LatLng(41.7, 44.75),
-        distanceM: 10,
-        tier: tier,
-        xp: 100,
-        packVersion: 'v1',
-      );
+  Future<Answer> answer(
+    String roundId,
+    String streetId,
+    Tier tier, {
+    double distanceM = 10,
+  }) => progress.recordAnswer(
+    roundId: roundId,
+    streetId: streetId,
+    pin: const LatLng(41.7, 44.75),
+    distanceM: distanceM,
+    tier: tier,
+    xp: 100,
+    packVersion: 'v1',
+  );
 
   test('welcome shows until a first round is finished or saved', () async {
     expect(await startLocation(db), Routes.welcome);
@@ -240,6 +246,68 @@ void main() {
           );
       expect(await progress.xpOn(today), 100);
       expect(await progress.xpOn(today.subtract(const Duration(days: 1))), 70);
+    });
+  });
+
+  group('Pit stop', () {
+    final today = calendarDay(DateTime.now());
+    final tomorrow = today.add(const Duration(days: 1));
+
+    test('Close and Miss enter at step 1, due tomorrow', () async {
+      final id = await round(['a', 'b', 'c']);
+      await answer(id, 'a', Tier.close);
+      await answer(id, 'b', Tier.miss);
+      await answer(id, 'c', Tier.great);
+      final pit = await progress.pitStop('tbilisi');
+      expect(
+        [for (final i in pit) (i.streetId, i.step, i.lastTier)],
+        [('a', 1, Tier.close), ('b', 1, Tier.miss)],
+      );
+      expect(pit.first.dueBy(today), isFalse);
+      expect(pit.first.dueBy(tomorrow), isTrue);
+    });
+
+    test('two Greats in a row graduate; a Miss resets', () async {
+      final id = await round(['a']);
+      await answer(id, 'a', Tier.miss);
+      await answer(id, 'a', Tier.great);
+      expect((await progress.pitStop('tbilisi')).single.step, 2);
+      await answer(id, 'a', Tier.miss);
+      expect((await progress.pitStop('tbilisi')).single.step, 1);
+      await answer(id, 'a', Tier.great);
+      await answer(id, 'a', Tier.perfect);
+      expect(await progress.pitStop('tbilisi'), isEmpty);
+    });
+
+    test('each city keeps its own Pit stop', () async {
+      await answer(await round(['a'], cityId: 'batumi'), 'a', Tier.miss);
+      expect(await progress.pitStop('tbilisi'), isEmpty);
+      expect((await progress.pitStop('batumi')).single.streetId, 'a');
+    });
+
+    test('the last Pit stop is the latest finished Pit stop round', () async {
+      final done = await round(['a', 'b'], pitStop: true);
+      await answer(done, 'a', Tier.great);
+      await answer(done, 'b', Tier.close);
+      await progress.finishRound(done);
+      await answer(await round(['c'], pitStop: true), 'c', Tier.miss);
+      final normal = await round(['d']);
+      await answer(normal, 'd', Tier.miss);
+      await progress.finishRound(normal);
+      final last = await progress.lastPitStopAnswers('tbilisi');
+      expect([for (final a in last) a.streetId], ['a', 'b']);
+      expect(await progress.lastPitStopAnswers('batumi'), isEmpty);
+    });
+
+    test('previous distances come from the latest other answer', () async {
+      final first = await round(['a', 'b']);
+      await answer(first, 'a', Tier.miss, distanceM: 900);
+      await answer(first, 'b', Tier.close, distanceM: 300);
+      final second = await round(['a']);
+      await answer(second, 'a', Tier.close, distanceM: 250);
+      final pit = await round(['a', 'b'], pitStop: true);
+      await answer(pit, 'a', Tier.great, distanceM: 40);
+      expect(await progress.previousDistances(pit), {'a': 250, 'b': 300});
     });
   });
 }

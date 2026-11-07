@@ -237,6 +237,7 @@ class RoundController extends Notifier<RoundState> {
       streetIds: [for (final q in questions) q.id],
       retryOf: roundId,
     );
+    final previous = await dao.previousDistances(retryId);
     if (!ref.mounted) return;
     state = RoundAsking(
       RoundContext(
@@ -247,7 +248,7 @@ class RoundController extends Notifier<RoundState> {
         questions: questions,
         index: 0,
         retryOf: roundId,
-        previousDistanceM: original.distanceByStreet,
+        previousDistanceM: previous,
       ),
     );
   }
@@ -274,9 +275,10 @@ class RoundController extends Notifier<RoundState> {
       return;
     }
     final retryOf = progress.round.retryOf;
-    final previous = retryOf == null
-        ? const <String, double>{}
-        : (await dao.roundProgress(retryOf)).distanceByStreet;
+    // Retry and Pit stop rounds show the reroute plate with the last distance.
+    final previous = retryOf != null || progress.round.pitStop
+        ? await dao.previousDistances(roundId)
+        : const <String, double>{};
     if (!ref.mounted) return;
     state = RoundAsking(
       RoundContext(
