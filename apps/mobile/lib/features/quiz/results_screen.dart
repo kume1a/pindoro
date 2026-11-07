@@ -12,11 +12,23 @@ import '../../app/page_scaffold.dart';
 import '../../app/router.dart';
 import '../../app/settings.dart';
 import '../../l10n/app_localizations.dart';
+import '../home/home_screen.dart';
 import 'level_up_screen.dart';
 import 'results_data.dart';
 
+/// When each part of the results arrival starts (canvas M-40).
+abstract final class _Arrival {
+  static const Duration reward = Duration(milliseconds: 200);
+  static const Duration bar = Duration(milliseconds: 1100);
+  static const Duration chips = Duration(milliseconds: 1520);
+  static const Duration rows = Duration(milliseconds: 1640);
+  static const Duration chipGap = Duration(milliseconds: 60);
+}
+
 /// Round results: reward, level, tier tally, every answer, retry and play
-/// again. A level crossed in the round opens the level-up moment once.
+/// again. They arrive in sequence; a level crossed in the round fills the bar,
+/// opens the level-up moment from it once, then the bar refills in the new
+/// level.
 class ResultsScreen extends ConsumerStatefulWidget {
   const ResultsScreen({super.key, required this.roundId});
 
@@ -27,42 +39,65 @@ class ResultsScreen extends ConsumerStatefulWidget {
 }
 
 class _ResultsScreenState extends ConsumerState<ResultsScreen> {
-  bool _levelUpShown = false;
+  final _barKey = GlobalKey();
+  bool _barFull = false;
+  bool _levelUpOver = false;
 
-  void _maybeLevelUp(ResultsData data) {
-    final before = levelForXp(data.totalXp - data.roundXp);
-    final after = levelForXp(data.totalXp);
-    if (_levelUpShown || after <= before) return;
-    _levelUpShown = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      ref.read(feedbackProvider).levelUp();
-      unawaited(
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            fullscreenDialog: true,
-            builder: (_) => LevelUpScreen(level: after, totalXp: data.totalXp),
-          ),
-        ),
-      );
-    });
+  /// The full bar glows, then the level-up moment grows out of it.
+  Future<void> _openLevelUp(int level, int totalXp) async {
+    if (_barFull) return;
+    setState(() => _barFull = true);
+    await Future<void>.delayed(PindoroMotion.durationBase);
+    if (!mounted) return;
+    ref.read(feedbackProvider).levelUp();
+    final bar = _barKey.currentContext?.findRenderObject() as RenderBox?;
+    await Navigator.of(context).push(
+      levelUpRoute(
+        level: level,
+        totalXp: totalXp,
+        from: bar?.localToGlobal(bar.size.center(Offset.zero)),
+      ),
+    );
+    if (mounted) setState(() => _levelUpOver = true);
   }
 
   @override
   Widget build(BuildContext context) {
     final data = ref.watch(resultsProvider(widget.roundId)).value;
     if (data == null) return const Scaffold();
-    _maybeLevelUp(data);
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
     final locale = Localizations.localeOf(context);
     final settings = ref.watch(settingsProvider).value;
-    final level = progressWithinLevel(data.totalXp);
+    final before = progressWithinLevel(data.totalXp - data.roundXp);
+    final after = progressWithinLevel(data.totalXp);
+    final crossed = after.level > before.level;
+    // Until the level-up moment is over the bar fills the old level to its end.
+    final inNewLevel = !crossed || _levelUpOver;
     final counts = <Tier, int>{};
     for (final e in data.entries) {
       counts.update(e.answer.tier, (n) => n + 1, ifAbsent: () => 1);
     }
-    return PageScaffold(
+    final chips = [
+      if (data.newlyKnown > 0)
+        Pill(
+          label: l10n.resultsStreetsKnown(data.newlyKnown),
+          icon: PindoroGlyph.checkCircle,
+          iconColor: c.successBase,
+        ),
+      if (_levelUpOver)
+        Pill(
+          label: l10n.levelUpTitle(after.level),
+          icon: PindoroGlyph.xp,
+          iconColor: c.xpFill,
+        ),
+    ];
+    final RoundSummary summary = (
+      roundId: data.round.id,
+      startedAt: data.round.startedAt,
+      roundXp: data.roundXp,
+    );
+    final page = PageScaffold(
       title: data.round.retryOf != null
           ? l10n.resultsRetryTitle
           : data.retryCount == 0
@@ -71,7 +106,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
       trailing: PindoroIconButton(
         glyph: PindoroGlyph.close,
         semanticLabel: l10n.commonDone,
-        onPressed: () => context.go(Routes.home),
+        onPressed: () => context.go(Routes.home, extra: summary),
       ),
       showBack: false,
       footer: Row(
@@ -101,13 +136,16 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
         Row(
           spacing: PindoroSpace.s3,
           children: [
-            const Pindo(PindoExpression.proud, height: 64),
+            const PopIn(child: Pindo(PindoExpression.proud, height: 64)),
             Expanded(
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: PopIn(
+                  delay: _Arrival.reward,
                   child: CountUp(
                     value: data.roundXp,
+                    delay: _Arrival.reward,
+                    onEnd: ref.read(feedbackProvider).reward,
                     builder: (context, xp) => RewardTotal(
                       value: l10n.commonXp(formatNumber(xp)),
                       semanticLabel: l10n.a11yRewardTotal(
@@ -120,53 +158,107 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
             ),
           ],
         ),
-        _LevelRow(level: level),
-        if (data.newlyKnown > 0)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Pill(
-              label: l10n.resultsStreetsKnown(data.newlyKnown),
-              icon: PindoroGlyph.checkCircle,
-              iconColor: c.successBase,
+        if (inNewLevel)
+          _LevelRow(
+            key: const ValueKey('new level'),
+            level: after,
+            from: crossed ? 0 : before.fraction,
+            delay: crossed ? Duration.zero : _Arrival.bar,
+          )
+        else
+          _LevelRow(
+            level: (
+              level: before.level,
+              xpIntoLevel: before.xpForLevel,
+              xpForLevel: before.xpForLevel,
+            ),
+            from: before.fraction,
+            delay: _Arrival.bar,
+            barKey: _barKey,
+            ring: _barFull,
+            // The bar's animation can end inside a frame (reduce motion).
+            onFilled: () => WidgetsBinding.instance.addPostFrameCallback(
+              (_) => _openLevelUp(after.level, data.totalXp),
             ),
           ),
-        TierTally(
-          counts: counts,
-          labels: {
-            Tier.perfect: l10n.tierPerfectWord,
-            Tier.great: l10n.tierGreatWord,
-            Tier.close: l10n.tierClose,
-            Tier.miss: l10n.tierMissWord,
-          },
-          semanticLabel: l10n.a11yTierTally(
-            counts[Tier.perfect] ?? 0,
-            counts[Tier.great] ?? 0,
-            counts[Tier.close] ?? 0,
-            counts[Tier.miss] ?? 0,
+        if (chips.isNotEmpty)
+          Wrap(
+            spacing: PindoroSpace.s2,
+            runSpacing: PindoroSpace.s2,
+            children: [
+              for (final (i, chip) in chips.indexed)
+                PopIn(
+                  delay: _Arrival.chips + _Arrival.chipGap * i,
+                  child: chip,
+                ),
+            ],
+          ),
+        RiseIn(
+          delay: _Arrival.rows,
+          distance: PindoroSpace.s4,
+          child: TierTally(
+            counts: counts,
+            labels: {
+              Tier.perfect: l10n.tierPerfectWord,
+              Tier.great: l10n.tierGreatWord,
+              Tier.close: l10n.tierClose,
+              Tier.miss: l10n.tierMissWord,
+            },
+            semanticLabel: l10n.a11yTierTally(
+              counts[Tier.perfect] ?? 0,
+              counts[Tier.great] ?? 0,
+              counts[Tier.close] ?? 0,
+              counts[Tier.miss] ?? 0,
+            ),
           ),
         ),
-        Row(
-          children: [
-            Expanded(child: SectionTitle(l10n.resultsYourStreets)),
-            if (data.retryCount > 0)
-              PindoroButton(
-                label: l10n.resultsRetryMissed(data.retryCount),
-                icon: PindoroGlyph.reroute,
-                variant: PindoroButtonVariant.secondary,
-                onPressed: () => context.go(Routes.retry(widget.roundId)),
-              )
-            else
-              Text(
-                l10n.resultsNoRetry,
-                style: PindoroType.bodySm.copyWith(color: c.textSecondary),
-              ),
-          ],
+        RiseIn(
+          delay: _Arrival.rows,
+          distance: PindoroSpace.s4,
+          child: Row(
+            children: [
+              Expanded(child: SectionTitle(l10n.resultsYourStreets)),
+              if (data.retryCount > 0)
+                PindoroButton(
+                  label: l10n.resultsRetryMissed(data.retryCount),
+                  icon: PindoroGlyph.reroute,
+                  variant: PindoroButtonVariant.secondary,
+                  onPressed: () => context.go(Routes.retry(widget.roundId)),
+                )
+              else
+                Text(
+                  l10n.resultsNoRetry,
+                  style: PindoroType.bodySm.copyWith(color: c.textSecondary),
+                ),
+            ],
+          ),
         ),
-        ListGroup(
-          children: [
-            for (final (i, e) in data.entries.indexed)
-              _row(context, l10n, locale, settings, i, e),
-          ],
+        RiseIn(
+          delay: _Arrival.rows,
+          distance: 0,
+          child: ListGroup(
+            children: [
+              for (final (i, e) in data.entries.indexed)
+                RiseIn(
+                  delay: _Arrival.rows + PindoroMotion.stagger * i,
+                  distance: PindoroSpace.s4,
+                  child: _row(context, l10n, locale, settings, i, e),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+    return Stack(
+      children: [
+        page,
+        Positioned.fill(
+          child: Celebration(
+            size: data.firstPerfect
+                ? CelebrationSize.big
+                : CelebrationSize.medium,
+            burstCenter: const Alignment(-0.2, -0.6),
+          ),
         ),
       ],
     );
@@ -220,11 +312,25 @@ String tierWord(AppLocalizations l10n, Tier tier) => switch (tier) {
   Tier.miss => l10n.tierMissWord,
 };
 
-/// "Level 3" with the XP bar and "1 305 / 1 500".
+/// "Level 3" with the XP bar and "1 305 / 1 500"; the bar fills from [from]
+/// after [delay] and calls [onFilled] when it gets there.
 class _LevelRow extends StatelessWidget {
-  const _LevelRow({required this.level});
+  const _LevelRow({
+    super.key,
+    required this.level,
+    required this.from,
+    required this.delay,
+    this.barKey,
+    this.ring = false,
+    this.onFilled,
+  });
 
   final LevelProgress level;
+  final double from;
+  final Duration delay;
+  final Key? barKey;
+  final bool ring;
+  final VoidCallback? onFilled;
 
   @override
   Widget build(BuildContext context) {
@@ -258,7 +364,12 @@ class _LevelRow extends StatelessWidget {
                 ],
               ),
               XpBar(
-                value: level.xpIntoLevel / level.xpForLevel,
+                key: barKey,
+                value: level.fraction,
+                from: from,
+                delay: delay,
+                ring: ring,
+                onEnd: onFilled,
                 semanticLabel: l10n.a11yLevelProgress(
                   level.level,
                   into,

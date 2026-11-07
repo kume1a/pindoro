@@ -131,8 +131,9 @@ MultiPolyline clipToCircle(MultiPolyline lines, LatLng center, double radiusM) {
         continue;
       }
       final (t0, t1) = span;
-      if (piece.isEmpty)
+      if (piece.isEmpty) {
         piece.add(t0 == 0 ? line[i] : proj.unproject(_lerp(a, b, t0)));
+      }
       piece.add(t1 == 1 ? line[i + 1] : proj.unproject(_lerp(a, b, t1)));
       if (t1 < 1) {
         out.add(piece);

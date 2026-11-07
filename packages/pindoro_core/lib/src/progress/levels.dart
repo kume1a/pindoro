@@ -19,6 +19,11 @@ int levelForXp(int xp) {
 
 typedef LevelProgress = ({int level, int xpIntoLevel, int xpForLevel});
 
+extension LevelFraction on LevelProgress {
+  /// How far into the level, 0–1.
+  double get fraction => xpIntoLevel / xpForLevel;
+}
+
 LevelProgress progressWithinLevel(int xp) {
   final level = levelForXp(xp);
   return (

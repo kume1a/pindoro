@@ -1,4 +1,6 @@
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pindoro_design/pindoro_design.dart';
 
 import '../features/home/home_screen.dart';
 import '../features/quiz/quiz_screen.dart';
@@ -34,6 +36,16 @@ abstract final class Routes {
       '$results/street/$index?round=$roundId';
 }
 
+/// Home and Results arrive with a fade rather than a slide (canvas M-40, M-43).
+Page<void> _fadePage(GoRouterState state, Widget child) =>
+    CustomTransitionPage<void>(
+      key: state.pageKey,
+      child: child,
+      transitionDuration: PindoroMotion.durationFast,
+      transitionsBuilder: (context, animation, _, child) =>
+          FadeTransition(opacity: animation, child: child),
+    );
+
 /// Welcome shows until the player finishes a first round; then Home.
 Future<String> initialLocation(AppDatabase db) async =>
     await db.hasFinishedRound() ? Routes.home : Routes.welcome;
@@ -41,7 +53,11 @@ Future<String> initialLocation(AppDatabase db) async =>
 GoRouter buildRouter(String initialLocation) => GoRouter(
   initialLocation: initialLocation,
   routes: [
-    GoRoute(path: Routes.home, builder: (_, _) => const HomeScreen()),
+    GoRoute(
+      path: Routes.home,
+      pageBuilder: (_, state) =>
+          _fadePage(state, HomeScreen(summary: state.extra as RoundSummary?)),
+    ),
     GoRoute(path: Routes.welcome, builder: (_, _) => const WelcomeScreen()),
     GoRoute(path: Routes.city, builder: (_, _) => const CityScreen()),
     GoRoute(path: Routes.area, builder: (_, _) => const AreaScreen()),
@@ -60,8 +76,10 @@ GoRouter buildRouter(String initialLocation) => GoRouter(
       path: Routes.results,
       redirect: (_, state) =>
           state.uri.queryParameters.containsKey('round') ? null : Routes.home,
-      builder: (_, state) =>
-          ResultsScreen(roundId: state.uri.queryParameters['round']!),
+      pageBuilder: (_, state) => _fadePage(
+        state,
+        ResultsScreen(roundId: state.uri.queryParameters['round']!),
+      ),
       routes: [
         GoRoute(
           path: 'street/:index',

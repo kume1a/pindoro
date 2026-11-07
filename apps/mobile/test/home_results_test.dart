@@ -121,6 +121,21 @@ void main() {
     expect(find.text('Level 2'), findsOneWidget);
   });
 
+  testWidgets('done on results counts the round into home', (tester) async {
+    final id = (await tester.runAsync(() => roundWithAnswers(2)))!;
+    await pumpApp(tester, '${Routes.results}?round=$id');
+    await tester.tap(find.bySemanticsLabel('Done'));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Streets you know'), findsOneWidget);
+    expect(find.text('+2'), findsOneWidget, reason: 'newly known streets');
+    expect(find.text('+120 XP'), findsOneWidget, reason: 'tip on the bar');
+    expect(find.text('120'), findsOneWidget, reason: 'XP pill counted up');
+  });
+
   testWidgets('results offer to retry Close and Miss streets', (tester) async {
     final missed = (await tester.runAsync(
       () => roundWithAnswers(3, tier: Tier.miss),

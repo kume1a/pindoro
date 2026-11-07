@@ -47,6 +47,9 @@ class GameFeedback {
 
   void error() => _haptic(HapticFeedback.heavyImpact);
 
+  /// The round's reward total lands after counting up.
+  void reward() => _haptic(HapticFeedback.mediumImpact);
+
   void tier(Tier tier) => switch (tier) {
     Tier.perfect => _sequence([
       HapticFeedback.heavyImpact,
