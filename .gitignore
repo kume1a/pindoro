@@ -25,3 +25,5 @@ apps/pipeline/out/
 *.iml
 .DS_Store
 .pnpm-store/
+# Widget Preview related
+.widget_preview/
