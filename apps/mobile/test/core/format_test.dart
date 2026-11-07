@@ -18,10 +18,14 @@ void main() {
     expect(latinGeorgian('Vake 2'), 'Vake 2');
   });
 
-  test('distances: metres under 1 km, else km with one decimal', () {
+  test('distances: metres, up to the next 10 m from 100 m, km from 1 km', () {
     const en = Locale('en'), ka = Locale('ka');
     expect(formatDistance(84.4, en), '84 m');
-    expect(formatDistance(999.4, en), '999 m');
+    expect(formatDistance(99.6, en), '100 m');
+    expect(formatDistance(842, en), '850 m');
+    expect(formatDistance(300.2, en), '310 m');
+    expect(formatDistance(300, en), '300 m');
+    expect(formatDistance(992, en), '1.0 km');
     expect(formatDistance(999.6, en), '1.0 km');
     expect(formatDistance(1234, en), '1.2 km');
     expect(formatDistance(84, ka), '84 მ');
