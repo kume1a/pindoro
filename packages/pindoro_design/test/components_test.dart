@@ -268,6 +268,122 @@ void main() {
     expect(tester.getCenter(find.text('1')).dx, tester.getCenter(first).dx);
   });
 
+  testWidgets('a path stop reads its label and takes taps, locked too', (
+    tester,
+  ) async {
+    final taps = <String>[];
+    await tester.pumpWidget(
+      _host(
+        Column(
+          spacing: 64,
+          children: [
+            const SizedBox(height: 40),
+            PathStop(
+              look: PathStopLook.current,
+              glyph: PindoroGlyph.play,
+              big: true,
+              ring: 0.3,
+              tip: 'Start',
+              semanticLabel: 'Lesson 1. Current.',
+              onTap: () => taps.add('current'),
+            ),
+            PathStop(
+              look: PathStopLook.locked,
+              glyph: PindoroGlyph.lock,
+              semanticLabel: 'Lesson 2. Locked.',
+              onTap: () => taps.add('locked'),
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.tap(find.bySemanticsLabel('Lesson 1. Current.'));
+    await tester.tap(find.bySemanticsLabel('Lesson 2. Locked.'));
+    expect(taps, ['current', 'locked']);
+    expect(find.text('Start'), findsOneWidget);
+  });
+
+  testWidgets('a signpost is one heading', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(
+      _host(
+        const Signpost(
+          number: 2,
+          line: '2 of 6 lessons',
+          title: 'Vake',
+          semanticLabel: 'Unit 2, Vake. 2 of 6 lessons done.',
+        ),
+      ),
+    );
+    expect(
+      tester.getSemantics(
+        find.bySemanticsLabel('Unit 2, Vake. 2 of 6 lessons done.'),
+      ),
+      matchesSemantics(
+        label: 'Unit 2, Vake. 2 of 6 lessons done.',
+        isHeader: true,
+      ),
+    );
+    semantics.dispose();
+  });
+
+  testWidgets('plate choices are a radio group that reports taps', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    String? tapped;
+    await tester.pumpWidget(
+      _host(
+        Column(
+          children: [
+            for (final (name, state) in [
+              ('Pekini Avenue', PlateChoiceState.selected),
+              ('Kostava Street', PlateChoiceState.idle),
+            ])
+              PlateChoice(
+                name: name,
+                sub: 'sub',
+                state: state,
+                onTap: () => tapped = name,
+              ),
+          ],
+        ),
+      ),
+    );
+    await tester.tap(find.text('Kostava Street'));
+    expect(tapped, 'Kostava Street');
+    expect(
+      tester.getSemantics(find.bySemanticsLabel('Pekini Avenue, sub')),
+      matchesSemantics(
+        label: 'Pekini Avenue, sub',
+        hasCheckedState: true,
+        isChecked: true,
+        isInMutuallyExclusiveGroup: true,
+        hasEnabledState: true,
+        isEnabled: true,
+        hasTapAction: true,
+      ),
+    );
+    semantics.dispose();
+  });
+
+  testWidgets('the feedback bar runs its action', (tester) async {
+    var pressed = false;
+    await tester.pumpWidget(
+      _host(
+        FeedbackBar(
+          right: false,
+          title: 'Not quite',
+          body: 'The marked plate is right.',
+          action: 'Got it',
+          onAction: () => pressed = true,
+        ),
+      ),
+    );
+    await tester.tap(find.text('Got it'));
+    expect(pressed, isTrue);
+  });
+
   group('goldens', skip: _goldensSkip, () {
     Future<void> pumpGallery(WidgetTester tester, Brightness brightness) async {
       await tester.binding.setSurfaceSize(const Size(400, 1500));
@@ -634,6 +750,136 @@ void main() {
         await expectLater(
           find.byType(Scaffold),
           matchesGoldenFile('goldens/streak_${brightness.name}.png'),
+        );
+      });
+    }
+
+    for (final brightness in Brightness.values) {
+      testWidgets('path ${brightness.name}', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(400, 900));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        const xs = [195.0, 128.0, 195.0, 262.0, 195.0, 128.0, 195.0];
+        final points = [
+          const Offset(195, 0),
+          for (final (i, x) in xs.indexed) Offset(x - 16, 150 + 104.0 * i),
+        ];
+        Widget stop(int i, PathStopLook look, PindoroGlyph glyph) {
+          final big = look == PathStopLook.current;
+          final size = PathStop.sizeOf(big: big);
+          return Positioned(
+            left: points[i + 1].dx - size / 2,
+            top: points[i + 1].dy - size / 2,
+            child: PathStop(
+              look: look,
+              glyph: glyph,
+              big: big,
+              ring: big ? 0.25 : null,
+              tip: big ? 'Start' : null,
+              semanticLabel: '$i',
+              onTap: () {},
+            ),
+          );
+        }
+
+        await tester.pumpWidget(
+          _host(
+            brightness: brightness,
+            SizedBox(
+              height: 860,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: LessonRoad(points: points, driven: 3.5),
+                  ),
+                  const Positioned(
+                    left: 0,
+                    right: 0,
+                    child: Column(
+                      spacing: 8,
+                      children: [
+                        Signpost(
+                          number: 2,
+                          line: '2 of 6 lessons',
+                          title: 'Vake District',
+                          semanticLabel: 'open',
+                        ),
+                        Signpost(
+                          number: 3,
+                          line: 'Locked',
+                          title: 'Saburtalo District',
+                          locked: true,
+                          semanticLabel: 'locked',
+                        ),
+                      ],
+                    ),
+                  ),
+                  stop(0, PathStopLook.done, PindoroGlyph.check),
+                  stop(1, PathStopLook.perfect, PindoroGlyph.star),
+                  stop(2, PathStopLook.review, PindoroGlyph.wrench),
+                  stop(3, PathStopLook.current, PindoroGlyph.play),
+                  stop(4, PathStopLook.locked, PindoroGlyph.lock),
+                  stop(5, PathStopLook.locked, PindoroGlyph.wrench),
+                  stop(6, PathStopLook.locked, PindoroGlyph.trophy),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await expectLater(
+          find.byType(Scaffold),
+          matchesGoldenFile('goldens/path_${brightness.name}.png'),
+        );
+      });
+    }
+
+    for (final brightness in Brightness.values) {
+      testWidgets('lesson ${brightness.name}', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(400, 900));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await tester.pumpWidget(
+          _host(
+            brightness: brightness,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 12,
+              children: [
+                for (final (name, state) in [
+                  ('Kostava Street', PlateChoiceState.idle),
+                  ('Pekini Avenue', PlateChoiceState.selected),
+                  ('Ilia Chavchavadze Avenue', PlateChoiceState.right),
+                  ('Vazha-Pshavela Avenue', PlateChoiceState.wrong),
+                  ('Abashidze Street', PlateChoiceState.dim),
+                ])
+                  PlateChoice(
+                    name: name,
+                    sub: 'sub-line',
+                    state: state,
+                    onTap: () {},
+                  ),
+                FeedbackBar(
+                  right: true,
+                  title: 'Correct!',
+                  body: 'Pekini Avenue',
+                  xpLabel: '+50 XP',
+                  action: 'Continue',
+                  onAction: () {},
+                ),
+                FeedbackBar(
+                  right: false,
+                  title: 'Not quite',
+                  body: 'The marked plate is right. It comes back at the end.',
+                  action: 'Got it',
+                  onAction: () {},
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await expectLater(
+          find.byType(Scaffold),
+          matchesGoldenFile('goldens/lesson_${brightness.name}.png'),
         );
       });
     }
