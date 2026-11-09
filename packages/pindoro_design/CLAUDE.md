@@ -3,7 +3,8 @@
 Flutter design system: generated tokens, `buildPindoroTheme`, `PindoroTheme` extension and the
 Signpost widgets: `PindoroButton`, `StreetPlate`, `FeedbackBadge`, surfaces (`LipBox`,
 `ListGroup`, `ListRow`, `StatTile`), the bottom navigation (`PindoroNavBar`), controls (`SegmentedControl`, `PindoroToggle`, `PindoroIconButton`,
-`LaneLoader`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark`) and the round
+`LaneLoader`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` incl. the road trip's `PinMark.endpoint`,
+`CarMark`, `glyphPng` for map images) and the round
 components (`QuestionBar`, `Pill`, `MapControl`, `RevealSheet`, `ResultRow`, `RewardTotal`,
 `TierTally`, `CoachBubble`), the lesson path (`PathStop`, `Signpost`, `LessonRoad`) and lesson
 components (`PlateChoice`, `FeedbackBar`), setup components (`SearchField`, `CitySwitcher`, `PindoroChip`,

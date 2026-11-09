@@ -49,15 +49,11 @@
   - The Results chip "n to your Pit stop" isn't tappable; the Pit stop tab is the way in.
   - Review items of a retired street stay in the table; readers skip them (`dueIn`).
 - Tabs and Me (R4a), left out on purpose:
-  - Me's Road trips tile reads 0 until R4c counts road trips.
   - Only Best streak opens something (Streak); the lists behind the other tiles don't exist yet.
   - A played city whose pack isn't on the phone is left out of Me's cities.
   - After a Pit stop round, Done still lands on Free play (with the Home intro), not the Pit stop
     tab.
 - Course and lessons (R4b), left out on purpose:
-  - R4c: the lesson's road-trip step, the Final drive (drawn locked: "Road trips are on their
-    way"), Jump ahead and the locked signpost's sheet, the unit reward and its +100 XP, the R4-61
-    unit storyboard. Until then lesson 6 opens the next unit.
   - R4d: What's new, placement, the start-district picker, the new-city and new-player coach
     marks. Until then a course starts at the raion of the last Free play area.
   - The Unit guide, the signpost's guide button and "See the streets" on a done lesson.
@@ -69,6 +65,23 @@
   - The course is rebuilt from the pack each time: a pack update that reorders a raion's streets
     changes its lessons (results keep their lesson numbers).
   - The locked-stop bubble always sits centred under the stop's row, not on the stop.
+- Road trips (R4c), left out on purpose:
+  - Settings → Accessibility "Choose turns from a list": the turn list follows the screen reader
+    only.
+  - The tier sheet's detour sentence ("Turning north for the main road added 212 m") and its ink
+    chip at the detour.
+  - The lane loader while checking: the best route is computed at once.
+  - One-way streets are ignored. The graph holds the pack's named streets only, so unnamed links and
+    ramps are missing and some best drives detour around them.
+  - B pops when reached but has no ring pulse.
+  - Units have no titles: the locked unit's sheet and Unit complete's signpost show the district.
+  - A killed Final drive keeps its passed trips but drops the trip in progress.
+  - R4b progress isn't carried over: a unit opened by its lesson 6 locks again until the Final
+    drive before it passes.
+  - Jump ahead and the R4-61 storyboard have no widget test (the bundled fixture has one raion);
+    pindoro_core tests the rules and the emulator check covered them.
+  - Packs grew to about 2.3 MB gzipped (a street UUID on each of about 16 000 edges); reference
+    streets by row number if pack size starts to matter.
 
 ## Data / pipeline
 

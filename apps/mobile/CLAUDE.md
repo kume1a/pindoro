@@ -14,10 +14,11 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                never Drift
                                features: progress (ProgressDao: rounds + answer log + goal days +
                                Pit stop + lesson results; streakProvider, reminders, the daily goal
-                               ring and sheet, the top bar, level row, level up), pack, map (the map,
-                               the shared pin-drop view), course (the Path), home, setup (welcome,
+                               ring and sheet, the top bar, level row, level up), pack (+ the road graph), map (the map,
+                               the shared pin-drop and road-trip views), course (the Path), home, setup (welcome,
                                city, area, difficulty), quiz (round), results (results, street),
-                               settings, streak, pitstop, me, lesson (lesson, Lesson complete)
+                               settings, streak, pitstop, me, lesson (lesson, Lesson complete, Final drive,
+                               Unit complete)
 lib/features/quiz/ui/round_controller.dart   round state machine; resumes from round_question + answers;
                                questions are NamedStreets (cityStreetsProvider); retries set round.retry_of,
                                Pit stop rounds round.pit_stop
@@ -49,6 +50,7 @@ test/drift/                    generated schema helpers + migration test
   the root navigator, over the bar: `/welcome`, `/city`, `/area`, `/difficulty`, `/round`
   (`?round=` resumes, `?retry=` retries, `?pit-stop` plays the Pit stop), `/results`, `/lesson`
   (`?unit=&lesson=`, `&practice=1`, or `?unit=&pit-stop=1`), `/lesson-done?result=`,
+  `/drive?unit=` (the Final drive, Jump ahead on a locked unit), `/unit-done?unit=`,
   `/streak`, `/settings`, `/settings/credits`. Welcome opens until the first round or lesson is
   finished; then the app opens on the Path. Footers end 12 dp above the bar on a tab
   (`bottomActionGap`).
@@ -59,7 +61,15 @@ test/drift/                    generated schema helpers + migration test
   `ProgressDao.finishLesson` then saves the `lesson_result`, its `lesson_answer`s and the Pit stop
   updates (`reviewAnswers`) in one transaction. XP, known streets, Welcome and Me read lessons
   too. Lesson complete's Continue sets `pathUnlockProvider`; the Path plays the unlock when it
-  shows.
+  shows (Unit complete's Continue plays the next unit opening).
+- **Road trips:** format 3 packs carry a road graph (`roadGraphProvider`, null for an older pack:
+  no road trips). `RouteView` (`features/map`) draws a trip: a one-finger drag that starts near the
+  route's end walks pindoro_core `RouteDraft` along the streets (`RouteDrawLayer` joins the gesture
+  arena only then, so other drags pan the map), the screen ↔ map math is `MapProjection` (512 dp
+  tiles, north up), overlays are `route_layers.dart`; with a screen reader on it shows a turn list.
+  A lesson's trip is its step 11 (`TripStep`); the Final drive (`DriveController`) saves each trip
+  as its own `lesson_result` (kind `finalDrive`) as soon as it is answered. Trips never reach the
+  Pit stop or known streets.
 - **Strings:** every UI string comes from `lib/l10n/app_{en,ka}.arb` (gen-l10n, `context.l10n`);
   `just gen` writes `app_localizations*.dart` (not committed). Georgian is a draft awaiting native
   review.
