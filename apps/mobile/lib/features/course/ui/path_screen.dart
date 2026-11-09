@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/database/database.dart';
@@ -344,6 +345,11 @@ class _PathScreenState extends ConsumerState<PathScreen>
     final l10n = context.l10n;
     return CustomScrollView(
       primary: true,
+      // Every unit is built, so the current stop has a context to scroll to
+      // even when placement puts it many units down.
+      // ponytail: fine for a city's ~10 units; jump to an estimated offset
+      // first if a city ever has many more.
+      scrollCacheExtent: const ScrollCacheExtent.pixels(_wholeCourse),
       slivers: [
         for (final (u, progress) in data.units.indexed)
           SliverMainAxisGroup(
@@ -757,6 +763,9 @@ class _PathScreenState extends ConsumerState<PathScreen>
     );
   }
 }
+
+/// Far enough past the viewport to build a whole course.
+const double _wholeCourse = 100000;
 
 /// Tests right first time, in percent.
 int _accuracy(LessonResult r) =>

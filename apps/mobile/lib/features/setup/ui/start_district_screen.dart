@@ -41,7 +41,11 @@ class _StartDistrictScreenState extends ConsumerState<StartDistrictScreen> {
     final pack = ref.watch(packRepositoryProvider);
     if (!pack.hasValue) return PackPending(pack: pack);
     final data = ref.watch(startDistrictsProvider).value;
-    if (data == null) return const Scaffold();
+    if (data == null) {
+      return const Scaffold(
+        body: Center(child: SizedBox(width: 160, child: LaneLoader())),
+      );
+    }
     final rows = data.rows;
     if (rows.isEmpty) {
       // A city without raions has no course to start: the Path says so.
