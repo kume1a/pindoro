@@ -1353,5 +1353,213 @@
         "type": "String"
       }
     }
+  },
+  "lessonNewStreet": "New street · {number} of {total}",
+  "@lessonNewStreet": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "lessonWhereTitle": "Where it is",
+  "lessonRoadType": "{type, select, mainRoad{A main road} street{A street} other{A side street}}",
+  "@lessonRoadType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonRoadTypeWord": "{type, select, mainRoad{main road} street{street} other{side street}}",
+  "@lessonRoadTypeWord": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonWhere": "{what} {direction, select, n{north of the city centre} ne{north-east of the city centre} e{east of the city centre} se{south-east of the city centre} s{south of the city centre} sw{south-west of the city centre} w{west of the city centre} nw{north-west of the city centre} other{in the city centre}}.",
+  "@lessonWhere": {
+    "placeholders": {
+      "what": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonFacts": "{count, plural, =0{{length} · {type}} =1{{length} · {type} · crosses 1 street} other{{length} · {type} · crosses {count} streets}}",
+  "@lessonFacts": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "length": {
+        "type": "String"
+      },
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonStartTest": "Start the test",
+  "lessonWhichStreet": "Which street is this?",
+  "lessonCheck": "Check",
+  "lessonRight": "Correct!",
+  "lessonWrong": "Not quite",
+  "lessonWrongBody": "The marked plate is right. It comes back at the end.",
+  "lessonWrongFixBody": "The marked plate is right. It goes to your Pit stop.",
+  "lessonComesBack": "Comes back at the end",
+  "lessonFixesTitle": "{count, plural, =1{Let’s fix 1 mistake} other{Let’s fix {count} mistakes}}",
+  "@lessonFixesTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lessonFixesBody": "Get these right to finish the lesson. Fixes earn half XP, and you can’t fail: anything still wrong goes to your Pit stop.",
+  "lessonFixPin": "{tier} · {distance} · drop a pin again",
+  "@lessonFixPin": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonFixName": "Named wrong · name it again",
+  "lessonFixThem": "Fix them",
+  "lessonLeaveTitle": "Leave this lesson?",
+  "lessonLeaveBody": "You’ll lose this lesson’s progress. Your streak and the XP you earned today are safe.",
+  "lessonKeepLearning": "Keep learning",
+  "lessonLeave": "Leave",
+  "a11yLessonStep": "Step {step} of {total}",
+  "@a11yLessonStep": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yLessonXp": "{xp} XP this lesson",
+  "@a11yLessonXp": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yLeaveLesson": "Leave the lesson",
+  "a11yNameRight": "Right. {name}. Plus {xp} XP.",
+  "@a11yNameRight": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yNameWrong": "Wrong. The answer is {name}.",
+  "@a11yNameWrong": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonDoneTitle": "Lesson complete!",
+  "lessonDonePerfectTitle": "Perfect lesson!",
+  "lessonDonePitStopTitle": "Pit stop complete!",
+  "lessonDonePracticeTitle": "Practice complete!",
+  "lessonDoneLesson": "Lesson {number} · {title}",
+  "@lessonDoneLesson": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonDoneUnit": "Unit {number} · {district}",
+  "@lessonDoneUnit": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "district": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonDoneBonusPerfect": "Includes +{finish} for finishing and +{perfect} Perfect bonus",
+  "@lessonDoneBonusPerfect": {
+    "placeholders": {
+      "finish": {
+        "type": "String"
+      },
+      "perfect": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonDoneBonusFixes": "{count, plural, =0{Includes +{finish} for finishing} =1{Includes +{finish} for finishing and {xp} XP from 1 fix} other{Includes +{finish} for finishing and {xp} XP from {count} fixes}}",
+  "@lessonDoneBonusFixes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "finish": {
+        "type": "String"
+      },
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonStatAccuracy": "Accuracy",
+  "lessonStatNewStreets": "New streets",
+  "lessonStatStreets": "Streets",
+  "lessonStatTime": "Time",
+  "lessonPercent": "{value} %",
+  "@lessonPercent": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "lessonClock": "{minutes}:{seconds}",
+  "@lessonClock": {
+    "placeholders": {
+      "minutes": {
+        "type": "String"
+      },
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yLessonReward": "Plus {xp} XP this lesson",
+  "@a11yLessonReward": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      }
+    }
   }
 }

@@ -10,6 +10,7 @@ import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/course/data/course_data.dart';
+import 'package:pindoro/features/course/ui/lesson_title.dart';
 import 'package:pindoro/features/course/ui/widgets/path_unit.dart';
 import 'package:pindoro/features/course/ui/widgets/stop_sheet.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -19,22 +20,6 @@ import 'package:pindoro/features/progress/ui/play_top_bar.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
-
-/// "Vazha-Pshavela Avenue and 3 more": a lesson named after its longest
-/// street.
-String lessonTitle(
-  AppLocalizations l10n,
-  CourseLesson lesson,
-  Settings? settings,
-) {
-  final longest = lesson.streets.reduce(
-    (a, b) => b.lengthM > a.lengthM ? b : a,
-  );
-  return l10n.lessonTitle(
-    streetName(longest, settings),
-    lesson.streets.length - 1,
-  );
-}
 
 /// The course (canvas R4-10 to R4-12): a signpost per unit, the road and its
 /// stops; a tap opens a stop's sheet, a locked stop says what opens it. It

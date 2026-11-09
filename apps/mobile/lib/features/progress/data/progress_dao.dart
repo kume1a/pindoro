@@ -325,6 +325,12 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
   Future<LessonResult> lessonResult(String id) =>
       (select(lessonResults)..where((r) => r.id.equals(id))).getSingle();
 
+  Future<List<LessonAnswer>> lessonAnswersOf(String resultId) =>
+      (select(lessonAnswers)
+            ..where((a) => a.resultId.equals(resultId))
+            ..orderBy([(a) => OrderingTerm.asc(a.position)]))
+          .get();
+
   /// [cityId]'s first-try mistakes in [unitId]'s lessons up to
   /// [throughLesson], in the order they happened, each street once: what the
   /// unit's Pit stop tunes up.

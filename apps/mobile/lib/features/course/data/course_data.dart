@@ -14,11 +14,13 @@ typedef CoursePlan = ({
 
 /// The open city's course, built from its pack and its saved start raion;
 /// the first open picks and saves the start (pindoro_core `startDistrict`).
-/// Null for a city without raions.
-final coursePlanProvider = FutureProvider.autoDispose<CoursePlan?>((ref) async {
-  final pack = await ref.watch(packRepositoryProvider.future);
-  final streets = await ref.watch(cityStreetsProvider.future);
+/// Null for a city without raions. Kept while the pack stays open: the Path,
+/// a lesson and Lesson complete all read it.
+final coursePlanProvider = FutureProvider<CoursePlan?>((ref) async {
   final dao = ref.watch(progressDaoProvider);
+  final streetsFuture = ref.watch(cityStreetsProvider.future);
+  final pack = await ref.watch(packRepositoryProvider.future);
+  final streets = await streetsFuture;
   final city = pack.city();
   final districts = pack.districts();
   var start = await dao.courseStart(city.id);

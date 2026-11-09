@@ -5,6 +5,9 @@ import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/course/ui/path_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
+import 'package:pindoro/features/lesson/ui/lesson_controller.dart';
+import 'package:pindoro/features/lesson/ui/lesson_done_screen.dart';
+import 'package:pindoro/features/lesson/ui/lesson_screen.dart';
 import 'package:pindoro/features/me/ui/me_screen.dart';
 import 'package:pindoro/features/pitstop/ui/pit_stop_screen.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
@@ -17,6 +20,7 @@ import 'package:pindoro/features/setup/ui/city_screen.dart';
 import 'package:pindoro/features/setup/ui/difficulty_screen.dart';
 import 'package:pindoro/features/setup/ui/welcome_screen.dart';
 import 'package:pindoro/features/streak/ui/streak_screen.dart';
+import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// The tabs and Results arrive with a fade rather than a slide (canvas M-40,
@@ -39,6 +43,24 @@ Future<String> startLocation(AppDatabase db) async {
   return await progress.resumableRound(DateTime.now()) != null
       ? Routes.home
       : Routes.welcome;
+}
+
+/// `/lesson?unit=…&lesson=n` (`&practice=1`) or `?unit=…&pit-stop=1`; null
+/// when it names neither.
+LessonArgs? _lessonArgs(GoRouterState state) {
+  final q = state.uri.queryParameters;
+  final unitId = q['unit'];
+  final lesson = int.tryParse(q['lesson'] ?? '');
+  if (unitId == null) return null;
+  if (q.containsKey('pit-stop')) {
+    return (unitId: unitId, kind: LessonKind.pitStop, lesson: null);
+  }
+  if (lesson == null) return null;
+  return (
+    unitId: unitId,
+    kind: q.containsKey('practice') ? LessonKind.practice : LessonKind.lesson,
+    lesson: lesson,
+  );
 }
 
 /// The tabs (Path, Free play, Pit stop, Me) share a [TabShell]; every other
@@ -117,6 +139,21 @@ GoRouter buildRouter(String initialLocation) {
             ),
           ),
         ],
+      ),
+      GoRoute(
+        path: Routes.lesson,
+        redirect: (_, state) => _lessonArgs(state) == null ? Routes.path : null,
+        builder: (_, state) => LessonScreen(args: _lessonArgs(state)!),
+      ),
+      GoRoute(
+        path: Routes.lessonDone,
+        redirect: (_, state) => state.uri.queryParameters.containsKey('result')
+            ? null
+            : Routes.path,
+        pageBuilder: (_, state) => _fadePage(
+          state,
+          LessonDoneScreen(resultId: state.uri.queryParameters['result']!),
+        ),
       ),
       GoRoute(path: Routes.streak, builder: (_, _) => const StreakScreen()),
       GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
