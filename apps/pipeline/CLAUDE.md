@@ -31,14 +31,15 @@ styles `apps/mobile/assets/map_styles/pindoro_{light,dark}.json`, tiles `infra/t
 
 1. `osmium getid -r` the city relation → `osmium export` its polygon → `osmium extract --strategy=smart`
    (multipolygon + boundary relations kept complete).
-2. `osm2pgsql --output=flex --style=osm2pgsql/pindoro.lua` into schema `osm`: `roads`, `boundaries`,
+2. `osm2pgsql --output=flex --style=osm2pgsql/pindoro.lua` into schema `osm`: `roads` (with their node ids), `boundaries`,
    `subareas` (parent → child, role subarea), `places`. Lua must run on osm2pgsql 1.8 and 1.11.
 3. `sql/*.sql` in file-name order into schema `pipeline` (recreated each run; inputs in
    `pipeline.params` and `pipeline.neighbourhood_raw`, never string-templated):
    `10_roads` filter + normalise names → `20_streets` DBSCAN 30 m merge, road class, difficulty →
    `30_districts` city + subarea districts, fails on missing `expect_relations` →
    `40_neighbourhoods` curated GeoJSON → `50_street_district` (≥ 150 m or ≥ 30 %) →
-   `60_simplify` 3 m pack geometry + midpoints.
+   `60_simplify` 3 m pack geometry + midpoints → `70_graph` road graph (junctions at shared nodes and
+   way ends, edges between them).
 4. `src/identity.ts`: stable UUIDs in `data/cities/<city>/identity.json` (same normalised name + way-id
    Jaccard ≥ 0.3, one-to-one, best first; unmatched → new id; vanished → `retired_at`). Always computed
    over the whole city, also for `--fixture`. A full build stages them in `out/<city>/identity.json`

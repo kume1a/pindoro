@@ -1,7 +1,11 @@
-# City pack format (v2)
+# City pack format (v3)
 
 A city pack is a read-only SQLite database built by `pipeline` from OpenStreetMap data and
 downloaded by the app. Packs are immutable: a new build gets a new `version` and a new file name.
+
+v3 (2026-11) adds the road graph (`junction`, `road_edge`) for road trips. The app installs v3 and
+still opens a v2 pack already on the phone, without road trips, until the background refresh
+replaces it.
 
 v2 (2026-11) adds the `quarter` area kind (OSM `place=quarter`, which v1 stored as
 `neighbourhood`) and puts area centres at the pole of inaccessibility. The app downloads only the
@@ -23,7 +27,7 @@ format it supports; v1 packs already on a phone still open.
 
 ```json
 {
-  "format_version": 2,
+  "format_version": 3,
   "city": "tbilisi",
   "name_ka": "თბილისი",
   "name_en": "Tbilisi",
@@ -65,7 +69,7 @@ zone. Street geometry is simplified to 3 m.
 
 ## Schema
 
-`PRAGMA user_version = 2` equals `format_version`.
+`PRAGMA user_version = 3` equals `format_version`.
 
 ```sql
 CREATE TABLE meta (
@@ -131,6 +135,21 @@ CREATE TABLE street_district (
   PRIMARY KEY (street_id, district_id)
 ) WITHOUT ROWID;
 CREATE INDEX street_district_district ON street_district (district_id);
+
+CREATE TABLE junction (
+  id  INTEGER PRIMARY KEY,               -- pack-local; not stable across pack versions
+  lat REAL NOT NULL,
+  lon REAL NOT NULL
+);
+
+CREATE TABLE road_edge (
+  id            INTEGER PRIMARY KEY,
+  from_junction INTEGER NOT NULL REFERENCES junction (id),
+  to_junction   INTEGER NOT NULL REFERENCES junction (id),
+  street_id     TEXT NOT NULL REFERENCES street (id),
+  length_m      REAL NOT NULL,           -- along the unsimplified way
+  geometry      TEXT NOT NULL            -- polyline6 from from_junction to to_junction
+);
 ```
 
 ### Rules baked in by the pipeline
@@ -150,13 +169,18 @@ CREATE INDEX street_district_district ON street_district (district_id);
   smallest is kept, and an area with fewer than 10 streets is dropped (too small for a round).
   Quarters tile most of a city; neighbourhoods are smaller and may overlap quarters, each other and
   districts.
+- Road graph: the ways of the pack's streets. A junction is an OSM node two of them share (or one
+  way meets twice), or a way's end; an edge is a way's stretch between two consecutive junctions,
+  simplified to 3 m with both ends kept. Edges are undirected (one-way streets are ignored). Ways
+  whose geometry lost points against their node list are left out. `validate` requires 90 % of
+  the edges in the largest connected part.
 
 ### Fixture scope
 
 `pipeline build <city> --fixture` writes a pack with `meta.scope = 'fixture'` containing the full
 `city` row, the fixture district (Vake, `osm:r11300449` for Tbilisi), the quarters and
 neighbourhoods whose centre lies in it, and only the streets assigned to the district (the smaller
-areas link only those). The app bundles it as `apps/mobile/assets/packs_fixture/tbilisi_vake_fixture.sqlite`
+areas link only those), with their road edges and the junctions those use. The app bundles it as `apps/mobile/assets/packs_fixture/tbilisi_vake_fixture.sqlite`
 (not gzipped).
 
 ## Licence

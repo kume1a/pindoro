@@ -24,6 +24,8 @@ local roads = osm2pgsql.define_table({
     columns = names({
         { column = 'highway', type = 'text', not_null = true },
         { column = 'access', type = 'text' },
+        -- Comma-separated node ids, for the road graph's junctions (text works on 1.8 and 1.11).
+        { column = 'nodes', type = 'text', not_null = true },
         { column = 'geom', type = 'linestring', projection = 4326, not_null = true },
     }),
 })
@@ -86,6 +88,7 @@ function osm2pgsql.process_way(object)
         roads:insert(name_values(tags, {
             highway = tags.highway,
             access = tags.access,
+            nodes = table.concat(object.nodes, ','),
             geom = object:as_linestring(),
         }))
     end

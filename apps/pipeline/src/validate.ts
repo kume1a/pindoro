@@ -6,7 +6,9 @@ import { loadCity, MIN_AREA_STREETS } from "./config.ts";
 import { type Bbox, META_KEYS, PACK_DDL, PACK_FORMAT_VERSION } from "./pack.ts";
 
 const MIN_EXPERT_STREETS = 30;
-const TABLES = ["meta", "city", "district", "street", "street_district"];
+/** Road trips are picked in the largest connected part; most of the graph must be in it. */
+const MIN_CONNECTED_SHARE = 0.9;
+const TABLES = ["meta", "city", "district", "street", "street_district", "junction", "road_edge"];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 interface Check {
@@ -157,6 +159,81 @@ const orphanCheck = (db: Pack): Check => {
   return check("street_district references", orphans === 0, orphans ? `${orphans} orphans` : "");
 };
 
+/** Polyline6 rounding plus float noise: an edge's ends equal its junctions within this. */
+const SAME_POINT_DEG = 2e-6;
+
+const samePoint = (a: LatLng | undefined, b: LatLng | undefined): boolean =>
+  a !== undefined &&
+  b !== undefined &&
+  Math.abs(a.lat - b.lat) <= SAME_POINT_DEG &&
+  Math.abs(a.lon - b.lon) <= SAME_POINT_DEG;
+
+interface EdgeRow {
+  id: number;
+  from_junction: number;
+  to_junction: number;
+  street_id: string;
+  length_m: number;
+  geometry: string;
+}
+
+/** Share of the edges in the largest connected part, by union-find over the junctions. */
+const largestPartShare = (edges: EdgeRow[]): number => {
+  const parent = new Map<number, number>();
+  const root = (j: number): number => {
+    let r = j;
+    while (parent.has(r) && parent.get(r) !== r) r = parent.get(r) ?? r;
+    parent.set(j, r);
+    return r;
+  };
+  for (const e of edges) {
+    if (!parent.has(e.from_junction)) parent.set(e.from_junction, e.from_junction);
+    if (!parent.has(e.to_junction)) parent.set(e.to_junction, e.to_junction);
+    parent.set(root(e.from_junction), root(e.to_junction));
+  }
+  const sizes = new Map<number, number>();
+  for (const e of edges) {
+    const r = root(e.from_junction);
+    sizes.set(r, (sizes.get(r) ?? 0) + 1);
+  }
+  return edges.length === 0 ? 0 : Math.max(...sizes.values()) / edges.length;
+};
+
+/** The road graph: references, lengths, edges that start and end at their junctions, connectivity. */
+const graphChecks = (db: Pack): Check[] => {
+  const junctions = new Map(
+    (db.prepare("SELECT id, lat, lon FROM junction").all() as (LatLng & { id: number })[]).map(
+      (j) => [j.id, j],
+    ),
+  );
+  const streets = new Set(db.prepare("SELECT id FROM street").pluck().all() as string[]);
+  const edges = db.prepare("SELECT * FROM road_edge").all() as EdgeRow[];
+  const bad: number[] = [];
+  for (const e of edges) {
+    try {
+      const line = decodePolyline6(e.geometry);
+      const ok =
+        streets.has(e.street_id) &&
+        e.length_m > 0 &&
+        line.length >= 2 &&
+        samePoint(line[0], junctions.get(e.from_junction)) &&
+        samePoint(line.at(-1), junctions.get(e.to_junction));
+      if (!ok) bad.push(e.id);
+    } catch {
+      bad.push(e.id);
+    }
+  }
+  const share = largestPartShare(edges);
+  return [
+    check("road edges", edges.length > 0 && bad.length === 0, bad.slice(0, 5).join(", ")),
+    check(
+      `>= ${MIN_CONNECTED_SHARE * 100} % of edges connected`,
+      share >= MIN_CONNECTED_SHARE,
+      `${(share * 100).toFixed(1)} % of ${edges.length} edges, ${junctions.size} junctions`,
+    ),
+  ];
+};
+
 /** Checks a pack (.sqlite or .sqlite.gz) and prints a summary; returns false when anything fails. */
 export const validatePack = (file: string): boolean => {
   const db = openPack(file);
@@ -178,6 +255,7 @@ export const validatePack = (file: string): boolean => {
       streetCheck(db, cityRow),
       boundaryCheck(db, cityRow),
       orphanCheck(db),
+      ...graphChecks(db),
     ];
     console.log(`${file}\n  city ${meta.city_id}  version ${meta.version}  scope ${meta.scope}`);
     console.table(districts);
