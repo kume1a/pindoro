@@ -250,5 +250,8 @@ class _TinyPack implements PackRepository {
       _inner.lengthsByDistrict();
 
   @override
+  RoadGraph? roadGraph() => _inner.roadGraph();
+
+  @override
   void close() => _inner.close();
 }

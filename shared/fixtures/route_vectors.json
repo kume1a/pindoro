@@ -1,0 +1,85 @@
+{
+  "description": "Road-trip scoring: p = (drawn / best - 1) * 100 / difficulty factor. Perfect p <= 3 (100 XP), Great p <= 25 (round(90 - 1.2 p)), Close p <= 60 (round(60 - (p - 25))), else Miss (0). Checked by pindoro_core and @pindoro/geo.",
+  "route_score": [
+    {
+      "name": "the shortest drive",
+      "drawn_m": 822,
+      "best_m": 822,
+      "difficulty": "medium",
+      "tier": "perfect",
+      "xp": 100
+    },
+    {
+      "name": "2.5 % longer is Perfect",
+      "drawn_m": 1025,
+      "best_m": 1000,
+      "difficulty": "medium",
+      "tier": "perfect",
+      "xp": 100
+    },
+    {
+      "name": "22 % longer",
+      "drawn_m": 1220,
+      "best_m": 1000,
+      "difficulty": "medium",
+      "tier": "great",
+      "xp": 64
+    },
+    {
+      "name": "25 % longer is still Great",
+      "drawn_m": 1250,
+      "best_m": 1000,
+      "difficulty": "medium",
+      "tier": "great",
+      "xp": 60
+    },
+    {
+      "name": "26 % longer",
+      "drawn_m": 1260,
+      "best_m": 1000,
+      "difficulty": "medium",
+      "tier": "close",
+      "xp": 59
+    },
+    {
+      "name": "59 % longer",
+      "drawn_m": 1590,
+      "best_m": 1000,
+      "difficulty": "medium",
+      "tier": "close",
+      "xp": 26
+    },
+    {
+      "name": "61 % longer",
+      "drawn_m": 1610,
+      "best_m": 1000,
+      "difficulty": "medium",
+      "tier": "miss",
+      "xp": 0
+    },
+    {
+      "name": "easy: 36 % longer is Great",
+      "drawn_m": 1360,
+      "best_m": 1000,
+      "difficulty": "easy",
+      "tier": "great",
+      "xp": 61
+    },
+    {
+      "name": "hard: 2 % longer is Perfect",
+      "drawn_m": 1020,
+      "best_m": 1000,
+      "difficulty": "hard",
+      "tier": "perfect",
+      "xp": 100
+    },
+    {
+      "name": "expert: 15 % longer is Close",
+      "drawn_m": 1150,
+      "best_m": 1000,
+      "difficulty": "expert",
+      "tier": "close",
+      "xp": 55
+    }
+  ]
+}

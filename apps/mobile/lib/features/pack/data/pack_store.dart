@@ -39,7 +39,7 @@ class PackStore {
     this.timeout = const Duration(seconds: 20),
   }) : _client = client ?? http.Client();
 
-  static const int supportedFormatVersion = 2;
+  static const int supportedFormatVersion = 3;
   static const int keptVersions = 2;
 
   /// Longest wait for the server, and between two chunks of a download.

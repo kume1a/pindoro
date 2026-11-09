@@ -9,9 +9,9 @@ void main() {
   setUpAll(() => pack = SqlitePackRepository.open(AppConfig.fixturePackAsset));
   tearDownAll(() => pack.close());
 
-  test('meta describes a v2 fixture pack with attribution', () {
+  test('meta describes a v3 fixture pack with attribution', () {
     final meta = pack.meta();
-    expect(meta['format_version'], '2');
+    expect(meta['format_version'], '3');
     expect(meta['scope'], 'fixture');
     expect(meta['version'], isNotEmpty);
     expect(meta['attribution'], contains('OpenStreetMap'));
@@ -66,5 +66,18 @@ void main() {
     for (final s in pack.streets(districtId: AppConfig.fixtureDistrictId)) {
       expect(lengths[s.id], inInclusiveRange(0, s.lengthM + 1));
     }
+  });
+
+  test('the road graph joins the fixture streets at junctions', () {
+    final graph = pack.roadGraph()!;
+    final parts = {for (final s in pack.streets()) s.id};
+    expect(graph.edges, isNotEmpty);
+    expect(graph.edges.every((e) => parts.contains(e.streetId)), isTrue);
+    final edge = graph.edges.first;
+    expect(edge.line.first.lat, closeTo(graph.at(edge.from).lat, 1e-5));
+    expect(edge.line.last.lon, closeTo(graph.at(edge.to).lon, 1e-5));
+    final far = graph.junctions.keys.last;
+    final route = graph.shortestRoute(graph.junctions.keys.first, far);
+    expect(route == null || route.lengthM > 0, isTrue);
   });
 }

@@ -10,6 +10,7 @@ import {
   progressWithinLevel,
   requirement,
   scoreAnswer,
+  scoreRoute,
   thresholdsForStreet,
   totalXpToReach,
 } from "../src/index.ts";
@@ -55,6 +56,16 @@ interface LevelsVectors {
 
 const s = fixture<ScoringVectors>("scoring_vectors.json");
 const l = fixture<LevelsVectors>("levels_vectors.json");
+const r = fixture<{
+  route_score: {
+    name: string;
+    drawn_m: number;
+    best_m: number;
+    difficulty: Difficulty;
+    tier: string;
+    xp: number;
+  }[];
+}>("route_vectors.json");
 const tol = s.distance_tolerance_m;
 
 describe("pointToPolylineDistance", () => {
@@ -108,5 +119,11 @@ describe("levels", () => {
   it.each(l.progress)("$xp xp -> level $level", ({ xp, ...expected }) => {
     expect(levelForXp(xp)).toBe(expected.level);
     expect(progressWithinLevel(xp)).toEqual(expected);
+  });
+});
+
+describe("route scoring", () => {
+  it.each(r.route_score)("$name", (v) => {
+    expect(scoreRoute(v.drawn_m, v.best_m, v.difficulty)).toEqual({ tier: v.tier, xp: v.xp });
   });
 });

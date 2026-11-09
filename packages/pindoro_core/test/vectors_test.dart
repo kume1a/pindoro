@@ -23,6 +23,7 @@ Polyline _line(Object? v) => [for (final p in v! as List<Object?>) _ll(p)];
 void main() {
   final scoring = _fixture('scoring_vectors.json');
   final levels = _fixture('levels_vectors.json');
+  final routes = _fixture('route_vectors.json');
   final tolerance = _d(scoring['distance_tolerance_m']);
 
   group('pointToPolylineDistance', () {
@@ -112,6 +113,21 @@ void main() {
           xpIntoLevel: v['xpIntoLevel'],
           xpForLevel: v['xpForLevel'],
         ));
+      });
+    }
+  });
+
+  group('route scoring', () {
+    for (final v in _cases(routes, 'route_score')) {
+      test(v['name'], () {
+        expect(
+          scoreRoute(
+            _d(v['drawn_m']),
+            _d(v['best_m']),
+            Difficulty.values.byName(v['difficulty']! as String),
+          ),
+          (tier: Tier.values.byName(v['tier']! as String), xp: v['xp']),
+        );
       });
     }
   });
