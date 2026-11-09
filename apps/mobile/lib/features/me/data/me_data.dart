@@ -55,7 +55,7 @@ final meProvider = FutureProvider.autoDispose<MeData>((ref) async {
   }
   return (
     totalXp: await dao.totalXp(),
-    since: await dao.firstRoundAt(),
+    since: await dao.firstPlayedAt(),
     bestStreak: streak.summary.best,
     cities: cities,
   );

@@ -173,6 +173,76 @@ class ReviewItems extends Table {
   Set<Column<Object>> get primaryKey => {cityId, streetId};
 }
 
+/// Where a city's course starts (pindoro_core `buildCourse`): saved the first
+/// time its Path opens.
+@DataClassName('CourseRow')
+class Courses extends Table {
+  @override
+  String get tableName => 'course';
+
+  TextColumn get cityId => text()();
+  TextColumn get startDistrictId => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {cityId};
+}
+
+/// A finished lesson, practice or unit Pit stop; nothing is written before
+/// it finishes, so leaving one drops its XP.
+@DataClassName('LessonResult')
+class LessonResults extends Table {
+  @override
+  String get tableName => 'lesson_result';
+
+  TextColumn get id => text().clientDefault(newId)();
+  TextColumn get cityId => text()();
+
+  /// The unit's raion (district id).
+  TextColumn get unitId => text()();
+  TextColumn get kind => textEnum<LessonKind>()();
+
+  /// The lesson's number in its unit; null for the unit's Pit stop.
+  IntColumn get lesson => integer().nullable()();
+  TextColumn get difficulty => textEnum<Difficulty>()();
+
+  /// Everything it earned, bonuses included.
+  IntColumn get xp => integer()();
+  BoolColumn get perfect => boolean()();
+
+  /// Tests right first time, out of [tests].
+  IntColumn get rightFirst => integer()();
+  IntColumn get tests => integer()();
+  IntColumn get durationMs => integer()();
+  DateTimeColumn get finishedAt => dateTime().clientDefault(DateTime.now)();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+enum LessonAnswerKind { pin, name }
+
+/// A lesson result's answers in order; a name answer is Great when right and
+/// Miss when wrong, and has no distance.
+@DataClassName('LessonAnswer')
+class LessonAnswers extends Table {
+  @override
+  String get tableName => 'lesson_answer';
+
+  TextColumn get resultId => text().references(LessonResults, #id)();
+  IntColumn get position => integer()();
+  TextColumn get streetId => text()();
+  TextColumn get kind => textEnum<LessonAnswerKind>()();
+  TextColumn get tier => textEnum<Tier>()();
+  IntColumn get xp => integer()();
+
+  /// A mistake's second try at the end of the lesson.
+  BoolColumn get fix => boolean()();
+  RealColumn get distanceM => real().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {resultId, position};
+}
+
 @DriftDatabase(
   tables: [
     UserSettings,
@@ -181,6 +251,9 @@ class ReviewItems extends Table {
     RoundQuestions,
     GoalDays,
     ReviewItems,
+    Courses,
+    LessonResults,
+    LessonAnswers,
   ],
   include: {'answer_immutable.drift'},
 )
@@ -189,7 +262,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'pindoro'));
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -222,6 +295,11 @@ class AppDatabase extends _$AppDatabase {
       from6To7: (m, schema) async {
         await m.createTable(schema.reviewItem);
         await m.addColumn(schema.round, schema.round.pitStop);
+      },
+      from7To8: (m, schema) async {
+        await m.createTable(schema.course);
+        await m.createTable(schema.lessonResult);
+        await m.createTable(schema.lessonAnswer);
       },
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),

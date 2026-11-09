@@ -33,7 +33,7 @@ Page<void> _fadePage(GoRouterState state, Widget child) =>
 /// (Home offers to continue it); then Home.
 Future<String> startLocation(AppDatabase db) async {
   final progress = ProgressDao(db);
-  return await progress.hasFinishedRound() ||
+  return await progress.hasPlayed() ||
           await progress.resumableRound(DateTime.now()) != null
       ? Routes.home
       : Routes.welcome;
