@@ -1,11 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pindoro/features/course/data/course_data.dart';
 import 'package:pindoro/features/pack/data/pack_store.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/streak.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
-typedef MeCity = ({String id, String nameKa, String nameEn, KnownCount count});
+typedef MeCity = ({
+  String id,
+  String nameKa,
+  String nameEn,
+  KnownCount count,
+
+  /// The unit its course is on; null before its Path first opened.
+  CourseUnit? unit,
+});
 
 typedef MeData = ({
   int totalXp,
@@ -13,6 +22,7 @@ typedef MeData = ({
   /// When the first round started; null before any.
   DateTime? since,
   int bestStreak,
+  int lessonsDone,
 
   /// The chosen city first, then the other played ones.
   List<MeCity> cities,
@@ -38,6 +48,15 @@ final meProvider = FutureProvider.autoDispose<MeData>((ref) async {
       nameKa: city.nameKa,
       nameEn: city.nameEn,
       count: (await dao.knownIn(pack, streets)).city,
+      unit: switch (await dao.courseStart(city.id)) {
+        final start? => currentUnitIn(
+          pack,
+          streets,
+          start,
+          await dao.lessonResultsIn(city.id),
+        ),
+        _ => null,
+      },
     );
   }
 
@@ -57,6 +76,7 @@ final meProvider = FutureProvider.autoDispose<MeData>((ref) async {
     totalXp: await dao.totalXp(),
     since: await dao.firstPlayedAt(),
     bestStreak: streak.summary.best,
+    lessonsDone: await dao.lessonsDone(),
     cities: cities,
   );
 });

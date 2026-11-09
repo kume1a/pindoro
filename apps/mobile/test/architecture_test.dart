@@ -9,6 +9,7 @@ const _layers = <Set<String>>[
   {'features/progress'},
   {'features/pack'},
   {'features/map'},
+  {'features/course'},
   {
     'features/home',
     'features/setup',
@@ -18,6 +19,7 @@ const _layers = <Set<String>>[
     'features/streak',
     'features/pitstop',
     'features/me',
+    'features/lesson',
   },
   {'app'},
   {'main.dart'},

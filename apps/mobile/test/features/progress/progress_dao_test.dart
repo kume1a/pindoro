@@ -59,17 +59,20 @@ void main() {
     expect(await progress.firstPlayedAt(), first);
   });
 
-  test('welcome shows until a first round is finished or saved', () async {
-    expect(await startLocation(db), Routes.welcome);
-    final id = await round(['a']);
-    expect(
-      await startLocation(db),
-      Routes.home,
-      reason: 'Home offers to continue the saved first round',
-    );
-    await progress.finishRound(id);
-    expect(await startLocation(db), Routes.home);
-  });
+  test(
+    'welcome shows until a first round is finished or saved; then the Path',
+    () async {
+      expect(await startLocation(db), Routes.welcome);
+      final id = await round(['a']);
+      expect(
+        await startLocation(db),
+        Routes.home,
+        reason: 'Home offers to continue the saved first round',
+      );
+      await progress.finishRound(id);
+      expect(await startLocation(db), Routes.path);
+    },
+  );
 
   test('a finished round keeps its first finish time', () async {
     final id = await round(['a']);
@@ -402,10 +405,10 @@ void main() {
         expect(await progress.xpOn(calendarDay(DateTime.now())), 220);
         expect(await progress.hasPlayed(), isTrue);
         final since = await progress.firstPlayedAt();
-      expect(since!.difference(result.finishedAt).inSeconds, 0);
+        expect(since!.difference(result.finishedAt).inSeconds, 0);
         expect(await progress.recentCityIds(), ['tbilisi']);
         expect(await progress.lessonResultsIn('tbilisi'), [result]);
-        expect(await startLocation(db), isNot(Routes.welcome));
+        expect(await startLocation(db), Routes.path);
       },
     );
 

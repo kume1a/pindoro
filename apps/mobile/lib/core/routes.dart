@@ -20,6 +20,16 @@ abstract final class Routes {
   static const String settings = '/settings';
   static const String credits = '/settings/credits';
 
+  /// The course, the first tab.
+  static const String path = '/path';
+
+  /// `?unit=<raion id>&lesson=<n>` (`&practice=1` replays its test) or
+  /// `?unit=<raion id>&pit-stop=1`.
+  static const String lesson = '/lesson';
+
+  /// `?result=<lesson result id>`.
+  static const String lessonDone = '/lesson-done';
+
   /// The area picker starting from one district (nothing saved until Next).
   static String areaFrom(String districtId) => '$area?district=$districtId';
   static String resume(String roundId) => '$round?round=$roundId';
@@ -27,6 +37,10 @@ abstract final class Routes {
   static String resultsOf(String roundId) => '$results?round=$roundId';
   static String resultStreet(String roundId, int index) =>
       '$results/street/$index?round=$roundId';
+  static String lessonOf(String unitId, int n, {bool practice = false}) =>
+      '$lesson?unit=$unitId&lesson=$n${practice ? '&practice=1' : ''}';
+  static String unitPitStop(String unitId) => '$lesson?unit=$unitId&pit-stop=1';
+  static String lessonDoneOf(String resultId) => '$lessonDone?result=$resultId';
 }
 
 /// What a finished round changed, for Home's one-time intro (canvas M-43). Results passes it to

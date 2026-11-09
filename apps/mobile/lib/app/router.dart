@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pindoro/app/tab_shell.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
+import 'package:pindoro/features/course/ui/path_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
 import 'package:pindoro/features/me/ui/me_screen.dart';
 import 'package:pindoro/features/pitstop/ui/pit_stop_screen.dart';
@@ -29,18 +30,19 @@ Page<void> _fadePage(GoRouterState state, Widget child) =>
           FadeTransition(opacity: animation, child: child),
     );
 
-/// Welcome shows until the player finishes a first round or has one saved
-/// (Home offers to continue it); then Home.
+/// Welcome shows until the player finishes a first round or lesson; then
+/// the Path. A first round saved but unfinished opens Free play, which offers
+/// to continue it.
 Future<String> startLocation(AppDatabase db) async {
   final progress = ProgressDao(db);
-  return await progress.hasPlayed() ||
-          await progress.resumableRound(DateTime.now()) != null
+  if (await progress.hasPlayed()) return Routes.path;
+  return await progress.resumableRound(DateTime.now()) != null
       ? Routes.home
       : Routes.welcome;
 }
 
-/// The tabs (Free play, Pit stop, Me) share a [TabShell]; every other route
-/// sits on the root navigator, over the bottom navigation.
+/// The tabs (Path, Free play, Pit stop, Me) share a [TabShell]; every other
+/// route sits on the root navigator, over the bottom navigation.
 GoRouter buildRouter(String initialLocation) {
   // ponytail: one per tab, as long as the router (the app) lives.
   final scroll = [for (var i = 0; i < TabShell.tabs; i++) ScrollController()];
@@ -69,13 +71,14 @@ GoRouter buildRouter(String initialLocation) {
         navigatorContainerBuilder: (_, shell, children) =>
             FadeIndexedStack(index: shell.currentIndex, children: children),
         branches: [
+          tab(TabShell.path, Routes.path, (_) => const PathScreen()),
           tab(
-            0,
+            TabShell.freePlay,
             Routes.home,
             (state) => HomeScreen(summary: state.extra as RoundSummary?),
           ),
-          tab(1, Routes.pitStop, (_) => const PitStopScreen()),
-          tab(2, Routes.me, (_) => const MeScreen()),
+          tab(TabShell.pitStop, Routes.pitStop, (_) => const PitStopScreen()),
+          tab(TabShell.me, Routes.me, (_) => const MeScreen()),
         ],
       ),
       GoRoute(path: Routes.welcome, builder: (_, _) => const WelcomeScreen()),

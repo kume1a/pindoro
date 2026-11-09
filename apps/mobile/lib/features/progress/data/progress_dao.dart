@@ -656,3 +656,9 @@ final progressChangesProvider = StreamProvider<Set<TableUpdate>>((ref) {
     ]),
   );
 });
+
+/// The player's total XP, kept current with progress.
+final totalXpProvider = FutureProvider.autoDispose<int>((ref) {
+  ref.watch(progressChangesProvider);
+  return ref.watch(progressDaoProvider).totalXp();
+});

@@ -1,10 +1,11 @@
-import 'package:drift/drift.dart' show DatabaseConnection;
+import 'package:drift/drift.dart' show DatabaseConnection, Value;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/app/app.dart';
+import 'package:pindoro/app/router.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
@@ -12,6 +13,7 @@ import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
+import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/setup/ui/area_map.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -28,6 +30,14 @@ void main() {
     );
   });
   tearDown(() => db.close());
+
+  /// The Path's current stop floats for good; tests that show the Path
+  /// settle without motion.
+  void calm(WidgetTester tester) {
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+  }
 
   Future<void> pumpApp(WidgetTester tester, String location) async {
     await tester.pumpWidget(
@@ -150,9 +160,10 @@ void main() {
       )
       .first;
 
-  testWidgets('tabs keep their place; back goes to Free play first', (
+  testWidgets('tabs keep their place; back goes to the Path first', (
     tester,
   ) async {
+    calm(tester);
     await tester.runAsync(() => SettingsDao(db).markHomeCoachSeen());
     tester.view
       ..physicalSize = const Size(1080, 1400)
@@ -177,11 +188,123 @@ void main() {
     expect(find.text('Streets you know'), findsNothing);
 
     await systemBack(tester);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(Signpost).hitTestable(), findsWidgets);
+
+    await tapLabelled(tester, 'Free play');
     expect(find.text('Streets you know'), findsOneWidget);
     expect(offset(), greaterThan(0), reason: 'the tab kept its scroll');
 
     await tapLabelled(tester, 'Free play');
     expect(offset(), 0, reason: 'tapping the open tab scrolls it up');
+  });
+
+  group('the Path', () {
+    /// The Path, after waiting for its course to load on real async.
+    Future<void> pumpPath(WidgetTester tester) async {
+      calm(tester);
+      tester.view
+        ..physicalSize = const Size(1080, 2400)
+        ..devicePixelRatio = 2.75;
+      addTearDown(tester.view.reset);
+      await pumpApp(tester, Routes.path);
+      for (var i = 0; i < 3; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pumpAndSettle();
+      }
+    }
+
+    testWidgets('a played player opens on the Path', (tester) async {
+      await tester.runAsync(() async {
+        await ProgressDao(db).saveCourseStart('tbilisi', 'osm:r11300449');
+        await db
+            .into(db.lessonResults)
+            .insert(
+              LessonResultsCompanion.insert(
+                cityId: 'tbilisi',
+                unitId: 'osm:r11300449',
+                kind: LessonKind.lesson,
+                lesson: const Value(1),
+                difficulty: Difficulty.medium,
+                xp: 0,
+                perfect: true,
+                rightFirst: 6,
+                tests: 6,
+                durationMs: 1000,
+              ),
+            );
+      });
+      expect(await tester.runAsync(() => startLocation(db)), Routes.path);
+    });
+
+    testWidgets('unit 1 starts at lesson 1; its sheet offers to start', (
+      tester,
+    ) async {
+      await pumpPath(tester);
+      expect(find.text('ვაკის რაიონი'), findsOneWidget);
+      expect(find.text('0 of 6 lessons'), findsOneWidget);
+      final first = find.bySemanticsLabel(
+        RegExp(r'^Lesson 1, .+ and 3 more\. Current\. Double-tap to start\.$'),
+      );
+      expect(first, findsOneWidget);
+      await tester.tap(first);
+      await tester.pumpAndSettle();
+      expect(find.text('Start lesson'), findsOneWidget);
+      expect(find.text('up to 570 XP'), findsOneWidget);
+      expect(
+        (await tester.runAsync(() => ProgressDao(db).courseStart('tbilisi'))),
+        'osm:r11300449',
+      );
+    });
+
+    testWidgets('a locked stop says what opens it', (tester) async {
+      await pumpPath(tester);
+      await tester.tap(
+        find.bySemanticsLabel(RegExp(r'^Lesson 2, .+ Locked\.$')),
+      );
+      await tester.pump();
+      expect(find.text('Lesson 2 is locked'), findsOneWidget);
+      expect(find.text('Finish lesson 1 first.'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+      expect(find.text('Lesson 2 is locked'), findsNothing);
+    });
+
+    testWidgets('a done lesson offers Practise again', (tester) async {
+      await tester.runAsync(() async {
+        await ProgressDao(db).saveCourseStart('tbilisi', 'osm:r11300449');
+        await db
+            .into(db.lessonResults)
+            .insert(
+              LessonResultsCompanion.insert(
+                cityId: 'tbilisi',
+                unitId: 'osm:r11300449',
+                kind: LessonKind.lesson,
+                lesson: const Value(1),
+                difficulty: Difficulty.medium,
+                xp: 507,
+                perfect: false,
+                rightFirst: 4,
+                tests: 6,
+                durationMs: 192000,
+              ),
+            );
+      });
+      await pumpPath(tester);
+      expect(find.text('1 of 6 lessons'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel(RegExp(r'^Lesson 1, .+ Done\. ')));
+      await tester.pumpAndSettle();
+      expect(find.text('Practise again'), findsOneWidget);
+      expect(
+        find.textContaining('67 % accuracy · 507 XP · 3 min 12 s'),
+        findsOneWidget,
+      );
+    });
   });
 
   testWidgets('settings lead to the map data credits', (tester) async {
