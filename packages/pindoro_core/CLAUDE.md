@@ -9,7 +9,8 @@ lib/src/scoring/    Difficulty, Tier, ScoringConfig (half-widths, fixed distance
 lib/src/progress/   levels: requirement, totalXpToReach, levelForXp, progressWithinLevel
 lib/src/game/       Area (districts/circle/rect, in-area rule), NamedStreet (nearby same-name parts),
                     QuestionSelector (10 names, 3 × 3 grid), knowledge (per street),
-                    course (units per raion, stops, progress, Final drive gate, Jump ahead),
+                    course (units per raion, stops, progress, Final drive gate, Jump ahead,
+                    placement from known streets, the start-district order),
                     lesson (steps incl. the road trip, LessonRun, XP, card facts),
                     road_trip (pickTrip, RouteDraft drawing, turnsAt, routeLegs)
 lib/src/pack/       City/District/Street (pack rows), PackRepository, RoadGraph (junctions,
