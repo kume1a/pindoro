@@ -38,6 +38,9 @@ class GameFeedback {
 
   void pinDrop() => _haptic(HapticFeedback.lightImpact);
 
+  /// The next stop on the Path opens.
+  void unlock() => _haptic(HapticFeedback.lightImpact);
+
   void confirm() => _haptic(HapticFeedback.mediumImpact);
 
   void error() => _haptic(HapticFeedback.heavyImpact);

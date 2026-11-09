@@ -10,6 +10,8 @@ import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/routes.dart';
+import 'package:pindoro/features/course/data/course_data.dart';
+import 'package:pindoro/features/course/ui/path_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -39,26 +41,24 @@ void main() {
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
   }
 
-  Future<void> pumpApp(WidgetTester tester, String location) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          databaseProvider.overrideWithValue(db),
-          pindoroMapBuilderProvider.overrideWithValue(
-            (map) => const SizedBox(),
-          ),
-          areaPickerMapBuilderProvider.overrideWithValue(
-            (map) => const SizedBox.expand(),
-          ),
-          packRepositoryProvider.overrideWith((ref) async {
-            final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
-            ref.onDispose(repo.close);
-            return repo;
-          }),
-        ],
-        child: PindoroApp(initialLocation: location),
+  Widget app(String location) => ProviderScope(
+    overrides: [
+      databaseProvider.overrideWithValue(db),
+      pindoroMapBuilderProvider.overrideWithValue((map) => const SizedBox()),
+      areaPickerMapBuilderProvider.overrideWithValue(
+        (map) => const SizedBox.expand(),
       ),
-    );
+      packRepositoryProvider.overrideWith((ref) async {
+        final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
+        ref.onDispose(repo.close);
+        return repo;
+      }),
+    ],
+    child: PindoroApp(initialLocation: location),
+  );
+
+  Future<void> pumpApp(WidgetTester tester, String location) async {
+    await tester.pumpWidget(app(location));
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 100)),
     );
@@ -304,6 +304,84 @@ void main() {
         find.textContaining('67 % accuracy · 507 XP · 3 min 12 s'),
         findsOneWidget,
       );
+    });
+
+    /// Lesson 1 of the fixture's unit done.
+    Future<void> lessonOneDone(WidgetTester tester) =>
+        tester.runAsync(() async {
+          await ProgressDao(db).saveCourseStart('tbilisi', 'osm:r11300449');
+          await db
+              .into(db.lessonResults)
+              .insert(
+                LessonResultsCompanion.insert(
+                  cityId: 'tbilisi',
+                  unitId: 'osm:r11300449',
+                  kind: LessonKind.lesson,
+                  lesson: const Value(1),
+                  difficulty: Difficulty.medium,
+                  xp: 570,
+                  perfect: true,
+                  rightFirst: 6,
+                  tests: 6,
+                  durationMs: 1000,
+                ),
+              );
+        });
+
+    void playUnlock(WidgetTester tester) =>
+        ProviderScope.containerOf(tester.element(find.byType(PathScreen)))
+            .read(pathUnlockProvider.notifier)
+            .play((unitId: 'osm:r11300449', kind: StopKind.lesson, lesson: 1));
+
+    PathStop lessonTwo(WidgetTester tester) => tester.widget<PathStop>(
+      find.byWidgetPredicate(
+        (w) => w is PathStop && w.semanticLabel.startsWith('Lesson 2,'),
+      ),
+    );
+
+    double road(WidgetTester tester) =>
+        tester.widget<LessonRoad>(find.byType(LessonRoad).first).driven;
+
+    testWidgets('the unlock paves the road and grows the next stop', (
+      tester,
+    ) async {
+      await lessonOneDone(tester);
+      tester.view
+        ..physicalSize = const Size(1080, 2400)
+        ..devicePixelRatio = 2.75;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(app(Routes.path));
+      for (var i = 0; i < 4; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(lessonTwo(tester).look, PathStopLook.current);
+
+      playUnlock(tester);
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(lessonTwo(tester).look, PathStopLook.locked);
+      expect(road(tester), inExclusiveRange(1, 2));
+
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(lessonTwo(tester).look, PathStopLook.current);
+      expect(lessonTwo(tester).tip, 'Start');
+      expect(road(tester), 2);
+    });
+
+    testWidgets('with reduce motion the unlock shows the final state', (
+      tester,
+    ) async {
+      await lessonOneDone(tester);
+      await pumpPath(tester);
+      playUnlock(tester);
+      await tester.pump();
+      await tester.pump();
+      expect(lessonTwo(tester).look, PathStopLook.current);
+      expect(road(tester), 2);
     });
   });
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -48,6 +49,7 @@ class PathUnit extends StatefulWidget {
     this.stopKeys = const {},
     this.scaleOf,
     this.bubbleAtTop,
+    this.burst,
   });
 
   final List<StopView> stops;
@@ -64,6 +66,9 @@ class PathUnit extends StatefulWidget {
 
   /// A note to show at the top of the unit (its locked signpost was tapped).
   final ValueNotifier<LockedNote?>? bubbleAtTop;
+
+  /// The unlock's 12-dash burst around a stop, [t] from 0 to 1.
+  final ({int stop, double t})? burst;
 
   @override
   State<PathUnit> createState() => _PathUnitState();
@@ -169,6 +174,20 @@ class _PathUnitState extends State<PathUnit> {
                         : stop,
                   );
                 }(),
+              if (widget.burst case (:final stop, :final t) when t < 1)
+                Positioned(
+                  left: centres[stop].dx - _burstRadius,
+                  top: centres[stop].dy - _burstRadius,
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      size: const Size.square(2 * _burstRadius),
+                      painter: _BurstPainter(
+                        t: t,
+                        color: PindoroTheme.of(context).colors.accentBase,
+                      ),
+                    ),
+                  ),
+                ),
               if (note != null)
                 Positioned(
                   left: PindoroSpace.s4,
@@ -191,4 +210,33 @@ class _PathUnitState extends State<PathUnit> {
       },
     );
   }
+}
+
+/// How far the burst's dashes fly from a stop's centre.
+const double _burstRadius = 64;
+
+/// 12 lane dashes flying out from a stop and fading (the `.pd-burst`).
+class _BurstPainter extends CustomPainter {
+  const _BurstPainter({required this.t, required this.color});
+
+  final double t;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final centre = size.center(Offset.zero);
+    final paint = Paint()
+      ..color = color.withValues(alpha: 1 - t)
+      ..strokeWidth = PindoroStroke.thick
+      ..strokeCap = StrokeCap.round;
+    final from = 40 + 16 * t;
+    for (var i = 0; i < 12; i++) {
+      final a = i * math.pi / 6;
+      final d = Offset(math.cos(a), math.sin(a));
+      canvas.drawLine(centre + d * from, centre + d * (from + 8), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BurstPainter old) => old.t != t || old.color != color;
 }

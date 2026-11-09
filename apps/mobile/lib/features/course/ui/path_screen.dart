@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,17 +33,159 @@ class PathScreen extends ConsumerStatefulWidget {
   ConsumerState<PathScreen> createState() => _PathScreenState();
 }
 
-class _PathScreenState extends ConsumerState<PathScreen> {
+/// Where the unlock plays: the finished stop and the new current one, each
+/// as (unit index, stop index).
+typedef _Unlock = ({int unit, int done, ({int unit, int stop}) next});
+
+/// The unlock storyboard (canvas R4-60), as fractions of its 900 ms: the
+/// finished stop pops to 200 ms, the road paves to 620 ms, then the next
+/// stop grows in with an overshoot.
+abstract final class _UnlockAt {
+  static const Duration length = Duration(milliseconds: 900);
+  static const double settle = 200 / 900;
+  static const double paved = 620 / 900;
+  static const double burst = 420 / 900;
+  static const double overshoot = 1.12;
+
+  static double _part(double t, double from, double to) =>
+      ((t - from) / (to - from)).clamp(0, 1);
+
+  /// The finished stop's pop.
+  static double pop(double t) =>
+      1 + 0.2 * math.sin(math.pi * _part(t, 0, settle));
+
+  static double pave(double t) => _part(t, settle, paved);
+
+  /// The next stop, from a small stop's size up through the overshoot.
+  static double grow(double t) {
+    final g = _part(t, paved, 1);
+    const small = PindoroSize.nodeStop / PindoroSize.nodeCurrent;
+    return g < 0.6
+        ? small + (overshoot - small) * (g / 0.6)
+        : overshoot + (1 - overshoot) * ((g - 0.6) / 0.4);
+  }
+}
+
+class _PathScreenState extends ConsumerState<PathScreen>
+    with SingleTickerProviderStateMixin {
   final _currentKey = GlobalKey();
   final Map<String, ValueNotifier<LockedNote?>> _signNotes = {};
   bool _shownCurrent = false;
+  late final AnimationController _unlockClock = AnimationController(
+    vsync: this,
+    duration: _UnlockAt.length,
+  )..addListener(_unlockTick);
+  _Unlock? _unlock;
+  bool _unlockClicked = false;
 
   @override
   void dispose() {
+    _unlockClock.dispose();
     for (final n in _signNotes.values) {
       n.dispose();
     }
     super.dispose();
+  }
+
+  void _unlockTick() {
+    if (!_unlockClicked && _unlockClock.value >= _UnlockAt.paved) {
+      _unlockClicked = true;
+      ref.read(feedbackProvider).unlock();
+      _toCurrent(animate: true);
+    }
+    if (_unlockClock.isCompleted) _unlock = null;
+    setState(() {});
+  }
+
+  /// Plays the unlock from the stop Lesson complete just finished, once the
+  /// Path shows and the course has the result.
+  void _startUnlock(CourseData data) {
+    final finished = ref.read(pathUnlockProvider.notifier).take();
+    final next = data.units.current;
+    if (finished == null || next == null || !mounted) return;
+    final u = data.units.indexWhere((p) => p.unit.id == finished.unitId);
+    final done = u < 0
+        ? -1
+        : data.units[u].stops.indexWhere(
+            (s) =>
+                s.kind == finished.kind &&
+                s.lesson == finished.lesson &&
+                s.done,
+          );
+    if (done < 0 || MediaQuery.disableAnimationsOf(context)) {
+      return _toCurrent(animate: false);
+    }
+    _unlock = (unit: u, done: done, next: next);
+    _unlockClicked = false;
+    unawaited(_unlockClock.forward(from: 0));
+  }
+
+  /// [views] of unit [u] as the unlock shows them at this moment.
+  List<StopView> _unlocking(int u, List<StopView> views) {
+    final unlock = _unlock;
+    if (unlock == null) return views;
+    final t = _unlockClock.value;
+    return [
+      for (final (i, v) in views.indexed)
+        if (u == unlock.unit && i == unlock.done && t < _UnlockAt.settle)
+          (
+            look: v.look,
+            glyph: v.glyph,
+            big: true,
+            ring: null,
+            tip: null,
+            label: v.label,
+          )
+        else if (u == unlock.next.unit &&
+            i == unlock.next.stop &&
+            t < _UnlockAt.paved)
+          (
+            look: PathStopLook.locked,
+            glyph: v.glyph == PindoroGlyph.wrench
+                ? PindoroGlyph.wrench
+                : PindoroGlyph.lock,
+            big: true,
+            ring: null,
+            tip: null,
+            label: v.label,
+          )
+        else
+          v,
+    ];
+  }
+
+  double? _unlockScale(int u, int i) {
+    final unlock = _unlock;
+    if (unlock == null) return null;
+    final t = _unlockClock.value;
+    if (u == unlock.unit && i == unlock.done) return _UnlockAt.pop(t);
+    if (u == unlock.next.unit && i == unlock.next.stop) {
+      return t < _UnlockAt.paved
+          ? PindoroSize.nodeStop / PindoroSize.nodeCurrent
+          : _UnlockAt.grow(t);
+    }
+    return null;
+  }
+
+  ({int stop, double t})? _burstFor(int u) {
+    final unlock = _unlock;
+    if (unlock == null || unlock.unit != u) return null;
+    return (
+      stop: unlock.done,
+      t: (_unlockClock.value / _UnlockAt.burst).clamp(0.0, 1.0),
+    );
+  }
+
+  /// The road paves from the finished stop to the next one in its unit.
+  double _unlockDriven(int u, double driven) {
+    final unlock = _unlock;
+    if (unlock == null ||
+        u != unlock.unit ||
+        unlock.next.unit != u ||
+        _unlockClock.value >= _UnlockAt.paved) {
+      return driven;
+    }
+    return unlock.done + 1 + _UnlockAt.pave(_unlockClock.value);
   }
 
   void _toCurrent({required bool animate}) {
@@ -68,6 +211,12 @@ class _PathScreenState extends ConsumerState<PathScreen> {
     final course = ref.watch(courseProvider);
     final xp = ref.watch(totalXpProvider).value ?? 0;
     final data = course.value;
+    // The unlock waits until this tab shows (offstage tabs have no tickers).
+    if (ref.watch(pathUnlockProvider) != null &&
+        data != null &&
+        TickerMode.valuesOf(context).enabled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _startUnlock(data));
+    }
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -125,11 +274,13 @@ class _PathScreenState extends ConsumerState<PathScreen> {
               SliverToBoxAdapter(
                 child: ContentColumn(
                   child: PathUnit(
-                    stops: [
+                    stops: _unlocking(u, [
                       for (final (i, stop) in progress.stops.indexed)
                         _view(l10n, data, progress, i, stop, settings),
-                    ],
-                    driven: _driven(progress),
+                    ]),
+                    driven: _unlockDriven(u, _driven(progress)),
+                    scaleOf: (i) => _unlockScale(u, i) ?? 1,
+                    burst: _burstFor(u),
                     dim: !progress.open,
                     stopKeys: {
                       if (current?.unit == u) current!.stop: _currentKey,

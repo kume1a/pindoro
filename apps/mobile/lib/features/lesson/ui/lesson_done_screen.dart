@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/course/data/course_data.dart';
 import 'package:pindoro/features/course/ui/lesson_title.dart';
 import 'package:pindoro/features/lesson/data/lesson_done_data.dart';
 import 'package:pindoro/features/progress/data/streak.dart';
@@ -39,7 +41,18 @@ class LessonDoneScreen extends ConsumerStatefulWidget {
 class _LessonDoneScreenState extends ConsumerState<LessonDoneScreen> {
   bool _levelUpOpened = false;
 
-  void _continue() => context.go(Routes.path);
+  /// Back to the Path, which plays the unlock from the stop just finished
+  /// (practice finishes none).
+  void _continue(LessonResult r) {
+    if (r.kind != LessonKind.practice) {
+      ref.read(pathUnlockProvider.notifier).play((
+        unitId: r.unitId,
+        kind: r.kind == LessonKind.pitStop ? StopKind.pitStop : StopKind.lesson,
+        lesson: r.lesson,
+      ));
+    }
+    context.go(Routes.path);
+  }
 
   /// A level crossed in this lesson opens the level-up moment once.
   void _levelUp(int level, int totalXp) {
@@ -133,7 +146,10 @@ class _LessonDoneScreenState extends ConsumerState<LessonDoneScreen> {
     final page = PageScaffold(
       title: title,
       showBack: false,
-      footer: PindoroButton(label: l10n.commonContinue, onPressed: _continue),
+      footer: PindoroButton(
+        label: l10n.commonContinue,
+        onPressed: () => _continue(r),
+      ),
       children: [
         if (subtitle != null)
           Text(
@@ -233,7 +249,7 @@ class _LessonDoneScreenState extends ConsumerState<LessonDoneScreen> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _continue();
+        if (!didPop) _continue(r);
       },
       child: Stack(
         children: [
