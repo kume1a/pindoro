@@ -1562,5 +1562,243 @@
         "type": "String"
       }
     }
+  },
+  "routeAsk": "Road trip: draw the shortest drive to",
+  "@routeAsk": {
+    "description": "The road trip plate's prompt above the destination street."
+  },
+  "driveAsk": "Final drive {trip} of 3: draw the shortest drive to",
+  "@driveAsk": {
+    "description": "The Final drive plate's prompt; {trip} is the trip being driven.",
+    "placeholders": {
+      "trip": {
+        "type": "int"
+      }
+    }
+  },
+  "routeStartAtA": "Start at A",
+  "@routeStartAtA": {
+    "description": "Under the road trip's destination street."
+  },
+  "routeCoachTitle": "Drag from A along the streets to B",
+  "@routeCoachTitle": {
+    "description": "Coach bubble on the first road trip ever."
+  },
+  "routeCoachBody": "Your route snaps to the roads. The shorter the drive, the more XP.",
+  "@routeCoachBody": {
+    "description": "Coach bubble body on the first road trip ever."
+  },
+  "routeOffRoad": "Your route only follows streets. Drag along a white road.",
+  "@routeOffRoad": {
+    "description": "Toast after dragging off the road for a second."
+  },
+  "routeSoFar": "{distance} so far",
+  "@routeSoFar": {
+    "description": "Map chip at the end of the route being drawn.",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "routeShow": "Show the route",
+  "@routeShow": {
+    "description": "Gives up a road trip (asks first)."
+  },
+  "routeCheck": "Check route",
+  "@routeCheck": {
+    "description": "Scores a road trip once it reaches B."
+  },
+  "a11yRouteCheckDisabled": "Check route. Reach B first.",
+  "@a11yRouteCheckDisabled": {
+    "description": "Screen reader label of Check route before B is reached."
+  },
+  "a11yRouteUndo": "Undo the last street. Hold to start over.",
+  "@a11yRouteUndo": {
+    "description": "Screen reader label of the road trip's undo button."
+  },
+  "a11yRouteMap": "Map. Drag along the streets from pin A to pin B.",
+  "@a11yRouteMap": {
+    "description": "Screen reader label of the road trip map."
+  },
+  "routeShowTitle": "Show the best route?",
+  "@routeShowTitle": {
+    "description": "Dialog before giving up a road trip."
+  },
+  "routeShowLessonBody": "This road trip will count as a Miss and come back at the end of the lesson.",
+  "@routeShowLessonBody": {
+    "description": "Dialog body before giving up a lesson's road trip."
+  },
+  "routeShowDriveBody": "This trip will count as a Miss.",
+  "@routeShowDriveBody": {
+    "description": "Dialog body before giving up a Final drive trip."
+  },
+  "routeKeepDriving": "Keep driving",
+  "@routeKeepDriving": {
+    "description": "Closes the Show the route dialog."
+  },
+  "routeShowConfirm": "Show the best route",
+  "@routeShowConfirm": {
+    "description": "Confirms giving up a road trip."
+  },
+  "routeReplay": "Driving the best route…",
+  "@routeReplay": {
+    "description": "Banner while the car drives the best route."
+  },
+  "routeSkip": "Skip",
+  "@routeSkip": {
+    "description": "Skips the best-route replay."
+  },
+  "routeTierPerfect": "Best route!",
+  "@routeTierPerfect": {
+    "description": "Tier sheet title of a Perfect road trip."
+  },
+  "routeTierGreat": "Great drive",
+  "@routeTierGreat": {
+    "description": "Tier sheet title of a Great road trip."
+  },
+  "routeTierClose": "Close",
+  "@routeTierClose": {
+    "description": "Tier sheet title of a Close road trip."
+  },
+  "routeTierMiss": "Here’s the best drive",
+  "@routeTierMiss": {
+    "description": "Tier sheet title of a Miss (or shown) road trip."
+  },
+  "routePerfectSentence": "{best}. You found the shortest drive.",
+  "@routePerfectSentence": {
+    "description": "A Perfect road trip's sentence; {best} is the route length.",
+    "placeholders": {
+      "best": {
+        "type": "String"
+      }
+    }
+  },
+  "routeLongerSentence": "{percent} % longer than the best route.",
+  "@routeLongerSentence": {
+    "description": "A Great or Close road trip's sentence.",
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "routeLengths": "{drawn} · best {best}",
+  "@routeLengths": {
+    "description": "Chip with the drawn and the best route lengths.",
+    "placeholders": {
+      "drawn": {
+        "type": "String"
+      },
+      "best": {
+        "type": "String"
+      }
+    }
+  },
+  "routeLegsSentence": "{legs}: {best}.",
+  "@routeLegsSentence": {
+    "description": "A Miss road trip's sentence: the best route's streets, then its length.",
+    "placeholders": {
+      "legs": {
+        "type": "String"
+      },
+      "best": {
+        "type": "String"
+      }
+    }
+  },
+  "routeLegFirst": "{heading, select, n{North} ne{North-east} e{East} se{South-east} s{South} sw{South-west} w{West} nw{North-west} other{Along}} on {street}",
+  "@routeLegFirst": {
+    "description": "The best route's first street with its heading (n, ne, e, se, s, sw, w, nw).",
+    "placeholders": {
+      "heading": {
+        "type": "String"
+      },
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "routeLegNext": "then {heading, select, n{north} ne{north-east} e{east} se{south-east} s{south} sw{south-west} w{west} nw{north-west} other{along}} on {street}",
+  "@routeLegNext": {
+    "description": "A later street of the best route with its heading.",
+    "placeholders": {
+      "heading": {
+        "type": "String"
+      },
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "routeLegsMore": "{count, plural, =1{then 1 more street} other{then {count} more streets}}",
+  "@routeLegsMore": {
+    "description": "The best route's streets past the third.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "routeTurnList": "Turn by turn · {distance} from A",
+  "@routeTurnList": {
+    "description": "Turn-by-turn header with the route length so far.",
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTurnAsk": "At the junction, go",
+  "@routeTurnAsk": {
+    "description": "Above the turn options."
+  },
+  "routeTurn": "{turn, select, start{Onto {street}} left{Left onto {street}} straight{Straight on {street}} right{Right onto {street}} back{Back along {street}} other{Onto {street}}}",
+  "@routeTurn": {
+    "description": "A turn option (start, left, straight, right, back).",
+    "placeholders": {
+      "turn": {
+        "type": "String"
+      },
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "routeTurnHeading": "Heads {heading, select, n{north} ne{north-east} e{east} se{south-east} s{south} sw{south-west} w{west} nw{north-west} other{on}}, {toward, select, yes{towards B} other{away from B}}",
+  "@routeTurnHeading": {
+    "description": "Under a turn option: where it heads and whether towards B (yes/no).",
+    "placeholders": {
+      "heading": {
+        "type": "String"
+      },
+      "toward": {
+        "type": "String"
+      }
+    }
+  },
+  "routeUndoTurn": "Undo last turn",
+  "@routeUndoTurn": {
+    "description": "Turn by turn: drops the last street."
+  },
+  "a11yRouteTurned": "{turn}. {distance} so far.",
+  "@a11yRouteTurned": {
+    "description": "Announced after picking a turn.",
+    "placeholders": {
+      "turn": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yRouteReachedB": "You reached B. Check route is available.",
+  "@a11yRouteReachedB": {
+    "description": "Announced when the route reaches B."
+  },
+  "routeTryAgain": "Try this trip again",
+  "@routeTryAgain": {
+    "description": "Final drive: a new trip after a Miss."
   }
 }

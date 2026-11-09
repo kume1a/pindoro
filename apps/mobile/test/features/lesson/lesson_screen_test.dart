@@ -39,10 +39,17 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> pumpApp(WidgetTester tester, String location) async {
+  Future<void> pumpApp(
+    WidgetTester tester,
+    String location, {
+    bool screenReader = false,
+  }) async {
     // The Path's current stop floats for good; settle without motion.
     tester.platformDispatcher.accessibilityFeaturesTestValue =
-        const FakeAccessibilityFeatures(disableAnimations: true);
+        FakeAccessibilityFeatures(
+          disableAnimations: true,
+          accessibleNavigation: screenReader,
+        );
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
     tester.view
       ..physicalSize = const Size(1080, 2400)
@@ -112,9 +119,23 @@ void main() {
         case CardStep():
           fail('no cards after the test starts');
         case TripStep():
-          fail('no road trip in this lesson');
+          fail('the road trip comes last');
       }
     }
+
+    // Step 11: the first road trip ever, drawn along the best route.
+    expect(find.text('Road trip: draw the shortest drive to'), findsOneWidget);
+    expect(find.text('Drag from A along the streets to B'), findsOneWidget);
+    final trip = container.read(lessonControllerProvider) as LessonPlaying;
+    var route = trip.route!;
+    for (final e in (trip.run.step as TripStep).trip.best.edges) {
+      route = route.take(e);
+    }
+    container.read(lessonControllerProvider.notifier).drawTo(route);
+    await settle(tester);
+    await tap(tester, find.text('Check route'));
+    expect(find.text('Best route!'), findsOneWidget);
+    await tap(tester, find.text('Next'));
     await settle(tester);
     expect(find.text('Perfect lesson!'), findsOneWidget);
     expect(find.bySemanticsLabel('Accuracy, 100 %'), findsOneWidget);
@@ -136,6 +157,58 @@ void main() {
     await tap(tester, find.text('Leave'));
     expect(find.text('0 of 6 lessons'), findsOneWidget);
     expect(await tester.runAsync(ProgressDao(db).hasPlayed), isFalse);
+  });
+
+  testWidgets('with a screen reader the road trip is a list of turns', (
+    tester,
+  ) async {
+    await pumpApp(tester, Routes.lessonOf(unit, 1), screenReader: true);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(LessonScreen)),
+    );
+    final controller = container.read(lessonControllerProvider.notifier);
+    LessonPlaying play() =>
+        container.read(lessonControllerProvider) as LessonPlaying;
+    while (play().run.step is! TripStep) {
+      switch (play().run.step) {
+        case final PinStep step:
+          controller
+            ..placePin(step.street.geometry.first.first)
+            ..confirm();
+        case final NameStep step:
+          controller
+            ..choose(step.options.indexOf(step.street))
+            ..check();
+        case CardStep() || TripStep():
+      }
+      await controller.next();
+    }
+    await settle(tester);
+    expect(find.text('At the junction, go'), findsOneWidget);
+
+    final streets = await container.read(cityStreetsProvider.future);
+    String label(TurnOption t) {
+      final name = streetName(streets[t.edge.streetId]!, null);
+      return switch (t.turn) {
+        Turn.start => 'Onto $name',
+        Turn.left => 'Left onto $name',
+        Turn.straight => 'Straight on $name',
+        Turn.right => 'Right onto $name',
+        Turn.back => 'Back along $name',
+      };
+    }
+
+    final trip = (play().run.step as TripStep).trip;
+    for (final edge in trip.best.edges) {
+      final turns = turnsAt(play().route!);
+      final pick = turns.firstWhere((t) => t.edge.id == edge.id);
+      final same = turns.where((t) => label(t) == label(pick)).toList();
+      await tap(tester, find.text(label(pick)).at(same.indexOf(pick)));
+    }
+    expect(play().route!.reached, isTrue);
+    expect(find.text('At the junction, go'), findsNothing);
+    await tap(tester, find.text('Check route'));
+    expect(find.text('Best route!'), findsOneWidget);
   });
 }
 

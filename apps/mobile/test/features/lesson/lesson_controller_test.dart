@@ -39,11 +39,13 @@ void main() {
       c.read(lessonControllerProvider) as LessonPlaying;
 
   /// Answers every step until the lesson saves: pins on the street (or far
-  /// away when [missPin] says so), names right unless [wrongName] says so.
+  /// away when [missPin] says so), names right unless [wrongName] says so,
+  /// road trips along the best route unless [showTrip] gives them up.
   Future<String> playThrough(
     ProviderContainer c, {
     bool Function(PinStep step)? missPin,
     bool Function(NameStep step)? wrongName,
+    bool Function(TripStep step)? showTrip,
   }) async {
     final controller = c.read(lessonControllerProvider.notifier);
     for (var guard = 0; guard < 40; guard++) {
@@ -66,8 +68,16 @@ void main() {
               step.options.indexWhere((o) => (o.id == step.street.id) != wrong),
             )
             ..check();
-        case TripStep():
-          fail('no road trip in this lesson');
+        case final TripStep step when showTrip?.call(step) ?? false:
+          controller.showRoute();
+        case final TripStep step:
+          var draft = p.route!;
+          for (final e in step.trip.best.edges) {
+            draft = draft.take(e);
+          }
+          controller
+            ..drawTo(draft)
+            ..checkRoute();
         case CardStep():
       }
       await controller.next();
@@ -84,7 +94,8 @@ void main() {
     ));
     final first = playing(c);
     expect(first.run.steps.whereType<CardStep>(), hasLength(4));
-    expect(first.run.steps, hasLength(10));
+    expect(first.run.steps, hasLength(11));
+    expect(first.run.steps.last, isA<TripStep>());
 
     final id = await playThrough(c);
     final result = await ProgressDao(db).lessonResult(id);
@@ -92,9 +103,36 @@ void main() {
     expect(result.lesson, 1);
     expect(result.unitId, unit);
     expect(result.perfect, isTrue);
-    expect(result.xp, LessonRules.maxXp - LessonRules.tripXp);
+    expect(result.xp, LessonRules.maxXp);
     expect(await ProgressDao(db).lessonsDone(), 1);
+    expect(await ProgressDao(db).roadTrips(), 1);
   });
+
+  test(
+    'a road trip given up comes back once and stays out of the Pit stop',
+    () async {
+      final c = container();
+      await c.read(lessonControllerProvider.notifier).start((
+        unitId: unit,
+        kind: LessonKind.lesson,
+        lesson: 1,
+      ));
+      expect(playing(c).firstTrip, isTrue);
+      final id = await playThrough(c, showTrip: (step) => !step.fix);
+      final answers = await ProgressDao(db).lessonAnswersOf(id);
+      expect(
+        [for (final a in answers.skip(6)) (a.kind, a.tier, a.fix)],
+        [
+          (LessonAnswerKind.trip, Tier.miss, false),
+          (LessonAnswerKind.trip, Tier.perfect, true),
+        ],
+      );
+      final result = await ProgressDao(db).lessonResult(id);
+      expect((result.rightFirst, result.tests), (6, 7));
+      expect(result.xp, 4 * 100 + 2 * LessonRules.nameXp + 50 + 20);
+      expect(await ProgressDao(db).pitStop('tbilisi'), isEmpty);
+    },
+  );
 
   test('mistakes come back once at the end, at half XP', () async {
     final c = container();
@@ -111,16 +149,16 @@ void main() {
       wrongName: (step) => step.street.id == firstName && !step.fix,
     );
     final answers = await ProgressDao(db).lessonAnswersOf(id);
-    expect(answers, hasLength(7));
+    expect(answers, hasLength(8));
     expect(answers.last.fix, isTrue);
     expect(answers.last.streetId, firstName);
     expect(answers.last.xp, LessonRules.nameXp ~/ 2);
     final result = await ProgressDao(db).lessonResult(id);
     expect(result.perfect, isFalse);
-    expect((result.rightFirst, result.tests), (5, 6));
+    expect((result.rightFirst, result.tests), (6, 7));
     expect(
       result.xp,
-      4 * 100 + LessonRules.nameXp + LessonRules.nameXp ~/ 2 + 20,
+      4 * 100 + 100 + LessonRules.nameXp + LessonRules.nameXp ~/ 2 + 20,
     );
     expect(await ProgressDao(db).pitStop('tbilisi'), isEmpty);
   });
@@ -147,7 +185,7 @@ void main() {
     expect(playing(c).run.steps.whereType<CardStep>(), isEmpty);
     final id = await playThrough(c);
     final result = await ProgressDao(db).lessonResult(id);
-    expect(result.xp, (4 * 100 + 2 * LessonRules.nameXp) ~/ 2);
+    expect(result.xp, (4 * 100 + 2 * LessonRules.nameXp + 100) ~/ 2);
     expect(await ProgressDao(db).lessonsDone(), 0);
   });
 

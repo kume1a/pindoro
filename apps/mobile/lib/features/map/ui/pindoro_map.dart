@@ -1,7 +1,8 @@
 import 'dart:async';
-import 'dart:math' as math show max;
+import 'dart:math' as math show max, pi, sin;
 import 'dart:math' show Point;
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
@@ -12,6 +13,8 @@ import 'package:pindoro/features/map/data/geojson.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/data/maplibre_convert.dart';
 import 'package:pindoro/features/map/ui/map_work.dart';
+import 'package:pindoro/features/map/ui/route_layers.dart';
+import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
 import 'package:pindoro/features/map/ui/widgets/map_zoom_controls.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -40,9 +43,11 @@ final pindoroMapBuilderProvider = Provider<Widget Function(PindoroMap map)>(
 );
 
 /// Unlabelled self-hosted basemap: the round's area (outside dimmed) plus the
-/// pin, truth street and measure line passed in by the caller. [bottomInset]
-/// is the height of whatever covers the bottom of the map (button, sheet):
-/// controls and attribution sit above it and the camera frames above it.
+/// pin, truth street and measure line passed in by the caller, or a road
+/// [route]. [bottomInset] is the height of whatever covers the bottom of the
+/// map (button, sheet): controls and attribution sit above it and the camera
+/// frames above it. [frame] replaces the area as what the camera fits (and
+/// fits again whenever it changes); [onCamera] hears every camera move.
 class PindoroMap extends ConsumerStatefulWidget {
   const PindoroMap({
     super.key,
@@ -54,6 +59,9 @@ class PindoroMap extends ConsumerStatefulWidget {
     this.bottomInset = 0,
     this.topInset = 0,
     this.showControls = true,
+    this.route,
+    this.frame,
+    this.onCamera,
   });
 
   final AreaShape area;
@@ -66,6 +74,9 @@ class PindoroMap extends ConsumerStatefulWidget {
   /// Height covered at the top (top bar and plate), for framing.
   final double topInset;
   final bool showControls;
+  final RouteOverlay? route;
+  final List<LatLng>? frame;
+  final ValueChanged<MapProjection>? onCamera;
 
   @override
   ConsumerState<PindoroMap> createState() => _PindoroMapState();
@@ -89,6 +100,13 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   )..addListener(_paintTick);
   double _paintReachM = 0;
   double _pixelRatio = 1;
+  Size? _size;
+
+  /// B pops when the route reaches it (`spring.bouncy`, a quick grow).
+  late final AnimationController _pop = AnimationController(
+    vsync: this,
+    duration: PindoroMotion.durationBase,
+  )..addListener(_popTick);
   Brightness? _brightness;
   Future<String>? _style;
   bool _overlaysReady = false;
@@ -116,9 +134,35 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
 
   @override
   void dispose() {
+    _controller?.removeListener(_cameraMoved);
     _drop.dispose();
     _paint.dispose();
+    _pop.dispose();
     super.dispose();
+  }
+
+  void _popTick() {
+    if (!_overlaysReady || _controller == null) return;
+    unawaited(
+      scaleB(
+        _controller!,
+        _pixelRatio,
+        1 + 0.25 * math.sin(math.pi * _pop.value),
+      ),
+    );
+  }
+
+  void _cameraMoved() {
+    final camera = _controller?.cameraPosition;
+    final size = _size;
+    if (camera == null || size == null) return;
+    widget.onCamera?.call(
+      MapProjection(
+        target: camera.target.toCore,
+        zoom: camera.zoom,
+        size: size,
+      ),
+    );
   }
 
   /// The truth street as painted so far.
@@ -181,9 +225,25 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     } else if (widget.truth == null && oldWidget.truth != null) {
       unawaited(_fitArea());
     }
+    if (widget.route != oldWidget.route) {
+      final before = oldWidget.route;
+      runMapWork(
+        () => syncRoute(_controller!, widget.route, before, _chipImage),
+      );
+      if ((widget.route?.reached ?? false) &&
+          !(before?.reached ?? false) &&
+          !MediaQuery.disableAnimationsOf(context)) {
+        unawaited(_pop.forward(from: 0));
+      }
+    }
+    final frame = widget.frame;
+    if (frame != null && !listEquals(frame, oldWidget.frame)) {
+      unawaited(_fit(frame));
+    }
   }
 
   Future<void> _fitArea() {
+    if (widget.frame case final frame?) return _fit(frame);
     final b = widget.area.bbox;
     return _fit([LatLng(b.minLat, b.minLon), LatLng(b.maxLat, b.maxLon)]);
   }
@@ -227,6 +287,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       ),
       enableInteraction: false,
     );
+    if (widget.route != null) await addRouteLayers(c, colors, pixelRatio);
     await c.addGeoJsonSource(_MapSources.truthStreet, linesGeoJson(const []));
     // Yellow paint over an ink casing: on light maps the casing carries contrast.
     for (final (id, color, width) in [
@@ -298,6 +359,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     await (widget.truth == null
         ? _fitArea()
         : _fit([...widget.truth!.expand((l) => l), ?widget.pin]));
+    _cameraMoved();
   }
 
   Future<void> _syncOverlays() async {
@@ -323,22 +385,31 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       _MapSources.measureLabel,
       measure == null ? pointsGeoJson(const []) : await _measureChip(measure),
     );
+    if (widget.route != null) {
+      await syncRoute(c, widget.route, null, _chipImage);
+    }
   }
 
   /// The chip's point half-way along the measure line, its image added once
   /// per label.
   Future<Map<String, dynamic>> _measureChip(Measure m) async {
-    final icon = 'measure:${m.label}';
-    if (_measureImages.add(icon)) {
-      final chip = MapChip.distance(m.label, PindoroTheme.of(context).colors);
-      await _controller!.addImage(icon, await chip.toPng(_pixelRatio));
-    }
+    final icon = await _chipImage(m.label);
     return pointsGeoJson(
       [
         Bbox.of([m.from, m.to]).center,
       ],
       properties: {'icon': icon},
     );
+  }
+
+  /// An ink distance chip's image, added once per label; returns its id.
+  Future<String> _chipImage(String label) async {
+    final icon = 'measure:$label';
+    if (_measureImages.add(icon)) {
+      final chip = MapChip.distance(label, PindoroTheme.of(context).colors);
+      await _controller!.addImage(icon, await chip.toPng(_pixelRatio));
+    }
+    return icon;
   }
 
   /// One locate at a time: the permission prompt answers only the first.
@@ -364,7 +435,14 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   }
 
   @override
-  Widget build(BuildContext context) => FutureBuilder<String>(
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      _size = constraints.biggest;
+      return _map(context);
+    },
+  );
+
+  Widget _map(BuildContext context) => FutureBuilder<String>(
     future: _style,
     builder: (context, style) {
       final l10n = context.l10n;
@@ -380,7 +458,8 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
                   target: center.toMapLibre,
                   zoom: PindoroCamera.zoom,
                 ),
-                onMapCreated: (c) => _controller = c,
+                onMapCreated: (c) => _controller = c..addListener(_cameraMoved),
+                trackCameraPosition: widget.onCamera != null,
                 onStyleLoadedCallback: () => runMapWork(_addOverlays),
                 onMapClick: (_, at) => widget.onTap?.call(at.toCore),
                 rotateGesturesEnabled: false,

@@ -72,6 +72,26 @@ class PinMark extends StatelessWidget {
       _png(size, pixelRatio, (canvas) => _painter.paint(canvas, size));
 }
 
+/// [glyph] at [size] dp as a PNG for map symbol layers (the route chevrons).
+Future<Uint8List> glyphPng(
+  PindoroGlyph glyph, {
+  required Color ink,
+  required Color cut,
+  required double size,
+  required double pixelRatio,
+}) async {
+  final icon = await glyphPicture(glyph, ink: ink, cut: cut);
+  try {
+    return await _png(Size.square(size), pixelRatio, (canvas) {
+      canvas
+        ..scale(size / icon.size.width)
+        ..drawPicture(icon.picture);
+    });
+  } finally {
+    icon.picture.dispose();
+  }
+}
+
 /// The road-trip replay's car (`.pd-map-car`): a route-arrow disc with the
 /// car in route paint, on a white halo, as a PNG centred on its point.
 class CarMark {

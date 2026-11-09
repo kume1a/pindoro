@@ -41,6 +41,15 @@ class GameFeedback {
   /// The next stop on the Path opens.
   void unlock() => _haptic(HapticFeedback.lightImpact);
 
+  /// A road trip's route reaches the next junction.
+  void junction() => _haptic(HapticFeedback.selectionClick);
+
+  /// A road trip's route reaches B.
+  void reached() => _haptic(HapticFeedback.lightImpact);
+
+  /// A unit is complete, and the next unit's signpost flips open.
+  void unitDone() => _haptic(HapticFeedback.mediumImpact);
+
   void confirm() => _haptic(HapticFeedback.mediumImpact);
 
   void error() => _haptic(HapticFeedback.heavyImpact);
