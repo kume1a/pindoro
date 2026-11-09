@@ -372,4 +372,88 @@ void main() {
       expect(p.current, (unit: 2, stop: 0));
     });
   });
+
+  group('placement', () {
+    final inA = _many('a', 24);
+    final inB = _many('b', 24);
+    final inC = _many('c', 24);
+    final three = buildCourse(
+      districts: [a, b, c],
+      streets: [...inA.streets, ...inB.streets, ...inC.streets],
+      lengthsByDistrict: {'a': inA.lengths, 'b': inB.lengths, 'c': inC.lengths},
+      startDistrictId: 'a',
+    );
+
+    test('a lesson is placed with 3 of its 4 streets known', () {
+      final lesson1 = [for (final s in three.first.lessons.first.streets) s.id];
+      expect(placeLessons(three, lesson1.take(2).toSet()), isEmpty);
+      expect(placeLessons(three, lesson1.take(3).toSet()), [('a', 1)]);
+      expect(placeLessons(three, lesson1.toSet()), [('a', 1)]);
+    });
+
+    test('placed lessons are done, never Perfect, and counted', () {
+      final p = courseProgress(three, [
+        _placed('a', 1),
+        _placed('a', 2),
+        _placed('a', 5),
+      ], pitStopSizes: const {});
+      expect(
+        [for (final s in p.first.stops.take(3)) s.state],
+        [StopState.done, StopState.done, StopState.current],
+      );
+      expect(p.first.stops[5].state, StopState.done, reason: 'lesson 5');
+      expect(p.first.lessonsDone, 3);
+      expect(p.current, (unit: 0, stop: 2));
+    });
+
+    test('a fully placed unit is done once the one before it is', () {
+      expect([for (final u in three) u.id], ['a', 'c', 'b']);
+      final p = courseProgress(three, [
+        for (var n = 1; n <= 6; n++) _placed('a', n),
+        for (var n = 1; n <= 6; n++) _placed('b', n),
+        _placed('c', 1),
+      ], pitStopSizes: const {});
+      expect([for (final u in p) u.done], [true, false, false]);
+      expect(p.first.stops.last.state, StopState.done, reason: 'a check');
+      expect(p[1].stops.first.state, StopState.done, reason: 'c is open');
+      expect(p[2].open, isFalse);
+      expect(p[2].stops.first.state, StopState.locked, reason: 'b is locked');
+      expect(p[2].lessonsDone, 0);
+      expect(p.current, (unit: 1, stop: 1));
+
+      final cDriven = courseProgress(three, [
+        for (var n = 1; n <= 6; n++) _placed('a', n),
+        for (var n = 1; n <= 6; n++) _placed('b', n),
+        for (var i = 0; i < 3; i++) _trip('c'),
+      ], pitStopSizes: const {});
+      expect([for (final u in cDriven) u.done], [true, true, true]);
+      expect(cDriven.current, isNull);
+    });
+
+    test('raionsFrom: the raion holding the point, then by distance', () {
+      const inB = LatLng(41.705, 44.755);
+      expect(
+        [
+          for (final d in raionsFrom([a, b, c], inB)) d.id,
+        ],
+        ['b', 'c', 'a'],
+      );
+      const westOfA = LatLng(41.705, 44.60);
+      expect(
+        [
+          for (final d in raionsFrom([c, b, a], westOfA)) d.id,
+        ],
+        ['a', 'c', 'b'],
+      );
+    });
+  });
 }
+
+/// A lesson of [unit] marked done by placement.
+LessonOutcome _placed(String unit, int n) => (
+  unitId: unit,
+  kind: LessonKind.placed,
+  lesson: n,
+  perfect: false,
+  passed: false,
+);
