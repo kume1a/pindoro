@@ -87,13 +87,49 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('first run: welcome -> city -> area -> difficulty -> round', (
+  testWidgets('first run: welcome -> city -> first district -> the Path', (
     tester,
   ) async {
+    calm(tester);
     await pumpApp(tester, Routes.welcome);
     expect(find.text('No recent cities yet'), findsOneWidget);
 
     await tapAndSettle(tester, 'Choose a city');
+    await tapAndSettle(tester, 'Tbilisi');
+    for (var i = 0; i < 3; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('Where do you want to start?'), findsOneWidget);
+    expect(find.text('ვაკის რაიონი'), findsOneWidget);
+    expect(find.textContaining(RegExp(r'^\d+ streets · \S')), findsOneWidget);
+    expect(find.text('1 district · from OpenStreetMap'), findsOneWidget);
+    expect(
+      await tester.runAsync(() => ProgressDao(db).hasCourse()),
+      isFalse,
+      reason: 'nothing is saved before Start in',
+    );
+
+    await tapAndSettle(tester, 'Start in ვაკის რაიონი');
+    for (var i = 0; i < 3; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pumpAndSettle();
+    }
+    expect(find.byType(PathScreen), findsOneWidget);
+    expect(find.text('0 of 6 lessons'), findsOneWidget);
+    expect(
+      await tester.runAsync(() => ProgressDao(db).courseStart('tbilisi')),
+      'osm:r11300449',
+    );
+    expect(await tester.runAsync(() => startLocation(db)), Routes.path);
+  });
+
+  testWidgets('Free play: city -> area -> difficulty -> round', (tester) async {
+    await pumpApp(tester, Routes.city);
     await tapAndSettle(tester, 'Tbilisi');
     expect(find.text('Pick an area first'), findsOneWidget);
 

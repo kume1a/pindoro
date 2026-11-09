@@ -2102,5 +2102,40 @@
         "type": "int"
       }
     }
+  },
+  "startTitle": "Where do you want to start?",
+  "startBody": "Your course goes district by district. Start where you live or where you need it most; the rest follow, nearest first.",
+  "startStreets": "{count, plural, =1{1 street} other{{count} streets}}",
+  "@startStreets": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "startHint": "{hint, select, near{nearest to you} centre{city centre} n{north} ne{north-east} e{east} se{south-east} s{south} sw{south-west} w{west} nw{north-west} other{}}",
+  "@startHint": {
+    "description": "Where a district is: near (to the player), centre (holds the city centre) or its compass point from the city centre.",
+    "placeholders": {
+      "hint": {
+        "type": "String"
+      }
+    }
+  },
+  "startCount": "{count, plural, =1{1 district · from OpenStreetMap} other{{count} districts · from OpenStreetMap}}",
+  "@startCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "startIn": "Start in {district}",
+  "@startIn": {
+    "placeholders": {
+      "district": {
+        "type": "String"
+      }
+    }
   }
 }

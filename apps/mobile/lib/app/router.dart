@@ -20,6 +20,7 @@ import 'package:pindoro/features/settings/ui/settings_screen.dart';
 import 'package:pindoro/features/setup/ui/area_screen.dart';
 import 'package:pindoro/features/setup/ui/city_screen.dart';
 import 'package:pindoro/features/setup/ui/difficulty_screen.dart';
+import 'package:pindoro/features/setup/ui/start_district_screen.dart';
 import 'package:pindoro/features/setup/ui/welcome_screen.dart';
 import 'package:pindoro/features/setup/ui/whats_new_screen.dart';
 import 'package:pindoro/features/streak/ui/streak_screen.dart';
@@ -110,7 +111,15 @@ GoRouter buildRouter(String initialLocation) {
       ),
       GoRoute(path: Routes.welcome, builder: (_, _) => const WelcomeScreen()),
       GoRoute(path: Routes.whatsNew, builder: (_, _) => const WhatsNewScreen()),
-      GoRoute(path: Routes.city, builder: (_, _) => const CityScreen()),
+      GoRoute(
+        path: Routes.city,
+        builder: (_, state) =>
+            CityScreen(course: state.uri.queryParameters.containsKey('course')),
+      ),
+      GoRoute(
+        path: Routes.startDistrict,
+        builder: (_, _) => const StartDistrictScreen(),
+      ),
       GoRoute(
         path: Routes.area,
         builder: (_, state) =>
