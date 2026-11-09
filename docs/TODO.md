@@ -47,16 +47,28 @@
 - Pit stop (R3), left out on purpose:
   - Answers from before the R3 update don't enter the Pit stop (it starts empty).
   - The Results chip "n to your Pit stop" isn't tappable; the Pit stop tab is the way in.
-  - The Pit stop on the lesson path waits for R4b.
   - Review items of a retired street stay in the table; readers skip them (`dueIn`).
 - Tabs and Me (R4a), left out on purpose:
-  - Me's Lessons and Road trips tiles read 0 until R4b (lessons) and R4c (road trips) count them.
+  - Me's Road trips tile reads 0 until R4c counts road trips.
   - Only Best streak opens something (Streak); the lists behind the other tiles don't exist yet.
-  - Me's city rows say "180 / 1 240 streets"; the canvas's "Unit 2 · Vake ·" prefix needs R4b.
-  - The Path tab, and tapping it to scroll to the current stop, arrive with R4b.
   - A played city whose pack isn't on the phone is left out of Me's cities.
   - After a Pit stop round, Done still lands on Free play (with the Home intro), not the Pit stop
     tab.
+- Course and lessons (R4b), left out on purpose:
+  - R4c: the lesson's road-trip step, the Final drive (drawn locked: "Road trips are on their
+    way"), Jump ahead and the locked signpost's sheet, the unit reward and its +100 XP, the R4-61
+    unit storyboard. Until then lesson 6 opens the next unit.
+  - R4d: What's new, placement, the start-district picker, the new-city and new-player coach
+    marks. Until then a course starts at the raion of the last Free play area.
+  - The Unit guide, the signpost's guide button and "See the streets" on a done lesson.
+  - Hear the name (text to speech).
+  - A killed lesson starts again; it doesn't resume at its step.
+  - Loading shows Pindo and the lane loader, without the skeleton stops.
+  - Cities without district polygons get no course (units by rings from the centre).
+  - Lesson titles and where sentences are generated; no editorial text per district.
+  - The course is rebuilt from the pack each time: a pack update that reorders a raion's streets
+    changes its lessons (results keep their lesson numbers).
+  - The locked-stop bubble always sits centred under the stop's row, not on the stop.
 
 ## Data / pipeline
 

@@ -13,9 +13,11 @@ lib/features/<feature>/data/   DAOs, repositories, stores and providers over the
 lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), their parts in ui/widgets/;
                                never Drift
                                features: progress (ProgressDao: rounds + answer log + goal days +
-                               Pit stop; streakProvider, reminders, the daily goal ring and sheet),
-                               pack, map, home, setup (welcome, city, area, difficulty), quiz (round),
-                               results (results, street, level up), settings, streak, pitstop, me
+                               Pit stop + lesson results; streakProvider, reminders, the daily goal
+                               ring and sheet, the top bar, level row, level up), pack, map (the map,
+                               the shared pin-drop view), course (the Path), home, setup (welcome,
+                               city, area, difficulty), quiz (round), results (results, street),
+                               settings, streak, pitstop, me, lesson (lesson, Lesson complete)
 lib/features/quiz/ui/round_controller.dart   round state machine; resumes from round_question + answers;
                                questions are NamedStreets (cityStreetsProvider); retries set round.retry_of,
                                Pit stop rounds round.pit_stop
@@ -29,8 +31,8 @@ test/drift/                    generated schema helpers + migration test
 ## Conventions
 
 - **Layers, lowest first:** `l10n` → `core` → `features/progress` → `features/pack` →
-  `features/map` → screen features (`home`, `setup`, `quiz`, `results`, `settings`, `streak`,
-  `pitstop`, `me`) → `app` → `main.dart`. A file imports its own slice or a lower layer only; screen features never import
+  `features/map` → `features/course` → screen features (`home`, `setup`, `quiz`, `results`,
+  `settings`, `streak`, `pitstop`, `me`, `lesson`) → `app` → `main.dart`. A file imports its own slice or a lower layer only; screen features never import
   each other. Something two features need moves down (to `core`, or to `progress`/`pack`/`map`).
   `test/architecture_test.dart` enforces this, and that `ui/` never imports Drift; a new feature
   gets a layer there. Imports are `package:pindoro/...` (lint
@@ -40,14 +42,24 @@ test/drift/                    generated schema helpers + migration test
   provide. `databaseProvider` is overridden in `main()` and in tests. Widgets read with
   `ref.watch` in build, `ref.read` in callbacks.
 - **Routing:** go_router, paths in `Routes` (v1-screens.md § Navigation). The tabs are a
-  `StatefulShellRoute` (`TabShell`, a `FadeIndexedStack` of one page per branch): `/` Free play
-  (Home), `/pit-stop`, `/me`; `go` to one of them switches tab, back on Pit stop or Me goes to Free
-  play first, and each tab page gets its own `PrimaryScrollController` (a tap on the open tab
-  scrolls it up). Every other route sits on the root navigator, over the bar: `/welcome`,
-  `/city`, `/area`, `/difficulty`, `/round` (`?round=` resumes, `?retry=` retries, `?pit-stop`
-  plays the Pit stop), `/results`, `/streak`, `/settings`, `/settings/credits`. Welcome opens
-  until the first round is finished. Footers end 12 dp above the bar on a tab
+  `StatefulShellRoute` (`TabShell`, a `FadeIndexedStack` of one page per branch): `/path` the
+  Path, `/` Free play (Home), `/pit-stop`, `/me`; `go` to one of them switches tab, back on
+  another tab goes to the Path first, and each tab page gets its own `PrimaryScrollController` (a
+  tap on the open tab scrolls it up; on the Path, to the current stop). Every other route sits on
+  the root navigator, over the bar: `/welcome`, `/city`, `/area`, `/difficulty`, `/round`
+  (`?round=` resumes, `?retry=` retries, `?pit-stop` plays the Pit stop), `/results`, `/lesson`
+  (`?unit=&lesson=`, `&practice=1`, or `?unit=&pit-stop=1`), `/lesson-done?result=`,
+  `/streak`, `/settings`, `/settings/credits`. Welcome opens until the first round or lesson is
+  finished; then the app opens on the Path. Footers end 12 dp above the bar on a tab
   (`bottomActionGap`).
+- **Course and lessons:** `coursePlanProvider` builds the open city's course with pindoro_core
+  `buildCourse` (one unit per raion) from its saved start raion (`course` table, picked on the
+  first open); `courseProvider` adds the lesson results (`courseProgress`). A lesson
+  (`LessonController`) plays a `LessonRun` on one screen and writes nothing until it ends;
+  `ProgressDao.finishLesson` then saves the `lesson_result`, its `lesson_answer`s and the Pit stop
+  updates (`reviewAnswers`) in one transaction. XP, known streets, Welcome and Me read lessons
+  too. Lesson complete's Continue sets `pathUnlockProvider`; the Path plays the unlock when it
+  shows.
 - **Strings:** every UI string comes from `lib/l10n/app_{en,ka}.arb` (gen-l10n, `context.l10n`);
   `just gen` writes `app_localizations*.dart` (not committed). Georgian is a draft awaiting native
   review.
