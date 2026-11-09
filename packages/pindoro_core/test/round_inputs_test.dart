@@ -347,5 +347,8 @@ class _FakePack implements PackRepository {
   Map<String, Set<String>> partsByDistrict() => const {};
 
   @override
+  Map<String, Map<String, double>> lengthsByDistrict() => const {};
+
+  @override
   void close() {}
 }

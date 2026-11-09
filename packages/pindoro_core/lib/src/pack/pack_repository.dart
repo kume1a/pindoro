@@ -16,5 +16,9 @@ abstract interface class PackRepository {
   /// Street (part) ids in each district, by district id.
   Map<String, Set<String>> partsByDistrict();
 
+  /// Metres of each street part inside each district: district id → part id
+  /// → metres.
+  Map<String, Map<String, double>> lengthsByDistrict();
+
   void close();
 }
