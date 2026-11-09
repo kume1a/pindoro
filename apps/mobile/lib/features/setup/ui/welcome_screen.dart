@@ -13,8 +13,9 @@ import 'package:pindoro/features/pack/data/cities.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// First run until a round is finished: Pindo, the wordmark and the way in
-/// (choose a city, or play the saved settings).
+/// First run until a course starts or a round is finished: Pindo, the
+/// wordmark and the way in (choose a city for the course, or play the saved
+/// Free play settings).
 class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
 
@@ -142,7 +143,7 @@ class WelcomeScreen extends ConsumerWidget {
                         icon: resumes == null ? null : PindoroGlyph.play,
                         hero: true,
                         onPressed: () => resumes == null
-                            ? context.push(Routes.city)
+                            ? context.push(Routes.cityForCourse)
                             : context.push(Routes.round),
                       ),
                     ),

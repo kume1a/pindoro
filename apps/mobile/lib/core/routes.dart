@@ -2,7 +2,17 @@
 abstract final class Routes {
   static const String home = '/';
   static const String welcome = '/welcome';
+
+  /// Once, for a player who played before the course existed.
+  static const String whatsNew = '/whats-new';
   static const String city = '/city';
+
+  /// The city picker of a new player's course: a city leads on to
+  /// [startDistrict] instead of the area picker.
+  static const String cityForCourse = '$city?course=1';
+
+  /// "Where do you want to start?": the open city's first unit.
+  static const String startDistrict = '/start-district';
   static const String area = '/area';
   static const String difficulty = '/difficulty';
 

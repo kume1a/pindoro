@@ -94,8 +94,10 @@ class _LessonDoneScreenState extends ConsumerState<LessonDoneScreen> {
       LessonKind.pitStop => l10n.lessonDonePitStopTitle,
       LessonKind.practice => l10n.lessonDonePracticeTitle,
       LessonKind.lesson when r.perfect => l10n.lessonDonePerfectTitle,
-      // A Final drive opens Unit complete, never this screen.
-      LessonKind.lesson || LessonKind.finalDrive => l10n.lessonDoneTitle,
+      // A Final drive opens Unit complete and placement opens nothing.
+      LessonKind.lesson ||
+      LessonKind.finalDrive ||
+      LessonKind.placed => l10n.lessonDoneTitle,
     };
     final subtitle = lesson != null
         ? l10n.lessonDoneLesson(

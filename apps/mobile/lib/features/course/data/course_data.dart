@@ -52,6 +52,12 @@ typedef CourseData = ({
 
   /// Each unit's Pit stop streets (first-try mistakes still in the pack).
   Map<String, List<String>> pitStops,
+
+  /// Lessons placement marked done, by unit id and lesson number.
+  Set<(String, int)> placed,
+
+  /// The city has no lesson results yet: the course is new.
+  bool fresh,
 });
 
 /// Where the open city's course stands.
@@ -88,6 +94,48 @@ final courseProvider = FutureProvider.autoDispose<CourseData?>((ref) async {
     ),
     firstResults: firstResults,
     pitStops: pitStops,
+    placed: {
+      for (final r in results)
+        if (r.kind == LessonKind.placed) (r.unitId, r.lesson!),
+    },
+    fresh: results.isEmpty,
+  );
+});
+
+/// What placement gives the open city's course: the streets the player
+/// knows, the lessons they place and the course with them. Reading it saves
+/// the course's default start (see [coursePlanProvider]). Null without a
+/// course.
+typedef Placement = ({
+  CoursePlan plan,
+  Set<String> known,
+  List<(String, int)> placed,
+  List<UnitProgress> units,
+});
+
+final placementProvider = FutureProvider.autoDispose<Placement?>((ref) async {
+  final dao = ref.watch(progressDaoProvider);
+  final plan = await ref.watch(coursePlanProvider.future);
+  if (plan == null) return null;
+  final known = knownStreetIds(
+    await dao.bestTierByPart(plan.pack.city().id),
+    plan.streets,
+  );
+  final placed = placeLessons(plan.units, known);
+  return (
+    plan: plan,
+    known: known,
+    placed: placed,
+    units: courseProgress(plan.units, [
+      for (final (unitId, n) in placed)
+        (
+          unitId: unitId,
+          kind: LessonKind.placed,
+          lesson: n,
+          perfect: false,
+          passed: false,
+        ),
+    ], pitStopSizes: const {}),
   );
 });
 
@@ -113,6 +161,17 @@ class PathRetap extends Notifier<int> {
 }
 
 final pathRetapProvider = NotifierProvider<PathRetap, int>(PathRetap.new);
+
+/// Whether a new course's "Start here" coach mark was closed (any tap on the
+/// Path) in this launch.
+class PathCoach extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void hide() => state = true;
+}
+
+final pathCoachProvider = NotifierProvider<PathCoach, bool>(PathCoach.new);
 
 /// The stop whose unlock the Path plays next; it clears it when it starts.
 class PathUnlock extends Notifier<StopRef?> {

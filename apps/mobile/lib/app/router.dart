@@ -20,7 +20,9 @@ import 'package:pindoro/features/settings/ui/settings_screen.dart';
 import 'package:pindoro/features/setup/ui/area_screen.dart';
 import 'package:pindoro/features/setup/ui/city_screen.dart';
 import 'package:pindoro/features/setup/ui/difficulty_screen.dart';
+import 'package:pindoro/features/setup/ui/start_district_screen.dart';
 import 'package:pindoro/features/setup/ui/welcome_screen.dart';
+import 'package:pindoro/features/setup/ui/whats_new_screen.dart';
 import 'package:pindoro/features/streak/ui/streak_screen.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -36,12 +38,14 @@ Page<void> _fadePage(GoRouterState state, Widget child) =>
           FadeTransition(opacity: animation, child: child),
     );
 
-/// Welcome shows until the player finishes a first round or lesson; then
-/// the Path. A first round saved but unfinished opens Free play, which offers
-/// to continue it.
+/// A started course opens on the Path. A player who finished a round before
+/// any course started (Free play only, before the course existed) sees
+/// What's new; a first round saved but unfinished opens Free play, which
+/// offers to continue it; anyone else starts at Welcome.
 Future<String> startLocation(AppDatabase db) async {
   final progress = ProgressDao(db);
-  if (await progress.hasPlayed()) return Routes.path;
+  if (await progress.hasCourse()) return Routes.path;
+  if (await progress.hasPlayed()) return Routes.whatsNew;
   return await progress.resumableRound(DateTime.now()) != null
       ? Routes.home
       : Routes.welcome;
@@ -106,7 +110,16 @@ GoRouter buildRouter(String initialLocation) {
         ],
       ),
       GoRoute(path: Routes.welcome, builder: (_, _) => const WelcomeScreen()),
-      GoRoute(path: Routes.city, builder: (_, _) => const CityScreen()),
+      GoRoute(path: Routes.whatsNew, builder: (_, _) => const WhatsNewScreen()),
+      GoRoute(
+        path: Routes.city,
+        builder: (_, state) =>
+            CityScreen(course: state.uri.queryParameters.containsKey('course')),
+      ),
+      GoRoute(
+        path: Routes.startDistrict,
+        builder: (_, _) => const StartDistrictScreen(),
+      ),
       GoRoute(
         path: Routes.area,
         builder: (_, state) =>

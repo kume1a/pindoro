@@ -18,11 +18,16 @@ abstract final class CourseRules {
 
   /// Added to the Final drive trip that completes a unit.
   static const int unitBonusXp = 100;
+
+  /// Known streets (of a lesson's 4) that place the lesson for a player who
+  /// already played before the course.
+  static const int placedKnown = 3;
 }
 
 /// What a finished lesson result was: a lesson, a practice of a done lesson,
-/// a unit's Pit stop, or one road trip of a unit's Final drive.
-enum LessonKind { lesson, practice, pitStop, finalDrive }
+/// a unit's Pit stop, one road trip of a unit's Final drive, or a lesson
+/// marked done by placement.
+enum LessonKind { lesson, practice, pitStop, finalDrive, placed }
 
 /// A lesson: its number in the unit (from 1) and its streets, in course order.
 typedef CourseLesson = ({int number, List<NamedStreet> streets});
@@ -163,6 +168,24 @@ String? startDistrict(
   return raions.first.id;
 }
 
+/// [raions] seen from [from]: the one holding it first, then by distance.
+List<District> raionsFrom(List<District> raions, LatLng from) {
+  double away(District d) =>
+      boundaryContains(d.boundary, from) ? -1 : distanceBetween(from, d.center);
+  return [...raions]..sort((a, b) => away(a).compareTo(away(b)));
+}
+
+/// The lessons a player who already knows [known] (street ids) skips: each
+/// lesson with [CourseRules.placedKnown] of its streets known, in course
+/// order, as (unit id, lesson number).
+List<(String, int)> placeLessons(List<CourseUnit> units, Set<String> known) => [
+  for (final u in units)
+    for (final l in u.lessons)
+      if (l.streets.where((s) => known.contains(s.id)).length >=
+          CourseRules.placedKnown)
+        (u.id, l.number),
+];
+
 enum StopKind { lesson, pitStop, finalDrive }
 
 enum StopState { locked, current, done, perfect }
@@ -207,18 +230,24 @@ extension StopDone on CourseStop {
 /// every stop of a done unit shows done, its own results keeping their look,
 /// a driven Final drive Perfect. The first unit is open; the next one opens
 /// when the one before it is done. Practice never changes a stop.
+///
+/// A placed lesson is done (never Perfect) once its unit is open; a unit
+/// whose lessons are all placed is done once it opens.
 List<UnitProgress> courseProgress(
   List<CourseUnit> course,
   Iterable<LessonOutcome> results, {
   required Map<String, int> pitStopSizes,
 }) {
   final lessons = <(String, int), bool>{};
+  final placed = <(String, int)>{};
   final pitStops = <String>{};
   final trips = <String, int>{};
   for (final r in results) {
     switch (r.kind) {
       case LessonKind.lesson:
         lessons.putIfAbsent((r.unitId, r.lesson!), () => r.perfect);
+      case LessonKind.placed:
+        placed.add((r.unitId, r.lesson!));
       case LessonKind.pitStop:
         pitStops.add(r.unitId);
       case LessonKind.finalDrive when r.passed:
@@ -229,17 +258,24 @@ List<UnitProgress> courseProgress(
   int passed(CourseUnit u) =>
       math.min(trips[u.id] ?? 0, CourseRules.finalDriveTrips);
   bool driven(CourseUnit u) => passed(u) == CourseRules.finalDriveTrips;
+  bool allPlaced(CourseUnit u) =>
+      u.lessons.every((l) => placed.contains((u.id, l.number)));
   final done = List.filled(course.length, false);
   for (var i = course.length - 1, later = false; i >= 0; i--) {
     later = later || driven(course[i]);
     done[i] = later;
+  }
+  for (var i = 0; i < course.length; i++) {
+    if (allPlaced(course[i]) && (i == 0 || done[i - 1])) done[i] = true;
   }
 
   return [
     for (final (i, unit) in course.indexed)
       () {
         final unitOpen = i == 0 || done[i - 1];
-        bool lessonDone(int n) => lessons.containsKey((unit.id, n));
+        bool lessonDone(int n) =>
+            lessons.containsKey((unit.id, n)) ||
+            (unitOpen && placed.contains((unit.id, n)));
         final pitDone =
             pitStops.contains(unit.id) ||
             (List.generate(unit.pitStopAfter, (i) => i + 1).every(lessonDone) &&

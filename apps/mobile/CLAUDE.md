@@ -47,12 +47,15 @@ test/drift/                    generated schema helpers + migration test
   Path, `/` Free play (Home), `/pit-stop`, `/me`; `go` to one of them switches tab, back on
   another tab goes to the Path first, and each tab page gets its own `PrimaryScrollController` (a
   tap on the open tab scrolls it up; on the Path, to the current stop). Every other route sits on
-  the root navigator, over the bar: `/welcome`, `/city`, `/area`, `/difficulty`, `/round`
+  the root navigator, over the bar: `/welcome`, `/whats-new`, `/city` (`?course=1` goes on to
+  `/start-district`), `/area`, `/difficulty`, `/round`
   (`?round=` resumes, `?retry=` retries, `?pit-stop` plays the Pit stop), `/results`, `/lesson`
   (`?unit=&lesson=`, `&practice=1`, or `?unit=&pit-stop=1`), `/lesson-done?result=`,
   `/drive?unit=` (the Final drive, Jump ahead on a locked unit), `/unit-done?unit=`,
-  `/streak`, `/settings`, `/settings/credits`. Welcome opens until the first round or lesson is
-  finished; then the app opens on the Path. Footers end 12 dp above the bar on a tab
+  `/streak`, `/settings`, `/settings/credits`. The app opens on the Path once a course exists
+  (`course` row); a player who finished a round before any course sees What's new (then
+  placement); a saved first round reopens Free play; anyone else gets Welcome, whose Choose a city
+  leads to the start-district picker. Footers end 12 dp above the bar on a tab
   (`bottomActionGap`).
 - **Course and lessons:** `coursePlanProvider` builds the open city's course with pindoro_core
   `buildCourse` (one unit per raion) from its saved start raion (`course` table, picked on the
@@ -62,6 +65,11 @@ test/drift/                    generated schema helpers + migration test
   updates (`reviewAnswers`) in one transaction. XP, known streets, Welcome and Me read lessons
   too. Lesson complete's Continue sets `pathUnlockProvider`; the Path plays the unlock when it
   shows (Unit complete's Continue plays the next unit opening).
+- **First launch:** What's new reads `placementProvider` (known streets → pindoro_core
+  `placeLessons`) and `ProgressDao.place` saves each placed lesson as a 0-XP `lesson_result` (kind
+  `placed`), so placement needs no table. The picker (`startDistrictsProvider`) writes nothing
+  until Start in. A course with no results shows the "Start here" coach mark (`pathCoachProvider`
+  hides it for the launch).
 - **Road trips:** format 3 packs carry a road graph (`roadGraphProvider`, null for an older pack:
   no road trips). `RouteView` (`features/map`) draws a trip: a one-finger drag that starts near the
   route's end walks pindoro_core `RouteDraft` along the streets (`RouteDrawLayer` joins the gesture

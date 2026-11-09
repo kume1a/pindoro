@@ -54,8 +54,6 @@
   - After a Pit stop round, Done still lands on Free play (with the Home intro), not the Pit stop
     tab.
 - Course and lessons (R4b), left out on purpose:
-  - R4d: What's new, placement, the start-district picker, the new-city and new-player coach
-    marks. Until then a course starts at the raion of the last Free play area.
   - The Unit guide, the signpost's guide button and "See the streets" on a done lesson.
   - Hear the name (text to speech).
   - A killed lesson starts again; it doesn't resume at its step.
@@ -82,6 +80,19 @@
     pindoro_core tests the rules and the emulator check covered them.
   - Packs grew to about 2.3 MB gzipped (a street UUID on each of about 16 000 edges); reference
     streets by row number if pack size starts to matter.
+- First launch (R4d), left out on purpose:
+  - The start district can't be changed later. A new city's course starts at the raion of its last
+    Free play area, without the picker.
+  - Placement covers the open city when What's new shows; other cities' courses start unplaced.
+  - The picker describes a district by its direction from the centre, not a hand-written line
+    ("old town hills").
+  - The "Start here" coach mark has no seen flag: it shows on each launch until the city has a
+    lesson result.
+  - A city without raions never gets a course row: What's new would show on every launch there and
+    a new player would return to Welcome. No catalog city lacks raions today.
+  - "Show me my path" shows nothing while placement is worked out (about a second for Tbilisi).
+  - The Path builds every unit so it can scroll to a current stop far down; fine for about 10
+    units, a city with many more needs a jump to an estimated offset first.
 
 ## Data / pipeline
 
