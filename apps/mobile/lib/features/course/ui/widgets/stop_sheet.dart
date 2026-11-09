@@ -17,6 +17,8 @@ Future<void> showStopSheet(
   List<SheetChip> chips = const [],
 }) => showModalBottomSheet<void>(
   context: context,
+  // Over the tab bar too, so the scrim covers the whole screen.
+  useRootNavigator: true,
   useSafeArea: true,
   isScrollControlled: true,
   builder: (sheet) {

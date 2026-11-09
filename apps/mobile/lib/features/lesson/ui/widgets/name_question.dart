@@ -13,7 +13,7 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// Three plates and Check (or the feedback bar), about this tall.
-const double _panelInset = 300;
+const double _panelInset = 380;
 
 /// "Which street is this?" (canvas R4-21): the street painted on the map,
 /// three street plates, Check. After Check a feedback bar replaces it and
