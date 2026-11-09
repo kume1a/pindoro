@@ -114,9 +114,9 @@ typedef Placement = ({
 });
 
 final placementProvider = FutureProvider.autoDispose<Placement?>((ref) async {
+  final dao = ref.watch(progressDaoProvider);
   final plan = await ref.watch(coursePlanProvider.future);
   if (plan == null) return null;
-  final dao = ref.watch(progressDaoProvider);
   final known = knownStreetIds(
     await dao.bestTierByPart(plan.pack.city().id),
     plan.streets,

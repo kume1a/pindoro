@@ -2011,5 +2011,96 @@
   "a11yStopPassed": "Passed.",
   "@a11yStopPassed": {
     "description": "Screen reader: a passed Final drive."
+  },
+  "whatsNewChip": "New in 2.0",
+  "whatsNewTitle": "{city} is now a course",
+  "@whatsNewTitle": {
+    "placeholders": {
+      "city": {
+        "type": "String"
+      }
+    }
+  },
+  "whatsNewBody": "Learn the city district by district. Everything you’ve already learned counts.",
+  "whatsNewLessons": "Lessons on a path",
+  "whatsNewLessonsLine": "New streets first, then a short test and a road trip.",
+  "whatsNewTrips": "Road trips",
+  "whatsNewTripsLine": "Draw the shortest drive between two points.",
+  "whatsNewFreePlay": "Free play is still here",
+  "whatsNewFreePlayLine": "Quick rounds in any area, just like before.",
+  "whatsNewShowPath": "Show me my path",
+  "placementTitle": "You start in Unit {number}",
+  "@placementTitle": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "placementAllTitle": "You know every unit",
+  "placementBody": "You already know {count} streets in {city}, so your course skips what you know.",
+  "@placementBody": {
+    "description": "{count} is a formatted number.",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "city": {
+        "type": "String"
+      }
+    }
+  },
+  "placementUnit": "Unit {number} · {district}",
+  "@placementUnit": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "district": {
+        "type": "String"
+      }
+    }
+  },
+  "placementComplete": "Complete · you know {known} of its {total} streets",
+  "@placementComplete": {
+    "placeholders": {
+      "known": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "placementCurrent": "{done} of {total} lessons done · lesson {lesson} is next",
+  "@placementCurrent": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "lesson": {
+        "type": "int"
+      }
+    }
+  },
+  "placementOpensAfter": "Opens after {district}",
+  "@placementOpensAfter": {
+    "placeholders": {
+      "district": {
+        "type": "String"
+      }
+    }
+  },
+  "placementFromUnit1": "Start from Unit 1 instead",
+  "placementStartLesson": "Start lesson {number}",
+  "@placementStartLesson": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
   }
 }

@@ -15,6 +15,7 @@ import 'package:pindoro/features/course/ui/path_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
 import 'package:pindoro/features/lesson/ui/drive_controller.dart';
 import 'package:pindoro/features/lesson/ui/drive_screen.dart';
+import 'package:pindoro/features/lesson/ui/lesson_screen.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
@@ -466,6 +467,119 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('6 of 6 lessons'), findsOneWidget);
+    });
+  });
+
+  group("What's new", () {
+    const raion = 'osm:r11300449';
+
+    /// A finished Free play round with a Great on [known] streets of each of
+    /// the fixture unit's [lessons].
+    Future<void> knowLessons(
+      WidgetTester tester,
+      List<int> lessons, {
+      int known = 3,
+    }) => tester.runAsync(() async {
+      final pack = SqlitePackRepository.open(AppConfig.fixturePackAsset);
+      final streets = streetsByPartId(pack.streets());
+      final unit = buildCourse(
+        districts: pack.districts(),
+        streets: {...streets.values},
+        lengthsByDistrict: pack.lengthsByDistrict(),
+        startDistrictId: raion,
+      ).first;
+      pack.close();
+      final ids = [
+        for (final n in lessons)
+          for (final s in unit.lessons[n - 1].streets.take(known)) s.id,
+      ];
+      final dao = ProgressDao(db);
+      final roundId = await dao.startRound(
+        cityId: 'tbilisi',
+        area: const DistrictsArea({raion}),
+        difficulty: Difficulty.medium,
+        packVersion: 'v1',
+        streetIds: ids,
+      );
+      for (final id in ids) {
+        await dao.recordAnswer(
+          roundId: roundId,
+          streetId: id,
+          pin: const LatLng(41.7, 44.75),
+          distanceM: 10,
+          tier: Tier.great,
+          xp: 80,
+          packVersion: 'v1',
+        );
+      }
+      await dao.finishRound(roundId);
+    });
+
+    Future<void> pumpWhatsNew(WidgetTester tester) async {
+      calm(tester);
+      expect(await tester.runAsync(() => startLocation(db)), Routes.whatsNew);
+      await pumpApp(tester, Routes.whatsNew);
+    }
+
+    Future<void> settle(WidgetTester tester) async {
+      for (var i = 0; i < 4; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pumpAndSettle();
+      }
+    }
+
+    Future<List<LessonResult>> placed(WidgetTester tester) async =>
+        (await tester.runAsync(
+          () => ProgressDao(db).lessonResultsIn('tbilisi'),
+        ))!.where((r) => r.kind == LessonKind.placed).toList();
+
+    testWidgets('placement offers the next lesson and opens it', (
+      tester,
+    ) async {
+      await knowLessons(tester, [1, 2]);
+      await pumpWhatsNew(tester);
+      expect(find.text('Tbilisi is now a course'), findsOneWidget);
+      await tapAndSettle(tester, 'Show me my path');
+      await settle(tester);
+      expect(find.text('You start in Unit 1'), findsOneWidget);
+      expect(
+        find.text('2 of 6 lessons done · lesson 3 is next'),
+        findsOneWidget,
+      );
+      await tapAndSettle(tester, 'Start lesson 3');
+      await settle(tester);
+      expect(find.byType(LessonScreen), findsOneWidget);
+      expect([for (final r in await placed(tester)) r.lesson], [1, 2]);
+      expect(await tester.runAsync(() => startLocation(db)), Routes.path);
+    });
+
+    testWidgets('Start from Unit 1 instead places nothing', (tester) async {
+      await knowLessons(tester, [1, 2]);
+      await pumpWhatsNew(tester);
+      await tapAndSettle(tester, 'Show me my path');
+      await settle(tester);
+      await tapAndSettle(tester, 'Start from Unit 1 instead');
+      await settle(tester);
+      expect(find.byType(PathScreen), findsOneWidget);
+      expect(await placed(tester), isEmpty);
+      expect(
+        await tester.runAsync(() => ProgressDao(db).courseStart('tbilisi')),
+        raion,
+      );
+    });
+
+    testWidgets('too few known streets go straight to the Path', (
+      tester,
+    ) async {
+      await knowLessons(tester, [1, 2], known: 2);
+      await pumpWhatsNew(tester);
+      await tapAndSettle(tester, 'Show me my path');
+      await settle(tester);
+      expect(find.byType(PathScreen), findsOneWidget);
+      expect(find.text('0 of 6 lessons'), findsOneWidget);
+      expect(await placed(tester), isEmpty);
     });
   });
 
