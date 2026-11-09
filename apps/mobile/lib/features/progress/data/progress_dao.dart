@@ -378,6 +378,30 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
         CoursesCompanion.insert(cityId: cityId, startDistrictId: districtId),
       );
 
+  /// Whether any city's course has started (its start raion is saved).
+  Future<bool> hasCourse() async =>
+      await (select(courses)..limit(1)).getSingleOrNull() != null;
+
+  /// Marks [lessons] (unit id, lesson number) of [cityId] done by placement:
+  /// 0 XP and no answers, so nothing else counts them.
+  Future<void> place(String cityId, List<(String, int)> lessons) => batch(
+    (b) => b.insertAll(lessonResults, [
+      for (final (unitId, n) in lessons)
+        LessonResultsCompanion.insert(
+          cityId: cityId,
+          unitId: unitId,
+          kind: LessonKind.placed,
+          lesson: Value(n),
+          difficulty: Difficulty.medium,
+          xp: 0,
+          perfect: false,
+          rightFirst: 0,
+          tests: 0,
+          durationMs: 0,
+        ),
+    ]),
+  );
+
   /// The area of [cityId]'s most recent round; null before one.
   Future<Area?> lastRoundArea(String cityId) async => parseArea(
     await (select(rounds)

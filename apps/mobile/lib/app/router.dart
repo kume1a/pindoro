@@ -36,12 +36,14 @@ Page<void> _fadePage(GoRouterState state, Widget child) =>
           FadeTransition(opacity: animation, child: child),
     );
 
-/// Welcome shows until the player finishes a first round or lesson; then
-/// the Path. A first round saved but unfinished opens Free play, which offers
-/// to continue it.
+/// A started course opens on the Path. A player who finished a round before
+/// any course started (Free play only, before the course existed) sees
+/// What's new; a first round saved but unfinished opens Free play, which
+/// offers to continue it; anyone else starts at Welcome.
 Future<String> startLocation(AppDatabase db) async {
   final progress = ProgressDao(db);
-  if (await progress.hasPlayed()) return Routes.path;
+  if (await progress.hasCourse()) return Routes.path;
+  if (await progress.hasPlayed()) return Routes.whatsNew;
   return await progress.resumableRound(DateTime.now()) != null
       ? Routes.home
       : Routes.welcome;

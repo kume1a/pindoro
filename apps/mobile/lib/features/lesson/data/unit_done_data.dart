@@ -3,8 +3,9 @@ import 'package:pindoro/features/course/data/course_data.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
-/// A finished unit, the one after it (null after the last) and what was
-/// earned and driven in it.
+/// A finished unit, the next one to play (null when none is left; placement
+/// can have done the units right after it) and what was earned and driven in
+/// it.
 typedef UnitDone = ({
   CourseUnit unit,
   CourseUnit? next,
@@ -17,13 +18,13 @@ final unitDoneProvider = FutureProvider.autoDispose.family<UnitDone?, String>((
   unitId,
 ) async {
   final dao = ref.watch(progressDaoProvider);
-  final plan = await ref.watch(coursePlanProvider.future);
-  final units = plan?.units ?? const <CourseUnit>[];
-  final i = units.indexWhere((u) => u.id == unitId);
-  if (plan == null || i < 0) return null;
+  final course = await ref.watch(courseProvider.future);
+  final units = course?.units ?? const <UnitProgress>[];
+  final i = units.indexWhere((u) => u.unit.id == unitId);
+  if (course == null || i < 0) return null;
   return (
-    unit: units[i],
-    next: units.elementAtOrNull(i + 1),
-    summary: await dao.unitSummary(plan.pack.city().id, unitId),
+    unit: units[i].unit,
+    next: units.skip(i + 1).where((u) => !u.done).firstOrNull?.unit,
+    summary: await dao.unitSummary(course.plan.pack.city().id, unitId),
   );
 });

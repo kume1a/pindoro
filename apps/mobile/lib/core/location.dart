@@ -66,6 +66,23 @@ class LocationService {
         : Located(LatLng(p.latitude, p.longitude));
   }
 
+  /// The last known position when location is on and already allowed; never
+  /// asks and never waits for a fix.
+  Future<LatLng?> ifAllowed() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) return null;
+      final permission = await Geolocator.checkPermission();
+      if (permission != LocationPermission.always &&
+          permission != LocationPermission.whileInUse) {
+        return null;
+      }
+      final p = await Geolocator.getLastKnownPosition();
+      return p == null ? null : LatLng(p.latitude, p.longitude);
+    } on Object {
+      return null;
+    }
+  }
+
   /// The settings page that fixes [denial].
   Future<void> openSettings(LocationDenied denial) async {
     await (denial is LocationServicesOff

@@ -60,7 +60,7 @@ void main() {
   });
 
   test(
-    'welcome shows until a first round is finished or saved; then the Path',
+    "welcome until a round or a course; What's new before the first course",
     () async {
       expect(await startLocation(db), Routes.welcome);
       final id = await round(['a']);
@@ -70,9 +70,18 @@ void main() {
         reason: 'Home offers to continue the saved first round',
       );
       await progress.finishRound(id);
+      expect(await startLocation(db), Routes.whatsNew);
+      expect(await progress.hasCourse(), isFalse);
+      await progress.saveCourseStart('tbilisi', 'osm:r1');
+      expect(await progress.hasCourse(), isTrue);
       expect(await startLocation(db), Routes.path);
     },
   );
+
+  test('a new player who picked a district opens on the Path', () async {
+    await progress.saveCourseStart('tbilisi', 'osm:r1');
+    expect(await startLocation(db), Routes.path);
+  });
 
   test('a finished round keeps its first finish time', () async {
     final id = await round(['a']);
@@ -408,9 +417,22 @@ void main() {
         expect(since!.difference(result.finishedAt).inSeconds, 0);
         expect(await progress.recentCityIds(), ['tbilisi']);
         expect(await progress.lessonResultsIn('tbilisi'), [result]);
+        await progress.saveCourseStart('tbilisi', 'osm:r1');
         expect(await startLocation(db), Routes.path);
       },
     );
+
+    test('placed lessons earn nothing and count as no lesson', () async {
+      await progress.place('tbilisi', [('osm:r1', 1), ('osm:r1', 2)]);
+      final rows = await progress.lessonResultsIn('tbilisi');
+      expect(
+        [for (final r in rows) (r.kind, r.lesson, r.xp)],
+        [(LessonKind.placed, 1, 0), (LessonKind.placed, 2, 0)],
+      );
+      expect(await progress.totalXp(), 0);
+      expect(await progress.lessonsDone(), 0);
+      expect(await progress.bestTierByPart('tbilisi'), isEmpty);
+    });
 
     test('lessons done counts each lesson once, not practice', () async {
       await finish(played());
