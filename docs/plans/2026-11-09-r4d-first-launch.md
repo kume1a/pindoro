@@ -30,10 +30,12 @@ derived (`course` row → Path, played → What's new). What's new, placement an
 ### Task 1: Placement and the start-district order in pindoro_core
 
 **Files:**
+
 - Modify: `packages/pindoro_core/lib/src/game/course.dart`
 - Test: `packages/pindoro_core/test/course_test.dart`
 
 **Interfaces:**
+
 - Produces: `CourseRules.placedKnown` (int 3); `LessonKind.placed`;
   `List<(String, int)> placeLessons(List<CourseUnit> units, Set<String> known)`;
   `List<District> raionsFrom(List<District> raions, LatLng from)`; `courseProgress` reading
@@ -176,6 +178,7 @@ and per unit `bool lessonDone(int n) => lessons.containsKey((unit.id, n)) ||
 ### Task 2: Placement data and the first-launch start location (app)
 
 **Files:**
+
 - Modify: `apps/mobile/lib/features/progress/data/progress_dao.dart` (`hasCourse`, `place`)
 - Modify: `apps/mobile/lib/app/router.dart` (`startLocation`, `/whats-new` route added in Task 3)
 - Modify: `apps/mobile/lib/core/routes.dart` (`whatsNew`, `startDistrict`, `cityForCourse`)
@@ -187,6 +190,7 @@ and per unit `bool lessonDone(int n) => lessons.containsKey((unit.id, n)) ||
 - Test: `apps/mobile/test/features/progress/progress_dao_test.dart`
 
 **Interfaces:**
+
 - Consumes: Task 1.
 - Produces:
   - `Future<bool> ProgressDao.hasCourse()`
@@ -314,6 +318,7 @@ LessonKind.placed => l10n.lessonDoneTitle` (a placed result never opens it).
 ### Task 3: What's new and placement
 
 **Files:**
+
 - Create: `apps/mobile/lib/features/setup/ui/whats_new_screen.dart`
 - Create: `apps/mobile/lib/features/setup/ui/widgets/whats_new_road.dart` (the intro's road)
 - Modify: `apps/mobile/lib/app/router.dart` (`GoRoute(path: Routes.whatsNew, ...)`)
@@ -321,6 +326,7 @@ LessonKind.placed => l10n.lessonDoneTitle` (a placed result never opens it).
 - Test: `apps/mobile/test/features/setup/whats_new_test.dart`
 
 **Interfaces:**
+
 - Consumes: `placementProvider`, `ProgressDao.place`, `Routes.whatsNew`, `Routes.lessonOf`.
 - Produces: `WhatsNewScreen` (route `/whats-new`).
 
@@ -382,6 +388,7 @@ and 300 of 358 dp, y at 74, 124 and 72 (canvas `WhatsNewScreen` intro).
 ### Task 4: The start-district picker for new players
 
 **Files:**
+
 - Create: `apps/mobile/lib/features/setup/data/start_districts.dart`
 - Create: `apps/mobile/lib/features/setup/ui/start_district_screen.dart`
 - Modify: `apps/mobile/lib/features/setup/ui/city_screen.dart` (`course` flag)
@@ -391,6 +398,7 @@ and 300 of 358 dp, y at 74, 124 and 72 (canvas `WhatsNewScreen` intro).
 - Test: `apps/mobile/test/app/routing_test.dart`
 
 **Interfaces:**
+
 - Consumes: `raionsFrom`, `buildCourse`, `knownCounts`, `compassPoint`, `LocationService.ifAllowed`,
   `ProgressDao.saveCourseStart`, `coursePlanProvider`.
 - Produces: `StartDistrict = ({District district, int streets, StartHint hint, CompassPoint
@@ -483,6 +491,7 @@ branch's "Find a city" keeps `Routes.city`.
 ### Task 5: The Path's "Start here" coach mark and placed lessons
 
 **Files:**
+
 - Modify: `apps/mobile/lib/features/course/ui/widgets/path_unit.dart` (`coach`)
 - Modify: `apps/mobile/lib/features/course/ui/path_screen.dart`
 - Modify: `apps/mobile/lib/features/course/data/course_data.dart` (`pathCoachProvider`)
@@ -490,6 +499,7 @@ branch's "Find a city" keeps `Routes.city`.
 - Test: `apps/mobile/test/app/routing_test.dart` (group "the Path")
 
 **Interfaces:**
+
 - Consumes: `CourseData.fresh`, `CourseData.placed`.
 - Produces: `PathUnit.coach: ({int stop, LockedNote note})?`; `pathCoachProvider`
   (`NotifierProvider<PathCoach, bool>`, true once hidden this launch).

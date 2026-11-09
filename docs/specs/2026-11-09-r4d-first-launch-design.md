@@ -19,16 +19,16 @@ same coach mark.
 
 ## Decisions
 
-| Topic            | Decision                                                                                                                                                                                              |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Placement        | Every lesson in any unit with 3 of its 4 streets known gets a check (never a star). A unit whose lessons all have one is done once the unit before it is done. Saved once; later Free play adds none |
-| Placement store  | No schema change: `lesson_result.kind` gains `placed` (text enum), one row per placed lesson, 0 XP                                                                                                   |
-| Who is "existing" | A player who finished a round but has no course yet (no `course` row): derived, no seen flag. Acting on What's new (or leaving it) creates the course, so it shows once                             |
-| Picker           | New players only. A new city's course still starts at the raion of the last Free play area there (R4b rule), with the coach mark                                                                    |
-| Picker order     | Nearest to the player first when location permission is already granted and they are inside the city's bounds; otherwise nearest to the city centre first. The picker never asks for permission   |
-| Coach mark       | "Start here" on lesson 1 while the city's course has no results at all; any tap on the Path hides it for this launch                                                                                |
-| Start location   | A course exists → Path; else played → What's new; else a saved first round → Free play; else Welcome                                                                                                |
-| Git              | Worktree `../pindoro-r4d`, branch `r4d-first-launch`, one commit per part, PR, merge commit once CI is green                                                                                         |
+| Topic             | Decision                                                                                                                                                                                             |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Placement         | Every lesson in any unit with 3 of its 4 streets known gets a check (never a star). A unit whose lessons all have one is done once the unit before it is done. Saved once; later Free play adds none |
+| Placement store   | No schema change: `lesson_result.kind` gains `placed` (text enum), one row per placed lesson, 0 XP                                                                                                   |
+| Who is "existing" | A player who finished a round but has no course yet (no `course` row): derived, no seen flag. Acting on What's new (or leaving it) creates the course, so it shows once                              |
+| Picker            | New players only. A new city's course still starts at the raion of the last Free play area there (R4b rule), with the coach mark                                                                     |
+| Picker order      | Nearest to the player first when location permission is already granted and they are inside the city's bounds; otherwise nearest to the city centre first. The picker never asks for permission      |
+| Coach mark        | "Start here" on lesson 1 while the city's course has no results at all; any tap on the Path hides it for this launch                                                                                 |
+| Start location    | A course exists → Path; else played → What's new; else a saved first round → Free play; else Welcome                                                                                                 |
+| Git               | Worktree `../pindoro-r4d`, branch `r4d-first-launch`, one commit per part, PR, merge commit once CI is green                                                                                         |
 
 ## Rules (`pindoro_core`, `game/course.dart`)
 
