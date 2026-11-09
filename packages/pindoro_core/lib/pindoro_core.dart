@@ -4,6 +4,7 @@ library;
 export 'src/game/area.dart';
 export 'src/game/course.dart';
 export 'src/game/knowledge.dart';
+export 'src/game/lesson.dart';
 export 'src/game/named_street.dart';
 export 'src/game/question_selector.dart';
 export 'src/geo/geo.dart';
