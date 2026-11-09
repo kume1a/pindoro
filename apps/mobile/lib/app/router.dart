@@ -5,9 +5,11 @@ import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/course/ui/path_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
+import 'package:pindoro/features/lesson/ui/drive_screen.dart';
 import 'package:pindoro/features/lesson/ui/lesson_controller.dart';
 import 'package:pindoro/features/lesson/ui/lesson_done_screen.dart';
 import 'package:pindoro/features/lesson/ui/lesson_screen.dart';
+import 'package:pindoro/features/lesson/ui/unit_done_screen.dart';
 import 'package:pindoro/features/me/ui/me_screen.dart';
 import 'package:pindoro/features/pitstop/ui/pit_stop_screen.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
@@ -153,6 +155,22 @@ GoRouter buildRouter(String initialLocation) {
         pageBuilder: (_, state) => _fadePage(
           state,
           LessonDoneScreen(resultId: state.uri.queryParameters['result']!),
+        ),
+      ),
+      GoRoute(
+        path: Routes.drive,
+        redirect: (_, state) =>
+            state.uri.queryParameters.containsKey('unit') ? null : Routes.path,
+        builder: (_, state) =>
+            DriveScreen(unitId: state.uri.queryParameters['unit']!),
+      ),
+      GoRoute(
+        path: Routes.unitDone,
+        redirect: (_, state) =>
+            state.uri.queryParameters.containsKey('unit') ? null : Routes.path,
+        pageBuilder: (_, state) => _fadePage(
+          state,
+          UnitDoneScreen(unitId: state.uri.queryParameters['unit']!),
         ),
       ),
       GoRoute(path: Routes.streak, builder: (_, _) => const StreakScreen()),

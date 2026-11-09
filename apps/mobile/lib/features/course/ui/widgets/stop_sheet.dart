@@ -5,8 +5,8 @@ import 'package:pindoro_design/pindoro_design.dart';
 typedef SheetChip = ({PindoroGlyph glyph, String label});
 
 /// A stop's sheet (canvas R4-11, R4-12): a [kicker] ("Lesson 3 of 6 · Unit
-/// 2 · Vake"), the [title], a [body], optional [chips] and the [action].
-/// The action closes the sheet before it runs.
+/// 2 · Vake"), the [title], a [body], optional [chips], the [action] and an
+/// optional [secondary] one below it. Each closes the sheet before it runs.
 Future<void> showStopSheet(
   BuildContext context, {
   required String kicker,
@@ -15,6 +15,8 @@ Future<void> showStopSheet(
   required String action,
   required VoidCallback onAction,
   List<SheetChip> chips = const [],
+  String? secondary,
+  VoidCallback? onSecondary,
 }) => showModalBottomSheet<void>(
   context: context,
   // Over the tab bar too, so the scrim covers the whole screen.
@@ -74,6 +76,15 @@ Future<void> showStopSheet(
                 onAction();
               },
             ),
+            if (secondary != null)
+              PindoroButton(
+                label: secondary,
+                variant: PindoroButtonVariant.tertiary,
+                onPressed: () {
+                  Navigator.of(sheet).pop();
+                  onSecondary?.call();
+                },
+              ),
           ],
         ),
       ),

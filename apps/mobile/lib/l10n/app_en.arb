@@ -1174,7 +1174,7 @@
     }
   },
   "pathFinishPitStop": "Finish the Pit stop first.",
-  "pathFinishUnit": "Finish {district}'s lessons first.",
+  "pathFinishUnit": "Finish {district}’s Final drive first.",
   "@pathFinishUnit": {
     "placeholders": {
       "district": {
@@ -1190,8 +1190,6 @@
       }
     }
   },
-  "pathFinalDriveSoon": "Road trips are on their way",
-  "pathFinalDriveSoonBody": "The Final drive opens in a later update.",
   "pathSheetLessonKicker": "Lesson {number} of {total} · Unit {unit} · {district}",
   "@pathSheetLessonKicker": {
     "placeholders": {
@@ -1800,5 +1798,218 @@
   "routeTryAgain": "Try this trip again",
   "@routeTryAgain": {
     "description": "Final drive: a new trip after a Miss."
+  },
+  "pathTipFinalDrive": "Final drive",
+  "@pathTipFinalDrive": {
+    "description": "Tip above the current Final drive stop."
+  },
+  "pathLockedFinalDrive": "The Final drive is locked",
+  "@pathLockedFinalDrive": {
+    "description": "Bubble title on a locked Final drive."
+  },
+  "pathFinalDriveDone": "Final drive passed",
+  "@pathFinalDriveDone": {
+    "description": "Bubble on a passed Final drive."
+  },
+  "a11yStopFinalDriveTrips": "{passed} of 3 road trips passed.",
+  "@a11yStopFinalDriveTrips": {
+    "description": "Screen reader: the current Final drive's trips passed.",
+    "placeholders": {
+      "passed": {
+        "type": "int"
+      }
+    }
+  },
+  "pathSheetDriveKicker": "Final drive · Unit {unit} · {district}",
+  "@pathSheetDriveKicker": {
+    "description": "Final drive sheet kicker.",
+    "placeholders": {
+      "unit": {
+        "type": "int"
+      },
+      "district": {
+        "type": "String"
+      }
+    }
+  },
+  "pathSheetDriveTitle": "Drive across {district}",
+  "@pathSheetDriveTitle": {
+    "description": "Final drive sheet title.",
+    "placeholders": {
+      "district": {
+        "type": "String"
+      }
+    }
+  },
+  "pathSheetDriveBody": "Three road trips on the streets you learned in this unit.",
+  "@pathSheetDriveBody": {
+    "description": "Final drive sheet body."
+  },
+  "pathSheetDriveOpens": "Finish to open Unit {unit} · {district}.",
+  "@pathSheetDriveOpens": {
+    "description": "Final drive sheet: what passing opens.",
+    "placeholders": {
+      "unit": {
+        "type": "int"
+      },
+      "district": {
+        "type": "String"
+      }
+    }
+  },
+  "pathSheetDrivePassed": "You passed {count} of 3.",
+  "@pathSheetDrivePassed": {
+    "description": "Final drive sheet: trips already passed.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pathSheetDriveNoGraph": "Road trips need the newest {city} pack. Connect to the internet to get it.",
+  "@pathSheetDriveNoGraph": {
+    "description": "Final drive sheet when the pack has no road graph yet.",
+    "placeholders": {
+      "city": {
+        "type": "String"
+      }
+    }
+  },
+  "pathChipTrips": "{count, plural, =1{1 road trip} other{{count} road trips}}",
+  "@pathChipTrips": {
+    "description": "Final drive sheet chip: road trips left.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pathStartDrive": "Start the drive",
+  "@pathStartDrive": {
+    "description": "Starts the Final drive."
+  },
+  "pathSheetUnitLockedKicker": "Unit {unit} · Locked",
+  "@pathSheetUnitLockedKicker": {
+    "description": "A locked unit's sheet kicker.",
+    "placeholders": {
+      "unit": {
+        "type": "int"
+      }
+    }
+  },
+  "pathSheetUnitLockedBody": "Finish {previous}’s Final drive to open {district}. Know {district} already? Pass its Final drive to jump ahead.",
+  "@pathSheetUnitLockedBody": {
+    "description": "A locked unit's sheet body.",
+    "placeholders": {
+      "previous": {
+        "type": "String"
+      },
+      "district": {
+        "type": "String"
+      }
+    }
+  },
+  "pathKeepGoing": "Keep going in {district}",
+  "@pathKeepGoing": {
+    "description": "Closes a locked unit's sheet.",
+    "placeholders": {
+      "district": {
+        "type": "String"
+      }
+    }
+  },
+  "pathJumpAhead": "Jump ahead",
+  "@pathJumpAhead": {
+    "description": "Starts a locked unit's Final drive."
+  },
+  "driveLeaveTitle": "Leave the Final drive?",
+  "@driveLeaveTitle": {
+    "description": "Dialog before leaving the Final drive."
+  },
+  "driveLeaveBody": "The trips you passed are kept.",
+  "@driveLeaveBody": {
+    "description": "Dialog body before leaving the Final drive."
+  },
+  "a11yLeaveDrive": "Leave the Final drive",
+  "@a11yLeaveDrive": {
+    "description": "Screen reader label of the Final drive's close button."
+  },
+  "a11yDriveStep": "Road trip {trip} of 3",
+  "@a11yDriveStep": {
+    "description": "Screen reader label of the Final drive's bar.",
+    "placeholders": {
+      "trip": {
+        "type": "int"
+      }
+    }
+  },
+  "unitDoneKicker": "Unit {unit} complete",
+  "@unitDoneKicker": {
+    "description": "Unit complete kicker.",
+    "placeholders": {
+      "unit": {
+        "type": "int"
+      }
+    }
+  },
+  "unitDoneTitle": "{district} complete!",
+  "@unitDoneTitle": {
+    "description": "Unit complete title.",
+    "placeholders": {
+      "district": {
+        "type": "String"
+      }
+    }
+  },
+  "unitDoneBody": "You learned {streets} streets in {district} and drove across it three times.",
+  "@unitDoneBody": {
+    "description": "Unit complete body.",
+    "placeholders": {
+      "streets": {
+        "type": "int"
+      },
+      "district": {
+        "type": "String"
+      }
+    }
+  },
+  "unitDoneStreets": "Streets",
+  "@unitDoneStreets": {
+    "description": "Unit complete stat tile."
+  },
+  "unitDoneXp": "XP",
+  "@unitDoneXp": {
+    "description": "Unit complete stat tile."
+  },
+  "unitDoneNext": "Next · Unit {unit}",
+  "@unitDoneNext": {
+    "description": "Unit complete: the next unit's signpost line.",
+    "placeholders": {
+      "unit": {
+        "type": "int"
+      }
+    }
+  },
+  "unitDoneContinueTo": "Continue to {district}",
+  "@unitDoneContinueTo": {
+    "description": "Unit complete's button when another unit follows.",
+    "placeholders": {
+      "district": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yUnitTrophy": "Unit {unit} trophy",
+  "@a11yUnitTrophy": {
+    "description": "Screen reader label of Unit complete's trophy.",
+    "placeholders": {
+      "unit": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yStopPassed": "Passed.",
+  "@a11yStopPassed": {
+    "description": "Screen reader: a passed Final drive."
   }
 }

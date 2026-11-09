@@ -13,6 +13,8 @@ import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/course/data/course_data.dart';
 import 'package:pindoro/features/course/ui/path_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
+import 'package:pindoro/features/lesson/ui/drive_controller.dart';
+import 'package:pindoro/features/lesson/ui/drive_screen.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
@@ -255,7 +257,7 @@ void main() {
       await tester.tap(first);
       await tester.pumpAndSettle();
       expect(find.text('Start lesson'), findsOneWidget);
-      expect(find.text('up to 570 XP'), findsOneWidget);
+      expect(find.text('up to 670 XP'), findsOneWidget);
       expect(
         (await tester.runAsync(() => ProgressDao(db).courseStart('tbilisi'))),
         'osm:r11300449',
@@ -382,6 +384,88 @@ void main() {
       await tester.pump();
       expect(lessonTwo(tester).look, PathStopLook.current);
       expect(road(tester), 2);
+    });
+
+    testWidgets('the Final drive: 3 trips, Unit complete, back on the Path', (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        await ProgressDao(db).saveCourseStart('tbilisi', 'osm:r11300449');
+        for (final lesson in [1, 2, 3, 4, 5, 6, null]) {
+          await db
+              .into(db.lessonResults)
+              .insert(
+                LessonResultsCompanion.insert(
+                  cityId: 'tbilisi',
+                  unitId: 'osm:r11300449',
+                  kind: lesson == null ? LessonKind.pitStop : LessonKind.lesson,
+                  lesson: Value(lesson),
+                  difficulty: Difficulty.medium,
+                  xp: 100,
+                  perfect: false,
+                  rightFirst: 6,
+                  tests: 6,
+                  durationMs: 1000,
+                ),
+              );
+        }
+      });
+      await pumpPath(tester);
+      final finalDrive = find.bySemanticsLabel(
+        RegExp(r'^Final drive\. Current\. .* 0 of 3 road trips passed\.$'),
+      );
+      await tester.ensureVisible(finalDrive);
+      await tester.pumpAndSettle();
+      await tester.tap(finalDrive);
+      await tester.pumpAndSettle();
+      expect(find.text('Drive across ვაკის რაიონი'), findsOneWidget);
+      expect(find.text('3 road trips'), findsOneWidget);
+      await tapAndSettle(tester, 'Start the drive');
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(DriveScreen)),
+      );
+      for (var i = 0; i < 3; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Final drive ${i + 1} of 3: draw the shortest drive to'),
+          findsOneWidget,
+        );
+        final play = container.read(driveControllerProvider) as DrivePlaying;
+        var route = play.draft;
+        for (final e in play.trip.best.edges) {
+          route = route.take(e);
+        }
+        container.read(driveControllerProvider.notifier).drawTo(route);
+        await tester.pumpAndSettle();
+        await tapAndSettle(tester, 'Check route');
+        expect(find.text('Best route!'), findsOneWidget);
+        await tapAndSettle(tester, i < 2 ? 'Next' : 'Continue');
+      }
+      for (var i = 0; i < 3; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pumpAndSettle();
+      }
+      expect(find.text('ვაკის რაიონი complete!'), findsOneWidget);
+      expect(find.bySemanticsLabel('Road trips, 3'), findsOneWidget);
+
+      await tapAndSettle(tester, 'Continue');
+      for (var i = 0; i < 3; i++) {
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 100)),
+        );
+        await tester.pumpAndSettle();
+      }
+      expect(
+        find.bySemanticsLabel(RegExp(r'^Final drive\. Passed\.$')),
+        findsOneWidget,
+      );
+      expect(find.text('6 of 6 lessons'), findsOneWidget);
     });
   });
 
