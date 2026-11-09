@@ -384,6 +384,25 @@ void main() {
     expect(pressed, isTrue);
   });
 
+  testWidgets('endpoint pins read their letter; the car renders', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        brightness: Brightness.light,
+        Builder(
+          builder: (context) =>
+              PinMark.endpoint('B', PindoroTheme.of(context).colors),
+        ),
+      ),
+    );
+    expect(find.bySemanticsLabel('B'), findsOneWidget);
+    final colors = PindoroTheme.of(tester.element(find.byType(PinMark))).colors;
+    final png = await tester.runAsync(() => CarMark(colors).toPng(2));
+    // PNG signature.
+    expect(png!.take(4), [0x89, 0x50, 0x4E, 0x47]);
+  });
+
   group('goldens', skip: _goldensSkip, () {
     Future<void> pumpGallery(WidgetTester tester, Brightness brightness) async {
       await tester.binding.setSurfaceSize(const Size(400, 1500));
@@ -880,6 +899,36 @@ void main() {
         await expectLater(
           find.byType(Scaffold),
           matchesGoldenFile('goldens/lesson_${brightness.name}.png'),
+        );
+      });
+    }
+
+    for (final brightness in Brightness.values) {
+      testWidgets('route ${brightness.name}', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(400, 240));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await tester.pumpWidget(
+          _host(
+            brightness: brightness,
+            Builder(
+              builder: (context) {
+                final c = PindoroTheme.of(context).colors;
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    PinMark.endpoint('A', c),
+                    PinMark.endpoint('B', c),
+                    const LevelBadge.glyph(PindoroGlyph.trophy, size: 110),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await expectLater(
+          find.byType(Scaffold),
+          matchesGoldenFile('goldens/route_${brightness.name}.png'),
         );
       });
     }

@@ -124,6 +124,21 @@ class PindoroIcon extends StatelessWidget {
   }
 }
 
+/// [glyph] as a picture for canvases (map images): ink in [ink], white in
+/// [cut], on its 24-unit grid ([PictureInfo.size]).
+Future<PictureInfo> glyphPicture(
+  PindoroGlyph glyph, {
+  required Color ink,
+  required Color cut,
+}) => vg.loadPicture(
+  SvgAssetLoader(
+    'assets/icons/${glyph.file}.svg',
+    packageName: _package,
+    colorMapper: _InkMapper(ink: ink, cut: cut),
+  ),
+  null,
+);
+
 class _InkMapper extends ColorMapper {
   const _InkMapper({required this.ink, required this.cut, this.accent});
 
