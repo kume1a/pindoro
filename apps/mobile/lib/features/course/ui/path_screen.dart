@@ -303,6 +303,45 @@ class _PathScreenState extends ConsumerState<PathScreen>
     final settings = ref.watch(settingsProvider).value;
     final c = PindoroTheme.of(context).colors;
     final current = data.units.current;
+    final coach =
+        data.fresh &&
+            current == (unit: 0, stop: 0) &&
+            !ref.watch(pathCoachProvider)
+        ? _startHere(l10n, data.units.first.unit, settings)
+        : null;
+    return Listener(
+      onPointerDown: coach == null
+          ? null
+          : (_) => ref.read(pathCoachProvider.notifier).hide(),
+      child: _units(data, current, coach, settings, c),
+    );
+  }
+
+  /// A new course's coach mark on its first lesson (canvas R4-10, new city
+  /// and new player).
+  ({int stop, LockedNote note}) _startHere(
+    AppLocalizations l10n,
+    CourseUnit unit,
+    Settings? settings,
+  ) => (
+    stop: 0,
+    note: (
+      title: l10n.pathCoachTitle,
+      body: l10n.pathCoachBody(
+        unit.lessons.first.streets.length,
+        districtName(unit.district, settings),
+      ),
+    ),
+  );
+
+  Widget _units(
+    CourseData data,
+    ({int unit, int stop})? current,
+    ({int stop, LockedNote note})? coach,
+    Settings? settings,
+    PindoroColors c,
+  ) {
+    final l10n = context.l10n;
     return CustomScrollView(
       primary: true,
       slivers: [
@@ -338,8 +377,14 @@ class _PathScreenState extends ConsumerState<PathScreen>
                   child: PathUnit(
                     stops: _unlocking(u, [
                       for (final (i, stop) in progress.stops.indexed)
-                        _view(l10n, data, progress, i, stop, settings),
+                        if (u == 0 && i == coach?.stop)
+                          _untipped(
+                            _view(l10n, data, progress, i, stop, settings),
+                          )
+                        else
+                          _view(l10n, data, progress, i, stop, settings),
                     ]),
+                    coach: u == 0 ? coach : null,
                     driven: _unlockDriven(u, _driven(progress)),
                     scaleOf: (i) => _unlockScale(u, i) ?? 1,
                     burst: _burstFor(u),
@@ -358,6 +403,16 @@ class _PathScreenState extends ConsumerState<PathScreen>
       ],
     );
   }
+
+  /// [v] without its tip: the coach mark speaks for it.
+  static StopView _untipped(StopView v) => (
+    look: v.look,
+    glyph: v.glyph,
+    big: v.big,
+    ring: v.ring,
+    tip: null,
+    label: v.label,
+  );
 
   /// The asphalt reaches the last stop that is done or current.
   static double _driven(UnitProgress progress) =>
@@ -676,7 +731,9 @@ class _PathScreenState extends ConsumerState<PathScreen>
     final perfect = stop.state == StopState.perfect;
     final xp = formatNumber(result?.xp ?? 0);
     final outcome = result == null
-        ? null
+        ? data.placed.contains((unit.id, lesson.number))
+              ? l10n.pathSheetPlacedBody
+              : null
         : perfect
         ? l10n.pathSheetPerfectResult(xp)
         : l10n.pathSheetDoneResult(

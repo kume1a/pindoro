@@ -446,5 +446,8 @@
   "startStreets": "{count, plural, =1{1 ქუჩა} other{{count} ქუჩა}}",
   "startHint": "{hint, select, near{შენთან ყველაზე ახლოს} centre{ქალაქის ცენტრი} n{ჩრდილოეთი} ne{ჩრდილო-აღმოსავლეთი} e{აღმოსავლეთი} se{სამხრეთ-აღმოსავლეთი} s{სამხრეთი} sw{სამხრეთ-დასავლეთი} w{დასავლეთი} nw{ჩრდილო-დასავლეთი} other{}}",
   "startCount": "{count, plural, =1{1 რაიონი · OpenStreetMap-დან} other{{count} რაიონი · OpenStreetMap-დან}}",
-  "startIn": "დაიწყე: {district}"
+  "startIn": "დაიწყე: {district}",
+  "pathCoachTitle": "დაიწყე აქედან",
+  "pathCoachBody": "შენი პირველი გაკვეთილი: {count} ქუჩა — {district}, მერე მოკლე ტესტი.",
+  "pathSheetPlacedBody": "ეს ქუჩები უკვე იცოდი, როცა კურსი დაიწყო."
 }

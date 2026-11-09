@@ -162,6 +162,17 @@ class PathRetap extends Notifier<int> {
 
 final pathRetapProvider = NotifierProvider<PathRetap, int>(PathRetap.new);
 
+/// Whether a new course's "Start here" coach mark was closed (any tap on the
+/// Path) in this launch.
+class PathCoach extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void hide() => state = true;
+}
+
+final pathCoachProvider = NotifierProvider<PathCoach, bool>(PathCoach.new);
+
 /// The stop whose unlock the Path plays next; it clears it when it starts.
 class PathUnlock extends Notifier<StopRef?> {
   @override

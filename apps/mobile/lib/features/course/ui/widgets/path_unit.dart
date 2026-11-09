@@ -36,7 +36,7 @@ typedef LockedNote = ({String title, String? body});
 
 /// One unit's stretch of road and its stops. A tap on an open stop calls
 /// [onStop]; a locked one wiggles and shows its [LockedNote] under it for
-/// 3 s. [driven] is how far the asphalt reaches (in road points: 0 is the
+/// 3 s. A [coach] note stays under its stop while no locked note shows. [driven] is how far the asphalt reaches (in road points: 0 is the
 /// unit's top, 1 its first stop) and [roadOpacity] how strong the road is
 /// ([lockedRoadOpacity] in a locked unit); [scaleOf] lets the unlock grow a
 /// stop.
@@ -51,6 +51,7 @@ class PathUnit extends StatefulWidget {
     this.stopKeys = const {},
     this.scaleOf,
     this.burst,
+    this.coach,
   });
 
   final List<StopView> stops;
@@ -67,6 +68,9 @@ class PathUnit extends StatefulWidget {
 
   /// The unlock's 12-dash burst around a stop, [t] from 0 to 1.
   final ({int stop, double t})? burst;
+
+  /// A coach mark under a stop (a new course's "Start here").
+  final ({int stop, LockedNote note})? coach;
 
   /// A locked unit's road (canvas R4-61 fades it up as the unit opens).
   static const double lockedRoadOpacity = 0.55;
@@ -121,10 +125,13 @@ class _PathUnitState extends State<PathUnit> {
           for (var i = 0; i < stops.length; i++) PathLayout.stop(i, width),
         ];
         final note = _note;
-        final noteAt = _noteFor == null
+        final shown = note != null && _noteFor != null
+            ? (stop: _noteFor!, note: note)
+            : widget.coach;
+        final noteAt = shown == null
             ? Offset(width / 2, 0)
-            : centres[_noteFor!] +
-                  Offset(0, PathStop.sizeOf(big: stops[_noteFor!].big) / 2);
+            : centres[shown.stop] +
+                  Offset(0, PathStop.sizeOf(big: stops[shown.stop].big) / 2);
         return SizedBox(
           height: height,
           child: Stack(
@@ -177,7 +184,7 @@ class _PathUnitState extends State<PathUnit> {
                     ),
                   ),
                 ),
-              if (note != null)
+              if (shown != null)
                 Positioned(
                   left: PindoroSpace.s4,
                   right: PindoroSpace.s4,
@@ -186,8 +193,8 @@ class _PathUnitState extends State<PathUnit> {
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 280),
                       child: CoachBubble(
-                        title: note.title,
-                        body: note.body,
+                        title: shown.note.title,
+                        body: shown.note.body,
                         pointsUp: true,
                       ),
                     ),

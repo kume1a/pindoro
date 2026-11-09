@@ -2137,5 +2137,18 @@
         "type": "String"
       }
     }
-  }
+  },
+  "pathCoachTitle": "Start here",
+  "pathCoachBody": "Your first lesson: {count} streets in {district}, then a short test.",
+  "@pathCoachBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "district": {
+        "type": "String"
+      }
+    }
+  },
+  "pathSheetPlacedBody": "You already knew these streets when the course started."
 }

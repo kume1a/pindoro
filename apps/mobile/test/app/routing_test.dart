@@ -301,6 +301,42 @@ void main() {
       );
     });
 
+    testWidgets('a new course says Start here until a tap', (tester) async {
+      await pumpPath(tester);
+      expect(find.text('Start here'), findsOneWidget);
+      expect(
+        find.text(
+          'Your first lesson: 4 streets in ვაკის რაიონი, then a short test.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Start'), findsNothing, reason: 'the coach replaces it');
+      await tester.tapAt(const Offset(8, 600));
+      await tester.pumpAndSettle();
+      expect(find.text('Start here'), findsNothing);
+      expect(find.text('Start'), findsOneWidget);
+    });
+
+    testWidgets('a placed lesson says its streets were known', (tester) async {
+      await tester.runAsync(() async {
+        final dao = ProgressDao(db);
+        await dao.saveCourseStart('tbilisi', 'osm:r11300449');
+        await dao.place('tbilisi', [('osm:r11300449', 1)]);
+      });
+      await pumpPath(tester);
+      expect(find.text('Start here'), findsNothing);
+      expect(find.text('1 of 6 lessons'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel(RegExp(r'^Lesson 1, .+ Done\. ')));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining(
+          'You already knew these streets when the course started.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Practise again'), findsOneWidget);
+    });
+
     testWidgets('a locked stop says what opens it', (tester) async {
       await pumpPath(tester);
       await tester.tap(
