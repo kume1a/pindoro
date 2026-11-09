@@ -66,6 +66,8 @@ void main() {
               step.options.indexWhere((o) => (o.id == step.street.id) != wrong),
             )
             ..check();
+        case TripStep():
+          fail('no road trip in this lesson');
         case CardStep():
       }
       await controller.next();
@@ -90,7 +92,7 @@ void main() {
     expect(result.lesson, 1);
     expect(result.unitId, unit);
     expect(result.perfect, isTrue);
-    expect(result.xp, LessonRules.maxXp);
+    expect(result.xp, LessonRules.maxXp - LessonRules.tripXp);
     expect(await ProgressDao(db).lessonsDone(), 1);
   });
 

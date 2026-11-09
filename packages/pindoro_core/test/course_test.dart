@@ -65,8 +65,34 @@ NamedStreet _street(
   );
 }
 
-LessonOutcome _lesson(String unit, int n, {bool perfect = false}) =>
-    (unitId: unit, kind: LessonKind.lesson, lesson: n, perfect: perfect);
+LessonOutcome _lesson(String unit, int n, {bool perfect = false}) => (
+  unitId: unit,
+  kind: LessonKind.lesson,
+  lesson: n,
+  perfect: perfect,
+  passed: false,
+);
+
+/// A Final drive trip of [unit].
+LessonOutcome _trip(String unit, {bool passed = true}) => (
+  unitId: unit,
+  kind: LessonKind.finalDrive,
+  lesson: null,
+  perfect: false,
+  passed: passed,
+);
+
+/// Every lesson and the Pit stop of [unit] (6 lessons).
+List<LessonOutcome> _allLessons(String unit) => [
+  for (var n = 1; n <= 6; n++) _lesson(unit, n),
+  (
+    unitId: unit,
+    kind: LessonKind.pitStop,
+    lesson: null,
+    perfect: false,
+    passed: false,
+  ),
+];
 
 void main() {
   final a = _district('a', lat: 41.70, lon: 44.70);
@@ -244,7 +270,13 @@ void main() {
           _lesson('a', 1),
           _lesson('a', 2, perfect: true),
           _lesson('a', 3),
-          (unitId: 'a', kind: LessonKind.practice, lesson: 4, perfect: true),
+          (
+            unitId: 'a',
+            kind: LessonKind.practice,
+            lesson: 4,
+            perfect: true,
+            passed: false,
+          ),
         ],
         pitStopSizes: const {'a': 2},
       );
@@ -268,20 +300,76 @@ void main() {
         course,
         [
           ...lessons,
-          (unitId: 'a', kind: LessonKind.pitStop, lesson: null, perfect: false),
+          (
+            unitId: 'a',
+            kind: LessonKind.pitStop,
+            lesson: null,
+            perfect: false,
+            passed: false,
+          ),
         ],
         pitStopSizes: const {'a': 4},
       );
       expect(played.first.stops[3].state, StopState.done);
     });
 
-    test('lesson 6 opens the next unit; the Final drive stays locked', () {
+    test('the Final drive comes due after lesson 6; the next unit waits', () {
+      final p = courseProgress(
+        course,
+        _allLessons('a'),
+        pitStopSizes: const {},
+      );
+      expect(p.first.stops.last.state, StopState.current);
+      expect(p.first.tripsPassed, 0);
+      expect(p.last.open, isFalse);
+      expect(p.current, (unit: 0, stop: 7));
+    });
+
+    test('3 passed trips pass the Final drive and open the next unit', () {
       final p = courseProgress(course, [
-        for (var n = 1; n <= 6; n++) _lesson('a', n),
+        ..._allLessons('a'),
+        _trip('a'),
+        _trip('a', passed: false),
+        _trip('a'),
       ], pitStopSizes: const {});
-      expect(p.first.stops.last.state, StopState.locked);
-      expect(p.last.open, isTrue);
-      expect(p.current, (unit: 1, stop: 0));
+      expect(p.first.tripsPassed, 2);
+      expect(p.first.done, isFalse);
+      expect(p.first.stops.last.state, StopState.current);
+      final passed = courseProgress(course, [
+        ..._allLessons('a'),
+        for (var i = 0; i < 3; i++) _trip('a'),
+      ], pitStopSizes: const {});
+      expect(passed.first.done, isTrue);
+      expect(passed.first.stops.last.state, StopState.perfect);
+      expect(passed.last.open, isTrue);
+      expect(passed.current, (unit: 1, stop: 0));
+    });
+
+    test('Jump ahead marks the unit and every one before it done', () {
+      final inC = _many('c', 24);
+      final three = buildCourse(
+        districts: [a, b, c],
+        streets: [...inA.streets, ...inB.streets, ...inC.streets],
+        lengthsByDistrict: {
+          'a': inA.lengths,
+          'b': inB.lengths,
+          'c': inC.lengths,
+        },
+        startDistrictId: 'a',
+      );
+      expect([for (final u in three) u.id], ['a', 'c', 'b']);
+      final p = courseProgress(three, [
+        _lesson('a', 1, perfect: true),
+        for (var i = 0; i < 3; i++) _trip('c'),
+      ], pitStopSizes: const {});
+      expect([for (final u in p) u.done], [true, true, false]);
+      expect([for (final u in p) u.open], [true, true, true]);
+      // Played lessons keep their star; skipped stops show a check.
+      expect(states(p, 0).first, StopState.perfect);
+      expect(states(p, 0).skip(1), everyElement(StopState.done));
+      expect(states(p, 1).last, StopState.perfect);
+      expect(p[1].lessonsDone, 6);
+      expect(p.current, (unit: 2, stop: 0));
     });
   });
 }

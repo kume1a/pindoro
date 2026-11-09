@@ -5,11 +5,15 @@ import '../scoring/scoring.dart';
 import 'course.dart';
 import 'knowledge.dart';
 import 'named_street.dart';
+import 'road_trip.dart';
 
 abstract final class LessonRules {
   static const int nameXp = 50;
   static const int finishXp = 20;
   static const int perfectXp = 50;
+
+  /// A road trip drawn as the shortest drive.
+  static const int tripXp = 100;
 
   /// "Which street is this?" steps in a lesson; every street also gets a pin.
   static const int nameTests = 2;
@@ -17,10 +21,12 @@ abstract final class LessonRules {
   /// Fixes and practice earn half, rounded down.
   static int half(int xp) => xp ~/ 2;
 
-  /// A lesson with every pin Perfect, every name right and no mistakes.
+  /// A lesson with every pin and its road trip Perfect, every name right and
+  /// no mistakes.
   static int get maxXp =>
       CourseRules.streetsPerLesson * ScoringConfig.perfectXp +
       nameTests * nameXp +
+      tripXp +
       finishXp +
       perfectXp;
 }
@@ -59,15 +65,24 @@ final class NameStep extends TestStep {
   final List<NamedStreet> options;
 }
 
+/// A road trip ending on its destination street (the step's street).
+final class TripStep extends TestStep {
+  TripStep(this.trip, {super.fix}) : super(trip.destination);
+
+  final Trip trip;
+}
+
 /// A lesson's steps: 4 new-street cards, then a pin on each street and
-/// [LessonRules.nameTests] names, shuffled so no street asks twice in a row.
-/// Practice skips the cards; a unit's Pit stop is one pin per street with
-/// its [lastDistances]. Name options come from [unitStreets].
+/// [LessonRules.nameTests] names, shuffled so no street asks twice in a row,
+/// then the road [trip] when there is one. Practice skips the cards; a unit's
+/// Pit stop is one pin per street with its [lastDistances]. Name options come
+/// from [unitStreets].
 List<LessonStep> planLesson({
   required LessonKind kind,
   required List<NamedStreet> streets,
   required List<NamedStreet> unitStreets,
   Map<String, double> lastDistances = const {},
+  Trip? trip,
   Random? random,
 }) {
   final rng = random ?? Random();
@@ -91,6 +106,7 @@ List<LessonStep> planLesson({
     if (kind == LessonKind.lesson)
       for (final (i, s) in streets.indexed) CardStep(s, i + 1),
     ...tests,
+    if (trip != null) TripStep(trip),
   ];
 }
 
@@ -113,7 +129,8 @@ List<NamedStreet> _options(
   return [answer, ...others]..shuffle(rng);
 }
 
-/// One answered test step; a name is Great when right, Miss when wrong.
+/// One answered test step; a name is Great when right, Miss when wrong; a
+/// road trip has no distance.
 typedef StepAnswer = ({
   TestStep step,
   Tier tier,
@@ -155,13 +172,13 @@ class LessonRun {
   /// Steps, counting the fixes the mistakes so far will add.
   int get total => _fixesAdded ? steps.length : steps.length + mistakes.length;
 
-  /// First-try mistakes (Close or Miss pins, wrong names), in order; only a
-  /// lesson brings them back.
+  /// First-try mistakes ([isMistake]), in order; only a lesson brings them
+  /// back.
   List<StepAnswer> get mistakes => kind != LessonKind.lesson
       ? const []
       : [
           for (final a in answers)
-            if (!a.step.fix && isRetryTier(a.tier)) a,
+            if (!a.step.fix && isMistake(a)) a,
         ];
 
   /// The first fix is next: the screen lists the mistakes before it.
@@ -200,6 +217,18 @@ class LessonRun {
     ));
   }
 
+  /// A road trip scored by [scoreRoute] ("Show the route" is a Miss).
+  LessonRun answerTrip(Score score, DateTime at) {
+    final trip = step as TripStep;
+    return _answer((
+      step: trip,
+      tier: score.tier,
+      xp: trip.fix || _halved ? LessonRules.half(score.xp) : score.xp,
+      distanceM: null,
+      at: at,
+    ));
+  }
+
   LessonRun _answer(StepAnswer answer) =>
       LessonRun._(kind, steps, index, [...answers, answer], _fixesAdded);
 
@@ -225,6 +254,7 @@ class LessonRun {
               options,
               fix: true,
             ),
+            TripStep(:final trip) => TripStep(trip, fix: true),
           },
       ],
       index + 1,
@@ -249,22 +279,30 @@ class LessonRun {
   /// Tests answered (first tries).
   int get tests => answers.where((a) => !a.step.fix).length;
 
-  /// Tests right first time: a Great or Perfect pin, a right name.
+  /// Tests right first time: a Great or Perfect pin, a right name, a road
+  /// trip that isn't a Miss.
   int get rightFirst =>
-      answers.where((a) => !a.step.fix && isKnownTier(a.tier)).length;
+      answers.where((a) => !a.step.fix && !isMistake(a)).length;
 }
 
-/// The answers of a finished [run] the Pit stop tab takes, in order. Practice
-/// and a unit's Pit stop give all of them. A lesson gives every answer for a
-/// street already [inPitStop], and otherwise only fixes that were wrong again.
+/// A mistake comes back once at the end: a Close or Miss pin, a wrong name,
+/// a Miss road trip (a Close drive still found its way).
+bool isMistake(StepAnswer a) =>
+    a.step is TripStep ? a.tier == Tier.miss : isRetryTier(a.tier);
+
+/// The answers of a finished [run] the Pit stop tab takes, in order: never a
+/// road trip (it is about the route, not one street). Practice and a unit's
+/// Pit stop give all the others. A lesson gives every answer for a street
+/// already [inPitStop], and otherwise only fixes that were wrong again.
 List<({String streetId, Tier tier})> reviewAnswers(
   LessonRun run, {
   required Set<String> inPitStop,
 }) => [
   for (final a in run.answers)
-    if (run.kind != LessonKind.lesson ||
-        inPitStop.contains(a.step.street.id) ||
-        (a.step.fix && isRetryTier(a.tier)))
+    if (a.step is! TripStep &&
+        (run.kind != LessonKind.lesson ||
+            inPitStop.contains(a.step.street.id) ||
+            (a.step.fix && isRetryTier(a.tier))))
       (streetId: a.step.street.id, tier: a.tier),
 ];
 

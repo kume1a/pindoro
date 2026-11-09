@@ -76,12 +76,13 @@ class FixesIntro extends ConsumerWidget {
                                     formatDistance(m.distanceM!, l10n),
                                   ),
                                   NameStep() => l10n.lessonFixName,
+                                  TripStep() => l10n.lessonFixTrip,
                                 },
-                                leading: RowTile(
-                                  m.step is PinStep
-                                      ? PindoroGlyph.pinDrop
-                                      : PindoroGlyph.signpost,
-                                ),
+                                leading: RowTile(switch (m.step) {
+                                  PinStep() => PindoroGlyph.pinDrop,
+                                  NameStep() => PindoroGlyph.signpost,
+                                  TripStep() => PindoroGlyph.car,
+                                }),
                               ),
                           ],
                         ),

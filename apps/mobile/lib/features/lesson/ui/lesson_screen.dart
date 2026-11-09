@@ -115,6 +115,8 @@ class _LessonView extends ConsumerWidget {
           onNext: controller.next,
         ),
         final PinStep pin => _pinDrop(context, ref, pin, topBar),
+        // ponytail: lessons plan no road trip yet; the road-trip view comes next.
+        TripStep() => const SizedBox.shrink(),
       },
     );
   }

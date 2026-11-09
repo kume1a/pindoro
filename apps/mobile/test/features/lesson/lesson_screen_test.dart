@@ -111,6 +111,8 @@ void main() {
           await tap(tester, find.text('Continue'));
         case CardStep():
           fail('no cards after the test starts');
+        case TripStep():
+          fail('no road trip in this lesson');
       }
     }
     await settle(tester);

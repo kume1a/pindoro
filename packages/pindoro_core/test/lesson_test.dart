@@ -24,6 +24,14 @@ NamedStreet _street(
 
 final _at = DateTime(2026, 11, 9, 10);
 
+/// A road trip to [destination]; its route is never drawn here.
+Trip _tripTo(NamedStreet destination) => (
+  from: 0,
+  to: 1,
+  destination: destination,
+  best: const Route([0, 1], [], 500),
+);
+
 void main() {
   final streets = [for (final id in 'abcd'.split('')) _street(id)];
   final unit = [
@@ -65,6 +73,30 @@ void main() {
         }
       },
     );
+
+    test('the road trip comes last; a Pit stop has none', () {
+      final trip = _tripTo(streets[2]);
+      for (final kind in [LessonKind.lesson, LessonKind.practice]) {
+        final steps = planLesson(
+          kind: kind,
+          streets: streets,
+          unitStreets: unit,
+          trip: trip,
+          random: Random(3),
+        );
+        expect(steps.last, isA<TripStep>().having((s) => s.trip, 'trip', trip));
+        expect(steps.whereType<TripStep>(), hasLength(1));
+      }
+      expect(
+        planLesson(
+          kind: LessonKind.pitStop,
+          streets: streets,
+          unitStreets: unit,
+          trip: trip,
+        ).whereType<TripStep>(),
+        isEmpty,
+      );
+    });
 
     test('name options: the answer and two other names', () {
       for (var seed = 0; seed < 50; seed++) {
@@ -125,6 +157,14 @@ void main() {
               _at,
             ),
             NameStep() => run.answerName(right: tier != Tier.miss, at: _at),
+            TripStep() => run.answerTrip((
+              tier: tier,
+              xp: tier == Tier.perfect
+                  ? 100
+                  : tier == Tier.close
+                  ? 40
+                  : 0,
+            ), _at),
           };
           expect(run.answered, isTrue);
         }
@@ -143,14 +183,46 @@ void main() {
       PinStep(streets[3]),
     ];
 
+    final withTrip = [...steps, TripStep(_tripTo(streets[2]))];
+
     test('a Perfect lesson earns every step, +20 and +50', () {
-      final run = play(LessonKind.lesson, steps);
-      expect(run.steps, hasLength(10));
+      final run = play(LessonKind.lesson, withTrip);
+      expect(run.steps, hasLength(11));
       expect(run.perfect, isTrue);
-      expect(run.stepXp, 4 * 100 + 2 * 50);
+      expect(run.stepXp, 4 * 100 + 2 * 50 + 100);
       expect(run.xp, LessonRules.maxXp);
-      expect(LessonRules.maxXp, 570);
-      expect((run.tests, run.rightFirst), (6, 6));
+      expect(LessonRules.maxXp, 670);
+      expect((run.tests, run.rightFirst), (7, 7));
+    });
+
+    test('a Miss road trip comes back as the same trip at half XP', () {
+      final run = play(
+        LessonKind.lesson,
+        withTrip,
+        tierFor: (step) => switch (step) {
+          TripStep(fix: false) => Tier.miss,
+          _ => Tier.perfect,
+        },
+      );
+      final fix = run.steps.last as TripStep;
+      expect(fix.fix, isTrue);
+      expect(fix.trip, (withTrip.last as TripStep).trip);
+      expect(run.answers.last.xp, 50);
+      expect(run.answers.last.distanceM, isNull);
+      expect(run.perfect, isFalse);
+      expect((run.tests, run.rightFirst), (7, 6));
+    });
+
+    test('a Close road trip is no mistake', () {
+      final run = play(
+        LessonKind.lesson,
+        withTrip,
+        tierFor: (step) => step is TripStep ? Tier.close : Tier.perfect,
+      );
+      expect(run.mistakes, isEmpty);
+      expect(run.perfect, isTrue);
+      expect(run.stepXp, 4 * 100 + 2 * 50 + 40);
+      expect((run.tests, run.rightFirst), (7, 7));
     });
 
     test('mistakes come back once, in order, at half XP', () {
@@ -206,12 +278,12 @@ void main() {
     test('practice: half XP, no fixes, no bonus', () {
       final run = play(
         LessonKind.practice,
-        steps.skip(4).toList(),
+        withTrip.skip(4).toList(),
         tierFor: (step) => step is NameStep ? Tier.miss : Tier.perfect,
       );
-      expect(run.steps, hasLength(6));
+      expect(run.steps, hasLength(7));
       expect(run.mistakes, isEmpty);
-      expect(run.xp, 4 * 50);
+      expect(run.xp, 4 * 50 + 50);
       expect(run.perfect, isFalse);
     });
   });
@@ -260,6 +332,13 @@ void main() {
         ),
         [(streetId: 'a', tier: Tier.miss), (streetId: 'a', tier: Tier.great)],
       );
+    });
+
+    test('never a road trip', () {
+      final run = LessonRun(LessonKind.practice, [
+        TripStep(_tripTo(streets[0])),
+      ]).answerTrip((tier: Tier.miss, xp: 0), _at).next();
+      expect(reviewAnswers(run, inPitStop: const {'a'}), isEmpty);
     });
 
     test('practice gives every answer', () {

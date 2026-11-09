@@ -12,11 +12,17 @@ abstract final class CourseRules {
   /// The unit's Pit stop comes after this lesson (after the last one in a
   /// shorter unit).
   static const int pitStopAfter = 3;
+
+  /// Passed road trips (Close or better) that pass a unit's Final drive.
+  static const int finalDriveTrips = 3;
+
+  /// Added to the Final drive trip that completes a unit.
+  static const int unitBonusXp = 100;
 }
 
 /// What a finished lesson result was: a lesson, a practice of a done lesson,
-/// or a unit's Pit stop.
-enum LessonKind { lesson, practice, pitStop }
+/// a unit's Pit stop, or one road trip of a unit's Final drive.
+enum LessonKind { lesson, practice, pitStop, finalDrive }
 
 /// A lesson: its number in the unit (from 1) and its streets, in course order.
 typedef CourseLesson = ({int number, List<NamedStreet> streets});
@@ -164,19 +170,25 @@ enum StopState { locked, current, done, perfect }
 /// A stop on the path; [lesson] is the lesson's number for a lesson stop.
 typedef CourseStop = ({StopKind kind, int? lesson, StopState state});
 
-/// A finished lesson result, as the path reads it.
+/// A finished lesson result, as the path reads it; [passed] is a Final drive
+/// trip that was Close or better.
 typedef LessonOutcome = ({
   String unitId,
   LessonKind kind,
   int? lesson,
   bool perfect,
+  bool passed,
 });
 
+/// A unit on the path: [done] once its Final drive or a later one passed,
+/// [tripsPassed] of its Final drive so far.
 typedef UnitProgress = ({
   CourseUnit unit,
   bool open,
+  bool done,
   List<CourseStop> stops,
   int lessonsDone,
+  int tripsPassed,
 });
 
 extension StopDone on CourseStop {
@@ -188,9 +200,13 @@ extension StopDone on CourseStop {
 /// (Perfect when its lesson's first result had no mistakes); in an open unit
 /// the first stop that isn't done is current once the one before it is done.
 /// The Pit stop is done with a result, or once the lessons before it are done
-/// and [pitStopSizes] (unit id → streets to tune up) has nothing for it. The
-/// Final drive stays locked until road trips exist; the next unit opens when
-/// a unit's last lesson is done. Practice never changes a stop.
+/// and [pitStopSizes] (unit id → streets to tune up) has nothing for it.
+///
+/// A unit is driven once [CourseRules.finalDriveTrips] of its Final drive
+/// trips passed, and done when it or any later unit is driven (Jump ahead):
+/// every stop of a done unit shows done, its own results keeping their look,
+/// a driven Final drive Perfect. The first unit is open; the next one opens
+/// when the one before it is done. Practice never changes a stop.
 List<UnitProgress> courseProgress(
   List<CourseUnit> course,
   Iterable<LessonOutcome> results, {
@@ -198,21 +214,31 @@ List<UnitProgress> courseProgress(
 }) {
   final lessons = <(String, int), bool>{};
   final pitStops = <String>{};
+  final trips = <String, int>{};
   for (final r in results) {
     switch (r.kind) {
       case LessonKind.lesson:
         lessons.putIfAbsent((r.unitId, r.lesson!), () => r.perfect);
       case LessonKind.pitStop:
         pitStops.add(r.unitId);
-      case LessonKind.practice:
+      case LessonKind.finalDrive when r.passed:
+        trips[r.unitId] = (trips[r.unitId] ?? 0) + 1;
+      case LessonKind.finalDrive || LessonKind.practice:
     }
   }
+  int passed(CourseUnit u) =>
+      math.min(trips[u.id] ?? 0, CourseRules.finalDriveTrips);
+  bool driven(CourseUnit u) => passed(u) == CourseRules.finalDriveTrips;
+  final done = List.filled(course.length, false);
+  for (var i = course.length - 1, later = false; i >= 0; i--) {
+    later = later || driven(course[i]);
+    done[i] = later;
+  }
 
-  var open = true;
   return [
-    for (final unit in course)
+    for (final (i, unit) in course.indexed)
       () {
-        final unitOpen = open;
+        final unitOpen = i == 0 || done[i - 1];
         bool lessonDone(int n) => lessons.containsKey((unit.id, n));
         final pitDone =
             pitStops.contains(unit.id) ||
@@ -237,30 +263,35 @@ List<UnitProgress> courseProgress(
           (
             kind: StopKind.finalDrive,
             lesson: null,
-            done: false,
-            perfect: false,
+            done: driven(unit),
+            perfect: driven(unit),
           ),
         ];
         // Only the first stop that isn't done can be current.
-        var canBeCurrent = unitOpen;
+        var canBeCurrent = unitOpen && !done[i];
         final stops = <CourseStop>[
           for (final s in plan)
             () {
               final state = s.done
                   ? (s.perfect ? StopState.perfect : StopState.done)
-                  : canBeCurrent && s.kind != StopKind.finalDrive
+                  : done[i]
+                  ? StopState.done
+                  : canBeCurrent
                   ? StopState.current
                   : StopState.locked;
               if (!s.done) canBeCurrent = false;
               return (kind: s.kind, lesson: s.lesson, state: state);
             }(),
         ];
-        open = lessonDone(unit.lessons.last.number);
         return (
           unit: unit,
           open: unitOpen,
+          done: done[i],
           stops: stops,
-          lessonsDone: unit.lessons.where((l) => lessonDone(l.number)).length,
+          lessonsDone: done[i]
+              ? unit.lessons.length
+              : unit.lessons.where((l) => lessonDone(l.number)).length,
+          tripsPassed: passed(unit),
         );
       }(),
   ];
