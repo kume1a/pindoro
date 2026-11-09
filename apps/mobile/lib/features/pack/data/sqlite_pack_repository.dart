@@ -75,6 +75,21 @@ class SqlitePackRepository implements PackRepository {
   }
 
   @override
+  Map<String, Map<String, double>> lengthsByDistrict() {
+    final byDistrict = <String, Map<String, double>>{};
+    for (final r in _db.select(
+      'SELECT district_id, street_id, length_m FROM street_district',
+    )) {
+      byDistrict.putIfAbsent(
+        r['district_id'] as String,
+        () => {},
+      )[r['street_id'] as String] = (r['length_m'] as num)
+          .toDouble();
+    }
+    return byDistrict;
+  }
+
+  @override
   void close() => _db.close();
 }
 

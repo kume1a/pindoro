@@ -3,7 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'package:pindoro/app/tab_shell.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
+import 'package:pindoro/features/course/ui/path_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
+import 'package:pindoro/features/lesson/ui/lesson_controller.dart';
+import 'package:pindoro/features/lesson/ui/lesson_done_screen.dart';
+import 'package:pindoro/features/lesson/ui/lesson_screen.dart';
 import 'package:pindoro/features/me/ui/me_screen.dart';
 import 'package:pindoro/features/pitstop/ui/pit_stop_screen.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
@@ -16,6 +20,7 @@ import 'package:pindoro/features/setup/ui/city_screen.dart';
 import 'package:pindoro/features/setup/ui/difficulty_screen.dart';
 import 'package:pindoro/features/setup/ui/welcome_screen.dart';
 import 'package:pindoro/features/streak/ui/streak_screen.dart';
+import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// The tabs and Results arrive with a fade rather than a slide (canvas M-40,
@@ -29,18 +34,37 @@ Page<void> _fadePage(GoRouterState state, Widget child) =>
           FadeTransition(opacity: animation, child: child),
     );
 
-/// Welcome shows until the player finishes a first round or has one saved
-/// (Home offers to continue it); then Home.
+/// Welcome shows until the player finishes a first round or lesson; then
+/// the Path. A first round saved but unfinished opens Free play, which offers
+/// to continue it.
 Future<String> startLocation(AppDatabase db) async {
   final progress = ProgressDao(db);
-  return await progress.hasFinishedRound() ||
-          await progress.resumableRound(DateTime.now()) != null
+  if (await progress.hasPlayed()) return Routes.path;
+  return await progress.resumableRound(DateTime.now()) != null
       ? Routes.home
       : Routes.welcome;
 }
 
-/// The tabs (Free play, Pit stop, Me) share a [TabShell]; every other route
-/// sits on the root navigator, over the bottom navigation.
+/// `/lesson?unit=…&lesson=n` (`&practice=1`) or `?unit=…&pit-stop=1`; null
+/// when it names neither.
+LessonArgs? _lessonArgs(GoRouterState state) {
+  final q = state.uri.queryParameters;
+  final unitId = q['unit'];
+  final lesson = int.tryParse(q['lesson'] ?? '');
+  if (unitId == null) return null;
+  if (q.containsKey('pit-stop')) {
+    return (unitId: unitId, kind: LessonKind.pitStop, lesson: null);
+  }
+  if (lesson == null) return null;
+  return (
+    unitId: unitId,
+    kind: q.containsKey('practice') ? LessonKind.practice : LessonKind.lesson,
+    lesson: lesson,
+  );
+}
+
+/// The tabs (Path, Free play, Pit stop, Me) share a [TabShell]; every other
+/// route sits on the root navigator, over the bottom navigation.
 GoRouter buildRouter(String initialLocation) {
   // ponytail: one per tab, as long as the router (the app) lives.
   final scroll = [for (var i = 0; i < TabShell.tabs; i++) ScrollController()];
@@ -69,13 +93,14 @@ GoRouter buildRouter(String initialLocation) {
         navigatorContainerBuilder: (_, shell, children) =>
             FadeIndexedStack(index: shell.currentIndex, children: children),
         branches: [
+          tab(TabShell.path, Routes.path, (_) => const PathScreen()),
           tab(
-            0,
+            TabShell.freePlay,
             Routes.home,
             (state) => HomeScreen(summary: state.extra as RoundSummary?),
           ),
-          tab(1, Routes.pitStop, (_) => const PitStopScreen()),
-          tab(2, Routes.me, (_) => const MeScreen()),
+          tab(TabShell.pitStop, Routes.pitStop, (_) => const PitStopScreen()),
+          tab(TabShell.me, Routes.me, (_) => const MeScreen()),
         ],
       ),
       GoRoute(path: Routes.welcome, builder: (_, _) => const WelcomeScreen()),
@@ -114,6 +139,21 @@ GoRouter buildRouter(String initialLocation) {
             ),
           ),
         ],
+      ),
+      GoRoute(
+        path: Routes.lesson,
+        redirect: (_, state) => _lessonArgs(state) == null ? Routes.path : null,
+        builder: (_, state) => LessonScreen(args: _lessonArgs(state)!),
+      ),
+      GoRoute(
+        path: Routes.lessonDone,
+        redirect: (_, state) => state.uri.queryParameters.containsKey('result')
+            ? null
+            : Routes.path,
+        pageBuilder: (_, state) => _fadePage(
+          state,
+          LessonDoneScreen(resultId: state.uri.queryParameters['result']!),
+        ),
       ),
       GoRoute(path: Routes.streak, builder: (_, _) => const StreakScreen()),
       GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),

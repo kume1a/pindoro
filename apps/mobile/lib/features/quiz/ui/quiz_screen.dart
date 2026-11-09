@@ -9,17 +9,13 @@ import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/online.dart';
-import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
-import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/map/ui/pin_drop_view.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/quiz/ui/round_controller.dart';
 import 'package:pindoro/features/quiz/ui/setup_states.dart';
-import 'package:pindoro/features/quiz/ui/widgets/question_plate.dart';
-import 'package:pindoro/features/quiz/ui/widgets/reticle.dart';
-import 'package:pindoro/features/quiz/ui/widgets/round_reveal.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -53,7 +49,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     showToast(
       context,
       context.l10n.toastOffline,
-      above: _RoundView._confirmInset(context),
+      above: PinDropView.confirmInset(context),
     );
   }
 
@@ -76,7 +72,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         showToast(
           context,
           context.l10n.toastRoundResumed(round.number),
-          above: _RoundView._confirmInset(context),
+          above: PinDropView.confirmInset(context),
         );
       }
       return;
@@ -136,162 +132,75 @@ class _RoundView extends ConsumerWidget {
 
   final RoundInPlay play;
 
-  /// Space the Confirm button takes at the bottom of the map.
-  static double _confirmInset(BuildContext context) =>
-      PindoroSize.buttonLg + PindoroElevation.e2 + bottomActionGap(context);
-
-  /// The reveal sheet's rough height (it keeps half the map visible).
-  static double _sheetInset(BuildContext context) =>
-      240 + MediaQuery.paddingOf(context).bottom;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final controller = ref.read(roundControllerProvider.notifier);
     final feedback = ref.read(feedbackProvider);
-    final settings = ref.watch(settingsProvider).value;
     final round = play.round;
-    final pin = play.pin;
     final revealed = switch (play) {
       final RoundRevealed r => r,
       RoundAsking() => null,
     };
-    final street = round.current;
     final coach =
         revealed == null &&
-        pin == null &&
+        play.pin == null &&
         round.index == 0 &&
         (ref.watch(_firstQuestionEverProvider).value ?? false);
-    final topInset = MediaQuery.paddingOf(context).top + 180;
-    final celebration = revealed == null
-        ? null
-        : celebrationFor(
-            revealed.answer.tier,
-            perfectsThisRound: round.perfects,
-            inARow: round.streak,
-          );
+    final answer = revealed?.answer;
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) unawaited(_leave(context, ref));
       },
-      child: Scaffold(
-        body: Stack(
-          children: [
-            ref.watch(pindoroMapBuilderProvider)(
-              PindoroMap(
-                area: round.shape,
-                pin: pin,
-                truth: revealed == null ? null : street.geometry,
-                measure: revealed == null
-                    ? null
-                    : (
-                        from: revealed.pin,
-                        to: revealed.nearest,
-                        label: formatDistance(revealed.answer.distanceM, l10n),
-                      ),
-                onTap: revealed == null
-                    ? (at) {
-                        feedback.pinDrop();
-                        controller.placePin(at);
-                        final inside = boundaryContains(
-                          round.shape.boundary,
-                          at,
-                        );
-                        if (!inside) {
-                          showToast(
-                            context,
-                            l10n.toastPinOutsideArea,
-                            above: _confirmInset(context),
-                          );
-                        }
-                      }
-                    : null,
-                topInset: topInset,
-                bottomInset: revealed == null
-                    ? _confirmInset(context)
-                    : _sheetInset(context),
-                showControls: revealed == null,
+      child: PinDropView(
+        area: round.shape,
+        questionKey: round.currentId,
+        street: round.current,
+        retryDistance: round.previousDistanceM[round.currentId],
+        pin: play.pin,
+        coach: coach,
+        topBar: _TopBar(round, onLeave: () => _leave(context, ref)),
+        reveal: revealed == null || answer == null
+            ? null
+            : (
+                key: answer.id,
+                tier: answer.tier,
+                xp: answer.xp,
+                distanceM: answer.distanceM,
+                pin: revealed.pin,
+                nearest: revealed.nearest,
+                chips: [
+                  if (answer.tier == Tier.perfect && round.perfects > 1)
+                    Pill(label: l10n.revealPerfectRepeat(round.perfects)),
+                  if (round.streak >= 2)
+                    Pill(label: l10n.revealStreak(round.streak)),
+                  if (isRetryTier(answer.tier))
+                    PitStopChip(l10n.revealToPitStop),
+                ],
+                action: answer.tier == Tier.miss
+                    ? l10n.revealGotIt
+                    : round.isLast
+                    ? l10n.revealSeeResults
+                    : l10n.commonNext,
               ),
-            ),
-            if (coach) ...[
-              const Center(child: Reticle()),
-              Align(
-                alignment: const Alignment(0, -0.25),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: PindoroSpace.s4,
-                  ),
-                  child: CoachBubble(
-                    title: l10n.quizCoachTitle,
-                    body: l10n.quizCoachBody,
-                  ),
-                ),
+        celebration: answer == null
+            ? null
+            : celebrationFor(
+                answer.tier,
+                perfectsThisRound: round.perfects,
+                inARow: round.streak,
               ),
-            ],
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(PindoroSpace.s4),
-                child: Column(
-                  spacing: PindoroSpace.s4,
-                  children: [
-                    _TopBar(round, onLeave: () => _leave(context, ref)),
-                    RiseSwitcher(
-                      child: QuestionPlate(
-                        key: ValueKey(round.currentId),
-                        street: street,
-                        settings: settings,
-                        compact: revealed != null,
-                        retryDistance: round.previousDistanceM[round.currentId],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (revealed == null)
-              Positioned(
-                left: PindoroSpace.s4,
-                right: PindoroSpace.s4,
-                bottom: bottomActionGap(context),
-                child: Semantics(
-                  label: pin == null ? l10n.a11yConfirmDisabled : null,
-                  child: PindoroButton(
-                    label: l10n.commonConfirm,
-                    onPressed: pin == null
-                        ? null
-                        : () {
-                            feedback.confirm();
-                            unawaited(controller.confirm());
-                          },
-                  ),
-                ),
-              )
-            else
-              Align(
-                alignment: Alignment.bottomCenter,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 600),
-                  child: RiseIn(
-                    key: ValueKey(revealed.answer.id),
-                    child: RoundReveal(
-                      revealed: revealed,
-                      onNext: controller.next,
-                    ),
-                  ),
-                ),
-              ),
-            if (celebration != null)
-              Positioned.fill(
-                child: Celebration(
-                  key: ValueKey(revealed!.answer.id),
-                  size: celebration,
-                  burstCenter: const Alignment(-0.78, 0.5),
-                ),
-              ),
-          ],
-        ),
+        onPin: (at) {
+          feedback.pinDrop();
+          controller.placePin(at);
+        },
+        onConfirm: () {
+          feedback.confirm();
+          unawaited(controller.confirm());
+        },
+        onNext: controller.next,
       ),
     );
   }

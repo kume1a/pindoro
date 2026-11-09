@@ -6,8 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
+import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/me/data/me_data.dart';
 import 'package:pindoro/features/progress/ui/level_card.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -55,12 +57,12 @@ class MeScreen extends ConsumerWidget {
           label: l10n.meStreetsKnown,
           value: formatNumber(known),
         ),
-        // ponytail: lessons arrive in R4b and road trips in R4c.
         StatTile(
           glyph: PindoroGlyph.road,
           label: l10n.meLessons,
-          value: formatNumber(0),
+          value: formatNumber(me.lessonsDone),
         ),
+        // ponytail: road trips arrive in R4c.
         StatTile(
           glyph: PindoroGlyph.car,
           label: l10n.meRoadTrips,
@@ -113,7 +115,8 @@ class _TileGrid extends StatelessWidget {
   );
 }
 
-/// A city with its known streets; a tap plays there in Free play.
+/// A city with its course's unit and its known streets; a tap opens its
+/// Path.
 class _CityRow extends ConsumerWidget {
   const _CityRow(this.city);
 
@@ -125,16 +128,25 @@ class _CityRow extends ConsumerWidget {
     final name = context.localName(ka: city.nameKa, en: city.nameEn);
     final known = formatNumber(city.count.known);
     final total = formatNumber(city.count.total);
+    final unit = city.unit;
+    final settings = ref.watch(settingsProvider).value;
     return ListRow(
       title: name,
-      subtitle: l10n.meCityStreets(known, total),
+      subtitle: unit == null
+          ? l10n.meCityStreets(known, total)
+          : l10n.meCityUnit(
+              unit.number,
+              districtName(unit.district, settings),
+              known,
+              total,
+            ),
       below: Minibar(value: city.count.fraction),
       leading: const RowTile(PindoroGlyph.pin),
       trailing: const PindoroIcon(PindoroGlyph.chevronRight),
       semanticsLabel: l10n.a11yDistrictRow(name, known, total),
       onTap: () async {
         await ref.read(settingsDaoProvider).chooseCity(city.id);
-        if (context.mounted) context.go(Routes.home);
+        if (context.mounted) context.go(Routes.path);
       },
     );
   }

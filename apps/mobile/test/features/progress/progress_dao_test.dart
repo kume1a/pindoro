@@ -51,25 +51,28 @@ void main() {
   );
 
   test('play began with the first round', () async {
-    expect(await progress.firstRoundAt(), isNull);
+    expect(await progress.firstPlayedAt(), isNull);
     await round(['a']);
-    final first = await progress.firstRoundAt();
+    final first = await progress.firstPlayedAt();
     await round(['b']);
     expect(first, isNotNull);
-    expect(await progress.firstRoundAt(), first);
+    expect(await progress.firstPlayedAt(), first);
   });
 
-  test('welcome shows until a first round is finished or saved', () async {
-    expect(await startLocation(db), Routes.welcome);
-    final id = await round(['a']);
-    expect(
-      await startLocation(db),
-      Routes.home,
-      reason: 'Home offers to continue the saved first round',
-    );
-    await progress.finishRound(id);
-    expect(await startLocation(db), Routes.home);
-  });
+  test(
+    'welcome shows until a first round is finished or saved; then the Path',
+    () async {
+      expect(await startLocation(db), Routes.welcome);
+      final id = await round(['a']);
+      expect(
+        await startLocation(db),
+        Routes.home,
+        reason: 'Home offers to continue the saved first round',
+      );
+      await progress.finishRound(id);
+      expect(await startLocation(db), Routes.path);
+    },
+  );
 
   test('a finished round keeps its first finish time', () async {
     final id = await round(['a']);
@@ -317,6 +320,187 @@ void main() {
       final pit = await round(['a', 'b'], pitStop: true);
       await answer(pit, 'a', Tier.great, distanceM: 40);
       expect(await progress.previousDistances(pit), {'a': 250, 'b': 300});
+    });
+  });
+
+  group('lessons', () {
+    NamedStreet street(String id) => NamedStreet([
+      Street(
+        id: id,
+        nameKa: 'name $id',
+        nameEn: null,
+        roadClass: 'residential',
+        difficulty: Difficulty.expert,
+        lengthM: 500,
+        midpoint: const LatLng(41.7, 44.75),
+        bbox: const Bbox(41.7, 44.75, 41.7, 44.75),
+        geometry: const [
+          [LatLng(41.7, 44.75)],
+        ],
+      ),
+    ]);
+    final a = street('a'), b = street('b'), c = street('c');
+    final at = DateTime.now();
+
+    /// Pin a (as [pinA]), name b ([nameB]), then their fixes when wrong.
+    LessonRun played({
+      LessonKind kind = LessonKind.lesson,
+      Tier pinA = Tier.perfect,
+      bool nameB = true,
+      Tier fixA = Tier.perfect,
+      bool fixB = true,
+    }) {
+      var run = LessonRun(kind, [
+        PinStep(a),
+        NameStep(b, [b, a, c]),
+      ]);
+      run = run
+          .answerPin((tier: pinA, xp: pinA == Tier.perfect ? 100 : 0), 900, at)
+          .next()
+          .answerName(right: nameB, at: at)
+          .next();
+      while (!run.finished) {
+        run = switch (run.step) {
+          PinStep() => run.answerPin(
+            (tier: fixA, xp: fixA == Tier.perfect ? 100 : 0),
+            300,
+            at,
+          ),
+          _ => run.answerName(right: fixB, at: at),
+        };
+        run = run.next();
+      }
+      return run;
+    }
+
+    Future<String> finish(
+      LessonRun run, {
+      int? lesson = 1,
+      String unitId = 'osm:r1',
+      String cityId = 'tbilisi',
+      List<({String streetId, Tier tier})> reviews = const [],
+    }) => progress.finishLesson(
+      cityId: cityId,
+      unitId: unitId,
+      kind: run.kind,
+      lesson: lesson,
+      difficulty: Difficulty.medium,
+      run: run,
+      startedAt: at.subtract(const Duration(minutes: 3)),
+      reviews: reviews,
+    );
+
+    test(
+      'a finished lesson writes its result and answers, and counts',
+      () async {
+        expect(await progress.hasPlayed(), isFalse);
+        expect(await startLocation(db), Routes.welcome);
+        final id = await finish(played());
+        final result = await progress.lessonResult(id);
+        expect(result.xp, 100 + 50 + 20 + 50);
+        expect(result.perfect, isTrue);
+        expect((result.rightFirst, result.tests), (2, 2));
+        expect(result.durationMs, greaterThanOrEqualTo(180000));
+        expect(await progress.totalXp(), 220);
+        expect(await progress.xpOn(calendarDay(DateTime.now())), 220);
+        expect(await progress.hasPlayed(), isTrue);
+        final since = await progress.firstPlayedAt();
+        expect(since!.difference(result.finishedAt).inSeconds, 0);
+        expect(await progress.recentCityIds(), ['tbilisi']);
+        expect(await progress.lessonResultsIn('tbilisi'), [result]);
+        expect(await startLocation(db), Routes.path);
+      },
+    );
+
+    test('lessons done counts each lesson once, not practice', () async {
+      await finish(played());
+      await finish(played());
+      await finish(played(), lesson: 2);
+      await finish(played(kind: LessonKind.practice));
+      await finish(played(), cityId: 'batumi');
+      expect(await progress.lessonsDone(), 3);
+    });
+
+    test(
+      'known: a Great pin and a right name first time, not a name fix',
+      () async {
+        await finish(played(pinA: Tier.miss, nameB: false));
+        final best = await progress.bestTierByPart('tbilisi');
+        expect(best, {'a': Tier.perfect, 'b': Tier.miss});
+        await finish(played());
+        expect(await progress.bestTierByPart('tbilisi'), {
+          'a': Tier.perfect,
+          'b': Tier.great,
+        });
+        expect(
+          await progress.bestTierByPart(
+            'tbilisi',
+            before: DateTime.now().subtract(const Duration(days: 1)),
+          ),
+          isEmpty,
+        );
+      },
+    );
+
+    test('only the given reviews reach the Pit stop', () async {
+      await finish(
+        played(pinA: Tier.miss, fixA: Tier.close),
+        reviews: const [(streetId: 'a', tier: Tier.close)],
+      );
+      final items = await progress.pitStop('tbilisi');
+      expect([for (final i in items) (i.streetId, i.step)], [('a', 1)]);
+    });
+
+    test('a lesson that reaches the daily goal marks today', () async {
+      final run = LessonRun(LessonKind.lesson, [
+        for (final s in [a, b, c, street('d'), street('e')]) PinStep(s),
+      ]);
+      var done = run;
+      while (!done.finished) {
+        done = done.answerPin((tier: Tier.perfect, xp: 100), 0, at).next();
+      }
+      await finish(done);
+      expect((await progress.goalDayRounds()).keys, [calendarDay(at)]);
+    });
+
+    test(
+      'unit mistakes: first tries through lesson 3, in order, once',
+      () async {
+        await finish(played(pinA: Tier.close, fixA: Tier.close), lesson: 1);
+        await finish(played(nameB: false), lesson: 2);
+        await finish(played(pinA: Tier.miss), lesson: 4);
+        await finish(
+          played(kind: LessonKind.practice, nameB: false),
+          lesson: 1,
+        );
+        await finish(played(pinA: Tier.miss), lesson: 3, unitId: 'osm:r2');
+        expect(
+          await progress.unitMistakes('tbilisi', 'osm:r1', throughLesson: 3),
+          ['a', 'b'],
+        );
+      },
+    );
+
+    test('last distances: the latest pin of Free play or a lesson', () async {
+      final r = await round(['a', 'b']);
+      await answer(r, 'a', Tier.miss, distanceM: 900);
+      await answer(r, 'b', Tier.close, distanceM: 200);
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+      await finish(played(pinA: Tier.close));
+      expect(await progress.lastDistances('tbilisi', ['a', 'b', 'c']), {
+        'a': 300,
+        'b': 200,
+      });
+    });
+
+    test('the course start and the last round area', () async {
+      expect(await progress.courseStart('tbilisi'), isNull);
+      await progress.saveCourseStart('tbilisi', 'osm:r2');
+      await progress.saveCourseStart('tbilisi', 'osm:r1');
+      expect(await progress.courseStart('tbilisi'), 'osm:r1');
+      expect(await progress.lastRoundArea('tbilisi'), isNull);
+      await round(['a']);
+      expect(await progress.lastRoundArea('tbilisi'), vake);
     });
   });
 }

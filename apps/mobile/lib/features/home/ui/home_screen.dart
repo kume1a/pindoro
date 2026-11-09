@@ -13,12 +13,12 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/home/data/home_data.dart';
 import 'package:pindoro/features/home/ui/widgets/city_card.dart';
 import 'package:pindoro/features/home/ui/widgets/home_intro.dart';
-import 'package:pindoro/features/home/ui/widgets/home_streak_pill.dart';
 import 'package:pindoro/features/home/ui/widgets/level_card.dart';
 import 'package:pindoro/features/home/ui/widgets/saved_card.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/pack/ui/pack_pending.dart';
 import 'package:pindoro/features/progress/data/streak.dart';
+import 'package:pindoro/features/progress/ui/play_top_bar.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -85,7 +85,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
     final city = home.pack.city();
-    final cityName = context.localName(ka: city.nameKa, en: city.nameEn);
     final level = progressWithinLevel(home.totalXp);
     // Areas picked in another pack (offline, the Vake one stands in) aren't
     // playable here, so Play asks for an area instead.
@@ -112,47 +111,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         bottom: false,
         child: Column(
           children: [
-            ContentColumn(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  PindoroSpace.s4,
-                  PindoroSpace.s2,
-                  PindoroSpace.s4,
-                  0,
-                ),
-                child: Row(
-                  spacing: PindoroSpace.s2,
-                  children: [
-                    Expanded(
-                      child: Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: CitySwitcher(
-                          city: cityName,
-                          semanticLabel: l10n.a11yCitySwitcher(cityName),
-                          onPressed: () => open(Routes.city),
-                        ),
-                      ),
-                    ),
-                    if (streak != null)
-                      HomeStreakPill(
-                        streak,
-                        onPressed: () => open(Routes.streak),
-                      ),
-                    CountUp(
-                      value: home.totalXp,
-                      from: intro?.xpBefore ?? home.totalXp,
-                      delay: HomeIntroAt.xp,
-                      builder: (context, xp) => Pill(
-                        label: formatNumber(xp),
-                        icon: PindoroGlyph.xp,
-                        iconColor: c.xpFill,
-                        ring: intro != null && !intro.settled,
-                        semanticLabel: l10n.homeXpTotal(
-                          formatNumber(home.totalXp),
-                        ),
-                      ),
-                    ),
-                  ],
+            PlayTopBar(
+              city: city,
+              xp: CountUp(
+                value: home.totalXp,
+                from: intro?.xpBefore ?? home.totalXp,
+                delay: HomeIntroAt.xp,
+                builder: (context, xp) => XpPill(
+                  home.totalXp,
+                  shown: xp,
+                  ring: intro != null && !intro.settled,
                 ),
               ),
             ),

@@ -4,9 +4,10 @@ import 'package:pindoro/features/progress/data/streak.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// The streak in Home's top bar, in this moment's state; opens Streak.
-class HomeStreakPill extends StatelessWidget {
-  const HomeStreakPill(this.view, {super.key, required this.onPressed});
+/// The streak in the top bar of Free play and the Path, in this moment's
+/// state; opens Streak.
+class TopStreakPill extends StatelessWidget {
+  const TopStreakPill(this.view, {super.key, required this.onPressed});
 
   final StreakView view;
   final VoidCallback onPressed;

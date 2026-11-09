@@ -399,23 +399,51 @@ void main() {
   });
 
   group('me', () {
-    testWidgets('level, stats and cities; a city opens Free play', (
+    testWidgets('level, stats and cities; a city opens its Path', (
       tester,
     ) async {
       // One Great of 4 000 XP: level 4 (from 3 750), today's goal met.
-      await tester.runAsync(() => roundWithAnswers(1, xp: 4000));
+      await tester.runAsync(() async {
+        await roundWithAnswers(1, xp: 4000);
+        await ProgressDao(
+          db,
+        ).saveCourseStart('tbilisi', AppConfig.fixtureDistrictId);
+        await db
+            .into(db.lessonResults)
+            .insert(
+              LessonResultsCompanion.insert(
+                cityId: 'tbilisi',
+                unitId: AppConfig.fixtureDistrictId,
+                kind: LessonKind.lesson,
+                lesson: const Value(1),
+                difficulty: Difficulty.medium,
+                xp: 0,
+                perfect: false,
+                rightFirst: 4,
+                tests: 6,
+                durationMs: 90000,
+              ),
+            );
+      });
+      // The Path's current stop floats for good; settle without motion.
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
       await pumpApp(tester, Routes.me);
       expect(find.text('Level 4'), findsOneWidget);
       expect(find.textContaining('playing since'), findsOneWidget);
       expect(find.text('${formatNumber(1500)} XP to level 5'), findsOneWidget);
       for (final label in [
         'Streets known, 1',
-        'Lessons, 0',
+        'Lessons, 1',
         'Road trips, 0',
         'Best streak, 1 day',
       ]) {
         expect(find.bySemanticsLabel(label), findsOneWidget);
       }
+      expect(find.textContaining('Unit 1 · ვაკის რაიონი · 1 /'), findsOne);
       final tbilisi = find.bySemanticsLabel(
         RegExp(r'^Tbilisi, 1 of \S+ streets known$'),
       );
@@ -423,7 +451,7 @@ void main() {
 
       await tester.tap(tbilisi);
       await settle(tester);
-      expect(find.text('Streets you know'), findsOneWidget);
+      expect(find.text('1 of 6 lessons'), findsOneWidget);
     });
   });
 

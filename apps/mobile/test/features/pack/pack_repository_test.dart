@@ -56,4 +56,15 @@ void main() {
       for (final s in streets) s.id,
     });
   });
+
+  test('lengthsByDistrict measures each part inside its districts', () {
+    final lengths = pack.lengthsByDistrict()[AppConfig.fixtureDistrictId]!;
+    expect(
+      lengths.keys.toSet(),
+      pack.partsByDistrict()[AppConfig.fixtureDistrictId],
+    );
+    for (final s in pack.streets(districtId: AppConfig.fixtureDistrictId)) {
+      expect(lengths[s.id], inInclusiveRange(0, s.lengthM + 1));
+    }
+  });
 }

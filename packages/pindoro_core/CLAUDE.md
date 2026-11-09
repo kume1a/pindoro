@@ -7,7 +7,9 @@ lib/src/geo/        LatLng, LocalProjection, Bbox, pointToPolylineDistance, poly
 lib/src/scoring/    Difficulty, Tier, ScoringConfig (half-widths, fixed distances), scoreAnswer
 lib/src/progress/   levels: requirement, totalXpToReach, levelForXp, progressWithinLevel
 lib/src/game/       Area (districts/circle/rect, in-area rule), NamedStreet (nearby same-name parts),
-                    QuestionSelector (10 names, 3 × 3 grid), knowledge (per street)
+                    QuestionSelector (10 names, 3 × 3 grid), knowledge (per street),
+                    course (units per raion, stops, progress), lesson (steps, LessonRun, XP,
+                    card facts)
 lib/src/pack/       City/District/Street (pack rows), PackRepository
 ```
 
@@ -18,6 +20,7 @@ lib/src/pack/       City/District/Street (pack rows), PackRepository
   vectors in `shared/fixtures/*.json` (distance tolerance 0.5 m). Change one side → change the other
   and the vectors in the same commit.
 - **Scoring constants live only in `ScoringConfig`** (and its TS twin). No magic numbers elsewhere.
+  Game rules the server never scores stay Dart-only: `ReviewRules`, `CourseRules`, `LessonRules`.
 - Distances are measured to segments, not vertices, in a local equirectangular projection around
   the query point.
 - **A street is a name in one place.** Packs keep same-name parts as separate rows with stable ids;

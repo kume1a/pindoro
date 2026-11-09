@@ -246,5 +246,9 @@ class _TinyPack implements PackRepository {
   Map<String, Set<String>> partsByDistrict() => _inner.partsByDistrict();
 
   @override
+  Map<String, Map<String, double>> lengthsByDistrict() =>
+      _inner.lengthsByDistrict();
+
+  @override
   void close() => _inner.close();
 }
