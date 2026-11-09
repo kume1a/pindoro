@@ -66,6 +66,87 @@ void main() {
       }
     });
 
+    test('skips an A only a long loop reaches', () {
+      // B and A 600 m apart; the only road between them goes 1 km north,
+      // across and back down (2.6 km).
+      const b = LatLng(41.7, 44.8), a = LatLng(41.7, 44.8072);
+      const north = LatLng(41.709, 44.8), northEast = LatLng(41.709, 44.8072);
+      const south = LatLng(41.695, 44.8072);
+      RoadEdge edge(
+        int id,
+        int from,
+        int to,
+        String street,
+        LatLng x,
+        LatLng y,
+      ) => RoadEdge(
+        id: id,
+        from: from,
+        to: to,
+        streetId: street,
+        lengthM: distanceBetween(x, y),
+        line: [x, y],
+      );
+      final loop = RoadGraph(
+        {0: b, 1: north, 2: northEast, 3: a, 4: south},
+        [
+          edge(0, 0, 1, 'dest', b, north),
+          edge(1, 1, 2, 'top', north, northEast),
+          edge(2, 2, 3, 'side', northEast, a),
+          edge(3, 3, 4, 'start', a, south),
+        ],
+      );
+      NamedStreet street(String id, LatLng x, LatLng y) => NamedStreet([
+        Street(
+          id: id,
+          nameKa: id,
+          nameEn: null,
+          roadClass: 'residential',
+          difficulty: Difficulty.expert,
+          lengthM: distanceBetween(x, y),
+          midpoint: x,
+          bbox: Bbox.of([x, y]),
+          geometry: [
+            [x, y],
+          ],
+        ),
+      ]);
+      expect(
+        pickTrip(
+          loop,
+          destinations: [street('dest', b, north)],
+          starts: [street('start', a, south)],
+          minM: 500,
+          maxM: 700,
+          random: Random(1),
+        ),
+        isNull,
+      );
+    });
+
+    test('every trip drives at most 1.6 times the straight line', () {
+      final holey = roadGrid(8, skip: {for (var i = 0; i < 112; i += 5) i});
+      for (var seed = 0; seed < 20; seed++) {
+        final trip = pickTrip(
+          holey.graph,
+          destinations: holey.streets.values.toList(),
+          starts: holey.streets.values,
+          minM: 500,
+          maxM: 1500,
+          random: Random(seed),
+        );
+        if (trip == null) continue;
+        final straight = distanceBetween(
+          holey.graph.at(trip.from),
+          holey.graph.at(trip.to),
+        );
+        expect(
+          trip.best.lengthM,
+          lessThanOrEqualTo(straight * TripRules.maxDetour),
+        );
+      }
+    });
+
     test('is null when no start is far enough', () {
       expect(
         pickTrip(

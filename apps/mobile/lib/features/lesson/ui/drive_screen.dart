@@ -146,7 +146,8 @@ class _DriveTopBar extends StatelessWidget {
           child: QuestionBar(
             tiers: [
               for (var i = 0; i < play.passed; i++) Tier.great,
-              if (play.answered) play.passes ? Tier.great : Tier.miss,
+              // A Miss keeps its segment current: that trip is driven again.
+              if (play.passes) Tier.great,
             ],
             total: CourseRules.finalDriveTrips,
             semanticLabel: l10n.a11yDriveStep(driveStep(play)),

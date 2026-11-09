@@ -1,5 +1,5 @@
 import 'dart:math' as math;
-import 'dart:ui' show Offset, Size;
+import 'package:flutter/painting.dart' show EdgeInsets, Offset, Size;
 
 import 'package:pindoro_core/pindoro_core.dart';
 
@@ -40,6 +40,43 @@ class MapProjection {
     final n = math.pi * (1 - 2 * y);
     final lat = math.atan((math.exp(n) - math.exp(-n)) / 2) * 180 / math.pi;
     return LatLng(lat, x * 360 - 180);
+  }
+
+  /// The camera that fits [points] inside [size] less [padding], up to
+  /// [maxZoom]. Computed here rather than with MapLibre's bounds update,
+  /// which keeps the padding on the camera and moves its target off the
+  /// view's centre, where [toScreen] expects it.
+  static ({LatLng target, double zoom}) fit(
+    List<LatLng> points, {
+    required Size size,
+    required EdgeInsets padding,
+    double maxZoom = 17,
+  }) {
+    final xs = [for (final p in points) _x(p.lon)];
+    final ys = [for (final p in points) _y(p.lat)];
+    final (minX, maxX) = (xs.reduce(math.min), xs.reduce(math.max));
+    final (minY, maxY) = (ys.reduce(math.min), ys.reduce(math.max));
+    final width = math.max(1.0, size.width - padding.horizontal);
+    final height = math.max(1.0, size.height - padding.vertical);
+    final fits = [
+      if (maxX > minX) math.log(width / ((maxX - minX) * _tile)) / math.ln2,
+      if (maxY > minY) math.log(height / ((maxY - minY) * _tile)) / math.ln2,
+    ];
+    final zoom = fits.fold(maxZoom, math.min);
+    final world = _tile * math.pow(2, zoom);
+    // The bounds' centre sits at the padded area's centre.
+    final dx = padding.left + width / 2 - size.width / 2;
+    final dy = padding.top + height / 2 - size.height / 2;
+    final x = (minX + maxX) / 2 - dx / world;
+    final y = (minY + maxY) / 2 - dy / world;
+    final n = math.pi * (1 - 2 * y);
+    return (
+      target: LatLng(
+        math.atan((math.exp(n) - math.exp(-n)) / 2) * 180 / math.pi,
+        x * 360 - 180,
+      ),
+      zoom: zoom,
+    );
   }
 
   /// Ground metres one dp covers at [at].

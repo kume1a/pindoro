@@ -249,13 +249,32 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   }
 
   Future<void> _fit(List<LatLng> points) async {
+    final padding = EdgeInsets.fromLTRB(
+      PindoroCamera.fitPaddingX,
+      widget.topInset + PindoroSpace.s6,
+      // A road trip's A and B must clear the map controls on the right.
+      widget.onCamera != null && widget.showControls
+          ? PindoroSize.tapMin + 2 * PindoroSpace.s4
+          : PindoroCamera.fitPaddingX,
+      widget.bottomInset + PindoroSpace.s6,
+    );
+    final size = _size;
+    // A bounds update keeps its padding on the camera, which moves the target
+    // off the view's centre; [MapProjection] needs it there.
+    if (widget.onCamera != null && size != null) {
+      final camera = MapProjection.fit(points, size: size, padding: padding);
+      await _controller?.animateCamera(
+        ml.CameraUpdate.newLatLngZoom(camera.target.toMapLibre, camera.zoom),
+      );
+      return;
+    }
     await _controller?.animateCamera(
       ml.CameraUpdate.newLatLngBounds(
         Bbox.of(points).toMapLibre,
-        left: PindoroCamera.fitPaddingX,
-        top: widget.topInset + PindoroSpace.s6,
-        right: PindoroCamera.fitPaddingX,
-        bottom: widget.bottomInset + PindoroSpace.s6,
+        left: padding.left,
+        top: padding.top,
+        right: padding.right,
+        bottom: padding.bottom,
       ),
     );
   }

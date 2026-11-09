@@ -253,7 +253,7 @@ class _RouteViewState extends ConsumerState<RouteView>
                   best: best?.lines ?? const [],
                   ghost: ghostLines,
                   car: _replaying ? best?.tip : null,
-                  chip: reveal != null || drawn.isEmpty
+                  chip: reveal != null || drawn.isEmpty || draft.reached
                       ? null
                       : (
                           at: graph.at(draft.end),

@@ -15,7 +15,11 @@ abstract final class TripRules {
   static const int destinationTries = 3;
 
   /// A candidates tried per B (each costs an A* search).
-  static const int startTries = 10;
+  static const int startTries = 20;
+
+  /// The best drive may be at most this many times the straight line: past
+  /// it, A or B sits where only a long loop reaches (a park, a dead end).
+  static const double maxDetour = 1.6;
 }
 
 /// A road trip: drive from junction [from] (A) to [to] (B), which lies on
@@ -24,8 +28,9 @@ typedef Trip = ({int from, int to, NamedStreet destination, Route best});
 
 /// A trip to one of [destinations] (shuffled): B is a junction on it, its
 /// middle first; A a junction on another of the [starts] streets, [minM] to
-/// [maxM] from B in a straight line, joined to B by a route. Both lie inside
-/// [within] when given. Null when nothing qualifies.
+/// [maxM] from B in a straight line, joined to B by a route at most
+/// [TripRules.maxDetour] times as long. Both lie inside [within] when given.
+/// Null when nothing qualifies.
 Trip? pickTrip(
   RoadGraph graph, {
   required List<NamedStreet> destinations,
@@ -67,7 +72,8 @@ Trip? pickTrip(
       ]..shuffle(random);
       for (final a in candidates.take(TripRules.startTries)) {
         final best = graph.shortestRoute(a, b);
-        if (best != null) {
+        final straight = distanceBetween(graph.at(a), graph.at(b));
+        if (best != null && best.lengthM <= straight * TripRules.maxDetour) {
           return (from: a, to: b, destination: destination, best: best);
         }
       }

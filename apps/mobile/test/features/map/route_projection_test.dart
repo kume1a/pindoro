@@ -38,4 +38,28 @@ void main() {
       closeTo(100 * z15.metresPerDp(target), 0.5),
     );
   });
+
+  test('fit puts the points inside the padded area', () {
+    const size = Size(400, 800);
+    const padding = EdgeInsets.fromLTRB(32, 280, 32, 180);
+    const a = LatLng(41.7203, 44.7699), b = LatLng(41.7101, 44.7902);
+    final camera = MapProjection.fit([a, b], size: size, padding: padding);
+    final p = MapProjection(
+      target: camera.target,
+      zoom: camera.zoom,
+      size: size,
+    );
+    final inner = padding.deflateRect(Offset.zero & size).inflate(0.5);
+    expect(inner.contains(p.toScreen(a)), isTrue);
+    expect(inner.contains(p.toScreen(b)), isTrue);
+    // One side touches the padded area's edge: it is as close as it fits.
+    final xs = [p.toScreen(a).dx, p.toScreen(b).dx]..sort();
+    expect(xs.first, closeTo(padding.left, 0.5));
+    expect(xs.last, closeTo(size.width - padding.right, 0.5));
+    // A single point keeps the zoom cap.
+    expect(
+      MapProjection.fit([a], size: size, padding: padding, maxZoom: 16).zoom,
+      16,
+    );
+  });
 }
