@@ -31,30 +31,31 @@ typedef StopView = ({
   String label,
 });
 
-/// What a locked stop (or the signpost) says when tapped.
+/// What a locked stop says when tapped.
 typedef LockedNote = ({String title, String? body});
 
 /// One unit's stretch of road and its stops. A tap on an open stop calls
 /// [onStop]; a locked one wiggles and shows its [LockedNote] under it for
 /// 3 s. [driven] is how far the asphalt reaches (in road points: 0 is the
-/// unit's top, 1 its first stop); [scaleOf] lets the unlock grow a stop.
+/// unit's top, 1 its first stop) and [roadOpacity] how strong the road is
+/// ([lockedRoadOpacity] in a locked unit); [scaleOf] lets the unlock grow a
+/// stop.
 class PathUnit extends StatefulWidget {
   const PathUnit({
     super.key,
     required this.stops,
     required this.driven,
-    required this.dim,
+    required this.roadOpacity,
     required this.onStop,
     required this.lockedNote,
     this.stopKeys = const {},
     this.scaleOf,
-    this.bubbleAtTop,
     this.burst,
   });
 
   final List<StopView> stops;
   final double driven;
-  final bool dim;
+  final double roadOpacity;
   final ValueChanged<int> onStop;
 
   /// Null for a stop that opens a sheet.
@@ -64,11 +65,11 @@ class PathUnit extends StatefulWidget {
   final Map<int, GlobalKey> stopKeys;
   final double Function(int stop)? scaleOf;
 
-  /// A note to show at the top of the unit (its locked signpost was tapped).
-  final ValueNotifier<LockedNote?>? bubbleAtTop;
-
   /// The unlock's 12-dash burst around a stop, [t] from 0 to 1.
   final ({int stop, double t})? burst;
+
+  /// A locked unit's road (canvas R4-61 fades it up as the unit opens).
+  static const double lockedRoadOpacity = 0.55;
 
   @override
   State<PathUnit> createState() => _PathUnitState();
@@ -81,21 +82,9 @@ class _PathUnitState extends State<PathUnit> {
   Timer? _hide;
 
   @override
-  void initState() {
-    super.initState();
-    widget.bubbleAtTop?.addListener(_showTop);
-  }
-
-  @override
   void dispose() {
-    widget.bubbleAtTop?.removeListener(_showTop);
     _hide?.cancel();
     super.dispose();
-  }
-
-  void _showTop() {
-    final note = widget.bubbleAtTop?.value;
-    if (note != null) _show(-1, note);
   }
 
   void _show(int stop, LockedNote note) {
@@ -132,7 +121,7 @@ class _PathUnitState extends State<PathUnit> {
           for (var i = 0; i < stops.length; i++) PathLayout.stop(i, width),
         ];
         final note = _note;
-        final noteAt = _noteFor == null || _noteFor! < 0
+        final noteAt = _noteFor == null
             ? Offset(width / 2, 0)
             : centres[_noteFor!] +
                   Offset(0, PathStop.sizeOf(big: stops[_noteFor!].big) / 2);
@@ -149,7 +138,7 @@ class _PathUnitState extends State<PathUnit> {
                     Offset(width / 2, height),
                   ],
                   driven: widget.driven,
-                  opacity: widget.dim ? 0.55 : 1,
+                  opacity: widget.roadOpacity,
                 ),
               ),
               for (final (i, s) in stops.indexed)

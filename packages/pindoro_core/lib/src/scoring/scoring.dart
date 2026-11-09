@@ -114,3 +114,47 @@ Score scoreAnswer(double distanceM, String roadClass, Difficulty difficulty) {
   final tier = t.tierFor(distanceM);
   return (tier: tier, xp: t.xpFor(tier, distanceM));
 }
+
+/// Road trips: how much longer the drawn drive is than the shortest one, in
+/// percent of the shortest, scored like a pin distance. Must equal
+/// @pindoro/geo RouteScoring (shared/fixtures/route_vectors.json).
+abstract final class RouteScoring {
+  /// Medium percentages; each is multiplied by the difficulty factor.
+  static const double perfectMaxPct = 3;
+  static const double greatMaxPct = 25;
+  static const double closeMaxPct = 60;
+
+  /// Great: [greatXpAt] − [greatXpPerPct] × p, 90 → 60.
+  static const double greatXpAt = 90;
+  static const double greatXpPerPct = 1.2;
+
+  /// Close: [closeXpAt] − [closeXpPerPct] × (p − [greatMaxPct]), 60 → 25.
+  static const double closeXpAt = 60;
+  static const double closeXpPerPct = 1;
+}
+
+/// Scores a drawn drive of [drawnM] against the shortest of [bestM]; p is
+/// divided by the difficulty factor, as pin distances are.
+Score scoreRoute(double drawnM, double bestM, Difficulty difficulty) {
+  final p =
+      (drawnM / bestM - 1) * 100 / ScoringConfig.difficultyFactor(difficulty);
+  if (p <= RouteScoring.perfectMaxPct) {
+    return (tier: Tier.perfect, xp: ScoringConfig.perfectXp);
+  }
+  if (p <= RouteScoring.greatMaxPct) {
+    return (
+      tier: Tier.great,
+      xp: (RouteScoring.greatXpAt - RouteScoring.greatXpPerPct * p).round(),
+    );
+  }
+  if (p <= RouteScoring.closeMaxPct) {
+    return (
+      tier: Tier.close,
+      xp:
+          (RouteScoring.closeXpAt -
+                  RouteScoring.closeXpPerPct * (p - RouteScoring.greatMaxPct))
+              .round(),
+    );
+  }
+  return (tier: Tier.miss, xp: 0);
+}

@@ -493,6 +493,84 @@ void main() {
       });
     });
 
+    group('road trips', () {
+      final trip = (
+        from: 0,
+        to: 1,
+        destination: c,
+        best: const Route([0, 1], [], 800),
+      );
+
+      /// A lesson whose road trip to c scored [tier] (a Miss comes back).
+      LessonRun withTrip(Tier tier) {
+        var run = LessonRun(LessonKind.lesson, [PinStep(a), TripStep(trip)]);
+        run = run
+            .answerPin((tier: Tier.perfect, xp: 100), 0, at)
+            .next()
+            .answerTrip((tier: tier, xp: tier == Tier.miss ? 0 : 100), at)
+            .next();
+        while (!run.finished) {
+          run = run.answerTrip((tier: Tier.miss, xp: 0), at).next();
+        }
+        return run;
+      }
+
+      test('a lesson saves its trip without a distance', () async {
+        final id = await finish(withTrip(Tier.great));
+        final answers = await progress.lessonAnswersOf(id);
+        expect(answers.last.kind, LessonAnswerKind.trip);
+        expect(answers.last.streetId, 'c');
+        expect(answers.last.distanceM, isNull);
+        expect(await progress.roadTrips(), 1);
+      });
+
+      test(
+        'a trip is no unit mistake, knows no street, keeps last distances',
+        () async {
+          await finish(withTrip(Tier.miss));
+          expect(
+            await progress.unitMistakes('tbilisi', 'osm:r1', throughLesson: 3),
+            isEmpty,
+          );
+          await finish(withTrip(Tier.perfect));
+          expect(await progress.bestTierByPart('tbilisi'), {'a': Tier.perfect});
+          expect(await progress.lastDistances('tbilisi', ['a', 'c']), {'a': 0});
+        },
+      );
+
+      test('a Final drive trip saves its own result and the bonus', () async {
+        Future<String> drive(Tier tier, {bool completes = false}) =>
+            progress.finishTrip(
+              cityId: 'tbilisi',
+              unitId: 'osm:r1',
+              difficulty: Difficulty.medium,
+              trip: trip,
+              score: (tier: tier, xp: tier == Tier.miss ? 0 : 64),
+              completesUnit: completes,
+              startedAt: at,
+            );
+        final missed = await progress.lessonResult(await drive(Tier.miss));
+        expect(missed.kind, LessonKind.finalDrive);
+        expect((missed.rightFirst, missed.tests, missed.xp), (0, 1, 0));
+        final last = await progress.lessonResult(
+          await drive(Tier.great, completes: true),
+        );
+        expect((last.rightFirst, last.xp), (1, 64 + CourseRules.unitBonusXp));
+        expect(await progress.totalXp(), 164);
+        expect(await progress.roadTrips(), 2);
+        await finish(withTrip(Tier.great));
+        expect(await progress.unitSummary('tbilisi', 'osm:r1'), (
+          xp: 164 + 100 + 100 + 20 + 50,
+          trips: 3,
+        ));
+        expect(await progress.unitSummary('tbilisi', 'osm:r2'), (
+          xp: 0,
+          trips: 0,
+        ));
+        expect(await progress.lessonsDone(), 1);
+      });
+    });
+
     test('the course start and the last round area', () async {
       expect(await progress.courseStart('tbilisi'), isNull);
       await progress.saveCourseStart('tbilisi', 'osm:r2');

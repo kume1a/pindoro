@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/features/course/data/course_data.dart';
+import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
@@ -37,8 +38,9 @@ final class LessonSaved extends LessonState {
   final String resultId;
 }
 
-/// A lesson being played; [nearest] is set once a pin step is answered and
-/// [choice] while a name step has a plate picked.
+/// A lesson being played; [nearest] is set once a pin step is answered,
+/// [choice] while a name step has a plate picked and [draft] on a road trip.
+/// [firstTrip] shows the road-trip ghost (no trip saved yet).
 final class LessonPlaying extends LessonState {
   const LessonPlaying({
     required this.args,
@@ -49,10 +51,13 @@ final class LessonPlaying extends LessonState {
     required this.difficulty,
     required this.startedAt,
     required this.run,
+    this.graph,
     this.pin,
     this.nearest,
     this.choice,
+    this.draft,
     this.fixesOpen = false,
+    this.firstTrip = false,
   });
 
   final LessonArgs args;
@@ -66,16 +71,28 @@ final class LessonPlaying extends LessonState {
   final LatLng? pin;
   final LatLng? nearest;
   final int? choice;
+  final RoadGraph? graph;
+  final RouteDraft? draft;
+
+  /// The road trip's route so far: from A until something is drawn.
+  RouteDraft? get route => switch (run.step) {
+    TripStep(:final trip) when !run.finished =>
+      draft ?? RouteDraft(graph!, trip.from, trip.to),
+    _ => null,
+  };
 
   /// The mistakes list was closed with Fix them.
   final bool fixesOpen;
+  final bool firstTrip;
 
   LessonPlaying copyWith({
     LessonRun? run,
     LatLng? pin,
     LatLng? nearest,
     int? choice,
+    RouteDraft? draft,
     bool? fixesOpen,
+    bool? firstTrip,
     bool clearStep = false,
   }) => LessonPlaying(
     args: args,
@@ -86,10 +103,13 @@ final class LessonPlaying extends LessonState {
     difficulty: difficulty,
     startedAt: startedAt,
     run: run ?? this.run,
+    graph: graph,
     pin: clearStep ? null : pin ?? this.pin,
     nearest: clearStep ? null : nearest ?? this.nearest,
     choice: clearStep ? null : choice ?? this.choice,
+    draft: draft ?? (clearStep ? null : this.draft),
     fixesOpen: fixesOpen ?? this.fixesOpen,
+    firstTrip: firstTrip ?? this.firstTrip,
   );
 }
 
@@ -108,7 +128,9 @@ class LessonController extends Notifier<LessonState> {
   Future<void> start(LessonArgs args) async {
     final dao = _dao;
     final plan = await ref.read(coursePlanProvider.future);
+    final graph = await ref.read(roadGraphProvider.future);
     final settings = await ref.read(settingsDaoProvider).read();
+    final firstTrip = await dao.roadTrips() == 0;
     if (!ref.mounted) return;
     final unit = plan?.units.where((u) => u.id == args.unitId).firstOrNull;
     final shape = unit == null
@@ -142,6 +164,17 @@ class LessonController extends Notifier<LessonState> {
       state = const LessonMissing();
       return;
     }
+    final random = ref.read(lessonRandomProvider);
+    final trip = graph == null || args.kind == LessonKind.pitStop
+        ? null
+        : pickTrip(
+            graph,
+            destinations: streets,
+            starts: unit.streets,
+            minM: TripRules.lessonMinM,
+            maxM: TripRules.lessonMaxM,
+            random: random,
+          );
     state = LessonPlaying(
       args: args,
       cityId: city.id,
@@ -150,6 +183,7 @@ class LessonController extends Notifier<LessonState> {
       shape: shape,
       difficulty: settings.difficulty,
       startedAt: DateTime.now(),
+      graph: graph,
       run: LessonRun(
         args.kind,
         planLesson(
@@ -157,10 +191,47 @@ class LessonController extends Notifier<LessonState> {
           streets: streets,
           unitStreets: unit.streets,
           lastDistances: last,
-          random: ref.read(lessonRandomProvider),
+          trip: trip,
+          random: random,
         ),
       ),
+      firstTrip: firstTrip,
     );
+  }
+
+  /// The road trip's route as drawn so far.
+  void drawTo(RouteDraft draft) {
+    if (state case final LessonPlaying p
+        when p.run.step is TripStep && !p.run.answered) {
+      state = p.copyWith(draft: draft);
+    }
+  }
+
+  /// Scores the road trip once its route reaches B.
+  void checkRoute() {
+    if (state case LessonPlaying(
+      run: final run,
+      route: final draft?,
+      :final difficulty,
+    ) when run.step is TripStep && !run.answered && draft.reached) {
+      final best = (run.step as TripStep).trip.best;
+      state = (state as LessonPlaying).copyWith(
+        run: run.answerTrip(
+          scoreRoute(draft.lengthM, best.lengthM, difficulty),
+          DateTime.now(),
+        ),
+      );
+    }
+  }
+
+  /// Gives the road trip up: a Miss.
+  void showRoute() {
+    if (state case final LessonPlaying p
+        when p.run.step is TripStep && !p.run.answered) {
+      state = p.copyWith(
+        run: p.run.answerTrip((tier: Tier.miss, xp: 0), DateTime.now()),
+      );
+    }
   }
 
   void placePin(LatLng pin) {

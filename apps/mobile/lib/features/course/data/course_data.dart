@@ -83,21 +83,23 @@ final courseProvider = FutureProvider.autoDispose<CourseData?>((ref) async {
     plan: plan,
     units: courseProgress(
       plan.units,
-      [
-        for (final r in results)
-          (
-            unitId: r.unitId,
-            kind: r.kind,
-            lesson: r.lesson,
-            perfect: r.perfect,
-          ),
-      ],
+      [for (final r in results) outcomeOf(r)],
       pitStopSizes: {for (final e in pitStops.entries) e.key: e.value.length},
     ),
     firstResults: firstResults,
     pitStops: pitStops,
   );
 });
+
+/// A saved result as the path reads it: a Final drive trip passed when it
+/// was right first time (Close or better).
+LessonOutcome outcomeOf(LessonResult r) => (
+  unitId: r.unitId,
+  kind: r.kind,
+  lesson: r.lesson,
+  perfect: r.perfect,
+  passed: r.kind == LessonKind.finalDrive && r.rightFirst > 0,
+);
 
 /// A stop on the path, as the unlock names the one just finished.
 typedef StopRef = ({String unitId, StopKind kind, int? lesson});
@@ -145,10 +147,7 @@ CourseUnit? currentUnitIn(
       lengthsByDistrict: pack.lengthsByDistrict(),
       startDistrictId: start,
     ),
-    [
-      for (final r in results)
-        (unitId: r.unitId, kind: r.kind, lesson: r.lesson, perfect: r.perfect),
-    ],
+    [for (final r in results) outcomeOf(r)],
     pitStopSizes: const {},
   );
   return units.isEmpty ? null : units.lastWhere((u) => u.open).unit;

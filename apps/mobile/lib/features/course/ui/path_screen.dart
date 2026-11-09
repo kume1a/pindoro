@@ -34,8 +34,14 @@ class PathScreen extends ConsumerStatefulWidget {
 }
 
 /// Where the unlock plays: the finished stop and the new current one, each
-/// as (unit index, stop index).
-typedef _Unlock = ({int unit, int done, ({int unit, int stop}) next});
+/// as (unit index, stop index); [unitOpens] when a Final drive opened the
+/// next unit (canvas R4-61).
+typedef _Unlock = ({
+  int unit,
+  int done,
+  ({int unit, int stop}) next,
+  bool unitOpens,
+});
 
 /// The unlock storyboard (canvas R4-60), as fractions of its 900 ms: the
 /// finished stop pops to 200 ms, the road paves to 620 ms, then the next
@@ -49,6 +55,16 @@ abstract final class _UnlockAt {
 
   static double _part(double t, double from, double to) =>
       ((t - from) / (to - from)).clamp(0, 1);
+
+  /// The next unit opening (canvas R4-61): its signpost flips from 280 ms
+  /// over `duration.base`, its road fades up over `duration.slow`.
+  static const double flipFrom = 280 / 900;
+  static const double flipTo = (280 + 280) / 900;
+  static const double fadeTo = (280 + 420) / 900;
+
+  static double flip(double t) => _part(t, flipFrom, flipTo);
+
+  static double fade(double t) => _part(t, flipFrom, fadeTo);
 
   /// The finished stop's pop.
   static double pop(double t) =>
@@ -69,7 +85,6 @@ abstract final class _UnlockAt {
 class _PathScreenState extends ConsumerState<PathScreen>
     with SingleTickerProviderStateMixin {
   final _currentKey = GlobalKey();
-  final Map<String, ValueNotifier<LockedNote?>> _signNotes = {};
   bool _shownCurrent = false;
   late final AnimationController _unlockClock = AnimationController(
     vsync: this,
@@ -77,20 +92,24 @@ class _PathScreenState extends ConsumerState<PathScreen>
   )..addListener(_unlockTick);
   _Unlock? _unlock;
   bool _unlockClicked = false;
+  bool _flipped = false;
 
   @override
   void dispose() {
     _unlockClock.dispose();
-    for (final n in _signNotes.values) {
-      n.dispose();
-    }
     super.dispose();
   }
 
   void _unlockTick() {
-    if (!_unlockClicked && _unlockClock.value >= _UnlockAt.paved) {
+    final t = _unlockClock.value;
+    final unitOpens = _unlock?.unitOpens ?? false;
+    if (unitOpens && !_flipped && t >= _UnlockAt.flipFrom) {
+      _flipped = true;
+      ref.read(feedbackProvider).unitDone();
+    }
+    if (!_unlockClicked && t >= _UnlockAt.paved) {
       _unlockClicked = true;
-      ref.read(feedbackProvider).unlock();
+      if (!unitOpens) ref.read(feedbackProvider).unlock();
       _toCurrent(animate: true);
     }
     if (_unlockClock.isCompleted) _unlock = null;
@@ -115,8 +134,14 @@ class _PathScreenState extends ConsumerState<PathScreen>
     if (done < 0 || MediaQuery.disableAnimationsOf(context)) {
       return _toCurrent(animate: false);
     }
-    _unlock = (unit: u, done: done, next: next);
+    _unlock = (
+      unit: u,
+      done: done,
+      next: next,
+      unitOpens: finished.kind == StopKind.finalDrive && next.unit != u,
+    );
     _unlockClicked = false;
+    _flipped = false;
     unawaited(_unlockClock.forward(from: 0));
   }
 
@@ -173,6 +198,33 @@ class _PathScreenState extends ConsumerState<PathScreen>
     return (
       stop: unlock.done,
       t: (_unlockClock.value / _UnlockAt.burst).clamp(0.0, 1.0),
+    );
+  }
+
+  /// A locked unit's road is faint; the unit opening fades it up.
+  double _roadOpacity(int u, UnitProgress progress) {
+    final unlock = _unlock;
+    if (unlock != null && unlock.unitOpens && unlock.next.unit == u) {
+      const from = PathUnit.lockedRoadOpacity;
+      return from + (1 - from) * _UnlockAt.fade(_unlockClock.value);
+    }
+    return progress.open ? 1 : PathUnit.lockedRoadOpacity;
+  }
+
+  /// The opening unit's signpost flips on X: the locked face turns away,
+  /// the open face turns in.
+  Widget _flipping(int u, bool open, Widget Function(bool locked) sign) {
+    final unlock = _unlock;
+    if (unlock == null || !unlock.unitOpens || unlock.next.unit != u) {
+      return sign(!open);
+    }
+    final f = _UnlockAt.flip(_unlockClock.value);
+    return Transform(
+      alignment: Alignment.center,
+      transform: Matrix4.identity()
+        ..setEntry(3, 2, 0.002)
+        ..rotateX((f < 0.5 ? f : 1 - f) * math.pi),
+      child: sign(f < 0.5),
     );
   }
 
@@ -267,7 +319,17 @@ class _PathScreenState extends ConsumerState<PathScreen>
                     PindoroSpace.s2,
                   ),
                   child: ContentColumn(
-                    child: _signpost(data, u, progress, settings),
+                    child: _flipping(
+                      u,
+                      progress.open,
+                      (locked) => _signpost(
+                        data,
+                        u,
+                        progress,
+                        settings,
+                        locked: locked,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -281,16 +343,12 @@ class _PathScreenState extends ConsumerState<PathScreen>
                     driven: _unlockDriven(u, _driven(progress)),
                     scaleOf: (i) => _unlockScale(u, i) ?? 1,
                     burst: _burstFor(u),
-                    dim: !progress.open,
+                    roadOpacity: _roadOpacity(u, progress),
                     stopKeys: {
                       if (current?.unit == u) current!.stop: _currentKey,
                     },
                     lockedNote: (i) => _lockedNote(l10n, data, u, i, settings),
-                    onStop: (i) => _openStop(data, progress, i, settings),
-                    bubbleAtTop: _signNotes.putIfAbsent(
-                      progress.unit.id,
-                      () => ValueNotifier(null),
-                    ),
+                    onStop: (i) => _openStop(data, u, i, settings),
                   ),
                 ),
               ),
@@ -312,20 +370,21 @@ class _PathScreenState extends ConsumerState<PathScreen>
     CourseData data,
     int u,
     UnitProgress progress,
-    Settings? settings,
-  ) {
+    Settings? settings, {
+    required bool locked,
+  }) {
     final l10n = context.l10n;
     final unit = progress.unit;
     final district = districtName(unit.district, settings);
     final total = unit.lessons.length;
     return Signpost(
       number: unit.number,
-      line: progress.open
+      line: !locked
           ? l10n.pathUnitLine(progress.lessonsDone, total)
           : l10n.pathUnitLocked,
       title: district,
-      locked: !progress.open,
-      semanticLabel: progress.open
+      locked: locked,
+      semanticLabel: !locked
           ? l10n.a11ySignpost(
               unit.number,
               district,
@@ -333,18 +392,92 @@ class _PathScreenState extends ConsumerState<PathScreen>
               total,
             )
           : l10n.a11ySignpostLocked(unit.number, district),
-      onTap: progress.open
-          ? null
-          : () {
-              ref.read(feedbackProvider).tap();
-              _signNotes[unit.id]?.value = null;
-              _signNotes[unit.id]?.value = _unitLockedNote(
-                l10n,
-                data,
-                u,
-                settings,
-              );
-            },
+      onTap: progress.open ? null : () => _openLockedUnit(data, u, settings),
+    );
+  }
+
+  /// A locked unit's sheet (canvas R4-12): keep going, or Jump ahead by
+  /// passing its Final drive.
+  void _openLockedUnit(CourseData data, int u, Settings? settings) {
+    ref.read(feedbackProvider).tap();
+    final l10n = context.l10n;
+    final unit = data.units[u].unit;
+    final district = districtName(unit.district, settings);
+    final current = data.units.current;
+    final here = current == null
+        ? null
+        : districtName(data.units[current.unit].unit.district, settings);
+    final previous = districtName(data.units[u - 1].unit.district, settings);
+    unawaited(
+      showStopSheet(
+        context,
+        kicker: l10n.pathSheetUnitLockedKicker(unit.number),
+        title: district,
+        body: l10n.pathSheetUnitLockedBody(previous, district),
+        action: here == null ? l10n.commonContinue : l10n.pathKeepGoing(here),
+        onAction: () => _toCurrent(animate: true),
+        secondary: l10n.pathJumpAhead,
+        onSecondary: () => context.push(Routes.driveOf(unit.id)),
+      ),
+    );
+  }
+
+  /// The current Final drive's sheet (canvas R4-12, R4-40).
+  void _openFinalDrive(CourseData data, int u, Settings? settings) {
+    final l10n = context.l10n;
+    final progress = data.units[u];
+    final unit = progress.unit;
+    final district = districtName(unit.district, settings);
+    final next = data.units.elementAtOrNull(u + 1)?.unit;
+    final graph = ref.read(roadGraphProvider);
+    final left = CourseRules.finalDriveTrips - progress.tripsPassed;
+    final kicker = l10n.pathSheetDriveKicker(unit.number, district);
+    final title = l10n.pathSheetDriveTitle(district);
+    if (graph.hasValue && graph.value == null) {
+      final city = data.plan.pack.city();
+      unawaited(
+        showStopSheet(
+          context,
+          kicker: kicker,
+          title: title,
+          body: l10n.pathSheetDriveNoGraph(
+            context.localName(ka: city.nameKa, en: city.nameEn),
+          ),
+          action: l10n.commonContinue,
+          onAction: () {},
+        ),
+      );
+      return;
+    }
+    unawaited(
+      showStopSheet(
+        context,
+        kicker: kicker,
+        title: title,
+        body: [
+          l10n.pathSheetDriveBody,
+          if (next != null)
+            l10n.pathSheetDriveOpens(
+              next.number,
+              districtName(next.district, settings),
+            ),
+          if (progress.tripsPassed > 0)
+            l10n.pathSheetDrivePassed(progress.tripsPassed),
+        ].join(' '),
+        chips: [
+          (glyph: PindoroGlyph.car, label: l10n.pathChipTrips(left)),
+          (
+            glyph: PindoroGlyph.xp,
+            label: l10n.pathChipUpToXp(
+              formatNumber(
+                left * ScoringConfig.perfectXp + CourseRules.unitBonusXp,
+              ),
+            ),
+          ),
+        ],
+        action: l10n.pathStartDrive,
+        onAction: () => context.push(Routes.driveOf(unit.id)),
+      ),
     );
   }
 
@@ -416,14 +549,23 @@ class _PathScreenState extends ConsumerState<PathScreen>
         );
       case StopKind.finalDrive:
         return (
-          look: PathStopLook.locked,
+          look: switch (stop.state) {
+            StopState.done => PathStopLook.done,
+            StopState.perfect => PathStopLook.perfect,
+            StopState.current => PathStopLook.current,
+            StopState.locked => PathStopLook.locked,
+          },
           glyph: PindoroGlyph.trophy,
           big: true,
-          ring: null,
-          tip: null,
-          label:
-              '${l10n.a11yStopFinalDrive} ${l10n.a11yStopLocked} '
-              '${l10n.pathFinalDriveSoon}',
+          ring: current
+              ? progress.tripsPassed / CourseRules.finalDriveTrips
+              : null,
+          tip: current ? l10n.pathTipFinalDrive : null,
+          label: [
+            l10n.a11yStopFinalDrive,
+            if (stop.done) l10n.a11yStopPassed else stateLabel,
+            if (current) l10n.a11yStopFinalDriveTrips(progress.tripsPassed),
+          ].join(' '),
         );
     }
   }
@@ -437,11 +579,8 @@ class _PathScreenState extends ConsumerState<PathScreen>
   ) {
     final progress = data.units[u];
     final stop = progress.stops[i];
-    if (stop.kind == StopKind.finalDrive) {
-      return (
-        title: l10n.pathFinalDriveSoon,
-        body: l10n.pathFinalDriveSoonBody,
-      );
+    if (stop.kind == StopKind.finalDrive && stop.done) {
+      return (title: l10n.pathFinalDriveDone, body: null);
     }
     if (stop.kind == StopKind.pitStop && stop.done) {
       return (title: l10n.pathPitStopDone, body: null);
@@ -449,9 +588,11 @@ class _PathScreenState extends ConsumerState<PathScreen>
     if (stop.state != StopState.locked) return null;
     if (!progress.open) return _unitLockedNote(l10n, data, u, settings);
     final before = progress.stops[i - 1];
-    final title = stop.kind == StopKind.pitStop
-        ? l10n.pathLockedPitStop
-        : l10n.pathLockedLesson(stop.lesson!);
+    final title = switch (stop.kind) {
+      StopKind.pitStop => l10n.pathLockedPitStop,
+      StopKind.finalDrive => l10n.pathLockedFinalDrive,
+      StopKind.lesson => l10n.pathLockedLesson(stop.lesson!),
+    };
     return (
       title: title,
       body: before.kind == StopKind.pitStop
@@ -460,18 +601,17 @@ class _PathScreenState extends ConsumerState<PathScreen>
     );
   }
 
-  void _openStop(
-    CourseData data,
-    UnitProgress progress,
-    int i,
-    Settings? settings,
-  ) {
+  void _openStop(CourseData data, int u, int i, Settings? settings) {
     ref.read(feedbackProvider).tap();
     final l10n = context.l10n;
+    final progress = data.units[u];
     final unit = progress.unit;
     final stop = progress.stops[i];
     final district = districtName(unit.district, settings);
     final total = unit.lessons.length;
+    if (stop.kind == StopKind.finalDrive) {
+      return _openFinalDrive(data, u, settings);
+    }
     if (stop.kind == StopKind.pitStop) {
       final count = data.pitStops[unit.id]?.length ?? 0;
       unawaited(

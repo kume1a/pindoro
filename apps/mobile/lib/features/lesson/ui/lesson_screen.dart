@@ -13,6 +13,7 @@ import 'package:pindoro/features/lesson/ui/widgets/fixes_intro.dart';
 import 'package:pindoro/features/lesson/ui/widgets/name_question.dart';
 import 'package:pindoro/features/lesson/ui/widgets/new_street_card.dart';
 import 'package:pindoro/features/map/ui/pin_drop_view.dart';
+import 'package:pindoro/features/map/ui/route_view.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -115,6 +116,7 @@ class _LessonView extends ConsumerWidget {
           onNext: controller.next,
         ),
         final PinStep pin => _pinDrop(context, ref, pin, topBar),
+        final TripStep trip => _roadTrip(context, ref, trip, topBar),
       },
     );
   }
@@ -175,6 +177,56 @@ class _LessonView extends ConsumerWidget {
     );
   }
 
+  Widget _roadTrip(
+    BuildContext context,
+    WidgetRef ref,
+    TripStep step,
+    Widget topBar,
+  ) {
+    final l10n = context.l10n;
+    final controller = ref.read(lessonControllerProvider.notifier);
+    final feedback = ref.read(feedbackProvider);
+    final run = play.run;
+    final answer = run.answered ? run.answers.last : null;
+    final comesBack = run.kind == LessonKind.lesson && !step.fix;
+    final perfects = run.answers.where((a) => a.tier == Tier.perfect).length;
+    return RouteView(
+      area: play.shape,
+      questionKey: run.index,
+      ask: l10n.routeAsk,
+      trip: step.trip,
+      draft: play.route!,
+      reveal: answer == null
+          ? null
+          : (
+              key: run.index,
+              score: (tier: answer.tier, xp: answer.xp),
+              chips: [
+                if (answer.tier == Tier.miss && comesBack)
+                  Pill(label: l10n.lessonComesBack, icon: PindoroGlyph.reroute),
+              ],
+              action: answer.tier == Tier.miss
+                  ? l10n.revealGotIt
+                  : l10n.commonNext,
+              celebration: celebrationFor(
+                answer.tier,
+                perfectsThisRound: perfects,
+                inARow: 0,
+              ),
+            ),
+      topBar: topBar,
+      showBody: comesBack ? l10n.routeShowLessonBody : l10n.routeShowDriveBody,
+      ghost: play.firstTrip,
+      onDraft: controller.drawTo,
+      onCheck: () {
+        feedback.confirm();
+        controller.checkRoute();
+      },
+      onShow: controller.showRoute,
+      onNext: controller.next,
+    );
+  }
+
   Future<void> _leave(BuildContext context) async {
     final l10n = context.l10n;
     final leave = await showDialog<bool>(
@@ -200,13 +252,13 @@ class LessonTopBar extends StatelessWidget {
 
   /// Cards and right answers fill in yellow, mistakes in red.
   static List<Tier> segments(LessonRun run) {
-    final tiers = {for (final a in run.answers) a.step: a.tier};
+    final mistakes = {for (final a in run.answers) a.step: isMistake(a)};
     final through = run.answered ? run.index + 1 : run.index;
     return [
       for (final step in run.steps.take(through))
         switch (step) {
           CardStep() => Tier.great,
-          final TestStep t => isRetryTier(tiers[t]!) ? Tier.miss : Tier.great,
+          final TestStep t => mistakes[t]! ? Tier.miss : Tier.great,
         },
     ];
   }

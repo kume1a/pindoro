@@ -111,7 +111,7 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
     const ways = (
       await sql`SELECT unnest(way_ids)::float8 AS id FROM pipeline.street ORDER BY 1`
     ).map((r) => r.id);
-    expect(ways).toEqual([2001, 2002, 2003, 2004, 2006, 2008]);
+    expect(ways).toEqual([2001, 2002, 2003, 2004, 2006, 2008, 2012, 2013, 2014]);
   });
 
   it("assigns a road crossing two districts to both", async () => {
@@ -142,7 +142,7 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
 
   it("exports a pack with decodable polyline6 geometry", async () => {
     const db = await exportPack();
-    expect(db.prepare("SELECT count(*) FROM street").pluck().get()).toBe(5);
+    expect(db.prepare("SELECT count(*) FROM street").pluck().get()).toBe(8);
     expect(db.prepare("SELECT count(*) FROM district").pluck().get()).toBe(4);
     const split = db
       .prepare("SELECT geometry FROM street WHERE name_ka = 'Split Street'")
@@ -181,6 +181,86 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
       .pluck()
       .get();
     expect(strays).toBe(0);
+    db.close();
+  });
+
+  const edgesOf = async (name: string): Promise<{ from: number; to: number; length_m: number }[]> =>
+    (await sql`
+      SELECT e.from_junction::float8 AS from, e.to_junction::float8 AS to, e.length_m
+      FROM pipeline.road_edge e JOIN pipeline.street s ON s.key = e.street_key
+      WHERE s.norm_name = pipeline.normalise_name(${name}) ORDER BY e.id`) as never;
+
+  it("joins streets at the nodes they share, not where they only cross", async () => {
+    const north = await edgesOf("North Road");
+    const ridge = await edgesOf("Ridge Road");
+    expect(north).toHaveLength(2);
+    expect(ridge).toHaveLength(2);
+    const northEnds = new Set(north.flatMap((e) => [e.from, e.to]));
+    const shared = new Set(ridge.flatMap((e) => [e.from, e.to]).filter((j) => northEnds.has(j)));
+    expect(shared.size).toBe(1);
+    expect(await edgesOf("Bridge Road")).toHaveLength(1);
+    expect(await edgesOf("Split Street")).toHaveLength(2);
+  });
+
+  it("measures each edge along its way", async () => {
+    const [street] = await sql`
+      SELECT length_m FROM pipeline.street WHERE norm_name = pipeline.normalise_name('North Road')`;
+    const total = (await edgesOf("North Road")).reduce((sum, e) => sum + e.length_m, 0);
+    expect(total).toBeCloseTo(street?.length_m as number, 3);
+  });
+
+  it("exports the road graph: edges start and end at their junctions", async () => {
+    const db = await exportPack();
+    const junctions = new Map(
+      (
+        db.prepare("SELECT id, lat, lon FROM junction").all() as {
+          id: number;
+          lat: number;
+          lon: number;
+        }[]
+      ).map((j) => [j.id, j]),
+    );
+    const edges = db.prepare("SELECT * FROM road_edge").all() as {
+      from_junction: number;
+      to_junction: number;
+      street_id: string;
+      geometry: string;
+    }[];
+    expect(edges).toHaveLength(11);
+    for (const e of edges) {
+      const line = decodePolyline6(e.geometry);
+      const from = junctions.get(e.from_junction);
+      const to = junctions.get(e.to_junction);
+      expect(line[0]?.lat).toBeCloseTo(from?.lat as number, 5);
+      expect(line[0]?.lon).toBeCloseTo(from?.lon as number, 5);
+      expect(line.at(-1)?.lat).toBeCloseTo(to?.lat as number, 5);
+      expect(line.at(-1)?.lon).toBeCloseTo(to?.lon as number, 5);
+    }
+    const strays = db
+      .prepare("SELECT count(*) FROM road_edge WHERE street_id NOT IN (SELECT id FROM street)")
+      .pluck()
+      .get();
+    expect(strays).toBe(0);
+    db.close();
+  });
+
+  it("a fixture pack keeps only its streets' edges and their junctions", async () => {
+    const db = await exportPack("osm:r1002");
+    const edgeStreets = db
+      .prepare(
+        "SELECT DISTINCT s.name_ka FROM road_edge e JOIN street s ON s.id = e.street_id ORDER BY 1",
+      )
+      .pluck()
+      .all();
+    expect(edgeStreets).toEqual(["Bridge Road", "North Road", "Ridge Road", "ჯვრის გამზირი"]);
+    const unused = db
+      .prepare(
+        `SELECT count(*) FROM junction j WHERE NOT EXISTS
+           (SELECT 1 FROM road_edge e WHERE j.id IN (e.from_junction, e.to_junction))`,
+      )
+      .pluck()
+      .get();
+    expect(unused).toBe(0);
     db.close();
   });
 

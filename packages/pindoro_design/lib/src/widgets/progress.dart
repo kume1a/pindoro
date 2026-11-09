@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
+import 'graphics.dart';
 import 'motion.dart';
 import 'surfaces.dart';
 
@@ -260,11 +261,16 @@ class AccentRing extends StatelessWidget {
   );
 }
 
-/// The level shield: level number on `color.level.bg` inside a yellow rim.
+/// The level shield: level number on `color.level.bg` inside a yellow rim;
+/// [LevelBadge.glyph] shows an icon instead (Unit complete's trophy).
 class LevelBadge extends StatelessWidget {
-  const LevelBadge(this.level, {super.key, this.size = 48});
+  const LevelBadge(int this.level, {super.key, this.size = 48}) : glyph = null;
 
-  final int level;
+  const LevelBadge.glyph(PindoroGlyph this.glyph, {super.key, this.size = 48})
+    : level = null;
+
+  final int? level;
+  final PindoroGlyph? glyph;
   final double size;
 
   @override
@@ -282,17 +288,24 @@ class LevelBadge extends StatelessWidget {
           side: BorderSide(color: c.levelRim, width: size / 16),
         ),
       ),
-      // Large text sizes grow the number up to the shield, never past it.
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Text(
-          '$level',
-          style: PindoroType.numericMd.copyWith(
-            color: c.levelText,
-            fontSize: size * 0.42,
-          ),
-        ),
-      ),
+      child: glyph != null
+          ? PindoroIcon(
+              glyph!,
+              size: size / 2,
+              color: c.levelText,
+              cut: c.levelBg,
+            )
+          // Large text sizes grow the number up to the shield, never past it.
+          : FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                '$level',
+                style: PindoroType.numericMd.copyWith(
+                  color: c.levelText,
+                  fontSize: size * 0.42,
+                ),
+              ),
+            ),
     );
   }
 }

@@ -89,6 +89,32 @@ class SqlitePackRepository implements PackRepository {
     return byDistrict;
   }
 
+  /// Format 3 only; built once (the graph is about 16 000 edges for Tbilisi).
+  late final RoadGraph? _graph = () {
+    final hasGraph = _db
+        .select(
+          "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'road_edge'",
+        )
+        .isNotEmpty;
+    if (!hasGraph) return null;
+    return RoadGraph(
+      {
+        for (final r in _db.select('SELECT id, lat, lon FROM junction'))
+          r['id'] as int: LatLng(
+            (r['lat'] as num).toDouble(),
+            (r['lon'] as num).toDouble(),
+          ),
+      },
+      [
+        for (final r in _db.select('SELECT * FROM road_edge ORDER BY id'))
+          RoadEdge.fromRow(r),
+      ],
+    );
+  }();
+
+  @override
+  RoadGraph? roadGraph() => _graph;
+
   @override
   void close() => _db.close();
 }
@@ -235,4 +261,9 @@ final cityStreetsProvider = FutureProvider<Map<String, NamedStreet>>(
   (ref) async => streetsByPartId(
     (await ref.watch(packRepositoryProvider.future)).streets(),
   ),
+);
+
+/// The active pack's road graph; null for a pack older than format 3.
+final roadGraphProvider = FutureProvider<RoadGraph?>(
+  (ref) async => (await ref.watch(packRepositoryProvider.future)).roadGraph(),
 );

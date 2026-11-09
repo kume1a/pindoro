@@ -30,6 +30,12 @@ abstract final class Routes {
   /// `?result=<lesson result id>`.
   static const String lessonDone = '/lesson-done';
 
+  /// `?unit=<raion id>`: the unit's Final drive (Jump ahead on a locked unit).
+  static const String drive = '/drive';
+
+  /// `?unit=<raion id>`: the reward after a unit's Final drive.
+  static const String unitDone = '/unit-done';
+
   /// The area picker starting from one district (nothing saved until Next).
   static String areaFrom(String districtId) => '$area?district=$districtId';
   static String resume(String roundId) => '$round?round=$roundId';
@@ -41,6 +47,8 @@ abstract final class Routes {
       '$lesson?unit=$unitId&lesson=$n${practice ? '&practice=1' : ''}';
   static String unitPitStop(String unitId) => '$lesson?unit=$unitId&pit-stop=1';
   static String lessonDoneOf(String resultId) => '$lessonDone?result=$resultId';
+  static String driveOf(String unitId) => '$drive?unit=$unitId';
+  static String unitDoneOf(String unitId) => '$unitDone?unit=$unitId';
 }
 
 /// What a finished round changed, for Home's one-time intro (canvas M-43). Results passes it to

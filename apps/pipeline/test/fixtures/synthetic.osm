@@ -10,6 +10,8 @@
     w2007 service, w2009 footway, w2010 access=private, w2011 primary_link -> dropped
     w2006          "Cross Avenue" (primary), ~830 m in each district -> both districts
     w2008          "Edge Lane" (tertiary), ~83 m (17 %) in East -> West only
+    w2012 + w2013  "North Road" and "Ridge Road" share node 221   -> a junction (road graph)
+    w2014          "Bridge Road" crosses North Road with no shared node -> no junction there
   Places drawn as areas:
     r1004 quarter "შუა" (lat 41.705-41.745, lon 44.705-44.735)              -> neighbourhood
     w114 / w115 neighbourhoods "ტყუპი" around Twin Street w2003            -> only the smaller w114
@@ -36,6 +38,13 @@
   <node id="211" version="1" lat="41.73" lon="44.76"/>
   <node id="212" version="1" lat="41.715" lon="44.745"/>
   <node id="213" version="1" lat="41.715" lon="44.751"/>
+  <node id="220" version="1" lat="41.735" lon="44.765"/>
+  <node id="221" version="1" lat="41.735" lon="44.775"/>
+  <node id="222" version="1" lat="41.735" lon="44.785"/>
+  <node id="223" version="1" lat="41.730" lon="44.775"/>
+  <node id="224" version="1" lat="41.740" lon="44.775"/>
+  <node id="225" version="1" lat="41.730" lon="44.780"/>
+  <node id="226" version="1" lat="41.740" lon="44.780"/>
   <node id="301" version="1" lat="41.705" lon="44.705"/>
   <node id="302" version="1" lat="41.705" lon="44.710"/>
   <node id="303" version="1" lat="41.708" lon="44.710"/>
@@ -149,6 +158,22 @@
     <nd ref="208"/><nd ref="209"/>
     <tag k="highway" v="primary_link"/>
     <tag k="name" v="Link Road"/>
+  </way>
+
+  <way id="2012" version="1">
+    <nd ref="220"/><nd ref="221"/><nd ref="222"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="North Road"/>
+  </way>
+  <way id="2013" version="1">
+    <nd ref="223"/><nd ref="221"/><nd ref="224"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="Ridge Road"/>
+  </way>
+  <way id="2014" version="1">
+    <nd ref="225"/><nd ref="226"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="Bridge Road"/>
   </way>
 
   <relation id="1000" version="1">

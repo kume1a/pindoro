@@ -8,7 +8,7 @@ import type { Sql } from "postgres";
 import type { CityConfig } from "./config.ts";
 import { isoSeconds } from "./io.ts";
 
-export const PACK_FORMAT_VERSION = 2;
+export const PACK_FORMAT_VERSION = 3;
 
 // Mirrors docs/pack-format.md exactly; `validate` diffs packs against it.
 export const PACK_DDL = `
@@ -73,6 +73,21 @@ CREATE TABLE street_district (
   PRIMARY KEY (street_id, district_id)
 ) WITHOUT ROWID;
 CREATE INDEX street_district_district ON street_district (district_id);
+
+CREATE TABLE junction (
+  id  INTEGER PRIMARY KEY,
+  lat REAL NOT NULL,
+  lon REAL NOT NULL
+);
+
+CREATE TABLE road_edge (
+  id            INTEGER PRIMARY KEY,
+  from_junction INTEGER NOT NULL REFERENCES junction (id),
+  to_junction   INTEGER NOT NULL REFERENCES junction (id),
+  street_id     TEXT NOT NULL REFERENCES street (id),
+  length_m      REAL NOT NULL,
+  geometry      TEXT NOT NULL
+);
 `;
 
 export const META_KEYS = [
@@ -112,6 +127,12 @@ type Position = [lon: number, lat: number];
 
 const ring6 = (ring: Position[]): string =>
   encodePolyline6(ring.map(([lon, lat]) => ({ lat, lon })));
+
+const line6 = (geojson: string): string => {
+  const g = JSON.parse(geojson) as { type: string; coordinates: Position[] };
+  if (g.type !== "LineString") throw new Error(`expected LineString, got ${g.type}`);
+  return ring6(g.coordinates);
+};
 
 const multiline6 = (geojson: string): string => {
   const g = JSON.parse(geojson) as { type: string; coordinates: Position[][] };
@@ -179,6 +200,20 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
     WHERE ${only}::text IS NULL
        OR s.key IN (SELECT street_key FROM pipeline.street_district WHERE district_id = ${only})
     ORDER BY s.key`;
+  const edges = await sql`
+    SELECT e.id::float8 AS id, e.from_junction::float8 AS from_junction,
+           e.to_junction::float8 AS to_junction, e.street_key::float8 AS street_key, e.length_m,
+           ST_AsGeoJSON(e.geom, 7) AS geojson
+    FROM pipeline.road_edge e
+    WHERE ${only}::text IS NULL
+       OR e.street_key IN (SELECT street_key FROM pipeline.street_district WHERE district_id = ${only})
+    ORDER BY e.id`;
+  const junctions = await sql`
+    SELECT j.id::float8 AS id, ST_Y(j.geom) AS lat, ST_X(j.geom) AS lon
+    FROM pipeline.junction_point j
+    WHERE j.id IN (SELECT from_junction FROM pipeline.road_edge
+                   UNION SELECT to_junction FROM pipeline.road_edge)
+    ORDER BY j.id`;
   if (!city) throw new Error("pipeline.pack_area has no city row; did the SQL steps run?");
   if (only && districts.length === 0) throw new Error(`district ${only} not found`);
   const { geojson: cityGeojson, ...cityArea } = city;
@@ -236,6 +271,20 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
 
     const link = db.prepare("INSERT INTO street_district VALUES (?, ?, ?, ?)");
     for (const l of links) link.run(streetId(l.street_key), l.district_id, l.length_m, l.share);
+
+    // A fixture keeps only the junctions its edges use.
+    const used = new Set(
+      edges.flatMap((e) => [e.from_junction as number, e.to_junction as number]),
+    );
+    const junction = db.prepare("INSERT INTO junction VALUES (@id, @lat, @lon)");
+    for (const j of junctions) if (used.has(j.id)) junction.run(j);
+    const edge = db.prepare(
+      `INSERT INTO road_edge VALUES (@id, @from_junction, @to_junction, @street_id, @length_m,
+        @geometry)`,
+    );
+    for (const { street_key, geojson, ...e } of edges) {
+      edge.run({ ...e, street_id: streetId(street_key), geometry: line6(geojson) });
+    }
   })();
   db.exec("VACUUM");
   db.close();

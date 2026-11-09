@@ -62,11 +62,10 @@ class MeScreen extends ConsumerWidget {
           label: l10n.meLessons,
           value: formatNumber(me.lessonsDone),
         ),
-        // ponytail: road trips arrive in R4c.
         StatTile(
           glyph: PindoroGlyph.car,
           label: l10n.meRoadTrips,
-          value: formatNumber(0),
+          value: formatNumber(me.roadTrips),
         ),
         StatTile(
           glyph: PindoroGlyph.flame,

@@ -350,5 +350,8 @@ class _FakePack implements PackRepository {
   Map<String, Map<String, double>> lengthsByDistrict() => const {};
 
   @override
+  RoadGraph? roadGraph() => null;
+
+  @override
   void close() {}
 }
