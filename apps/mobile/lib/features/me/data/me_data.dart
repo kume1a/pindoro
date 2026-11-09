@@ -23,6 +23,7 @@ typedef MeData = ({
   DateTime? since,
   int bestStreak,
   int lessonsDone,
+  int roadTrips,
 
   /// The chosen city first, then the other played ones.
   List<MeCity> cities,
@@ -77,6 +78,7 @@ final meProvider = FutureProvider.autoDispose<MeData>((ref) async {
     since: await dao.firstPlayedAt(),
     bestStreak: streak.summary.best,
     lessonsDone: await dao.lessonsDone(),
+    roadTrips: await dao.roadTrips(),
     cities: cities,
   );
 });

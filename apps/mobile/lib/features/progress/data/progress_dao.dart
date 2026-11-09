@@ -278,9 +278,11 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
             resultId: result.id,
             position: i,
             streetId: a.step.street.id,
-            kind: a.step is NameStep
-                ? LessonAnswerKind.name
-                : LessonAnswerKind.pin,
+            kind: switch (a.step) {
+              PinStep() => LessonAnswerKind.pin,
+              NameStep() => LessonAnswerKind.name,
+              TripStep() => LessonAnswerKind.trip,
+            },
             tier: a.tier,
             xp: a.xp,
             fix: a.step.fix,
@@ -294,6 +296,77 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     await markGoalIfMet(now);
     return result.id;
   });
+
+  /// Saves one answered Final drive trip as its own result (passed when
+  /// Close or better), with [CourseRules.unitBonusXp] when it [completesUnit],
+  /// then marks today when it reached the daily goal. Returns the result's id.
+  Future<String> finishTrip({
+    required String cityId,
+    required String unitId,
+    required Difficulty difficulty,
+    required Trip trip,
+    required Score score,
+    required bool completesUnit,
+    required DateTime startedAt,
+  }) => transaction(() async {
+    final now = DateTime.now();
+    final passed = score.tier != Tier.miss;
+    final result = await into(lessonResults).insertReturning(
+      LessonResultsCompanion.insert(
+        cityId: cityId,
+        unitId: unitId,
+        kind: LessonKind.finalDrive,
+        difficulty: difficulty,
+        xp: score.xp + (completesUnit ? CourseRules.unitBonusXp : 0),
+        perfect: score.tier == Tier.perfect,
+        rightFirst: passed ? 1 : 0,
+        tests: 1,
+        durationMs: now.difference(startedAt).inMilliseconds,
+        finishedAt: Value(now),
+      ),
+    );
+    await into(lessonAnswers).insert(
+      LessonAnswersCompanion.insert(
+        resultId: result.id,
+        position: 0,
+        streetId: trip.destination.id,
+        kind: LessonAnswerKind.trip,
+        tier: score.tier,
+        xp: score.xp,
+        fix: false,
+      ),
+    );
+    await markGoalIfMet(now);
+    return result.id;
+  });
+
+  /// Road trips answered in every city: lessons, practice and Final drives.
+  Future<int> roadTrips() async {
+    final n = lessonAnswers.resultId.count();
+    return (await (selectOnly(lessonAnswers)
+              ..addColumns([n])
+              ..where(lessonAnswers.kind.equalsValue(LessonAnswerKind.trip)))
+            .getSingle())
+        .read(n)!;
+  }
+
+  /// The XP earned in [unitId] of [cityId] and its road trips, for Unit
+  /// complete.
+  Future<({int xp, int trips})> unitSummary(
+    String cityId,
+    String unitId,
+  ) async {
+    final row = await customSelect(
+      'SELECT (SELECT COALESCE(SUM(xp), 0) FROM lesson_result '
+      'WHERE city_id = ?1 AND unit_id = ?2) AS xp, '
+      '(SELECT COUNT(*) FROM lesson_answer a '
+      'JOIN lesson_result r ON r.id = a.result_id '
+      "WHERE r.city_id = ?1 AND r.unit_id = ?2 AND a.kind = 'trip') AS trips",
+      variables: [Variable(cityId), Variable(unitId)],
+      readsFrom: {lessonResults, lessonAnswers},
+    ).getSingle();
+    return (xp: row.read<int>('xp'), trips: row.read<int>('trips'));
+  }
 
   Future<String?> courseStart(String cityId) =>
       (select(courses)..where((c) => c.cityId.equals(cityId)))
@@ -352,6 +425,7 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
                 lessonResults.kind.equalsValue(LessonKind.lesson) &
                 lessonResults.lesson.isSmallerOrEqualValue(throughLesson) &
                 lessonAnswers.fix.equals(false) &
+                lessonAnswers.kind.equalsValue(LessonAnswerKind.trip).not() &
                 lessonAnswers.tier.isInValues([Tier.close, Tier.miss]),
           )
           ..orderBy([
@@ -581,7 +655,8 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
 
   /// Best tier per answered part id in [cityId], from answers (and lessons
   /// finished) before [before] when given. A lesson's right name counts only
-  /// the first time: a right name fix comes after the answer was shown.
+  /// the first time: a right name fix comes after the answer was shown. Road
+  /// trips don't count: they test the route, not their destination street.
   // ponytail: reads the city's answer log; aggregate in SQL past ~100k answers.
   Future<Map<String, Tier>> bestTierByPart(
     String cityId, {
@@ -590,12 +665,16 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     final query = select(answers).join([
       innerJoin(rounds, rounds.id.equalsExp(answers.roundId)),
     ])..where(rounds.cityId.equals(cityId));
-    final learned = select(lessonAnswers).join([
-      innerJoin(
-        lessonResults,
-        lessonResults.id.equalsExp(lessonAnswers.resultId),
-      ),
-    ])..where(lessonResults.cityId.equals(cityId));
+    final learned =
+        select(lessonAnswers).join([
+          innerJoin(
+            lessonResults,
+            lessonResults.id.equalsExp(lessonAnswers.resultId),
+          ),
+        ])..where(
+          lessonResults.cityId.equals(cityId) &
+              lessonAnswers.kind.equalsValue(LessonAnswerKind.trip).not(),
+        );
     if (before != null) {
       query.where(answers.createdAt.isSmallerThanValue(before));
       learned.where(lessonResults.finishedAt.isSmallerThanValue(before));

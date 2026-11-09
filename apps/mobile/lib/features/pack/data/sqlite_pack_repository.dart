@@ -262,3 +262,8 @@ final cityStreetsProvider = FutureProvider<Map<String, NamedStreet>>(
     (await ref.watch(packRepositoryProvider.future)).streets(),
   ),
 );
+
+/// The active pack's road graph; null for a pack older than format 3.
+final roadGraphProvider = FutureProvider<RoadGraph?>(
+  (ref) async => (await ref.watch(packRepositoryProvider.future)).roadGraph(),
+);

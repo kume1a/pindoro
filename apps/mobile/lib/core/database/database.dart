@@ -219,7 +219,7 @@ class LessonResults extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-enum LessonAnswerKind { pin, name }
+enum LessonAnswerKind { pin, name, trip }
 
 /// A lesson result's answers in order; a name answer is Great when right and
 /// Miss when wrong, and has no distance.
