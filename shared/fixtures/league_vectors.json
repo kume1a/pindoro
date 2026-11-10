@@ -1,0 +1,54 @@
+{
+  "week": [
+    {
+      "name": "Monday 00:00 in Tbilisi starts a week",
+      "at": "2026-11-08T20:00:00Z",
+      "key": "2026-11-09",
+      "start": "2026-11-08T20:00:00Z",
+      "end": "2026-11-15T20:00:00Z"
+    },
+    {
+      "name": "a second before belongs to the week before",
+      "at": "2026-11-08T19:59:59Z",
+      "key": "2026-11-02",
+      "start": "2026-11-01T20:00:00Z",
+      "end": "2026-11-08T20:00:00Z"
+    },
+    {
+      "name": "midweek",
+      "at": "2026-11-12T09:30:00Z",
+      "key": "2026-11-09",
+      "start": "2026-11-08T20:00:00Z",
+      "end": "2026-11-15T20:00:00Z"
+    },
+    {
+      "name": "Sunday night in Tbilisi is still the old week",
+      "at": "2026-11-15T19:59:00Z",
+      "key": "2026-11-09",
+      "start": "2026-11-08T20:00:00Z",
+      "end": "2026-11-15T20:00:00Z"
+    },
+    {
+      "name": "across a year end",
+      "at": "2027-01-01T12:00:00Z",
+      "key": "2026-12-28",
+      "start": "2026-12-27T20:00:00Z",
+      "end": "2027-01-03T20:00:00Z"
+    }
+  ],
+  "name": [
+    { "raw": "Nino K.", "name": "Nino K.", "valid": true },
+    { "raw": "  Giorgi   B  ", "name": "Giorgi B", "valid": true },
+    { "raw": "ნინო კ.", "name": "ნინო კ.", "valid": true },
+    { "raw": "O’Brien-Smith", "name": "O’Brien-Smith", "valid": true },
+    { "raw": "Al", "name": "Al", "valid": true },
+    { "raw": "A", "name": "A", "valid": false },
+    { "raw": "ბ", "name": "ბ", "valid": false },
+    { "raw": "Abcdefghij Klmnopqrs", "name": "Abcdefghij Klmnopqrs", "valid": true },
+    { "raw": "Abcdefghij Klmnopqrst", "name": "Abcdefghij Klmnopqrst", "valid": false },
+    { "raw": "Player 42", "name": "Player 42", "valid": false },
+    { "raw": ".Nino", "name": ".Nino", "valid": false },
+    { "raw": "Nino 🚗", "name": "Nino 🚗", "valid": false },
+    { "raw": "", "name": "", "valid": false }
+  ]
+}
