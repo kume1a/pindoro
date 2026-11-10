@@ -454,6 +454,13 @@ class _PathScreenState extends ConsumerState<PathScreen>
             )
           : l10n.a11ySignpostLocked(unit.number, district),
       onTap: progress.open ? null : () => _openLockedUnit(data, u, settings),
+      onGuide: progress.open
+          ? () {
+              ref.read(feedbackProvider).tap();
+              unawaited(context.push(Routes.unitGuideOf(unit.id)));
+            }
+          : null,
+      guideLabel: l10n.pathUnitGuide,
     );
   }
 
@@ -743,7 +750,7 @@ class _PathScreenState extends ConsumerState<PathScreen>
         : perfect
         ? l10n.pathSheetPerfectResult(xp)
         : l10n.pathSheetDoneResult(
-            formatNumber(_accuracy(result)),
+            formatNumber(lessonAccuracy(result)),
             xp,
             formatMinSec(context, Duration(milliseconds: result.durationMs)),
           );
@@ -759,6 +766,9 @@ class _PathScreenState extends ConsumerState<PathScreen>
         onAction: () => context.push(
           Routes.lessonOf(unit.id, lesson.number, practice: true),
         ),
+        secondary: l10n.pathSeeStreets,
+        onSecondary: () =>
+            context.push(Routes.unitGuideOf(unit.id, lesson: lesson.number)),
       ),
     );
   }
@@ -766,10 +776,6 @@ class _PathScreenState extends ConsumerState<PathScreen>
 
 /// Far enough past the viewport to build a whole course.
 const double _wholeCourse = 100000;
-
-/// Tests right first time, in percent.
-int _accuracy(LessonResult r) =>
-    r.tests == 0 ? 0 : (r.rightFirst * 100 / r.tests).round();
 
 /// Nothing for 300 ms, then thinking Pindo and the lane loader.
 class _Loading extends StatefulWidget {

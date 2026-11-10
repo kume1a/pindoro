@@ -2154,5 +2154,107 @@
   "settingsAccessibility": "Accessibility",
   "settingsTurnList": "Choose turns from a list",
   "settingsTurnListSubtitle": "Road trips ask for each turn instead of a drawing",
-  "lessonHearName": "Hear the name"
+  "lessonHearName": "Hear the name",
+  "pathUnitGuide": "Unit guide",
+  "pathSeeStreets": "See the streets",
+  "unitGuideTitle": "Unit guide",
+  "unitGuideMap": "Map of {district} with this unit’s streets in yellow",
+  "@unitGuideMap": {
+    "placeholders": {
+      "district": {
+        "type": "String"
+      }
+    }
+  },
+  "unitGuideTip": "{axis, select, ns{Most of {district}’s streets run north to south.} nesw{Most of {district}’s streets run north-east to south-west.} ew{Most of {district}’s streets run east to west.} nwse{Most of {district}’s streets run north-west to south-east.} other{{district}’s streets run every way.}} Learn the long ones first; the side streets hang off them.",
+  "@unitGuideTip": {
+    "placeholders": {
+      "axis": {
+        "type": "String"
+      },
+      "district": {
+        "type": "String"
+      }
+    }
+  },
+  "unitGuideLessons": "Lessons",
+  "unitGuideLessonTitle": "{number} · {title}",
+  "@unitGuideLessonTitle": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "unitGuideDone": "Done · {accuracy} % · {count, plural, =1{1 street} other{{count} streets}}",
+  "@unitGuideDone": {
+    "placeholders": {
+      "accuracy": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unitGuidePlaced": "Done · {count, plural, =1{1 street} other{{count} streets}}",
+  "@unitGuidePlaced": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unitGuidePerfect": "Perfect · {count, plural, =1{1 street} other{{count} streets}}",
+  "@unitGuidePerfect": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unitGuideNext": "Next · {streets}",
+  "@unitGuideNext": {
+    "placeholders": {
+      "streets": {
+        "type": "String"
+      }
+    }
+  },
+  "unitGuideLocked": "Locked",
+  "unitGuideOpensAfter": "Opens after lesson {number}",
+  "@unitGuideOpensAfter": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "unitGuidePitStop": "Pit stop",
+  "unitGuideTuneUp": "{count, plural, =0{Nothing to tune up} =1{1 street to tune up} other{{count} streets to tune up}}",
+  "@unitGuideTuneUp": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unitGuideStopDone": "Done",
+  "unitGuideFinalDrive": "Final drive",
+  "unitGuideTrips": "{passed} of {total} road trips",
+  "@unitGuideTrips": {
+    "placeholders": {
+      "passed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "unitGuidePassed": "Passed",
+  "unitGuideOnMap": "On the map"
 }

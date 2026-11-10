@@ -139,6 +139,10 @@ final placementProvider = FutureProvider.autoDispose<Placement?>((ref) async {
   );
 });
 
+/// A lesson result's tests right first time, in percent.
+int lessonAccuracy(LessonResult r) =>
+    r.tests == 0 ? 0 : (r.rightFirst * 100 / r.tests).round();
+
 /// A saved result as the path reads it: a Final drive trip passed when it
 /// was right first time (Close or better).
 LessonOutcome outcomeOf(LessonResult r) => (

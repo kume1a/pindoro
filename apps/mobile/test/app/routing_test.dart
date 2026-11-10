@@ -12,6 +12,7 @@ import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/course/data/course_data.dart';
 import 'package:pindoro/features/course/ui/path_screen.dart';
+import 'package:pindoro/features/course/ui/unit_guide_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
 import 'package:pindoro/features/lesson/ui/drive_controller.dart';
 import 'package:pindoro/features/lesson/ui/drive_screen.dart';
@@ -25,6 +26,9 @@ import 'package:pindoro_design/pindoro_design.dart';
 
 void main() {
   late AppDatabase db;
+
+  /// Every map the screens built, latest last.
+  final maps = <PindoroMap>[];
 
   setUp(() {
     db = AppDatabase(
@@ -47,7 +51,10 @@ void main() {
   Widget app(String location) => ProviderScope(
     overrides: [
       databaseProvider.overrideWithValue(db),
-      pindoroMapBuilderProvider.overrideWithValue((map) => const SizedBox()),
+      pindoroMapBuilderProvider.overrideWithValue((map) {
+        maps.add(map);
+        return const SizedBox();
+      }),
       areaPickerMapBuilderProvider.overrideWithValue(
         (map) => const SizedBox.expand(),
       ),
@@ -416,6 +423,48 @@ void main() {
 
     double road(WidgetTester tester) =>
         tester.widget<LessonRoad>(find.byType(LessonRoad).first).driven;
+
+    testWidgets(
+      'the Unit guide: the book opens it, a done lesson narrows the map',
+      (tester) async {
+        await lessonOneDone(tester);
+        await pumpPath(tester);
+        await tapLabelled(tester, 'Unit guide');
+        expect(find.byType(UnitGuideScreen), findsOneWidget);
+        expect(find.text('Perfect · 4 streets'), findsOneWidget);
+        expect(find.textContaining('Next · '), findsOneWidget);
+        expect(find.text('Opens after lesson 3'), findsOneWidget);
+        expect(find.text('Opens after lesson 6'), findsOneWidget);
+        final whole = maps.last.truth!.length;
+        expect(maps.last.frame, isNull, reason: 'framed on the district');
+
+        await tapAndSettle(tester, 'Perfect · 4 streets');
+        expect(maps.last.truth!.length, lessThan(whole));
+        expect(maps.last.frame, isNotEmpty);
+        expect(find.bySemanticsLabel(RegExp('On the map')), findsOneWidget);
+        await tapAndSettle(tester, 'Perfect · 4 streets');
+        expect(maps.last.truth!.length, whole);
+
+        await tester.runAsync(() async {
+          await tester.tap(find.textContaining('Next · '));
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+        });
+        await tester.pumpAndSettle();
+        expect(find.byType(LessonScreen), findsOneWidget);
+      },
+    );
+
+    testWidgets('See the streets opens the guide at that lesson', (
+      tester,
+    ) async {
+      await lessonOneDone(tester);
+      await pumpPath(tester);
+      await tester.tap(find.bySemanticsLabel(RegExp(r'^Lesson 1, .+ Perfect')));
+      await tester.pumpAndSettle();
+      await tapAndSettle(tester, 'See the streets');
+      expect(find.byType(UnitGuideScreen), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('On the map')), findsOneWidget);
+    });
 
     testWidgets('the unlock paves the road and grows the next stop', (
       tester,

@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:math' as math show max, pi, sin;
 import 'dart:math' show Point;
 
-import 'package:flutter/foundation.dart' show listEquals;
+import 'package:flutter/foundation.dart' show Factory, listEquals;
+import 'package:flutter/gestures.dart'
+    show EagerGestureRecognizer, OneSequenceGestureRecognizer;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
@@ -62,6 +64,7 @@ class PindoroMap extends ConsumerStatefulWidget {
     this.route,
     this.frame,
     this.onCamera,
+    this.ownsGestures = false,
   });
 
   final AreaShape area;
@@ -77,6 +80,10 @@ class PindoroMap extends ConsumerStatefulWidget {
   final RouteOverlay? route;
   final List<LatLng>? frame;
   final ValueChanged<MapProjection>? onCamera;
+
+  /// Inside a scroll view: drags and pinches on the map move the map, not
+  /// the page.
+  final bool ownsGestures;
 
   @override
   ConsumerState<PindoroMap> createState() => _PindoroMapState();
@@ -477,6 +484,13 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
                   target: center.toMapLibre,
                   zoom: PindoroCamera.zoom,
                 ),
+                gestureRecognizers: widget.ownsGestures
+                    ? {
+                        Factory<OneSequenceGestureRecognizer>(
+                          EagerGestureRecognizer.new,
+                        ),
+                      }
+                    : null,
                 onMapCreated: (c) => _controller = c..addListener(_cameraMoved),
                 trackCameraPosition: widget.onCamera != null,
                 onStyleLoadedCallback: () => runMapWork(_addOverlays),
