@@ -97,6 +97,18 @@
   - A pack update between an app kill and the next launch starts the killed lesson over.
   - The Unit guide's tip comes from the streets' main direction; no hand-written tip per district.
 
+- Leagues (R5), left out on purpose:
+  - No sign-in and no progress sync across devices: a new phone or a reinstall starts a new player.
+  - League names aren't moderated and can't be reported.
+  - The server trusts the app's XP; there is no cheat detection.
+  - XP synced after Monday 00:00 (Tbilisi) for the week before is lost; so is XP earned offline
+    that week and synced only after it ends.
+  - No "You moved up" moment at the week's end; the header just shows the new league.
+  - The token sits in the app's database, not the keychain.
+  - The Results chip shows after Free play rounds only (as designed); lessons don't show a move.
+  - A league week only fills from players syncing; with few players, leagues stay small (no
+    demotion zone below 26 players).
+
 ## Data / pipeline
 
 - Neighbourhoods come from OSM `place=quarter|neighbourhood`; `curation/neighbourhoods.geojson` is

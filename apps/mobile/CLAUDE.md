@@ -18,7 +18,8 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                the shared pin-drop and road-trip views), course (the Path), home, setup (welcome,
                                city, area, difficulty), quiz (round), results (results, street),
                                settings, streak, pitstop, me, lesson (lesson, Lesson complete, Final drive,
-                               Unit complete)
+                               Unit complete), league (the Leagues tab, the name form; data: LeagueDao,
+                               LeagueApi, standingProvider)
 lib/features/quiz/ui/round_controller.dart   round state machine; resumes from round_question + answers;
                                questions are NamedStreets (cityStreetsProvider); retries set round.retry_of,
                                Pit stop rounds round.pit_stop
@@ -32,7 +33,7 @@ test/drift/                    generated schema helpers + migration test
 ## Conventions
 
 - **Layers, lowest first:** `l10n` → `core` → `features/progress` → `features/pack` →
-  `features/map` → `features/course` → screen features (`home`, `setup`, `quiz`, `results`,
+  `features/map` → `features/course` → `features/league` → screen features (`home`, `setup`, `quiz`, `results`,
   `settings`, `streak`, `pitstop`, `me`, `lesson`) → `app` → `main.dart`. A file imports its own slice or a lower layer only; screen features never import
   each other. Something two features need moves down (to `core`, or to `progress`/`pack`/`map`).
   `test/architecture_test.dart` enforces this, and that `ui/` never imports Drift; a new feature
@@ -44,7 +45,7 @@ test/drift/                    generated schema helpers + migration test
   `ref.watch` in build, `ref.read` in callbacks.
 - **Routing:** go_router, paths in `Routes` (v1-screens.md § Navigation). The tabs are a
   `StatefulShellRoute` (`TabShell`, a `FadeIndexedStack` of one page per branch): `/path` the
-  Path, `/` Free play (Home), `/pit-stop`, `/me`; `go` to one of them switches tab, back on
+  Path, `/` Free play (Home), `/pit-stop`, `/leagues`, `/me`; `go` to one of them switches tab, back on
   another tab goes to the Path first, and each tab page gets its own `PrimaryScrollController` (a
   tap on the open tab scrolls it up; on the Path, to the current stop). Every other route sits on
   the root navigator, over the bar: `/welcome`, `/whats-new`, `/city` (`?course=1` goes on to
@@ -53,7 +54,7 @@ test/drift/                    generated schema helpers + migration test
   (`?unit=&lesson=`, `&practice=1`, or `?unit=&pit-stop=1`), `/lesson-done?result=`,
   `/drive?unit=` (the Final drive, Jump ahead on a locked unit), `/unit-done?unit=`,
   `/unit-guide?unit=` (`&lesson=` opens with that lesson's streets on the map),
-  `/streak`, `/settings`, `/settings/credits`. The app opens on the Path once a course exists
+  `/league-name`, `/streak`, `/settings`, `/settings/credits`. The app opens on the Path once a course exists
   (`course` row), or in the lesson it was killed in (`saved_lesson`); a player who finished a
   round before any course sees What's new (then placement); a saved first round reopens Free play;
   anyone else gets Welcome, whose Choose a city leads to the start-district picker. Footers end 12 dp above the bar on a tab
@@ -85,6 +86,14 @@ test/drift/                    generated schema helpers + migration test
 - **Unit guide** (`features/course/ui/unit_guide_screen.dart`): from the signpost's book button or
   a done lesson's See the streets; a map of the unit's streets (`PindoroMap` without controls), a
   tip from pindoro_core `mainAxis` and the unit's stops as rows.
+- **Leagues** (`features/league`): an anonymous account (`league_player`: player id, token, name)
+  from `POST /v1/players` when the player first joins on the Leagues tab. `standingProvider` sends
+  this league week's XP (pindoro_core `leagueWeek`, `ProgressDao.xpBetween`) with
+  `PUT /v1/league/me` and returns the ranked league; the server owns ranks, zones and moves. Opening
+  the tab and opening Results invalidate it; a 401 drops the account. Results shows "Up to 4th in
+  Avenue league" when the round's XP raised the rank (`rankBefore`). Settings → League renames
+  (`/league-name`) and leaves (deletes the player on the server). Tests override
+  `leagueApiProvider` with a `MockClient`.
 - **Hear the name:** `speechProvider` (`core/speech.dart`, `flutter_tts`) reads a new street's name
   in `speechLanguage(name)`; the button shows only when `canSpeakProvider` finds a voice. Tests
   override `speechProvider`.
@@ -94,7 +103,7 @@ test/drift/                    generated schema helpers + migration test
   Numbers through `formatNumber` (narrow no-break space groups), distances through
   `formatDistance`. Never uppercase.
 - **Settings** (`user_settings`, watched by `settingsProvider`): language (null = device),
-  street names, theme, sound, haptics, daily goal, reminder, turn list (plus the first Home's
+  street names, theme, sound, haptics, daily goal, reminder, turn list, the league account (plus the first Home's
   coach-mark flag); they apply immediately. `feedbackProvider` plays haptics
   per game event behind the Haptics toggle; the Sound toggle gates nothing until a sound kit exists.
 - **Streak:** only goal-met days are stored (`goal_day`, written by `ProgressDao.markGoalIfMet`
