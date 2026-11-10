@@ -311,6 +311,8 @@ class Signpost extends StatelessWidget {
     required this.semanticLabel,
     this.locked = false,
     this.onTap,
+    this.onGuide,
+    this.guideLabel,
   });
 
   final int number;
@@ -320,9 +322,15 @@ class Signpost extends StatelessWidget {
   final bool locked;
   final VoidCallback? onTap;
 
+  /// The book button at the end of an open unit's sign (the Unit guide),
+  /// announced as [guideLabel].
+  final VoidCallback? onGuide;
+  final String? guideLabel;
+
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
+    final guide = onGuide != null && !locked;
     final (face, lip, rule, ink, sub) = locked
         ? (
             c.pathNodeLockedFill,
@@ -390,16 +398,41 @@ class Signpost extends StatelessWidget {
                   ],
                 ),
               ),
+              if (guide) const SizedBox.square(dimension: PindoroSize.tapMin),
             ],
           ),
         ),
       ),
     );
-    return Semantics(
+    final heading = Semantics(
       header: true,
       child: onTap == null
           ? Semantics(label: semanticLabel, excludeSemantics: true, child: sign)
           : Tappable(label: semanticLabel, onTap: onTap, child: sign),
+    );
+    if (!guide) return heading;
+    // Over the sign's reserved end slot, outside its single heading node.
+    return Stack(
+      alignment: AlignmentDirectional.centerEnd,
+      children: [
+        heading,
+        Padding(
+          padding: const EdgeInsetsDirectional.only(
+            end: PindoroSpace.s1 + PindoroStroke.base,
+            bottom: PindoroElevation.e2,
+          ),
+          child: Tappable(
+            label: guideLabel,
+            onTap: onGuide,
+            child: SizedBox.square(
+              dimension: PindoroSize.tapMin,
+              child: Center(
+                child: PindoroIcon(PindoroGlyph.book, color: ink, cut: face),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

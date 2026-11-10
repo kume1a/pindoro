@@ -327,6 +327,59 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('an open signpost has a book button; a locked one has none', (
+    tester,
+  ) async {
+    var guides = 0;
+    Widget sign({required bool locked}) => Signpost(
+      number: 2,
+      line: '2 of 6 lessons',
+      title: 'Vake',
+      locked: locked,
+      semanticLabel: 'Unit 2, Vake.',
+      onGuide: () => guides++,
+      guideLabel: 'Unit guide',
+    );
+    await tester.pumpWidget(_host(sign(locked: false)));
+    final button = find.bySemanticsLabel('Unit guide');
+    expect(tester.getSize(button), const Size(48, 48));
+    await tester.tap(button);
+    expect(guides, 1);
+    expect(
+      tester.getSemantics(find.bySemanticsLabel('Unit 2, Vake.')),
+      matchesSemantics(label: 'Unit 2, Vake.', isHeader: true),
+    );
+    await tester.pumpWidget(_host(sign(locked: true)));
+    expect(find.bySemanticsLabel('Unit guide'), findsNothing);
+  });
+
+  testWidgets('a skeleton shimmers, and holds still under reduce motion', (
+    tester,
+  ) async {
+    // _host turns animations off; this one needs them on.
+    await tester.pumpWidget(
+      _host(
+        const MediaQuery(
+          data: MediaQueryData(),
+          child: Skeleton(width: 56, height: 56, radius: 28),
+        ),
+      ),
+    );
+    expect(tester.getSize(find.byType(Skeleton)), const Size(56, 56));
+    expect(tester.hasRunningAnimations, isTrue);
+    await tester.pumpWidget(
+      _host(
+        const MediaQuery(
+          data: MediaQueryData(disableAnimations: true),
+          child: Skeleton(width: 56, height: 56),
+        ),
+      ),
+    );
+    // Settles (the theme's own lerp ends); a shimmer would never settle.
+    await tester.pumpAndSettle();
+    expect(tester.hasRunningAnimations, isFalse);
+  });
+
   testWidgets('plate choices are a radio group that reports taps', (
     tester,
   ) async {
@@ -810,7 +863,7 @@ void main() {
                   Positioned.fill(
                     child: LessonRoad(points: points, driven: 3.5),
                   ),
-                  const Positioned(
+                  Positioned(
                     left: 0,
                     right: 0,
                     child: Column(
@@ -821,8 +874,10 @@ void main() {
                           line: '2 of 6 lessons',
                           title: 'Vake District',
                           semanticLabel: 'open',
+                          onGuide: () {},
+                          guideLabel: 'Unit guide',
                         ),
-                        Signpost(
+                        const Signpost(
                           number: 3,
                           line: 'Locked',
                           title: 'Saburtalo District',
