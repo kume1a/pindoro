@@ -285,7 +285,9 @@ class _PathScreenState extends ConsumerState<PathScreen>
                   ? _LoadError(
                       onRetry: () => ref.invalidate(coursePlanProvider),
                     )
-                  : const _Loading(),
+                  : _Loading(
+                      city: context.localName(ka: city.nameKa, en: city.nameEn),
+                    ),
             ),
           ],
         ),
@@ -777,45 +779,132 @@ class _PathScreenState extends ConsumerState<PathScreen>
 /// Far enough past the viewport to build a whole course.
 const double _wholeCourse = 100000;
 
-/// Nothing for 300 ms, then thinking Pindo and the lane loader.
+/// Loading the course (canvas R4-10 `loading`): nothing for 300 ms, then a
+/// skeleton signpost and stops; from 2 s also thinking Pindo, what is
+/// happening and the lane loader.
 class _Loading extends StatefulWidget {
-  const _Loading();
+  const _Loading({required this.city});
+
+  final String city;
 
   @override
   State<_Loading> createState() => _LoadingState();
 }
 
 class _LoadingState extends State<_Loading> {
-  bool _show = false;
-  Timer? _timer;
+  /// The board's skeleton stops: their centres' x from the middle and their
+  /// tops under the signpost's top.
+  static const List<(double, double)> _stops = [
+    (0, 95),
+    (-67, 199),
+    (0, 511),
+    (67, 615),
+  ];
+  static const double _cardTop = 313;
+
+  bool _skeletons = false;
+  bool _card = false;
+  final List<Timer> _timers = [];
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) setState(() => _show = true);
-    });
+    _timers.addAll([
+      Timer(const Duration(milliseconds: 300), () {
+        if (mounted) setState(() => _skeletons = true);
+      }),
+      Timer(const Duration(seconds: 2), () {
+        if (mounted) setState(() => _card = true);
+      }),
+    ]);
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    for (final t in _timers) {
+      t.cancel();
+    }
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => !_show
-      ? const SizedBox.expand()
-      : const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            spacing: PindoroSpace.s4,
+  Widget build(BuildContext context) {
+    if (!_skeletons) return const SizedBox.expand();
+    final l10n = context.l10n;
+    final c = PindoroTheme.of(context).colors;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(PindoroSpace.s4),
+      child: ContentColumn(
+        child: SizedBox(
+          height: _stops.last.$2 + PindoroSize.tapMin + PindoroSpace.s4,
+          child: Stack(
             children: [
-              Pindo(PindoExpression.thinking, height: 96),
-              SizedBox(width: 160, child: LaneLoader()),
+              const Positioned(
+                left: 0,
+                right: 0,
+                child: Skeleton(height: 64, radius: PindoroRadius.lg),
+              ),
+              for (final (dx, top) in _stops)
+                Positioned(
+                  top: top,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Transform.translate(
+                      offset: Offset(dx, 0),
+                      child: const Skeleton(
+                        width: 56,
+                        height: 56,
+                        radius: PindoroRadius.full,
+                      ),
+                    ),
+                  ),
+                ),
+              if (_card)
+                Positioned(
+                  top: _cardTop,
+                  left: 0,
+                  right: 0,
+                  child: Semantics(
+                    liveRegion: true,
+                    child: LipBox(
+                      padding: const EdgeInsets.all(PindoroSpace.s4),
+                      child: Row(
+                        spacing: PindoroSpace.s3,
+                        children: [
+                          const Pindo(PindoExpression.thinking, height: 74),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              spacing: PindoroSpace.s2,
+                              children: [
+                                Text(
+                                  l10n.pathLoadingTitle,
+                                  style: PindoroType.titleMd.copyWith(
+                                    color: c.textPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  l10n.pathLoadingBody(widget.city),
+                                  style: PindoroType.bodySm.copyWith(
+                                    color: c.textSecondary,
+                                  ),
+                                ),
+                                const LaneLoader(),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
-        );
+        ),
+      ),
+    );
+  }
 }
 
 class _Message extends StatelessWidget {

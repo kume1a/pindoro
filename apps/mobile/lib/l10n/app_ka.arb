@@ -454,6 +454,8 @@
   "settingsTurnList": "მოხვევების არჩევა სიიდან",
   "settingsTurnListSubtitle": "მარშრუტზე ყოველ მოხვევას სიიდან ირჩევ, ხატვის ნაცვლად",
   "lessonHearName": "სახელის მოსმენა",
+  "pathLoadingTitle": "კურსს ვალაგებთ",
+  "pathLoadingBody": "ვეძებთ ქალაქ {city}-ის რაიონებს და მათ ქუჩებს. პირველად ამას რამდენიმე წამი სჭირდება.",
   "pathUnitGuide": "ერთეულის გზამკვლევი",
   "pathSeeStreets": "ქუჩების ნახვა",
   "unitGuideTitle": "ერთეულის გზამკვლევი",

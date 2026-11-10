@@ -2155,6 +2155,15 @@
   "settingsTurnList": "Choose turns from a list",
   "settingsTurnListSubtitle": "Road trips ask for each turn instead of a drawing",
   "lessonHearName": "Hear the name",
+  "pathLoadingTitle": "Laying out your course",
+  "pathLoadingBody": "Finding {city}’s districts and their streets. This takes a few seconds the first time.",
+  "@pathLoadingBody": {
+    "placeholders": {
+      "city": {
+        "type": "String"
+      }
+    }
+  },
   "pathUnitGuide": "Unit guide",
   "pathSeeStreets": "See the streets",
   "unitGuideTitle": "Unit guide",
