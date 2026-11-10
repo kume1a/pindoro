@@ -17,7 +17,8 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Language, street names, theme, sound, haptics; changes apply at once.
+/// Language, street names, daily goal, theme, sound, haptics, the turn list;
+/// changes apply at once.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -126,6 +127,18 @@ class SettingsScreen extends ConsumerWidget {
                 if (v) unawaited(HapticFeedback.selectionClick());
                 unawaited(dao.setHaptics(on: v));
               },
+            ),
+          ],
+        ),
+        SectionTitle(l10n.settingsAccessibility),
+        ListGroup(
+          children: [
+            _ToggleRow(
+              title: l10n.settingsTurnList,
+              subtitle: l10n.settingsTurnListSubtitle,
+              glyph: PindoroGlyph.route,
+              value: settings.turnList,
+              onChanged: (v) => save(() => dao.setTurnList(on: v)),
             ),
           ],
         ),

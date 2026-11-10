@@ -2150,5 +2150,8 @@
       }
     }
   },
-  "pathSheetPlacedBody": "You already knew these streets when the course started."
+  "pathSheetPlacedBody": "You already knew these streets when the course started.",
+  "settingsAccessibility": "Accessibility",
+  "settingsTurnList": "Choose turns from a list",
+  "settingsTurnListSubtitle": "Road trips ask for each turn instead of a drawing"
 }

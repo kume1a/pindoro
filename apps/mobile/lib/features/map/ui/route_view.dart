@@ -224,7 +224,9 @@ class _RouteViewState extends ConsumerState<RouteView>
     final draft = widget.draft;
     final graph = draft.graph;
     final a = graph.at(trip.from), b = graph.at(trip.to);
-    final listMode = MediaQuery.accessibleNavigationOf(context);
+    final listMode =
+        MediaQuery.accessibleNavigationOf(context) ||
+        (settings?.turnList ?? false);
     final ghost = widget.ghost && !_touched && reveal == null && !listMode;
     final drawn = draft.lines;
     final best = reveal == null ? null : _along(trip.best.lines, _replay.value);

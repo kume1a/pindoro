@@ -665,6 +665,8 @@ void main() {
 
   testWidgets('settings apply at once and persist', (tester) async {
     await pumpApp(tester, Routes.settings);
+    await tester.scrollUntilVisible(find.text('Choose turns from a list'), 300);
+    await tapAndSettle(tester, 'Choose turns from a list');
     await tapAndSettle(tester, 'Dark');
     // Back to the top, where the language control is.
     await tester.drag(find.byType(ListView), const Offset(0, 2000));
@@ -673,6 +675,7 @@ void main() {
     final settings = (await tester.runAsync(SettingsDao(db).read))!;
     expect(settings.theme, ThemePreference.dark);
     expect(settings.appLanguage, AppLanguage.ka);
+    expect(settings.turnList, isTrue);
     expect(
       Theme.of(tester.element(find.byType(Scaffold).first)).brightness,
       Brightness.dark,

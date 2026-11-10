@@ -449,5 +449,8 @@
   "startIn": "დაიწყე: {district}",
   "pathCoachTitle": "დაიწყე აქედან",
   "pathCoachBody": "შენი პირველი გაკვეთილი: {count} ქუჩა — {district}, მერე მოკლე ტესტი.",
-  "pathSheetPlacedBody": "ეს ქუჩები უკვე იცოდი, როცა კურსი დაიწყო."
+  "pathSheetPlacedBody": "ეს ქუჩები უკვე იცოდი, როცა კურსი დაიწყო.",
+  "settingsAccessibility": "წვდომადობა",
+  "settingsTurnList": "მოხვევების არჩევა სიიდან",
+  "settingsTurnListSubtitle": "მარშრუტზე ყოველ მოხვევას სიიდან ირჩევ, ხატვის ნაცვლად"
 }

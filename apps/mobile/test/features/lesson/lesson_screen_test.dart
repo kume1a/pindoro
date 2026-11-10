@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/app/app.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/lesson/ui/lesson_controller.dart';
@@ -159,13 +160,8 @@ void main() {
     expect(await tester.runAsync(ProgressDao(db).hasPlayed), isFalse);
   });
 
-  testWidgets('with a screen reader the road trip is a list of turns', (
-    tester,
-  ) async {
-    await pumpApp(tester, Routes.lessonOf(unit, 1), screenReader: true);
-    final container = ProviderScope.containerOf(
-      tester.element(find.byType(LessonScreen)),
-    );
+  /// Plays every step right up to the road trip.
+  Future<void> toTrip(WidgetTester tester, ProviderContainer container) async {
     final controller = container.read(lessonControllerProvider.notifier);
     LessonPlaying play() =>
         container.read(lessonControllerProvider) as LessonPlaying;
@@ -184,6 +180,30 @@ void main() {
       await controller.next();
     }
     await settle(tester);
+  }
+
+  testWidgets('Choose turns from a list gives the list without a reader', (
+    tester,
+  ) async {
+    await tester.runAsync(() => SettingsDao(db).setTurnList(on: true));
+    await pumpApp(tester, Routes.lessonOf(unit, 1));
+    await toTrip(
+      tester,
+      ProviderScope.containerOf(tester.element(find.byType(LessonScreen))),
+    );
+    expect(find.text('At the junction, go'), findsOneWidget);
+  });
+
+  testWidgets('with a screen reader the road trip is a list of turns', (
+    tester,
+  ) async {
+    await pumpApp(tester, Routes.lessonOf(unit, 1), screenReader: true);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(LessonScreen)),
+    );
+    LessonPlaying play() =>
+        container.read(lessonControllerProvider) as LessonPlaying;
+    await toTrip(tester, container);
     expect(find.text('At the junction, go'), findsOneWidget);
 
     final streets = await container.read(cityStreetsProvider.future);
