@@ -79,6 +79,7 @@ class Pill extends StatelessWidget {
     this.floating = false,
     this.ring = false,
     this.semanticLabel,
+    this.onTap,
   });
 
   final String label;
@@ -98,8 +99,21 @@ class Pill extends StatelessWidget {
   final bool ring;
   final String? semanticLabel;
 
+  /// Makes the pill a button (Results' league chip opens the league).
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
+    final pill = _pill(context);
+    if (onTap == null) return pill;
+    // Its own node: next to other pills it would merge into their parent.
+    return Semantics(
+      container: true,
+      child: Tappable(label: semanticLabel ?? label, onTap: onTap, child: pill),
+    );
+  }
+
+  Widget _pill(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
     return Semantics(
       container: semanticLabel != null,
@@ -129,10 +143,13 @@ class Pill extends StatelessWidget {
                   accent: iconAccent,
                   cut: face,
                 ),
-              Text(
-                label,
-                style: PindoroType.numericSm.copyWith(
-                  color: foreground ?? c.textPrimary,
+              // Wraps rather than overflows: long labels at large text sizes.
+              Flexible(
+                child: Text(
+                  label,
+                  style: PindoroType.numericSm.copyWith(
+                    color: foreground ?? c.textPrimary,
+                  ),
                 ),
               ),
             ],

@@ -3,6 +3,59 @@
   "meta": {
     "note": "Tokens the app needs that the claude.ai design system (tokens.json, copied verbatim) does not define. Same format as tokens.json (groups of {name, value, usage}); values may alias tokens.json. When the design system gains one of these, delete it here: the generator fails on duplicates."
   },
+  "color": {
+    "tokens": [
+      {
+        "name": "color.league.ladder",
+        "value": {
+          "light": "{color.cobalt.400}",
+          "dark": "{color.cobalt.400}"
+        },
+        "usage": "The league ladder's other steps on street-card.bg (.pd-ladder i)."
+      },
+      {
+        "name": "color.avatar.1",
+        "value": {
+          "light": "{color.cobalt.500}",
+          "dark": "{color.cobalt.500}"
+        },
+        "usage": "Initials avatar background, first of four (.pd-avatar)."
+      },
+      {
+        "name": "color.avatar.2",
+        "value": {
+          "light": "{color.aqua.700}",
+          "dark": "{color.aqua.700}"
+        },
+        "usage": "Initials avatar background, second of four."
+      },
+      {
+        "name": "color.avatar.3",
+        "value": {
+          "light": "{color.orange.700}",
+          "dark": "{color.orange.700}"
+        },
+        "usage": "Initials avatar background, third of four."
+      },
+      {
+        "name": "color.avatar.4",
+        "value": {
+          "light": "{color.red.700}",
+          "dark": "{color.red.700}"
+        },
+        "usage": "Initials avatar background, fourth of four."
+      },
+      {
+        "name": "color.avatar.text",
+        "value": {
+          "light": "{color.asphalt.0}",
+          "dark": "{color.asphalt.0}"
+        },
+        "usage": "Initials on an avatar background."
+      }
+    ],
+    "note": "Colours the design system's component CSS uses as primitives directly (league ladder, avatars)."
+  },
   "duration": {
     "tokens": [
       {
