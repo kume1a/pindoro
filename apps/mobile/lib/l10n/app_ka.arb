@@ -452,5 +452,6 @@
   "pathSheetPlacedBody": "ეს ქუჩები უკვე იცოდი, როცა კურსი დაიწყო.",
   "settingsAccessibility": "წვდომადობა",
   "settingsTurnList": "მოხვევების არჩევა სიიდან",
-  "settingsTurnListSubtitle": "მარშრუტზე ყოველ მოხვევას სიიდან ირჩევ, ხატვის ნაცვლად"
+  "settingsTurnListSubtitle": "მარშრუტზე ყოველ მოხვევას სიიდან ირჩევ, ხატვის ნაცვლად",
+  "lessonHearName": "სახელის მოსმენა"
 }

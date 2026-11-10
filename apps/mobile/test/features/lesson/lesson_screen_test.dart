@@ -11,6 +11,7 @@ import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/routes.dart';
+import 'package:pindoro/core/speech.dart';
 import 'package:pindoro/features/lesson/ui/lesson_controller.dart';
 import 'package:pindoro/features/lesson/ui/lesson_screen.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
@@ -44,6 +45,7 @@ void main() {
     WidgetTester tester,
     String location, {
     bool screenReader = false,
+    Speech? speech,
   }) async {
     // The Path's current stop floats for good; settle without motion.
     tester.platformDispatcher.accessibilityFeaturesTestValue =
@@ -61,6 +63,7 @@ void main() {
         overrides: [
           databaseProvider.overrideWithValue(db),
           remindersProvider.overrideWithValue(_NoReminders()),
+          speechProvider.overrideWithValue(speech ?? _FakeSpeech()),
           pindoroMapBuilderProvider.overrideWithValue(
             (map) => const SizedBox.expand(),
           ),
@@ -160,6 +163,23 @@ void main() {
     expect(await tester.runAsync(ProgressDao(db).hasPlayed), isFalse);
   });
 
+  testWidgets('Hear the name reads the plate in its language', (tester) async {
+    await pumpApp(tester, Routes.lessonOf(unit, 1));
+    expect(find.bySemanticsLabel('Hear the name'), findsNothing);
+
+    final speech = _FakeSpeech({'ka-GE'});
+    await pumpApp(tester, Routes.lessonOf(unit, 1), speech: speech);
+    final step =
+        (ProviderScope.containerOf(
+                  tester.element(find.byType(LessonScreen)),
+                ).read(lessonControllerProvider)
+                as LessonPlaying)
+            .run
+            .step;
+    await tap(tester, find.bySemanticsLabel('Hear the name'));
+    expect(speech.said, [(step.street.name, 'ka-GE')]);
+  });
+
   /// Plays every step right up to the road trip.
   Future<void> toTrip(WidgetTester tester, ProviderContainer container) async {
     final controller = container.read(lessonControllerProvider.notifier);
@@ -241,4 +261,19 @@ class _NoReminders implements Reminders {
 
   @override
   Future<void> cancel() async {}
+}
+
+class _FakeSpeech implements Speech {
+  _FakeSpeech([this.languages = const {}]);
+
+  final Set<String> languages;
+  final List<(String, String)> said = [];
+
+  @override
+  Future<bool> canSpeak(String languageTag) async =>
+      languages.contains(languageTag);
+
+  @override
+  Future<void> speak(String text, String languageTag) async =>
+      said.add((text, languageTag));
 }
