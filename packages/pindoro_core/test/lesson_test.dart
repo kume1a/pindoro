@@ -405,4 +405,104 @@ void main() {
       expect(directionFromCentre(_street('c'), centre), isNull);
     });
   });
+
+  group('resume', () {
+    List<LessonStep> plan(int seed) => planLesson(
+      kind: LessonKind.lesson,
+      streets: streets,
+      unitStreets: unit,
+      random: Random(seed),
+    );
+
+    LessonRun pastCards(int seed) {
+      var run = LessonRun(LessonKind.lesson, plan(seed));
+      while (run.step is CardStep) {
+        run = run.next();
+      }
+      return run;
+    }
+
+    LessonRun answer(LessonRun run, Tier tier) => switch (run.step) {
+      PinStep() => run.answerPin(
+        (tier: tier, xp: tier == Tier.miss ? 0 : 90),
+        40,
+        _at,
+      ),
+      NameStep() => run.answerName(right: tier != Tier.miss, at: _at),
+      TripStep() => run.answerTrip((tier: tier, xp: 0), _at),
+      CardStep() => run,
+    };
+
+    String ids(List<LessonStep> steps) =>
+        steps.map((s) => '${s.runtimeType}:${s.street.id}').join(' ');
+
+    test('the same seed plans the same steps', () {
+      expect(ids(plan(7)), ids(plan(7)));
+    });
+
+    test(
+      'restore replays answers mid-test, through the fixes and finished',
+      () {
+        var run = pastCards(1);
+        for (final tier in [
+          Tier.great,
+          Tier.miss,
+          Tier.great,
+          Tier.close,
+          Tier.great,
+          Tier.great,
+        ]) {
+          run = answer(run, tier).next();
+        }
+        expect(run.startsFixes, isTrue);
+        final fixed = answer(run, Tier.great);
+        var done = fixed.next();
+        done = answer(done, Tier.great).next();
+        expect(done.finished, isTrue);
+        for (final at in [pastCards(1), run, fixed, done]) {
+          final back = LessonRun.restore(at.kind, plan(1), at.saved, at.index)!;
+          expect(back.index, at.index);
+          expect(ids(back.steps), ids(at.steps));
+          expect(back.xp, at.xp);
+          expect(back.mistakes, hasLength(at.mistakes.length));
+          expect(back.answered, at.answered);
+          expect(back.finished, at.finished);
+        }
+      },
+    );
+
+    test('resumeAt skips a reveal that was showing', () {
+      final fresh = pastCards(2);
+      final answered = answer(fresh, Tier.great);
+      expect(answered.resumeAt().index, answered.index + 1);
+      expect(fresh.resumeAt().index, fresh.index);
+    });
+
+    test('a plan that no longer fits restores to null', () {
+      final run = answer(pastCards(3), Tier.great);
+      final a = run.saved.single;
+      final moved = [
+        (
+          step: a.step,
+          streetId: 'other',
+          tier: a.tier,
+          xp: a.xp,
+          distanceM: a.distanceM,
+          at: a.at,
+        ),
+      ];
+      expect(LessonRun.restore(run.kind, plan(3), moved, run.index), isNull);
+      final onCard = [
+        (
+          step: 0,
+          streetId: a.streetId,
+          tier: a.tier,
+          xp: a.xp,
+          distanceM: a.distanceM,
+          at: a.at,
+        ),
+      ];
+      expect(LessonRun.restore(run.kind, plan(3), onCard, run.index), isNull);
+    });
+  });
 }

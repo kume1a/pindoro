@@ -95,6 +95,7 @@ List<LessonOutcome> _allLessons(String unit) => [
 ];
 
 void main() {
+  _mainAxisTests();
   final a = _district('a', lat: 41.70, lon: 44.70);
   final b = _district('b', lat: 41.70, lon: 44.75);
   final c = _district('c', lat: 41.70, lon: 44.72);
@@ -445,6 +446,63 @@ void main() {
         ],
         ['a', 'c', 'b'],
       );
+    });
+  });
+}
+
+NamedStreet _line(String id, List<LatLng> line) => NamedStreet([
+  Street(
+    id: id,
+    nameKa: 'name $id',
+    nameEn: null,
+    roadClass: 'residential',
+    difficulty: Difficulty.expert,
+    lengthM: 500,
+    midpoint: line.first,
+    bbox: Bbox.of(line),
+    geometry: [line],
+  ),
+]);
+
+void _mainAxisTests() {
+  group('mainAxis', () {
+    const o = LatLng(41.7, 44.8);
+    // About 1 km each way at Tbilisi's latitude.
+    LatLng at(double north, double east) =>
+        LatLng(o.lat + north * 0.009, o.lon + east * 0.012);
+
+    test('mostly north-south', () {
+      expect(
+        mainAxis([
+          for (var i = 0; i < 3; i++)
+            _line('ns$i', [at(0, i * 0.2), at(1, i * 0.2)]),
+          _line('ew', [at(0, 0), at(0, 0.3)]),
+        ]),
+        StreetAxis.northSouth,
+      );
+    });
+
+    test('diagonal', () {
+      expect(
+        mainAxis([
+          _line('d1', [at(0, 0), at(1, 1)]),
+          _line('d2', [at(0.2, 0), at(1.2, 1)]),
+        ]),
+        StreetAxis.northeastSouthwest,
+      );
+    });
+
+    test('every way is no main axis', () {
+      expect(
+        mainAxis([
+          _line('ns', [at(0, 0), at(1, 0)]),
+          _line('ew', [at(0, 0), at(0, 1)]),
+          _line('ne', [at(0, 0), at(0.707, 0.707)]),
+          _line('nw', [at(0, 0), at(0.707, -0.707)]),
+        ]),
+        isNull,
+      );
+      expect(mainAxis(const []), isNull);
     });
   });
 }
