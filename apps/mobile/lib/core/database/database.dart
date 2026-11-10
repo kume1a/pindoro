@@ -69,6 +69,9 @@ class UserSettings extends Table {
   /// The 19:00 reminder when today's goal isn't met.
   BoolColumn get reminder => boolean().withDefault(const Constant(false))();
 
+  /// Road trips pick each turn from a list, screen reader or not.
+  BoolColumn get turnList => boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -243,6 +246,32 @@ class LessonAnswers extends Table {
   Set<Column<Object>> get primaryKey => {resultId, position};
 }
 
+/// The lesson in play, saved after every step so an app kill resumes it:
+/// re-planned from [seed] and its [progress] replayed (pindoro_core
+/// `LessonRun.restore`). One row; dropped when the lesson ends or is left.
+@DataClassName('SavedLesson')
+class SavedLessons extends Table {
+  @override
+  String get tableName => 'saved_lesson';
+
+  IntColumn get id => integer().withDefault(const Constant(1))();
+  TextColumn get cityId => text()();
+  TextColumn get unitId => text()();
+  TextColumn get kind => textEnum<LessonKind>()();
+  IntColumn get lesson => integer().nullable()();
+  TextColumn get difficulty => textEnum<Difficulty>()();
+  TextColumn get packVersion => text()();
+  IntColumn get seed => integer()();
+  DateTimeColumn get startedAt => dateTime()();
+  DateTimeColumn get savedAt => dateTime()();
+
+  /// `{"index": n, "answers": [...]}`: the step and the answers so far.
+  TextColumn get progress => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     UserSettings,
@@ -254,6 +283,7 @@ class LessonAnswers extends Table {
     Courses,
     LessonResults,
     LessonAnswers,
+    SavedLessons,
   ],
   include: {'answer_immutable.drift'},
 )
@@ -262,7 +292,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'pindoro'));
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -300,6 +330,10 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(schema.course);
         await m.createTable(schema.lessonResult);
         await m.createTable(schema.lessonAnswer);
+      },
+      from8To9: (m, schema) async {
+        await m.createTable(schema.savedLesson);
+        await m.addColumn(schema.userSettings, schema.userSettings.turnList);
       },
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),

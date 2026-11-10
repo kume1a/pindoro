@@ -89,11 +89,11 @@ class _LessonView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(lessonControllerProvider.notifier);
     final run = play.run;
-    final topBar = LessonTopBar(run, onLeave: () => _leave(context));
+    final topBar = LessonTopBar(run, onLeave: () => _leave(context, ref));
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) unawaited(_leave(context));
+        if (!didPop) unawaited(_leave(context, ref));
       },
       child: switch (run.step) {
         _ when run.startsFixes && !play.fixesOpen => FixesIntro(
@@ -227,7 +227,7 @@ class _LessonView extends ConsumerWidget {
     );
   }
 
-  Future<void> _leave(BuildContext context) async {
+  Future<void> _leave(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
     final leave = await showDialog<bool>(
       context: context,
@@ -238,7 +238,9 @@ class _LessonView extends ConsumerWidget {
         secondary: l10n.lessonLeave,
       ),
     );
-    if ((leave ?? false) && context.mounted) context.go(Routes.path);
+    if (!(leave ?? false) || !context.mounted) return;
+    await ref.read(lessonControllerProvider.notifier).leave();
+    if (context.mounted) context.go(Routes.path);
   }
 }
 

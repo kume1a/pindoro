@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/features/course/data/course_data.dart';
+import 'package:pindoro/features/lesson/data/saved_progress.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -113,10 +115,15 @@ final class LessonPlaying extends LessonState {
   );
 }
 
-/// Plays a lesson's step list (pindoro_core `LessonRun`) and saves it once,
-/// when it ends: leaving before then writes nothing.
+/// Plays a lesson's step list (pindoro_core `LessonRun`) and saves its result
+/// once, when it ends. Until then every step saves where it stands
+/// (`saved_lesson`), so an app kill resumes it; leaving drops that.
 class LessonController extends Notifier<LessonState> {
   bool _saving = false;
+
+  /// What the saved lesson re-plans from.
+  int _seed = 0;
+  String _packVersion = '';
 
   @override
   LessonState build() => const LessonLoading();
@@ -125,13 +132,26 @@ class LessonController extends Notifier<LessonState> {
   // first await and check ref.mounted before touching state again.
   ProgressDao get _dao => ref.read(progressDaoProvider);
 
+  /// Plays [args], resuming its saved run when the app was killed in it.
   Future<void> start(LessonArgs args) async {
     final dao = _dao;
     final plan = await ref.read(coursePlanProvider.future);
     final graph = await ref.read(roadGraphProvider.future);
     final settings = await ref.read(settingsDaoProvider).read();
     final firstTrip = await dao.roadTrips() == 0;
+    final now = DateTime.now();
+    var saved = await dao.savedLesson(now);
     if (!ref.mounted) return;
+    if (saved != null &&
+        (saved.unitId != args.unitId ||
+            saved.kind != args.kind ||
+            saved.lesson != args.lesson ||
+            plan == null ||
+            saved.packVersion != packVersion(plan.pack))) {
+      saved = null;
+      await dao.dropSavedLesson();
+      if (!ref.mounted) return;
+    }
     final unit = plan?.units.where((u) => u.id == args.unitId).firstOrNull;
     final shape = unit == null
         ? null
@@ -164,7 +184,10 @@ class LessonController extends Notifier<LessonState> {
       state = const LessonMissing();
       return;
     }
-    final random = ref.read(lessonRandomProvider);
+    _seed = saved?.seed ?? ref.read(lessonRandomProvider).nextInt(1 << 32);
+    _packVersion = packVersion(plan.pack);
+    // The trip, then the steps: a resumed lesson re-plans in the same order.
+    final random = Random(_seed);
     final trip = graph == null || args.kind == LessonKind.pitStop
         ? null
         : pickTrip(
@@ -175,28 +198,76 @@ class LessonController extends Notifier<LessonState> {
             maxM: TripRules.lessonMaxM,
             random: random,
           );
-    state = LessonPlaying(
+    final steps = planLesson(
+      kind: args.kind,
+      streets: streets,
+      unitStreets: unit.streets,
+      lastDistances: last,
+      trip: trip,
+      random: random,
+    );
+    final progress = saved == null ? null : decodeProgress(saved.progress);
+    final restored = progress == null
+        ? null
+        : LessonRun.restore(
+            args.kind,
+            steps,
+            progress.answers,
+            progress.index,
+          )?.resumeAt();
+    if (saved != null && restored == null) {
+      await dao.dropSavedLesson();
+      if (!ref.mounted) return;
+    }
+    final playing = LessonPlaying(
       args: args,
       cityId: city.id,
       cityCenter: city.center,
       unit: unit,
       shape: shape,
-      difficulty: settings.difficulty,
-      startedAt: DateTime.now(),
+      difficulty: restored != null ? saved!.difficulty : settings.difficulty,
+      // A resumed lesson's clock goes on from where the app died.
+      startedAt: restored != null
+          ? now.subtract(saved!.savedAt.difference(saved.startedAt))
+          : now,
       graph: graph,
-      run: LessonRun(
-        args.kind,
-        planLesson(
-          kind: args.kind,
-          streets: streets,
-          unitStreets: unit.streets,
-          lastDistances: last,
-          trip: trip,
-          random: random,
-        ),
-      ),
+      run: restored ?? LessonRun(args.kind, steps),
       firstTrip: firstTrip,
     );
+    state = playing;
+    if (playing.run.finished) {
+      await _save(playing);
+    } else if (restored != null) {
+      _persist(playing);
+    }
+  }
+
+  /// Leaving with ✕ drops the saved lesson.
+  Future<void> leave() => _dao.dropSavedLesson();
+
+  /// Saves where the lesson stands; the last step's Next saves the result
+  /// instead.
+  void _persist(LessonPlaying p) {
+    if (p.run.finished) return;
+    unawaited(
+      _dao.saveLesson(
+        cityId: p.cityId,
+        unitId: p.unit.id,
+        kind: p.args.kind,
+        lesson: p.args.lesson,
+        difficulty: p.difficulty,
+        packVersion: _packVersion,
+        seed: _seed,
+        startedAt: p.startedAt,
+        progress: encodeProgress(p.run),
+      ),
+    );
+  }
+
+  /// Sets [next] as the state and saves where it stands.
+  void _step(LessonPlaying next) {
+    state = next;
+    _persist(next);
   }
 
   /// The road trip's route as drawn so far.
@@ -215,10 +286,12 @@ class LessonController extends Notifier<LessonState> {
       :final difficulty,
     ) when run.step is TripStep && !run.answered && draft.reached) {
       final best = (run.step as TripStep).trip.best;
-      state = (state as LessonPlaying).copyWith(
-        run: run.answerTrip(
-          scoreRoute(draft.lengthM, best.lengthM, difficulty),
-          DateTime.now(),
+      _step(
+        (state as LessonPlaying).copyWith(
+          run: run.answerTrip(
+            scoreRoute(draft.lengthM, best.lengthM, difficulty),
+            DateTime.now(),
+          ),
         ),
       );
     }
@@ -228,8 +301,10 @@ class LessonController extends Notifier<LessonState> {
   void showRoute() {
     if (state case final LessonPlaying p
         when p.run.step is TripStep && !p.run.answered) {
-      state = p.copyWith(
-        run: p.run.answerTrip((tier: Tier.miss, xp: 0), DateTime.now()),
+      _step(
+        p.copyWith(
+          run: p.run.answerTrip((tier: Tier.miss, xp: 0), DateTime.now()),
+        ),
       );
     }
   }
@@ -253,9 +328,11 @@ class LessonController extends Notifier<LessonState> {
         nearest.part.roadClass,
         difficulty,
       );
-      state = (state as LessonPlaying).copyWith(
-        run: run.answerPin(score, nearest.distanceM, DateTime.now()),
-        nearest: nearest.nearestPoint,
+      _step(
+        (state as LessonPlaying).copyWith(
+          run: run.answerPin(score, nearest.distanceM, DateTime.now()),
+          nearest: nearest.nearestPoint,
+        ),
       );
     }
   }
@@ -273,8 +350,10 @@ class LessonController extends Notifier<LessonState> {
       final step = p.run.step;
       if (step is! NameStep) return;
       final right = step.options[p.choice!].id == step.street.id;
-      state = p.copyWith(
-        run: p.run.answerName(right: right, at: DateTime.now()),
+      _step(
+        p.copyWith(
+          run: p.run.answerName(right: right, at: DateTime.now()),
+        ),
       );
     }
   }
@@ -287,7 +366,7 @@ class LessonController extends Notifier<LessonState> {
   Future<void> next() async {
     if (state case final LessonPlaying p) {
       final run = p.run.next();
-      state = p.copyWith(run: run, clearStep: true);
+      _step(p.copyWith(run: run, clearStep: true));
       if (run.finished) await _save(p.copyWith(run: run));
     }
   }
