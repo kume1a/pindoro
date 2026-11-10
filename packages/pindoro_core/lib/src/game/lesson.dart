@@ -21,6 +21,10 @@ abstract final class LessonRules {
   /// Fixes and practice earn half, rounded down.
   static int half(int xp) => xp ~/ 2;
 
+  /// A lesson killed by the OS resumes at its step for this long after its
+  /// last save.
+  static const Duration resumeFor = Duration(hours: 24);
+
   /// A lesson with every pin and its road trip Perfect, every name right and
   /// no mistakes.
   static int get maxXp =>
@@ -139,6 +143,16 @@ typedef StepAnswer = ({
   DateTime at,
 });
 
+/// An answer by the index of the step it answered, as a saved lesson keeps it.
+typedef SavedAnswer = ({
+  int step,
+  String streetId,
+  Tier tier,
+  int xp,
+  double? distanceM,
+  DateTime at,
+});
+
 /// A lesson being played: where it is, what was answered and what it earns.
 /// A lesson's first-try mistakes come back once, after its last step.
 class LessonRun {
@@ -160,6 +174,52 @@ class LessonRun {
   final int index;
   final List<StepAnswer> answers;
   final bool _fixesAdded;
+
+  /// [steps] as planned (before fixes) with [answers] replayed and walked on
+  /// to [index]; null when an answer doesn't fit its step (the plan changed).
+  static LessonRun? restore(
+    LessonKind kind,
+    List<LessonStep> steps,
+    List<SavedAnswer> answers,
+    int index,
+  ) {
+    var run = LessonRun(kind, steps);
+    for (final a in answers) {
+      while (run.index < a.step && !run.finished) {
+        run = run.next();
+      }
+      if (run.finished || run.index != a.step) return null;
+      final step = run.step;
+      if (step is! TestStep || step.street.id != a.streetId) return null;
+      run = run._answer((
+        step: step,
+        tier: a.tier,
+        xp: a.xp,
+        distanceM: a.distanceM,
+        at: a.at,
+      ));
+    }
+    while (run.index < index && !run.finished) {
+      run = run.next();
+    }
+    return run;
+  }
+
+  /// The answers, by the index of the step each answered.
+  List<SavedAnswer> get saved => [
+    for (final a in answers)
+      (
+        step: steps.indexWhere((s) => identical(s, a.step)),
+        streetId: a.step.street.id,
+        tier: a.tier,
+        xp: a.xp,
+        distanceM: a.distanceM,
+        at: a.at,
+      ),
+  ];
+
+  /// Where a restored run continues: past a reveal that was showing.
+  LessonRun resumeAt() => answered ? next() : this;
 
   LessonStep get step => steps[index];
 

@@ -85,6 +85,89 @@ void main() {
     fail('the lesson never ended');
   }
 
+  group('an app kill', () {
+    const lesson1 = (unitId: unit, kind: LessonKind.lesson, lesson: 1);
+
+    /// Past the 4 cards and the first test's answer.
+    Future<LessonPlaying> playFirstTest(ProviderContainer c) async {
+      final controller = c.read(lessonControllerProvider.notifier);
+      await controller.start(lesson1);
+      while (playing(c).run.step is CardStep) {
+        await controller.next();
+      }
+      final step = playing(c).run.step;
+      switch (step) {
+        case PinStep():
+          controller
+            ..placePin(step.street.geometry.first.first)
+            ..confirm();
+        case NameStep():
+          controller
+            ..choose(step.options.indexWhere((o) => o.id == step.street.id))
+            ..check();
+        case _:
+          fail('a test comes after the cards');
+      }
+      return playing(c);
+    }
+
+    Future<SavedLesson?> saved() => ProgressDao(db).savedLesson(DateTime.now());
+
+    test('resumes the lesson after its last answer', () async {
+      final before = await playFirstTest(container());
+      await pumpEventQueue();
+      expect((await saved())?.lesson, 1);
+
+      final c = container();
+      await c.read(lessonControllerProvider.notifier).start(lesson1);
+      final after = playing(c);
+      expect(after.run.index, before.run.index + 1);
+      expect(after.run.answers, hasLength(1));
+      expect(after.run.stepXp, before.run.stepXp);
+      expect(
+        [for (final s in after.run.steps) s.street.id],
+        [for (final s in before.run.steps) s.street.id],
+      );
+      // The clock pauses while the app is dead: it never runs backwards.
+      expect(after.startedAt.isBefore(before.startedAt), isFalse);
+
+      final id = await playThrough(c);
+      expect((await ProgressDao(db).lessonResult(id)).lesson, 1);
+      expect(await saved(), isNull);
+    });
+
+    test('leaving drops it; another lesson replaces it', () async {
+      final c = container();
+      await playFirstTest(c);
+      await pumpEventQueue();
+      await c.read(lessonControllerProvider.notifier).leave();
+      expect(await saved(), isNull);
+
+      await playFirstTest(container());
+      await pumpEventQueue();
+      final other = container();
+      await other.read(lessonControllerProvider.notifier).start((
+        unitId: unit,
+        kind: LessonKind.practice,
+        lesson: 1,
+      ));
+      expect(playing(other).run.answers, isEmpty);
+      expect(await saved(), isNull);
+    });
+
+    test('a save from another pack version starts over', () async {
+      await playFirstTest(container());
+      await pumpEventQueue();
+      await (db.update(
+        db.savedLessons,
+      )).write(const SavedLessonsCompanion(packVersion: Value('old')));
+      final c = container();
+      await c.read(lessonControllerProvider.notifier).start(lesson1);
+      expect(playing(c).run.index, 0);
+      expect(await saved(), isNull);
+    });
+  });
+
   test('a lesson plays its cards and tests, then saves once', () async {
     final c = container();
     await c.read(lessonControllerProvider.notifier).start((

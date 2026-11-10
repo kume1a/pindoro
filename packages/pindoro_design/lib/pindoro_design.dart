@@ -20,6 +20,7 @@ export 'src/widgets/review.dart';
 export 'src/widgets/reveal.dart';
 export 'src/widgets/round_hud.dart';
 export 'src/widgets/setup.dart';
+export 'src/widgets/skeleton.dart';
 export 'src/widgets/streak.dart';
 export 'src/widgets/street_plate.dart';
 export 'src/widgets/surfaces.dart';

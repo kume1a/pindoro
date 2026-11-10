@@ -24,6 +24,7 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
     homeCoachSeen: false,
     dailyGoal: StreakRules.defaultGoal,
     reminder: false,
+    turnList: false,
   );
 
   SimpleSelectStatement<$UserSettingsTable, Settings> get _row =>
@@ -79,6 +80,9 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> setReminder({required bool on}) =>
       _update(UserSettingsCompanion(reminder: Value(on)));
+
+  Future<void> setTurnList({required bool on}) =>
+      _update(UserSettingsCompanion(turnList: Value(on)));
 
   Future<void> markHomeCoachSeen() =>
       _update(const UserSettingsCompanion(homeCoachSeen: Value(true)));

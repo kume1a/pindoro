@@ -67,6 +67,7 @@ extension PitStopItems on Iterable<ReviewItem> {
     Courses,
     LessonResults,
     LessonAnswers,
+    SavedLessons,
   ],
 )
 class ProgressDao extends DatabaseAccessor<AppDatabase>
@@ -294,6 +295,7 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
       await _review(cityId, r.streetId, r.tier, now);
     }
     await markGoalIfMet(now);
+    await dropSavedLesson();
     return result.id;
   });
 
@@ -377,6 +379,48 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
       into(courses).insertOnConflictUpdate(
         CoursesCompanion.insert(cityId: cityId, startDistrictId: districtId),
       );
+
+  /// Saves the lesson in play (one row), replacing the last save.
+  Future<void> saveLesson({
+    required String cityId,
+    required String unitId,
+    required LessonKind kind,
+    required int? lesson,
+    required Difficulty difficulty,
+    required String packVersion,
+    required int seed,
+    required DateTime startedAt,
+    required String progress,
+    DateTime? savedAt,
+  }) => into(savedLessons).insertOnConflictUpdate(
+    SavedLessonsCompanion.insert(
+      id: const Value(1),
+      cityId: cityId,
+      unitId: unitId,
+      kind: kind,
+      lesson: Value(lesson),
+      difficulty: difficulty,
+      packVersion: packVersion,
+      seed: seed,
+      startedAt: startedAt,
+      savedAt: savedAt ?? DateTime.now(),
+      progress: progress,
+    ),
+  );
+
+  /// The lesson in play when the app was killed, saved within
+  /// [LessonRules.resumeFor] of [now]; an older one is dropped.
+  Future<SavedLesson?> savedLesson(DateTime now) async {
+    final saved = await select(savedLessons).getSingleOrNull();
+    if (saved == null ||
+        now.difference(saved.savedAt) <= LessonRules.resumeFor) {
+      return saved;
+    }
+    await dropSavedLesson();
+    return null;
+  }
+
+  Future<void> dropSavedLesson() => delete(savedLessons).go();
 
   /// Whether any city's course has started (its start raion is saved).
   Future<bool> hasCourse() async =>

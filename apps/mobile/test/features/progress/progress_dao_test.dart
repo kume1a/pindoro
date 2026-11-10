@@ -399,6 +399,58 @@ void main() {
       reviews: reviews,
     );
 
+    Future<void> save({
+      LessonKind kind = LessonKind.lesson,
+      int? lesson = 2,
+      required DateTime savedAt,
+    }) => progress.saveLesson(
+      cityId: 'tbilisi',
+      unitId: 'osm:r1',
+      kind: kind,
+      lesson: lesson,
+      difficulty: Difficulty.medium,
+      packVersion: 'v1',
+      seed: 7,
+      startedAt: savedAt.subtract(const Duration(minutes: 2)),
+      savedAt: savedAt,
+      progress: '{"index":5,"answers":[]}',
+    );
+
+    test('a saved lesson keeps for 24 h after its last save', () async {
+      final now = DateTime.now();
+      await save(savedAt: now);
+      expect((await progress.savedLesson(now))?.seed, 7);
+      await save(lesson: 3, savedAt: now);
+      expect((await progress.savedLesson(now))?.lesson, 3, reason: 'one row');
+      expect(
+        await progress.savedLesson(now.add(const Duration(hours: 25))),
+        isNull,
+      );
+      expect(await progress.savedLesson(now), isNull, reason: 'dropped');
+    });
+
+    test('finishing a lesson drops its save', () async {
+      await save(savedAt: DateTime.now());
+      await finish(played());
+      expect(await progress.savedLesson(DateTime.now()), isNull);
+    });
+
+    test('a course with a saved lesson starts in it', () async {
+      await progress.saveCourseStart('tbilisi', 'osm:r1');
+      final now = DateTime.now();
+      await save(savedAt: now);
+      expect(await startLocation(db), Routes.lessonOf('osm:r1', 2));
+      await save(kind: LessonKind.practice, savedAt: now);
+      expect(
+        await startLocation(db),
+        Routes.lessonOf('osm:r1', 2, practice: true),
+      );
+      await save(kind: LessonKind.pitStop, lesson: null, savedAt: now);
+      expect(await startLocation(db), Routes.unitPitStop('osm:r1'));
+      await progress.dropSavedLesson();
+      expect(await startLocation(db), Routes.path);
+    });
+
     test(
       'a finished lesson writes its result and answers, and counts',
       () async {

@@ -22,6 +22,9 @@ abstract final class CourseRules {
   /// Known streets (of a lesson's 4) that place the lesson for a player who
   /// already played before the course.
   static const int placedKnown = 3;
+
+  /// The share of a unit's street length one axis needs to be its main axis.
+  static const double axisShare = 0.4;
 }
 
 /// What a finished lesson result was: a lesson, a practice of a done lesson,
@@ -344,4 +347,35 @@ extension CourseCurrent on List<UnitProgress> {
     }
     return null;
   }
+}
+
+/// Which way streets run, either direction.
+enum StreetAxis { northSouth, northeastSouthwest, eastWest, northwestSoutheast }
+
+/// The axis most of [streets]' length runs along (four 45° bins centred on
+/// north, north-east, east and south-east); null when none holds
+/// [CourseRules.axisShare] of it.
+StreetAxis? mainAxis(List<NamedStreet> streets) {
+  final lengths = List.filled(StreetAxis.values.length, 0.0);
+  for (final street in streets) {
+    for (final line in street.geometry) {
+      if (line.isEmpty) continue;
+      final proj = LocalProjection(line.first);
+      for (var i = 1; i < line.length; i++) {
+        final (x0, y0) = proj.project(line[i - 1]);
+        final (x1, y1) = proj.project(line[i]);
+        final dx = x1 - x0, dy = y1 - y0;
+        final m = math.sqrt(dx * dx + dy * dy);
+        if (m == 0) continue;
+        final deg = math.atan2(dx, dy) * 180 / math.pi % 180;
+        lengths[(deg + 22.5) % 180 ~/ 45] += m;
+      }
+    }
+  }
+  final total = lengths.fold(0.0, (a, b) => a + b);
+  if (total == 0) return null;
+  final top = lengths.reduce(math.max);
+  return top / total >= CourseRules.axisShare
+      ? StreetAxis.values[lengths.indexOf(top)]
+      : null;
 }

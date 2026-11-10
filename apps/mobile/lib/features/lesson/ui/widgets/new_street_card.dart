@@ -6,6 +6,7 @@ import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/core/speech.dart';
 import 'package:pindoro/features/lesson/ui/lesson_controller.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
@@ -20,8 +21,9 @@ final _crossings = Expando<int>();
 const double _sheetInset = 260;
 
 /// "New street · 1 of 4" (canvas R4-20): the map flies to the street and
-/// paints it; a sheet says where it is, its length, type and crossings, and
-/// Got it (the last card: Start the test).
+/// paints it; a sheet says where it is, its length, type and crossings, Hear
+/// the name (when the device has a voice for it) and Got it (the last card:
+/// Start the test).
 class NewStreetCard extends ConsumerWidget {
   const NewStreetCard({
     super.key,
@@ -57,6 +59,8 @@ class NewStreetCard extends ConsumerWidget {
       l10n.lessonRoadTypeWord(type.name),
     );
     final name = streetName(street, settings);
+    final language = speechLanguage(name);
+    final canSpeak = ref.watch(canSpeakProvider(language)).value ?? false;
     return Scaffold(
       body: Stack(
         children: [
@@ -140,12 +144,35 @@ class NewStreetCard extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: PindoroSpace.s2),
-                      PindoroButton(
-                        label: last ? l10n.lessonStartTest : l10n.revealGotIt,
-                        onPressed: () {
-                          ref.read(feedbackProvider).tap();
-                          unawaited(onNext());
-                        },
+                      Row(
+                        spacing: PindoroSpace.s3,
+                        children: [
+                          if (canSpeak)
+                            PindoroIconButton(
+                              glyph: PindoroGlyph.soundOn,
+                              semanticLabel: l10n.lessonHearName,
+                              size: PindoroSize.buttonLg,
+                              onPressed: () {
+                                ref.read(feedbackProvider).tap();
+                                unawaited(
+                                  ref
+                                      .read(speechProvider)
+                                      .speak(name, language),
+                                );
+                              },
+                            ),
+                          Expanded(
+                            child: PindoroButton(
+                              label: last
+                                  ? l10n.lessonStartTest
+                                  : l10n.revealGotIt,
+                              onPressed: () {
+                                ref.read(feedbackProvider).tap();
+                                unawaited(onNext());
+                              },
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),

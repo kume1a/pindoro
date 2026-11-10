@@ -4,6 +4,7 @@ import 'package:pindoro/app/tab_shell.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/course/ui/path_screen.dart';
+import 'package:pindoro/features/course/ui/unit_guide_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
 import 'package:pindoro/features/lesson/ui/drive_screen.dart';
 import 'package:pindoro/features/lesson/ui/lesson_controller.dart';
@@ -38,18 +39,31 @@ Page<void> _fadePage(GoRouterState state, Widget child) =>
           FadeTransition(opacity: animation, child: child),
     );
 
-/// A started course opens on the Path. A player who finished a round before
-/// any course started (Free play only, before the course existed) sees
-/// What's new; a first round saved but unfinished opens Free play, which
-/// offers to continue it; anyone else starts at Welcome.
+/// A started course opens on the Path, or in the lesson the app was killed
+/// in. A player who finished a round before any course started (Free play
+/// only, before the course existed) sees What's new; a first round saved but
+/// unfinished opens Free play, which offers to continue it; anyone else
+/// starts at Welcome.
 Future<String> startLocation(AppDatabase db) async {
   final progress = ProgressDao(db);
-  if (await progress.hasCourse()) return Routes.path;
+  if (await progress.hasCourse()) {
+    final saved = await progress.savedLesson(DateTime.now());
+    return saved == null ? Routes.path : _lessonRoute(saved);
+  }
   if (await progress.hasPlayed()) return Routes.whatsNew;
   return await progress.resumableRound(DateTime.now()) != null
       ? Routes.home
       : Routes.welcome;
 }
+
+/// A saved lesson reopens where the app was killed (canvas R4-02).
+String _lessonRoute(SavedLesson saved) => saved.kind == LessonKind.pitStop
+    ? Routes.unitPitStop(saved.unitId)
+    : Routes.lessonOf(
+        saved.unitId,
+        saved.lesson!,
+        practice: saved.kind == LessonKind.practice,
+      );
 
 /// `/lesson?unit=…&lesson=n` (`&practice=1`) or `?unit=…&pit-stop=1`; null
 /// when it names neither.
@@ -184,6 +198,15 @@ GoRouter buildRouter(String initialLocation) {
         pageBuilder: (_, state) => _fadePage(
           state,
           UnitDoneScreen(unitId: state.uri.queryParameters['unit']!),
+        ),
+      ),
+      GoRoute(
+        path: Routes.unitGuide,
+        redirect: (_, state) =>
+            state.uri.queryParameters.containsKey('unit') ? null : Routes.path,
+        builder: (_, state) => UnitGuideScreen(
+          unitId: state.uri.queryParameters['unit']!,
+          lesson: int.tryParse(state.uri.queryParameters['lesson'] ?? ''),
         ),
       ),
       GoRoute(path: Routes.streak, builder: (_, _) => const StreakScreen()),

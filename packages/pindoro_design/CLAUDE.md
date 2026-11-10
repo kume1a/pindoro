@@ -6,7 +6,7 @@ Signpost widgets: `PindoroButton`, `StreetPlate`, `FeedbackBadge`, surfaces (`Li
 `LaneLoader`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` incl. the road trip's `PinMark.endpoint`,
 `CarMark`, `glyphPng` for map images) and the round
 components (`QuestionBar`, `Pill`, `MapControl`, `RevealSheet`, `ResultRow`, `RewardTotal`,
-`TierTally`, `CoachBubble`), the lesson path (`PathStop`, `Signpost`, `LessonRoad`) and lesson
+`TierTally`, `CoachBubble`), the lesson path (`PathStop`, `Signpost` with its Unit guide book button, `LessonRoad`, the loading `Skeleton`) and lesson
 components (`PlateChoice`, `FeedbackBar`), setup components (`SearchField`, `CitySwitcher`, `PindoroChip`,
 `DifficultyCard`, `DistrictMiniMap`) and motion (`PindoroPageTransitions`, `CountUp`, `PopIn`,
 `RiseIn`, `Celebration`, `Wiggle`, `FadeIndexedStack`; all calm down under reduce motion). Widgets take their text

@@ -1,6 +1,26 @@
 {
   "name": "Pindoro app tokens",
   "meta": {
-    "note": "Tokens the app needs that the claude.ai design system (tokens.json, copied verbatim) does not define. Same format as tokens.json (groups of {name, value, usage}); values may alias tokens.json. Empty while the design system covers everything. When the design system gains one of these, delete it here: the generator fails on duplicates."
+    "note": "Tokens the app needs that the claude.ai design system (tokens.json, copied verbatim) does not define. Same format as tokens.json (groups of {name, value, usage}); values may alias tokens.json. When the design system gains one of these, delete it here: the generator fails on duplicates."
+  },
+  "duration": {
+    "tokens": [
+      {
+        "name": "motion.shimmer",
+        "value": "1400ms",
+        "usage": "One sweep of the skeleton shimmer (.pd-skel::after in the design system's bundle.css), repeating while content loads."
+      }
+    ],
+    "note": "Durations the design system uses in its component CSS but has no token for."
+  },
+  "opacity": {
+    "tokens": [
+      {
+        "name": "opacity.shimmer",
+        "value": "0.7",
+        "usage": "The skeleton shimmer's peak over color.surface.sunken (.pd-skel::after)."
+      }
+    ],
+    "note": "Opacities the design system uses in its component CSS but has no token for."
   }
 }
