@@ -22,6 +22,42 @@ void main() {
   final en = lookupAppLocalizations(const Locale('en'));
   final ka = lookupAppLocalizations(const Locale('ka'));
 
+  test('ordinals: English suffixes with the teens, Georgian prefixes', () {
+    expect(
+      [
+        1,
+        2,
+        3,
+        4,
+        11,
+        12,
+        13,
+        21,
+        22,
+        23,
+        111,
+      ].map((n) => formatOrdinal(n, en)),
+      [
+        '1st',
+        '2nd',
+        '3rd',
+        '4th',
+        '11th',
+        '12th',
+        '13th',
+        '21st',
+        '22nd',
+        '23rd',
+        '111th',
+      ],
+    );
+    expect([1, 2, 30].map((n) => formatOrdinal(n, ka)), [
+      '1-ლი',
+      'მე-2',
+      'მე-30',
+    ]);
+  });
+
   test('distances: metres, up to the next 10 m from 100 m, km from 1 km', () {
     expect(formatDistance(84.4, en), '84 m');
     expect(formatDistance(99.6, en), '100 m');

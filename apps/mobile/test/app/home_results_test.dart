@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart' show DatabaseConnection, Value;
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:pindoro/app/app.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
@@ -10,6 +14,8 @@ import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/launch_overlay.dart';
 import 'package:pindoro/core/routes.dart';
+import 'package:pindoro/features/league/data/league_api.dart';
+import 'package:pindoro/features/league/data/league_dao.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
@@ -20,6 +26,9 @@ void main() {
   late AppDatabase db;
   late _FakeReminders reminders;
   late List<Street> streets;
+
+  /// What the league server answers; offline unless a test says otherwise.
+  late http.Response Function(http.Request) leagueReply;
 
   setUpAll(() {
     final pack = SqlitePackRepository.open(AppConfig.fixturePackAsset);
@@ -35,6 +44,7 @@ void main() {
       ),
     );
     reminders = _FakeReminders();
+    leagueReply = (_) => http.Response('', 503);
   });
   tearDown(() => db.close());
 
@@ -42,6 +52,12 @@ void main() {
     overrides: [
       databaseProvider.overrideWithValue(db),
       remindersProvider.overrideWithValue(reminders),
+      leagueApiProvider.overrideWithValue(
+        LeagueApi(
+          'https://api.example',
+          client: MockClient((request) async => leagueReply(request)),
+        ),
+      ),
       packRepositoryProvider.overrideWith((ref) async {
         final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
         ref.onDispose(repo.close);
@@ -232,6 +248,55 @@ void main() {
     final great = (await tester.runAsync(() => roundWithAnswers(2)))!;
     await pumpApp(tester, '${Routes.results}?round=$great');
     expect(find.textContaining('Retry'), findsNothing);
+  });
+
+  group('league chip', () {
+    /// The player at [rank] of 4 with 500 XP now; the others hold 900, 450
+    /// and 400 XP, so a 120 XP round started them 4th.
+    http.Response league(int rank) => http.Response(
+      jsonEncode({
+        'player': {'id': 'p1', 'name': 'Tornike'},
+        'league': {
+          'tier': 3,
+          'week': leagueWeek(DateTime.now()).key,
+          'ends_at': leagueWeek(DateTime.now()).end.toIso8601String(),
+          'members': [
+            for (final (i, xp) in [900, 500, 450, 400].indexed)
+              {
+                'rank': i + 1,
+                'name': i + 1 == rank ? 'Tornike' : 'P$i',
+                'xp': xp,
+                'zone': 'up',
+                'you': i + 1 == rank,
+              },
+          ],
+        },
+      }),
+      200,
+    );
+
+    Future<String> joinedRound(WidgetTester tester) async =>
+        (await tester.runAsync(() async {
+          await LeagueDao(db).save(playerId: 'p1', token: 't', name: 'Tornike');
+          return roundWithAnswers(2);
+        }))!;
+
+    testWidgets('says how far the round moved the player up', (tester) async {
+      final id = await joinedRound(tester);
+      leagueReply = (_) => league(2);
+      await pumpApp(tester, Routes.resultsOf(id));
+      expect(find.text('Up to 2nd in Avenue league'), findsOneWidget);
+      await tester.tap(find.text('Up to 2nd in Avenue league'));
+      await settle(tester);
+      expect(find.byType(LeagueHeader), findsOneWidget);
+    });
+
+    testWidgets('stays away when the rank held, or offline', (tester) async {
+      final id = await joinedRound(tester);
+      leagueReply = (_) => league(4);
+      await pumpApp(tester, Routes.resultsOf(id));
+      expect(find.textContaining('league'), findsNothing);
+    });
   });
 
   testWidgets('results without a round go home', (tester) async {

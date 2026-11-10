@@ -27,6 +27,12 @@ abstract final class Routes {
   /// The Pit stop's due streets as a round.
   static const String pitStopRound = '$round?pit-stop=1';
   static const String me = '/me';
+
+  /// This week's league, the fourth tab.
+  static const String leagues = '/leagues';
+
+  /// Changing the league name (Settings → League).
+  static const String leagueName = '/league-name';
   static const String settings = '/settings';
   static const String credits = '/settings/credits';
 

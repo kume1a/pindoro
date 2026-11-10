@@ -37,6 +37,19 @@ String formatNumber(int n) {
   return '${n < 0 ? '−' : ''}${groups.join(' ')}';
 }
 
+/// A rank as a word: "1st", "12th", "23rd"; in Georgian "1-ლი", "მე-4".
+String formatOrdinal(int n, AppLocalizations l10n) {
+  if (l10n.localeName.startsWith('ka')) return n == 1 ? '1-ლი' : 'მე-$n';
+  final suffix = switch ((n % 10, n % 100)) {
+    (_, 11 || 12 || 13) => 'th',
+    (1, _) => 'st',
+    (2, _) => 'nd',
+    (3, _) => 'rd',
+    _ => 'th',
+  };
+  return '$n$suffix';
+}
+
 /// Whole metres below 100 m ("84 m"), then up to the next 10 m ("850 m"),
 /// from 1 km in km with one decimal ("1.2 km"), in the locale's units and
 /// decimal separator. Rounding up keeps a distance on its tier's side of the
