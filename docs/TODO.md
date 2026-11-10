@@ -54,25 +54,20 @@
   - After a Pit stop round, Done still lands on Free play (with the Home intro), not the Pit stop
     tab.
 - Course and lessons (R4b), left out on purpose:
-  - The Unit guide, the signpost's guide button and "See the streets" on a done lesson.
-  - Hear the name (text to speech).
-  - A killed lesson starts again; it doesn't resume at its step.
-  - Loading shows Pindo and the lane loader, without the skeleton stops.
   - Cities without district polygons get no course (units by rings from the centre).
   - Lesson titles and where sentences are generated; no editorial text per district.
   - The course is rebuilt from the pack each time: a pack update that reorders a raion's streets
     changes its lessons (results keep their lesson numbers).
   - The locked-stop bubble always sits centred under the stop's row, not on the stop.
 - Road trips (R4c), left out on purpose:
-  - Settings → Accessibility "Choose turns from a list": the turn list follows the screen reader
-    only.
   - The tier sheet's detour sentence ("Turning north for the main road added 212 m") and its ink
     chip at the detour.
   - The lane loader while checking: the best route is computed at once.
   - One-way streets are ignored. The graph holds the pack's named streets only, so unnamed links and
     ramps are missing and some best drives detour around them.
   - B pops when reached but has no ring pulse.
-  - Units have no titles: the locked unit's sheet and Unit complete's signpost show the district.
+  - Units have no titles: the locked unit's sheet, Unit complete's signpost and the Unit guide
+    show the district.
   - A killed Final drive keeps its passed trips but drops the trip in progress.
   - R4b progress isn't carried over: a unit opened by its lesson 6 locks again until the Final
     drive before it passes.
@@ -93,6 +88,14 @@
   - "Show me my path" shows nothing while placement is worked out (about a second for Tbilisi).
   - The Path builds every unit so it can scroll to a current stop far down; fine for about 10
     units, a city with many more needs a jump to an estimated offset first.
+
+- Finishing v2.0 (R4e), left out on purpose:
+  - Starting a lesson doesn't cache its streets, road graph and tiles (zoom 14–17): it needs the
+    connection the Path had.
+  - Hear the name shows only where the device has a voice for the name's language (often not for
+    Georgian, especially on iOS); there is no recorded fallback.
+  - A pack update between an app kill and the next launch starts the killed lesson over.
+  - The Unit guide's tip comes from the streets' main direction; no hand-written tip per district.
 
 ## Data / pipeline
 
@@ -116,6 +119,9 @@
 - Store releases: create the Android upload key and `key.properties`, then
   `just release appbundle <domain>` (`docs/deploy.md` section 9).
 - iOS is built unsigned in CI (macOS runner) but has never run on a device or simulator.
+- `flutter_tts` has no Swift package, so iOS builds add CocoaPods for it on the fly (`Podfile`,
+  Pods in the Xcode project); none of that is committed. Commit it, or swap the plugin, if a
+  signed release needs a reproducible Pods setup.
 - Move `drizzle-kit` to 1.0 once it is stable: it drops `@esbuild-kit`, which brings in the old
   esbuild behind the dismissed Dependabot alert #1.
 - Dependabot ignores Node and PostGIS major versions: bump those by hand (PostGIS needs a dump and

@@ -52,18 +52,21 @@ test/drift/                    generated schema helpers + migration test
   (`?round=` resumes, `?retry=` retries, `?pit-stop` plays the Pit stop), `/results`, `/lesson`
   (`?unit=&lesson=`, `&practice=1`, or `?unit=&pit-stop=1`), `/lesson-done?result=`,
   `/drive?unit=` (the Final drive, Jump ahead on a locked unit), `/unit-done?unit=`,
+  `/unit-guide?unit=` (`&lesson=` opens with that lesson's streets on the map),
   `/streak`, `/settings`, `/settings/credits`. The app opens on the Path once a course exists
-  (`course` row); a player who finished a round before any course sees What's new (then
-  placement); a saved first round reopens Free play; anyone else gets Welcome, whose Choose a city
-  leads to the start-district picker. Footers end 12 dp above the bar on a tab
+  (`course` row), or in the lesson it was killed in (`saved_lesson`); a player who finished a
+  round before any course sees What's new (then placement); a saved first round reopens Free play;
+  anyone else gets Welcome, whose Choose a city leads to the start-district picker. Footers end 12 dp above the bar on a tab
   (`bottomActionGap`).
 - **Course and lessons:** `coursePlanProvider` builds the open city's course with pindoro_core
   `buildCourse` (one unit per raion) from its saved start raion (`course` table, picked on the
   first open); `courseProvider` adds the lesson results (`courseProgress`). A lesson
-  (`LessonController`) plays a `LessonRun` on one screen and writes nothing until it ends;
-  `ProgressDao.finishLesson` then saves the `lesson_result`, its `lesson_answer`s and the Pit stop
-  updates (`reviewAnswers`) in one transaction. XP, known streets, Welcome and Me read lessons
-  too. Lesson complete's Continue sets `pathUnlockProvider`; the Path plays the unlock when it
+  (`LessonController`) plays a `LessonRun` on one screen; every answer and step upserts the one
+  `saved_lesson` row (seed, pack version, step and answers), so an app kill resumes it for 24 h:
+  `start` re-plans from the seed and replays the answers (pindoro_core `LessonRun.restore`). Leave
+  drops it; `ProgressDao.finishLesson` saves the `lesson_result`, its `lesson_answer`s and the Pit
+  stop updates (`reviewAnswers`) and drops it, in one transaction. XP, known streets, Welcome and
+  Me read lessons too. Lesson complete's Continue sets `pathUnlockProvider`; the Path plays the unlock when it
   shows (Unit complete's Continue plays the next unit opening).
 - **First launch:** What's new reads `placementProvider` (known streets → pindoro_core
   `placeLessons`) and `ProgressDao.place` saves each placed lesson as a 0-XP `lesson_result` (kind
@@ -77,15 +80,22 @@ test/drift/                    generated schema helpers + migration test
   tiles, north up), overlays are `route_layers.dart`; with a screen reader on it shows a turn list.
   A lesson's trip is its step 11 (`TripStep`); the Final drive (`DriveController`) saves each trip
   as its own `lesson_result` (kind `finalDrive`) as soon as it is answered. Trips never reach the
-  Pit stop or known streets.
+  Pit stop or known streets. Settings → Accessibility → Choose turns from a list (`turn_list`)
+  shows the turn list without a screen reader too.
+- **Unit guide** (`features/course/ui/unit_guide_screen.dart`): from the signpost's book button or
+  a done lesson's See the streets; a map of the unit's streets (`PindoroMap` without controls), a
+  tip from pindoro_core `mainAxis` and the unit's stops as rows.
+- **Hear the name:** `speechProvider` (`core/speech.dart`, `flutter_tts`) reads a new street's name
+  in `speechLanguage(name)`; the button shows only when `canSpeakProvider` finds a voice. Tests
+  override `speechProvider`.
 - **Strings:** every UI string comes from `lib/l10n/app_{en,ka}.arb` (gen-l10n, `context.l10n`);
   `just gen` writes `app_localizations*.dart` (not committed). Georgian is a draft awaiting native
   review.
   Numbers through `formatNumber` (narrow no-break space groups), distances through
   `formatDistance`. Never uppercase.
 - **Settings** (`user_settings`, watched by `settingsProvider`): language (null = device),
-  street names, theme, sound, haptics, daily goal, reminder (plus the first Home's coach-mark
-  flag); they apply immediately. `feedbackProvider` plays haptics
+  street names, theme, sound, haptics, daily goal, reminder, turn list (plus the first Home's
+  coach-mark flag); they apply immediately. `feedbackProvider` plays haptics
   per game event behind the Haptics toggle; the Sound toggle gates nothing until a sound kit exists.
 - **Streak:** only goal-met days are stored (`goal_day`, written by `ProgressDao.markGoalIfMet`
   with the answer that reaches the goal, or by `streakProvider` when today's XP already meets it:
