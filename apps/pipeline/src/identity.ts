@@ -107,17 +107,24 @@ export const matchIdentities = (
   };
 };
 
-/** The city's committed identities: the ones its published packs use. */
-export const identityFile = (city: string): string => join(cityDir(city), "identity.json");
+const committedIdentityFile = (city: string): string => join(cityDir(city), "identity.json");
+
+/**
+ * The city's live identities: the ones its published packs use. On the server they sit in
+ * IDENTITY_DIR (next to the packs); elsewhere they are the committed data/cities file.
+ */
+export const identityFile = (city: string): string => {
+  const dir = process.env.IDENTITY_DIR;
+  return dir ? join(dir, city, "identity.json") : committedIdentityFile(city);
+};
 
 /** A full build's identities wait here until `publish` makes its pack live. */
 export const stagedIdentityFile = (city: string): string => join(OUT_DIR, city, "identity.json");
 
+/** The live identities, seeded from the committed file until the server has its own. */
 export const readIdentities = (city: string): Identity[] => {
-  const file = identityFile(city);
-  return existsSync(file)
-    ? (JSON.parse(readFileSync(file, "utf8")) as { streets: Identity[] }).streets
-    : [];
+  const file = [identityFile(city), committedIdentityFile(city)].find((f) => existsSync(f));
+  return file ? (JSON.parse(readFileSync(file, "utf8")) as { streets: Identity[] }).streets : [];
 };
 
 /** One street per line keeps the committed file reviewable in diffs. */

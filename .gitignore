@@ -13,8 +13,6 @@ coverage/
 # large or generated runtime data
 infra/tiles/*
 !infra/tiles/.gitkeep
-infra/backups/*
-!infra/backups/.gitkeep
 infra/packs/
 apps/pipeline/.cache/
 apps/pipeline/out/

@@ -59,7 +59,7 @@ jobs:
         env:
           TEST_DATABASE_URL: postgres://pindoro:pindoro@localhost:5432/pindoro_pipeline_test
 
-  # What `just deploy` builds on the server, so a broken image fails here first.
+  # What the Deploy workflow builds on the server, so a broken image fails here first.
   images:
     runs-on: ubuntu-24.04
     steps:

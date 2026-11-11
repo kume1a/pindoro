@@ -161,15 +161,14 @@ and the specs after R5. Fix them in roughly this order.
     logical pixels, calls throw instead of returning false, channel mocks need a fake
     `MapLibrePlatform`).
 - Ops for sideloading:
-  - Committing the monthly street ids back to git is still by hand (`docs/deploy.md` § 6); the
-    timer only copies them to `infra/backups`.
   - No crash reporting (`FlutterError.onError`, `PlatformDispatcher.onError`); without paid cloud,
     the API's log could take the reports.
   - Rate limits are in memory and cover signups, renames and the XP sync only; `/v1/catalog`
     (reads every manifest per request) and `/health` have none, and the Cloudflare cache rule for
     tiles and packs is optional in `docs/deploy.md`.
-  - No alerting: the systemd services have no `OnFailure=`, a failed backup only logs, and a down
-    server tells nobody. Backups stay on the same machine and a restore has never been tried.
+  - Little alerting: GitHub emails a failed Deploy run, but a failed nightly backup only logs and
+    a down server tells nobody. Backups stay on the same machine and a restore has never been
+    tried.
 - Accepted divergences: the Home Pit stop card became the Pit stop tab's badge (R4); the cold start
   is a Flutter overlay (about 1.9 s) rather than `FlutterNativeSplash.preserve()` with the wordmark
   on the native splash.
@@ -211,19 +210,20 @@ From the product plan ("Learning Every Tbilisi Route"), which the course only pa
 - Pack downloads hold the whole `.gz` in memory; stream to disk if packs grow past a few MB.
 - The API's `city`/`district`/`street`/`street_district`/`pack` tables exist but nothing fills
   them yet (`publish` only writes files).
-- Decide a refresh cadence for `infra/tiles/georgia.pmtiles` (Protomaps daily builds).
+- Decide a refresh cadence for the Georgia tiles (Protomaps daily builds); in production only a
+  Deploy run with the tiles box ticked downloads them again.
 
 ## Infra / CI
 
 - CI runs on GitHub Actions (kume1a/pindoro); `act` reproduces it locally.
 - Flutter is pinned to 3.47.9 in CI and `just goldens`; the bootstrap machine ran a 3.41.2 checkout
   (Dart 3.13). Align local Flutter with the pinned version, and bump both together later.
-- Production server: the stack sits behind the host's shared tunnel and deploys from `prod` on a
-  self-hosted runner. Once the routes, runner and variables exist, push `prod` and run
-  `just server-setup` once (`docs/deploy.md` §§ 2–4).
+- Production server: live since 2026-11-11 behind the host's shared tunnel; the Deploy workflow on
+  its self-hosted runner deploys `prod`, builds missing packs and refreshes them monthly
+  (`docs/deploy.md`).
 - **No App Store or Play Store release is planned** (decided 2026-11-11): friends sideload the APK.
   Create the Android signing key and `key.properties` once, then
-  `just release apk <public host>` (`docs/deploy.md` section 9).
+  `just release apk <public host>` (`docs/deploy.md` § 7).
 - Parked, store-only, not a priority: a privacy policy, `PrivacyInfo.xcprivacy`,
   `CFBundleLocalizations` and a Georgian location prompt, the iPad device family and
   `DEVELOPMENT_TEAM`, a release workflow (fastlane, Play/TestFlight upload), the Play data-safety

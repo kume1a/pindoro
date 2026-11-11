@@ -20,8 +20,9 @@ pnpm --filter @pindoro/pipeline test          # DB tests skip without osm2pgsql/
 ```
 
 Env: `DATABASE_URL` (default `postgres://pindoro:pindoro@localhost:5433/pindoro`), `PACKS_DIR`
-(default `infra/packs`). Tests: `TEST_DATABASE_URL` (default `…:5433/pindoro_pipeline_test`);
-`PINDORO_REQUIRE_OSM_TOOLS=1` turns the skip into a failure (CI).
+(default `infra/packs`), `IDENTITY_DIR` (production: `/packs`, see step 4). Tests:
+`TEST_DATABASE_URL` (default `…:5433/pindoro_pipeline_test`); `PINDORO_REQUIRE_OSM_TOOLS=1` turns
+the skip into a failure (CI).
 
 Outputs: cache `apps/pipeline/.cache/<city>/`, builds `apps/pipeline/out/<city>/` (pack, `.gz`, `manifest.json`,
 `identity.json` staged for publish, `identity-diff-<version>.json`), fixture `apps/mobile/assets/packs_fixture/<city>_<name>_fixture.sqlite`,
@@ -40,12 +41,15 @@ styles `apps/mobile/assets/map_styles/pindoro_{light,dark}.json`, tiles `infra/t
    `40_neighbourhoods` curated GeoJSON → `50_street_district` (≥ 150 m or ≥ 30 %) →
    `60_simplify` 3 m pack geometry + midpoints → `70_graph` road graph (junctions at shared nodes and
    way ends, edges between them).
-4. `src/identity.ts`: stable UUIDs in `data/cities/<city>/identity.json` (same normalised name + way-id
-   Jaccard ≥ 0.3, one-to-one, best first; unmatched → new id; vanished → `retired_at`). Always computed
+4. `src/identity.ts`: stable UUIDs (same normalised name + way-id Jaccard ≥ 0.3, one-to-one, best
+   first; unmatched → new id; vanished → `retired_at`) in the live identity file:
+   `IDENTITY_DIR/<city>/identity.json` when set (the server keeps them next to the packs), else
+   `data/cities/<city>/identity.json`, which also seeds a server that has none yet. Always computed
    over the whole city, also for `--fixture`. A full build stages them in `out/<city>/identity.json`
-   and `publish` commits them to `data/` right before the pack goes live, so a rejected build retires
-   nothing; `--fixture` writes `data/` directly. **Stable street ids are sacred**: never regenerate or
-   hand-edit identity.json; review the diff report instead.
+   and `publish` commits them right before the pack goes live, so a rejected build retires nothing;
+   `--fixture` writes `data/` directly (`just fixture <host>` first pulls the server's ids there).
+   **Stable street ids are sacred**: never regenerate or hand-edit identity.json; review the diff
+   report instead.
 5. `src/pack.ts`: better-sqlite3 pack (polyline6 via `@pindoro/geo`) → gzip → `manifest.json`.
 
 ## ODbL

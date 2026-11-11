@@ -4,7 +4,6 @@
 set windows-shell := ["C:/Program Files/Git/bin/sh.exe", "-cu"]
 
 dc := "docker compose -f infra/docker-compose.yml"
-dc_prod := "docker compose --env-file .env -f infra/docker-compose.prod.yml"
 # Flutter that renders goldens; keep equal to FLUTTER_VERSION in .github/workflows/mobile.yml.
 flutter_version := "3.47.9"
 # Relative to the pipeline container workdir (/repo/apps/pipeline); absolute paths get mangled by Git Bash.
@@ -79,8 +78,9 @@ test-dart:
 dev:
     {{ dc }} up --build postgis api martin packs
 
-# Build the Vake fixture pack bundled with the app
-fixture:
+# Build the Vake fixture pack bundled with the app, from the street ids live on the server at HOST
+fixture HOST:
+    curl -fsS https://{{ HOST }}/packs/tbilisi/identity.json -o data/cities/tbilisi/identity.json
     {{ dc }} run --rm --build pipeline fetch tbilisi
     {{ dc }} run --rm pipeline build tbilisi --fixture
     {{ dc }} run --rm pipeline validate {{ fixture_pack }}
@@ -109,17 +109,3 @@ release TARGET HOST:
     cd apps/mobile && flutter build {{ TARGET }} --release \
       --dart-define=API_BASE_URL=https://{{ HOST }} \
       --dart-define=TILES_BASE_URL=https://{{ HOST }}/tiles
-
-# On the server: pull and (re)start the production stack
-deploy:
-    git pull --ff-only
-    {{ dc_prod }} up -d --build
-
-# On the server, once after `.env` is filled in: stack, systemd timers, tiles, first Tbilisi pack
-server-setup: deploy
-    sudo cp infra/systemd/pindoro-* /etc/systemd/system/
-    sudo systemctl daemon-reload
-    sudo systemctl enable --now pindoro-packs.timer pindoro-backup-copy.timer
-    {{ dc_prod }} run --rm --build pipeline tiles
-    {{ dc_prod }} restart martin
-    sudo systemctl start pindoro-packs.service

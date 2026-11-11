@@ -1,5 +1,15 @@
-import { describe, expect, it } from "vitest";
-import { type Identity, jaccard, matchIdentities } from "../src/identity.ts";
+import { mkdirSync, mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  type Identity,
+  identityFile,
+  jaccard,
+  matchIdentities,
+  readIdentities,
+  writeIdentities,
+} from "../src/identity.ts";
 
 const sequentialIds = (): (() => string) => {
   let n = 0;
@@ -88,5 +98,30 @@ describe("matchIdentities", () => {
     );
     expect(ids.get(1)).toBe("new-1");
     expect(identities).toContainEqual(retired);
+  });
+});
+
+describe("live identities", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("are the committed file without IDENTITY_DIR", () => {
+    expect(identityFile("tbilisi")).toMatch(/data[\\/]cities[\\/]tbilisi[\\/]identity\.json$/);
+  });
+
+  it("start from the committed file until IDENTITY_DIR has its own, then read that", () => {
+    const committed = readIdentities("tbilisi");
+    expect(committed.length).toBeGreaterThan(0);
+
+    const dir = mkdtempSync(join(tmpdir(), "identity-"));
+    vi.stubEnv("IDENTITY_DIR", dir);
+    expect(identityFile("tbilisi")).toBe(join(dir, "tbilisi", "identity.json"));
+    expect(readIdentities("tbilisi")).toEqual(committed);
+
+    const own = [identity("server", "rustaveli", [1])];
+    mkdirSync(join(dir, "tbilisi"));
+    writeIdentities(identityFile("tbilisi"), own);
+    expect(readIdentities("tbilisi")).toEqual(own);
   });
 });
