@@ -263,6 +263,24 @@ final cityStreetsProvider = FutureProvider<Map<String, NamedStreet>>(
   ),
 );
 
+/// Opens [cityId]'s newest installed pack for [read] and closes it after;
+/// null when the phone has none. Never downloads.
+Future<T?> readInstalledPack<T>(
+  PackStore store,
+  String cityId,
+  Future<T> Function(PackRepository pack, Map<String, NamedStreet> streets)
+  read,
+) async {
+  final file = store.newest(cityId);
+  if (file == null) return null;
+  final pack = SqlitePackRepository.open(file.path);
+  try {
+    return await read(pack, streetsByPartId(pack.streets()));
+  } finally {
+    pack.close();
+  }
+}
+
 /// The active pack's road graph; null for a pack older than format 3.
 final roadGraphProvider = FutureProvider<RoadGraph?>(
   (ref) async => (await ref.watch(packRepositoryProvider.future)).roadGraph(),

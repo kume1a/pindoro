@@ -68,6 +68,8 @@ extension PitStopItems on Iterable<ReviewItem> {
     LessonResults,
     LessonAnswers,
     SavedLessons,
+    Badges,
+    ReviewClearings,
   ],
 )
 class ProgressDao extends DatabaseAccessor<AppDatabase>
@@ -227,7 +229,17 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     )..where(isItem)).getSingleOrNull();
     final next = nextReview(current?.state, tier, calendarDay(at));
     if (next == null) {
-      await (delete(reviewItems)..where(isItem)).go();
+      // A Great on a street never in the Pit stop clears nothing.
+      if (current != null) {
+        await (delete(reviewItems)..where(isItem)).go();
+        await into(reviewClearings).insert(
+          ReviewClearingsCompanion.insert(
+            cityId: cityId,
+            streetId: streetId,
+            clearedAt: at,
+          ),
+        );
+      }
       return;
     }
     await into(reviewItems).insertOnConflictUpdate(
@@ -351,6 +363,77 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
             .getSingle())
         .read(n)!;
   }
+
+  /// The answer-log counts badges read (pindoro_core `BadgeStats`): pins
+  /// dropped in rounds and lessons, how many were Perfect, whether any answer
+  /// or lesson ended before [BadgeRules.lateBefore] local time (placement
+  /// isn't play), and the streets cleared from the Pit stop.
+  Future<({int pins, int perfects, bool lateAnswer, int pitStopCleared})>
+  badgeCounts() async {
+    // Dates are ISO-8601 text with their offset; SQLite converts to local.
+    String hour(String column) =>
+        "CAST(strftime('%H', $column, 'localtime') AS INTEGER)";
+    final row = await customSelect(
+      'SELECT '
+      '(SELECT COUNT(*) FROM answer) + '
+      "(SELECT COUNT(*) FROM lesson_answer WHERE kind = 'pin') AS pins, "
+      "(SELECT COUNT(*) FROM answer WHERE tier = 'perfect') + "
+      '(SELECT COUNT(*) FROM lesson_answer '
+      "WHERE kind = 'pin' AND tier = 'perfect') AS perfects, "
+      'EXISTS (SELECT 1 FROM answer WHERE ${hour('created_at')} < ?1) OR '
+      'EXISTS (SELECT 1 FROM lesson_result '
+      "WHERE kind != 'placed' AND ${hour('finished_at')} < ?1) AS late, "
+      '(SELECT COUNT(*) FROM review_cleared) AS cleared',
+      variables: [Variable(BadgeRules.lateBefore)],
+      readsFrom: {answers, lessonAnswers, lessonResults, reviewClearings},
+    ).getSingle();
+    return (
+      pins: row.read<int>('pins'),
+      perfects: row.read<int>('perfects'),
+      lateAnswer: row.read<bool>('late'),
+      pitStopCleared: row.read<int>('cleared'),
+    );
+  }
+
+  Future<Map<BadgeId, BadgeRow>> earnedBadges() async => {
+    for (final b in await select(badges).get()) b.id: b,
+  };
+
+  Future<bool> hasBadges() async =>
+      await (select(badges)..limit(1)).getSingleOrNull() != null;
+
+  /// Saves [ids] as earned [now]; returns those that weren't saved yet, in
+  /// [ids]' order (two awards at once never both get one).
+  Future<List<BadgeId>> earn(List<BadgeId> ids, DateTime now) =>
+      transaction(() async {
+        final earned = <BadgeId>[];
+        for (final id in ids) {
+          final row = await into(badges).insertReturningOrNull(
+            BadgesCompanion.insert(id: id, earnedAt: now),
+            mode: InsertMode.insertOrIgnore,
+          );
+          if (row != null) earned.add(id);
+        }
+        return earned;
+      });
+
+  /// Marks [ids] seen [now] (a reward sheet closed, or Me showed them).
+  Future<void> seeBadges(Iterable<BadgeId> ids, DateTime now) =>
+      (update(badges)..where((b) => b.id.isInValues(ids) & b.seenAt.isNull()))
+          .write(BadgesCompanion(seenAt: Value(now)));
+
+  /// The earned badges not seen yet, marked seen [now]: Me's New ones for a
+  /// visit.
+  Future<Set<BadgeId>> takeUnseenBadges(DateTime now) => transaction(() async {
+    final ids = {
+      for (final b in await (select(
+        badges,
+      )..where((b) => b.seenAt.isNull())).get())
+        b.id,
+    };
+    await seeBadges(ids, now);
+    return ids;
+  });
 
   /// The XP earned in [unitId] of [cityId] and its road trips, for Unit
   /// complete.
@@ -799,7 +882,7 @@ final progressDaoProvider = Provider<ProgressDao>(
   (ref) => ProgressDao(ref.watch(databaseProvider)),
 );
 
-/// Ticks whenever a round, answer, goal day, course or lesson is written, so screens showing
+/// Ticks whenever a round, answer, goal day, course, lesson or badge is written, so screens showing
 /// progress reload even when they stayed in the navigator during the round.
 final progressChangesProvider = StreamProvider<Set<TableUpdate>>((ref) {
   final db = ref.watch(databaseProvider);
@@ -810,6 +893,7 @@ final progressChangesProvider = StreamProvider<Set<TableUpdate>>((ref) {
       db.goalDays,
       db.courses,
       db.lessonResults,
+      db.badges,
     ]),
   );
 });

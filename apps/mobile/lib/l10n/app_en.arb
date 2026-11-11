@@ -1046,6 +1046,77 @@
     }
   },
   "meTitle": "Me",
+  "meBadges": "Badges · {earned} of {total}",
+  "@meBadges": {
+    "placeholders": {
+      "earned": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "badgeName": "{badge, select, firstPin{First pin} bullseye{Bullseye} onFire{On fire} navigator{Navigator} roadTrip{Road trip} nightOwl{Night owl} explorer{Explorer} other{Pit crew}}",
+  "@badgeName": {
+    "placeholders": {
+      "badge": {
+        "type": "String"
+      }
+    }
+  },
+  "badgeCondition": "{badge, select, firstPin{Drop your first pin} bullseye{10 Perfect answers} onFire{7-day streak} navigator{Master a district} roadTrip{Finish 5 road trips} nightOwl{Play after midnight} explorer{Know streets in 5 districts} other{Clear 50 Pit stop streets}}",
+  "@badgeCondition": {
+    "placeholders": {
+      "badge": {
+        "type": "String"
+      }
+    }
+  },
+  "badgeNew": "New",
+  "badgeUnlocked": "Badge unlocked",
+  "badgeRewardBody": "{name} · {condition}.",
+  "@badgeRewardBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "condition": {
+        "type": "String"
+      }
+    }
+  },
+  "badgeNice": "Nice!",
+  "a11yBadgeEarned": "{name}, earned.",
+  "@a11yBadgeEarned": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yBadgeLocked": "{name}, locked.",
+  "@a11yBadgeLocked": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yBadgeProgress": "{name}, locked, {value} of {target}.",
+  "@a11yBadgeProgress": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "value": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
+  },
   "meCities": "Cities",
   "meStreetsKnown": "Streets known",
   "meLessons": "Lessons",

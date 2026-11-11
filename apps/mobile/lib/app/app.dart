@@ -8,8 +8,10 @@ import 'package:pindoro/app/router.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/launch_overlay.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/badges/data/badge_data.dart';
 import 'package:pindoro/features/league/data/league_data.dart';
 import 'package:pindoro/features/pack/data/app_update.dart';
+import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/progress/data/streak.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
@@ -52,6 +54,7 @@ class _PindoroAppState extends ConsumerState<PindoroApp> {
     // Listening keeps the standing alive, so the week's XP reaches the
     // league at launch, on resume and after a lesson, not only on its tab.
     ref.listenManual(standingProvider, (_, _) {});
+    unawaited(_awardPastPlay());
     // Keeps the one reminder in step with the streak and the settings;
     // switching it off in Settings cancels it there.
     ref.listenManual(reminderProvider, (_, next) {
@@ -62,6 +65,18 @@ class _PindoroAppState extends ConsumerState<PindoroApp> {
     ref.listenManual(appUpdateProvider, (_, next) {
       if (next case AsyncData(value: final url?)) unawaited(_offerUpdate(url));
     });
+  }
+
+  /// Past play earns its badges quietly, only while there are none yet:
+  /// after the first, every badge is awarded on an end screen with its
+  /// moment, and this would race it.
+  Future<void> _awardPastPlay() async {
+    try {
+      if (await ref.read(progressDaoProvider).hasBadges()) return;
+      await ref.read(awardBadgesProvider)();
+    } on Object {
+      // Tries again at the next launch.
+    }
   }
 
   /// Once per launch: a newer build is out, download it?

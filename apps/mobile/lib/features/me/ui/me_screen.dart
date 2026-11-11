@@ -10,6 +10,8 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/badges/data/badge_data.dart';
+import 'package:pindoro/features/badges/ui/badge_look.dart';
 import 'package:pindoro/features/me/data/me_data.dart';
 import 'package:pindoro/features/progress/ui/level_card.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -23,6 +25,8 @@ class MeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final me = ref.watch(meProvider).value;
+    final badges = ref.watch(badgesProvider).value;
+    final fresh = ref.watch(newBadgesProvider).value ?? const {};
     final l10n = context.l10n;
     return PageScaffold(
       title: l10n.meTitle,
@@ -32,11 +36,16 @@ class MeScreen extends ConsumerWidget {
         semanticLabel: l10n.a11ySettings,
         onPressed: () => unawaited(context.push(Routes.settings)),
       ),
-      children: me == null ? const [] : _content(context, me),
+      children: me == null ? const [] : _content(context, me, badges, fresh),
     );
   }
 
-  List<Widget> _content(BuildContext context, MeData me) {
+  List<Widget> _content(
+    BuildContext context,
+    MeData me,
+    List<BadgeView>? badges,
+    Set<BadgeId> fresh,
+  ) {
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
     final total = formatNumber(me.totalXp);
@@ -75,6 +84,15 @@ class MeScreen extends ConsumerWidget {
           onTap: () => unawaited(context.push(Routes.streak)),
         ),
       ]),
+      if (badges != null) ...[
+        SectionTitle(
+          l10n.meBadges(badges.where((b) => b.earned).length, badges.length),
+        ),
+        _TileGrid(columns: 3, [
+          for (final b in badges)
+            BadgeShelfTile(b, isNew: fresh.contains(b.id)),
+        ]),
+      ],
       SectionTitle(l10n.meCities),
       ListGroup(children: [for (final city in me.cities) _CityRow(city)]),
     ];
@@ -90,23 +108,28 @@ String _month(BuildContext context, DateTime day) {
   return format.format(day);
 }
 
-/// Two tiles a row, 8 dp apart, each row as tall as its taller tile.
+/// [columns] tiles a row, 8 dp apart, each row as tall as its tallest tile;
+/// a short last row keeps the columns' width.
 class _TileGrid extends StatelessWidget {
-  const _TileGrid(this.tiles);
+  const _TileGrid(this.tiles, {this.columns = 2});
 
   final List<Widget> tiles;
+  final int columns;
 
   @override
   Widget build(BuildContext context) => Column(
     spacing: PindoroSpace.s2,
     children: [
-      for (var i = 0; i < tiles.length; i += 2)
+      for (var i = 0; i < tiles.length; i += columns)
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             spacing: PindoroSpace.s2,
             children: [
-              for (final tile in tiles.skip(i).take(2)) Expanded(child: tile),
+              for (final tile in tiles.skip(i).take(columns))
+                Expanded(child: tile),
+              for (var j = tiles.length - i; j < columns; j++)
+                const Expanded(child: SizedBox()),
             ],
           ),
         ),

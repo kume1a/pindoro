@@ -9,6 +9,7 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/badges/ui/badge_reward.dart';
 import 'package:pindoro/features/league/data/league_api.dart';
 import 'package:pindoro/features/league/data/league_data.dart';
 import 'package:pindoro/features/league/ui/league_screen.dart';
@@ -44,7 +45,8 @@ class ResultsScreen extends ConsumerStatefulWidget {
   ConsumerState<ResultsScreen> createState() => _ResultsScreenState();
 }
 
-class _ResultsScreenState extends ConsumerState<ResultsScreen> {
+class _ResultsScreenState extends ConsumerState<ResultsScreen>
+    with BadgeMoments {
   final _barKey = GlobalKey();
   bool _barFull = false;
   bool _levelUpOver = false;
@@ -64,7 +66,9 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
         from: bar?.localToGlobal(bar.size.center(Offset.zero)),
       ),
     );
-    if (mounted) setState(() => _levelUpOver = true);
+    if (!mounted) return;
+    setState(() => _levelUpOver = true);
+    showBadgesAfter(Duration.zero);
   }
 
   @override
@@ -77,6 +81,8 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
     final before = progressWithinLevel(data.totalXp - data.roundXp);
     final after = progressWithinLevel(data.totalXp);
     final crossed = after.level > before.level;
+    // Badges follow the level-up moment when there is one.
+    if (!crossed) showBadgesAfter(_Arrival.rows);
     // Until the level-up moment is over the bar fills the old level to its end.
     final inNewLevel = !crossed || _levelUpOver;
     final counts = <Tier, int>{};

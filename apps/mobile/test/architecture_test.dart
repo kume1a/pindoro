@@ -11,6 +11,7 @@ const _layers = <Set<String>>[
   {'features/map'},
   {'features/course'},
   {'features/league'},
+  {'features/badges'},
   {
     'features/home',
     'features/setup',

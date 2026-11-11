@@ -288,6 +288,38 @@ class LeaguePlayers extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// An earned badge (pindoro_core `BadgeId`): saved once and never removed,
+/// so a badge stays earned when its condition stops holding (a pack update
+/// can unmaster a district).
+@DataClassName('BadgeRow')
+class Badges extends Table {
+  @override
+  String get tableName => 'badge';
+
+  TextColumn get id => textEnum<BadgeId>()();
+  DateTimeColumn get earnedAt => dateTime()();
+
+  /// When the player saw it (its reward sheet closed, or Me showed it); null
+  /// shows the New pill.
+  DateTimeColumn get seenAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// A street leaving the Pit stop with two Greats in a row; Pit crew counts
+/// them. A street cleared twice has two rows.
+@DataClassName('ReviewClearing')
+class ReviewClearings extends Table {
+  @override
+  String get tableName => 'review_cleared';
+
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get cityId => text()();
+  TextColumn get streetId => text()();
+  DateTimeColumn get clearedAt => dateTime()();
+}
+
 @DriftDatabase(
   tables: [
     UserSettings,
@@ -301,6 +333,8 @@ class LeaguePlayers extends Table {
     LessonAnswers,
     SavedLessons,
     LeaguePlayers,
+    Badges,
+    ReviewClearings,
   ],
   include: {'answer_immutable.drift'},
 )
@@ -309,7 +343,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'pindoro'));
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -353,6 +387,10 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(schema.userSettings, schema.userSettings.turnList);
       },
       from9To10: (m, schema) => m.createTable(schema.leaguePlayer),
+      from10To11: (m, schema) async {
+        await m.createTable(schema.badge);
+        await m.createTable(schema.reviewCleared);
+      },
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

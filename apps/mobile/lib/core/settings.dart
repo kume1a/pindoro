@@ -50,6 +50,9 @@ class GameFeedback {
   /// A unit is complete, and the next unit's signpost flips open.
   void unitDone() => _haptic(HapticFeedback.mediumImpact);
 
+  /// A badge's reward sheet opens (component Badge § Reward moment).
+  void badge() => _haptic(HapticFeedback.mediumImpact);
+
   void confirm() => _haptic(HapticFeedback.mediumImpact);
 
   void error() => _haptic(HapticFeedback.heavyImpact);
