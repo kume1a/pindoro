@@ -147,9 +147,6 @@ and the specs after R5. Fix them in roughly this order.
 - Smaller:
   - The map makes room for the road-trip tier sheet when the replay starts, not with a 60 dp pan
     after it.
-  - A lesson's sheet always says up to 670 XP; a format 2 pack (no road graph) caps at 570.
-  - Road-trip step: framing can put A under the map controls, and the "N m so far" chip gets cut
-    off at the screen edge. Which street is this: the attribution chip can cover the yellow street.
   - Upgrade maplibre_gl 0.27.1 → 0.28.0 (Flutter 3.44+, iOS 15.5, SwiftPM; Android points become
     logical pixels, calls throw instead of returning false, channel mocks need a fake
     `MapLibrePlatform`).
