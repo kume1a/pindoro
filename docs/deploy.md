@@ -176,8 +176,9 @@ each install's version and build. Raise `APP_BUILD` with every build you hand ou
 behind on a build that a new pack format or API change has left broken.
 
 **iOS** friends sideload with [SideStore](https://docs.sidestore.io), free with their own Apple
-ID: a free account signs an app for 7 days, and SideStore renews that on the phone. Bump `version`,
-merge to `prod`, then run the **iOS release** workflow: it builds the unsigned IPA on a macOS runner
+ID: a free account signs an app for 7 days, and SideStore renews that on the phone. Bump `version`
+and merge to `prod`: a push that changes `apps/mobile/pubspec.yaml` runs the **iOS release**
+workflow next to Deploy (or run it by hand). It builds the unsigned IPA on a macOS runner
 (`just release ios <host> --no-codesign`) and puts `pindoro-<build>.ipa`, `icon.png` and a
 SideStore/AltStore `source.json` in the packs volume, at `https://pindoro.example.com/packs/app/`.
 The in-app update offer is Android-only; SideStore shows iOS updates from the source.

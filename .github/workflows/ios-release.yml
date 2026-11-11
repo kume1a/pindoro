@@ -1,9 +1,13 @@
 name: iOS release
 
 # Builds the sideload IPA from `prod` against the production server and publishes it with a
-# SideStore/AltStore source under /packs/app/ on the server (docs/deploy.md § 7). Bump `version`
-# in apps/mobile/pubspec.yaml first: SideStore only offers a higher build as an update.
+# SideStore/AltStore source under /packs/app/ on the server (docs/deploy.md § 7). Runs when a push
+# to prod changes apps/mobile/pubspec.yaml, i.e. bumps `version`: SideStore only offers a higher
+# build as an update, so app changes without a bump wouldn't reach anyone anyway.
 on:
+  push:
+    branches: [prod]
+    paths: [apps/mobile/pubspec.yaml]
   workflow_dispatch:
 
 env:
