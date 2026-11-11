@@ -1,9 +1,13 @@
 name: iOS release
 
 # Builds the sideload IPA from `prod` against the production server and publishes it with a
-# SideStore/AltStore source under /packs/app/ on the server (docs/deploy.md § 7). Bump `version`
-# in apps/mobile/pubspec.yaml first: SideStore only offers a higher build as an update.
+# SideStore/AltStore source under /packs/app/ on the server (docs/deploy.md § 7). Runs when a push
+# to prod changes apps/mobile/pubspec.yaml, i.e. bumps `version`: SideStore only offers a higher
+# build as an update, so app changes without a bump wouldn't reach anyone anyway.
 on:
+  push:
+    branches: [prod]
+    paths: [apps/mobile/pubspec.yaml]
   workflow_dispatch:
 
 env:
@@ -12,7 +16,31 @@ env:
   PUBLIC_HOST: ${{ vars.PUBLIC_HOST }}
 
 jobs:
+  # A pubspec change that keeps the build number (a dependency bump) has nothing new for SideStore,
+  # so a push skips the macOS build when the server already has this build. By hand it always builds.
+  check:
+    runs-on: ubuntu-24.04
+    outputs:
+      new: ${{ steps.build.outputs.new }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: prod
+          persist-credentials: false
+          sparse-checkout: apps/mobile/pubspec.yaml
+          sparse-checkout-cone-mode: false
+      - id: build
+        run: |
+          build=$(sed -n 's/^version: .*+//p' apps/mobile/pubspec.yaml)
+          if curl -fsI -m 10 "https://$PUBLIC_HOST/packs/app/pindoro-$build.ipa" > /dev/null; then
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
+    needs: check
+    if: github.event_name == 'workflow_dispatch' || needs.check.outputs.new == 'true'
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v7
