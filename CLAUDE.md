@@ -78,9 +78,9 @@ never a priority. The production server still matters: it serves packs, tiles an
 | `just tiles`        | Georgia PMTiles extract + regenerate the app map styles              |
 | `just openapi`      | Write `shared/openapi/openapi.json`                                  |
 | `just run-mobile`   | `flutter run` in `apps/mobile` (args pass through)                   |
-| `just deploy`       | On the server: `git pull` + prod compose up                          |
+| `just deploy`       | On the server: `git pull` + prod compose up (the `prod` Deploy job)  |
 | `just server-setup` | On the server, once: deploy, systemd timers, tiles, first pack       |
-| `just release T D`  | Sideload build (`apk`) against the server at domain `D`              |
+| `just release T H`  | Sideload build (`apk`) against the server at public host `H`         |
 
 On Windows `just` works from PowerShell or Git Bash: recipes run in Git for Windows' `sh`
 (`justfile` `windows-shell`). Dev PostGIS listens on host port 5433.

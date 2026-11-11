@@ -218,11 +218,12 @@ From the product plan ("Learning Every Tbilisi Route"), which the course only pa
 - CI runs on GitHub Actions (kume1a/pindoro); `act` reproduces it locally.
 - Flutter is pinned to 3.47.9 in CI and `just goldens`; the bootstrap machine ran a 3.41.2 checkout
   (Dart 3.13). Align local Flutter with the pinned version, and bump both together later.
-- Production server: once the server, a Cloudflare domain and the tunnel token exist, fill `.env`
-  and run `just server-setup` (`docs/deploy.md`).
+- Production server: the stack sits behind the host's shared tunnel and deploys from `prod` on a
+  self-hosted runner. Once the routes, runner and variables exist, push `prod` and run
+  `just server-setup` once (`docs/deploy.md` §§ 2–4).
 - **No App Store or Play Store release is planned** (decided 2026-11-11): friends sideload the APK.
-  Create the Android signing key and `key.properties` once, then `just release apk <domain>`
-  (`docs/deploy.md` section 9).
+  Create the Android signing key and `key.properties` once, then
+  `just release apk <public host>` (`docs/deploy.md` section 9).
 - Parked, store-only, not a priority: a privacy policy, `PrivacyInfo.xcprivacy`,
   `CFBundleLocalizations` and a Georgian location prompt, the iPad device family and
   `DEVELOPMENT_TEAM`, a release workflow (fastlane, Play/TestFlight upload), the Play data-safety
