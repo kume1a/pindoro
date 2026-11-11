@@ -69,6 +69,8 @@
   - Units have no titles: the locked unit's sheet, Unit complete's signpost and the Unit guide
     show the district.
   - A killed Final drive keeps its passed trips but drops the trip in progress.
+  - A raion with no 800–2 500 m trip gets lesson-length ones (500–1 500 m) in its Final drive, so
+    its unit can still be passed; the design only has the longer drive.
   - R4b progress isn't carried over: a unit opened by its lesson 6 locks again until the Final
     drive before it passes.
   - Jump ahead and the R4-61 storyboard have no widget test (the bundled fixture has one raion);
@@ -115,8 +117,6 @@ Not left out on purpose: found by comparing the app with `docs/design/*.md`, the
 and the specs after R5. Fix them in roughly this order.
 
 - Bugs:
-  - Jump ahead skips the Final drive sheet's "no road graph" check, and a raion with no 800–2 500 m
-    trip returns to the Path with no message: such a unit can never be passed.
   - Every league error (429, 5xx, a parse failure) reads as offline. Empty leagues are never
     cleaned up.
 - Accessibility (`docs/design/accessibility.md`):
@@ -145,8 +145,6 @@ and the specs after R5. Fix them in roughly this order.
   - Reduce motion still animates the map camera and the question bar's fill.
   - No haptic on Next; the error haptic is `heavyImpact` rather than `vibrate()` on Android.
 - Smaller:
-  - Unit complete has no level bar, level-up or streak chip, so a level reached in a Final drive
-    (up to 400 XP) is never celebrated.
   - The map makes room for the road-trip tier sheet when the replay starts, not with a 60 dp pan
     after it.
   - A lesson's sheet always says up to 670 XP; a format 2 pack (no road graph) caps at 570.

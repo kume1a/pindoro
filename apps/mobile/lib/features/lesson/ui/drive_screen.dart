@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/lesson/ui/drive_controller.dart';
 import 'package:pindoro/features/map/ui/route_view.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -37,10 +38,11 @@ class _DriveScreenState extends ConsumerState<DriveScreen> {
   Widget build(BuildContext context) {
     ref.listen(driveControllerProvider, (previous, next) {
       switch (next) {
-        case DrivePassed(:final unitId):
+        case DrivePassed(:final unitId, :final xp):
           ref.read(feedbackProvider).unitDone();
-          context.go(Routes.unitDoneOf(unitId));
+          context.go(Routes.unitDoneOf(unitId, xp: xp));
         case DriveMissing():
+          showToast(context, context.l10n.driveMissing);
           context.go(Routes.path);
         case DrivePlaying(:final score?)
             when !(previous is DrivePlaying && previous.answered):

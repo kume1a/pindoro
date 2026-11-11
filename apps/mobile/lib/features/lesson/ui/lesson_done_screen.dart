@@ -59,13 +59,13 @@ class _LessonDoneScreenState extends ConsumerState<LessonDoneScreen> {
     if (_levelUpOpened) return;
     _levelUpOpened = true;
     unawaited(
-      Future<void>.delayed(_Arrival.chips, () async {
-        if (!mounted) return;
-        ref.read(feedbackProvider).levelUp();
-        await Navigator.of(
-          context,
-        ).push(levelUpRoute(level: level, totalXp: totalXp));
-      }),
+      showLevelUpAfter(
+        context,
+        ref,
+        level: level,
+        totalXp: totalXp,
+        delay: _Arrival.chips,
+      ),
     );
   }
 

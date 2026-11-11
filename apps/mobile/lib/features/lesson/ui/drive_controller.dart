@@ -28,11 +28,13 @@ final class DriveMissing extends DriveState {
   const DriveMissing();
 }
 
-/// The unit's Final drive passed: Unit complete is next.
+/// The unit's Final drive passed: Unit complete is next, with the [xp] this
+/// visit earned (for its level-up).
 final class DrivePassed extends DriveState {
-  const DrivePassed(this.unitId);
+  const DrivePassed(this.unitId, this.xp);
 
   final String unitId;
+  final int xp;
 }
 
 /// A trip of the Final drive: [passed] trips passed before it (earlier
@@ -157,7 +159,8 @@ class DriveController extends Notifier<DriveState> {
   }
 
   /// A trip across [unit]'s raion to a street not yet in [used] (any street
-  /// once every one was).
+  /// once every one was); a lesson-length one when no drive-length trip
+  /// fits, so a small raion's unit can still be passed.
   Trip? _pick(RoadGraph graph, CourseUnit unit, Set<String> used) {
     Trip? pick(Set<String> avoid) => pickTrip(
       graph,
@@ -171,7 +174,17 @@ class DriveController extends Notifier<DriveState> {
       within: unit.district.boundary,
       random: ref.read(lessonRandomProvider),
     );
-    return pick(used) ?? pick(const {});
+    return pick(used) ??
+        pick(const {}) ??
+        pickTrip(
+          graph,
+          destinations: unit.streets,
+          starts: unit.streets,
+          minM: TripRules.lessonMinM,
+          maxM: TripRules.lessonMaxM,
+          within: unit.district.boundary,
+          random: ref.read(lessonRandomProvider),
+        );
   }
 
   void drawTo(RouteDraft draft) {
@@ -223,7 +236,7 @@ class DriveController extends Notifier<DriveState> {
     await _saving;
     if (!ref.mounted) return;
     if (p.completes) {
-      state = DrivePassed(p.unit.id);
+      state = DrivePassed(p.unit.id, p.xp);
       return;
     }
     final trip = _pick(p.graph, p.unit, p.used);
