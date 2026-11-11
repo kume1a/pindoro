@@ -95,7 +95,11 @@ class _RouteViewState extends ConsumerState<RouteView>
     with TickerProviderStateMixin {
   MapProjection? _projection;
   bool _touched = false;
+
+  /// A finger is drawing: the map's "so far" chip waits for the lift.
+  bool _drawing = false;
   Timer? _offRoad;
+  late MultiPolyline _ghost = _ghostLines(widget.trip.best);
 
   late final AnimationController _replay = AnimationController(
     vsync: this,
@@ -122,6 +126,7 @@ class _RouteViewState extends ConsumerState<RouteView>
   @override
   void didUpdateWidget(RouteView old) {
     super.didUpdateWidget(old);
+    if (widget.trip != old.trip) _ghost = _ghostLines(widget.trip.best);
     if (widget.reveal?.key != old.reveal?.key) {
       if (widget.reveal == null) {
         _replay.value = 0;
@@ -240,7 +245,7 @@ class _RouteViewState extends ConsumerState<RouteView>
         : listMode
         ? MediaQuery.sizeOf(context).height * 0.45
         : _controlsInset(context);
-    final ghostLines = ghost ? _ghostLines(trip.best) : const <Polyline>[];
+    final ghostLines = ghost ? _ghost : const <Polyline>[];
     return Scaffold(
       body: Stack(
         children: [
@@ -256,7 +261,11 @@ class _RouteViewState extends ConsumerState<RouteView>
                   best: best?.lines ?? const [],
                   ghost: ghostLines,
                   car: _replaying ? best?.tip : null,
-                  chip: reveal != null || drawn.isEmpty || draft.reached
+                  chip:
+                      reveal != null ||
+                          _drawing ||
+                          drawn.isEmpty ||
+                          draft.reached
                       ? null
                       : (
                           at: graph.at(draft.end),
@@ -293,6 +302,9 @@ class _RouteViewState extends ConsumerState<RouteView>
                 onDraft: _draft,
                 onTouch: () {
                   if (!_touched) setState(() => _touched = true);
+                },
+                onDrawing: (drawing) {
+                  if (drawing != _drawing) setState(() => _drawing = drawing);
                 },
                 onOffRoad: _onOffRoad,
               ),

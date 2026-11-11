@@ -47,8 +47,10 @@ const String _carImage = 'route-car-mark';
 const double _chevronSpacing = 80;
 
 /// The drawn route: 5 dp dashes 8/7 over a 9 dp halo (`.pd-map-player-route`).
-const double _drawnWidth = 5;
-const double _drawnHalo = 9;
+const double drawnWidth = 5;
+const double drawnHalo = 9;
+const double drawnDash = 8;
+const double drawnGap = 7;
 
 /// The ghost: round dots 9 dp apart (`.pd-map-ghost`).
 const double _ghostWidth = 6;
@@ -147,7 +149,7 @@ Future<void> addRouteLayers(
     '${RouteSources.drawn}-halo',
     ml.LineLayerProperties(
       lineColor: hexColor(colors.mapPlayerHalo),
-      lineWidth: _drawnHalo,
+      lineWidth: drawnHalo,
       lineCap: 'round',
       lineJoin: 'round',
     ),
@@ -158,10 +160,10 @@ Future<void> addRouteLayers(
     '${RouteSources.drawn}-line',
     ml.LineLayerProperties(
       lineColor: hexColor(colors.mapPlayerRoute),
-      lineWidth: _drawnWidth,
+      lineWidth: drawnWidth,
       lineJoin: 'round',
       // Dash units are line widths.
-      lineDasharray: [8 / _drawnWidth, 7 / _drawnWidth],
+      lineDasharray: [drawnDash / drawnWidth, drawnGap / drawnWidth],
     ),
     enableInteraction: false,
   );
