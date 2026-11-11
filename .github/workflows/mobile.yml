@@ -41,6 +41,8 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - uses: extractions/setup-just@v4
+      # maplibre_gl compiles Java 21 sources; the runner's default JDK is 17.
+      - run: echo "JAVA_HOME=$JAVA_HOME_21_X64" >> "$GITHUB_ENV"
       - run: flutter pub get
       - run: just gen
       - run: flutter build apk --release
