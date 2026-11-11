@@ -111,7 +111,7 @@ CREATE TABLE district (
 );
 
 CREATE TABLE street (
-  id          TEXT PRIMARY KEY,          -- stable UUID from data/cities/<city>/identity.json
+  id          TEXT PRIMARY KEY,          -- stable UUID from the city's live identity.json
   name_ka     TEXT NOT NULL,
   name_en     TEXT,
   road_class  TEXT NOT NULL,             -- highest OSM highway class by length

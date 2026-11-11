@@ -5,19 +5,19 @@ Mobile game for learning a city's streets: the player sees a street name, drops 
 
 ## Repo map
 
-| Path                      | What                                                                        |
-| ------------------------- | --------------------------------------------------------------------------- |
-| `apps/mobile`             | Flutter app (Android + iOS), offline-first, Drift progress DB, MapLibre map |
-| `apps/api`                | `@pindoro/api` Fastify 5 + Drizzle + PostGIS (health, catalog, leagues)     |
-| `packages/pindoro_core`   | Pure Dart: geometry, scoring, levels, question selection, pack models       |
-| `packages/pindoro_design` | Flutter design system: tokens → generated Dart, theme, widgets, FiraGO font |
-| `packages/geo`            | `@pindoro/geo`: TS twin of pindoro_core geometry + scoring + levels         |
-| `apps/pipeline`           | `@pindoro/pipeline`: OSM → PostGIS → city packs; tiles + map styles         |
-| `data/cities/<city>`      | `city.yaml`, curated neighbourhoods, `identity.json` (stable street ids)    |
-| `shared/fixtures`         | Golden vectors used by BOTH Dart and TS tests                               |
-| `shared/openapi`          | `openapi.json` exported from the API                                        |
-| `infra`                   | Docker Compose (dev + prod), Caddyfile, `tiles/`, `backups/`                |
-| `docs`                    | ADRs, `pack-format.md`, `deploy.md`, `design/`, `TODO.md`                   |
+| Path                      | What                                                                          |
+| ------------------------- | ----------------------------------------------------------------------------- |
+| `apps/mobile`             | Flutter app (Android + iOS), offline-first, Drift progress DB, MapLibre map   |
+| `apps/api`                | `@pindoro/api` Fastify 5 + Drizzle + PostGIS (health, catalog, leagues)       |
+| `packages/pindoro_core`   | Pure Dart: geometry, scoring, levels, question selection, pack models         |
+| `packages/pindoro_design` | Flutter design system: tokens → generated Dart, theme, widgets, FiraGO font   |
+| `packages/geo`            | `@pindoro/geo`: TS twin of pindoro_core geometry + scoring + levels           |
+| `apps/pipeline`           | `@pindoro/pipeline`: OSM → PostGIS → city packs; tiles + map styles           |
+| `data/cities/<city>`      | `city.yaml`, curated neighbourhoods, `identity.json` (seed of the street ids) |
+| `shared/fixtures`         | Golden vectors used by BOTH Dart and TS tests                                 |
+| `shared/openapi`          | `openapi.json` exported from the API                                          |
+| `infra`                   | Docker Compose (dev + prod), Caddyfile, `tiles/`, `backups/`                  |
+| `docs`                    | ADRs, `pack-format.md`, `deploy.md`, `design/`, `TODO.md`                     |
 
 ## Design and planning on claude.ai
 
@@ -53,34 +53,33 @@ never a priority. The production server still matters: it serves packs, tiles an
 - **Scoring constants live only in** pindoro_core `ScoringConfig` and `@pindoro/geo`
   `ScoringConfig`, and they must match `shared/fixtures/*.json`. Change all three together.
 - **Stable street ids are sacred.** Never regenerate or hand-edit `identity.json` ids; the pipeline
-  matches, retires and adds — progress in the app references these ids.
+  matches, retires and adds — progress in the app references these ids. The live ids sit on the
+  server next to the packs (`docs/deploy.md` § 5); `data/cities` only seeds a new city.
 - **Every map shows OSM attribution** ("© OpenStreetMap contributors, Protomaps").
 - **Never use public OSM tile servers or the public Overpass API** (app, CI or production).
 - Map colours: yellow = truth, cobalt = you, ink = measurement.
 
 ## Commands (`just --list`)
 
-| Command             | Does                                                                 |
-| ------------------- | -------------------------------------------------------------------- |
-| `just setup`        | `pnpm install` + `flutter pub get`, then `just gen`                  |
-| `just gen`          | Generate tokens, l10n and Drift code (gitignored, never committed)   |
-| `just gen-check`    | `gen`, then fail if it needed an uncommitted source (CI)             |
-| `just api-check`    | Regenerate `openapi.json` + Drizzle migrations, fail on a diff (CI)  |
-| `just goldens`      | Regenerate design goldens on Linux (pinned Flutter, as CI)           |
-| `just branding`     | App icon + splash from `apps/mobile/assets/branding` (design assets) |
-| `just lint`         | Biome, tsc, dart format, flutter analyze                             |
-| `just format`       | Biome fixes + dart format, in place                                  |
-| `just test`         | `test-dart`, geo + API tests, pipeline tests in the pipeline image   |
-| `just test-dart`    | pindoro_core, pindoro_design and mobile tests                        |
-| `just dev`          | PostGIS, API (tsx watch), Martin, packs server                       |
-| `just fixture`      | Fetch OSM, build + validate the Vake fixture pack bundled in the app |
-| `just pack CITY`    | Fetch, build, validate and publish a full city pack                  |
-| `just tiles`        | Georgia PMTiles extract + regenerate the app map styles              |
-| `just openapi`      | Write `shared/openapi/openapi.json`                                  |
-| `just run-mobile`   | `flutter run` in `apps/mobile` (args pass through)                   |
-| `just deploy`       | On the server: `git pull` + prod compose up (the `prod` Deploy job)  |
-| `just server-setup` | On the server, once: deploy, systemd timers, tiles, first pack       |
-| `just release T H`  | Sideload build (`apk`) against the server at public host `H`         |
+| Command            | Does                                                                 |
+| ------------------ | -------------------------------------------------------------------- |
+| `just setup`       | `pnpm install` + `flutter pub get`, then `just gen`                  |
+| `just gen`         | Generate tokens, l10n and Drift code (gitignored, never committed)   |
+| `just gen-check`   | `gen`, then fail if it needed an uncommitted source (CI)             |
+| `just api-check`   | Regenerate `openapi.json` + Drizzle migrations, fail on a diff (CI)  |
+| `just goldens`     | Regenerate design goldens on Linux (pinned Flutter, as CI)           |
+| `just branding`    | App icon + splash from `apps/mobile/assets/branding` (design assets) |
+| `just lint`        | Biome, tsc, dart format, flutter analyze                             |
+| `just format`      | Biome fixes + dart format, in place                                  |
+| `just test`        | `test-dart`, geo + API tests, pipeline tests in the pipeline image   |
+| `just test-dart`   | pindoro_core, pindoro_design and mobile tests                        |
+| `just dev`         | PostGIS, API (tsx watch), Martin, packs server                       |
+| `just fixture H`   | Vake fixture pack bundled in the app, on the street ids live at `H`  |
+| `just pack CITY`   | Fetch, build, validate and publish a full city pack                  |
+| `just tiles`       | Georgia PMTiles extract + regenerate the app map styles              |
+| `just openapi`     | Write `shared/openapi/openapi.json`                                  |
+| `just run-mobile`  | `flutter run` in `apps/mobile` (args pass through)                   |
+| `just release T H` | Sideload build (`apk`) against the server at public host `H`         |
 
 On Windows `just` works from PowerShell or Git Bash: recipes run in Git for Windows' `sh`
 (`justfile` `windows-shell`). Dev PostGIS listens on host port 5433.

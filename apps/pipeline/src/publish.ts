@@ -6,7 +6,7 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { OUT_DIR, packsDir } from "./config.ts";
 import { identityFile, stagedIdentityFile } from "./identity.ts";
 import { isoSeconds, replaceAtomically } from "./io.ts";
@@ -15,9 +15,9 @@ import type { Manifest } from "./pack.ts";
 const readManifest = (file: string): Manifest => JSON.parse(readFileSync(file, "utf8")) as Manifest;
 
 /**
- * Copies the last built pack of `city` into PACKS_DIR, commits its street ids to
- * data/cities/<city>/identity.json and rewrites catalog.json. The manifest goes last: until it
- * is swapped in, the API keeps serving the previous pack.
+ * Copies the last built pack of `city` into PACKS_DIR, commits its street ids to the live
+ * identity file and rewrites catalog.json. The manifest goes last: until it is swapped in, the API
+ * keeps serving the previous pack.
  */
 export const publish = (city: string): void => {
   const root = packsDir();
@@ -29,6 +29,7 @@ export const publish = (city: string): void => {
   replaceAtomically(join(dest, manifest.file), (tmp) =>
     copyFileSync(join(OUT_DIR, city, manifest.file), tmp),
   );
+  mkdirSync(dirname(identityFile(city)), { recursive: true });
   replaceAtomically(identityFile(city), (tmp) => copyFileSync(staged, tmp));
   replaceAtomically(join(dest, "manifest.json"), (tmp) =>
     writeFileSync(tmp, `${JSON.stringify(manifest, null, 2)}\n`),

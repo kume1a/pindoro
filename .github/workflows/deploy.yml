@@ -1,28 +1,47 @@
 name: Deploy
 
-# A push to `prod` deploys on the self-hosted runner on the home server. CI runs on `main`;
-# merging main into prod once it is green is a release.
+# Runs the production stack from `prod` on the self-hosted runner on the home server
+# (docs/deploy.md). Every run starts the stack, then fills in what is missing:
+# - a push to prod deploys, then downloads the tiles and builds each city pack that isn't published;
+# - on the 2nd of each month it rebuilds every city pack from fresh OSM data;
+# - by hand (Run workflow) it rebuilds one city, all of them, or the tiles.
 on:
   push:
     branches: [prod]
+  schedule:
+    - cron: "0 0 2 * *"
   workflow_dispatch:
+    inputs:
+      packs:
+        description: "Packs to rebuild: missing, all, or a city id"
+        default: missing
+      tiles:
+        description: Download the Georgia tiles again
+        type: boolean
+        default: false
 
-# One deploy at a time, never cancelled midway: a killed `compose up` can leave the stack
-# half-recreated.
+# One run at a time, never cancelled midway: a killed `compose up` can leave the stack
+# half-recreated, and pack builds share one database schema.
 concurrency:
-  group: deploy-prod
+  group: production
   cancel-in-progress: false
+
+env:
+  DC: docker compose --env-file .env -f infra/docker-compose.prod.yml
+  PUBLIC_HOST: ${{ vars.PUBLIC_HOST }}
+  HTTP_PORT: ${{ vars.HTTP_PORT || '8100' }}
 
 jobs:
   deploy:
     runs-on: self-hosted
-    timeout-minutes: 30
-    defaults:
-      run:
-        # The server's own checkout, not a runner workspace: the pack refresh writes street ids,
-        # packs, tiles and backups into it, and actions/checkout would clean them away.
-        working-directory: /opt/pindoro
+    timeout-minutes: 90
     steps:
+      # Always the released code, also on the monthly run (schedules start from main).
+      - uses: actions/checkout@v7
+        with:
+          ref: prod
+          persist-credentials: false
+
       # Every repository variable becomes a line of .env, JSON-quoted with each `$` doubled so
       # compose reads it verbatim. Values are never echoed.
       - name: Write .env from repository variables
@@ -34,22 +53,55 @@ jobs:
           jq -r 'to_entries[] | "\(.key)=\((.value | gsub("[$]"; "$$")) | @json)"' \
             <<< "$VARS_JSON" > .env
 
-      - name: Pull and start
-        run: just deploy
+      # Caddy reads its config only when it starts, so it restarts to pick up a changed Caddyfile.
+      - name: Start the stack
+        run: |
+          $DC up -d --build
+          $DC restart caddy
 
       # A deploy that leaves the API unreachable through the tunnel has to fail.
       - name: Wait for the API through the tunnel
-        env:
-          PUBLIC_HOST: ${{ vars.PUBLIC_HOST }}
         run: curl -fsS -m 10 --retry 30 --retry-delay 5 --retry-all-errors "https://$PUBLIC_HOST/health"
+
+      - name: Tiles
+        env:
+          REFRESH: ${{ inputs.tiles }}
+        run: |
+          set -eu
+          if [ "$REFRESH" = true ] || ! curl -fsS "http://127.0.0.1:$HTTP_PORT/tiles/catalog" | grep -q '"georgia"'; then
+            $DC run --rm --build pipeline tiles
+            $DC restart martin
+          fi
+
+      - name: Packs
+        env:
+          PACKS: ${{ github.event_name == 'schedule' && 'all' || inputs.packs || 'missing' }}
+        run: |
+          set -euo pipefail
+          case "$PACKS" in
+            missing | all) ;;
+            *) [ -f "data/cities/$PACKS/city.yaml" ] || { echo "no city '$PACKS' in data/cities"; exit 1; } ;;
+          esac
+          for dir in data/cities/*/; do
+            city=$(basename "$dir")
+            case "$PACKS" in
+              all | "$city") ;;
+              missing) curl -fs -o /dev/null "http://127.0.0.1:$HTTP_PORT/packs/$city/manifest.json" && continue ;;
+              *) continue ;;
+            esac
+            $DC run --rm --build pipeline fetch "$city"
+            $DC run --rm pipeline build "$city"
+            $DC run --rm pipeline validate "$city"
+            $DC run --rm pipeline publish "$city"
+          done
 
       - name: Show the stack
         if: failure()
         run: |
-          docker compose --env-file .env -f infra/docker-compose.prod.yml ps
-          docker compose --env-file .env -f infra/docker-compose.prod.yml logs --tail 100 api caddy
+          $DC ps
+          $DC logs --tail 100 api caddy
 
-      # Each deploy rebuilds the api image; without this superseded layers fill the disk.
+      # Each run rebuilds images; without this superseded layers fill the disk.
       - name: Prune superseded images
         if: always()
         run: docker image prune -f

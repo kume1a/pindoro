@@ -1,9 +1,0 @@
-[Unit]
-Description=Copy Pindoro database dumps to the backup disk
-ConditionPathIsMountPoint=/mnt/backup
-
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/mkdir -p /mnt/backup/pindoro
-ExecStart=/usr/bin/rsync -a /opt/pindoro/infra/backups/ /mnt/backup/pindoro/
-ExecStart=/usr/bin/find /mnt/backup/pindoro -name 'pindoro-*.dump' -mtime +90 -delete

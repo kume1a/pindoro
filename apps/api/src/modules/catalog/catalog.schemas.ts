@@ -38,7 +38,7 @@ const AppRelease = Type.Object({
 export type AppRelease = Static<typeof AppRelease>;
 
 export const Catalog = Type.Object({
-  // The newest sideload build; older installs offer it (docs/deploy.md § 9).
+  // The newest sideload build; older installs offer it (docs/deploy.md § 7).
   app: Type.Optional(AppRelease),
   cities: Type.Array(
     Type.Object({

@@ -1,4 +1,4 @@
-# Production stack on the home server. Run from the repo root: just deploy
+# Production stack on the home server, run by .github/workflows/deploy.yml (docs/deploy.md).
 # Only Caddy is published on the host (HTTP_PORT); the host's Cloudflare Tunnel routes PUBLIC_HOST
 # to it. Every service sits on the internal-only default network; only Caddy (to
 # publish its port) and one-off pipeline runs (which download OSM data and tiles) also join `egress`.
@@ -45,7 +45,7 @@ services:
       APP_URL: ${APP_URL:-}
       LOG_LEVEL: info
     volumes:
-      - ${PACKS_DIR:-./packs}:/packs:ro
+      - packs:/packs:ro
     depends_on:
       postgis:
         condition: service_healthy
@@ -56,7 +56,7 @@ services:
     logging: *logging
     command: ["/tiles"]
     volumes:
-      - ${TILES_DIR:-./tiles}:/tiles:ro
+      - tiles:/tiles:ro
 
   caddy:
     image: caddy:2.11.9
@@ -68,12 +68,13 @@ services:
       - "${HTTP_PORT:-8100}:80"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ${PACKS_DIR:-./packs}:/srv/packs:ro
+      - packs:/srv/packs:ro
       - caddy-data:/data
       - caddy-config:/config
     depends_on: [api, martin]
 
-  # Nightly pg_dump at 03:00 UTC into infra/backups, keeping 14 days.
+  # Every night at 03:00 UTC: a pg_dump and a copy of each city's street ids into the backups
+  # volume, keeping 14 days.
   backup:
     image: postgis/postgis:16-3.6
     restart: unless-stopped
@@ -83,9 +84,12 @@ services:
       - |
         while :; do
           sleep $$(( (27 * 3600 - $$(date +%s) % 86400) % 86400 ))
-          f=/backups/pindoro-$$(date -u +%Y-%m-%d).dump
-          pg_dump -Fc -f /backups/.in-progress && mv /backups/.in-progress "$$f" && echo "backup: $$f" || echo "backup: FAILED"
-          find /backups -name 'pindoro-*.dump' -mtime +14 -delete
+          day=$$(date -u +%Y-%m-%d)
+          pg_dump -Fc -f /backups/.in-progress && mv /backups/.in-progress "/backups/pindoro-$$day.dump" && echo "backup: $$day" || echo "backup: FAILED"
+          for ids in /packs/*/identity.json; do
+            [ -f "$$ids" ] && cp "$$ids" "/backups/$$(basename "$$(dirname "$$ids")")-identity-$$day.json"
+          done
+          find /backups -type f -mtime +14 -delete
           sleep 60
         done
     environment:
@@ -94,11 +98,13 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD:?}
       PGDATABASE: ${POSTGRES_DB:?}
     volumes:
-      - ./backups:/backups
+      - backups:/backups
+      - packs:/packs:ro
     depends_on:
       postgis:
         condition: service_healthy
 
+  # The image carries data/ and the tokens; nothing is written back into the checkout.
   pipeline:
     profiles: [pipeline]
     build:
@@ -109,14 +115,13 @@ services:
     environment:
       DATABASE_URL: *database-url
       PACKS_DIR: /packs
+      # The live street ids sit next to each city's packs (packs/<city>/identity.json).
+      IDENTITY_DIR: /packs
     volumes:
-      - ../data:/repo/data
-      - ../apps/mobile/assets:/repo/apps/mobile/assets
-      - ../packages/pindoro_design/tokens:/repo/packages/pindoro_design/tokens:ro
-      - ${TILES_DIR:-./tiles}:/repo/infra/tiles
-      - ${PACKS_DIR:-./packs}:/packs
+      - tiles:/repo/infra/tiles
+      - packs:/packs
       - pipeline-cache:/repo/apps/pipeline/.cache
-      - ../apps/pipeline/out:/repo/apps/pipeline/out
+      - pipeline-out:/repo/apps/pipeline/out
     depends_on:
       postgis:
         condition: service_healthy
@@ -128,6 +133,10 @@ networks:
 
 volumes:
   pgdata:
+  packs:
+  tiles:
+  backups:
   caddy-data:
   caddy-config:
   pipeline-cache:
+  pipeline-out:
