@@ -40,6 +40,10 @@ Offline-first app + static, versioned SQLite city packs + self-hosted Fastify/Po
 a Cloudflare Tunnel, all in Docker Compose on one Ubuntu server. No Python anywhere, no paid cloud,
 no S3/R2 (packs are static files served by Caddy). See `docs/adr/0001-architecture.md`.
 
+**No App Store or Play Store release is planned.** The app is sideloaded to friends (an Android APK
+from `just release apk`, iOS ad-hoc at most), so store-only work is parked in `docs/TODO.md` and is
+never a priority. The production server still matters: it serves packs, tiles and Leagues.
+
 ## Golden rules
 
 - **Design values only from** `packages/pindoro_design/tokens/` (`tokens.json` from claude.ai,
@@ -76,7 +80,7 @@ no S3/R2 (packs are static files served by Caddy). See `docs/adr/0001-architectu
 | `just run-mobile`   | `flutter run` in `apps/mobile` (args pass through)                   |
 | `just deploy`       | On the server: `git pull` + prod compose up                          |
 | `just server-setup` | On the server, once: deploy, systemd timers, tiles, first pack       |
-| `just release T D`  | Store build (`appbundle` / `ipa`) against the server at domain `D`   |
+| `just release T D`  | Sideload build (`apk`) against the server at domain `D`              |
 
 On Windows `just` works from PowerShell or Git Bash: recipes run in Git for Windows' `sh`
 (`justfile` `windows-shell`). Dev PostGIS listens on host port 5433.

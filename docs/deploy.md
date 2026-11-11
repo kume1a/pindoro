@@ -154,13 +154,16 @@ just deploy                      # pulls, rebuilds the api image, recreates chan
 dc logs -f api caddy cloudflared
 ```
 
-## 9. App store builds
+## 9. Sideload builds
 
-The app reads its server URLs at build time; `just release` points them at `api.`, `packs.` and
-`tiles.` of your domain over HTTPS (bump `version` in `apps/mobile/pubspec.yaml` first).
+No App Store or Play Store release is planned: friends install an APK directly. The app reads its
+server URLs at build time; `just release` points them at `api.`, `packs.` and `tiles.` of your
+domain over HTTPS. Bump `version` in `apps/mobile/pubspec.yaml` first: Android refuses to install a
+lower build number over an installed app.
 
-**Android.** Create the upload key once and keep it, with its passwords, outside the repo; Google
-Play needs the same key for every update:
+**Android.** Create the signing key once and keep it, with its passwords, outside the repo; an APK
+signed with a different key can't update an installed app, so every friend would have to uninstall
+(and lose their progress) first:
 
 ```sh
 keytool -genkeypair -keystore ~/pindoro-upload.jks -alias upload -keyalg RSA -keysize 2048 -validity 10000
@@ -176,11 +179,11 @@ keyPassword=…
 ```
 
 ```sh
-just release appbundle pindoro.app   # → apps/mobile/build/app/outputs/bundle/release/app-release.aab
+just release apk pindoro.app   # → apps/mobile/build/app/outputs/flutter-apk/app-release.apk
 ```
 
-Without `key.properties` the bundle is signed with the debug key, which Play rejects.
+Without `key.properties` the APK is signed with the debug key of the machine that built it, so
+builds from another machine can't update it.
 
-**iOS** (macOS with Xcode, an Apple Developer account and the `app.pindoro` bundle id registered):
-`just release ipa pindoro.app`, then upload `apps/mobile/build/ios/ipa/*.ipa` with Transporter.
-CI builds iOS without signing on every push, so only this last step needs a Mac.
+**iOS** is not distributed. If ever needed, an ad-hoc build (`just release ipa pindoro.app`) needs
+an Apple Developer account and each device's UDID registered; CI builds iOS unsigned on every push.

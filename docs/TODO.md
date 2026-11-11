@@ -109,6 +109,109 @@
   - A league week only fills from players syncing; with few players, leagues stay small (no
     demotion zone below 26 players).
 
+## Gaps found 2026-11-11 (design vs code)
+
+Not left out on purpose: found by comparing the app with `docs/design/*.md`, the claude.ai canvas
+and the specs after R5. Fix them in roughly this order.
+
+- Bugs:
+  - League XP is sent only when the Leagues tab opens or Free play / Pit stop Results shows
+    (`standingProvider`). Lessons, Final drives and app start or resume never send it, so other
+    players see old XP, and a week of lessons is lost if the tab isn't opened before Monday.
+  - Leaving the leagues deletes the player's `league_member` rows (cascade). The lazy rollover then
+    ranks a finished week without them: 6th can become 5th and move up, and a 26-player league
+    loses its demotion zone. Empty leagues are never cleaned up.
+  - Jump ahead skips the Final drive sheet's "no road graph" check, and a raion with no 800–2 500 m
+    trip returns to the Path with no message: such a unit can never be passed.
+  - The Leagues tab keeps showing a loaded board with no error when a refresh fails; every error
+    (429, 5xx, a parse failure) reads as offline; "days left" can go negative while offline.
+- Accessibility (`docs/design/accessibility.md`):
+  - No list answer mode (four candidate areas as buttons); Accessibility has only Choose turns
+    from a list.
+  - The pin can't be moved without touch (arrows 8 dp, Shift 40 dp, Enter confirms).
+  - The pin has no screen-reader label and no "Pin dropped, …" announcement.
+  - Focus doesn't move to the plate when a new street loads, nor to Next after the reveal.
+  - The area rectangle's handles have no screen-reader node or arrow-key 50 m steps.
+  - At 200 % text the compact plate cuts the name with "…" and the reveal sheet never shows the
+    full name.
+  - Labels: the map's lacks "Drag with two fingers to move the map"; a district's has no state
+    word; a locked stop's lacks "Finish lesson n to unlock"; Pindo in empty states isn't described.
+- Motion and celebrations (`docs/design/motion-sound-haptics.md`):
+  - No district-mastered moment: no fill wipe, outline and check, no heavy haptic, no big
+    celebration for the first mastered district.
+  - A round can get two big celebrations: Results also goes big on a flawless round (not in the
+    design).
+  - Streak milestones (7, 30, 100, 365) play the medium celebration, not the big one; Lesson
+    complete plays no milestone or streak haptic.
+  - The pin can't be dragged (lift 12 dp, follow the finger); taps only.
+  - Missing details: the pin drop's squash, shadow and tip ripple; Confirm's halo; Close's ring
+    pulse at the pin; Pindo's hop and jump (Pindo is static, `sleepy` unused); the level-up
+    shield stamp (0.92 → 1.22, −6°) and Pindo's sticker outline; the round XP pill counting up;
+    the Path stop unlock's lock drop.
+  - Reduce motion still animates the map camera and the question bar's fill.
+  - No haptic on Next; the error haptic is `heavyImpact` rather than `vibrate()` on Android.
+- Smaller:
+  - Unit complete has no level bar, level-up or streak chip, so a level reached in a Final drive
+    (up to 400 XP) is never celebrated.
+  - League names reject combining marks and aren't NFC-normalised (Devanagari, Thai, accents typed
+    as two characters); change the Dart and TS rules and `league_vectors.json` together.
+  - The map makes room for the road-trip tier sheet when the replay starts, not with a 60 dp pan
+    after it.
+  - A lesson's sheet always says up to 670 XP; a format 2 pack (no road graph) caps at 570.
+  - Road-trip step: framing can put A under the map controls, and the "N m so far" chip gets cut
+    off at the screen edge. Which street is this: the attribution chip can cover the yellow street.
+  - Upgrade maplibre_gl 0.27.1 → 0.28.0 (Flutter 3.44+, iOS 15.5, SwiftPM; Android points become
+    logical pixels, calls throw instead of returning false, channel mocks need a fake
+    `MapLibrePlatform`).
+- Ops for sideloading:
+  - The monthly pack timer's `publish` rewrites `data/cities/tbilisi/identity.json` on the server;
+    nothing commits it back and the backup copy skips it, so a lost server or a conflicting
+    `git pull` would renumber every street.
+  - No "update the app" path: sideloaded installs never update themselves, and a format 4 pack or
+    an API change shows a generic "try again". Needs a minimum app build in the catalog and an
+    update screen with the APK link.
+  - No crash reporting (`FlutterError.onError`, `PlatformDispatcher.onError`); without paid cloud,
+    the API's log could take the reports.
+  - CI builds iOS but not Android, which is what friends install.
+  - Only `POST /v1/players` is rate-limited (in memory); rename, the XP sync, `/v1/catalog` (reads
+    every manifest per request) and `/health` aren't. `SIGNUP_LIMIT` isn't set in the prod compose,
+    and the Cloudflare cache rule for tiles and packs is optional in `docs/deploy.md`.
+  - No alerting: the systemd services have no `OnFailure=`, a failed backup only logs, and a down
+    server tells nobody. Backups stay on the same machine and a restore has never been tried.
+  - `pubspec.yaml` is still `0.1.0+1`, and Settings doesn't show the app version.
+- Accepted divergences: the Home Pit stop card became the Pit stop tab's badge (R4); the cold start
+  is a Flutter overlay (about 1.9 s) rather than `FlutterNativeSplash.preserve()` with the wordmark
+  on the native splash.
+
+## Designed, not scheduled
+
+In the design system but in no release on the canvas Roadmap:
+
+- Badges: the starter set of eight (First pin, Bullseye, On fire, Navigator, Road trip, Night owl,
+  Explorer, Pit crew), their reward moment and a shelf on Me.
+- Onboarding illustration scenes and illustrated empty states ("no league yet", "city not
+  downloaded").
+- A player profile behind a tapped league row.
+- Fuel (lives).
+- Pindo as one rigged Rive or Lottie file instead of static expressions.
+
+## Next release candidates (design on claude.ai first)
+
+From the product plan ("Learning Every Tbilisi Route"), which the course only partly follows:
+
+- Free point-to-point road trips: a random A → B anywhere in the city, the plan's daily drill.
+  Road trips exist only inside lessons and Final drives.
+- One-way streets and turn bans in road trips (edges are undirected today); the plan calls the Old
+  Town and Sololaki one-ways the hardest part.
+- A skeleton unit before the districts: the bridges in order and the main roads that feed them.
+- Landmarks (metro stations, malls, bus and railway stations) as targets and trip ends; packs have
+  none.
+- Course order: centre outward, alternating river banks, rather than nearest-first from the picked
+  district.
+- Accounts and sync across devices (the Roadmap's R5 card: not designed yet).
+- A second city, or a Roadmap MVP card that no longer promises "any city or town from
+  OpenStreetMap".
+
 ## Data / pipeline
 
 - Neighbourhoods come from OSM `place=quarter|neighbourhood`; `curation/neighbourhoods.geojson` is
@@ -128,8 +231,13 @@
   (Dart 3.13). Align local Flutter with the pinned version, and bump both together later.
 - Production server: once the server, a Cloudflare domain and the tunnel token exist, fill `.env`
   and run `just server-setup` (`docs/deploy.md`).
-- Store releases: create the Android upload key and `key.properties`, then
-  `just release appbundle <domain>` (`docs/deploy.md` section 9).
+- **No App Store or Play Store release is planned** (decided 2026-11-11): friends sideload the APK.
+  Create the Android signing key and `key.properties` once, then `just release apk <domain>`
+  (`docs/deploy.md` section 9).
+- Parked, store-only, not a priority: a privacy policy, `PrivacyInfo.xcprivacy`,
+  `CFBundleLocalizations` and a Georgian location prompt, the iPad device family and
+  `DEVELOPMENT_TEAM`, a release workflow (fastlane, Play/TestFlight upload), the Play data-safety
+  form and Android auto-backup of the league token.
 - iOS is built unsigned in CI (macOS runner) and has run on the simulator (iPhone 16, iOS 18.6),
   never on a device. A reminder after notifications are allowed hasn't been checked there.
 - `flutter_tts` has no Swift package, so iOS builds add CocoaPods for it on the fly (`Podfile`,
