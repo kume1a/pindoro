@@ -104,7 +104,7 @@ openapi:
 run-mobile *ARGS:
     cd apps/mobile && flutter run {{ ARGS }}
 
-# Store build against the production server: `just release appbundle pindoro.app` (`ipa` on macOS)
+# Sideload build against the production server: `just release apk pindoro.app` (`ipa` on macOS)
 release TARGET DOMAIN:
     cd apps/mobile && flutter build {{ TARGET }} --release \
       --dart-define=API_BASE_URL=https://api.{{ DOMAIN }} \
