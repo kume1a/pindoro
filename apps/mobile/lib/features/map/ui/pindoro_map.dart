@@ -18,6 +18,7 @@ import 'package:pindoro/features/map/ui/map_work.dart';
 import 'package:pindoro/features/map/ui/route_layers.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
+import 'package:pindoro/features/map/ui/widgets/map_taps.dart';
 import 'package:pindoro/features/map/ui/widgets/map_zoom_controls.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -119,6 +120,11 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   bool _overlaysReady = false;
   final Set<String> _measureImages = {};
 
+  /// The route as the map last got it; null until it got one (per style).
+  RouteOverlay? _sentRoute;
+  bool _sendingRoute = false;
+  bool _routeChanged = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -159,17 +165,32 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     );
   }
 
-  void _cameraMoved() {
+  MapProjection? get _projection {
     final camera = _controller?.cameraPosition;
     final size = _size;
-    if (camera == null || size == null) return;
-    widget.onCamera?.call(
-      MapProjection(
-        target: camera.target.toCore,
-        zoom: camera.zoom,
-        size: size,
-      ),
+    if (camera == null || size == null) return null;
+    return MapProjection(
+      target: camera.target.toCore,
+      zoom: camera.zoom,
+      size: size,
     );
+  }
+
+  void _cameraMoved() {
+    if (_projection case final projection?) widget.onCamera?.call(projection);
+  }
+
+  void _tapped(Offset at) {
+    if (_projection case final projection?) {
+      widget.onTap?.call(projection.toLatLng(at));
+    }
+  }
+
+  /// A screen reader's double-tap drops the pin at the centre.
+  void _tappedCentre() {
+    if (_controller?.cameraPosition case final camera?) {
+      widget.onTap?.call(camera.target.toCore);
+    }
   }
 
   /// The truth street as painted so far.
@@ -228,17 +249,14 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       runMapWork(_syncOverlays);
     }
     if (widget.truth != null && widget.truth != oldWidget.truth) {
-      unawaited(_fit([...widget.truth!.expand((l) => l), ?widget.pin]));
+      unawaited(_fit(_framePoints));
     } else if (widget.truth == null && oldWidget.truth != null) {
       unawaited(_fitArea());
     }
     if (widget.route != oldWidget.route) {
-      final before = oldWidget.route;
-      runMapWork(
-        () => syncRoute(_controller!, widget.route, before, _chipImage),
-      );
+      runMapWork(_sendRoute);
       if ((widget.route?.reached ?? false) &&
-          !(before?.reached ?? false) &&
+          !(oldWidget.route?.reached ?? false) &&
           !MediaQuery.disableAnimationsOf(context)) {
         unawaited(_pop.forward(from: 0));
       }
@@ -249,42 +267,51 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     }
   }
 
-  Future<void> _fitArea() {
-    if (widget.frame case final frame?) return _fit(frame);
+  /// The [PindoroMap.frame], else the area's bounds.
+  List<LatLng> get _areaFrame {
+    if (widget.frame case final frame?) return frame;
     final b = widget.area.bbox;
-    return _fit([LatLng(b.minLat, b.minLon), LatLng(b.maxLat, b.maxLon)]);
+    return [LatLng(b.minLat, b.minLon), LatLng(b.maxLat, b.maxLon)];
   }
 
-  Future<void> _fit(List<LatLng> points) async {
-    final padding = EdgeInsets.fromLTRB(
-      PindoroCamera.fitPaddingX,
-      widget.topInset + PindoroSpace.s6,
-      // A road trip's A and B pins (drawn centred on their point) must clear
-      // the map controls on the right.
-      widget.onCamera != null && widget.showControls
-          ? PindoroSize.tapMin + 2 * PindoroSpace.s4 + PindoroSize.pinPlayer / 2
-          : PindoroCamera.fitPaddingX,
-      // Clear of the attribution chip, which sits above the bottom inset.
-      widget.bottomInset + MapAttribution.clearance(context),
-    );
-    final size = _size;
-    // A bounds update keeps its padding on the camera, which moves the target
-    // off the view's centre; [MapProjection] needs it there.
-    if (widget.onCamera != null && size != null) {
-      final camera = MapProjection.fit(points, size: size, padding: padding);
-      await _controller?.animateCamera(
-        ml.CameraUpdate.newLatLngZoom(camera.target.toMapLibre, camera.zoom),
+  /// What the camera frames: the street and the pin once revealed, else
+  /// [_areaFrame].
+  List<LatLng> get _framePoints => switch (widget.truth) {
+    final truth? => [...truth.expand((l) => l), ?widget.pin],
+    null => _areaFrame,
+  };
+
+  Future<void> _fitArea() => _fit(_areaFrame);
+
+  /// The camera fitting [points] between the insets. Computed here rather
+  /// than with a bounds update, whose padding stays on the camera and moves
+  /// its target off the view's centre, where [MapProjection] (taps, road
+  /// trips) expects it.
+  ({LatLng target, double zoom}) _cameraFor(List<LatLng> points, Size size) =>
+      MapProjection.fit(
+        points,
+        size: size,
+        padding: EdgeInsets.fromLTRB(
+          PindoroCamera.fitPaddingX,
+          widget.topInset + PindoroSpace.s6,
+          // A road trip's A and B pins (drawn centred on their point) must
+          // clear the map controls on the right.
+          widget.onCamera != null && widget.showControls
+              ? PindoroSize.tapMin +
+                    2 * PindoroSpace.s4 +
+                    PindoroSize.pinPlayer / 2
+              : PindoroCamera.fitPaddingX,
+          // Clear of the attribution chip, which sits above the bottom inset.
+          widget.bottomInset + MapAttribution.clearance(context),
+        ),
       );
-      return;
-    }
+
+  Future<void> _fit(List<LatLng> points) async {
+    final size = _size;
+    if (size == null) return;
+    final camera = _cameraFor(points, size);
     await _controller?.animateCamera(
-      ml.CameraUpdate.newLatLngBounds(
-        Bbox.of(points).toMapLibre,
-        left: padding.left,
-        top: padding.top,
-        right: padding.right,
-        bottom: padding.bottom,
-      ),
+      ml.CameraUpdate.newLatLngZoom(camera.target.toMapLibre, camera.zoom),
     );
   }
 
@@ -375,6 +402,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       enableInteraction: false,
     );
     _measureImages.clear();
+    _sentRoute = null;
     await c.addGeoJsonSource(_MapSources.youPin, pointsGeoJson(const []));
     await c.addSymbolLayer(
       _MapSources.youPin,
@@ -384,9 +412,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     );
     _overlaysReady = true;
     await _syncOverlays();
-    await (widget.truth == null
-        ? _fitArea()
-        : _fit([...widget.truth!.expand((l) => l), ?widget.pin]));
+    await _fit(_framePoints);
     _cameraMoved();
   }
 
@@ -413,8 +439,27 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       _MapSources.measureLabel,
       measure == null ? pointsGeoJson(const []) : await _measureChip(measure),
     );
-    if (widget.route != null) {
-      await syncRoute(c, widget.route, null, _chipImage);
+    if (widget.route != null) await _sendRoute();
+  }
+
+  /// Sends the route's changes since the last send. One send at a time:
+  /// changes made meanwhile go out together right after it, so a fast drag
+  /// never queues up stale frames on the platform channel.
+  Future<void> _sendRoute() async {
+    if (_sendingRoute) {
+      _routeChanged = true;
+      return;
+    }
+    _sendingRoute = true;
+    try {
+      do {
+        _routeChanged = false;
+        final route = widget.route;
+        await syncRoute(_controller!, route, _sentRoute, _chipImage);
+        _sentRoute = route;
+      } while (_routeChanged);
+    } finally {
+      _sendingRoute = false;
     }
   }
 
@@ -453,9 +498,17 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
             ml.CameraUpdate.newLatLng(position.toMapLibre),
           );
         case LocationDenied():
-          showToast(context, context.l10n.cityLocationDenied);
+          showToast(
+            context,
+            context.l10n.cityLocationDenied,
+            above: widget.bottomInset,
+          );
         case LocationUnavailable():
-          showToast(context, context.l10n.locationUnavailable);
+          showToast(
+            context,
+            context.l10n.locationUnavailable,
+            above: widget.bottomInset,
+          );
       }
     } finally {
       _locating = false;
@@ -465,43 +518,51 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      _size = constraints.biggest;
-      return _map(context);
+      final size = _size = constraints.biggest;
+      return _map(context, size);
     },
   );
 
-  Widget _map(BuildContext context) => FutureBuilder<String>(
+  Widget _map(BuildContext context, Size size) => FutureBuilder<String>(
     future: _style,
     builder: (context, style) {
       final l10n = context.l10n;
-      final center = widget.area.bbox.center;
+      final taps = widget.onTap != null;
+      // Opens where the load would frame it, so nothing zooms in after.
+      final start = _cameraFor(_framePoints, size);
       return Stack(
         children: [
           if (style.hasData)
             Semantics(
-              label: widget.onTap == null ? null : l10n.a11yMap,
-              child: ml.MapLibreMap(
-                styleString: style.data!,
-                initialCameraPosition: ml.CameraPosition(
-                  target: center.toMapLibre,
-                  zoom: PindoroCamera.zoom,
+              label: taps ? l10n.a11yMap : null,
+              onTap: taps ? _tappedCentre : null,
+              child: MapTaps(
+                onTap: taps ? _tapped : null,
+                child: ml.MapLibreMap(
+                  styleString: style.data!,
+                  initialCameraPosition: ml.CameraPosition(
+                    target: start.target.toMapLibre,
+                    zoom: start.zoom,
+                  ),
+                  gestureRecognizers: widget.ownsGestures
+                      ? {
+                          Factory<OneSequenceGestureRecognizer>(
+                            EagerGestureRecognizer.new,
+                          ),
+                        }
+                      : null,
+                  onMapCreated: (c) =>
+                      _controller = c..addListener(_cameraMoved),
+                  trackCameraPosition: widget.onCamera != null || taps,
+                  onStyleLoadedCallback: () => runMapWork(_addOverlays),
+                  // A tap drops the pin at once, so a second can't zoom.
+                  doubleClickZoomEnabled: taps ? false : null,
+                  rotateGesturesEnabled: false,
+                  tiltGesturesEnabled: false,
+                  compassEnabled: false,
+                  // Our own chip carries the attribution text.
+                  attributionButtonMargins: const Point(-100, -100),
                 ),
-                gestureRecognizers: widget.ownsGestures
-                    ? {
-                        Factory<OneSequenceGestureRecognizer>(
-                          EagerGestureRecognizer.new,
-                        ),
-                      }
-                    : null,
-                onMapCreated: (c) => _controller = c..addListener(_cameraMoved),
-                trackCameraPosition: widget.onCamera != null,
-                onStyleLoadedCallback: () => runMapWork(_addOverlays),
-                onMapClick: (_, at) => widget.onTap?.call(at.toCore),
-                rotateGesturesEnabled: false,
-                tiltGesturesEnabled: false,
-                compassEnabled: false,
-                // Our own chip carries the attribution text.
-                attributionButtonMargins: const Point(-100, -100),
               ),
             ),
           if (widget.showControls)
