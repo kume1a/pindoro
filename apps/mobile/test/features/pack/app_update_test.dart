@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -52,4 +53,10 @@ void main() {
       expect(await update(installed: '2'), isNull);
     },
   );
+
+  test('offers nothing on iOS, where SideStore brings updates', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    expect(await update(installed: '2', app: {'build': 3, 'url': apk}), isNull);
+  });
 }

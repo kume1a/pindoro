@@ -1,0 +1,101 @@
+name: iOS release
+
+# Builds the sideload IPA from `prod` against the production server and publishes it with a
+# SideStore/AltStore source under /packs/app/ on the server (docs/deploy.md § 7). Bump `version`
+# in apps/mobile/pubspec.yaml first: SideStore only offers a higher build as an update.
+on:
+  workflow_dispatch:
+
+env:
+  # Keep equal to FLUTTER_VERSION in mobile.yml.
+  FLUTTER_VERSION: 3.47.9
+  PUBLIC_HOST: ${{ vars.PUBLIC_HOST }}
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: prod
+          persist-credentials: false
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - uses: extractions/setup-just@v4
+      - run: flutter pub get
+      - run: just gen
+      - run: just release ios "$PUBLIC_HOST" --no-codesign
+
+      # Version, build, minimum iOS and privacy prompts come from the built Info.plist, so the
+      # source always matches the IPA (SideStore refuses an app whose permissions it doesn't list).
+      - name: Package the IPA and its source
+        working-directory: apps/mobile
+        run: |
+          set -euo pipefail
+          app=build/ios/iphoneos/Runner.app
+          plist=$(plutil -convert json -o - "$app/Info.plist")
+          ipa="pindoro-$(jq -r .CFBundleVersion <<< "$plist").ipa"
+          mkdir -p out/Payload
+          cp -R "$app" out/Payload/
+          (cd out && zip -qry "$ipa" Payload && rm -r Payload)
+          cp ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png out/icon.png
+          jq -n --argjson plist "$plist" --arg base "https://$PUBLIC_HOST/packs/app" \
+            --arg ipa "$ipa" --arg date "$(date -u +%F)" --argjson size "$(stat -f%z "out/$ipa")" '
+            {
+              version: $plist.CFBundleShortVersionString,
+              buildVersion: $plist.CFBundleVersion,
+              date: $date,
+              downloadURL: "\($base)/\($ipa)",
+              size: $size,
+              minOSVersion: $plist.MinimumOSVersion
+            } as $release
+            | {
+                name: "Pindoro",
+                identifier: "app.pindoro.source",
+                sourceURL: "\($base)/source.json",
+                apps: [{
+                  name: "Pindoro",
+                  bundleIdentifier: "app.pindoro",
+                  developerName: "Pindoro",
+                  localizedDescription: "Learn the streets of a city: see a street name, drop a pin on an unlabelled map.",
+                  iconURL: "\($base)/icon.png",
+                  versions: [$release],
+                  appPermissions: {
+                    entitlements: [],
+                    privacy: ($plist | with_entries(select(.key | endswith("UsageDescription"))))
+                  },
+                  version: $release.version,
+                  versionDate: $release.date,
+                  downloadURL: $release.downloadURL,
+                  size: $release.size
+                }],
+                news: []
+              }' > out/source.json
+          cat out/source.json
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ios-release
+          path: apps/mobile/out/
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: self-hosted
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: ios-release
+          path: dist
+
+      # Next to the APK in the packs volume, which Caddy serves under /packs/.
+      - name: Copy into the packs volume
+        run: |
+          docker run --rm -v pindoro_packs:/packs -v "$PWD/dist:/src:ro" alpine \
+            sh -c 'mkdir -p /packs/app && rm -f /packs/app/pindoro-*.ipa && cp /src/* /packs/app/'
+
+      - name: Check the source is served
+        run: curl -fsS -m 10 "https://$PUBLIC_HOST/packs/app/source.json" > /dev/null

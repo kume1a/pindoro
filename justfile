@@ -104,8 +104,9 @@ openapi:
 run-mobile *ARGS:
     cd apps/mobile && flutter run {{ ARGS }}
 
-# Sideload build against the production server: `just release apk pindoro.example.com` (`ipa` on macOS)
-release TARGET HOST:
+# Sideload build against the production server: `just release apk pindoro.example.com`
+# (the iOS release workflow runs `just release ios <host> --no-codesign` on macOS)
+release TARGET HOST *ARGS:
     cd apps/mobile && flutter build {{ TARGET }} --release \
       --dart-define=API_BASE_URL=https://{{ HOST }} \
-      --dart-define=TILES_BASE_URL=https://{{ HOST }}/tiles
+      --dart-define=TILES_BASE_URL=https://{{ HOST }}/tiles {{ ARGS }}

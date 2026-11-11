@@ -166,6 +166,22 @@ and run the Deploy workflow. Older installs offer the download at launch, and Se
 each install's version and build. Raise `APP_BUILD` with every build you hand out, so nobody stays
 behind on a build that a new pack format or API change has left broken.
 
-**iOS** is not distributed. If ever needed, an ad-hoc build (`just release ipa pindoro.example.com`)
-needs an Apple Developer account and each device's UDID registered; CI builds iOS unsigned on every
-push.
+**iOS** friends sideload with [SideStore](https://docs.sidestore.io), free with their own Apple
+ID: a free account signs an app for 7 days, and SideStore renews that on the phone. Bump `version`,
+merge to `prod`, then run the **iOS release** workflow: it builds the unsigned IPA on a macOS runner
+(`just release ios <host> --no-codesign`) and puts `pindoro-<build>.ipa`, `icon.png` and a
+SideStore/AltStore `source.json` in the packs volume, at `https://pindoro.example.com/packs/app/`.
+The in-app update offer is Android-only; SideStore shows iOS updates from the source.
+
+Each friend, once:
+
+1. On the iPhone, install **LocalDevVPN** from the App Store and connect it.
+2. On any computer, install [iloader](https://iloader.app) (Windows also needs iTunes), plug the
+   iPhone in, sign in with the Apple ID and let it install SideStore. The computer isn't needed
+   after this.
+3. In SideStore → Sources, add `https://pindoro.example.com/packs/app/source.json`, then install
+   Pindoro from it. Install it directly, not inside LiveContainer: Pindoro's daily reminder is a
+   local notification, and those need a workaround there.
+
+SideStore refreshes its apps in the background while LocalDevVPN is connected on Wi-Fi. A free
+Apple ID runs 3 sideloaded apps at a time, SideStore included.
