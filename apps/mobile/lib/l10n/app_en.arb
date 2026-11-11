@@ -2265,5 +2265,142 @@
     }
   },
   "unitGuidePassed": "Passed",
-  "unitGuideOnMap": "On the map"
+  "unitGuideOnMap": "On the map",
+  "tabLeagues": "Leagues",
+  "leagueTitle": "{tier, select, alley{Alley league} lane{Lane league} street{Street league} avenue{Avenue league} boulevard{Boulevard league} other{Highway league}}",
+  "@leagueTitle": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      }
+    }
+  },
+  "leagueTierName": "{tier, select, alley{Alley} lane{Lane} street{Street} avenue{Avenue} boulevard{Boulevard} other{Highway}}",
+  "@leagueTierName": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      }
+    }
+  },
+  "leagueRuleUp": "Top 5 move up",
+  "leagueRuleDown": "Bottom 5 move down",
+  "leagueDaysLeft": "{count, plural, =0{Last day} =1{1 day left} other{{count} days left}}",
+  "@leagueDaysLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "leagueHeadA11y": "{league}, {rank} of {total} leagues. {rule}. {days}.",
+  "@leagueHeadA11y": {
+    "placeholders": {
+      "league": {
+        "type": "String"
+      },
+      "rank": {
+        "type": "String"
+      },
+      "total": {
+        "type": "int"
+      },
+      "rule": {
+        "type": "String"
+      },
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "leagueListA11y": "{count, plural, =1{This week, 1 player} other{This week, {count} players}}",
+  "@leagueListA11y": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "leagueYou": "You",
+  "leagueXp": "{xp} XP",
+  "@leagueXp": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "leagueRowA11y": "{rank}, {name}, {xp} XP, {zone}.",
+  "@leagueRowA11y": {
+    "placeholders": {
+      "rank": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      },
+      "xp": {
+        "type": "String"
+      },
+      "zone": {
+        "type": "String"
+      }
+    }
+  },
+  "leagueZoneA11y": "{zone, select, up{promotion zone} down{demotion zone} other{safe}}",
+  "@leagueZoneA11y": {
+    "placeholders": {
+      "zone": {
+        "type": "String"
+      }
+    }
+  },
+  "leagueZoneUp": "Promotion zone · top 5 move up to {tier}",
+  "@leagueZoneUp": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      }
+    }
+  },
+  "leagueZoneDown": "Demotion zone · bottom 5 move down to {tier}",
+  "@leagueZoneDown": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      }
+    }
+  },
+  "leagueEmptyTitle": "Earn XP to join this week’s league",
+  "leagueEmptyBody": "Finish a lesson or a round and you’re in, with up to 29 other players.",
+  "leagueJoinTitle": "Pick a league name",
+  "leagueJoinBody": "Players in your league see it next to your XP.",
+  "leagueNamePlaceholder": "Your name",
+  "leagueNameRule": "2 to 20 letters",
+  "leagueNameClear": "Clear the name",
+  "leagueJoin": "Join",
+  "leagueJoinFailed": "Couldn’t join. Check your connection and try again.",
+  "leagueOffline": "Can’t reach the league. Check your connection and try again.",
+  "leagueSave": "Save",
+  "leagueSaveFailed": "Couldn’t save. Check your connection and try again.",
+  "leagueLeaveTitle": "Leave leagues?",
+  "leagueLeaveBody": "Your league name and this week’s place are deleted. You can join again later.",
+  "leagueLeaveStay": "Stay",
+  "leagueLeaveConfirm": "Leave",
+  "leagueLeaveFailed": "Couldn’t leave. Check your connection and try again.",
+  "resultsLeagueUp": "Up to {rank} in {league}",
+  "@resultsLeagueUp": {
+    "placeholders": {
+      "rank": {
+        "type": "String"
+      },
+      "league": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsLeague": "League",
+  "settingsLeagueName": "League name",
+  "settingsLeaveLeagues": "Leave leagues",
+  "settingsLeaveLeaguesSubtitle": "Deletes your league name and places"
 }

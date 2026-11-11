@@ -9,6 +9,9 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/league/data/league_api.dart';
+import 'package:pindoro/features/league/data/league_data.dart';
+import 'package:pindoro/features/league/ui/league_screen.dart';
 import 'package:pindoro/features/progress/data/streak.dart';
 import 'package:pindoro/features/progress/ui/level_row.dart';
 import 'package:pindoro/features/progress/ui/level_up_screen.dart';
@@ -45,6 +48,13 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
   final _barKey = GlobalKey();
   bool _barFull = false;
   bool _levelUpOver = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Sends the round's XP to the league; the league chip reads the reply.
+    ref.invalidate(standingProvider);
+  }
 
   /// The full bar glows, then the level-up moment grows out of it.
   Future<void> _openLevelUp(int level, int totalXp) async {
@@ -117,6 +127,22 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
         PopIn(
           delay: _Arrival.chips,
           child: PitStopChip(l10n.resultsToPitStop(data.retryCount)),
+        ),
+      if (_leagueRise(ref.watch(standingProvider).value, data) case (
+        :final rank,
+        :final tier,
+      ))
+        PopIn(
+          delay: _Arrival.chips,
+          child: Pill(
+            label: l10n.resultsLeagueUp(
+              formatOrdinal(rank, l10n),
+              leagueTitle(l10n, tier),
+            ),
+            icon: PindoroGlyph.flag,
+            iconColor: c.primaryText,
+            onTap: () => context.go(Routes.leagues),
+          ),
         ),
       if (_levelUpOver)
         PopIn(
@@ -350,4 +376,18 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
             },
     );
   }
+}
+
+/// The rank this round's XP (its answers in this league week) moved the
+/// player up to, with the league's tier; null when it moved them nowhere.
+({int rank, int tier})? _leagueRise(Standing? standing, ResultsData data) {
+  if (standing == null) return null;
+  final start = leagueWeek(DateTime.now()).start;
+  final gained = data.entries
+      .where((e) => !e.answer.createdAt.isBefore(start))
+      .fold(0, (sum, e) => sum + e.answer.xp);
+  final me = standing.members.where((m) => m.you).firstOrNull;
+  final before = gained == 0 ? null : rankBefore(standing.members, gained);
+  if (me == null || before == null || me.rank >= before) return null;
+  return (rank: me.rank, tier: standing.tier);
 }

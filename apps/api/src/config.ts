@@ -20,6 +20,8 @@ const Env = Type.Object({
   }),
   PACKS_DIR: Type.String({ minLength: 1, default: "../../infra/packs" }),
   PACKS_PUBLIC_URL: Type.String({ pattern: "^https?://", default: "http://localhost:8080" }),
+  // New league players per client IP per hour.
+  SIGNUP_LIMIT: Type.Integer({ minimum: 1, default: 10 }),
 });
 
 export type Config = Static<typeof Env>;

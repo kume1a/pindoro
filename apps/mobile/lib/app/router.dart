@@ -6,6 +6,8 @@ import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/course/ui/path_screen.dart';
 import 'package:pindoro/features/course/ui/unit_guide_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
+import 'package:pindoro/features/league/ui/league_name_form.dart';
+import 'package:pindoro/features/league/ui/league_screen.dart';
 import 'package:pindoro/features/lesson/ui/drive_screen.dart';
 import 'package:pindoro/features/lesson/ui/lesson_controller.dart';
 import 'package:pindoro/features/lesson/ui/lesson_done_screen.dart';
@@ -83,7 +85,7 @@ LessonArgs? _lessonArgs(GoRouterState state) {
   );
 }
 
-/// The tabs (Path, Free play, Pit stop, Me) share a [TabShell]; every other
+/// The tabs (Path, Free play, Pit stop, Leagues, Me) share a [TabShell]; every other
 /// route sits on the root navigator, over the bottom navigation.
 GoRouter buildRouter(String initialLocation) {
   // ponytail: one per tab, as long as the router (the app) lives.
@@ -120,6 +122,7 @@ GoRouter buildRouter(String initialLocation) {
             (state) => HomeScreen(summary: state.extra as RoundSummary?),
           ),
           tab(TabShell.pitStop, Routes.pitStop, (_) => const PitStopScreen()),
+          tab(TabShell.league, Routes.leagues, (_) => const LeagueScreen()),
           tab(TabShell.me, Routes.me, (_) => const MeScreen()),
         ],
       ),
@@ -210,6 +213,10 @@ GoRouter buildRouter(String initialLocation) {
         ),
       ),
       GoRoute(path: Routes.streak, builder: (_, _) => const StreakScreen()),
+      GoRoute(
+        path: Routes.leagueName,
+        builder: (_, _) => const LeagueNameScreen(),
+      ),
       GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
       GoRoute(path: Routes.credits, builder: (_, _) => const CreditsScreen()),
     ],

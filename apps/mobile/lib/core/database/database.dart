@@ -272,6 +272,22 @@ class SavedLessons extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// The player's league account once they joined (one row): the server's
+/// player id, the secret token for its `/me` routes and the name others see.
+@DataClassName('LeaguePlayer')
+class LeaguePlayers extends Table {
+  @override
+  String get tableName => 'league_player';
+
+  IntColumn get id => integer().withDefault(const Constant(1))();
+  TextColumn get playerId => text()();
+  TextColumn get token => text()();
+  TextColumn get name => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     UserSettings,
@@ -284,6 +300,7 @@ class SavedLessons extends Table {
     LessonResults,
     LessonAnswers,
     SavedLessons,
+    LeaguePlayers,
   ],
   include: {'answer_immutable.drift'},
 )
@@ -292,7 +309,7 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'pindoro'));
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -335,6 +352,7 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(schema.savedLesson);
         await m.addColumn(schema.userSettings, schema.userSettings.turnList);
       },
+      from9To10: (m, schema) => m.createTable(schema.leaguePlayer),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

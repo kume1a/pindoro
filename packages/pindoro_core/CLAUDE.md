@@ -6,7 +6,8 @@ Pure Dart game logic. **No Flutter imports** — it must run under plain `dart t
 lib/src/geo/        LatLng, LocalProjection, Bbox, pointToPolylineDistance, polyline6
 lib/src/scoring/    Difficulty, Tier, ScoringConfig (half-widths, fixed distances), scoreAnswer,
                     RouteScoring + scoreRoute (road trips: % longer than the best drive)
-lib/src/progress/   levels: requirement, totalXpToReach, levelForXp, progressWithinLevel
+lib/src/progress/   levels: requirement, totalXpToReach, levelForXp, progressWithinLevel;
+                    league: the league week (Monday 00:00 at UTC+4) and the name rule
 lib/src/game/       Area (districts/circle/rect, in-area rule), NamedStreet (nearby same-name parts),
                     QuestionSelector (10 names, 3 × 3 grid), knowledge (per street),
                     course (units per raion, stops, progress, Final drive gate, Jump ahead,
@@ -26,7 +27,9 @@ lib/src/pack/       City/District/Street (pack rows), PackRepository, RoadGraph 
 - **Scoring constants live only in `ScoringConfig` and `RouteScoring`** (and their TS twins;
   `shared/fixtures/route_vectors.json` proves road-trip scoring). No magic numbers elsewhere.
   Game rules the server never scores stay Dart-only: `ReviewRules`, `CourseRules`, `LessonRules`,
-  `TripRules`.
+  `TripRules`. `LeagueRules`' week and name rule are twinned in the API
+  (`apps/api/src/modules/leagues/leagues.rules.ts`), proved by `shared/fixtures/league_vectors.json`;
+  ranks and moves are the server's alone.
 - Distances are measured to segments, not vertices, in a local equirectangular projection around
   the query point.
 - **A street is a name in one place.** Packs keep same-name parts as separate rows with stable ids;

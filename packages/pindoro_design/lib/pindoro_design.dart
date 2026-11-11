@@ -8,6 +8,7 @@ export 'src/widgets/difficulty_card.dart';
 export 'src/widgets/district_map.dart';
 export 'src/widgets/feedback_badge.dart';
 export 'src/widgets/graphics.dart';
+export 'src/widgets/league.dart';
 export 'src/widgets/lesson.dart';
 export 'src/widgets/lesson_path.dart';
 export 'src/widgets/map_marks.dart';

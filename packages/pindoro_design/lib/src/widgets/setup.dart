@@ -15,12 +15,22 @@ class SearchField extends StatefulWidget {
     required this.placeholder,
     required this.clearLabel,
     this.onChanged,
+    this.onSubmitted,
+    this.glyph = PindoroGlyph.search,
+    this.textInputAction = TextInputAction.search,
+    this.textCapitalization = TextCapitalization.none,
   });
 
   final TextEditingController controller;
   final String placeholder;
   final String clearLabel;
   final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
+
+  /// The leading icon; a name field uses [PindoroGlyph.user].
+  final PindoroGlyph glyph;
+  final TextInputAction textInputAction;
+  final TextCapitalization textCapitalization;
 
   @override
   State<SearchField> createState() => _SearchFieldState();
@@ -61,14 +71,16 @@ class _SearchFieldState extends State<SearchField> {
         child: Row(
           children: [
             const SizedBox(width: PindoroSpace.s4),
-            PindoroIcon(PindoroGlyph.search, color: c.inputIcon),
+            PindoroIcon(widget.glyph, color: c.inputIcon),
             const SizedBox(width: PindoroSpace.s2),
             Expanded(
               child: TextField(
                 controller: widget.controller,
                 focusNode: _focus,
                 onChanged: widget.onChanged,
-                textInputAction: TextInputAction.search,
+                onSubmitted: widget.onSubmitted,
+                textInputAction: widget.textInputAction,
+                textCapitalization: widget.textCapitalization,
                 cursorColor: c.primaryBase,
                 style: PindoroType.bodyLg.copyWith(color: c.inputText),
                 decoration: InputDecoration(

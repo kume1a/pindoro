@@ -380,6 +380,104 @@ void main() {
     expect(tester.hasRunningAnimations, isFalse);
   });
 
+  testWidgets('a tappable pill is its own button next to other pills', (
+    tester,
+  ) async {
+    var taps = 0;
+    await tester.pumpWidget(
+      _host(
+        Wrap(
+          children: [
+            const Pill(label: '3 to your Pit stop'),
+            Pill(label: 'Up to 4th in Avenue league', onTap: () => taps++),
+          ],
+        ),
+      ),
+    );
+    expect(
+      tester.getSemantics(find.bySemanticsLabel('Up to 4th in Avenue league')),
+      matchesSemantics(
+        label: 'Up to 4th in Avenue league',
+        isButton: true,
+        hasTapAction: true,
+        hasEnabledState: true,
+        isEnabled: true,
+      ),
+    );
+    await tester.tap(find.text('Up to 4th in Avenue league'));
+    expect(taps, 1);
+  });
+
+  testWidgets('the league header is one heading with the tier raised', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        const LeagueHeader(
+          title: 'Avenue league',
+          subtitle: 'Top 5 move up · 3 days left',
+          tier: 3,
+          tiers: 6,
+          semanticLabel: 'Avenue league, 4th of 6 leagues.',
+        ),
+      ),
+    );
+    expect(
+      tester.getSemantics(find.byType(LeagueHeader)),
+      matchesSemantics(
+        label: 'Avenue league, 4th of 6 leagues.',
+        isHeader: true,
+      ),
+    );
+    final steps = [
+      for (var i = 0; i < 6; i++)
+        tester.getSize(find.byKey(ValueKey('ladder-$i'))).height,
+    ];
+    expect(steps, [20, 20, 20, 28, 20, 20]);
+  });
+
+  testWidgets('league rows: medals for the top 3, your row highlighted', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        ListGroup(
+          children: [
+            for (final rank in [1, 4])
+              LeagueRow(
+                rank: rank,
+                name: rank == 4 ? 'You' : 'Nino K.',
+                xp: '1 410 XP',
+                initials: 'NK',
+                avatar: rank,
+                you: rank == 4,
+                semanticLabel: '${rank}th',
+              ),
+            const ZoneDivider(label: 'Promotion zone', up: true),
+          ],
+        ),
+      ),
+    );
+    final c = PindoroTheme.of(tester.element(find.byType(ListGroup))).colors;
+    expect(find.byType(PindoroIcon), findsNWidgets(2));
+    expect(find.text('4'), findsOneWidget);
+    expect(find.text('1'), findsNothing);
+    Color back(String name) => tester
+        .widget<ColoredBox>(
+          find
+              .ancestor(of: find.text(name), matching: find.byType(ColoredBox))
+              .last,
+        )
+        .color;
+    expect(back('You'), c.primarySoft);
+    expect(back('Nino K.'), c.surfaceRaised);
+    expect(find.bySemanticsLabel('4th'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.text('Promotion zone')).style?.color,
+      c.leaguePromote,
+    );
+  });
+
   testWidgets('plate choices are a radio group that reports taps', (
     tester,
   ) async {
@@ -761,6 +859,63 @@ void main() {
         await expectLater(
           find.byType(Scaffold),
           matchesGoldenFile('goldens/pit_stop_${brightness.name}.png'),
+        );
+      });
+    }
+
+    for (final brightness in Brightness.values) {
+      testWidgets('league ${brightness.name}', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(400, 460));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await tester.pumpWidget(
+          _host(
+            brightness: brightness,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 12,
+              children: [
+                const LeagueHeader(
+                  title: 'Avenue league',
+                  subtitle: 'Top 5 move up · 3 days left',
+                  tier: 3,
+                  tiers: 6,
+                  semanticLabel: '',
+                ),
+                ListGroup(
+                  children: [
+                    for (final (rank, name, xp) in [
+                      (1, 'Nino K.', '2 140 XP'),
+                      (2, 'Giorgi B.', '1 980 XP'),
+                      (3, 'Ana M.', '1 655 XP'),
+                      (4, 'You', '1 410 XP'),
+                    ])
+                      LeagueRow(
+                        rank: rank,
+                        name: name,
+                        xp: xp,
+                        initials: name.substring(0, 1),
+                        avatar: rank - 1,
+                        you: name == 'You',
+                        semanticLabel: '',
+                      ),
+                    const ZoneDivider(
+                      label: 'Promotion zone · top 5 move up to Boulevard',
+                      up: true,
+                    ),
+                    const ZoneDivider(
+                      label: 'Demotion zone · bottom 5 move down to Street',
+                      up: false,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await expectLater(
+          find.byType(Scaffold),
+          matchesGoldenFile('goldens/league_${brightness.name}.png'),
         );
       });
     }

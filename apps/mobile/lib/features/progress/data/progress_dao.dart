@@ -595,9 +595,13 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
 
   /// XP earned on the local calendar [day] (a pindoro_core `calendarDay`):
   /// answers given and lessons finished that day.
-  Future<int> xpOn(DateTime day) async {
-    final start = DateTime(day.year, day.month, day.day);
-    final end = DateTime(day.year, day.month, day.day + 1);
+  Future<int> xpOn(DateTime day) => xpBetween(
+    DateTime(day.year, day.month, day.day),
+    DateTime(day.year, day.month, day.day + 1),
+  );
+
+  /// XP from answers given and lessons finished in [[start], [end]).
+  Future<int> xpBetween(DateTime start, DateTime end) async {
     final answered = answers.xp.sum();
     final learned = lessonResults.xp.sum();
     final fromAnswers = selectOnly(answers)

@@ -9,14 +9,15 @@ import 'package:pindoro_design/pindoro_design.dart';
 class PageScaffold extends StatelessWidget {
   const PageScaffold({
     super.key,
-    required this.title,
+    this.title,
     required this.children,
     this.footer,
     this.showBack = true,
     this.trailing,
   });
 
-  final String title;
+  /// Null for a page whose first child is its heading (no title row).
+  final String? title;
   final List<Widget> children;
   final Widget? footer;
   final bool showBack;
@@ -31,39 +32,40 @@ class PageScaffold extends StatelessWidget {
         bottom: footer == null,
         child: Column(
           children: [
-            ContentColumn(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  PindoroSpace.s4,
-                  PindoroSpace.s2,
-                  PindoroSpace.s4,
-                  0,
-                ),
-                child: Row(
-                  spacing: PindoroSpace.s3,
-                  children: [
-                    if (showBack && context.canPop())
-                      PindoroIconButton(
-                        glyph: PindoroGlyph.back,
-                        semanticLabel: l10n.commonBack,
-                        onPressed: context.pop,
-                      ),
-                    Expanded(
-                      child: Semantics(
-                        header: true,
-                        child: Text(
-                          title,
-                          style: PindoroType.headlineSm.copyWith(
-                            color: c.textPrimary,
+            if (title case final title?)
+              ContentColumn(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    PindoroSpace.s4,
+                    PindoroSpace.s2,
+                    PindoroSpace.s4,
+                    0,
+                  ),
+                  child: Row(
+                    spacing: PindoroSpace.s3,
+                    children: [
+                      if (showBack && context.canPop())
+                        PindoroIconButton(
+                          glyph: PindoroGlyph.back,
+                          semanticLabel: l10n.commonBack,
+                          onPressed: context.pop,
+                        ),
+                      Expanded(
+                        child: Semantics(
+                          header: true,
+                          child: Text(
+                            title,
+                            style: PindoroType.headlineSm.copyWith(
+                              color: c.textPrimary,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    ?trailing,
-                  ],
+                      ?trailing,
+                    ],
+                  ),
                 ),
               ),
-            ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.all(PindoroSpace.s4),
