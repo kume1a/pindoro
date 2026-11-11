@@ -17,25 +17,25 @@ across devices come later.
 
 ## Decisions
 
-| Topic         | Decision                                                                                                                                                        |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Accounts      | Anonymous: the app registers with the API (`POST /v1/players`) and gets a player id and a secret token. No sign-in, no Apple/Google setup                       |
-| What syncs    | Only this week's XP. All progress stays on the phone                                                                                                            |
-| League name   | Typed by the player on the first open of the Leagues tab; Settings → League changes it. 2–20 characters after trimming: letters (any script), spaces, `. ' ’ -` |
-| Scope         | Global: XP and levels are global already, so leagues are too                                                                                                    |
-| Tiers         | Alley → Lane → Street → Avenue → Boulevard → Highway (0–5). New players start in Alley                                                                          |
-| Week          | Monday 00:00 to Monday 00:00 Tbilisi time (fixed UTC+4; Georgia has no daylight saving). Keyed by the Monday's date (`2026-11-09`)                              |
-| Joining       | The first sync of the week with XP > 0 joins the newest league of the player's tier with fewer than 30 members, or opens a new one. No XP, no league that week  |
-| Ranking       | Week XP descending, then earliest join, then player id                                                                                                          |
-| Moves         | Ranks 1–5 move up (not from Highway); ranks 26–30 move down (not from Alley): a league of 25 or fewer has no demotion zone                                      |
-| Rollover      | Lazy: a player's tier for a new week comes from their last league's result, worked out when they first sync that week. No scheduled job                         |
-| Late XP       | XP sent for a week that is over is ignored (the reply shows the current week)                                                                                   |
-| Trust         | The server trusts the app's XP (no cheat detection). XP never goes down within a week                                                                           |
+| Topic         | Decision                                                                                                                                                                                             |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Accounts      | Anonymous: the app registers with the API (`POST /v1/players`) and gets a player id and a secret token. No sign-in, no Apple/Google setup                                                            |
+| What syncs    | Only this week's XP. All progress stays on the phone                                                                                                                                                 |
+| League name   | Typed by the player on the first open of the Leagues tab; Settings → League changes it. 2–20 characters after trimming: letters (any script), spaces, `. ' ’ -`                                      |
+| Scope         | Global: XP and levels are global already, so leagues are too                                                                                                                                         |
+| Tiers         | Alley → Lane → Street → Avenue → Boulevard → Highway (0–5). New players start in Alley                                                                                                               |
+| Week          | Monday 00:00 to Monday 00:00 Tbilisi time (fixed UTC+4; Georgia has no daylight saving). Keyed by the Monday's date (`2026-11-09`)                                                                   |
+| Joining       | The first sync of the week with XP > 0 joins the newest league of the player's tier with fewer than 30 members, or opens a new one. No XP, no league that week                                       |
+| Ranking       | Week XP descending, then earliest join, then player id                                                                                                                                               |
+| Moves         | Ranks 1–5 move up (not from Highway); ranks 26–30 move down (not from Alley): a league of 25 or fewer has no demotion zone                                                                           |
+| Rollover      | Lazy: a player's tier for a new week comes from their last league's result, worked out when they first sync that week. No scheduled job                                                              |
+| Late XP       | XP sent for a week that is over is ignored (the reply shows the current week)                                                                                                                        |
+| Trust         | The server trusts the app's XP (no cheat detection). XP never goes down within a week                                                                                                                |
 | Leaving       | Settings → League → Leave leagues forgets the player on the server (name blanked, token dead, this week's place gone; past weeks keep the row so their ranks never shift) and the token on the phone |
-| Abuse         | `POST /v1/players` is rate-limited per client IP (`cf-connecting-ip`, else the socket address): `SIGNUP_LIMIT` per hour, default 10                             |
-| Token storage | A one-row Drift table (`league_player`) in the app's sandbox                                                                                                    |
-| Schema        | App schema 10: `league_player`. API: `player`, `league`, `league_member` in one Drizzle migration                                                               |
-| Git           | Branch `r5-leagues` off `r4e-finish-v2` (PR #32 not merged yet), one commit per part, one PR                                                                    |
+| Abuse         | `POST /v1/players` is rate-limited per client IP (`cf-connecting-ip`, else the socket address): `SIGNUP_LIMIT` per hour, default 10                                                                  |
+| Token storage | A one-row Drift table (`league_player`) in the app's sandbox                                                                                                                                         |
+| Schema        | App schema 10: `league_player`. API: `player`, `league`, `league_member` in one Drizzle migration                                                                                                    |
+| Git           | Branch `r5-leagues` off `r4e-finish-v2` (PR #32 not merged yet), one commit per part, one PR                                                                                                         |
 
 ## Rules
 
