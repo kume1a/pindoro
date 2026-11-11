@@ -123,13 +123,14 @@ and the specs after R5. Fix them in roughly this order.
   - No list answer mode (four candidate areas as buttons); Accessibility has only Choose turns
     from a list.
   - The pin can't be moved without touch (arrows 8 dp, Shift 40 dp, Enter confirms).
-  - The pin has no screen-reader label and no "Pin dropped, …" announcement.
-  - Focus doesn't move to the plate when a new street loads, nor to Next after the reveal.
-  - The area rectangle's handles have no screen-reader node or arrow-key 50 m steps.
+  - The area rectangle's handles have no arrow-key 50 m steps.
   - At 200 % text the compact plate cuts the name with "…" and the reveal sheet never shows the
     full name.
-  - Labels: the map's lacks "Drag with two fingers to move the map"; a district's has no state
-    word; a locked stop's lacks "Finish lesson n to unlock"; Pindo in empty states isn't described.
+  - Parked, not a priority (2026-11-11: nobody playing uses a screen reader): the pin's label and
+    "Pin dropped, …" announcement; focus moving to the plate on a new street and to Next after
+    the reveal; a screen-reader node for the area rectangle's handles; the map's "Drag with two
+    fingers" hint, a district's state word, a locked stop's "Finish lesson n to unlock" and
+    descriptions of Pindo in empty states.
 - Motion and celebrations (`docs/design/motion-sound-haptics.md`):
   - No district-mastered moment: no fill wipe, outline and check, no heavy haptic, no big
     celebration for the first mastered district.
@@ -151,21 +152,15 @@ and the specs after R5. Fix them in roughly this order.
     logical pixels, calls throw instead of returning false, channel mocks need a fake
     `MapLibrePlatform`).
 - Ops for sideloading:
-  - The monthly pack timer's `publish` rewrites `data/cities/tbilisi/identity.json` on the server;
-    nothing commits it back and the backup copy skips it, so a lost server or a conflicting
-    `git pull` would renumber every street.
-  - No "update the app" path: sideloaded installs never update themselves, and a format 4 pack or
-    an API change shows a generic "try again". Needs a minimum app build in the catalog and an
-    update screen with the APK link.
+  - Committing the monthly street ids back to git is still by hand (`docs/deploy.md` § 6); the
+    timer only copies them to `infra/backups`.
   - No crash reporting (`FlutterError.onError`, `PlatformDispatcher.onError`); without paid cloud,
     the API's log could take the reports.
-  - CI builds iOS but not Android, which is what friends install.
   - Rate limits are in memory and cover signups, renames and the XP sync only; `/v1/catalog`
     (reads every manifest per request) and `/health` have none, and the Cloudflare cache rule for
     tiles and packs is optional in `docs/deploy.md`.
   - No alerting: the systemd services have no `OnFailure=`, a failed backup only logs, and a down
     server tells nobody. Backups stay on the same machine and a restore has never been tried.
-  - `pubspec.yaml` is still `0.1.0+1`, and Settings doesn't show the app version.
 - Accepted divergences: the Home Pit stop card became the Pit stop tab's badge (R4); the cold start
   is a Flutter overlay (about 1.9 s) rather than `FlutterNativeSplash.preserve()` with the wordmark
   on the native splash.

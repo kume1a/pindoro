@@ -22,6 +22,9 @@ const Env = Type.Object({
   PACKS_PUBLIC_URL: Type.String({ pattern: "^https?://", default: "http://localhost:8080" }),
   // New league players per client IP per hour.
   SIGNUP_LIMIT: Type.Integer({ minimum: 1, default: 10 }),
+  // The newest sideload build (pubspec.yaml's +N) and its APK link; 0 lists none.
+  APP_BUILD: Type.Integer({ minimum: 0, default: 0 }),
+  APP_URL: Type.String({ pattern: "^(https?://.+)?$", default: "" }),
 });
 
 export type Config = Static<typeof Env>;

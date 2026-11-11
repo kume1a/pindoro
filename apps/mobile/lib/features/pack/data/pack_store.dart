@@ -30,6 +30,9 @@ typedef CatalogPack = ({
   int formatVersion,
 });
 
+/// The newest sideload build the server offers, and where to download it.
+typedef AppRelease = ({int build, Uri url});
+
 /// Installs the packs listed by `/v1/catalog` as `<root>/<city>/<version>.sqlite`.
 class PackStore {
   PackStore({
@@ -156,16 +159,25 @@ class PackStore {
     bbox: Bbox.tryParse(entry['bbox']),
   );
 
-  Future<List<Map<String, Object?>>> _catalogCities() async {
+  /// The newest sideload build the catalog lists, if any.
+  Future<AppRelease?> latestApp() async {
+    final app = (await _catalog())['app'] as Map<String, Object?>?;
+    if (app == null) return null;
+    return (build: app['build']! as int, url: Uri.parse(app['url']! as String));
+  }
+
+  Future<Map<String, Object?>> _catalog() async {
     final uri = Uri.parse('$apiBaseUrl/v1/catalog');
     final res = await _client.get(uri).timeout(timeout);
     if (res.statusCode != 200) {
       throw HttpException('HTTP ${res.statusCode}', uri: uri);
     }
-    final catalog =
-        jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, Object?>;
-    return (catalog['cities']! as List<Object?>).cast<Map<String, Object?>>();
+    return jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, Object?>;
   }
+
+  Future<List<Map<String, Object?>>> _catalogCities() async =>
+      ((await _catalog())['cities']! as List<Object?>)
+          .cast<Map<String, Object?>>();
 
   Future<CatalogPack?> _catalogPack(String city) async {
     for (final entry in await _catalogCities()) {
