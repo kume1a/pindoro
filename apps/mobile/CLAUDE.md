@@ -135,7 +135,9 @@ test/drift/                    generated schema helpers + migration test
   is never committed: `just gen` rebuilds it from the dumps, and `just gen-check` fails in CI
   when a dump is missing.
 - **Config** only via `--dart-define` (`AppConfig`): `API_BASE_URL`, `TILES_BASE_URL` (pack
-  URLs come absolute from the API catalog). Dev defaults use 10.0.2.2 (Android emulator → host).
+  URLs come absolute from the API catalog). Dev defaults use 10.0.2.2 (Android emulator → host);
+  on the iOS simulator pass `http://localhost:3000` / `:3001` and start the API with
+  `PACKS_PUBLIC_URL=http://localhost:8080`.
   Cleartext HTTP is allowed only in the debug/profile manifests.
 
 ## Map
