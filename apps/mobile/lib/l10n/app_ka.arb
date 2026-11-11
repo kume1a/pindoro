@@ -32,6 +32,8 @@
   "homeEmptyCity": "ჯერ არცერთი ქუჩა არ იცი. ითამაშე რაუნდი და რუკა შეივსება.",
   "homeChooseArea": "აირჩიე არეალი",
   "homeSavedTitle": "დაუსრულებელი რაუნდი",
+  "homeOfflineTitle": "ტელეფონზე მხოლოდ ვაკეა",
+  "homeOfflineDownload": "ჩამოტვირთვა: {city}",
   "homeSavedAgo": "შენახულია {time} წინ",
   "homeContinueRound": "რაუნდის გაგრძელება",
   "homeNewRound": "ახალი რაუნდის დაწყება",

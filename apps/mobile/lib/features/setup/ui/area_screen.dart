@@ -246,12 +246,8 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
         pack.city().id != (settings.lastCity ?? AppConfig.defaultCityId)) {
       return PackPending(pack: packState);
     }
+    if (leavingFixture(packState)) return PackPending(pack: packState);
     final offline = isFixturePack(pack);
-    // Try again reloads the pack while the provider still holds Vake: show
-    // the download, or its failure, instead of the unchanged picker.
-    if (offline && (packState.isLoading || packState.hasError)) {
-      return PackPending(pack: packState);
-    }
     _treeOf(pack);
     _seedFrom(settings, pack);
     final picks = _picked.value;
