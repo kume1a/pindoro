@@ -1,7 +1,7 @@
 # Production stack on the home server. Run from the repo root: just deploy
-# Nothing is published on the host; the only way in is the Cloudflare Tunnel -> caddy:80.
-# Every service sits on the internal-only default network; only cloudflared (and one-off pipeline
-# runs, which download OSM data and tiles) also join `egress` to reach the internet.
+# Only Caddy is published on the host (HTTP_PORT); the host's Cloudflare Tunnel routes PUBLIC_HOST
+# to it. Every service sits on the internal-only default network; only Caddy (to
+# publish its port) and one-off pipeline runs (which download OSM data and tiles) also join `egress`.
 name: pindoro
 
 x-database-url: &database-url postgres://${POSTGRES_USER:?}:${POSTGRES_PASSWORD:?}@postgis:5432/${POSTGRES_DB:?}
@@ -40,7 +40,7 @@ services:
     environment:
       DATABASE_URL: *database-url
       PACKS_DIR: /packs
-      PACKS_PUBLIC_URL: https://packs.${DOMAIN:?}
+      PACKS_PUBLIC_URL: https://${PUBLIC_HOST:?}/packs
       APP_BUILD: ${APP_BUILD:-0}
       APP_URL: ${APP_URL:-}
       LOG_LEVEL: info
@@ -62,28 +62,16 @@ services:
     image: caddy:2.11.9
     restart: unless-stopped
     logging: *logging
-    environment:
-      DOMAIN: ${DOMAIN:?}
-    # Optional local admin access (also add networks: [default, egress], internal networks
-    # cannot publish ports):
-    # ports:
-    #   - "127.0.0.1:8080:80"
+    # Internal networks cannot publish ports.
+    networks: [default, egress]
+    ports:
+      - "${HTTP_PORT:-8100}:80"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ${PACKS_DIR:-./packs}:/srv/packs:ro
       - caddy-data:/data
       - caddy-config:/config
     depends_on: [api, martin]
-
-  cloudflared:
-    image: cloudflare/cloudflared:2026.10.7
-    restart: unless-stopped
-    logging: *logging
-    command: ["tunnel", "--no-autoupdate", "run"]
-    networks: [default, egress]
-    environment:
-      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?}
-    depends_on: [caddy]
 
   # Nightly pg_dump at 03:00 UTC into infra/backups, keeping 14 days.
   backup:

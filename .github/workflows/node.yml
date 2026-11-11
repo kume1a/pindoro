@@ -68,6 +68,3 @@ jobs:
       - run: docker build -f apps/pipeline/Dockerfile .
       - name: Production compose file is valid
         run: docker compose --env-file .env.example -f infra/docker-compose.prod.yml config -q
-        env:
-          # .env.example leaves it empty, which `:?` rejects.
-          CLOUDFLARE_TUNNEL_TOKEN: ci

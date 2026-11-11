@@ -1,0 +1,55 @@
+name: Deploy
+
+# A push to `prod` deploys on the self-hosted runner on the home server. CI runs on `main`;
+# merging main into prod once it is green is a release.
+on:
+  push:
+    branches: [prod]
+  workflow_dispatch:
+
+# One deploy at a time, never cancelled midway: a killed `compose up` can leave the stack
+# half-recreated.
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    timeout-minutes: 30
+    defaults:
+      run:
+        # The server's own checkout, not a runner workspace: the pack refresh writes street ids,
+        # packs, tiles and backups into it, and actions/checkout would clean them away.
+        working-directory: /opt/pindoro
+    steps:
+      # Every repository variable becomes a line of .env, JSON-quoted with each `$` doubled so
+      # compose reads it verbatim. Values are never echoed.
+      - name: Write .env from repository variables
+        env:
+          VARS_JSON: ${{ toJSON(vars) }}
+        run: |
+          set -euo pipefail
+          umask 077
+          jq -r 'to_entries[] | "\(.key)=\((.value | gsub("[$]"; "$$")) | @json)"' \
+            <<< "$VARS_JSON" > .env
+
+      - name: Pull and start
+        run: just deploy
+
+      # A deploy that leaves the API unreachable through the tunnel has to fail.
+      - name: Wait for the API through the tunnel
+        env:
+          PUBLIC_HOST: ${{ vars.PUBLIC_HOST }}
+        run: curl -fsS -m 10 --retry 30 --retry-delay 5 --retry-all-errors "https://$PUBLIC_HOST/health"
+
+      - name: Show the stack
+        if: failure()
+        run: |
+          docker compose --env-file .env -f infra/docker-compose.prod.yml ps
+          docker compose --env-file .env -f infra/docker-compose.prod.yml logs --tail 100 api caddy
+
+      # Each deploy rebuilds the api image; without this superseded layers fill the disk.
+      - name: Prune superseded images
+        if: always()
+        run: docker image prune -f
