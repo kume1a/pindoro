@@ -1930,6 +1930,10 @@
   "@driveLeaveBody": {
     "description": "Dialog body before leaving the Final drive."
   },
+  "driveMissing": "There’s no road trip to drive here right now.",
+  "@driveMissing": {
+    "description": "Toast back on the Path when a Final drive can’t plan a trip (the district or pack changed)."
+  },
   "a11yLeaveDrive": "Leave the Final drive",
   "@a11yLeaveDrive": {
     "description": "Screen reader label of the Final drive's close button."

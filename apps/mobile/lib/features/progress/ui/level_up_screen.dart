@@ -1,8 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/page_scaffold.dart';
+import 'package:pindoro/core/settings.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// The level-up moment as a full-screen route growing out of [from] (the XP
@@ -26,6 +28,23 @@ Route<void> levelUpRoute({
         : CircleReveal(progress: curved, center: from, child: child);
   },
 );
+
+/// Opens the level-up moment, with its haptic, once the screen's own arrival
+/// ([delay]) has played.
+Future<void> showLevelUpAfter(
+  BuildContext context,
+  WidgetRef ref, {
+  required int level,
+  required int totalXp,
+  required Duration delay,
+}) async {
+  await Future<void>.delayed(delay);
+  if (!context.mounted) return;
+  ref.read(feedbackProvider).levelUp();
+  await Navigator.of(
+    context,
+  ).push(levelUpRoute(level: level, totalXp: totalXp));
+}
 
 /// The full-screen level-up moment over cobalt: rays, the shield with the new
 /// number, Pindo, the total and what comes next. Several levels crossed in one

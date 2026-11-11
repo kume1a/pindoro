@@ -20,6 +20,7 @@ import 'package:pindoro/features/lesson/ui/lesson_screen.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
+import 'package:pindoro/features/progress/ui/level_up_screen.dart';
 import 'package:pindoro/features/setup/ui/area_map.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -48,9 +49,11 @@ void main() {
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
   }
 
-  Widget app(String location) => ProviderScope(
+  /// The app at [location]; [roadGraph] false plays a pack without one.
+  Widget app(String location, {bool roadGraph = true}) => ProviderScope(
     overrides: [
       databaseProvider.overrideWithValue(db),
+      if (!roadGraph) roadGraphProvider.overrideWith((ref) async => null),
       pindoroMapBuilderProvider.overrideWithValue((map) {
         maps.add(map);
         return const SizedBox();
@@ -67,8 +70,12 @@ void main() {
     child: PindoroApp(initialLocation: location),
   );
 
-  Future<void> pumpApp(WidgetTester tester, String location) async {
-    await tester.pumpWidget(app(location));
+  Future<void> pumpApp(
+    WidgetTester tester,
+    String location, {
+    bool roadGraph = true,
+  }) async {
+    await tester.pumpWidget(app(location, roadGraph: roadGraph));
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 100)),
     );
@@ -250,13 +257,17 @@ void main() {
 
   group('the Path', () {
     /// The Path, after waiting for its course to load on real async.
-    Future<void> pumpPath(WidgetTester tester) async {
+    Future<void> pumpPath(
+      WidgetTester tester, {
+      String location = Routes.path,
+      bool roadGraph = true,
+    }) async {
       calm(tester);
       tester.view
         ..physicalSize = const Size(1080, 2400)
         ..devicePixelRatio = 2.75;
       addTearDown(tester.view.reset);
-      await pumpApp(tester, Routes.path);
+      await pumpApp(tester, location, roadGraph: roadGraph);
       for (var i = 0; i < 3; i++) {
         await tester.runAsync(
           () => Future<void>.delayed(const Duration(milliseconds: 100)),
@@ -508,37 +519,71 @@ void main() {
       expect(road(tester), 2);
     });
 
-    testWidgets('the Final drive: 3 trips, Unit complete, back on the Path', (
+    /// The fixture unit's lessons and Pit stop done: its Final drive is
+    /// current.
+    Future<void> driveCurrent(WidgetTester tester) => tester.runAsync(() async {
+      await ProgressDao(db).saveCourseStart('tbilisi', 'osm:r11300449');
+      for (final lesson in [1, 2, 3, 4, 5, 6, null]) {
+        await db
+            .into(db.lessonResults)
+            .insert(
+              LessonResultsCompanion.insert(
+                cityId: 'tbilisi',
+                unitId: 'osm:r11300449',
+                kind: lesson == null ? LessonKind.pitStop : LessonKind.lesson,
+                lesson: Value(lesson),
+                difficulty: Difficulty.medium,
+                xp: 100,
+                perfect: false,
+                rightFirst: 6,
+                tests: 6,
+                durationMs: 1000,
+              ),
+            );
+      }
+    });
+
+    Finder finalDrive() => find.bySemanticsLabel(
+      RegExp(r'^Final drive\. Current\. .* 0 of 3 road trips passed\.$'),
+    );
+
+    testWidgets('without a road graph the Final drive sheet says so', (
       tester,
     ) async {
-      await tester.runAsync(() async {
-        await ProgressDao(db).saveCourseStart('tbilisi', 'osm:r11300449');
-        for (final lesson in [1, 2, 3, 4, 5, 6, null]) {
-          await db
-              .into(db.lessonResults)
-              .insert(
-                LessonResultsCompanion.insert(
-                  cityId: 'tbilisi',
-                  unitId: 'osm:r11300449',
-                  kind: lesson == null ? LessonKind.pitStop : LessonKind.lesson,
-                  lesson: Value(lesson),
-                  difficulty: Difficulty.medium,
-                  xp: 100,
-                  perfect: false,
-                  rightFirst: 6,
-                  tests: 6,
-                  durationMs: 1000,
-                ),
-              );
-        }
-      });
-      await pumpPath(tester);
-      final finalDrive = find.bySemanticsLabel(
-        RegExp(r'^Final drive\. Current\. .* 0 of 3 road trips passed\.$'),
-      );
-      await tester.ensureVisible(finalDrive);
+      await driveCurrent(tester);
+      await pumpPath(tester, roadGraph: false);
+      await tester.ensureVisible(finalDrive());
       await tester.pumpAndSettle();
-      await tester.tap(finalDrive);
+      await tester.tap(finalDrive());
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Road trips need the newest'), findsOneWidget);
+      expect(find.text('Start the drive'), findsNothing);
+    });
+
+    testWidgets(
+      'a drive with no trip to plan goes back to the Path, saying so',
+      (tester) async {
+        await driveCurrent(tester);
+        await pumpPath(
+          tester,
+          location: Routes.driveOf('osm:r11300449'),
+          roadGraph: false,
+        );
+        expect(find.byType(PathScreen), findsOneWidget);
+        expect(
+          find.text('There’s no road trip to drive here right now.'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('the Final drive: 3 trips, Unit complete, level up, back on '
+        'the Path', (tester) async {
+      await driveCurrent(tester);
+      await pumpPath(tester);
+      await tester.ensureVisible(finalDrive());
+      await tester.pumpAndSettle();
+      await tester.tap(finalDrive());
       await tester.pumpAndSettle();
       expect(find.text('Drive across ვაკის რაიონი'), findsOneWidget);
       expect(find.text('3 road trips'), findsOneWidget);
@@ -575,6 +620,13 @@ void main() {
       }
       expect(find.text('ვაკის რაიონი complete!'), findsOneWidget);
       expect(find.bySemanticsLabel('Road trips, 3'), findsOneWidget);
+
+      // 700 XP of lessons + 3 Perfect trips and the unit bonus cross level 2.
+      await tester.pump(PindoroMotion.celebrateMedium);
+      await tester.pumpAndSettle();
+      expect(find.byType(LevelUpScreen), findsOneWidget);
+      await tapAndSettle(tester, 'Continue');
+      expect(find.byType(LevelUpScreen), findsNothing);
 
       await tapAndSettle(tester, 'Continue');
       for (var i = 0; i < 3; i++) {

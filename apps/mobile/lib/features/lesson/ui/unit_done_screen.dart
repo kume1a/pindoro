@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +10,7 @@ import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/course/data/course_data.dart';
 import 'package:pindoro/features/lesson/data/unit_done_data.dart';
+import 'package:pindoro/features/progress/ui/level_up_screen.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -16,25 +19,53 @@ const double _trophySize = 110;
 
 /// Unit complete (canvas R4-40 step 4): the trophy pops with a burst, the
 /// unit's streets, road trips and XP, the next unit's signpost and Continue,
-/// which goes back to the Path and plays the next unit opening (R4-61).
-class UnitDoneScreen extends ConsumerWidget {
-  const UnitDoneScreen({super.key, required this.unitId});
+/// which goes back to the Path and plays the next unit opening (R4-61). A
+/// level the drive's [gainedXp] crossed opens the level-up moment after it.
+class UnitDoneScreen extends ConsumerStatefulWidget {
+  const UnitDoneScreen({super.key, required this.unitId, this.gainedXp = 0});
 
   final String unitId;
+  final int gainedXp;
 
-  void _continue(BuildContext context, WidgetRef ref) {
+  @override
+  ConsumerState<UnitDoneScreen> createState() => _UnitDoneScreenState();
+}
+
+class _UnitDoneScreenState extends ConsumerState<UnitDoneScreen> {
+  bool _levelUpOpened = false;
+
+  void _continue() {
     ref.read(pathUnlockProvider.notifier).play((
-      unitId: unitId,
+      unitId: widget.unitId,
       kind: StopKind.finalDrive,
       lesson: null,
     ));
     context.go(Routes.path);
   }
 
+  void _levelUp(int totalXp) {
+    final level = progressWithinLevel(totalXp).level;
+    if (_levelUpOpened ||
+        level == progressWithinLevel(totalXp - widget.gainedXp).level) {
+      return;
+    }
+    _levelUpOpened = true;
+    unawaited(
+      showLevelUpAfter(
+        context,
+        ref,
+        level: level,
+        totalXp: totalXp,
+        delay: PindoroMotion.celebrateMedium,
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final done = ref.watch(unitDoneProvider(unitId)).value;
+  Widget build(BuildContext context) {
+    final done = ref.watch(unitDoneProvider(widget.unitId)).value;
     if (done == null) return const Scaffold();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _levelUp(done.totalXp));
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
     final settings = ref.watch(settingsProvider).value;
@@ -69,7 +100,7 @@ class UnitDoneScreen extends ConsumerWidget {
         label: nextDistrict == null
             ? l10n.commonContinue
             : l10n.unitDoneContinueTo(nextDistrict),
-        onPressed: () => _continue(context, ref),
+        onPressed: _continue,
       ),
       children: [
         Center(
@@ -119,7 +150,7 @@ class UnitDoneScreen extends ConsumerWidget {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _continue(context, ref);
+        if (!didPop) _continue();
       },
       child: Stack(
         children: [

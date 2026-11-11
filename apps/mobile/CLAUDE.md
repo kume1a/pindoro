@@ -52,7 +52,7 @@ test/drift/                    generated schema helpers + migration test
   `/start-district`), `/area`, `/difficulty`, `/round`
   (`?round=` resumes, `?retry=` retries, `?pit-stop` plays the Pit stop), `/results`, `/lesson`
   (`?unit=&lesson=`, `&practice=1`, or `?unit=&pit-stop=1`), `/lesson-done?result=`,
-  `/drive?unit=` (the Final drive, Jump ahead on a locked unit), `/unit-done?unit=`,
+  `/drive?unit=` (the Final drive, Jump ahead on a locked unit), `/unit-done?unit=&xp=` (the drive's XP, for its level-up),
   `/unit-guide?unit=` (`&lesson=` opens with that lesson's streets on the map),
   `/league-name`, `/streak`, `/settings`, `/settings/credits`. The app opens on the Path once a course exists
   (`course` row), or in the lesson it was killed in (`saved_lesson`); a player who finished a

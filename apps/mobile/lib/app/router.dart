@@ -200,7 +200,10 @@ GoRouter buildRouter(String initialLocation) {
             state.uri.queryParameters.containsKey('unit') ? null : Routes.path,
         pageBuilder: (_, state) => _fadePage(
           state,
-          UnitDoneScreen(unitId: state.uri.queryParameters['unit']!),
+          UnitDoneScreen(
+            unitId: state.uri.queryParameters['unit']!,
+            gainedXp: int.tryParse(state.uri.queryParameters['xp'] ?? '') ?? 0,
+          ),
         ),
       ),
       GoRoute(

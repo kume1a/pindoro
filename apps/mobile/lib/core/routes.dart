@@ -67,7 +67,8 @@ abstract final class Routes {
   static String unitPitStop(String unitId) => '$lesson?unit=$unitId&pit-stop=1';
   static String lessonDoneOf(String resultId) => '$lessonDone?result=$resultId';
   static String driveOf(String unitId) => '$drive?unit=$unitId';
-  static String unitDoneOf(String unitId) => '$unitDone?unit=$unitId';
+  static String unitDoneOf(String unitId, {required int xp}) =>
+      '$unitDone?unit=$unitId&xp=$xp';
   static String unitGuideOf(String unitId, {int? lesson}) =>
       '$unitGuide?unit=$unitId${lesson == null ? '' : '&lesson=$lesson'}';
 }

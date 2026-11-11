@@ -487,38 +487,65 @@ class _PathScreenState extends ConsumerState<PathScreen>
         action: here == null ? l10n.commonContinue : l10n.pathKeepGoing(here),
         onAction: () => _toCurrent(animate: true),
         secondary: l10n.pathJumpAhead,
-        onSecondary: () => context.push(Routes.driveOf(unit.id)),
+        onSecondary: () async {
+          final explained = await _explainNoRoadGraph(
+            data,
+            kicker: l10n.pathSheetDriveKicker(unit.number, district),
+            title: l10n.pathSheetDriveTitle(district),
+          );
+          if (explained || !mounted) return;
+          unawaited(context.push(Routes.driveOf(unit.id)));
+        },
       ),
     );
   }
 
+  /// Road trips need a pack with a road graph: without one, a sheet says so
+  /// and this is true, so no Final drive starts (nor once the Path is gone).
+  Future<bool> _explainNoRoadGraph(
+    CourseData data, {
+    required String kicker,
+    required String title,
+  }) async {
+    final graph = await ref.read(roadGraphProvider.future);
+    if (!mounted) return true;
+    if (graph != null) return false;
+    final city = data.plan.pack.city();
+    unawaited(
+      showStopSheet(
+        context,
+        kicker: kicker,
+        title: title,
+        body: context.l10n.pathSheetDriveNoGraph(
+          context.localName(ka: city.nameKa, en: city.nameEn),
+        ),
+        action: context.l10n.commonContinue,
+        onAction: () {},
+      ),
+    );
+    return true;
+  }
+
   /// The current Final drive's sheet (canvas R4-12, R4-40).
-  void _openFinalDrive(CourseData data, int u, Settings? settings) {
+  Future<void> _openFinalDrive(
+    CourseData data,
+    int u,
+    Settings? settings,
+  ) async {
     final l10n = context.l10n;
     final progress = data.units[u];
     final unit = progress.unit;
     final district = districtName(unit.district, settings);
     final next = data.units.elementAtOrNull(u + 1)?.unit;
-    final graph = ref.read(roadGraphProvider);
     final left = CourseRules.finalDriveTrips - progress.tripsPassed;
     final kicker = l10n.pathSheetDriveKicker(unit.number, district);
     final title = l10n.pathSheetDriveTitle(district);
-    if (graph.hasValue && graph.value == null) {
-      final city = data.plan.pack.city();
-      unawaited(
-        showStopSheet(
-          context,
-          kicker: kicker,
-          title: title,
-          body: l10n.pathSheetDriveNoGraph(
-            context.localName(ka: city.nameKa, en: city.nameEn),
-          ),
-          action: l10n.commonContinue,
-          onAction: () {},
-        ),
-      );
-      return;
-    }
+    final explained = await _explainNoRoadGraph(
+      data,
+      kicker: kicker,
+      title: title,
+    );
+    if (explained || !mounted) return;
     unawaited(
       showStopSheet(
         context,
@@ -680,7 +707,8 @@ class _PathScreenState extends ConsumerState<PathScreen>
     final district = districtName(unit.district, settings);
     final total = unit.lessons.length;
     if (stop.kind == StopKind.finalDrive) {
-      return _openFinalDrive(data, u, settings);
+      unawaited(_openFinalDrive(data, u, settings));
+      return;
     }
     if (stop.kind == StopKind.pitStop) {
       final count = data.pitStops[unit.id]?.length ?? 0;

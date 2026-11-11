@@ -411,6 +411,7 @@
   "pathJumpAhead": "გადახტომა",
   "driveLeaveTitle": "ტოვებ ფინალურ მარშრუტს?",
   "driveLeaveBody": "გავლილი მარშრუტები შენახული დარჩება.",
+  "driveMissing": "აქ ახლა გასავლელი მარშრუტი არ არის.",
   "a11yLeaveDrive": "ფინალური მარშრუტის დატოვება",
   "a11yDriveStep": "მარშრუტი {trip} / 3",
   "unitDoneKicker": "ერთეული {unit} დასრულდა",
