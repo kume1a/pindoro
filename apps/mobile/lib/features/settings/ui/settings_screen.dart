@@ -14,6 +14,7 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/league/data/league_api.dart';
 import 'package:pindoro/features/league/data/league_data.dart';
+import 'package:pindoro/features/league/ui/league_name_form.dart';
 import 'package:pindoro/features/pack/data/app_update.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/progress/ui/daily_goal.dart';
@@ -208,8 +209,10 @@ Future<void> _leaveLeagues(
   if (!(leave ?? false)) return;
   try {
     await ref.read(leagueActionsProvider).leave(account);
-  } on LeagueException {
-    if (context.mounted) showToast(context, l10n.leagueLeaveFailed);
+  } on LeagueException catch (e) {
+    if (context.mounted) {
+      showToast(context, leagueFailure(l10n, e, l10n.leagueLeaveFailed));
+    }
   }
 }
 

@@ -215,6 +215,22 @@ describe("leagues", () => {
     expect(left?.n).toBe(0);
     expect(await sql`select name from player`).toEqual([{ name: "" }]);
   });
+
+  it("drops this week's league when its last player leaves", async () => {
+    const [stays, leaves] = await crowd(2, () => 10);
+    const leave = (token: string): Promise<unknown> =>
+      app.inject({
+        method: "DELETE",
+        url: "/v1/players/me",
+        headers: { authorization: `Bearer ${token}` },
+      });
+    const leagues = async (): Promise<unknown> =>
+      (await sql`select count(*)::int as n from league`)[0]?.n;
+    await leave(leaves as string);
+    expect(await leagues()).toBe(1);
+    await leave(stays as string);
+    expect(await leagues()).toBe(0);
+  });
 });
 
 describe("signup limit", () => {

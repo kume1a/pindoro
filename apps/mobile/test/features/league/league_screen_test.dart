@@ -197,6 +197,7 @@ void main() {
 
   testWidgets('offline says so and tries again', (tester) async {
     await joined();
+    reply = (_) => throw http.ClientException('down');
     await pump(tester);
     expect(
       find.text('Can’t reach the league. Check your connection and try again.'),
@@ -222,7 +223,9 @@ void main() {
     expect(await account(tester), isNull);
   });
 
-  testWidgets('a failed sync says so over the last board', (tester) async {
+  testWidgets('a server error says so over the last board, not offline', (
+    tester,
+  ) async {
     await tester.runAsync(joined);
     reply = (_) => standing(_members(3, you: 2));
     await pump(tester);
@@ -231,7 +234,7 @@ void main() {
     await tapThrough(tester, find.bySemanticsLabel('Me').first);
     await tapThrough(tester, find.bySemanticsLabel('Leagues').first);
     expect(
-      find.text('Can’t reach the league. Check your connection and try again.'),
+      find.text('The league isn’t working right now. Try again later.'),
       findsOneWidget,
     );
     expect(find.byType(LeagueHeader), findsNothing);

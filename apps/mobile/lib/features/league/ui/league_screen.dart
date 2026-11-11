@@ -37,10 +37,14 @@ class LeagueScreen extends ConsumerWidget {
       showBack: false,
       children: switch (standing) {
         // A failed sync says so, even over last time's board.
-        AsyncValue(hasError: true, isLoading: false) => [
+        AsyncValue(hasError: true, isLoading: false, :final error) => [
           _Note(
             pindo: PindoExpression.encouraging,
-            title: context.l10n.leagueOffline,
+            title: leagueFailure(
+              context.l10n,
+              error!,
+              context.l10n.leagueOffline,
+            ),
             action: PindoroButton(
               label: context.l10n.commonTryAgain,
               onPressed: () => ref.invalidate(standingProvider),

@@ -95,6 +95,21 @@ void main() {
       },
     );
 
+    test('an answer that doesn\'t parse fails as a server error', () async {
+      final api = LeagueApi(
+        'https://api.example',
+        client: MockClient((_) async => http.Response('{"player": 1}', 200)),
+      );
+      await expectLater(
+        api.sync('t', week: '2026-11-09', xp: 1),
+        throwsA(
+          isA<LeagueException>()
+              .having((e) => e.status, 'status', 200)
+              .having((e) => e.offline, 'offline', false),
+        ),
+      );
+    });
+
     test('a failed call carries its status, or none offline', () async {
       LeagueApi answering(Future<http.Response> Function() reply) =>
           LeagueApi('https://api.example', client: MockClient((_) => reply()));

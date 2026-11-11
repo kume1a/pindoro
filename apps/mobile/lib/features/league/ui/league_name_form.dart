@@ -9,11 +9,20 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/league/data/league_api.dart';
 import 'package:pindoro/features/league/data/league_data.dart';
+import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
+/// What a failed league call tells the player: [offline] when the server
+/// wasn't reached, else that the league is down for now.
+String leagueFailure(AppLocalizations l10n, Object error, String offline) =>
+    error is LeagueException && error.offline
+    ? offline
+    : l10n.leagueUnavailable;
+
 /// The league name field and its button, enabled once the name fits the
-/// rule (pindoro_core `isLeagueName`). A failed [onSubmit] shows [failed].
+/// rule (pindoro_core `isLeagueName`). A failed [onSubmit] shows [failed]
+/// when offline.
 class LeagueNameForm extends ConsumerStatefulWidget {
   const LeagueNameForm({
     super.key,
@@ -50,8 +59,10 @@ class _LeagueNameFormState extends ConsumerState<LeagueNameForm> {
     setState(() => _busy = true);
     try {
       await widget.onSubmit(_tidy);
-    } on LeagueException {
-      if (mounted) showToast(context, widget.failed);
+    } on LeagueException catch (e) {
+      if (mounted) {
+        showToast(context, leagueFailure(context.l10n, e, widget.failed));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
