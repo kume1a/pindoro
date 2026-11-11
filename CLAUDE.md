@@ -41,7 +41,7 @@ a Cloudflare Tunnel, all in Docker Compose on one Ubuntu server. No Python anywh
 no S3/R2 (packs are static files served by Caddy). See `docs/adr/0001-architecture.md`.
 
 **No App Store or Play Store release is planned.** The app is sideloaded to friends (an Android APK
-from `just release apk`, iOS ad-hoc at most), so store-only work is parked in `docs/TODO.md` and is
+from `just release apk`, an iOS IPA through SideStore from the iOS release workflow), so store-only work is parked in `docs/TODO.md` and is
 never a priority. The production server still matters: it serves packs, tiles and Leagues.
 
 ## Golden rules

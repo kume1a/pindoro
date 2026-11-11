@@ -157,7 +157,9 @@ test/drift/                    generated schema helpers + migration test
 - **Updates:** sideloaded installs never update themselves. `appUpdateProvider`
   (`features/pack/data/app_update.dart`) compares the catalog's `app.build` with this build
   (`package_info_plus`); the app root offers the download once per launch and Settings → About
-  shows the version. Bump `version` in `pubspec.yaml` for every build handed out.
+  shows the version. That offer is the Android APK, so iOS skips it: SideStore shows iOS updates
+  from the source the iOS release workflow publishes. Bump `version` in `pubspec.yaml` for every
+  build handed out.
 
 ## Map
 

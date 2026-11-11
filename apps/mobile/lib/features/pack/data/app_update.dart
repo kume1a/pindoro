@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:pindoro/features/pack/data/pack_store.dart';
@@ -11,6 +12,8 @@ final packageInfoProvider = FutureProvider<PackageInfo>(
 /// lists one; null when this is the newest build. Sideloaded installs never
 /// update themselves, so this is how friends hear about a new one.
 final appUpdateProvider = FutureProvider<Uri?>((ref) async {
+  // The catalog's build is the Android APK; SideStore offers iOS updates.
+  if (defaultTargetPlatform == TargetPlatform.iOS) return null;
   final info = await ref.watch(packageInfoProvider.future);
   final latest = await ref.watch(packStoreProvider).latestApp();
   final build = int.tryParse(info.buildNumber) ?? 0;

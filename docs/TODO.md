@@ -229,7 +229,9 @@ From the product plan ("Learning Every Tbilisi Route"), which the course only pa
   `DEVELOPMENT_TEAM`, a release workflow (fastlane, Play/TestFlight upload), the Play data-safety
   form and Android auto-backup of the league token.
 - iOS is built unsigned in CI (macOS runner) and has run on the simulator (iPhone 16, iOS 18.6),
-  never on a device. A reminder after notifications are allowed hasn't been checked there.
+  never on a device. The iOS release workflow publishes a sideload IPA and a SideStore source
+  (`docs/deploy.md` § 7) but has never run; the first SideStore install is the first device check,
+  reminder included.
 - `flutter_tts` has no Swift package, so iOS builds add CocoaPods for it on the fly (`Podfile`,
   Pods in the Xcode project); none of that is committed. Commit it, or swap the plugin, if a
   signed release needs a reproducible Pods setup.
