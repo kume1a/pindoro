@@ -36,10 +36,10 @@ LeagueWeek leagueWeek(DateTime now) {
 /// [raw] trimmed, with runs of whitespace as one space.
 String leagueName(String raw) => raw.trim().replaceAll(RegExp(r'\s+'), ' ');
 
-final _nameShape = RegExp(r"^\p{L}[\p{L} .'’-]*$", unicode: true);
+final _nameShape = RegExp(r"^\p{L}[\p{L}\p{M} .'’-]*$", unicode: true);
 
 /// Whether a [leagueName] may be used: 2–20 characters, a letter first, then
-/// letters, spaces and `. ' ’ -`.
+/// letters (with their marks), spaces and `. ' ’ -`.
 bool isLeagueName(String name) {
   final length = name.runes.length;
   return length >= LeagueRules.nameMin &&

@@ -49,13 +49,6 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
   bool _barFull = false;
   bool _levelUpOver = false;
 
-  @override
-  void initState() {
-    super.initState();
-    // Sends the round's XP to the league; the league chip reads the reply.
-    ref.invalidate(standingProvider);
-  }
-
   /// The full bar glows, then the level-up moment grows out of it.
   Future<void> _openLevelUp(int level, int totalXp) async {
     if (_barFull) return;
@@ -128,10 +121,9 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen> {
           delay: _Arrival.chips,
           child: PitStopChip(l10n.resultsToPitStop(data.retryCount)),
         ),
-      if (_leagueRise(ref.watch(standingProvider).value, data) case (
-        :final rank,
-        :final tier,
-      ))
+      // Not the standing from before this round while the sync runs.
+      if (_leagueRise(ref.watch(standingProvider).unwrapPrevious().value, data)
+          case (:final rank, :final tier))
         PopIn(
           delay: _Arrival.chips,
           child: Pill(

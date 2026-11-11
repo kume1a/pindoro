@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
@@ -34,11 +36,8 @@ class LeagueScreen extends ConsumerWidget {
     return PageScaffold(
       showBack: false,
       children: switch (standing) {
-        AsyncValue(hasValue: true, :final value) => switch (value) {
-          null => [_Join(onJoin: ref.read(leagueActionsProvider).join)],
-          final standing => _league(context, standing),
-        },
-        AsyncValue(hasError: true) => [
+        // A failed sync says so, even over last time's board.
+        AsyncValue(hasError: true, isLoading: false) => [
           _Note(
             pindo: PindoExpression.encouraging,
             title: context.l10n.leagueOffline,
@@ -48,6 +47,10 @@ class LeagueScreen extends ConsumerWidget {
             ),
           ),
         ],
+        AsyncValue(hasValue: true, :final value) => switch (value) {
+          null => [_Join(onJoin: ref.read(leagueActionsProvider).join)],
+          final standing => _league(context, standing),
+        },
         _ => [
           const Padding(
             padding: EdgeInsets.only(top: PindoroSpace.s16),
@@ -66,7 +69,8 @@ class LeagueScreen extends ConsumerWidget {
         ? l10n.leagueRuleDown
         : l10n.leagueRuleUp;
     final days = l10n.leagueDaysLeft(
-      standing.endsAt.difference(DateTime.now()).inDays,
+      // Past the week's end while offline, the board is last week's.
+      math.max(0, standing.endsAt.difference(DateTime.now()).inDays),
     );
     final title = leagueTitle(l10n, tier);
     String tierName(int t) => l10n.leagueTierName(leagueTierKey(t));
