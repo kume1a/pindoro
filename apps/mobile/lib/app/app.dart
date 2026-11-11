@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pindoro/app/router.dart';
 import 'package:pindoro/core/launch_overlay.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/league/data/league_data.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/progress/data/streak.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
@@ -39,10 +40,15 @@ class _PindoroAppState extends ConsumerState<PindoroApp> {
   @override
   void initState() {
     super.initState();
-    // The date may have changed while the app was away.
+    // The date may have changed while the app was away, and so may the XP.
     _lifecycle = AppLifecycleListener(
-      onResume: () => ref.invalidate(streakProvider),
+      onResume: () => ref
+        ..invalidate(streakProvider)
+        ..invalidate(standingProvider),
     );
+    // Listening keeps the standing alive, so the week's XP reaches the
+    // league at launch, on resume and after a lesson, not only on its tab.
+    ref.listenManual(standingProvider, (_, _) {});
     // Keeps the one reminder in step with the streak and the settings;
     // switching it off in Settings cancels it there.
     ref.listenManual(reminderProvider, (_, next) {

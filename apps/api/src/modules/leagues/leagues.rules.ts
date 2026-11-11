@@ -37,9 +37,9 @@ export const leagueWeek = (now: Date): LeagueWeek => {
 /** `raw` trimmed, with runs of whitespace as one space. */
 export const leagueName = (raw: string): string => raw.trim().replace(/\s+/gu, " ");
 
-const nameShape = /^\p{L}[\p{L} .'’-]*$/u;
+const nameShape = /^\p{L}[\p{L}\p{M} .'’-]*$/u;
 
-/** 2–20 characters, a letter first, then letters, spaces and `. ' ’ -`. */
+/** 2–20 characters, a letter first, then letters (with their marks), spaces and `. ' ’ -`. */
 export const isLeagueName = (name: string): boolean => {
   const length = [...name].length;
   return length >= LEAGUE.nameMin && length <= LEAGUE.nameMax && nameShape.test(name);

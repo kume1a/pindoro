@@ -7,7 +7,7 @@ import { isLeagueName, leagueName } from "./leagues.rules.ts";
 import { NameBody, NewPlayer, Player, Standing, XpBody } from "./leagues.schemas.ts";
 import {
   createPlayer,
-  deletePlayer,
+  forgetPlayer,
   playerByToken,
   renamePlayer,
   standing,
@@ -16,6 +16,15 @@ import {
 
 const Problem = Type.Object({ message: Type.String() });
 const bearer = { security: [{ bearer: [] }] };
+
+/** Renames and syncs per player token; the app syncs a few times a minute at most. */
+const perPlayer = {
+  rateLimit: {
+    max: 30,
+    timeWindow: "1 minute",
+    keyGenerator: (req: FastifyRequest): string => req.headers.authorization ?? req.ip,
+  },
+};
 
 /** Cloudflare's client address in production, the socket's elsewhere. */
 const clientIp = (req: FastifyRequest): string => {
@@ -55,6 +64,7 @@ export const leaguesRoutes: FastifyPluginAsyncTypebox<{
   app.patch(
     "/v1/players/me",
     {
+      config: perPlayer,
       schema: {
         tags: ["leagues"],
         ...bearer,
@@ -74,7 +84,7 @@ export const leaguesRoutes: FastifyPluginAsyncTypebox<{
       schema: { tags: ["leagues"], ...bearer, response: { 204: Type.Null(), 401: Problem } },
     },
     async (req, reply) => {
-      await deletePlayer(db, (await me(req)).id);
+      await forgetPlayer(db, (await me(req)).id, now());
       return reply.code(204).send(null);
     },
   );
@@ -82,6 +92,7 @@ export const leaguesRoutes: FastifyPluginAsyncTypebox<{
   app.put(
     "/v1/league/me",
     {
+      config: perPlayer,
       schema: {
         tags: ["leagues"],
         ...bearer,

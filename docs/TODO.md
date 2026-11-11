@@ -115,16 +115,10 @@ Not left out on purpose: found by comparing the app with `docs/design/*.md`, the
 and the specs after R5. Fix them in roughly this order.
 
 - Bugs:
-  - League XP is sent only when the Leagues tab opens or Free play / Pit stop Results shows
-    (`standingProvider`). Lessons, Final drives and app start or resume never send it, so other
-    players see old XP, and a week of lessons is lost if the tab isn't opened before Monday.
-  - Leaving the leagues deletes the player's `league_member` rows (cascade). The lazy rollover then
-    ranks a finished week without them: 6th can become 5th and move up, and a 26-player league
-    loses its demotion zone. Empty leagues are never cleaned up.
   - Jump ahead skips the Final drive sheet's "no road graph" check, and a raion with no 800–2 500 m
     trip returns to the Path with no message: such a unit can never be passed.
-  - The Leagues tab keeps showing a loaded board with no error when a refresh fails; every error
-    (429, 5xx, a parse failure) reads as offline; "days left" can go negative while offline.
+  - Every league error (429, 5xx, a parse failure) reads as offline. Empty leagues are never
+    cleaned up.
 - Accessibility (`docs/design/accessibility.md`):
   - No list answer mode (four candidate areas as buttons); Accessibility has only Choose turns
     from a list.
@@ -153,8 +147,6 @@ and the specs after R5. Fix them in roughly this order.
 - Smaller:
   - Unit complete has no level bar, level-up or streak chip, so a level reached in a Final drive
     (up to 400 XP) is never celebrated.
-  - League names reject combining marks and aren't NFC-normalised (Devanagari, Thai, accents typed
-    as two characters); change the Dart and TS rules and `league_vectors.json` together.
   - The map makes room for the road-trip tier sheet when the replay starts, not with a 60 dp pan
     after it.
   - A lesson's sheet always says up to 670 XP; a format 2 pack (no road graph) caps at 570.
@@ -173,9 +165,9 @@ and the specs after R5. Fix them in roughly this order.
   - No crash reporting (`FlutterError.onError`, `PlatformDispatcher.onError`); without paid cloud,
     the API's log could take the reports.
   - CI builds iOS but not Android, which is what friends install.
-  - Only `POST /v1/players` is rate-limited (in memory); rename, the XP sync, `/v1/catalog` (reads
-    every manifest per request) and `/health` aren't. `SIGNUP_LIMIT` isn't set in the prod compose,
-    and the Cloudflare cache rule for tiles and packs is optional in `docs/deploy.md`.
+  - Rate limits are in memory and cover signups, renames and the XP sync only; `/v1/catalog`
+    (reads every manifest per request) and `/health` have none, and the Cloudflare cache rule for
+    tiles and packs is optional in `docs/deploy.md`.
   - No alerting: the systemd services have no `OnFailure=`, a failed backup only logs, and a down
     server tells nobody. Backups stay on the same machine and a restore has never been tried.
   - `pubspec.yaml` is still `0.1.0+1`, and Settings doesn't show the app version.

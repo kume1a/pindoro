@@ -37,8 +37,21 @@ export const renamePlayer = async (db: Db, id: string, name: string): Promise<Pl
   return { id, name };
 };
 
-export const deletePlayer = async (db: Db, id: string): Promise<void> => {
-  await db.delete(player).where(eq(player.id, id));
+/**
+ * Leaving: the name goes, the token stops working and this week's place is given up. Past weeks keep
+ * the row, so a finished week's ranks (and who moved up) never shift when someone leaves.
+ */
+export const forgetPlayer = async (db: Db, id: string, now: Date): Promise<void> => {
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(leagueMember)
+      .where(and(eq(leagueMember.playerId, id), eq(leagueMember.week, leagueWeek(now).key)));
+    // A sha256 hex never contains ":", so no token can match a left player.
+    await tx
+      .update(player)
+      .set({ name: "", tokenHash: `left:${id}` })
+      .where(eq(player.id, id));
+  });
 };
 
 /** A league's members, best first: most XP, then the earliest to join. */

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/features/league/data/league_data.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -321,7 +322,7 @@ class RoundController extends Notifier<RoundState> {
     final index = questions.indexWhere((q) => !answered.contains(q.id));
     if (index == -1) {
       await dao.finishRound(roundId);
-      if (ref.mounted) state = RoundFinished(roundId);
+      if (ref.mounted) _finish(roundId);
       return;
     }
     final retryOf = progress.round.retryOf;
@@ -391,10 +392,19 @@ class RoundController extends Notifier<RoundState> {
   /// The next question, or the results after the last one.
   Future<void> next() async {
     if (state case RoundRevealed(:final round)) {
-      state = round.isLast
-          ? RoundFinished(round.id)
-          : RoundAsking(round.advance());
+      if (round.isLast) {
+        _finish(round.id);
+      } else {
+        state = RoundAsking(round.advance());
+      }
     }
+  }
+
+  /// The results, with the round's XP on its way to the league first, so
+  /// Results never reads the standing from before the round.
+  void _finish(String roundId) {
+    ref.invalidate(standingProvider);
+    state = RoundFinished(roundId);
   }
 }
 

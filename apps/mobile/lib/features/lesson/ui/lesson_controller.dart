@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/features/course/data/course_data.dart';
+import 'package:pindoro/features/league/data/league_data.dart';
 import 'package:pindoro/features/lesson/data/saved_progress.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
@@ -389,7 +390,9 @@ class LessonController extends Notifier<LessonState> {
         startedAt: p.startedAt,
         reviews: reviewAnswers(p.run, inPitStop: inPitStop),
       );
-      if (ref.mounted) state = LessonSaved(id);
+      if (!ref.mounted) return;
+      state = LessonSaved(id);
+      ref.invalidate(standingProvider);
     } finally {
       _saving = false;
     }

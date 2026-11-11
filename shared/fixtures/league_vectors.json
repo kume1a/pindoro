@@ -49,6 +49,9 @@
     { "raw": "Player 42", "name": "Player 42", "valid": false },
     { "raw": ".Nino", "name": ".Nino", "valid": false },
     { "raw": "Nino 🚗", "name": "Nino 🚗", "valid": false },
+    { "raw": "नीना", "name": "नीना", "valid": true },
+    { "raw": "José", "name": "José", "valid": true },
+    { "raw": "́Nino", "name": "́Nino", "valid": false },
     { "raw": "", "name": "", "valid": false }
   ]
 }

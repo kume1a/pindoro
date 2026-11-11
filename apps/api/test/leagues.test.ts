@@ -161,7 +161,37 @@ describe("leagues", () => {
     expect(promoted.league.members).toHaveLength(1);
   });
 
-  it("renames a player and deletes one", async () => {
+  it("keeps a finished week's ranks when a player leaves after it", async () => {
+    const tokens = await crowd(7, (i) => 100 - i);
+    clock = nextMidweek;
+    const leave = await app.inject({
+      method: "DELETE",
+      url: "/v1/players/me",
+      headers: { authorization: `Bearer ${tokens[4]}` },
+    });
+    expect(leave.statusCode).toBe(204);
+    const sixth = await sync(tokens[5] as string, 0, NEXT_WEEK);
+    expect(sixth.league.tier).toBe(0);
+  });
+
+  it("limits renames and syncs per player", async () => {
+    const token = await join("Nino");
+    const rename = (): Promise<number> =>
+      app
+        .inject({
+          method: "PATCH",
+          url: "/v1/players/me",
+          headers: { authorization: `Bearer ${token}` },
+          payload: { name: "Nino" },
+        })
+        .then((r) => r.statusCode);
+    const codes = [];
+    for (let i = 0; i < 31; i++) codes.push(await rename());
+    expect(codes.at(29)).toBe(200);
+    expect(codes.at(30)).toBe(429);
+  });
+
+  it("renames a player and forgets one", async () => {
     const token = await join("Nino");
     const auth = { authorization: `Bearer ${token}` };
     const renamed = await app.inject({
@@ -183,6 +213,7 @@ describe("leagues", () => {
     expect(after.statusCode).toBe(401);
     const [left] = await sql`select count(*)::int as n from league_member`;
     expect(left?.n).toBe(0);
+    expect(await sql`select name from player`).toEqual([{ name: "" }]);
   });
 });
 

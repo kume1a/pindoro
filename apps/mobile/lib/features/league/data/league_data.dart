@@ -12,10 +12,15 @@ final leagueAccountProvider = StreamProvider<LeaguePlayer?>(
 
 /// This week's league after sending the week's XP; null without an account.
 /// An unknown token (the player is gone on the server) drops the account.
-/// Invalidate it to sync again (the Leagues tab and Results do).
+/// Invalidate it to sync again (the app root on resume, the Leagues tab, and
+/// the end of a round, lesson or road trip do). A failure isn't retried on its
+/// own: the next of those, or Try again, syncs.
 final standingProvider = FutureProvider.autoDispose<Standing?>((ref) async {
-  final account = await ref.watch(leagueAccountProvider.future);
-  if (account == null) return null;
+  // The token only: a rename isn't a reason to sync.
+  final token = await ref.watch(
+    leagueAccountProvider.selectAsync((account) => account?.token),
+  );
+  if (token == null) return null;
   final week = leagueWeek(DateTime.now());
   final xp = await ref
       .read(progressDaoProvider)
@@ -23,13 +28,13 @@ final standingProvider = FutureProvider.autoDispose<Standing?>((ref) async {
   try {
     return await ref
         .read(leagueApiProvider)
-        .sync(account.token, week: week.key, xp: xp);
+        .sync(token, week: week.key, xp: xp);
   } on LeagueException catch (e) {
     if (!e.unknownPlayer) rethrow;
     await ref.read(leagueDaoProvider).drop();
     return null;
   }
-});
+}, retry: (_, _) => null);
 
 final leagueActionsProvider = Provider<LeagueActions>(
   (ref) =>

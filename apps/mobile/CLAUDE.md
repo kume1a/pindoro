@@ -89,10 +89,11 @@ test/drift/                    generated schema helpers + migration test
 - **Leagues** (`features/league`): an anonymous account (`league_player`: player id, token, name)
   from `POST /v1/players` when the player first joins on the Leagues tab. `standingProvider` sends
   this league week's XP (pindoro_core `leagueWeek`, `ProgressDao.xpBetween`) with
-  `PUT /v1/league/me` and returns the ranked league; the server owns ranks, zones and moves. Opening
-  the tab and opening Results invalidate it; a 401 drops the account. Results shows "Up to 4th in
+  `PUT /v1/league/me` and returns the ranked league; the server owns ranks, zones and moves. The app
+  root listens to it (so it syncs at launch) and invalidates it on resume; opening the tab and the
+  end of a round, lesson or road trip invalidate it too. No automatic retry; a 401 drops the account. Results shows "Up to 4th in
   Avenue league" when the round's XP raised the rank (`rankBefore`). Settings → League renames
-  (`/league-name`) and leaves (deletes the player on the server). Tests override
+  (`/league-name`) and leaves (the server forgets the player). Tests override
   `leagueApiProvider` with a `MockClient`.
 - **Hear the name:** `speechProvider` (`core/speech.dart`, `flutter_tts`) reads a new street's name
   in `speechLanguage(name)`; the button shows only when `canSpeakProvider` finds a voice. Tests

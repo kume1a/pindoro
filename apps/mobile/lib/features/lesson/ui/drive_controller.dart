@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/features/course/data/course_data.dart';
+import 'package:pindoro/features/league/data/league_data.dart';
 import 'package:pindoro/features/lesson/ui/lesson_controller.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
@@ -209,7 +210,9 @@ class DriveController extends Notifier<DriveState> {
           completesUnit: answered.completes,
           startedAt: p.startedAt,
         )
-        .then((_) {});
+        .then((_) {
+          if (ref.mounted) ref.invalidate(standingProvider);
+        });
   }
 
   /// On to Unit complete once the drive passes, else to a new trip (after a

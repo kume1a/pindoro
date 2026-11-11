@@ -31,7 +31,7 @@ across devices come later.
 | Rollover      | Lazy: a player's tier for a new week comes from their last league's result, worked out when they first sync that week. No scheduled job                         |
 | Late XP       | XP sent for a week that is over is ignored (the reply shows the current week)                                                                                   |
 | Trust         | The server trusts the app's XP (no cheat detection). XP never goes down within a week                                                                           |
-| Leaving       | Settings → League → Leave leagues deletes the player on the server (store rules require account deletion) and the token on the phone                            |
+| Leaving       | Settings → League → Leave leagues forgets the player on the server (name blanked, token dead, this week's place gone; past weeks keep the row so their ranks never shift) and the token on the phone |
 | Abuse         | `POST /v1/players` is rate-limited per client IP (`cf-connecting-ip`, else the socket address): `SIGNUP_LIMIT` per hour, default 10                             |
 | Token storage | A one-row Drift table (`league_player`) in the app's sandbox                                                                                                    |
 | Schema        | App schema 10: `league_player`. API: `player`, `league`, `league_member` in one Drizzle migration                                                               |
@@ -49,7 +49,8 @@ one shared fixture, `shared/fixtures/league_vectors.json` (`week`: an instant �
   `size = 30`, `promote = 5`, `demote = 5`.
 - `leagueWeek(DateTime now) → ({String key, DateTime start, DateTime end})` (UTC instants).
 - `leagueName(raw)`: trimmed, runs of whitespace as one space. `isLeagueName(name)`: 2–20
-  characters (code points), the first a letter, the rest letters, spaces, `.`, `'`, `’`, `-`.
+  characters (code points), the first a letter, the rest letters and their combining marks
+  (Devanagari vowel signs, accents typed as two characters), spaces, `.`, `'`, `’`, `-`.
 - TS only: `zone(rank, tier)` → `up` (rank ≤ 5 and tier < 5), `down` (rank > 25 and tier > 0), or
   `stay`; `nextTier(rank, tier)` = tier + 1 / − 1 / 0 by zone.
 

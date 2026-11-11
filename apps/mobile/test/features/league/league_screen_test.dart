@@ -222,27 +222,43 @@ void main() {
     expect(await account(tester), isNull);
   });
 
-  testWidgets('Leagues is the fourth tab and syncs each time it opens', (
-    tester,
-  ) async {
+  testWidgets('a failed sync says so over the last board', (tester) async {
     await tester.runAsync(joined);
     reply = (_) => standing(_members(3, you: 2));
-    await pump(tester, location: Routes.me);
-    final bar = tester.widget<PindoroNavBar>(find.byType(PindoroNavBar));
-    expect(bar.items.map((i) => i.label), [
-      'Path',
-      'Free play',
-      'Pit stop',
-      'Leagues',
-      'Me',
-    ]);
-    expect(sent, isEmpty);
-    await tapThrough(tester, find.bySemanticsLabel('Leagues').first);
+    await pump(tester);
     expect(find.byType(LeagueHeader), findsOneWidget);
+    reply = (_) => http.Response('', 500);
     await tapThrough(tester, find.bySemanticsLabel('Me').first);
     await tapThrough(tester, find.bySemanticsLabel('Leagues').first);
-    expect(sent, hasLength(2));
+    expect(
+      find.text('Can’t reach the league. Check your connection and try again.'),
+      findsOneWidget,
+    );
+    expect(find.byType(LeagueHeader), findsNothing);
   });
+
+  testWidgets(
+    'Leagues is the fourth tab and syncs at launch and each time it opens',
+    (tester) async {
+      await tester.runAsync(joined);
+      reply = (_) => standing(_members(3, you: 2));
+      await pump(tester, location: Routes.me);
+      final bar = tester.widget<PindoroNavBar>(find.byType(PindoroNavBar));
+      expect(bar.items.map((i) => i.label), [
+        'Path',
+        'Free play',
+        'Pit stop',
+        'Leagues',
+        'Me',
+      ]);
+      expect(sent, hasLength(1));
+      await tapThrough(tester, find.bySemanticsLabel('Leagues').first);
+      expect(find.byType(LeagueHeader), findsOneWidget);
+      await tapThrough(tester, find.bySemanticsLabel('Me').first);
+      await tapThrough(tester, find.bySemanticsLabel('Leagues').first);
+      expect(sent, hasLength(3));
+    },
+  );
 
   testWidgets('settings rename the player, and leave after asking', (
     tester,
