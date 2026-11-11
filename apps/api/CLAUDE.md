@@ -50,7 +50,7 @@ Anonymous players and weekly leagues (`docs/specs/2026-11-10-r5-leagues-design.m
 route is rate-limited per `cf-connecting-ip`); `PATCH`/`DELETE /v1/players/me` and
 `PUT /v1/league/me {week, xp}` take `Authorization: Bearer <token>` (PATCH and PUT: 30 a minute
 per token). DELETE forgets the player: the name is blanked, the token dies and this week's place
-goes, but past weeks keep the row so a finished week's ranks never shift. The PUT records the week's XP
+goes (with its league, under the join lock, when that empties it), but past weeks keep the row so a finished week's ranks never shift. The PUT records the week's XP
 (never lower, only for the current week), joins the newest league of the player's tier with room
 (30 a league, under an advisory lock per week and tier) on the first XP, and returns the player's
 league ranked (XP, then earliest join). Rules live in `leagues.rules.ts`: weeks start Monday 00:00

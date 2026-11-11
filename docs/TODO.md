@@ -116,9 +116,6 @@
 Not left out on purpose: found by comparing the app with `docs/design/*.md`, the claude.ai canvas
 and the specs after R5. Fix them in roughly this order.
 
-- Bugs:
-  - Every league error (429, 5xx, a parse failure) reads as offline. Empty leagues are never
-    cleaned up.
 - Accessibility (`docs/design/accessibility.md`):
   - No list answer mode (four candidate areas as buttons); Accessibility has only Choose turns
     from a list.

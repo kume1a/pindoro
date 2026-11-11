@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, asc, count, desc, eq, lt, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, lt, notExists, sql } from "drizzle-orm";
 import type { Static } from "typebox";
 import type { Db } from "../../db/client.ts";
 import { league, leagueMember, player } from "../../db/schema.ts";
@@ -37,15 +37,44 @@ export const renamePlayer = async (db: Db, id: string, name: string): Promise<Pl
   return { id, name };
 };
 
+/** Serialises joins per week and tier, so two players never both take a league's last place. */
+const lockJoins = async (tx: Tx, week: string, tier: number): Promise<void> => {
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`league:${week}:${tier}`}))`);
+};
+
 /**
- * Leaving: the name goes, the token stops working and this week's place is given up. Past weeks keep
- * the row, so a finished week's ranks (and who moved up) never shift when someone leaves.
+ * Leaving: the name goes, the token stops working and this week's place is given up (with the
+ * league, when that empties it). Past weeks keep the row, so a finished week's ranks (and who moved
+ * up) never shift when someone leaves.
  */
 export const forgetPlayer = async (db: Db, id: string, now: Date): Promise<void> => {
+  const week = leagueWeek(now).key;
   await db.transaction(async (tx) => {
-    await tx
-      .delete(leagueMember)
-      .where(and(eq(leagueMember.playerId, id), eq(leagueMember.week, leagueWeek(now).key)));
+    const [place] = await tx
+      .select({ leagueId: leagueMember.leagueId, tier: league.tier })
+      .from(leagueMember)
+      .innerJoin(league, eq(league.id, leagueMember.leagueId))
+      .where(and(eq(leagueMember.playerId, id), eq(leagueMember.week, week)));
+    if (place) {
+      // Under the join lock: a player joining this league can't be cascaded away with it.
+      await lockJoins(tx, week, place.tier);
+      await tx
+        .delete(leagueMember)
+        .where(and(eq(leagueMember.playerId, id), eq(leagueMember.week, week)));
+      await tx
+        .delete(league)
+        .where(
+          and(
+            eq(league.id, place.leagueId),
+            notExists(
+              tx
+                .select({ one: sql`1` })
+                .from(leagueMember)
+                .where(eq(leagueMember.leagueId, place.leagueId)),
+            ),
+          ),
+        );
+    }
     // A sha256 hex never contains ":", so no token can match a left player.
     await tx
       .update(player)
@@ -149,8 +178,7 @@ export const syncXp = async (
       .returning({ week: leagueMember.week });
     if (kept) return;
     const tier = await tierFor(tx, me.id, week);
-    // Serialises joins per week and tier, so two players never both take a league's last place.
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`league:${week}:${tier}`}))`);
+    await lockJoins(tx, week, tier);
     const leagueId = await openLeague(tx, week, tier);
     await tx
       .insert(leagueMember)

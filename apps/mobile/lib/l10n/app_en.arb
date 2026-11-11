@@ -2385,6 +2385,7 @@
   "leagueJoin": "Join",
   "leagueJoinFailed": "Couldn’t join. Check your connection and try again.",
   "leagueOffline": "Can’t reach the league. Check your connection and try again.",
+  "leagueUnavailable": "The league isn’t working right now. Try again later.",
   "leagueSave": "Save",
   "leagueSaveFailed": "Couldn’t save. Check your connection and try again.",
   "leagueLeaveTitle": "Leave leagues?",

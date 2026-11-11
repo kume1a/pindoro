@@ -91,7 +91,8 @@ test/drift/                    generated schema helpers + migration test
   this league week's XP (pindoro_core `leagueWeek`, `ProgressDao.xpBetween`) with
   `PUT /v1/league/me` and returns the ranked league; the server owns ranks, zones and moves. The app
   root listens to it (so it syncs at launch) and invalidates it on resume; opening the tab and the
-  end of a round, lesson or road trip invalidate it too. No automatic retry; a 401 drops the account. Results shows "Up to 4th in
+  end of a round, lesson or road trip invalidate it too. No automatic retry; a 401 drops the account; failures read as offline only when the server
+  wasn't reached (`leagueFailure`), else "isn't working right now". Results shows "Up to 4th in
   Avenue league" when the round's XP raised the rank (`rankBefore`). Settings → League renames
   (`/league-name`) and leaves (the server forgets the player). Tests override
   `leagueApiProvider` with a `MockClient`.
