@@ -11,6 +11,7 @@ import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/map/ui/route_layers.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/map/ui/widgets/route_draw_layer.dart';
@@ -261,6 +262,10 @@ class _RouteViewState extends ConsumerState<RouteView>
                           at: graph.at(draft.end),
                           label: l10n.routeSoFar(
                             formatDistance(draft.lengthM, l10n),
+                          ),
+                          anchor: chipAnchor(
+                            _projection?.toScreen(graph.at(draft.end)).dx ?? 0,
+                            MediaQuery.sizeOf(context).width,
                           ),
                         ),
                   reached: draft.reached,

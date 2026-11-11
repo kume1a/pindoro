@@ -1,5 +1,6 @@
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pindoro/features/map/ui/route_layers.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
@@ -61,5 +62,11 @@ void main() {
       MapProjection.fit([a], size: size, padding: padding, maxZoom: 16).zoom,
       16,
     );
+  });
+
+  test('the distance chip grows inwards near an edge', () {
+    expect(chipAnchor(20, 390), 'bottom-left');
+    expect(chipAnchor(195, 390), 'bottom');
+    expect(chipAnchor(370, 390), 'bottom-right');
   });
 }

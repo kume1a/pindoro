@@ -500,6 +500,12 @@ class _PathScreenState extends ConsumerState<PathScreen>
     );
   }
 
+  /// The pack is known to have no road graph (an older format).
+  bool get _noRoadGraph {
+    final graph = ref.read(roadGraphProvider);
+    return graph.hasValue && graph.value == null;
+  }
+
   /// Road trips need a pack with a road graph: without one, a sheet says so
   /// and this is true, so no Final drive starts (nor once the Path is gone).
   Future<bool> _explainNoRoadGraph(
@@ -761,7 +767,14 @@ class _PathScreenState extends ConsumerState<PathScreen>
             ),
             (
               glyph: PindoroGlyph.xp,
-              label: l10n.pathChipUpToXp(formatNumber(LessonRules.maxXp)),
+              // A pack without a road graph plays no road trip.
+              label: l10n.pathChipUpToXp(
+                formatNumber(
+                  _noRoadGraph
+                      ? LessonRules.maxXp - LessonRules.tripXp
+                      : LessonRules.maxXp,
+                ),
+              ),
             ),
           ],
           action: l10n.pathStartLesson,

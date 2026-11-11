@@ -259,11 +259,13 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     final padding = EdgeInsets.fromLTRB(
       PindoroCamera.fitPaddingX,
       widget.topInset + PindoroSpace.s6,
-      // A road trip's A and B must clear the map controls on the right.
+      // A road trip's A and B pins (drawn centred on their point) must clear
+      // the map controls on the right.
       widget.onCamera != null && widget.showControls
-          ? PindoroSize.tapMin + 2 * PindoroSpace.s4
+          ? PindoroSize.tapMin + 2 * PindoroSpace.s4 + PindoroSize.pinPlayer / 2
           : PindoroCamera.fitPaddingX,
-      widget.bottomInset + PindoroSpace.s6,
+      // Clear of the attribution chip, which sits above the bottom inset.
+      widget.bottomInset + MapAttribution.clearance(context),
     );
     final size = _size;
     // A bounds update keeps its padding on the camera, which moves the target
@@ -527,7 +529,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
             ),
           Positioned(
             left: PindoroSpace.s4,
-            bottom: widget.bottomInset + PindoroSpace.s2,
+            bottom: widget.bottomInset + MapAttribution.gap,
             child: const MapAttribution(),
           ),
         ],

@@ -6,8 +6,8 @@ import 'package:pindoro_design/pindoro_design.dart';
 
 /// A road trip on the map: A and B, the route drawn so far (cobalt dashes),
 /// the best route as painted so far (yellow, with chevrons), the first-trip
-/// ghost, the replay [car] and the distance [chip] at the route's end.
-/// [reached] pops B once.
+/// ghost, the replay [car] and the distance [chip] at the route's end (its
+/// [chipAnchor] keeps it on screen). [reached] pops B once.
 typedef RouteOverlay = ({
   LatLng a,
   LatLng b,
@@ -15,9 +15,17 @@ typedef RouteOverlay = ({
   MultiPolyline best,
   MultiPolyline ghost,
   LatLng? car,
-  ({LatLng at, String label})? chip,
+  ({LatLng at, String label, String anchor})? chip,
   bool reached,
 });
+
+/// The distance chip's MapLibre icon anchor for a route end at [x] on a map
+/// [width] wide: near an edge the chip grows inwards instead of off screen.
+String chipAnchor(double x, double width) => x < width / 4
+    ? 'bottom-left'
+    : x > width * 3 / 4
+    ? 'bottom-right'
+    : 'bottom';
 
 /// GeoJSON source ids of a road trip.
 abstract final class RouteSources {
@@ -194,7 +202,7 @@ Future<void> addRouteLayers(
     '${RouteSources.chip}-label',
     const ml.SymbolLayerProperties(
       iconImage: ['get', 'icon'],
-      iconAnchor: 'bottom',
+      iconAnchor: ['get', 'anchor'],
       iconAllowOverlap: true,
       iconIgnorePlacement: true,
     ),
@@ -258,7 +266,10 @@ Future<void> syncRoute(
           ? pointsGeoJson(const [])
           : pointsGeoJson(
               [chip.at],
-              properties: {'icon': await chipImage(chip.label)},
+              properties: {
+                'icon': await chipImage(chip.label),
+                'anchor': chip.anchor,
+              },
             ),
     );
   }
