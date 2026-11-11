@@ -54,9 +54,12 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
         default:
       }
     });
+    const loader = Scaffold(body: Center(child: LaneLoader()));
     return switch (ref.watch(lessonControllerProvider)) {
       final LessonPlaying p when !p.run.finished => _LessonView(p),
-      _ => const Scaffold(body: Center(child: LaneLoader())),
+      // Saving the finished lesson: back would skip Lesson complete.
+      LessonPlaying() => const PopScope(canPop: false, child: loader),
+      _ => loader,
     };
   }
 

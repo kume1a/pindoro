@@ -214,6 +214,23 @@ void main() {
     expect(find.text('At the junction, go'), findsOneWidget);
   });
 
+  testWidgets('the first-trip ghost goes once the trip is answered', (
+    tester,
+  ) async {
+    await pumpApp(tester, Routes.lessonOf(unit, 1));
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(LessonScreen)),
+    );
+    LessonPlaying play() =>
+        container.read(lessonControllerProvider) as LessonPlaying;
+    await toTrip(tester, container);
+    expect(play().firstTrip, isTrue);
+    // Given up, the trip comes back in Fix them without the ghost.
+    container.read(lessonControllerProvider.notifier).showRoute();
+    expect(play().firstTrip, isFalse);
+    await settle(tester);
+  });
+
   testWidgets('with a screen reader the road trip is a list of turns', (
     tester,
   ) async {

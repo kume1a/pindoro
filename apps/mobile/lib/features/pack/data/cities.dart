@@ -4,14 +4,21 @@ import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
-/// Cities to play: the catalog's; offline, the active pack's city.
+/// Cities to play: the catalog's; offline, the active pack's city, or before
+/// any pack downloaded, the bundled Vake pack's (so offline Vake stays
+/// reachable).
 final cityListProvider = FutureProvider.autoDispose<List<CatalogCity>>((
   ref,
 ) async {
   try {
     return await ref.watch(packStoreProvider).cities();
   } on Object {
-    final here = (await ref.watch(packRepositoryProvider.future)).city();
+    City here;
+    try {
+      here = (await ref.watch(packRepositoryProvider.future)).city();
+    } on Object {
+      here = await fixtureCity(ref.read(packStoreProvider).root);
+    }
     return [
       (id: here.id, nameKa: here.nameKa, nameEn: here.nameEn, bbox: here.bbox),
     ];

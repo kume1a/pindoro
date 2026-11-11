@@ -20,6 +20,20 @@ void main() {
 
   const vake = DistrictsArea({'osm:r1'});
 
+  Street part(String id) => Street(
+    id: id,
+    nameKa: 'name $id',
+    nameEn: null,
+    roadClass: 'residential',
+    difficulty: Difficulty.expert,
+    lengthM: 500,
+    midpoint: const LatLng(41.7, 44.75),
+    bbox: const Bbox(41.7, 44.75, 41.7, 44.75),
+    geometry: const [
+      [LatLng(41.7, 44.75)],
+    ],
+  );
+
   Future<String> round(
     List<String> streets, {
     String cityId = 'tbilisi',
@@ -149,6 +163,10 @@ void main() {
       expect((await saved())?.id, id);
       await settings.chooseArea(const DistrictsArea({'osm:r2'}));
       expect(await saved(), isNull);
+
+      // A Pit stop round's area is wherever its streets were.
+      final pitStop = await round(['b'], pitStop: true);
+      expect((await saved())?.id, pitStop);
     });
   });
 
@@ -300,6 +318,20 @@ void main() {
       expect(await progress.pitStop('tbilisi'), isEmpty);
     });
 
+    test(
+      'lists a street once, whichever of its parts it was filed under',
+      () async {
+        final id = await round(['a', 'a2']);
+        await answer(id, 'a', Tier.miss);
+        await answer(id, 'a2', Tier.close);
+        final street = NamedStreet([part('a'), part('a2')]);
+        final due = (await progress.pitStop(
+          'tbilisi',
+        )).dueIn({'a': street, 'a2': street}, tomorrow);
+        expect(due, hasLength(1));
+      },
+    );
+
     test('each city keeps its own Pit stop', () async {
       await answer(await round(['a'], cityId: 'batumi'), 'a', Tier.miss);
       expect(await progress.pitStop('tbilisi'), isEmpty);
@@ -333,21 +365,7 @@ void main() {
   });
 
   group('lessons', () {
-    NamedStreet street(String id) => NamedStreet([
-      Street(
-        id: id,
-        nameKa: 'name $id',
-        nameEn: null,
-        roadClass: 'residential',
-        difficulty: Difficulty.expert,
-        lengthM: 500,
-        midpoint: const LatLng(41.7, 44.75),
-        bbox: const Bbox(41.7, 44.75, 41.7, 44.75),
-        geometry: const [
-          [LatLng(41.7, 44.75)],
-        ],
-      ),
-    ]);
+    NamedStreet street(String id) => NamedStreet([part(id)]);
     final a = street('a'), b = street('b'), c = street('c');
     final at = DateTime.now();
 

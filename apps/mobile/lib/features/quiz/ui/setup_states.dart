@@ -34,9 +34,11 @@ class SetupStates extends ConsumerWidget {
         body:
             '${l10n.setupSparseCount(count, difficultyName(l10n, difficulty))} '
             '${l10n.setupSparseBody}',
-        primary: settings?.area is DistrictsArea
-            ? l10n.setupSparseAddNeighbour
-            : l10n.setupSparseBiggerCircle,
+        primary: switch (settings?.area) {
+          RectArea() => l10n.setupSparseBiggerRectangle,
+          CircleArea() => l10n.setupSparseBiggerCircle,
+          _ => l10n.setupSparseAddNeighbour,
+        },
         onPrimary: () => context.go(Routes.area),
         secondary: difficulty == Difficulty.expert
             ? null

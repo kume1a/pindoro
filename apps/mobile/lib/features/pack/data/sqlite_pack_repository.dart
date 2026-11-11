@@ -137,6 +137,16 @@ Future<File> copyFixture(Directory root) async {
   return tmp.rename(file.path);
 }
 
+/// The bundled Vake pack's city (the whole Tbilisi row).
+Future<City> fixtureCity(Directory root) async {
+  final pack = SqlitePackRepository.open((await copyFixture(root)).path);
+  try {
+    return pack.city();
+  } finally {
+    pack.close();
+  }
+}
+
 /// A city with no pack on the phone whose download failed: offline, or
 /// [noSpace] when the phone is full.
 class PackUnavailable implements Exception {

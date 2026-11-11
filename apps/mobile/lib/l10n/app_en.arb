@@ -265,6 +265,7 @@
   "setupSparseTitle": "Not enough streets here",
   "setupSparseBody": "A round needs 10 streets.",
   "setupSparseBiggerCircle": "Make the circle bigger",
+  "setupSparseBiggerRectangle": "Make the rectangle bigger",
   "setupSparseAddNeighbour": "Add a neighbouring district",
   "setupSparseSwitchDifficulty": "Switch to {difficulty}",
   "@setupSparseSwitchDifficulty": {
