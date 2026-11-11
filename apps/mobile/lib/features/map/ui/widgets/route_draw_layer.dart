@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:pindoro/features/map/ui/route_layers.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -18,10 +19,11 @@ const double _ringRadius = 14;
 /// Draws a road trip by dragging over the map: a one-finger drag that starts
 /// within [drawStartRadius] of the route's end walks the route along the
 /// streets ([RouteDraft.follow]); any other drag goes to the map below. While
-/// drawing it paints the finger, a ring on the next junction and, off the
-/// road, a rubber band from the route's end. [onTouch] hears every touch
-/// (the first-trip ghost hides); [onOffRoad] says when the finger leaves or
-/// rejoins the streets.
+/// drawing it paints the finger, the street being followed up to the finger
+/// with a ring on its next junction and, off the road, a rubber band from the
+/// route's end. [onTouch] hears every touch (the first-trip ghost hides);
+/// [onDrawing] hears a draw start and end; [onOffRoad] says when the finger
+/// leaves or rejoins the streets.
 class RouteDrawLayer extends StatefulWidget {
   const RouteDrawLayer({
     super.key,
@@ -29,6 +31,7 @@ class RouteDrawLayer extends StatefulWidget {
     required this.draft,
     required this.onDraft,
     required this.onTouch,
+    required this.onDrawing,
     required this.onOffRoad,
   });
 
@@ -36,6 +39,7 @@ class RouteDrawLayer extends StatefulWidget {
   final RouteDraft draft;
   final ValueChanged<RouteDraft> onDraft;
   final VoidCallback onTouch;
+  final ValueChanged<bool> onDrawing;
   final ValueChanged<bool> onOffRoad;
 
   @override
@@ -90,6 +94,7 @@ class _RouteDrawLayerState extends State<RouteDrawLayer> {
 
   void _lift() {
     _setOffRoad(false);
+    widget.onDrawing(false);
     setState(() {
       _finger = null;
       _last = null;
@@ -101,7 +106,9 @@ class _RouteDrawLayerState extends State<RouteDrawLayer> {
   Widget build(BuildContext context) {
     final projection = widget.projection;
     final finger = _finger;
-    final heading = _heading;
+    final street = projection == null
+        ? null
+        : _heading?.lineFrom(_draft.end).map(projection.toScreen).toList();
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: (_) => widget.onTouch(),
@@ -114,6 +121,7 @@ class _RouteDrawLayerState extends State<RouteDrawLayer> {
                 (r) => r
                   ..dragStartBehavior = DragStartBehavior.down
                   ..onStart = (d) {
+                    widget.onDrawing(true);
                     _last = projection?.toLatLng(d.localPosition);
                     _move(d.localPosition);
                   }
@@ -134,16 +142,32 @@ class _RouteDrawLayerState extends State<RouteDrawLayer> {
                   colors: PindoroTheme.of(context).colors,
                   finger: finger,
                   end: projection.toScreen(_draft.graph.at(_draft.end)),
-                  junction: heading == null
-                      ? null
-                      : projection.toScreen(
-                          _draft.graph.at(heading.other(_draft.end)),
-                        ),
+                  junction: street?.last,
+                  along: street == null ? null : lineUpTo(street, finger),
                 ),
         ),
       ),
     );
   }
+}
+
+/// [line] from its start up to the point on it nearest [point].
+List<Offset> lineUpTo(List<Offset> line, Offset point) {
+  var best = (distance: double.infinity, index: 0, at: line.first);
+  for (var i = 0; i + 1 < line.length; i++) {
+    final a = line[i], ab = line[i + 1] - a;
+    final toPoint = point - a;
+    final length2 = ab.distanceSquared;
+    final t = length2 == 0
+        ? 0.0
+        : ((toPoint.dx * ab.dx + toPoint.dy * ab.dy) / length2).clamp(0.0, 1.0);
+    final at = a + ab * t;
+    final distance = (point - at).distance;
+    if (distance < best.distance) {
+      best = (distance: distance, index: i, at: at);
+    }
+  }
+  return [...line.take(best.index + 1), best.at];
 }
 
 /// A pan that only joins the gesture arena when it starts near the route's
@@ -164,6 +188,7 @@ class _FingerPainter extends CustomPainter {
     required this.finger,
     required this.end,
     required this.junction,
+    required this.along,
   });
 
   final PindoroColors colors;
@@ -173,12 +198,17 @@ class _FingerPainter extends CustomPainter {
   /// The next junction on the edge being followed; null off the road.
   final Offset? junction;
 
+  /// That edge from the route's end up to the finger, in the drawn route's
+  /// look, so the route keeps up with the finger between junctions.
+  final List<Offset>? along;
+
   @override
   void paint(Canvas canvas, Size size) {
     final route = Paint()
       ..color = colors.mapPlayerRoute
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
+    if (along case final along?) _paintAlong(canvas, along);
     final junction = this.junction;
     if (junction == null) {
       // The rubber band: the route stops, a thin line follows the finger.
@@ -201,6 +231,29 @@ class _FingerPainter extends CustomPainter {
         _fingerRadius,
         Paint()..color = colors.mapPlayerRoute,
       );
+  }
+
+  void _paintAlong(Canvas canvas, List<Offset> along) {
+    final path = Path()..addPolygon(along, false);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = colors.mapPlayerHalo
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = drawnHalo
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+    final dash = Paint()
+      ..color = colors.mapPlayerRoute
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = drawnWidth
+      ..strokeJoin = StrokeJoin.round;
+    for (final metric in path.computeMetrics()) {
+      for (var d = 0.0; d < metric.length; d += drawnDash + drawnGap) {
+        canvas.drawPath(metric.extractPath(d, d + drawnDash), dash);
+      }
+    }
   }
 
   // The map below keeps every touch the drag doesn't take.

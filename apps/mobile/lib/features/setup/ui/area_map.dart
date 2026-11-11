@@ -8,7 +8,9 @@ import 'package:pindoro/features/map/data/geojson.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/data/maplibre_convert.dart';
 import 'package:pindoro/features/map/ui/map_work.dart';
+import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
+import 'package:pindoro/features/map/ui/widgets/map_taps.dart';
 import 'package:pindoro/features/map/ui/widgets/map_zoom_controls.dart';
 import 'package:pindoro/features/setup/ui/outline_labels.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -34,7 +36,9 @@ District? areaAt(List<District> areas, LatLng at, double zoom) {
 
 /// The area picker's map: outlines and name chips of the zoom's level (see
 /// [detailAt]), picked areas in "you" cobalt at every zoom. Reports taps and
-/// the camera (centre + zoom) so shapes can be drawn over it.
+/// the camera (centre + zoom) so shapes can be drawn over it. [bottomInset]
+/// is the height the sheet covers: controls sit above it and the camera
+/// frames and centres above it, so the map never resizes with the sheet.
 class AreaPickerMap extends StatefulWidget {
   const AreaPickerMap({
     super.key,
@@ -44,9 +48,11 @@ class AreaPickerMap extends StatefulWidget {
     required this.initialBounds,
     required this.onTap,
     required this.onCamera,
+    this.onCameraIdle,
     this.lastTapped,
     this.focus,
     this.showDistricts = true,
+    this.bottomInset = 0,
   });
 
   final List<District> districts;
@@ -60,13 +66,20 @@ class AreaPickerMap extends StatefulWidget {
   final String? lastTapped;
   final Bbox initialBounds;
   final ValueChanged<LatLng> onTap;
+
+  /// Every camera move: the centre of the part the sheet leaves uncovered,
+  /// and the zoom.
   final void Function(LatLng center, double zoom) onCamera;
+
+  /// The camera stopped moving.
+  final VoidCallback? onCameraIdle;
 
   /// Moves the camera to these bounds when it changes.
   final Bbox? focus;
 
   /// Outlines and name chips show only while picking areas.
   final bool showDistricts;
+  final double bottomInset;
 
   @override
   State<AreaPickerMap> createState() => _AreaPickerMapState();
@@ -116,10 +129,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
   Future<String>? _style;
   Brightness? _brightness;
   bool _ready = false;
-
-  /// The camera frames the area once; a later style load (theme change)
-  /// keeps where the player moved it.
-  bool _framed = false;
+  Size? _size;
   final Set<String> _pickedImages = {};
 
   @override
@@ -136,6 +146,14 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
   @override
   void didUpdateWidget(AreaPickerMap old) {
     super.didUpdateWidget(old);
+    if (old.bottomInset != widget.bottomInset) {
+      // The uncovered part's centre moved under a still camera.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _reportCamera();
+      });
+    }
+    final focus = widget.focus;
+    if (focus != null && focus != old.focus) runMapWork(() => _moveTo(focus));
     if (!_ready) return;
     if (old.picked != widget.picked || old.lastTapped != widget.lastTapped) {
       runMapWork(_syncPicked);
@@ -143,19 +161,39 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
     if (old.showDistricts != widget.showDistricts) {
       runMapWork(_syncVisibility);
     }
-    final focus = widget.focus;
-    if (focus != null && focus != old.focus) runMapWork(() => _moveTo(focus));
   }
 
+  /// The camera that frames [b] above the sheet. Computed here rather than
+  /// with a bounds update, whose padding stays on the camera and moves its
+  /// target off the view's centre, where [MapProjection] expects it.
+  ({LatLng target, double zoom}) _fit(Bbox b, Size size) => MapProjection.fit(
+    [LatLng(b.minLat, b.minLon), LatLng(b.maxLat, b.maxLon)],
+    size: size,
+    padding: EdgeInsets.fromLTRB(
+      PindoroSpace.s8,
+      PindoroSpace.s16,
+      PindoroSpace.s8,
+      widget.bottomInset + PindoroSpace.s8,
+    ),
+  );
+
   Future<void> _moveTo(Bbox b) async {
+    final size = _size;
+    if (size == null) return;
+    final camera = _fit(b, size);
     await _controller?.animateCamera(
-      ml.CameraUpdate.newLatLngBounds(
-        b.toMapLibre,
-        left: PindoroSpace.s8,
-        top: PindoroSpace.s16,
-        right: PindoroSpace.s8,
-        bottom: PindoroSpace.s8,
-      ),
+      ml.CameraUpdate.newLatLngZoom(camera.target.toMapLibre, camera.zoom),
+    );
+  }
+
+  MapProjection? get _projection {
+    final camera = _controller?.cameraPosition;
+    final size = _size;
+    if (camera == null || size == null) return null;
+    return MapProjection(
+      target: camera.target.toCore,
+      zoom: camera.zoom,
+      size: size,
     );
   }
 
@@ -342,10 +380,6 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
     _ready = true;
     await _syncPicked();
     await _syncVisibility();
-    if (!_framed) {
-      _framed = true;
-      await _moveTo(widget.focus ?? widget.initialBounds);
-    }
   }
 
   Future<void> _syncPicked() async {
@@ -386,52 +420,70 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
   ]);
 
   void _reportCamera() {
-    final position = _controller?.cameraPosition;
-    if (position == null) return;
+    final projection = _projection;
+    if (projection == null) return;
+    final Size(:width, :height) = projection.size;
     widget.onCamera(
-      LatLng(position.target.latitude, position.target.longitude),
-      position.zoom,
+      projection.toLatLng(Offset(width / 2, (height - widget.bottomInset) / 2)),
+      projection.zoom,
     );
   }
 
+  void _tapped(Offset at) {
+    if (_projection case final projection?) {
+      widget.onTap(projection.toLatLng(at));
+    }
+  }
+
   @override
-  Widget build(BuildContext context) => FutureBuilder<String>(
-    future: _style,
-    builder: (context, style) {
-      final center = widget.initialBounds.center;
-      return Stack(
-        children: [
-          if (style.hasData)
-            ml.MapLibreMap(
-              styleString: style.data!,
-              initialCameraPosition: ml.CameraPosition(
-                target: center.toMapLibre,
-                zoom: PindoroCamera.zoom,
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final size = _size = constraints.biggest;
+      return FutureBuilder<String>(
+        future: _style,
+        builder: (context, style) {
+          // Opens where the load would frame it, so nothing zooms in after.
+          final start = _fit(widget.focus ?? widget.initialBounds, size);
+          return Stack(
+            children: [
+              if (style.hasData)
+                MapTaps(
+                  onTap: _tapped,
+                  child: ml.MapLibreMap(
+                    styleString: style.data!,
+                    initialCameraPosition: ml.CameraPosition(
+                      target: start.target.toMapLibre,
+                      zoom: start.zoom,
+                    ),
+                    trackCameraPosition: true,
+                    onMapCreated: (c) {
+                      _controller = c..addListener(_reportCamera);
+                    },
+                    onCameraIdle: () => widget.onCameraIdle?.call(),
+                    onStyleLoadedCallback: () => runMapWork(_addLayers),
+                    // A tap picks an area; a second would unpick it.
+                    doubleClickZoomEnabled: false,
+                    rotateGesturesEnabled: false,
+                    tiltGesturesEnabled: false,
+                    compassEnabled: false,
+                    attributionButtonMargins: const math.Point(-100, -100),
+                  ),
+                ),
+              Positioned(
+                left: PindoroSpace.s4,
+                bottom: widget.bottomInset + MapAttribution.gap,
+                child: const MapAttribution(),
               ),
-              trackCameraPosition: true,
-              onMapCreated: (c) {
-                _controller = c..addListener(_reportCamera);
-              },
-              onStyleLoadedCallback: () => runMapWork(_addLayers),
-              onMapClick: (_, at) => widget.onTap(at.toCore),
-              rotateGesturesEnabled: false,
-              tiltGesturesEnabled: false,
-              compassEnabled: false,
-              attributionButtonMargins: const math.Point(-100, -100),
-            ),
-          const Positioned(
-            left: PindoroSpace.s4,
-            bottom: PindoroSpace.s2,
-            child: MapAttribution(),
-          ),
-          Positioned(
-            right: PindoroSpace.s4,
-            bottom: PindoroSpace.s4,
-            child: MapZoomControls(
-              onCamera: (update) => _controller?.animateCamera(update),
-            ),
-          ),
-        ],
+              Positioned(
+                right: PindoroSpace.s4,
+                bottom: widget.bottomInset + PindoroSpace.s4,
+                child: MapZoomControls(
+                  onCamera: (update) => _controller?.animateCamera(update),
+                ),
+              ),
+            ],
+          );
+        },
       );
     },
   );
@@ -442,10 +494,6 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
     super.dispose();
   }
 }
-
-/// Metres per logical pixel at [zoom] (512 px tiles) and latitude [lat].
-double metresPerPixel(double zoom, double lat) =>
-    40075016.686 * math.cos(lat * math.pi / 180) / (512 * math.pow(2, zoom));
 
 Map<String, dynamic> _polygons(List<District> districts) => polygonsGeoJson([
   for (final d in districts)

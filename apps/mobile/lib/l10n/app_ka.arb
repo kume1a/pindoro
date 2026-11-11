@@ -93,6 +93,7 @@
   "setupSparseTitle": "აქ საკმარისი ქუჩა არ არის",
   "setupSparseBody": "რაუნდს 10 ქუჩა სჭირდება.",
   "setupSparseBiggerCircle": "წრის გადიდება",
+  "setupSparseBiggerRectangle": "მართკუთხედის გადიდება",
   "setupSparseAddNeighbour": "მეზობელი უბნის დამატება",
   "setupSparseSwitchDifficulty": "გადართე: {difficulty}",
   "quizPrompt": "მონიშნე რუკაზე:",

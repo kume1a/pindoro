@@ -78,24 +78,36 @@ class _DistrictPainter extends CustomPainter {
       dx + (p.lon - box.minLon) * kx * scale,
       dy + (box.maxLat - p.lat) * scale,
     );
-    for (final d in districts) {
-      final (fill, stroke) = d.progress.colorsIn(colors);
-      final width = d.progress == DistrictProgress.notStarted ? 1.5 : 2.0;
-      for (final polygon in d.boundary) {
-        final path = Path()..fillType = PathFillType.evenOdd;
-        for (final ring in polygon) {
-          path.addPolygon([for (final p in ring) at(p)], true);
-        }
-        if (fill != null) canvas.drawPath(path, Paint()..color = fill);
-        canvas.drawPath(
-          path,
-          Paint()
-            ..color = stroke
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = width
-            ..strokeJoin = StrokeJoin.round,
-        );
+    Path pathOf(List<Polyline> polygon) {
+      final path = Path()..fillType = PathFillType.evenOdd;
+      for (final ring in polygon) {
+        path.addPolygon([for (final p in ring) at(p)], true);
       }
+      return path;
+    }
+
+    final shapes = [
+      for (final d in districts)
+        for (final polygon in d.boundary)
+          (progress: d.progress, path: pathOf(polygon)),
+    ];
+    // Every fill, then the outlines from not started up: a neighbour drawn
+    // later never paints over a district's coloured edge.
+    for (final s in shapes) {
+      if (s.progress.colorsIn(colors).$1 case final fill?) {
+        canvas.drawPath(s.path, Paint()..color = fill);
+      }
+    }
+    shapes.sort((a, b) => a.progress.index.compareTo(b.progress.index));
+    for (final s in shapes) {
+      canvas.drawPath(
+        s.path,
+        Paint()
+          ..color = s.progress.colorsIn(colors).$2
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = s.progress == DistrictProgress.notStarted ? 1.5 : 2.0
+          ..strokeJoin = StrokeJoin.round,
+      );
     }
   }
 

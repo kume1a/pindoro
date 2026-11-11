@@ -46,11 +46,18 @@ extension ReviewItemState on ReviewItem {
 }
 
 extension PitStopItems on Iterable<ReviewItem> {
-  /// Items due by [today] whose street is still in the pack's [streets].
-  Iterable<ReviewItem> dueIn(
-    Map<String, NamedStreet> streets,
-    DateTime today,
-  ) => where((i) => i.dueBy(today) && streets.containsKey(i.streetId));
+  /// Items due by [today] whose street is still in the pack's [streets], one
+  /// per street: older Free play rounds could file a street under another of
+  /// its parts, and the first (most overdue) item wins.
+  List<ReviewItem> dueIn(Map<String, NamedStreet> streets, DateTime today) {
+    final seen = <String>{};
+    return [
+      for (final i in this)
+        if (streets[i.streetId] case final street?
+            when i.dueBy(today) && seen.add(street.id))
+          i,
+    ];
+  }
 }
 
 /// Rounds, the append-only answer log, goal-met days and the Pit stop: what
@@ -733,7 +740,8 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// [resumableRound] when it was played in the chosen [cityId] (any city
-  /// before one is chosen) and [area].
+  /// before one is chosen) and [area]; a Pit stop round in any area, since
+  /// its area is wherever its streets were.
   Future<Round?> savedRound(
     DateTime now, {
     required String? cityId,
@@ -742,7 +750,8 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     final round = await resumableRound(now);
     if (round == null) return null;
     final sameCity = cityId == null || cityId == round.cityId;
-    return sameCity && parseArea(round.areaJson) == area ? round : null;
+    final sameArea = round.pitStop || parseArea(round.areaJson) == area;
+    return sameCity && sameArea ? round : null;
   }
 
   Future<RoundProgress> roundProgress(String roundId) async => (

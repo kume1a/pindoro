@@ -234,7 +234,8 @@ class DriveController extends Notifier<DriveState> {
     final p = state;
     if (p is! DrivePlaying || !p.answered) return;
     await _saving;
-    if (!ref.mounted) return;
+    // A second Next tapped during the save already moved on.
+    if (!ref.mounted || !identical(state, p)) return;
     if (p.completes) {
       state = DrivePassed(p.unit.id, p.xp);
       return;

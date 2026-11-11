@@ -120,23 +120,34 @@ class PinnedFooter extends StatelessWidget {
           top: BorderSide(color: c.lineBase, width: PindoroStroke.base),
         ),
       ),
-      child: ContentColumn(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            PindoroSpace.s4,
-            PindoroSpace.s4,
-            PindoroSpace.s4,
-            bottomActionGap(context),
-          ),
-          child: child,
-        ),
-      ),
+      child: _BottomContent(child),
     );
   }
 }
 
+/// [child] in the content column, ending 26 dp above the bottom safe area.
+class _BottomContent extends StatelessWidget {
+  const _BottomContent(this.child);
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => ContentColumn(
+    child: Padding(
+      padding: EdgeInsets.fromLTRB(
+        PindoroSpace.s4,
+        PindoroSpace.s4,
+        PindoroSpace.s4,
+        bottomActionGap(context),
+      ),
+      child: child,
+    ),
+  );
+}
+
 /// A sheet docked under a map (`color.surface.overlay`, top `radius.2xl`),
-/// its content ending 26 dp above the bottom safe area.
+/// its content ending 26 dp above the bottom safe area. It hugs its content
+/// in any slot, a Scaffold's bottom bar included.
 class BottomPanel extends StatelessWidget {
   const BottomPanel({super.key, required this.child});
 
@@ -155,16 +166,10 @@ class BottomPanel extends StatelessWidget {
           top: BorderSide(color: c.lineBase, width: PindoroStroke.base),
         ),
       ),
-      child: ContentColumn(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            PindoroSpace.s4,
-            PindoroSpace.s4,
-            PindoroSpace.s4,
-            bottomActionGap(context),
-          ),
-          child: child,
-        ),
+      // ContentColumn centres, so alone it would fill a bounded height.
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [_BottomContent(child)],
       ),
     );
   }

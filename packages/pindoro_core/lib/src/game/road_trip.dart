@@ -90,7 +90,7 @@ class RouteDraft {
     : junctions = [start],
       edges = const [];
 
-  const RouteDraft._(this.graph, this.goal, this.junctions, this.edges);
+  RouteDraft._(this.graph, this.goal, this.junctions, this.edges);
 
   final RoadGraph graph;
   final int goal;
@@ -105,10 +105,11 @@ class RouteDraft {
 
   bool get reached => end == goal;
 
-  double get lengthM => edges.fold(0, (sum, e) => sum + e.lengthM);
+  late final double lengthM = edges.fold(0, (sum, e) => sum + e.lengthM);
 
-  /// Each edge's line in driving order.
-  MultiPolyline get lines => [
+  /// Each edge's line in driving order; built once, so a draft keeps one
+  /// identity for the map to diff against.
+  late final MultiPolyline lines = [
     for (final (i, e) in edges.indexed) e.lineFrom(junctions[i]),
   ];
 

@@ -293,6 +293,8 @@ class LessonController extends Notifier<LessonState> {
             scoreRoute(draft.lengthM, best.lengthM, difficulty),
             DateTime.now(),
           ),
+          // A retry in Fix them is no longer the first trip ever.
+          firstTrip: false,
         ),
       );
     }
@@ -305,6 +307,7 @@ class LessonController extends Notifier<LessonState> {
       _step(
         p.copyWith(
           run: p.run.answerTrip((tier: Tier.miss, xp: 0), DateTime.now()),
+          firstTrip: false,
         ),
       );
     }

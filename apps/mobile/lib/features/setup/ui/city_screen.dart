@@ -32,6 +32,7 @@ class _CityScreenState extends ConsumerState<CityScreen> {
   final _query = TextEditingController();
   _Locating _locating = _Locating.idle;
   LocationDenied _denial = const LocationDenied();
+  bool _picking = false;
 
   @override
   void dispose() {
@@ -39,11 +40,18 @@ class _CityScreenState extends ConsumerState<CityScreen> {
     super.dispose();
   }
 
+  /// Once per tap: a double tap would stack two pages.
   Future<void> _pick(String cityId) async {
+    if (_picking) return;
+    _picking = true;
     ref.read(feedbackProvider).tap();
-    await ref.read(settingsDaoProvider).chooseCity(cityId);
-    if (mounted) {
-      await context.push(widget.course ? Routes.startDistrict : Routes.area);
+    try {
+      await ref.read(settingsDaoProvider).chooseCity(cityId);
+      if (mounted) {
+        await context.push(widget.course ? Routes.startDistrict : Routes.area);
+      }
+    } finally {
+      _picking = false;
     }
   }
 

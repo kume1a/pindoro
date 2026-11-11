@@ -188,7 +188,11 @@ class RoundController extends Notifier<RoundState> {
       case NotEnoughStreets(:final count):
         state = RoundNotEnough(count);
       case SelectedQuestions(:final streetIds):
-        final questions = resolveQuestions(streets, streetIds);
+        // The selector names a street by its longest part inside the area;
+        // answers and the Pit stop key it by its city-wide id, as lessons do.
+        final questions = resolveQuestions(streets, [
+          for (final id in streetIds) streets[id]?.id ?? id,
+        ]);
         final version = packVersion(pack);
         final roundId = await dao.startRound(
           cityId: cityId,

@@ -320,21 +320,29 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen>
         ),
       ],
     );
-    return Stack(
-      children: [
-        page,
-        Positioned.fill(
-          child: Celebration(
-            size:
-                data.firstPerfect ||
-                    data.retryCount == 0 ||
-                    (grewStreak && StreakRules.milestones.contains(streakDays))
-                ? CelebrationSize.big
-                : CelebrationSize.medium,
-            burstCenter: const Alignment(-0.2, -0.6),
+    // Results replaced the round, so nothing lies below it: back means Done.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) goHome();
+      },
+      child: Stack(
+        children: [
+          page,
+          Positioned.fill(
+            child: Celebration(
+              size:
+                  data.firstPerfect ||
+                      data.retryCount == 0 ||
+                      (grewStreak &&
+                          StreakRules.milestones.contains(streakDays))
+                  ? CelebrationSize.big
+                  : CelebrationSize.medium,
+              burstCenter: const Alignment(-0.2, -0.6),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
