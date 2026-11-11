@@ -3,6 +3,7 @@ library;
 
 export 'src/generated/pindoro_tokens.dart';
 export 'src/theme.dart';
+export 'src/widgets/badge.dart';
 export 'src/widgets/controls.dart';
 export 'src/widgets/difficulty_card.dart';
 export 'src/widgets/district_map.dart';
