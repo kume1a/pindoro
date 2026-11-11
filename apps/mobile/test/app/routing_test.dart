@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:pindoro/app/app.dart';
 import 'package:pindoro/app/router.dart';
 import 'package:pindoro/core/config.dart';
@@ -18,6 +19,7 @@ import 'package:pindoro/features/lesson/ui/drive_controller.dart';
 import 'package:pindoro/features/lesson/ui/drive_screen.dart';
 import 'package:pindoro/features/lesson/ui/lesson_screen.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/pack/data/app_update.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/ui/level_up_screen.dart';
@@ -49,33 +51,49 @@ void main() {
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
   }
 
-  /// The app at [location]; [roadGraph] false plays a pack without one.
-  Widget app(String location, {bool roadGraph = true}) => ProviderScope(
-    overrides: [
-      databaseProvider.overrideWithValue(db),
-      if (!roadGraph) roadGraphProvider.overrideWith((ref) async => null),
-      pindoroMapBuilderProvider.overrideWithValue((map) {
-        maps.add(map);
-        return const SizedBox();
-      }),
-      areaPickerMapBuilderProvider.overrideWithValue(
-        (map) => const SizedBox.expand(),
-      ),
-      packRepositoryProvider.overrideWith((ref) async {
-        final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
-        ref.onDispose(repo.close);
-        return repo;
-      }),
-    ],
-    child: PindoroApp(initialLocation: location),
-  );
+  /// The app at [location]; [roadGraph] false plays a pack without one;
+  /// [update] is a newer build's link, as the catalog would offer it.
+  Widget app(String location, {bool roadGraph = true, Uri? update}) =>
+      ProviderScope(
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          if (!roadGraph) roadGraphProvider.overrideWith((ref) async => null),
+          if (update != null) ...[
+            packageInfoProvider.overrideWith(
+              (ref) async => PackageInfo(
+                appName: 'Pindoro',
+                packageName: 'app.pindoro',
+                version: '2.1.0',
+                buildNumber: '2',
+              ),
+            ),
+            appUpdateProvider.overrideWith((ref) async => update),
+          ],
+          pindoroMapBuilderProvider.overrideWithValue((map) {
+            maps.add(map);
+            return const SizedBox();
+          }),
+          areaPickerMapBuilderProvider.overrideWithValue(
+            (map) => const SizedBox.expand(),
+          ),
+          packRepositoryProvider.overrideWith((ref) async {
+            final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
+            ref.onDispose(repo.close);
+            return repo;
+          }),
+        ],
+        child: PindoroApp(initialLocation: location),
+      );
 
   Future<void> pumpApp(
     WidgetTester tester,
     String location, {
     bool roadGraph = true,
+    Uri? update,
   }) async {
-    await tester.pumpWidget(app(location, roadGraph: roadGraph));
+    await tester.pumpWidget(
+      app(location, roadGraph: roadGraph, update: update),
+    );
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 100)),
     );
@@ -762,6 +780,24 @@ void main() {
     await tester.scrollUntilVisible(find.text('Map data credits'), 200);
     await tapAndSettle(tester, 'Map data credits');
     expect(find.text('© OpenStreetMap contributors'), findsOneWidget);
+  });
+
+  testWidgets('a newer build is offered at launch and in Settings', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      Routes.settings,
+      update: Uri.parse('https://packs.test/app/pindoro-3.apk'),
+    );
+    expect(find.text('A new Pindoro is out'), findsOneWidget);
+    await tapAndSettle(tester, 'Later');
+    expect(find.text('A new Pindoro is out'), findsNothing);
+    await tester.scrollUntilVisible(find.text('Version 2.1.0 (2)'), 300);
+    expect(
+      find.text('A newer version is out. Tap to download it.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('settings apply at once and persist', (tester) async {

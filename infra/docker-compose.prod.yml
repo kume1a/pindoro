@@ -41,6 +41,8 @@ services:
       DATABASE_URL: *database-url
       PACKS_DIR: /packs
       PACKS_PUBLIC_URL: https://packs.${DOMAIN:?}
+      APP_BUILD: ${APP_BUILD:-0}
+      APP_URL: ${APP_URL:-}
       LOG_LEVEL: info
     volumes:
       - ${PACKS_DIR:-./packs}:/packs:ro

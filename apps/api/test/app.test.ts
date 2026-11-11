@@ -108,6 +108,14 @@ describe("api", () => {
     });
   });
 
+  it("GET /v1/catalog offers the newest app build when one is set", async () => {
+    const url = "https://packs.example.com/app/pindoro-3.apk";
+    const withApp = await appWith({ PACKS_DIR: packsDir, APP_BUILD: "3", APP_URL: url });
+    const res = await withApp.inject({ method: "GET", url: "/v1/catalog" });
+    await withApp.close();
+    expect(res.json()).toMatchObject({ app: { build: 3, url } });
+  });
+
   it("GET /v1/catalog is empty when the packs dir does not exist", async () => {
     const empty = await appWith({ PACKS_DIR: join(packsDir, "missing") });
     const res = await empty.inject({ method: "GET", url: "/v1/catalog" });

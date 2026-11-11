@@ -141,6 +141,10 @@ test/drift/                    generated schema helpers + migration test
   on the iOS simulator pass `http://localhost:3000` / `:3001` and start the API with
   `PACKS_PUBLIC_URL=http://localhost:8080`.
   Cleartext HTTP is allowed only in the debug/profile manifests.
+- **Updates:** sideloaded installs never update themselves. `appUpdateProvider`
+  (`features/pack/data/app_update.dart`) compares the catalog's `app.build` with this build
+  (`package_info_plus`); the app root offers the download once per launch and Settings → About
+  shows the version. Bump `version` in `pubspec.yaml` for every build handed out.
 
 ## Map
 

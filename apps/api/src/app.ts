@@ -35,6 +35,10 @@ export const buildApp = async (
   await app.register(catalogRoutes, {
     packsDir: config.PACKS_DIR,
     packsPublicUrl: config.PACKS_PUBLIC_URL,
+    app:
+      config.APP_BUILD > 0 && config.APP_URL
+        ? { build: config.APP_BUILD, url: config.APP_URL }
+        : undefined,
   });
   await app.register(leaguesRoutes, { db, now, signupsPerHour: config.SIGNUP_LIMIT });
   return app;

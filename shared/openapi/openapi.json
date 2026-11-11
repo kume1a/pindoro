@@ -107,6 +107,23 @@
                     "cities"
                   ],
                   "properties": {
+                    "app": {
+                      "type": "object",
+                      "required": [
+                        "build",
+                        "url"
+                      ],
+                      "properties": {
+                        "build": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "url": {
+                          "type": "string",
+                          "format": "uri"
+                        }
+                      }
+                    },
                     "cities": {
                       "type": "array",
                       "items": {

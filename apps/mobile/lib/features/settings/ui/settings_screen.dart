@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
@@ -14,6 +15,7 @@ import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/league/data/league_api.dart';
 import 'package:pindoro/features/league/data/league_data.dart';
 import 'package:pindoro/features/league/ui/league_name_form.dart';
+import 'package:pindoro/features/pack/data/app_update.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/progress/ui/daily_goal.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -172,6 +174,8 @@ class SettingsScreen extends ConsumerWidget {
         SectionTitle(l10n.settingsAbout),
         ListGroup(
           children: [
+            if (ref.watch(packageInfoProvider).value case final info?)
+              _VersionRow(info, update: ref.watch(appUpdateProvider).value),
             ListRow(
               title: l10n.creditsTitle,
               leading: const RowTile(PindoroGlyph.map),
@@ -328,6 +332,28 @@ class CreditsScreen extends StatelessWidget {
         ),
         Text(l10n.creditsFix, style: body),
       ],
+    );
+  }
+}
+
+/// This build's version; while a newer one is out, a tap downloads it.
+class _VersionRow extends StatelessWidget {
+  const _VersionRow(this.info, {required this.update});
+
+  final PackageInfo info;
+  final Uri? update;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final url = update;
+    return ListRow(
+      title: l10n.settingsVersion('${info.version} (${info.buildNumber})'),
+      subtitle: url == null ? null : l10n.settingsUpdate,
+      leading: const RowTile(PindoroGlyph.info),
+      onTap: url == null
+          ? null
+          : () => launchUrl(url, mode: LaunchMode.externalApplication),
     );
   }
 }

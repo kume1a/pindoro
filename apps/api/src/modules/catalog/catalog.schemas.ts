@@ -31,7 +31,15 @@ const Pack = Type.Object({
   osm_timestamp: Type.String({ format: "date-time" }),
 });
 
+const AppRelease = Type.Object({
+  build: Type.Integer({ minimum: 1 }),
+  url: Type.String({ format: "uri" }),
+});
+export type AppRelease = Static<typeof AppRelease>;
+
 export const Catalog = Type.Object({
+  // The newest sideload build; older installs offer it (docs/deploy.md § 9).
+  app: Type.Optional(AppRelease),
   cities: Type.Array(
     Type.Object({
       id: Type.String(),
