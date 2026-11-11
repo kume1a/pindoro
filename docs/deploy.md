@@ -122,7 +122,11 @@ sudo systemctl start pindoro-packs.service && journalctl -u pindoro-packs.servic
 ```
 
 `ExecStart` lines run in order and stop at the first failure, so a broken build never gets
-published. Old pack versions stay on disk (immutable URLs); prune them by hand when space matters.
+published. The last one copies the published street ids to
+`infra/backups/tbilisi-identity-YYYY-MM-DD.json`, which the backup copy (§ 7) takes along. Still
+commit them back after each run (§ 5): until then the only copies are on this machine. If a later
+`just deploy` refuses to pull because `identity.json` changed both here and upstream, keep the
+newer ids, never the older ones. Old pack versions stay on disk (immutable URLs); prune them by hand when space matters.
 After editing a unit in the repo, copy it again and `sudo systemctl daemon-reload`.
 
 ## 7. Backups
@@ -145,7 +149,9 @@ dc start api
 ```
 
 Packs and tiles are rebuilt from OSM data (steps 5); only the database and
-`data/cities/*/identity.json` (in git) need backing up.
+`data/cities/*/identity.json` (in git) need backing up. To recover lost street ids, copy the newest
+`infra/backups/tbilisi-identity-*.json` (or its copy in `/mnt/backup/pindoro`) to
+`data/cities/tbilisi/identity.json` and commit it before the next pack refresh.
 
 ## 8. Updating
 
@@ -184,6 +190,20 @@ just release apk pindoro.app   # → apps/mobile/build/app/outputs/flutter-apk/a
 
 Without `key.properties` the APK is signed with the debug key of the machine that built it, so
 builds from another machine can't update it.
+
+**Offering the build.** Installed apps never update themselves; the catalog tells them a newer
+build is out. Put the APK next to the packs and point `.env` at it, where `APP_BUILD` is the `+N`
+of `version`:
+
+```sh
+scp apps/mobile/build/app/outputs/flutter-apk/app-release.apk server:/opt/pindoro/infra/packs/app/pindoro-2.apk
+# then on the server, in .env: APP_BUILD=2 and APP_URL=https://packs.pindoro.app/app/pindoro-2.apk
+dc up -d api
+```
+
+Older installs then offer the download at launch, and Settings → About shows each install's
+version and build. Raise `APP_BUILD` with every build you hand out, so nobody stays behind on a
+build that a new pack format or API change has left broken.
 
 **iOS** is not distributed. If ever needed, an ad-hoc build (`just release ipa pindoro.app`) needs
 an Apple Developer account and each device's UDID registered; CI builds iOS unsigned on every push.

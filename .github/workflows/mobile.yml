@@ -30,8 +30,24 @@ jobs:
       - run: flutter analyze --fatal-infos
       - run: just test-dart
 
+  android:
+    # The release APK friends sideload; without key.properties it is signed with the debug key.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - uses: extractions/setup-just@v4
+      - run: flutter pub get
+      - run: just gen
+      - run: flutter build apk --release
+        working-directory: apps/mobile
+
   ios:
-    # Unsigned store build: proves the iOS side compiles; signing happens on a Mac (docs/deploy.md).
+    # Unsigned build: proves the iOS side compiles; signing happens on a Mac (docs/deploy.md).
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v7

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { FastifyPluginAsyncTypebox } from "@fastify/type-provider-typebox";
 import type { FastifyBaseLogger } from "fastify";
 import { Value } from "typebox/value";
-import { Catalog, Manifest } from "./catalog.schemas.ts";
+import { type AppRelease, Catalog, Manifest } from "./catalog.schemas.ts";
 
 const listDirs = async (dir: string): Promise<string[]> => {
   try {
@@ -44,7 +44,8 @@ const readManifests = async (dir: string, log: FastifyBaseLogger): Promise<Manif
 export const catalogRoutes: FastifyPluginAsyncTypebox<{
   packsDir: string;
   packsPublicUrl: string;
-}> = async (app, { packsDir, packsPublicUrl }) => {
+  app?: AppRelease;
+}> = async (app, { packsDir, packsPublicUrl, app: release }) => {
   const base = packsPublicUrl.replace(/\/+$/, "");
   app.get(
     "/v1/catalog",
@@ -53,6 +54,7 @@ export const catalogRoutes: FastifyPluginAsyncTypebox<{
       const manifests = await readManifests(packsDir, req.log);
       reply.header("cache-control", "public, max-age=60");
       return {
+        app: release,
         cities: manifests.map((m) => ({
           id: m.city,
           name_ka: m.name_ka,

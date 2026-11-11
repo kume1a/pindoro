@@ -437,6 +437,19 @@
   "settingsHaptics": "Haptics",
   "settingsHapticsSubtitle": "Buzz on pin drop and answers",
   "settingsAbout": "About",
+  "settingsVersion": "Version {version}",
+  "@settingsVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsUpdate": "A newer version is out. Tap to download it.",
+  "updateTitle": "A new Pindoro is out",
+  "updateBody": "Download it and install it over this one. Your progress stays.",
+  "updateDownload": "Download",
+  "updateLater": "Later",
   "creditsTitle": "Map data credits",
   "creditsIntro": "Pindoro is built on open map data. Thank you to everyone who maps their streets.",
   "creditsFix": "Spotted a missing or wrong street? Fix it on openstreetmap.org and Pindoro picks it up within a few weeks.",
