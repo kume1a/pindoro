@@ -57,21 +57,30 @@ sudo ./svc.sh install && sudo ./svc.sh start
 The repository is public, so anyone can open a pull request whose workflow targets `self-hosted`;
 GitHub only asks for approval before running workflows from outside contributors.
 
-**Variables.** Repository → **Settings → Secrets and variables → Actions → Variables**. Every
-variable becomes a line of `.env` on each run (see `.env.example`):
+**Variables and secrets.** Repository → **Settings → Secrets and variables → Actions**. Every
+variable and secret becomes a line of `.env` on each run (see `.env.example`). The run logs of a
+public repository are public and print variables in clear text, so anything secret is a secret,
+which the logs mask:
 
-| Variable            | Value                                                           |
+| Variable        | Value                                                  |
+| --------------- | ------------------------------------------------------ |
+| `PUBLIC_HOST`   | `pindoro.example.com`                                  |
+| `POSTGRES_USER` | `pindoro`                                              |
+| `POSTGRES_DB`   | `pindoro`                                              |
+| `HTTP_PORT`     | only if 8100 is taken; change the tunnel route with it |
+| `APP_BUILD`     | the newest sideload build (§ 7), once there is one     |
+| `APP_URL`       | its APK link (§ 7)                                     |
+
+| Secret              | Value                                                           |
 | ------------------- | --------------------------------------------------------------- |
-| `PUBLIC_HOST`       | `pindoro.example.com`                                           |
-| `POSTGRES_USER`     | `pindoro`                                                       |
 | `POSTGRES_PASSWORD` | `openssl rand -hex 24`: it goes into a connection URL, keep hex |
-| `POSTGRES_DB`       | `pindoro`                                                       |
-| `HTTP_PORT`         | only if 8100 is taken; change the tunnel route with it          |
-| `APP_BUILD`         | the newest sideload build (§ 7), once there is one              |
-| `APP_URL`           | its APK link (§ 7)                                              |
 
-Variables stay readable in the GitHub UI, so the configuration is recoverable; the workflow never
-echoes them. PostGIS publishes no port, so its password never leaves the server's Docker network.
+PostGIS publishes no port, so its password never leaves the server's Docker network. It needs no
+recovery: to change it, set it on the server, then update the secret and run the Deploy workflow:
+
+```sh
+docker exec pindoro-postgis-1 psql -U pindoro -d pindoro -c "ALTER USER pindoro PASSWORD '<new>'"
+```
 
 ## 4. The Deploy workflow
 

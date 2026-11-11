@@ -42,16 +42,19 @@ jobs:
           ref: prod
           persist-credentials: false
 
-      # Every repository variable becomes a line of .env, JSON-quoted with each `$` doubled so
-      # compose reads it verbatim. Values are never echoed.
-      - name: Write .env from repository variables
+      # Every repository variable and secret becomes a line of .env, JSON-quoted with each `$`
+      # doubled so compose reads it verbatim. This public log prints variables in clear text and
+      # masks secrets, so passwords go in secrets.
+      - name: Write .env from repository variables and secrets
         env:
           VARS_JSON: ${{ toJSON(vars) }}
+          SECRETS_JSON: ${{ toJSON(secrets) }}
         run: |
           set -euo pipefail
           umask 077
-          jq -r 'to_entries[] | "\(.key)=\((.value | gsub("[$]"; "$$")) | @json)"' \
-            <<< "$VARS_JSON" > .env
+          jq -nr --argjson v "$VARS_JSON" --argjson s "$SECRETS_JSON" \
+            '$v + ($s | del(.github_token)) | to_entries[] | "\(.key)=\((.value | gsub("[$]"; "$$")) | @json)"' \
+            > .env
 
       # Caddy reads its config only when it starts, so it restarts to pick up a changed Caddyfile.
       - name: Start the stack
