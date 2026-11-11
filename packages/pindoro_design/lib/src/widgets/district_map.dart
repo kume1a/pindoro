@@ -25,7 +25,7 @@ typedef MiniMapDistrict = ({
   DistrictProgress progress,
 });
 
-/// The city's districts filling in as streets become known: outline when not
+/// The city's districts filling in as streets become known: grey when not
 /// started, yellow in progress, cobalt complete. Decorative; rows beside it
 /// carry the same data.
 class DistrictMiniMap extends StatelessWidget {
@@ -86,28 +86,34 @@ class _DistrictPainter extends CustomPainter {
       return path;
     }
 
-    final shapes = [
+    Paint line(Color color, double width) => Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = width
+      ..strokeJoin = StrokeJoin.round;
+
+    final paths = [
       for (final d in districts)
-        for (final polygon in d.boundary)
-          (progress: d.progress, path: pathOf(polygon)),
+        for (final polygon in d.boundary) (d.progress, pathOf(polygon)),
     ];
-    // Every fill, then the outlines from not started up: a neighbour drawn
-    // later never paints over a district's coloured edge.
-    for (final s in shapes) {
-      if (s.progress.colorsIn(colors).$1 case final fill?) {
-        canvas.drawPath(s.path, Paint()..color = fill);
+    // Each district is a tile: its fill, a coloured edge kept inside it, then
+    // a land-coloured gap along every border, so no neighbour draws over it.
+    for (final (progress, path) in paths) {
+      final (fill, stroke) = progress.colorsIn(colors);
+      canvas.drawPath(
+        path,
+        Paint()..color = fill ?? colors.mapDistrictLockedFill,
+      );
+      if (progress != DistrictProgress.notStarted) {
+        canvas
+          ..save()
+          ..clipPath(path)
+          ..drawPath(path, line(stroke, 5))
+          ..restore();
       }
     }
-    shapes.sort((a, b) => a.progress.index.compareTo(b.progress.index));
-    for (final s in shapes) {
-      canvas.drawPath(
-        s.path,
-        Paint()
-          ..color = s.progress.colorsIn(colors).$2
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = s.progress == DistrictProgress.notStarted ? 1.5 : 2.0
-          ..strokeJoin = StrokeJoin.round,
-      );
+    for (final (_, path) in paths) {
+      canvas.drawPath(path, line(colors.mapBasemapLand, 1.5));
     }
   }
 
