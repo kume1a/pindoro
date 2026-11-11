@@ -29,7 +29,7 @@ Future<void> main() async {
     apiBaseUrl: AppConfig.apiBaseUrl,
   );
   final container = ProviderContainer(
-    observers: [CityTilesObserver()],
+    observers: [CityTilesObserver(Directory('${docs.path}/city_tiles'))],
     overrides: [
       databaseProvider.overrideWithValue(db),
       packStoreProvider.overrideWithValue(store),

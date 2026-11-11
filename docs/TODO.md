@@ -130,7 +130,8 @@
   and run `just server-setup` (`docs/deploy.md`).
 - Store releases: create the Android upload key and `key.properties`, then
   `just release appbundle <domain>` (`docs/deploy.md` section 9).
-- iOS is built unsigned in CI (macOS runner) but has never run on a device or simulator.
+- iOS is built unsigned in CI (macOS runner) and has run on the simulator (iPhone 16, iOS 18.6),
+  never on a device. A reminder after notifications are allowed hasn't been checked there.
 - `flutter_tts` has no Swift package, so iOS builds add CocoaPods for it on the fly (`Podfile`,
   Pods in the Xcode project); none of that is committed. Commit it, or swap the plugin, if a
   signed release needs a reproducible Pods setup.

@@ -18,19 +18,23 @@ final _kept = <String>{};
 
 /// Keeps [city]'s map tiles on the phone as a MapLibre offline region, so
 /// maps work offline once it has downloaded. Runs in the background; an
-/// interrupted download starts over next launch.
-Future<void> keepCityTilesOffline(City city) async {
+/// interrupted download starts over next launch. A file in [marks] named
+/// after the city holds the id of its finished region: maplibre_gl can't
+/// update a region's metadata on iOS.
+Future<void> keepCityTilesOffline(City city, Directory marks) async {
   if (!_kept.add(city.id)) return;
+  final mark = File('${marks.path}/${city.id}');
   HttpServer? style;
   try {
     final regions = [
       for (final r in await ml.getListOfRegions())
         if (r.metadata['city'] == city.id) r,
     ];
-    if (regions.any((r) => r.metadata['complete'] == true)) return;
+    final finished = await mark.exists() ? await mark.readAsString() : null;
     for (final r in regions) {
-      await ml.deleteOfflineRegion(r.id);
+      if ('${r.id}' != finished) await ml.deleteOfflineRegion(r.id);
     }
+    if (regions.any((r) => '${r.id}' == finished)) return;
     // MapLibre fetches a region's style over HTTP only (file:// fails), so
     // the bundled style is served on loopback while the download runs. Both
     // themes share the tiles.
@@ -55,10 +59,7 @@ Future<void> keepCityTilesOffline(City city) async {
       },
     );
     await done.future;
-    await ml.updateOfflineRegionMetadata(region.id, {
-      'city': city.id,
-      'complete': true,
-    });
+    await (await mark.create(recursive: true)).writeAsString('${region.id}');
   } catch (e) {
     _kept.remove(city.id);
     if (kDebugMode) debugPrint('city tiles for ${city.id} failed: $e');
@@ -82,6 +83,10 @@ Future<HttpServer> _serve(String json) async {
 /// Starts [keepCityTilesOffline] whenever a downloaded city pack opens,
 /// without opening one itself.
 final class CityTilesObserver extends ProviderObserver {
+  CityTilesObserver(this.marks);
+
+  final Directory marks;
+
   @override
   void didAddProvider(ProviderObserverContext context, Object? value) =>
       _onPack(context, value);
@@ -98,7 +103,7 @@ final class CityTilesObserver extends ProviderObserver {
     if (value case AsyncData(
       value: final PackRepository pack,
     ) when !isFixturePack(pack)) {
-      unawaited(keepCityTilesOffline(pack.city()));
+      unawaited(keepCityTilesOffline(pack.city(), marks));
     }
   }
 }
