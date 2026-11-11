@@ -111,6 +111,18 @@
   - A league week only fills from players syncing; with few players, leagues stay small (no
     demotion zone below 26 players).
 
+- Badges, left out on purpose:
+  - The "unlock chime" waits for the sound kit.
+  - No badge detail screen, no sharing, and the earned date shows nowhere.
+  - Explorer is "know streets in 5 districts", not the design's "3 cities": the catalog has one
+    city. Navigator's sheet says the condition, not the district ("you mastered Vake").
+  - Pit crew counts streets cleared from the update on: clearings weren't recorded before.
+  - A badge earned on a screen that was killed, or in a Final drive left before Unit complete,
+    gets its sheet at the next end screen. The launch award is quiet and only runs while the
+    player has no badges.
+  - Badge stats count only cities whose pack is on the phone (as Me does).
+  - Chests, the design's other reward moment: nothing in the app is a chest.
+
 ## Gaps found 2026-11-11 (design vs code)
 
 Not left out on purpose: found by comparing the app with `docs/design/*.md`, the claude.ai canvas
@@ -166,8 +178,6 @@ and the specs after R5. Fix them in roughly this order.
 
 In the design system but in no release on the canvas Roadmap:
 
-- Badges: the starter set of eight (First pin, Bullseye, On fire, Navigator, Road trip, Night owl,
-  Explorer, Pit crew), their reward moment and a shelf on Me.
 - Onboarding illustration scenes and illustrated empty states ("no league yet", "city not
   downloaded").
 - A player profile behind a tapped league row.

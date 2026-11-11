@@ -8,7 +8,7 @@ Signpost widgets: `PindoroButton`, `StreetPlate`, `FeedbackBadge`, surfaces (`Li
 components (`QuestionBar`, `Pill`, `MapControl`, `RevealSheet`, `ResultRow`, `RewardTotal`,
 `TierTally`, `CoachBubble`), the lesson path (`PathStop`, `Signpost` with its Unit guide book button, `LessonRoad`, the loading `Skeleton`) and lesson
 components (`PlateChoice`, `FeedbackBar`), the league (`LeagueHeader`, `LeagueRow`,
-`ZoneDivider`), setup components (`SearchField`, `CitySwitcher`, `PindoroChip`,
+`ZoneDivider`), badges (`BadgeShield`, `BadgeTile`; fields `color.badge.*` in `app.json`), setup components (`SearchField`, `CitySwitcher`, `PindoroChip`,
 `DifficultyCard`, `DistrictMiniMap`) and motion (`PindoroPageTransitions`, `CountUp`, `PopIn`,
 `RiseIn`, `Celebration`, `Wiggle`, `FadeIndexedStack`; all calm down under reduce motion). Widgets take their text
 as parameters; strings live in the app.

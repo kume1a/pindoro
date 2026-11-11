@@ -228,6 +228,24 @@ void main() {
     expect(find.bySemanticsLabel('Best streak, 21 days'), findsOneWidget);
   });
 
+  testWidgets('a badge tile reads as one label', (tester) async {
+    await tester.pumpWidget(
+      _host(
+        const BadgeTile(
+          glyph: PindoroGlyph.car,
+          field: Colors.indigo,
+          name: 'Road trip',
+          condition: 'Finish 5 road trips',
+          semanticLabel: 'Road trip, locked, 2 of 5.',
+          locked: true,
+          progress: 0.4,
+        ),
+      ),
+    );
+    expect(find.bySemanticsLabel('Road trip, locked, 2 of 5.'), findsOneWidget);
+    expect(find.byType(Minibar), findsOneWidget);
+  });
+
   testWidgets('the fade stack shows the old child only while fading', (
     tester,
   ) async {
@@ -916,6 +934,95 @@ void main() {
         await expectLater(
           find.byType(Scaffold),
           matchesGoldenFile('goldens/league_${brightness.name}.png'),
+        );
+      });
+    }
+
+    for (final brightness in Brightness.values) {
+      testWidgets('badges ${brightness.name}', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(400, 640));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await tester.pumpWidget(
+          _host(
+            brightness: brightness,
+            Builder(
+              builder: (context) {
+                final c = PindoroTheme.of(context).colors;
+                final shields = [
+                  (PindoroGlyph.pinDrop, c.badgeFirstPin),
+                  (PindoroGlyph.star, c.badgeBullseye),
+                  (PindoroGlyph.flame, c.badgeOnFire),
+                  (PindoroGlyph.district, c.badgeNavigator),
+                  (PindoroGlyph.car, c.badgeRoadTrip),
+                  (PindoroGlyph.moon, c.badgeNightOwl),
+                  (PindoroGlyph.globe, c.badgeExplorer),
+                  (PindoroGlyph.wrench, c.badgePitCrew),
+                ];
+                BadgeTile tile(
+                  int i,
+                  String name, {
+                  bool locked = false,
+                  double? progress,
+                  String? newLabel,
+                }) => BadgeTile(
+                  glyph: shields[i].$1,
+                  field: shields[i].$2,
+                  name: name,
+                  condition: 'Condition of $name',
+                  semanticLabel: '',
+                  locked: locked,
+                  progress: progress,
+                  newLabel: newLabel,
+                );
+                Widget row(List<Widget> tiles) => IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: 8,
+                    children: [for (final t in tiles) Expanded(child: t)],
+                  ),
+                );
+                return Column(
+                  spacing: 12,
+                  children: [
+                    Wrap(
+                      spacing: 4,
+                      children: [
+                        for (final (glyph, field) in shields)
+                          BadgeShield(glyph: glyph, field: field, size: 40),
+                      ],
+                    ),
+                    row([
+                      tile(0, 'First pin', newLabel: 'New'),
+                      tile(1, 'Bullseye'),
+                      // Short text: the card still fills its column.
+                      BadgeTile(
+                        glyph: shields[3].$1,
+                        field: shields[3].$2,
+                        name: 'Navigator',
+                        condition: 'Short',
+                        semanticLabel: '',
+                      ),
+                    ]),
+                    row([
+                      tile(4, 'Road trip', locked: true, progress: 0.4),
+                      tile(5, 'Night owl', locked: true),
+                      tile(7, 'Pit crew', locked: true, progress: 0.1),
+                    ]),
+                    BadgeShield(
+                      glyph: shields[1].$1,
+                      field: shields[1].$2,
+                      size: 110,
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await expectLater(
+          find.byType(Scaffold),
+          matchesGoldenFile('goldens/badges_${brightness.name}.png'),
         );
       });
     }

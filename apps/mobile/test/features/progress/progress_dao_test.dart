@@ -655,4 +655,116 @@ void main() {
       expect(await progress.lastRoundArea('tbilisi'), vake);
     });
   });
+
+  group('badges', () {
+    test(
+      'a street cleared from the Pit stop is counted, a new Great is not',
+      () async {
+        final id = await round(['a', 'b']);
+        await answer(id, 'b', Tier.great);
+        await answer(id, 'a', Tier.miss);
+        await answer(id, 'a', Tier.great);
+        expect((await progress.badgeCounts()).pitStopCleared, 0);
+        await answer(id, 'a', Tier.perfect);
+        expect((await progress.badgeCounts()).pitStopCleared, 1);
+        expect(await db.select(db.reviewClearings).get(), [
+          isA<ReviewClearing>()
+              .having((c) => c.cityId, 'city', 'tbilisi')
+              .having((c) => c.streetId, 'street', 'a'),
+        ]);
+      },
+    );
+
+    test('pins and Perfects count rounds and lesson pins, not names', () async {
+      final id = await round(['a', 'b']);
+      await answer(id, 'a', Tier.perfect);
+      await answer(id, 'b', Tier.close);
+      final result = await db
+          .into(db.lessonResults)
+          .insertReturning(
+            LessonResultsCompanion.insert(
+              cityId: 'tbilisi',
+              unitId: 'osm:r1',
+              kind: LessonKind.lesson,
+              difficulty: Difficulty.medium,
+              xp: 0,
+              perfect: false,
+              rightFirst: 0,
+              tests: 2,
+              durationMs: 1000,
+              finishedAt: Value(DateTime(2026, 11, 11, 12)),
+            ),
+          );
+      for (final (i, kind) in [
+        LessonAnswerKind.pin,
+        LessonAnswerKind.name,
+      ].indexed) {
+        await db
+            .into(db.lessonAnswers)
+            .insert(
+              LessonAnswersCompanion.insert(
+                resultId: result.id,
+                position: i,
+                streetId: 'c',
+                kind: kind,
+                tier: Tier.perfect,
+                xp: 0,
+                fix: false,
+              ),
+            );
+      }
+      final counts = await progress.badgeCounts();
+      expect((counts.pins, counts.perfects), (3, 2));
+    });
+
+    test('a late answer is one before 04:00 local time', () async {
+      final id = await round(['a']);
+      Future<void> answerAt(DateTime at) => db
+          .into(db.answers)
+          .insert(
+            AnswersCompanion.insert(
+              roundId: id,
+              streetId: 'a',
+              pinLat: 41.7,
+              pinLon: 44.75,
+              distanceM: 10,
+              tier: Tier.great,
+              xp: 60,
+              packVersion: 'v1',
+              createdAt: Value(at),
+            ),
+          );
+      await answerAt(DateTime(2026, 11, 11, 4));
+      await answerAt(DateTime(2026, 11, 11, 23, 59));
+      expect((await progress.badgeCounts()).lateAnswer, isFalse);
+      await answerAt(DateTime(2026, 11, 12, 1, 30));
+      expect((await progress.badgeCounts()).lateAnswer, isTrue);
+    });
+
+    test('earn saves each badge once and returns only the new ones', () async {
+      final now = DateTime(2026, 11, 11);
+      expect(await progress.hasBadges(), isFalse);
+      expect(await progress.earn([BadgeId.firstPin, BadgeId.bullseye], now), [
+        BadgeId.firstPin,
+        BadgeId.bullseye,
+      ]);
+      expect(await progress.earn([BadgeId.firstPin, BadgeId.onFire], now), [
+        BadgeId.onFire,
+      ]);
+      expect(await progress.hasBadges(), isTrue);
+      expect((await progress.earnedBadges()).keys, {
+        BadgeId.firstPin,
+        BadgeId.bullseye,
+        BadgeId.onFire,
+      });
+    });
+
+    test('unseen badges are taken once; a seen one never is', () async {
+      final now = DateTime(2026, 11, 11);
+      await progress.earn([BadgeId.firstPin, BadgeId.bullseye], now);
+      await progress.seeBadges([BadgeId.bullseye], now);
+      expect(await progress.takeUnseenBadges(now), {BadgeId.firstPin});
+      expect(await progress.takeUnseenBadges(now), isEmpty);
+    });
+  });
 }

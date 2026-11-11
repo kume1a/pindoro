@@ -19,7 +19,8 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                city, area, difficulty), quiz (round), results (results, street),
                                settings, streak, pitstop, me, lesson (lesson, Lesson complete, Final drive,
                                Unit complete), league (the Leagues tab, the name form; data: LeagueDao,
-                               LeagueApi, standingProvider)
+                               LeagueApi, standingProvider), badges (stats, awards, the shelf tile,
+                               the reward sheet and BadgeMoments)
 lib/features/quiz/ui/round_controller.dart   round state machine; resumes from round_question + answers;
                                questions are NamedStreets (cityStreetsProvider); retries set round.retry_of,
                                Pit stop rounds round.pit_stop
@@ -33,7 +34,7 @@ test/drift/                    generated schema helpers + migration test
 ## Conventions
 
 - **Layers, lowest first:** `l10n` → `core` → `features/progress` → `features/pack` →
-  `features/map` → `features/course` → `features/league` → screen features (`home`, `setup`, `quiz`, `results`,
+  `features/map` → `features/course` → `features/league` → `features/badges` → screen features (`home`, `setup`, `quiz`, `results`,
   `settings`, `streak`, `pitstop`, `me`, `lesson`) → `app` → `main.dart`. A file imports its own slice or a lower layer only; screen features never import
   each other. Something two features need moves down (to `core`, or to `progress`/`pack`/`map`).
   `test/architecture_test.dart` enforces this, and that `ui/` never imports Drift; a new feature
@@ -96,6 +97,18 @@ test/drift/                    generated schema helpers + migration test
   Avenue league" when the round's XP raised the rank (`rankBefore`). Settings → League renames
   (`/league-name`) and leaves (the server forgets the player). Tests override
   `leagueApiProvider` with a `MockClient`.
+- **Badges** (`features/badges`, spec `docs/specs/2026-11-11-badges-design.md`): pindoro_core
+  `badgeProgress` is the rule; `readBadgeStats` reads the stats fresh from `ProgressDao`
+  (`badgeCounts`, road trips, goal days) and the installed packs of played cities
+  (`readInstalledPack`, never a download). `awardBadgesProvider` saves newly earned badges
+  (`badge`, insert or ignore) and returns them. End screens (Results, Lesson complete, Unit
+  complete) mix in `BadgeMoments`: they award as they open and show a reward sheet per new badge
+  after the arrival and any level-up moment (`showBadgesAfter`). The app root awards quietly at
+  launch only while there are no badges (past play). Me's shelf reads `badgesProvider`; its New
+  pills come from `newBadgesProvider` (taken and marked seen when the Me tab opens; the tab shell
+  invalidates it); closing a reward sheet marks that badge seen. `review_cleared` logs Pit stop
+  clearings for Pit crew. Badge tests override `packStoreProvider` with a temp-dir store; app
+  tests without one get no awards.
 - **Hear the name:** `speechProvider` (`core/speech.dart`, `flutter_tts`) reads a new street's name
   in `speechLanguage(name)`; the button shows only when `canSpeakProvider` finds a voice. Tests
   override `speechProvider`.

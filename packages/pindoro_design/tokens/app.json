@@ -52,9 +52,81 @@
           "dark": "{color.asphalt.0}"
         },
         "usage": "Initials on an avatar background."
+      },
+      {
+        "name": "color.badge.rim",
+        "value": {
+          "light": "{color.yellow.400}",
+          "dark": "{color.yellow.400}"
+        },
+        "usage": "An earned badge's shield rim (component Badge)."
+      },
+      {
+        "name": "color.badge.first-pin",
+        "value": {
+          "light": "{color.cobalt.500}",
+          "dark": "{color.cobalt.500}"
+        },
+        "usage": "First pin's shield field."
+      },
+      {
+        "name": "color.badge.bullseye",
+        "value": {
+          "light": "{color.yellow.600}",
+          "dark": "{color.yellow.600}"
+        },
+        "usage": "Bullseye's shield field."
+      },
+      {
+        "name": "color.badge.on-fire",
+        "value": {
+          "light": "{color.orange.500}",
+          "dark": "{color.orange.500}"
+        },
+        "usage": "On fire's shield field."
+      },
+      {
+        "name": "color.badge.navigator",
+        "value": {
+          "light": "{color.aqua.600}",
+          "dark": "{color.aqua.600}"
+        },
+        "usage": "Navigator's shield field."
+      },
+      {
+        "name": "color.badge.road-trip",
+        "value": {
+          "light": "{color.cobalt.700}",
+          "dark": "{color.cobalt.700}"
+        },
+        "usage": "Road trip's shield field."
+      },
+      {
+        "name": "color.badge.night-owl",
+        "value": {
+          "light": "{color.red.600}",
+          "dark": "{color.red.600}"
+        },
+        "usage": "Night owl's shield field."
+      },
+      {
+        "name": "color.badge.explorer",
+        "value": {
+          "light": "{color.aqua.800}",
+          "dark": "{color.aqua.800}"
+        },
+        "usage": "Explorer's shield field (not in the design preview: the darkest unused aqua)."
+      },
+      {
+        "name": "color.badge.pit-crew",
+        "value": {
+          "light": "{color.orange.700}",
+          "dark": "{color.orange.700}"
+        },
+        "usage": "Pit crew's shield field (not in the design preview: the darkest unused orange)."
       }
     ],
-    "note": "Colours the design system's component CSS uses as primitives directly (league ladder, avatars)."
+    "note": "Colours the design system's component CSS uses as primitives directly (league ladder, avatars, badge fields)."
   },
   "duration": {
     "tokens": [

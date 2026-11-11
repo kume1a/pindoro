@@ -8,6 +8,7 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/badges/ui/badge_reward.dart';
 import 'package:pindoro/features/course/data/course_data.dart';
 import 'package:pindoro/features/lesson/data/unit_done_data.dart';
 import 'package:pindoro/features/progress/ui/level_up_screen.dart';
@@ -31,7 +32,8 @@ class UnitDoneScreen extends ConsumerStatefulWidget {
   ConsumerState<UnitDoneScreen> createState() => _UnitDoneScreenState();
 }
 
-class _UnitDoneScreenState extends ConsumerState<UnitDoneScreen> {
+class _UnitDoneScreenState extends ConsumerState<UnitDoneScreen>
+    with BadgeMoments {
   bool _levelUpOpened = false;
 
   void _continue() {
@@ -43,12 +45,14 @@ class _UnitDoneScreenState extends ConsumerState<UnitDoneScreen> {
     context.go(Routes.path);
   }
 
+  /// A level the drive crossed opens the level-up moment once; the badges'
+  /// sheets follow it, or the trophy's burst when there's none.
   void _levelUp(int totalXp) {
     final level = progressWithinLevel(totalXp).level;
-    if (_levelUpOpened ||
-        level == progressWithinLevel(totalXp - widget.gainedXp).level) {
-      return;
+    if (level == progressWithinLevel(totalXp - widget.gainedXp).level) {
+      return showBadgesAfter(PindoroMotion.celebrateMedium);
     }
+    if (_levelUpOpened) return;
     _levelUpOpened = true;
     unawaited(
       showLevelUpAfter(
@@ -57,7 +61,7 @@ class _UnitDoneScreenState extends ConsumerState<UnitDoneScreen> {
         level: level,
         totalXp: totalXp,
         delay: PindoroMotion.celebrateMedium,
-      ),
+      ).then((_) => showBadgesAfter(Duration.zero)),
     );
   }
 

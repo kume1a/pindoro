@@ -7,7 +7,8 @@ lib/src/geo/        LatLng, LocalProjection, Bbox, pointToPolylineDistance, poly
 lib/src/scoring/    Difficulty, Tier, ScoringConfig (half-widths, fixed distances), scoreAnswer,
                     RouteScoring + scoreRoute (road trips: % longer than the best drive)
 lib/src/progress/   levels: requirement, totalXpToReach, levelForXp, progressWithinLevel;
-                    league: the league week (Monday 00:00 at UTC+4) and the name rule
+                    league: the league week (Monday 00:00 at UTC+4) and the name rule;
+                    badges: the starter eight and badgeProgress (Dart-only, like ReviewRules)
 lib/src/game/       Area (districts/circle/rect, in-area rule), NamedStreet (nearby same-name parts),
                     QuestionSelector (10 names, 3 × 3 grid), knowledge (per street),
                     course (units per raion, stops, progress, Final drive gate, Jump ahead,

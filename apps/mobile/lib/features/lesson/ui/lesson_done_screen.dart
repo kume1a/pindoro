@@ -9,6 +9,7 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/badges/ui/badge_reward.dart';
 import 'package:pindoro/features/course/data/course_data.dart';
 import 'package:pindoro/features/course/ui/lesson_title.dart';
 import 'package:pindoro/features/lesson/data/lesson_done_data.dart';
@@ -38,7 +39,8 @@ class LessonDoneScreen extends ConsumerStatefulWidget {
   ConsumerState<LessonDoneScreen> createState() => _LessonDoneScreenState();
 }
 
-class _LessonDoneScreenState extends ConsumerState<LessonDoneScreen> {
+class _LessonDoneScreenState extends ConsumerState<LessonDoneScreen>
+    with BadgeMoments {
   bool _levelUpOpened = false;
 
   /// Back to the Path, which plays the unlock from the stop just finished
@@ -54,7 +56,8 @@ class _LessonDoneScreenState extends ConsumerState<LessonDoneScreen> {
     context.go(Routes.path);
   }
 
-  /// A level crossed in this lesson opens the level-up moment once.
+  /// A level crossed in this lesson opens the level-up moment once; the
+  /// badges' sheets follow it.
   void _levelUp(int level, int totalXp) {
     if (_levelUpOpened) return;
     _levelUpOpened = true;
@@ -65,7 +68,7 @@ class _LessonDoneScreenState extends ConsumerState<LessonDoneScreen> {
         level: level,
         totalXp: totalXp,
         delay: _Arrival.chips,
-      ),
+      ).then((_) => showBadgesAfter(Duration.zero)),
     );
   }
 
@@ -85,6 +88,8 @@ class _LessonDoneScreenState extends ConsumerState<LessonDoneScreen> {
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => _levelUp(after.level, done.totalXp),
       );
+    } else {
+      showBadgesAfter(_Arrival.chips);
     }
     final streak = ref.watch(streakProvider).value?.summary.days ?? 0;
     final accuracy = r.tests == 0 ? 0 : (r.rightFirst * 100 / r.tests).round();

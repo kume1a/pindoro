@@ -64,13 +64,9 @@ final meProvider = FutureProvider.autoDispose<MeData>((ref) async {
   final cities = [await count(open, openStreets)];
   for (final id in await dao.recentCityIds()) {
     if (id == open.city().id) continue;
-    final file = ref.read(packStoreProvider).newest(id);
-    if (file == null) continue;
-    final pack = SqlitePackRepository.open(file.path);
-    try {
-      cities.add(await count(pack, streetsByPartId(pack.streets())));
-    } finally {
-      pack.close();
+    final store = ref.read(packStoreProvider);
+    if (await readInstalledPack(store, id, count) case final city?) {
+      cities.add(city);
     }
   }
   return (
