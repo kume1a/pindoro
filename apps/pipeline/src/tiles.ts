@@ -1,8 +1,8 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { type Flavor, layers, namedFlavor } from "@protomaps/basemaps";
 import { MOBILE_ASSETS, REPO_ROOT, TOKENS_FILES } from "./config.ts";
-import { replaceAtomically, run } from "./io.ts";
+import { replaceAtomically, run, writeJson } from "./io.ts";
 
 // minLon,minLat,maxLon,maxLat around Georgia
 const GEORGIA_BBOX = "39.9,41.0,46.8,43.6";
@@ -107,7 +107,7 @@ const writeStyles = (): void => {
   mkdirSync(STYLES_DIR, { recursive: true });
   for (const mode of ["light", "dark"] as const) {
     const file = join(STYLES_DIR, `pindoro_${mode}.json`);
-    writeFileSync(file, `${JSON.stringify(mapStyle(mode), null, 2)}\n`);
+    writeJson(file, mapStyle(mode));
     console.log(`style: ${file}`);
   }
 };

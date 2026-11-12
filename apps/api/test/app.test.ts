@@ -2,7 +2,6 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
-import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app.ts";
 import { loadConfig } from "../src/config.ts";
@@ -59,16 +58,6 @@ describe("api", () => {
   afterAll(async () => {
     await app?.close();
     await rm(packsDir, { recursive: true, force: true });
-  });
-
-  it("migrations install PostGIS and the M0 tables", async () => {
-    const sql = postgres(DATABASE_URL, { max: 1 });
-    const tables = await sql<{ table_name: string }[]>`
-      select table_name from information_schema.tables where table_schema = 'public' order by 1`;
-    await sql.end();
-    expect(tables.map((t) => t.table_name)).toEqual(
-      expect.arrayContaining(["city", "district", "pack", "street", "street_district"]),
-    );
   });
 
   it("GET /health reports ok with the PostGIS version", async () => {

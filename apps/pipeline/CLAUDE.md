@@ -47,7 +47,9 @@ styles `apps/mobile/assets/map_styles/pindoro_{light,dark}.json`, tiles `infra/t
    `data/cities/<city>/identity.json`, which also seeds a server that has none yet. Always computed
    over the whole city, also for `--fixture`. A full build stages them in `out/<city>/identity.json`
    and `publish` commits them right before the pack goes live, so a rejected build retires nothing;
-   `--fixture` writes `data/` directly (`just fixture <host>` first pulls the server's ids there).
+   `--fixture` writes `data/` directly (`just fixture <host>` first pulls the server's ids there)
+   and exports only the streets with a live id: one that got a new id stays out of the fixture, and
+   an area left under `MIN_AREA_STREETS` by that goes too.
    **Stable street ids are sacred**: never regenerate or hand-edit identity.json; review the diff
    report instead.
 5. `src/pack.ts`: better-sqlite3 pack (polyline6 via `@pindoro/geo`) → gzip → `manifest.json`.

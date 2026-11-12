@@ -77,9 +77,7 @@ HomeSavedRound? _saved(
     for (final id in progress.planned)
       if (streets.containsKey(id)) id,
   };
-  final answered = progress.answers
-      .where((a) => playable.contains(a.streetId))
-      .length;
+  final answered = progress.answers.to(playable).length;
   if (answered >= playable.length) return null;
   return (
     round: progress.round,

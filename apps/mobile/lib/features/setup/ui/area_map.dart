@@ -20,7 +20,7 @@ import 'package:pindoro_design/pindoro_design.dart';
 /// smaller areas inside them (quarters and neighbourhoods).
 bool detailAt(double zoom) => zoom >= PindoroCamera.areaDetailZoom;
 
-bool isDetail(District d) => d.kind != DistrictKind.district;
+bool isDetail(District d) => !d.isRaion;
 
 /// The area a tap at [at] picks: the smallest one of the zoom's level that
 /// contains it, else the smallest of any level.
@@ -32,6 +32,30 @@ District? areaAt(List<District> areas, LatLng at, double zoom) {
   final detail = detailAt(zoom);
   return hits.where((d) => isDetail(d) == detail).firstOrNull ??
       hits.firstOrNull;
+}
+
+/// The areas not in [picks] for the nearby chips: those of the zoom's level
+/// ([detail]) first, then the nearest to [here].
+List<District> nearestAreas(
+  List<District> areas,
+  Set<String> picks,
+  LatLng here, {
+  required bool detail,
+}) {
+  final rest =
+      [
+        for (final d in areas)
+          if (!picks.contains(d.id))
+            (
+              area: d,
+              level: isDetail(d) == detail ? 0 : 1,
+              m: distanceBetween(here, d.center),
+            ),
+      ]..sort((a, b) {
+        final byLevel = a.level.compareTo(b.level);
+        return byLevel != 0 ? byLevel : a.m.compareTo(b.m);
+      });
+  return [for (final r in rest) r.area];
 }
 
 /// The area picker's map: outlines and name chips of the zoom's level (see
@@ -129,6 +153,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
   Future<String>? _style;
   Brightness? _brightness;
   bool _ready = false;
+  bool _startReported = false;
   Size? _size;
   final Set<String> _pickedImages = {};
 
@@ -165,7 +190,9 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
 
   /// The camera that frames [b] above the sheet. Computed here rather than
   /// with a bounds update, whose padding stays on the camera and moves its
-  /// target off the view's centre, where [MapProjection] expects it.
+  /// target off the view's centre, where [MapProjection] expects it. Equal
+  /// top and bottom padding centre [b] where the shapes and [_reportCamera]
+  /// put the uncovered part's centre.
   ({LatLng target, double zoom}) _fit(Bbox b, Size size) => MapProjection.fit(
     [LatLng(b.minLat, b.minLon), LatLng(b.maxLat, b.maxLon)],
     size: size,
@@ -173,7 +200,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
       PindoroSpace.s8,
       PindoroSpace.s16,
       PindoroSpace.s8,
-      widget.bottomInset + PindoroSpace.s8,
+      widget.bottomInset + PindoroSpace.s16,
     ),
   );
 
@@ -420,8 +447,24 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
   ]);
 
   void _reportCamera() {
-    final projection = _projection;
-    if (projection == null) return;
+    if (_projection case final projection?) _report(projection);
+  }
+
+  /// Reports the opening camera after the first frame: the platform may not
+  /// report a camera until the player moves the map.
+  void _reportStart(({LatLng target, double zoom}) start, Size size) {
+    if (_startReported) return;
+    _startReported = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _report(
+        MapProjection(target: start.target, zoom: start.zoom, size: size),
+      );
+      widget.onCameraIdle?.call();
+    });
+  }
+
+  void _report(MapProjection projection) {
     final Size(:width, :height) = projection.size;
     widget.onCamera(
       projection.toLatLng(Offset(width / 2, (height - widget.bottomInset) / 2)),
@@ -444,6 +487,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
         builder: (context, style) {
           // Opens where the load would frame it, so nothing zooms in after.
           final start = _fit(widget.focus ?? widget.initialBounds, size);
+          _reportStart(start, size);
           return Stack(
             children: [
               if (style.hasData)

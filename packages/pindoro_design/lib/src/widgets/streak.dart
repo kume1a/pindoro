@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
@@ -7,6 +5,7 @@ import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
 import 'motion.dart';
+import 'painters.dart';
 import 'round_hud.dart';
 import 'tappable.dart';
 
@@ -110,7 +109,7 @@ class DailyGoalRing extends StatelessWidget {
           duration: duration,
           curve: curve,
           builder: (_, v, child) => CustomPaint(
-            painter: _RingPainter(
+            painter: RingPainter(
               value: v,
               stroke: stroke,
               track: c.xpTrack,
@@ -129,46 +128,6 @@ class DailyGoalRing extends StatelessWidget {
       ),
     );
   }
-}
-
-class _RingPainter extends CustomPainter {
-  const _RingPainter({
-    required this.value,
-    required this.stroke,
-    required this.track,
-    required this.fill,
-  });
-
-  final double value;
-  final double stroke;
-  final Color track;
-  final Color fill;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = (Offset.zero & size).deflate(stroke / 2);
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke;
-    canvas.drawArc(rect, 0, 2 * math.pi, false, paint..color = track);
-    if (value <= 0) return;
-    canvas.drawArc(
-      rect,
-      -math.pi / 2,
-      2 * math.pi * value,
-      false,
-      paint
-        ..color = fill
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_RingPainter old) =>
-      old.value != value ||
-      old.stroke != stroke ||
-      old.track != track ||
-      old.fill != fill;
 }
 
 /// How a day shows in [StreakCalendar].

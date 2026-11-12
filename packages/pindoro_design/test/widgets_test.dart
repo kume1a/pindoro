@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -95,6 +96,33 @@ void main() {
     expect(celebrationFor(Tier.miss), isNull);
   });
 
+  testWidgets('page transitions free their curves once the routes are gone', (
+    tester,
+  ) async {
+    final live = _trackLive<CurvedAnimation>();
+    final navigator = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: navigator,
+        theme: buildPindoroTheme(Brightness.light),
+        home: const Text('home'),
+      ),
+    );
+    final before = live.length;
+    for (var round = 0; round < 2; round++) {
+      navigator.currentState!.push(
+        MaterialPageRoute<void>(builder: (_) => const Text('next')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('next'), findsOneWidget);
+      navigator.currentState!.pop();
+      await tester.pumpAndSettle();
+      expect(find.text('next'), findsNothing);
+    }
+    expect(tester.takeException(), isNull);
+    expect(live, hasLength(before));
+  });
+
   testWidgets('labelled controls keep their tap for screen readers', (
     tester,
   ) async {
@@ -146,17 +174,6 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('FeedbackBadge shows the tier icon and name', (tester) async {
-    await tester.pumpWidget(_host(const FeedbackBadge(Tier.perfect)));
-    expect(
-      find.byWidgetPredicate(
-        (w) => w is PindoroIcon && w.glyph == PindoroGlyph.star,
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('perfect'), findsOneWidget);
-  });
-
   group('goldens', skip: _goldensSkip, () {
     Future<void> pumpGallery(WidgetTester tester, Brightness brightness) async {
       await tester.binding.setSurfaceSize(const Size(400, 720));
@@ -182,16 +199,6 @@ void main() {
                 variant: PindoroButtonVariant.tertiary,
                 onPressed: () {},
               ),
-              const Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  FeedbackBadge(Tier.perfect),
-                  FeedbackBadge(Tier.great),
-                  FeedbackBadge(Tier.close),
-                  FeedbackBadge(Tier.miss, label: 'missed by 1.2 km'),
-                ],
-              ),
             ],
           ),
         ),
@@ -214,6 +221,20 @@ void main() {
       );
     });
   });
+}
+
+/// The [T]s created and not yet disposed while the current test runs.
+Set<Object> _trackLive<T>() {
+  final live = <Object>{};
+  void track(ObjectEvent event) {
+    if (event.object is! T) return;
+    if (event is ObjectCreated) live.add(event.object);
+    if (event is ObjectDisposed) live.remove(event.object);
+  }
+
+  FlutterMemoryAllocations.instance.addListener(track);
+  addTearDown(() => FlutterMemoryAllocations.instance.removeListener(track));
+  return live;
 }
 
 // Glyph rasterisation differs per OS, so goldens are rendered and compared on

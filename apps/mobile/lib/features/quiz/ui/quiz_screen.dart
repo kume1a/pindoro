@@ -9,6 +9,7 @@ import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/online.dart';
+import 'package:pindoro/core/play_bar.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
@@ -214,20 +215,14 @@ class _RoundView extends ConsumerWidget {
     if (play is RoundRevealed && round.isLast) return controller.next();
     final l10n = context.l10n;
     final resumesAt = play is RoundRevealed ? round.number + 1 : round.number;
-    final leave = await showDialog<bool>(
-      context: context,
-      builder: (context) => PindoroDialog(
-        title: l10n.quizLeaveTitle,
-        body: l10n.quizLeaveBody(
-          resumesAt,
-          round.total,
-          formatNumber(round.xp),
-        ),
-        primary: l10n.quizLeaveKeepPlaying,
-        secondary: l10n.quizLeaveConfirm,
-      ),
+    final leave = await confirmLeave(
+      context,
+      title: l10n.quizLeaveTitle,
+      body: l10n.quizLeaveBody(resumesAt, round.total, formatNumber(round.xp)),
+      stay: l10n.quizLeaveKeepPlaying,
+      leave: l10n.quizLeaveConfirm,
     );
-    if ((leave ?? false) && context.mounted) context.go(Routes.home);
+    if (leave && context.mounted) context.go(Routes.home);
   }
 }
 
@@ -241,33 +236,14 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final xp = formatNumber(round.xp);
-    return Row(
-      spacing: PindoroSpace.s3,
-      children: [
-        PindoroIconButton(
-          glyph: PindoroGlyph.close,
-          semanticLabel: l10n.a11yLeaveRound,
-          onPressed: onLeave,
-        ),
-        Expanded(
-          child: QuestionBar(
-            tiers: [for (final a in round.answers) a.tier],
-            total: round.total,
-            semanticLabel: l10n.commonQuestionProgress(
-              round.number,
-              round.total,
-            ),
-          ),
-        ),
-        Pill(
-          label: xp,
-          icon: PindoroGlyph.xp,
-          iconColor: PindoroTheme.of(context).colors.xpFill,
-          floating: true,
-          semanticLabel: l10n.a11yRoundXp(xp),
-        ),
-      ],
+    return PlayBar(
+      leaveLabel: l10n.a11yLeaveRound,
+      onLeave: onLeave,
+      tiers: round.answeredTiers,
+      total: round.total,
+      barLabel: l10n.commonQuestionProgress(round.number, round.total),
+      xp: round.xp,
+      xpLabel: l10n.a11yRoundXp,
     );
   }
 }

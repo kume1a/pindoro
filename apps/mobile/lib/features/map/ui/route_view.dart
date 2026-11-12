@@ -15,6 +15,7 @@ import 'package:pindoro/features/map/ui/route_layers.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/map/ui/widgets/route_draw_layer.dart';
+import 'package:pindoro/features/map/ui/widgets/tier_reveal.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -99,6 +100,9 @@ class _RouteViewState extends ConsumerState<RouteView>
   /// A finger is drawing: the map's "so far" chip waits for the lift.
   bool _drawing = false;
   Timer? _offRoad;
+
+  /// Kept, so the map skips re-sending an unchanged best route.
+  late MultiPolyline _bestLines = widget.trip.best.lines;
   late MultiPolyline _ghost = _ghostLines(widget.trip.best);
 
   late final AnimationController _replay = AnimationController(
@@ -126,7 +130,10 @@ class _RouteViewState extends ConsumerState<RouteView>
   @override
   void didUpdateWidget(RouteView old) {
     super.didUpdateWidget(old);
-    if (widget.trip != old.trip) _ghost = _ghostLines(widget.trip.best);
+    if (widget.trip != old.trip) {
+      _bestLines = widget.trip.best.lines;
+      _ghost = _ghostLines(widget.trip.best);
+    }
     if (widget.reveal?.key != old.reveal?.key) {
       if (widget.reveal == null) {
         _replay.value = 0;
@@ -235,7 +242,7 @@ class _RouteViewState extends ConsumerState<RouteView>
         (settings?.turnList ?? false);
     final ghost = widget.ghost && !_touched && reveal == null && !listMode;
     final drawn = draft.lines;
-    final best = reveal == null ? null : _along(trip.best.lines, _replay.value);
+    final best = reveal == null ? null : _along(_bestLines, _replay.value);
     // The full plate is taller than a pin drop's (the ask, two name lines,
     // the sub-line); A and B must clear it.
     final topInset =
@@ -284,7 +291,7 @@ class _RouteViewState extends ConsumerState<RouteView>
                     : [
                         a,
                         b,
-                        for (final l in trip.best.lines) ...l,
+                        for (final l in _bestLines) ...l,
                         for (final l in drawn) ...l,
                       ],
                 onCamera: (p) => setState(() => _projection = p),
@@ -380,33 +387,19 @@ class _RouteViewState extends ConsumerState<RouteView>
             )
           else if (_replaying)
             _ReplayBanner(onSkip: _skip)
-          else ...[
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
-                child: RiseIn(
-                  key: ValueKey(reveal.key),
-                  child: _TierSheet(
-                    reveal: reveal,
-                    drawnM: draft.lengthM,
-                    best: trip.best,
-                    streets: streets,
-                    settings: settings,
-                    onNext: widget.onNext,
-                  ),
-                ),
+          else
+            RevealDock(
+              revealKey: reveal.key,
+              sheet: _TierSheet(
+                reveal: reveal,
+                drawnM: draft.lengthM,
+                best: trip.best,
+                streets: streets,
+                settings: settings,
+                onNext: widget.onNext,
               ),
+              celebration: reveal.celebration,
             ),
-            if (reveal.celebration != null)
-              Positioned.fill(
-                child: Celebration(
-                  key: ValueKey(reveal.key),
-                  size: reveal.celebration!,
-                  burstCenter: const Alignment(-0.78, 0.5),
-                ),
-              ),
-          ],
           // A tap anywhere skips the replay.
           if (_replaying)
             Positioned.fill(
@@ -421,11 +414,18 @@ class _RouteViewState extends ConsumerState<RouteView>
   }
 }
 
-/// [lines] up to [fraction] of their length, and the point reached.
+/// [lines] up to [fraction] of their length, and the point reached; all of
+/// them are [lines] itself.
 ({MultiPolyline lines, LatLng tip}) _along(
   MultiPolyline lines,
   double fraction,
 ) {
+  if (fraction >= 1) {
+    return (
+      lines: lines,
+      tip: lines.lastOrNull?.lastOrNull ?? const LatLng(0, 0),
+    );
+  }
   final total = lines.fold(0.0, (sum, l) => sum + _length(l));
   var left = total * fraction.clamp(0, 1);
   final out = <Polyline>[];
@@ -736,37 +736,26 @@ class _TierSheet extends StatelessWidget {
       Tier.great || Tier.close => l10n.routeLongerSentence(percent),
       Tier.miss => l10n.routeLegsSentence(_legs(l10n), bestM),
     };
-    return CountUp(
-      value: reveal.score.xp,
-      builder: (context, xp) => RevealSheet(
-        tier: tier,
-        label: switch (tier) {
-          Tier.perfect => l10n.routeTierPerfect,
-          Tier.great => l10n.routeTierGreat,
-          Tier.close => l10n.routeTierClose,
-          Tier.miss => l10n.routeTierMiss,
-        },
-        sentence: sentence,
-        xpLabel: tier == Tier.miss ? null : l10n.commonXp(formatNumber(xp)),
-        chips: [
-          if (tier == Tier.great || tier == Tier.close)
-            Pill(
-              label: l10n.routeLengths(formatDistance(drawnM, l10n), bestM),
-              icon: PindoroGlyph.route,
-            ),
-          ...reveal.chips,
-        ],
-        mascot: Pindo(switch (tier) {
-          Tier.perfect || Tier.great => PindoExpression.cheering,
-          Tier.close => PindoExpression.happy,
-          Tier.miss => PindoExpression.encouraging,
-        }, height: 80),
-        action: PindoroButton(
-          tier: tier,
-          label: reveal.action,
-          onPressed: () => unawaited(onNext()),
-        ),
-      ),
+    return TierRevealSheet(
+      tier: tier,
+      xp: reveal.score.xp,
+      label: switch (tier) {
+        Tier.perfect => l10n.routeTierPerfect,
+        Tier.great => l10n.routeTierGreat,
+        Tier.close => l10n.routeTierClose,
+        Tier.miss => l10n.routeTierMiss,
+      },
+      sentence: sentence,
+      chips: [
+        if (tier == Tier.great || tier == Tier.close)
+          Pill(
+            label: l10n.routeLengths(formatDistance(drawnM, l10n), bestM),
+            icon: PindoroGlyph.route,
+          ),
+        ...reveal.chips,
+      ],
+      action: reveal.action,
+      onNext: onNext,
     );
   }
 

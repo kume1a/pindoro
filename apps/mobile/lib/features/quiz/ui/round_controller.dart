@@ -29,7 +29,6 @@ class RoundContext {
     required this.questions,
     required this.index,
     this.answers = const [],
-    this.retryOf,
     this.previousDistanceM = const {},
   });
 
@@ -45,10 +44,7 @@ class RoundContext {
   /// Answers given so far, in order.
   final List<Answer> answers;
 
-  /// The round whose Close and Miss streets this one retries.
-  final String? retryOf;
-
-  /// For a retry: how far the pin was last time, by question id.
+  /// For a retry or Pit stop: how far the pin was last time, by question id.
   final Map<String, double> previousDistanceM;
 
   PlannedQuestion get question => questions[index];
@@ -58,6 +54,11 @@ class RoundContext {
   int get total => questions.length;
   bool get isLast => index == questions.length - 1;
   int get xp => answers.xp;
+
+  /// The question bar's filled segments: one per answered question.
+  List<Tier> get answeredTiers => [
+    for (final a in answers.to({for (final q in questions) q.id})) a.tier,
+  ];
 
   /// Consecutive Great-or-better answers ending with the latest one.
   int get streak {
@@ -84,7 +85,6 @@ class RoundContext {
     questions: questions,
     index: index ?? this.index,
     answers: answers ?? this.answers,
-    retryOf: retryOf,
     previousDistanceM: previousDistanceM,
   );
 }
@@ -190,30 +190,62 @@ class RoundController extends Notifier<RoundState> {
       case SelectedQuestions(:final streetIds):
         // The selector names a street by its longest part inside the area;
         // answers and the Pit stop key it by its city-wide id, as lessons do.
-        final questions = resolveQuestions(streets, [
-          for (final id in streetIds) streets[id]?.id ?? id,
-        ]);
-        final version = packVersion(pack);
-        final roundId = await dao.startRound(
+        await _ask(
+          dao,
+          pack,
           cityId: cityId,
           area: area,
+          shape: shape,
           difficulty: difficulty,
-          packVersion: version,
-          streetIds: [for (final q in questions) q.id],
-        );
-        if (!ref.mounted) return;
-        state = RoundAsking(
-          RoundContext(
-            id: roundId,
-            shape: shape,
-            difficulty: difficulty,
-            packVersion: version,
-            questions: questions,
-            index: 0,
-          ),
+          questions: resolveQuestions(streets, [
+            for (final id in streetIds) streets[id]?.id ?? id,
+          ]),
         );
     }
   }
+
+  /// Saves a new round of [questions] and asks the first.
+  Future<void> _ask(
+    ProgressDao dao,
+    PackRepository pack, {
+    required String cityId,
+    required Area area,
+    required AreaShape shape,
+    required Difficulty difficulty,
+    required List<PlannedQuestion> questions,
+    String? retryOf,
+    bool pitStop = false,
+  }) async {
+    final version = packVersion(pack);
+    final roundId = await dao.startRound(
+      cityId: cityId,
+      area: area,
+      difficulty: difficulty,
+      packVersion: version,
+      streetIds: [for (final q in questions) q.id],
+      retryOf: retryOf,
+      pitStop: pitStop,
+    );
+    final previous = _replays(retryOf: retryOf, pitStop: pitStop)
+        ? await dao.previousDistances(roundId)
+        : const <String, double>{};
+    if (!ref.mounted) return;
+    state = RoundAsking(
+      RoundContext(
+        id: roundId,
+        shape: shape,
+        difficulty: difficulty,
+        packVersion: version,
+        questions: questions,
+        index: 0,
+        previousDistanceM: previous,
+      ),
+    );
+  }
+
+  /// Retry and Pit stop rounds show the reroute plate with the last distance.
+  static bool _replays({required String? retryOf, required bool pitStop}) =>
+      retryOf != null || pitStop;
 
   /// Plays [roundId]'s Close and Miss streets in a new round with the same
   /// city, area and difficulty. An empty retry set starts nothing.
@@ -238,28 +270,15 @@ class RoundController extends Notifier<RoundState> {
       state = RoundFinished(roundId);
       return;
     }
-    final version = packVersion(pack);
-    final retryId = await dao.startRound(
+    await _ask(
+      dao,
+      pack,
       cityId: original.round.cityId,
       area: area,
+      shape: shape,
       difficulty: original.round.difficulty,
-      packVersion: version,
-      streetIds: [for (final q in questions) q.id],
+      questions: questions,
       retryOf: roundId,
-    );
-    final previous = await dao.previousDistances(retryId);
-    if (!ref.mounted) return;
-    state = RoundAsking(
-      RoundContext(
-        id: retryId,
-        shape: shape,
-        difficulty: original.round.difficulty,
-        packVersion: version,
-        questions: questions,
-        index: 0,
-        retryOf: roundId,
-        previousDistanceM: previous,
-      ),
     );
   }
 
@@ -284,27 +303,15 @@ class RoundController extends Notifier<RoundState> {
       state = const RoundNothingDue();
       return;
     }
-    final version = packVersion(pack);
-    final roundId = await dao.startRound(
+    await _ask(
+      dao,
+      pack,
       cityId: cityId,
       area: area,
+      shape: shape,
       difficulty: difficulty,
-      packVersion: version,
-      streetIds: [for (final q in questions) q.id],
+      questions: questions,
       pitStop: true,
-    );
-    final previous = await dao.previousDistances(roundId);
-    if (!ref.mounted) return;
-    state = RoundAsking(
-      RoundContext(
-        id: roundId,
-        shape: shape,
-        difficulty: difficulty,
-        packVersion: version,
-        questions: questions,
-        index: 0,
-        previousDistanceM: previous,
-      ),
     );
   }
 
@@ -329,9 +336,11 @@ class RoundController extends Notifier<RoundState> {
       if (ref.mounted) _finish(roundId);
       return;
     }
-    final retryOf = progress.round.retryOf;
-    // Retry and Pit stop rounds show the reroute plate with the last distance.
-    final previous = retryOf != null || progress.round.pitStop
+    final previous =
+        _replays(
+          retryOf: progress.round.retryOf,
+          pitStop: progress.round.pitStop,
+        )
         ? await dao.previousDistances(roundId)
         : const <String, double>{};
     if (!ref.mounted) return;
@@ -344,7 +353,6 @@ class RoundController extends Notifier<RoundState> {
         questions: questions,
         index: index,
         answers: progress.answers,
-        retryOf: retryOf,
         previousDistanceM: previous,
       ),
     );
@@ -434,7 +442,7 @@ Set<String> districtsHolding(
   };
   final districts = {
     for (final d in pack.districts())
-      if (d.kind == DistrictKind.district) d.id,
+      if (d.isRaion) d.id,
   };
   return {
     for (final MapEntry(key: id, value: inside)

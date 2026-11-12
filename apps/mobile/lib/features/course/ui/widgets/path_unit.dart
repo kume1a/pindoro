@@ -31,6 +31,25 @@ typedef StopView = ({
   String label,
 });
 
+extension StopViewCopy on StopView {
+  /// This view with the given fields replaced; [ring] and [tip] take a
+  /// getter, so they can be set to null.
+  StopView copyWith({
+    PathStopLook? look,
+    PindoroGlyph? glyph,
+    bool? big,
+    double? Function()? ring,
+    String? Function()? tip,
+  }) => (
+    look: look ?? this.look,
+    glyph: glyph ?? this.glyph,
+    big: big ?? this.big,
+    ring: ring == null ? this.ring : ring(),
+    tip: tip == null ? this.tip : tip(),
+    label: label,
+  );
+}
+
 /// What a locked stop says when tapped.
 typedef LockedNote = ({String title, String? body});
 

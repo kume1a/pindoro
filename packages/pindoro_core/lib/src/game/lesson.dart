@@ -12,8 +12,8 @@ abstract final class LessonRules {
   static const int finishXp = 20;
   static const int perfectXp = 50;
 
-  /// A road trip drawn as the shortest drive.
-  static const int tripXp = 100;
+  /// The most a road trip scores ([scoreRoute]'s Perfect).
+  static const int tripXp = ScoringConfig.perfectXp;
 
   /// "Which street is this?" steps in a lesson; every street also gets a pin.
   static const int nameTests = 2;
@@ -251,15 +251,16 @@ class LessonRun {
 
   static bool _isFix(LessonStep step) => step is TestStep && step.fix;
 
-  bool get _halved => kind == LessonKind.practice;
+  /// Fixes and practice earn half.
+  int _earned(TestStep step, int xp) =>
+      step.fix || kind == LessonKind.practice ? LessonRules.half(xp) : xp;
 
   LessonRun answerPin(Score score, double distanceM, DateTime at) {
     final pin = step as PinStep;
-    final xp = pin.fix || _halved ? LessonRules.half(score.xp) : score.xp;
     return _answer((
       step: pin,
       tier: score.tier,
-      xp: xp,
+      xp: _earned(pin, score.xp),
       distanceM: distanceM,
       at: at,
     ));
@@ -267,11 +268,10 @@ class LessonRun {
 
   LessonRun answerName({required bool right, required DateTime at}) {
     final name = step as NameStep;
-    final full = right ? LessonRules.nameXp : 0;
     return _answer((
       step: name,
       tier: right ? Tier.great : Tier.miss,
-      xp: name.fix || _halved ? LessonRules.half(full) : full,
+      xp: _earned(name, right ? LessonRules.nameXp : 0),
       distanceM: null,
       at: at,
     ));
@@ -283,7 +283,7 @@ class LessonRun {
     return _answer((
       step: trip,
       tier: score.tier,
-      xp: trip.fix || _halved ? LessonRules.half(score.xp) : score.xp,
+      xp: _earned(trip, score.xp),
       distanceM: null,
       at: at,
     ));
@@ -384,15 +384,22 @@ int crossingCount(NamedStreet street, Iterable<NamedStreet> others) {
   if (points.isEmpty) return 0;
   final proj = LocalProjection(points.first);
   final box = _grown(Bbox.of(points), _touchM);
+  // Each street is simplified on its own, so where one ends on another only
+  // the ending street keeps a vertex at the junction: check both ways.
+  final ends = [
+    for (final l in lines)
+      if (l.isNotEmpty) ...[l.first, l.last],
+  ];
+  bool touches(Iterable<LatLng> ps, MultiPolyline ls) =>
+      ps.any((p) => pointToPolylineDistance(p, ls).distanceMeters <= _touchM);
   final names = <String>{};
   for (final other in others) {
     if (other.name == street.name || names.contains(other.name)) continue;
     final otherPoints = other.geometry.expand((l) => l);
     if (!box.intersects(Bbox.of(otherPoints))) continue;
     final meets =
-        otherPoints.any(
-          (p) => pointToPolylineDistance(p, lines).distanceMeters <= _touchM,
-        ) ||
+        touches(otherPoints, lines) ||
+        touches(ends, other.geometry) ||
         _linesCross(lines, other.geometry, proj);
     if (meets) names.add(other.name);
   }

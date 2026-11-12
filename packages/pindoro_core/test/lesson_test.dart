@@ -391,6 +391,8 @@ void main() {
         ]),
         2,
       );
+      // The main road has no vertex where the side street ends on it.
+      expect(crossingCount(touching, [main]), 1);
     });
 
     test('the direction from the centre, none near it', () {

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/play_bar.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
@@ -112,16 +113,14 @@ class _DriveView extends ConsumerWidget {
 
   Future<void> _leave(BuildContext context) async {
     final l10n = context.l10n;
-    final leave = await showDialog<bool>(
-      context: context,
-      builder: (context) => PindoroDialog(
-        title: l10n.driveLeaveTitle,
-        body: l10n.driveLeaveBody,
-        primary: l10n.routeKeepDriving,
-        secondary: l10n.lessonLeave,
-      ),
+    final leave = await confirmLeave(
+      context,
+      title: l10n.driveLeaveTitle,
+      body: l10n.driveLeaveBody,
+      stay: l10n.routeKeepDriving,
+      leave: l10n.lessonLeave,
     );
-    if ((leave ?? false) && context.mounted) context.go(Routes.path);
+    if (leave && context.mounted) context.go(Routes.path);
   }
 }
 
@@ -135,34 +134,18 @@ class _DriveTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final xp = formatNumber(play.xp);
-    return Row(
-      spacing: PindoroSpace.s3,
-      children: [
-        PindoroIconButton(
-          glyph: PindoroGlyph.close,
-          semanticLabel: l10n.a11yLeaveDrive,
-          onPressed: onLeave,
-        ),
-        Expanded(
-          child: QuestionBar(
-            tiers: [
-              for (var i = 0; i < play.passed; i++) Tier.great,
-              // A Miss keeps its segment current: that trip is driven again.
-              if (play.passes) Tier.great,
-            ],
-            total: CourseRules.finalDriveTrips,
-            semanticLabel: l10n.a11yDriveStep(driveStep(play)),
-          ),
-        ),
-        Pill(
-          label: xp,
-          icon: PindoroGlyph.xp,
-          iconColor: PindoroTheme.of(context).colors.xpFill,
-          floating: true,
-          semanticLabel: l10n.a11yLessonXp(xp),
-        ),
+    return PlayBar(
+      leaveLabel: l10n.a11yLeaveDrive,
+      onLeave: onLeave,
+      tiers: [
+        for (var i = 0; i < play.passed; i++) Tier.great,
+        // A Miss keeps its segment current: that trip is driven again.
+        if (play.passes) Tier.great,
       ],
+      total: CourseRules.finalDriveTrips,
+      barLabel: l10n.a11yDriveStep(driveStep(play)),
+      xp: play.xp,
+      xpLabel: l10n.a11yLessonXp,
     );
   }
 }

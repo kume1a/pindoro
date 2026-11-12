@@ -214,6 +214,22 @@ void main() {
     expect(find.text('Streets you know'), findsOneWidget);
   });
 
+  testWidgets("a later pick takes the narrowing toast's Undo away", (
+    tester,
+  ) async {
+    await pumpApp(tester, Routes.areaFrom(AppConfig.fixtureDistrictId));
+    await tapAndSettle(tester, 'ვაკე');
+    expect(find.text('Only ვაკე now'), findsOneWidget);
+    expect(find.text('Undo'), findsOneWidget);
+
+    final unpicked = find.byWidgetPredicate(
+      (w) => w is PindoroChip && !(w.selected ?? false),
+    );
+    await tester.tap(unpicked.first);
+    await tester.pumpAndSettle();
+    expect(find.text('Undo'), findsNothing);
+  });
+
   /// The system back button (Android back, the iOS edge swipe's pop).
   Future<void> systemBack(WidgetTester tester) async {
     await tester.binding.defaultBinaryMessenger.handlePlatformMessage(

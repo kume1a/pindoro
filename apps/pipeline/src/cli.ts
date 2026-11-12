@@ -1,8 +1,9 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { build, fetchExtract } from "./build.ts";
-import { OUT_DIR } from "./config.ts";
+import { buildDir, builtManifestFile } from "./config.ts";
+import { readManifest } from "./pack.ts";
 import { publish } from "./publish.ts";
 import { tiles } from "./tiles.ts";
 import { validatePack } from "./validate.ts";
@@ -11,7 +12,7 @@ const USAGE = `usage: pipeline <command>
   fetch <city>              download the OSM extract from city.yaml (skipped when fresh)
   build <city> [--fixture]  osmium + osm2pgsql + SQL steps + stable ids + pack export
   validate <pack|city>      check a .sqlite / .sqlite.gz pack (or a city's last build) and print a summary
-  publish <city>            copy the last built pack into PACKS_DIR, commit its street ids, rewrite catalog.json
+  publish <city>            copy the last built pack into PACKS_DIR and commit its street ids
   tiles [--styles-only]     extract Georgia from the latest Protomaps build + write map styles`;
 
 const { positionals, values } = parseArgs({
@@ -35,9 +36,9 @@ const userPath = (p: string): string => resolve(process.env.INIT_CWD ?? process.
 const packPath = (arg: string): string => {
   const path = userPath(arg);
   if (existsSync(path)) return path;
-  const manifest = join(OUT_DIR, arg, "manifest.json");
+  const manifest = builtManifestFile(arg);
   if (!existsSync(manifest)) throw new Error(`no pack file or built city named ${arg}`);
-  return join(OUT_DIR, arg, JSON.parse(readFileSync(manifest, "utf8")).file);
+  return join(buildDir(arg), readManifest(manifest).file);
 };
 
 const commands: Record<string, () => Promise<void> | void> = {

@@ -18,6 +18,11 @@ typedef RoundProgress = ({
 extension AnswerLog on Iterable<Answer> {
   /// XP these answers earned.
   int get xp => fold(0, (sum, a) => sum + a.xp);
+
+  /// The answers to [streetIds]: a resumed round plays on without the
+  /// streets retired from the pack since.
+  Iterable<Answer> to(Set<String> streetIds) =>
+      where((a) => streetIds.contains(a.streetId));
 }
 
 extension RoundProgressRules on RoundProgress {
@@ -49,12 +54,22 @@ extension PitStopItems on Iterable<ReviewItem> {
   /// Items due by [today] whose street is still in the pack's [streets], one
   /// per street: older Free play rounds could file a street under another of
   /// its parts, and the first (most overdue) item wins.
-  List<ReviewItem> dueIn(Map<String, NamedStreet> streets, DateTime today) {
+  List<ReviewItem> dueIn(Map<String, NamedStreet> streets, DateTime today) =>
+      _onePerStreet(streets, (i) => i.dueBy(today));
+
+  /// Items due after [today], like [dueIn]: soonest first, one per street.
+  List<ReviewItem> laterIn(Map<String, NamedStreet> streets, DateTime today) =>
+      _onePerStreet(streets, (i) => !i.dueBy(today));
+
+  List<ReviewItem> _onePerStreet(
+    Map<String, NamedStreet> streets,
+    bool Function(ReviewItem) keep,
+  ) {
     final seen = <String>{};
     return [
       for (final i in this)
         if (streets[i.streetId] case final street?
-            when i.dueBy(today) && seen.add(street.id))
+            when keep(i) && seen.add(street.id))
           i,
     ];
   }
@@ -597,17 +612,24 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// The last pin distance of each of [streetIds] in [cityId], from Free play
-  /// and lessons.
+  /// (except the round [exceptRoundId]) and lessons.
   Future<Map<String, double>> lastDistances(
     String cityId,
-    Iterable<String> streetIds,
-  ) async {
+    Iterable<String> streetIds, {
+    String? exceptRoundId,
+  }) async {
     final ids = streetIds.toList();
     final freePlay =
         select(
             answers,
           ).join([innerJoin(rounds, rounds.id.equalsExp(answers.roundId))])
-          ..where(rounds.cityId.equals(cityId) & answers.streetId.isIn(ids))
+          ..where(
+            rounds.cityId.equals(cityId) &
+                answers.streetId.isIn(ids) &
+                (exceptRoundId == null
+                    ? const Constant(true)
+                    : answers.roundId.equals(exceptRoundId).not()),
+          )
           ..orderBy([OrderingTerm.asc(answers.createdAt)]);
     final lessons =
         select(lessonAnswers).join([
@@ -797,24 +819,15 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// How far the pin was the last time each of [roundId]'s streets was
-  /// answered in another round of its city (the plate's "you were 1.2 km
+  /// answered outside that round, in its city (the plate's "you were 1.2 km
   /// away" in retry and Pit stop rounds).
   Future<Map<String, double>> previousDistances(String roundId) async {
     final progress = await roundProgress(roundId);
-    final query =
-        select(
-            answers,
-          ).join([innerJoin(rounds, rounds.id.equalsExp(answers.roundId))])
-          ..where(
-            rounds.cityId.equals(progress.round.cityId) &
-                answers.roundId.equals(roundId).not() &
-                answers.streetId.isIn(progress.planned),
-          )
-          ..orderBy([OrderingTerm.asc(answers.createdAt)]);
-    return {
-      for (final row in await query.get())
-        if (row.readTable(answers) case final a) a.streetId: a.distanceM,
-    };
+    return lastDistances(
+      progress.round.cityId,
+      progress.planned,
+      exceptRoundId: roundId,
+    );
   }
 
   /// Best tier per answered part id in [cityId], from answers (and lessons

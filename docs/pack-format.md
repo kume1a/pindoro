@@ -15,7 +15,6 @@ format it supports; v1 packs already on a phone still open.
 
 ```
 <PACKS_DIR>/
-  catalog.json                                  # all cities, rewritten atomically by `publish`
   tbilisi/
     manifest.json                               # current pack of the city
     tbilisi-20261105T221700Z.sqlite.gz          # gzipped pack, immutable, cached forever
@@ -44,17 +43,8 @@ format it supports; v1 packs already on a phone still open.
 `sha256` and `size` describe the `.gz` file the client downloads; the client verifies them before
 decompressing. `bbox` is the city's bounding box, so the app can find the city the player is in.
 
-### catalog.json
-
-```json
-{
-  "format_version": 1,
-  "generated_at": "2026-11-05T22:17:05Z",
-  "cities": [{ "...manifest fields": "...", "url": "tbilisi/tbilisi-20261105T221700Z.sqlite.gz" }]
-}
-```
-
-`url` is relative to the packs host; the API catalog (`/v1/catalog`) gives the app absolute URLs.
+The API's `/v1/catalog` lists every city's manifest with absolute pack URLs; the app reads only
+that.
 
 ## Encodings
 
@@ -178,10 +168,12 @@ CREATE TABLE road_edge (
 ### Fixture scope
 
 `pipeline build <city> --fixture` writes a pack with `meta.scope = 'fixture'` containing the full
-`city` row, the fixture district (Vake, `osm:r11300449` for Tbilisi), the quarters and
-neighbourhoods whose centre lies in it, and only the streets assigned to the district (the smaller
-areas link only those), with their road edges and the junctions those use. The app bundles it as `apps/mobile/assets/packs_fixture/tbilisi_vake_fixture.sqlite`
-(not gzipped).
+`city` row, the fixture district (Vake, `osm:r11300449` for Tbilisi), the streets assigned to the
+district whose id matched a live one (a street that would get a new id stays out, so the fixture
+never holds an id the server's packs don't know), with their road edges and the junctions those
+use, and the quarters and neighbourhoods whose centre lies in the district and that still link at
+least `MIN_AREA_STREETS` (10) of those streets (they link only those). The app bundles it as
+`apps/mobile/assets/packs_fixture/tbilisi_vake_fixture.sqlite` (not gzipped).
 
 ## Licence
 

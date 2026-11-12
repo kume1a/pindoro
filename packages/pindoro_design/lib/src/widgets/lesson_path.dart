@@ -1,17 +1,19 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
+import 'painters.dart';
+import 'surfaces.dart';
 import 'tappable.dart';
 
 /// How a stop on the lesson path looks (`.pd-stop` and its modifiers).
 enum PathStopLook { done, perfect, current, review, locked }
 
-/// The progress ring's stroke and the gap around a 72 dp stop (`.pd-stop-ring`).
+/// The progress ring's stroke, its inset and the gap around a 72 dp stop
+/// (`.pd-stop-ring`).
 const double _ringStroke = 7;
+const double _ringInset = 1;
 const double _ringSize = PindoroSize.nodeCurrent + PindoroSpace.s6;
 
 /// The tip's arrow and its gap above a big stop's centre (`.pd-tip`).
@@ -174,8 +176,10 @@ class _PathStopState extends State<PathStop>
                   top: (size - _ringSize) / 2,
                   child: CustomPaint(
                     size: const Size.square(_ringSize),
-                    painter: _RingPainter(
+                    painter: RingPainter(
                       value: ring,
+                      stroke: _ringStroke,
+                      inset: _ringInset,
                       track: c.xpTrack,
                       fill: c.xpFill,
                     ),
@@ -200,43 +204,6 @@ class _PathStopState extends State<PathStop>
       ),
     );
   }
-}
-
-class _RingPainter extends CustomPainter {
-  const _RingPainter({
-    required this.value,
-    required this.track,
-    required this.fill,
-  });
-
-  final double value;
-  final Color track;
-  final Color fill;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final circle = rect.deflate(_ringStroke / 2 + 1);
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = _ringStroke;
-    canvas.drawOval(circle, paint..color = track);
-    if (value > 0) {
-      canvas.drawArc(
-        circle,
-        -math.pi / 2,
-        2 * math.pi * value.clamp(0, 1),
-        false,
-        paint
-          ..color = fill
-          ..strokeCap = StrokeCap.round,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_RingPainter old) =>
-      old.value != value || old.track != track || old.fill != fill;
 }
 
 /// "Start" above the current stop: a raised bubble with an arrow down.
@@ -274,29 +241,11 @@ class _Tip extends StatelessWidget {
         ),
         CustomPaint(
           size: const Size(2 * _tipArrow, _tipArrow),
-          painter: _ArrowPainter(c.surfaceRaised),
+          painter: TailPainter(c.surfaceRaised, down: true),
         ),
       ],
     );
   }
-}
-
-class _ArrowPainter extends CustomPainter {
-  const _ArrowPainter(this.color);
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) => canvas.drawPath(
-    Path()
-      ..lineTo(size.width, 0)
-      ..lineTo(size.width / 2, size.height)
-      ..close(),
-    Paint()..color = color,
-  );
-
-  @override
-  bool shouldRepaint(_ArrowPainter old) => old.color != color;
 }
 
 /// A unit's compact signpost (`.pd-sign--compact`): the unit [number] in a
@@ -346,61 +295,54 @@ class Signpost extends StatelessWidget {
             c.streetCardText,
             c.streetCardSubtext,
           );
-    final sign = Container(
-      padding: const EdgeInsets.only(bottom: PindoroElevation.e2),
-      decoration: BoxDecoration(
-        color: lip,
-        borderRadius: BorderRadius.circular(PindoroRadius.lg),
-      ),
+    final sign = LipBox(
+      face: face,
+      lip: lip,
+      lipHeight: PindoroElevation.e2,
+      radius: PindoroRadius.lg,
+      padding: const EdgeInsets.all(PindoroSpace.s1),
       child: Container(
-        padding: const EdgeInsets.all(PindoroSpace.s1),
+        padding: const EdgeInsets.fromLTRB(6, 6, PindoroSpace.s3, 6),
         decoration: BoxDecoration(
-          color: face,
-          borderRadius: BorderRadius.circular(PindoroRadius.lg),
+          border: Border.all(color: rule, width: PindoroStroke.base),
+          borderRadius: BorderRadius.circular(PindoroRadius.md),
         ),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(6, 6, PindoroSpace.s3, 6),
-          decoration: BoxDecoration(
-            border: Border.all(color: rule, width: PindoroStroke.base),
-            borderRadius: BorderRadius.circular(PindoroRadius.md),
-          ),
-          child: Row(
-            spacing: PindoroSpace.s2,
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: rule,
-                  borderRadius: BorderRadius.circular(PindoroRadius.md),
-                ),
-                child: Text(
-                  '$number',
-                  style: PindoroType.titleMd.copyWith(
-                    color: locked ? c.textSecondary : face,
-                    fontWeight: FontWeight.w900,
-                  ),
+        child: Row(
+          spacing: PindoroSpace.s2,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: rule,
+                borderRadius: BorderRadius.circular(PindoroRadius.md),
+              ),
+              child: Text(
+                '$number',
+                style: PindoroType.titleMd.copyWith(
+                  color: locked ? c.textSecondary : face,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(line, style: PindoroType.labelMd.copyWith(color: sub)),
-                    Text(
-                      title,
-                      style: PindoroType.titleMd.copyWith(
-                        color: ink,
-                        fontWeight: FontWeight.w900,
-                      ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(line, style: PindoroType.labelMd.copyWith(color: sub)),
+                  Text(
+                    title,
+                    style: PindoroType.titleMd.copyWith(
+                      color: ink,
+                      fontWeight: FontWeight.w900,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              if (guide) const SizedBox.square(dimension: PindoroSize.tapMin),
-            ],
-          ),
+            ),
+            if (guide) const SizedBox.square(dimension: PindoroSize.tapMin),
+          ],
         ),
       ),
     );

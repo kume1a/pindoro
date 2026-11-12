@@ -21,7 +21,7 @@ DistrictMiniMap _miniMap(
 ) => DistrictMiniMap(
   districts: [
     for (final d in districts)
-      if (d.district.kind == DistrictKind.district)
+      if (d.district.isRaion)
         (boundary: d.district.boundary, progress: _progress(count(d))),
   ],
 );

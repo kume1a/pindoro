@@ -59,6 +59,24 @@ void main() {
     expect(areaAt(areas, const LatLng(42, 45), 13), isNull);
   });
 
+  test("the nearby chips: the zoom's level first, then the nearest", () {
+    const atCorner = LatLng(41.735, 44.735);
+    List<String> ids(List<District> found) => [for (final d in found) d.id];
+    expect(ids(nearestAreas(areas, {'west'}, atCorner, detail: false)), [
+      'east',
+      'corner',
+      'quarter',
+      'outside',
+    ]);
+    expect(ids(nearestAreas(areas, const {}, atCorner, detail: true)), [
+      'corner',
+      'quarter',
+      'outside',
+      'west',
+      'east',
+    ]);
+  });
+
   test('neighbourhoods group under their district, else the nearest', () {
     final groups = {
       for (final g in groupByDistrict(areas))

@@ -6,31 +6,38 @@ import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
-/// The player's [BadgeStats], read fresh from the database and the installed
-/// packs of played cities: an end screen awards right after its play was
-/// saved, before any provider reloads. Never loads or downloads a pack.
-Future<BadgeStats> readBadgeStats(ProgressDao dao, PackStore store) async {
+/// The player's [BadgeStats], read fresh from the database and the packs of
+/// played cities: an end screen awards right after its play was saved,
+/// before any provider reloads. The [open] pack stands in for its city's
+/// installed one; never loads or downloads a pack.
+Future<BadgeStats> readBadgeStats(
+  ProgressDao dao,
+  PackStore store, {
+  OpenPack? open,
+}) async {
   final counts = await dao.badgeCounts();
-  final raions = [
-    for (final city in await dao.recentCityIds())
-      ?await readInstalledPack(store, city, (pack, streets) async {
-        final ids = {
-          for (final d in pack.districts())
-            if (d.kind == DistrictKind.district) d.id,
-        };
-        final known = (await dao.knownIn(pack, streets)).byDistrict;
-        final inRaions = [
-          for (final MapEntry(:key, :value) in known.entries)
-            if (ids.contains(key)) value,
-        ];
-        return (
-          mastered: inRaions
-              .where((c) => c.total > 0 && c.known >= c.total)
-              .length,
-          known: inRaions.where((c) => c.known > 0).length,
-        );
-      }),
-  ];
+  final raions = await readCityPacks(
+    () => store,
+    await dao.recentCityIds(),
+    open: open,
+    (pack, streets) async {
+      final ids = {
+        for (final d in pack.districts())
+          if (d.isRaion) d.id,
+      };
+      final known = (await dao.knownIn(pack, streets)).byDistrict;
+      final inRaions = [
+        for (final MapEntry(:key, :value) in known.entries)
+          if (ids.contains(key)) value,
+      ];
+      return (
+        mastered: inRaions
+            .where((c) => c.total > 0 && c.known >= c.total)
+            .length,
+        known: inRaions.where((c) => c.known > 0).length,
+      );
+    },
+  );
   final days = (await dao.goalDayRounds()).keys.toSet();
   return (
     pins: counts.pins,
@@ -48,10 +55,24 @@ Future<BadgeStats> readBadgeStats(ProgressDao dao, PackStore store) async {
 /// shelf order.
 typedef AwardBadges = Future<List<BadgeId>> Function();
 
+/// The open pack, unless it is the bundled Vake stand-in: badges count only
+/// a city's real pack.
+OpenPack? _badgePack(Ref ref) => switch (openPackOf(
+  ref.read(packRepositoryProvider),
+  ref.read(cityStreetsProvider),
+)) {
+  final open? when !isFixturePack(open.pack) => open,
+  _ => null,
+};
+
 final awardBadgesProvider = Provider<AwardBadges>(
   (ref) => () async {
     final dao = ref.read(progressDaoProvider);
-    final stats = await readBadgeStats(dao, ref.read(packStoreProvider));
+    final stats = await readBadgeStats(
+      dao,
+      ref.read(packStoreProvider),
+      open: _badgePack(ref),
+    );
     return dao.earn([
       for (final id in BadgeId.values)
         if (badgeProgress(id, stats).earned) id,
@@ -66,7 +87,11 @@ typedef BadgeView = ({BadgeId id, BadgeProgress progress, bool earned});
 final badgesProvider = FutureProvider.autoDispose<List<BadgeView>>((ref) async {
   ref.watch(progressChangesProvider);
   final dao = ref.watch(progressDaoProvider);
-  final stats = await readBadgeStats(dao, ref.watch(packStoreProvider));
+  final stats = await readBadgeStats(
+    dao,
+    ref.watch(packStoreProvider),
+    open: _badgePack(ref),
+  );
   final saved = await dao.earnedBadges();
   return [
     for (final id in BadgeId.values)

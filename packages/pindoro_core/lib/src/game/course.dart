@@ -81,7 +81,7 @@ List<CourseUnit> buildCourse({
 }) {
   final raions = [
     for (final d in districts)
-      if (d.kind == DistrictKind.district) d,
+      if (d.isRaion) d,
   ]..sort((a, b) => a.id.compareTo(b.id));
   if (raions.isEmpty) return const [];
 
@@ -154,7 +154,7 @@ String? startDistrict(
 }) {
   final raions = [
     for (final d in districts)
-      if (d.kind == DistrictKind.district) d,
+      if (d.isRaion) d,
   ];
   if (raions.isEmpty) return null;
   for (final at in [?lastPlayed, cityCenter]) {

@@ -3,7 +3,9 @@ import postgres from "postgres";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { buildApp } from "../src/app.ts";
 import { loadConfig } from "../src/config.ts";
+import { createDb, type Db } from "../src/db/client.ts";
 import { runMigrations } from "../src/db/migrate.ts";
+import { renamePlayer, syncXp } from "../src/modules/leagues/leagues.service.ts";
 
 const DATABASE_URL =
   process.env.TEST_DATABASE_URL ?? "postgres://pindoro:pindoro@localhost:5433/pindoro_test";
@@ -43,11 +45,30 @@ describe("leagues", () => {
     await sql.end();
   });
 
-  const join = async (name: string): Promise<string> => {
+  const signUp = async (
+    name: string,
+  ): Promise<{ player: { id: string; name: string }; token: string }> => {
     const res = await app.inject({ method: "POST", url: "/v1/players", payload: { name } });
     expect(res.statusCode).toBe(201);
-    return res.json().token;
+    return res.json();
   };
+
+  const join = async (name: string): Promise<string> => (await signUp(name)).token;
+
+  const leave = (token: string): Promise<number> =>
+    app
+      .inject({
+        method: "DELETE",
+        url: "/v1/players/me",
+        headers: { authorization: `Bearer ${token}` },
+      })
+      .then((r) => r.statusCode);
+
+  const members = async (): Promise<unknown> =>
+    (await sql`select count(*)::int as n from league_member`)[0]?.n;
+
+  const leagues = async (): Promise<unknown> =>
+    (await sql`select count(*)::int as n from league`)[0]?.n;
 
   const sync = async (token: string, xp: number, week = WEEK): Promise<Standing> => {
     const res = await app.inject({
@@ -164,12 +185,7 @@ describe("leagues", () => {
   it("keeps a finished week's ranks when a player leaves after it", async () => {
     const tokens = await crowd(7, (i) => 100 - i);
     clock = nextMidweek;
-    const leave = await app.inject({
-      method: "DELETE",
-      url: "/v1/players/me",
-      headers: { authorization: `Bearer ${tokens[4]}` },
-    });
-    expect(leave.statusCode).toBe(204);
+    expect(await leave(tokens[4] as string)).toBe(204);
     const sixth = await sync(tokens[5] as string, 0, NEXT_WEEK);
     expect(sixth.league.tier).toBe(0);
   });
@@ -202,8 +218,7 @@ describe("leagues", () => {
     });
     expect(renamed.json()).toMatchObject({ name: "Nino Kapanadze" });
     await sync(token, 10);
-    const gone = await app.inject({ method: "DELETE", url: "/v1/players/me", headers: auth });
-    expect(gone.statusCode).toBe(204);
+    expect(await leave(token)).toBe(204);
     const after = await app.inject({
       method: "PUT",
       url: "/v1/league/me",
@@ -211,25 +226,88 @@ describe("leagues", () => {
       payload: { week: WEEK, xp: 10 },
     });
     expect(after.statusCode).toBe(401);
-    const [left] = await sql`select count(*)::int as n from league_member`;
-    expect(left?.n).toBe(0);
+    expect(await members()).toBe(0);
+    expect(await sql`select name from player`).toEqual([{ name: "" }]);
+  });
+
+  it("turns away a sync and a rename with a left player's token", async () => {
+    const token = await join("Nino");
+    await sync(token, 10);
+    expect(await leave(token)).toBe(204);
+    const headers = { authorization: `Bearer ${token}` };
+    const synced = await app.inject({
+      method: "PUT",
+      url: "/v1/league/me",
+      headers,
+      payload: { week: WEEK, xp: 20 },
+    });
+    const renamed = await app.inject({
+      method: "PATCH",
+      url: "/v1/players/me",
+      headers,
+      payload: { name: "Nino" },
+    });
+    expect([synced.statusCode, renamed.statusCode]).toEqual([401, 401]);
+    expect(await members()).toBe(0);
     expect(await sql`select name from player`).toEqual([{ name: "" }]);
   });
 
   it("drops this week's league when its last player leaves", async () => {
     const [stays, leaves] = await crowd(2, () => 10);
-    const leave = (token: string): Promise<unknown> =>
-      app.inject({
-        method: "DELETE",
-        url: "/v1/players/me",
-        headers: { authorization: `Bearer ${token}` },
-      });
-    const leagues = async (): Promise<unknown> =>
-      (await sql`select count(*)::int as n from league`)[0]?.n;
     await leave(leaves as string);
     expect(await leagues()).toBe(1);
     await leave(stays as string);
     expect(await leagues()).toBe(0);
+  });
+
+  describe("a request authenticated just before its player left", () => {
+    let db: Db;
+
+    beforeAll(() => {
+      db = createDb(DATABASE_URL);
+    });
+
+    afterAll(async () => {
+      await db.$client.end();
+    });
+
+    /** Resolves once a backend of this database waits on a row lock. */
+    const someoneWaitsOnALock = async (): Promise<void> => {
+      for (let attempt = 0; attempt < 100; attempt++) {
+        const [row] = await db.$client`
+          select count(*)::int as n from pg_locks l join pg_stat_activity a using (pid)
+          where not l.granted and a.datname = current_database()`;
+        if (row?.n > 0) return;
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      throw new Error("nobody waited on a lock");
+    };
+
+    it("brings nothing back: no league place, no name", async () => {
+      const { player: me, token } = await signUp("Nino");
+      await sync(token, 10);
+      expect(await leave(token)).toBe(204);
+      expect(await syncXp(db, me, WEEK, 20, midweek)).toBe(false);
+      expect(await renamePlayer(db, me.id, "Nino")).toBeUndefined();
+      expect(await members()).toBe(0);
+      expect(await leagues()).toBe(0);
+      expect(await sql`select name from player`).toEqual([{ name: "" }]);
+    });
+
+    it("a sync waits for a leave in progress, then writes nothing", async () => {
+      const { player: me, token } = await signUp("Nino");
+      await sync(token, 10);
+      let synced: Promise<boolean> | undefined;
+      // What forgetPlayer does, held open until the sync is waiting on it.
+      await sql.begin(async (tx) => {
+        await tx`update player set name = '', token_hash = ${`left:${me.id}`} where id = ${me.id}`;
+        await tx`delete from league_member where player_id = ${me.id}`;
+        synced = syncXp(db, me, WEEK, 20, midweek);
+        await someoneWaitsOnALock();
+      });
+      expect(await synced).toBe(false);
+      expect(await members()).toBe(0);
+    });
   });
 });
 

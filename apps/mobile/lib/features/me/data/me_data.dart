@@ -31,12 +31,15 @@ typedef MeData = ({
 
 /// Me's numbers. Each city is counted in its own pack: the open one, or its
 /// installed pack opened just for the count; a played city whose pack isn't
-/// on the phone is left out.
+/// on the phone is left out. It doesn't wait for the open pack: until it
+/// loads, the chosen city counts only if it has a pack installed.
 final meProvider = FutureProvider.autoDispose<MeData>((ref) async {
   ref.watch(progressChangesProvider);
   final dao = ref.watch(progressDaoProvider);
-  final open = await ref.watch(packRepositoryProvider.future);
-  final openStreets = await ref.watch(cityStreetsProvider.future);
+  final open = openPackOf(
+    ref.watch(packRepositoryProvider),
+    ref.watch(cityStreetsProvider),
+  );
   final streak = await ref.watch(streakProvider.future);
 
   Future<MeCity> count(
@@ -61,14 +64,13 @@ final meProvider = FutureProvider.autoDispose<MeData>((ref) async {
     );
   }
 
-  final cities = [await count(open, openStreets)];
-  for (final id in await dao.recentCityIds()) {
-    if (id == open.city().id) continue;
-    final store = ref.read(packStoreProvider);
-    if (await readInstalledPack(store, id, count) case final city?) {
-      cities.add(city);
-    }
-  }
+  final openId = open?.pack.city().id;
+  final cities = await readCityPacks(
+    () => ref.read(packStoreProvider),
+    [?openId, ...(await dao.recentCityIds()).where((id) => id != openId)],
+    open: open,
+    count,
+  );
   return (
     totalXp: await dao.totalXp(),
     since: await dao.firstPlayedAt(),

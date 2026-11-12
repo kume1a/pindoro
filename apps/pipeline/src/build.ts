@@ -1,34 +1,28 @@
-import {
-  createWriteStream,
-  existsSync,
-  mkdirSync,
-  renameSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { createWriteStream, existsSync, mkdirSync, renameSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline as pipe } from "node:stream/promises";
 import type { ReadableStream } from "node:stream/web";
 import postgres, { type Sql } from "postgres";
 import {
+  buildDir,
+  builtManifestFile,
   type CityConfig,
   cityDir,
   databaseUrl,
   extractPath,
   fixturePath,
   loadCity,
-  OUT_DIR,
+  stagedIdentityFile,
 } from "./config.ts";
 import {
   type CurrentStreet,
   identityFile,
   matchIdentities,
   readIdentities,
-  stagedIdentityFile,
   writeIdentities,
 } from "./identity.ts";
-import { isoSeconds, run } from "./io.ts";
+import { isoSeconds, run, writeJson } from "./io.ts";
 import { extractCity, loadOsm, readNeighbourhoods, runSqlSteps } from "./load.ts";
 import { finalisePack, type PackOptions, packVersion, writePack } from "./pack.ts";
 
@@ -81,12 +75,16 @@ const loadStreets = async (
     FROM pipeline.street ORDER BY key`;
 };
 
-const writeFixturePack = async (sql: Sql, pack: PackOptions): Promise<void> => {
+const writeFixturePack = async (
+  sql: Sql,
+  pack: PackOptions,
+  liveStreetKeys: number[],
+): Promise<void> => {
   const file = fixturePath(pack.city);
   mkdirSync(dirname(file), { recursive: true });
   await writePack(sql, file, {
     ...pack,
-    districtId: `osm:r${pack.city.fixture.district_relation_id}`,
+    fixture: { districtId: `osm:r${pack.city.fixture.district_relation_id}`, liveStreetKeys },
   });
   console.log(`fixture: ${file} (${(statSync(file).size / 1e3).toFixed(0)} kB)`);
 };
@@ -94,7 +92,7 @@ const writeFixturePack = async (sql: Sql, pack: PackOptions): Promise<void> => {
 const writeFullPack = async (sql: Sql, pack: PackOptions, out: string): Promise<void> => {
   const file = join(out, `${pack.city.id}-${pack.version}.sqlite`);
   const bbox = await writePack(sql, file, pack);
-  const manifest = finalisePack(file, join(out, "manifest.json"), {
+  const manifest = finalisePack(file, builtManifestFile(pack.city.id), {
     city: pack.city.id,
     name_ka: pack.city.name_ka,
     name_en: pack.city.name_en,
@@ -110,12 +108,12 @@ export const build = async (cityId: string, opts: { fixture: boolean }): Promise
   const city = loadCity(cityId);
   const input = extractPath(city);
   if (!existsSync(input)) throw new Error(`missing ${input}; run: pipeline fetch ${cityId}`);
-  const out = join(OUT_DIR, cityId);
+  const out = buildDir(cityId);
   mkdirSync(out, { recursive: true });
 
   const sql = postgres(databaseUrl(), { onnotice: () => {} });
   try {
-    // Identity always spans the whole city so fixture ids equal full-pack ids.
+    // Identity always spans the whole city, so a fixture street keeps its full-pack id.
     const now = new Date();
     const identity = matchIdentities(
       readIdentities(cityId),
@@ -130,7 +128,7 @@ export const build = async (cityId: string, opts: { fixture: boolean }): Promise
       generatedAt: isoSeconds(now),
     };
     if (opts.fixture) {
-      await writeFixturePack(sql, pack);
+      await writeFixturePack(sql, pack, identity.matchedKeys);
     } else {
       await writeFullPack(sql, pack, out);
     }
@@ -142,7 +140,7 @@ export const build = async (cityId: string, opts: { fixture: boolean }): Promise
       identity.identities,
     );
     const report = join(out, `identity-diff-${pack.version}.json`);
-    writeFileSync(report, `${JSON.stringify(identity.diff, null, 2)}\n`);
+    writeJson(report, identity.diff);
     const { matched, added, retired } = identity.diff;
     console.log(
       `identity: ${matched} matched, ${added.length} new, ${retired.length} retired -> ${report}`,

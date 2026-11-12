@@ -314,7 +314,15 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen>
                 RiseIn(
                   delay: _Arrival.rows + PindoroMotion.stagger * i,
                   distance: PindoroSpace.s4,
-                  child: _row(context, l10n, settings, i, e),
+                  child: _row(
+                    context,
+                    l10n,
+                    settings,
+                    i,
+                    e,
+                    // The street view frames the round's area.
+                    opens: e.street != null && data.shape != null,
+                  ),
                 ),
             ],
           ),
@@ -352,8 +360,9 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen>
     AppLocalizations l10n,
     Settings? settings,
     int index,
-    ResultEntry e,
-  ) {
+    ResultEntry e, {
+    required bool opens,
+  }) {
     final a = e.answer;
     final street = e.street;
     final name = street == null ? a.streetId : streetName(street, settings);
@@ -375,7 +384,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen>
         distance,
         formatNumber(a.xp),
       ),
-      onTap: street == null
+      onTap: !opens
           ? null
           : () {
               ref.read(feedbackProvider).tap();

@@ -94,13 +94,13 @@ class _WhatsNewScreenState extends ConsumerState<WhatsNewScreen> {
   Widget _intro(BuildContext context) {
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
-    return _Page(
+    return PageScaffold(
       footer: PindoroButton(
         label: l10n.whatsNewShowPath,
         onPressed: _busy ? null : _showPath,
       ),
       children: [
-        const WhatsNewRoad(),
+        const _Top(WhatsNewRoad()),
         Align(
           alignment: AlignmentDirectional.centerStart,
           child: LipBox(
@@ -168,7 +168,7 @@ class _WhatsNewScreenState extends ConsumerState<WhatsNewScreen> {
     final next = current == null
         ? null
         : units.elementAtOrNull(current.unit + 1);
-    return _Page(
+    return PageScaffold(
       footer: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -189,7 +189,7 @@ class _WhatsNewScreenState extends ConsumerState<WhatsNewScreen> {
         ],
       ),
       children: [
-        const Center(child: Pindo(PindoExpression.proud, height: 104)),
+        const _Top(Center(child: Pindo(PindoExpression.proud, height: 104))),
         _Headline(
           here == null
               ? l10n.placementAllTitle
@@ -243,43 +243,16 @@ class _WhatsNewScreenState extends ConsumerState<WhatsNewScreen> {
   }
 }
 
-/// A scrolling column of [children] over a pinned [footer], without a top
-/// bar.
-class _Page extends StatelessWidget {
-  const _Page({required this.children, required this.footer});
+/// The first child, a little lower: these pages have no title row.
+class _Top extends StatelessWidget {
+  const _Top(this.child);
 
-  final List<Widget> children;
-  final Widget footer;
+  final Widget child;
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: SafeArea(
-      bottom: false,
-      child: Column(
-        children: [
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(
-                PindoroSpace.s4,
-                PindoroSpace.s6,
-                PindoroSpace.s4,
-                PindoroSpace.s4,
-              ),
-              children: [
-                for (final child in children)
-                  ContentColumn(
-                    child: Padding(
-                      padding: const EdgeInsets.only(bottom: PindoroSpace.s4),
-                      child: child,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          PinnedFooter(child: footer),
-        ],
-      ),
-    ),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: PindoroSpace.s2),
+    child: child,
   );
 }
 

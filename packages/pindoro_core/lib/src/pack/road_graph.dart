@@ -77,13 +77,27 @@ class RoadGraph {
   final List<RoadEdge> edges;
   final Map<int, List<RoadEdge>> _at = {};
 
+  /// The connected piece of network each junction with edges lies on.
+  late final Map<int, int> _piece = _pieces();
+
+  late final Map<String, Set<int>> _byPart = _junctionsByPart();
+
   List<RoadEdge> edgesAt(int junction) => _at[junction] ?? const [];
 
   LatLng at(int junction) => junctions[junction]!;
 
+  /// The junctions on the street part [partId] (pack `street.id`).
+  Set<int> junctionsOfPart(String partId) => _byPart[partId] ?? const {};
+
+  /// Whether some drive joins [a] and [b].
+  bool connected(int a, int b) =>
+      a == b || (_piece[a] != null && _piece[a] == _piece[b]);
+
   /// The shortest drive from [from] to [to] (A* on edge lengths, straight
   /// line as the heuristic); null when they aren't connected.
   Route? shortestRoute(int from, int to) {
+    // A search between pieces would expand all of [from]'s piece to fail.
+    if (!connected(from, to)) return null;
     final goal = at(to);
     final cost = <int, double>{from: 0};
     final via = <int, RoadEdge>{};
@@ -124,5 +138,34 @@ class RoadGraph {
       junctions.add(j);
     }
     return Route(junctions.reversed.toList(), edges.reversed.toList(), lengthM);
+  }
+
+  Map<int, int> _pieces() {
+    final piece = <int, int>{};
+    for (final start in _at.keys) {
+      if (piece.containsKey(start)) continue;
+      piece[start] = start;
+      final stack = [start];
+      while (stack.isNotEmpty) {
+        final j = stack.removeLast();
+        for (final e in edgesAt(j)) {
+          final next = e.other(j);
+          if (piece.containsKey(next)) continue;
+          piece[next] = start;
+          stack.add(next);
+        }
+      }
+    }
+    return piece;
+  }
+
+  Map<String, Set<int>> _junctionsByPart() {
+    final byPart = <String, Set<int>>{};
+    for (final e in edges) {
+      byPart.putIfAbsent(e.streetId, () => {})
+        ..add(e.from)
+        ..add(e.to);
+    }
+    return byPart;
   }
 }

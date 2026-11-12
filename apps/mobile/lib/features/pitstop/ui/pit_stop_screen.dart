@@ -9,6 +9,8 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
+import 'package:pindoro/features/pack/ui/pack_pending.dart';
 import 'package:pindoro/features/pitstop/data/pit_stop_data.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -24,7 +26,9 @@ class PitStopScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final data = ref.watch(pitStopProvider).value;
-    if (data == null) return const Scaffold();
+    if (data == null) {
+      return PackPending(pack: ref.watch(packRepositoryProvider));
+    }
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
     final due = data.due;

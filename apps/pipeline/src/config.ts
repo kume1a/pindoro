@@ -5,7 +5,7 @@ import { parse } from "yaml";
 export const REPO_ROOT = resolve(import.meta.dirname, "../../..");
 export const PIPELINE_DIR = join(REPO_ROOT, "apps/pipeline");
 export const CACHE_DIR = join(PIPELINE_DIR, ".cache");
-export const OUT_DIR = join(PIPELINE_DIR, "out");
+const OUT_DIR = join(PIPELINE_DIR, "out");
 /** The claude.ai design system's tokens, then the app-only ones. */
 export const TOKENS_FILES = ["tokens.json", "app.json"].map((f) =>
   join(REPO_ROOT, "packages/pindoro_design/tokens", f),
@@ -48,6 +48,14 @@ export const extractPath = (city: CityConfig): string =>
 
 export const fixturePath = (city: CityConfig): string =>
   join(MOBILE_ASSETS, "packs_fixture", `${city.id}_${city.fixture.name}_fixture.sqlite`);
+
+/** A city's last full build: its pack, manifest.json, staged identity.json and diff reports. */
+export const buildDir = (city: string): string => join(OUT_DIR, city);
+
+export const builtManifestFile = (city: string): string => join(buildDir(city), "manifest.json");
+
+/** A full build's identities wait here until `publish` makes its pack live. */
+export const stagedIdentityFile = (city: string): string => join(buildDir(city), "identity.json");
 
 export const databaseUrl = (): string =>
   process.env.DATABASE_URL ?? "postgres://pindoro:pindoro@localhost:5433/pindoro";

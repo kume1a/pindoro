@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:pindoro/features/map/data/map_style.dart';
+import 'package:pindoro/features/map/data/maplibre_convert.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
@@ -39,14 +40,12 @@ Future<void> keepCityTilesOffline(City city, Directory marks) async {
     // the bundled style is served on loopback while the download runs. Both
     // themes share the tiles.
     style = await _serve(await loadMapStyle(Brightness.light));
-    final done = Completer<void>();
-    final b = city.bbox;
+    // A failed region creation also throws from downloadOfflineRegion, and
+    // then nothing awaits [done]: its error must not go unhandled.
+    final done = Completer<void>()..future.ignore();
     final region = await ml.downloadOfflineRegion(
       ml.OfflineRegionDefinition(
-        bounds: ml.LatLngBounds(
-          southwest: ml.LatLng(b.minLat, b.minLon),
-          northeast: ml.LatLng(b.maxLat, b.maxLon),
-        ),
+        bounds: city.bbox.toMapLibre,
         mapStyleUrl: 'http://127.0.0.1:${style.port}/style.json',
         minZoom: _minZoom,
         maxZoom: _maxZoom,

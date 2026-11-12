@@ -39,10 +39,12 @@ export const leaguesRoutes: FastifyPluginAsyncTypebox<{
 }> = async (app, { db, now, signupsPerHour }) => {
   await app.register(rateLimit, { global: false });
 
+  const unknownPlayer = (): Error => app.httpErrors.unauthorized("unknown or missing player token");
+
   const me = async (req: FastifyRequest): Promise<{ id: string; name: string }> => {
     const token = /^Bearer (\S+)$/.exec(req.headers.authorization ?? "")?.[1];
     const found = token === undefined ? undefined : await playerByToken(db, token);
-    if (!found) throw app.httpErrors.unauthorized("unknown or missing player token");
+    if (!found) throw unknownPlayer();
     return found;
   };
 
@@ -74,7 +76,9 @@ export const leaguesRoutes: FastifyPluginAsyncTypebox<{
     },
     async (req) => {
       const player = await me(req);
-      return renamePlayer(db, player.id, validName(req.body.name));
+      const renamed = await renamePlayer(db, player.id, validName(req.body.name));
+      if (!renamed) throw unknownPlayer();
+      return renamed;
     },
   );
 
@@ -103,7 +107,8 @@ export const leaguesRoutes: FastifyPluginAsyncTypebox<{
     async (req) => {
       const player = await me(req);
       const at = now();
-      await syncXp(db, player, req.body.week, req.body.xp, at);
+      const stillPlaying = await syncXp(db, player, req.body.week, req.body.xp, at);
+      if (!stillPlaying) throw unknownPlayer();
       return standing(db, player, at);
     },
   );

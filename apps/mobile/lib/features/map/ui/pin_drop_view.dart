@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
@@ -10,6 +8,7 @@ import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/map/ui/widgets/reticle.dart';
+import 'package:pindoro/features/map/ui/widgets/tier_reveal.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -164,23 +163,10 @@ class PinDropView extends ConsumerWidget {
               ),
             )
           else
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
-                child: RiseIn(
-                  key: ValueKey(reveal.key),
-                  child: PinRevealSheet(reveal: reveal, onNext: onNext),
-                ),
-              ),
-            ),
-          if (celebration != null && reveal != null)
-            Positioned.fill(
-              child: Celebration(
-                key: ValueKey(reveal.key),
-                size: celebration!,
-                burstCenter: const Alignment(-0.78, 0.5),
-              ),
+            RevealDock(
+              revealKey: reveal.key,
+              sheet: PinRevealSheet(reveal: reveal, onNext: onNext),
+              celebration: celebration,
             ),
         ],
       ),
@@ -209,27 +195,14 @@ class PinRevealSheet extends StatelessWidget {
         l10n.revealMissDirection(compassPoint(reveal.pin, reveal.nearest).name),
       ),
     };
-    return CountUp(
-      value: reveal.xp,
-      builder: (context, xp) => RevealSheet(
-        tier: reveal.tier,
-        label: tierLabel(l10n, reveal.tier),
-        sentence: sentence,
-        xpLabel: reveal.tier == Tier.miss
-            ? null
-            : l10n.commonXp(formatNumber(xp)),
-        chips: reveal.chips,
-        mascot: Pindo(switch (reveal.tier) {
-          Tier.perfect || Tier.great => PindoExpression.cheering,
-          Tier.close => PindoExpression.happy,
-          Tier.miss => PindoExpression.encouraging,
-        }, height: 80),
-        action: PindoroButton(
-          tier: reveal.tier,
-          label: reveal.action,
-          onPressed: () => unawaited(onNext()),
-        ),
-      ),
+    return TierRevealSheet(
+      tier: reveal.tier,
+      xp: reveal.xp,
+      label: tierLabel(l10n, reveal.tier),
+      sentence: sentence,
+      chips: reveal.chips,
+      action: reveal.action,
+      onNext: onNext,
     );
   }
 }

@@ -125,14 +125,15 @@ export const runSqlSteps = async (sql: Sql, p: StepParams): Promise<void> => {
   }
 };
 
+/** Curated neighbourhoods with trimmed names; a blank English name is left out, as from OSM. */
 export const readNeighbourhoods = (file: string): Neighbourhood[] => {
   const fc = JSON.parse(readFileSync(file, "utf8")) as {
     features: { properties?: Record<string, string>; geometry: unknown }[];
   };
   return fc.features.map((f, i) => {
     const { slug, name_ka, name_en } = f.properties ?? {};
-    if (!slug || !name_ka)
-      throw new Error(`${file}: feature ${i} needs properties slug and name_ka`);
-    return { slug, name_ka, name_en, geometry: f.geometry };
+    const ka = name_ka?.trim();
+    if (!slug || !ka) throw new Error(`${file}: feature ${i} needs properties slug and name_ka`);
+    return { slug, name_ka: ka, name_en: name_en?.trim() || undefined, geometry: f.geometry };
   });
 };

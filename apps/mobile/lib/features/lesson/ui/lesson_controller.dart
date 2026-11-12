@@ -366,9 +366,11 @@ class LessonController extends Notifier<LessonState> {
     if (state case final LessonPlaying p) state = p.copyWith(fixesOpen: true);
   }
 
-  /// The next step; after the last one the lesson is saved.
+  /// The next step; after the last one the lesson is saved. A test step
+  /// waits for its answer: a quick second tap must not skip the next test.
   Future<void> next() async {
-    if (state case final LessonPlaying p) {
+    if (state case final LessonPlaying p
+        when !p.run.finished && (p.run.step is CardStep || p.run.answered)) {
       final run = p.run.next();
       _step(p.copyWith(run: run, clearStep: true));
       if (run.finished) await _save(p.copyWith(run: run));

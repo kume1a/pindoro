@@ -246,6 +246,20 @@ void main() {
     expect(await ProgressDao(db).pitStop('tbilisi'), isEmpty);
   });
 
+  test('a test waits for its answer before the next step', () async {
+    final c = container();
+    final controller = c.read(lessonControllerProvider.notifier);
+    await controller.start((unitId: unit, kind: LessonKind.lesson, lesson: 1));
+    while (playing(c).run.step is CardStep) {
+      await controller.next();
+    }
+    final firstTest = playing(c).run.index;
+    await controller.next();
+    await controller.next();
+    expect(playing(c).run.index, firstTest);
+    expect(playing(c).run.answers, isEmpty);
+  });
+
   test('leaving before the end writes nothing', () async {
     final c = container();
     final controller = c.read(lessonControllerProvider.notifier);
