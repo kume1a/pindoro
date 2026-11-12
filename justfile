@@ -8,6 +8,8 @@ dc := "docker compose -f infra/docker-compose.yml"
 flutter_version := "3.47.9"
 # Relative to the pipeline container workdir (/repo/apps/pipeline); absolute paths get mangled by Git Bash.
 fixture_pack := "../../apps/mobile/assets/packs_fixture/tbilisi_vake_fixture.sqlite"
+# Mono; no leading silence (pin_tok must sound on touch); trailing silence cut with a 30 ms fade-out.
+sound_trim := "aformat=channel_layouts=mono,silenceremove=start_periods=1:start_threshold=-50dB,afade=t=in:d=0.003,areverse,silenceremove=start_periods=1:start_threshold=-60dB,afade=t=in:d=0.03,areverse"
 
 default:
     @just --list
@@ -31,6 +33,18 @@ branding:
     cd apps/mobile && dart pub global run flutter_launcher_icons -f flutter_launcher_icons.yaml
     cp apps/mobile/assets/branding/png/splash-mark.png apps/mobile/android/app/src/main/res/drawable-xxxhdpi/splash.png
     cp apps/mobile/assets/branding/png/splash-mark-dark.png apps/mobile/android/app/src/main/res/drawable-night-xxxhdpi/splash.png
+
+# The sound kit from picked takes: DIR keeps exactly one <sound>_*.flac per sound. Each becomes a
+# mono, trimmed apps/mobile/assets/sounds/<sound>.wav at one loudness. Clips this short fall under
+# EBU R128's gate, so loudness is measured over 4 s of padding: one gain to -18 LUFS, a -1.5 dB limiter.
+sounds dir:
+    mkdir -p apps/mobile/assets/sounds
+    for s in tap pin_tok confirm tier_perfect tier_great tier_close tier_miss count_tick land levelup_fanfare error_soft launch_tok unlock streak; do \
+      set -- "{{dir}}/${s}"_[0-9]*.flac; \
+      if [ $# -ne 1 ] || [ ! -f "$1" ]; then echo "$s: keep exactly one take in {{dir}}"; exit 1; fi; \
+      lufs=$(ffmpeg -nostats -i "$1" -af "{{sound_trim}},apad=whole_dur=4,ebur128" -f null - 2>&1 | sed -n 's/^ *I: *\(-*[0-9.]*\) LUFS.*/\1/p' | tail -n 1); \
+      ffmpeg -v error -y -i "$1" -af "{{sound_trim}},volume=$(awk "BEGIN { print -18 - ($lufs) }")dB,alimiter=limit=0.84:level=0:latency=1" -ar 44100 -c:a pcm_s16le "apps/mobile/assets/sounds/$s.wav"; \
+    done
 
 # Fail when generating code needed a source that isn't committed (e.g. a new Drift schema dump)
 gen-check: gen

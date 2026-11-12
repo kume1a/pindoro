@@ -2,8 +2,6 @@
 
 ## Placeholders to replace
 
-- **Sound kit** — the design's 14 sounds don't exist yet; the Sound toggle and `GameFeedback`
-  are in place, so add an audio player there once the files are designed.
 - **Georgian translation** — `apps/mobile/lib/l10n/app_ka.arb` is a draft; it needs a native
   review.
 - **Designed in text, not drawn** — the 2026-11-07 design pass (map greys, 104-area picker, city
@@ -36,7 +34,6 @@
   take taps and screen-reader taps but can't be focused from a keyboard; `color.focus.ring` is
   unused. Build `Tappable` on `FocusableActionDetector` with a focus-ring outline when needed.
 - Streak (R2), left out on purpose:
-  - The streak sound ("whoosh + ding") waits for the sound kit.
   - The reminder is fixed at 19:00 (the board has no time picker).
   - The Streak calendar shows the current month only (the board has no month arrows).
   - The pill doesn't turn "at risk" at 18:00 while the app stays open; it updates on the next
@@ -112,7 +109,6 @@
     demotion zone below 26 players).
 
 - Badges, left out on purpose:
-  - The "unlock chime" waits for the sound kit.
   - No badge detail screen, no sharing, and the earned date shows nowhere.
   - Explorer is "know streets in 5 districts", not the design's "3 cities": the catalog has one
     city. Navigator's sheet says the condition, not the district ("you mastered Vake").
@@ -154,6 +150,12 @@ and the specs after R5. Fix them in roughly this order.
     the Path stop unlock's lock drop.
   - Reduce motion still animates the map camera and the question bar's fill.
   - No haptic on Next; the error haptic is `heavyImpact` rather than `vibrate()` on Android.
+  - Sound kit: brighter and glassier than the design's "warm and wooden" (synthesized FM plucks and
+    bells in C major, pitch-glide pops, a ComfyUI wooden tok under the pin drop) for a more
+    polished game feel. One WAV for both platforms, not OGG + CAF, at -18 LUFS rather than -16
+    (measured over 4 s, since EBU R128 gates sub-second clips out). Events the kit has no sound for reuse one: the Path unlock and badges play
+    `unlock`, junctions `count_tick`, reaching B `tier_great`, Unit complete `tier_perfect`.
+    No new-street chime, replay whoosh, streak-milestone or district fanfare.
 - Smaller:
   - The map makes room for the road-trip tier sheet when the replay starts, not with a 60 dp pan
     after it.

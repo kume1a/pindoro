@@ -67,6 +67,7 @@ class _PindoroAppState extends ConsumerState<PindoroApp> {
     ref.listenManual(appUpdateProvider, (_, next) {
       if (next case AsyncData(value: final url?)) unawaited(_offerUpdate(url));
     });
+    PindoroButton.onHeroPress = () => ref.read(feedbackProvider).press();
   }
 
   /// Past play earns its badges quietly, only while there are none yet:
@@ -102,6 +103,7 @@ class _PindoroAppState extends ConsumerState<PindoroApp> {
 
   @override
   void dispose() {
+    PindoroButton.onHeroPress = null;
     _lifecycle.dispose();
     _router.dispose();
     super.dispose();
