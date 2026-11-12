@@ -30,9 +30,9 @@ docker build -f apps/api/Dockerfile .   # from the repo root
   a `<module>.service.ts` only once logic outgrows the handler. Modules never import each other;
   shared infrastructure lives in `src/db/`. Today: `health` (`GET /health`, DB + PostGIS check,
   503 when down), `catalog` (`GET /v1/catalog`) and `leagues` (below).
-- `src/db/schema.ts` – tables `city`, `district`, `street`, `street_district`, `pack`, and the
-  leagues' `player`, `league`, `league_member`; geometry via a `customType`
-  (`geometry(MultiPolygon|MultiLineString, 4326)`), PostGIS functions only through drizzle `sql```.
+- `src/db/schema.ts` – the leagues' tables `player`, `league`, `league_member`. City data never
+  lives here: packs are static files from the pipeline. PostGIS functions only through drizzle
+  `sql```.
 - `drizzle/` – migrations. `0000_postgis.sql` is custom (`CREATE EXTENSION postgis`) and must stay
   first. Never edit an applied migration; add a new one with `db:generate`
   (or `drizzle-kit generate --custom --name <x>` for hand-written SQL).
@@ -50,7 +50,8 @@ Anonymous players and weekly leagues (`docs/specs/2026-11-10-r5-leagues-design.m
 route is rate-limited per `cf-connecting-ip`); `PATCH`/`DELETE /v1/players/me` and
 `PUT /v1/league/me {week, xp}` take `Authorization: Bearer <token>` (PATCH and PUT: 30 a minute
 per token). DELETE forgets the player: the name is blanked, the token dies and this week's place
-goes (with its league, under the join lock, when that empties it), but past weeks keep the row so a finished week's ranks never shift. The PUT records the week's XP
+goes (with its league, under the join lock, when that empties it), but past weeks keep the row so a finished week's ranks never shift. A PATCH or PUT that lands mid-leave re-checks the
+player row (the leave locks it first) and answers 401. The PUT records the week's XP
 (never lower, only for the current week), joins the newest league of the player's tier with room
 (30 a league, under an advisory lock per week and tier) on the first XP, and returns the player's
 league ranked (XP, then earliest join). Rules live in `leagues.rules.ts`: weeks start Monday 00:00

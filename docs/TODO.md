@@ -208,8 +208,6 @@ From the product plan ("Learning Every Tbilisi Route"), which the course only pa
 - A retired street id is never revived; a street that reappears in OSM gets a new id.
 - Old pack versions are never pruned from `PACKS_DIR` (the app keeps its 2 newest).
 - Pack downloads hold the whole `.gz` in memory; stream to disk if packs grow past a few MB.
-- The API's `city`/`district`/`street`/`street_district`/`pack` tables exist but nothing fills
-  them yet (`publish` only writes files).
 - Decide a refresh cadence for the Georgia tiles (Protomaps daily builds); in production only a
   Deploy run with the tiles box ticked downloads them again.
 
