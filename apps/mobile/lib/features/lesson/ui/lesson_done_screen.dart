@@ -40,7 +40,7 @@ class LessonDoneScreen extends ConsumerStatefulWidget {
 }
 
 class _LessonDoneScreenState extends ConsumerState<LessonDoneScreen>
-    with BadgeMoments {
+    with BadgeMoments, CountUpTicks {
   bool _levelUpOpened = false;
 
   /// Back to the Path, which plays the unlock from the stop just finished
@@ -92,6 +92,7 @@ class _LessonDoneScreenState extends ConsumerState<LessonDoneScreen>
       showBadgesAfter(_Arrival.chips);
     }
     final streak = ref.watch(streakProvider).value?.summary.days ?? 0;
+    tickCountUp(r.xp, _Arrival.reward);
     final accuracy = r.tests == 0 ? 0 : (r.rightFirst * 100 / r.tests).round();
     final time = Duration(milliseconds: r.durationMs);
     final isLesson = r.kind == LessonKind.lesson;

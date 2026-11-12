@@ -62,7 +62,7 @@ class _LaunchOverlayState extends ConsumerState<LaunchOverlay>
   void _onTick() {
     if (!_calm && !_landed && _t.value * _At.end >= _At.land) {
       _landed = true;
-      ref.read(feedbackProvider).pinDrop();
+      ref.read(feedbackProvider).launch();
     }
   }
 

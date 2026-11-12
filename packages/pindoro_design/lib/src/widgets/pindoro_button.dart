@@ -33,6 +33,11 @@ class PindoroButton extends StatefulWidget {
   /// The bigger `elevation.3` lip for hero actions.
   final bool hero;
 
+  /// Called when any hero button is tapped: the app plays its tap sound.
+  // ponytail: a static hook for the one app; an InheritedWidget if a second
+  // app ever uses the design system.
+  static VoidCallback? onHeroPress;
+
   @override
   State<PindoroButton> createState() => _PindoroButtonState();
 }
@@ -97,7 +102,12 @@ class _PindoroButtonState extends State<PindoroButton> {
     );
 
     return Tappable(
-      onTap: widget.onPressed,
+      onTap: !enabled
+          ? null
+          : () {
+              if (widget.hero) PindoroButton.onHeroPress?.call();
+              widget.onPressed!();
+            },
       onTapDown: (_) => _setPressed(true),
       onTapUp: (_) => _setPressed(false),
       onTapCancel: () => _setPressed(false),
