@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/core/sounds.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/pack/ui/pack_pending.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
@@ -12,7 +13,7 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 class _Errors extends GameFeedback {
-  _Errors() : super(haptics: false, sound: false);
+  _Errors() : super(sounds: Sounds(), haptics: false, sound: false);
 
   int count = 0;
 
