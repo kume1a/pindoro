@@ -190,26 +190,10 @@ class FeedbackBar extends StatelessWidget {
     final c = PindoroTheme.of(context).colors;
     final tier = right ? Tier.great : Tier.miss;
     final style = PindoroTheme.of(context).tier(tier);
-    final bottom = MediaQuery.paddingOf(context).bottom;
     return Semantics(
       liveRegion: true,
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: style.bg,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(PindoroRadius.r2xl),
-          ),
-          border: Border(
-            top: BorderSide(color: style.fill, width: PindoroElevation.e2),
-          ),
-        ),
-        padding: EdgeInsets.fromLTRB(
-          PindoroSpace.s4,
-          PindoroSpace.s4,
-          PindoroSpace.s4,
-          PindoroSpace.s4 + bottom,
-        ),
+      child: TierSheetFrame(
+        tier: tier,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,

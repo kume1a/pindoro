@@ -4,6 +4,7 @@ import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
 import 'motion.dart';
+import 'painters.dart';
 import 'surfaces.dart';
 
 /// The XP bar: a rounded track with a lane-yellow fill on a lower lip. It
@@ -134,7 +135,7 @@ class _Tip extends StatelessWidget {
         ),
         CustomPaint(
           size: const Size(14, 7),
-          painter: _TailPainter(c.surfaceRaised, down: true),
+          painter: TailPainter(c.surfaceRaised, down: true),
         ),
       ],
     );
@@ -170,7 +171,7 @@ class CoachBubble extends StatelessWidget {
                   children: [
                     CustomPaint(
                       size: const Size(18, 9),
-                      painter: _TailPainter(c.coachBg, down: false),
+                      painter: TailPainter(c.coachBg, down: false),
                     ),
                     _bubble(c),
                   ],
@@ -201,32 +202,6 @@ class CoachBubble extends StatelessWidget {
       ],
     ),
   );
-}
-
-/// A triangle tail for bubbles, pointing down or up.
-class _TailPainter extends CustomPainter {
-  _TailPainter(this.color, {required this.down});
-
-  final Color color;
-  final bool down;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = down
-        ? (Path()
-            ..moveTo(0, 0)
-            ..lineTo(size.width, 0)
-            ..lineTo(size.width / 2, size.height))
-        : (Path()
-            ..moveTo(0, size.height)
-            ..lineTo(size.width, size.height)
-            ..lineTo(size.width / 2, 0));
-    canvas.drawPath(path..close(), Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(_TailPainter old) =>
-      old.color != color || old.down != down;
 }
 
 /// The accent ring around [child] (`stroke.thick`, lane yellow) while [on];

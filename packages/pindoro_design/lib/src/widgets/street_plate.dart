@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
+import 'surfaces.dart';
 
 /// Street card spec: the name shrinks in 2 dp steps until it fits two lines.
 const double _fontStep = 2;
@@ -37,94 +38,84 @@ class StreetPlate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = PindoroTheme.of(context);
-    final c = theme.colors;
+    final c = PindoroTheme.of(context).colors;
     final style = PindoroType.headlineMd.copyWith(color: c.streetCardText);
     final sub = PindoroType.bodySm.copyWith(color: c.streetCardSubtext);
     return Semantics(
       header: true,
       label: semanticLabel,
       excludeSemantics: semanticLabel != null,
-      child: Container(
-        padding: const EdgeInsets.only(bottom: PindoroElevation.e2),
-        decoration: BoxDecoration(
-          color: c.streetCardLip,
-          borderRadius: BorderRadius.circular(PindoroRadius.lg),
-          boxShadow: [theme.floatShadow],
-        ),
+      child: LipBox(
+        face: c.streetCardBg,
+        lip: c.streetCardLip,
+        lipHeight: PindoroElevation.e2,
+        radius: PindoroRadius.lg,
+        padding: const EdgeInsets.all(PindoroSpace.s1),
+        shadow: true,
         child: Container(
-          padding: const EdgeInsets.all(PindoroSpace.s1),
-          decoration: BoxDecoration(
-            color: c.streetCardBg,
-            borderRadius: BorderRadius.circular(PindoroRadius.lg),
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(
+            horizontal: PindoroSpace.s4,
+            vertical: compact ? PindoroSpace.s1 : PindoroSpace.s2,
           ),
-          child: Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(
-              horizontal: PindoroSpace.s4,
-              vertical: compact ? PindoroSpace.s1 : PindoroSpace.s2,
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: c.streetCardRule,
+              width: PindoroStroke.thick,
             ),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: c.streetCardRule,
-                width: PindoroStroke.thick,
-              ),
-              borderRadius: BorderRadius.circular(PindoroRadius.md),
-            ),
-            child: compact
-                ? Text(
-                    name,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: PindoroType.titleLg.copyWith(
-                      color: c.streetCardText,
-                    ),
-                  )
-                : Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (prompt != null)
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          spacing: PindoroSpace.s1,
-                          children: [
-                            PindoroIcon(
-                              promptGlyph,
-                              size: PindoroSize.iconSm,
-                              color: c.streetCardSubtext,
-                              cut: c.streetCardBg,
-                            ),
-                            Flexible(
-                              child: Text(
-                                prompt!,
-                                style: PindoroType.labelLg.copyWith(
-                                  color: c.streetCardSubtext,
-                                ),
+            borderRadius: BorderRadius.circular(PindoroRadius.md),
+          ),
+          child: compact
+              ? Text(
+                  name,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: PindoroType.titleLg.copyWith(color: c.streetCardText),
+                )
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (prompt != null)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        spacing: PindoroSpace.s1,
+                        children: [
+                          PindoroIcon(
+                            promptGlyph,
+                            size: PindoroSize.iconSm,
+                            color: c.streetCardSubtext,
+                            cut: c.streetCardBg,
+                          ),
+                          Flexible(
+                            child: Text(
+                              prompt!,
+                              style: PindoroType.labelLg.copyWith(
+                                color: c.streetCardSubtext,
                               ),
                             ),
-                          ],
-                        ),
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final fontSize = plateFontSize(
-                            name,
-                            style,
-                            maxWidth: constraints.maxWidth,
-                            textScaler: MediaQuery.textScalerOf(context),
-                          );
-                          return Text(
-                            name,
-                            textAlign: TextAlign.center,
-                            style: style.copyWith(fontSize: fontSize),
-                          );
-                        },
+                          ),
+                        ],
                       ),
-                      if (subline != null)
-                        Text(subline!, textAlign: TextAlign.center, style: sub),
-                    ],
-                  ),
-          ),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final fontSize = plateFontSize(
+                          name,
+                          style,
+                          maxWidth: constraints.maxWidth,
+                          textScaler: MediaQuery.textScalerOf(context),
+                        );
+                        return Text(
+                          name,
+                          textAlign: TextAlign.center,
+                          style: style.copyWith(fontSize: fontSize),
+                        );
+                      },
+                    ),
+                    if (subline != null)
+                      Text(subline!, textAlign: TextAlign.center, style: sub),
+                  ],
+                ),
         ),
       ),
     );

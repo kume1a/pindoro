@@ -46,18 +46,60 @@ class PindoroPageTransitions extends PageTransitionsBuilder {
     Animation<double> animation,
     Animation<double> secondaryAnimation,
     Widget child,
-  ) {
-    final curved = CurvedAnimation(
-      parent: animation,
-      curve: PindoroMotion.easeDecelerate,
-      reverseCurve: PindoroMotion.easeAccelerate,
-    );
-    final fade = FadeTransition(opacity: curved, child: child);
+  ) => _PindoroPageTransition(animation: animation, child: child);
+}
+
+/// Keeps one [CurvedAnimation] per route animation: it listens to its parent
+/// until disposed, and [PindoroPageTransitions.buildTransitions] runs on every
+/// transition frame.
+class _PindoroPageTransition extends StatefulWidget {
+  const _PindoroPageTransition({required this.animation, required this.child});
+
+  final Animation<double> animation;
+  final Widget child;
+
+  @override
+  State<_PindoroPageTransition> createState() => _PindoroPageTransitionState();
+}
+
+class _PindoroPageTransitionState extends State<_PindoroPageTransition> {
+  late CurvedAnimation _curved;
+
+  CurvedAnimation _curve(Animation<double> parent) => CurvedAnimation(
+    parent: parent,
+    curve: PindoroMotion.easeDecelerate,
+    reverseCurve: PindoroMotion.easeAccelerate,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _curved = _curve(widget.animation);
+  }
+
+  @override
+  void didUpdateWidget(_PindoroPageTransition oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.animation != widget.animation) {
+      _curved.dispose();
+      _curved = _curve(widget.animation);
+    }
+  }
+
+  @override
+  void dispose() {
+    _curved.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fade = FadeTransition(opacity: _curved, child: widget.child);
     if (_calm(context)) return fade;
     return AnimatedBuilder(
-      animation: curved,
+      animation: _curved,
       builder: (_, child) => Transform.translate(
-        offset: Offset(PindoroSpace.s6 * (1 - curved.value), 0),
+        offset: Offset(PindoroSpace.s6 * (1 - _curved.value), 0),
         child: child,
       ),
       child: fade,

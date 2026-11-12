@@ -43,27 +43,12 @@ class RevealSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = PindoroTheme.of(context).tier(tier);
     final c = PindoroTheme.of(context).colors;
-    final bottom = MediaQuery.paddingOf(context).bottom;
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: style.bg,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(PindoroRadius.r2xl),
-            ),
-            border: Border(
-              top: BorderSide(color: style.fill, width: PindoroElevation.e2),
-            ),
-          ),
-          padding: EdgeInsets.fromLTRB(
-            PindoroSpace.s4,
-            PindoroSpace.s5,
-            PindoroSpace.s4,
-            PindoroSpace.s4 + bottom,
-          ),
+        TierSheetFrame(
+          tier: tier,
+          top: PindoroSpace.s5,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -118,6 +103,46 @@ class RevealSheet extends StatelessWidget {
         if (mascot != null)
           Positioned(right: PindoroSpace.s4, top: -56, child: mascot!),
       ],
+    );
+  }
+}
+
+/// The bottom sheet of [RevealSheet] and [FeedbackBar] in [tier] colours: full
+/// width on the tier background, its top rounded with a tier-fill edge, and
+/// [top] padding over [child], which stays clear of the system bottom inset.
+class TierSheetFrame extends StatelessWidget {
+  const TierSheetFrame({
+    super.key,
+    required this.tier,
+    this.top = PindoroSpace.s4,
+    required this.child,
+  });
+
+  final Tier tier;
+  final double top;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = PindoroTheme.of(context).tier(tier);
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: style.bg,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(PindoroRadius.r2xl),
+        ),
+        border: Border(
+          top: BorderSide(color: style.fill, width: PindoroElevation.e2),
+        ),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        PindoroSpace.s4,
+        top,
+        PindoroSpace.s4,
+        PindoroSpace.s4 + MediaQuery.paddingOf(context).bottom,
+      ),
+      child: child,
     );
   }
 }
