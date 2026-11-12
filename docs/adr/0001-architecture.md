@@ -16,7 +16,8 @@ with Tbilisi, and run on a single self-hosted Ubuntu server with no paid cloud s
 2. **City data as static, versioned SQLite packs.** A pack holds the city, districts, streets
    (polyline6) and street↔district membership (`docs/pack-format.md`). Packs are immutable files
    served by Caddy with long-lived cache headers; `catalog.json` points to the current version.
-   No S3/R2.
+   No S3/R2. (Amended 2026-11-12: `catalog.json` is gone; each city's `manifest.json` points to
+   its current pack and the API's `/v1/catalog` lists them.)
 3. **Self-hosted backend.** TypeScript on Node 24 LTS: Fastify 5 API, PostgreSQL 16 + PostGIS,
    Martin for vector tiles, Caddy as the host router, all in Docker Compose on one Ubuntu box,
    exposed only through a token-based Cloudflare Tunnel (no open inbound ports).

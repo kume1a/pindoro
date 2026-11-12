@@ -50,7 +50,7 @@ describe("matchIdentities", () => {
   });
 
   it("issues a new id below the Jaccard threshold and retires the old one", () => {
-    const { ids, identities, diff } = matchIdentities(
+    const { ids, matchedKeys, identities, diff } = matchIdentities(
       existing,
       [
         { key: 1, norm_name: "rustaveli", name: "Rustaveli", way_ids: [1, 9, 8, 7] }, // 1/7 < 0.3
@@ -60,6 +60,7 @@ describe("matchIdentities", () => {
       sequentialIds(),
     );
     expect(ids.get(1)).toBe("new-1");
+    expect(matchedKeys).toEqual([2]);
     expect(diff.retired).toEqual([{ id: "a", name: "rustaveli" }]);
     expect(identities.find((i) => i.id === "a")?.retired_at).toBe("2026-11-05");
   });

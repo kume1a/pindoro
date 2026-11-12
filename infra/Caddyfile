@@ -15,7 +15,7 @@
 		# Versioned pack files never change; the pointers to them do.
 		@immutable path *.sqlite.gz
 		header @immutable Cache-Control "public, max-age=31536000, immutable"
-		@pointers path /catalog.json */manifest.json
+		@pointers path */manifest.json
 		header @pointers Cache-Control "public, max-age=60"
 
 		file_server

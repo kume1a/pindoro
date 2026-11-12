@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { cityDir, OUT_DIR } from "./config.ts";
+import { cityDir } from "./config.ts";
 import { replaceAtomically } from "./io.ts";
 
 export interface Identity {
@@ -27,6 +27,8 @@ interface IdentityDiff {
 
 interface IdentityResult {
   ids: Map<number, string>;
+  /** Keys of the streets that kept an existing id (the rest got a new one). */
+  matchedKeys: number[];
   identities: Identity[];
   diff: IdentityDiff;
 }
@@ -75,6 +77,7 @@ export const matchIdentities = (
     ids.set(street.key, identity.id);
     used.add(identity.id);
   }
+  const matchedKeys = [...ids.keys()];
 
   const added: IdentityDiff["added"] = [];
   for (const street of current) {
@@ -98,6 +101,7 @@ export const matchIdentities = (
 
   return {
     ids,
+    matchedKeys,
     identities,
     diff: {
       matched: used.size,
@@ -117,9 +121,6 @@ export const identityFile = (city: string): string => {
   const dir = process.env.IDENTITY_DIR;
   return dir ? join(dir, city, "identity.json") : committedIdentityFile(city);
 };
-
-/** A full build's identities wait here until `publish` makes its pack live. */
-export const stagedIdentityFile = (city: string): string => join(OUT_DIR, city, "identity.json");
 
 /** The live identities, seeded from the committed file until the server has its own. */
 export const readIdentities = (city: string): Identity[] => {

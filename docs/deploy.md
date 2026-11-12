@@ -13,14 +13,14 @@ one-off `pipeline` runs can reach the internet.
 ```
 internet ─▶ Cloudflare (TLS, DNS) ─▶ host tunnel ─▶ host:HTTP_PORT ─▶ caddy:80   (PUBLIC_HOST)
                                                     ├─ /tiles/* ─▶ martin:3000  (PMTiles vector tiles)
-                                                    ├─ /packs/* ─▶ file_server  (city packs, catalog.json)
+                                                    ├─ /packs/* ─▶ file_server  (city packs, manifests)
                                                     └─ /*       ─▶ api:3000     (Fastify + PostGIS)
 ```
 
 Services in `infra/docker-compose.prod.yml`: `postgis`, `api`, `martin`, `caddy`, `backup`
 (nightly), and `pipeline` (profile, run by the workflow). All state lives in Docker volumes of the
-`pindoro` project, never in the checkout: `pindoro_pgdata`, `pindoro_packs` (packs, `catalog.json`,
-the live street ids, sideload APKs), `pindoro_tiles`, `pindoro_backups`.
+`pindoro` project, never in the checkout: `pindoro_pgdata`, `pindoro_packs` (packs and their
+manifests, the live street ids, sideload APKs), `pindoro_tiles`, `pindoro_backups`.
 
 ## 1. Server prerequisites
 
@@ -41,7 +41,7 @@ hand, and don't leave an old record pointing at another tunnel (that answers 530
 
 Optional: a **Cache Rule** for paths starting with `/packs/` and `/tiles/` ("Eligible for cache",
 respect origin `Cache-Control`). Caddy already sends `immutable` for versioned packs and
-`max-age=60` for `catalog.json` / `manifest.json`.
+`max-age=60` for `manifest.json`.
 
 ## 3. GitHub
 
@@ -113,6 +113,8 @@ next to its packs, in `pindoro_packs` at `<city>/identity.json` (served at
 the live file, and `publish` writes the new ids just before the pack goes live, so a build that
 fails `validate` changes nothing. The app's bundled Vake fixture must use the same ids:
 `just fixture <host>` downloads them into `data/` first, then commit the result with the fixture.
+A street that has no live id yet (new in OpenStreetMap since the server's last build) is left out
+of the fixture until the server's next pack gives it one.
 
 ## 6. Backups
 

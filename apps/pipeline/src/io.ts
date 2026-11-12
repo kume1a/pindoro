@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { renameSync, rmSync } from "node:fs";
+import { renameSync, rmSync, writeFileSync } from "node:fs";
 
 /** Runs a tool, returns its stdout; `env` is added to this process's environment. */
 export const run = (cmd: string, args: string[], env?: Record<string, string>): string =>
@@ -23,6 +23,10 @@ export const replaceAtomically = (dest: string, write: (tmp: string) => void): v
     throw e;
   }
 };
+
+/** Pretty-printed with a trailing newline, as every JSON file the pipeline writes. */
+export const writeJson = (file: string, value: unknown): void =>
+  writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
 
 /** An ISO timestamp without milliseconds, e.g. 2026-11-05T22:17:00Z. */
 export const isoSeconds = (at: Date): string => at.toISOString().replace(/\.\d+Z$/, "Z");
