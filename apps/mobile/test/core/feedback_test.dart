@@ -61,4 +61,19 @@ void main() {
     expect(sounds.played.first.$2, 1);
     expect(sounds.played.last.$2, 1.5);
   });
+
+  testWidgets('a stopped count-up ticks no more', (tester) async {
+    final sounds = _FakeSounds();
+    final stop = GameFeedback(
+      sounds: sounds,
+      haptics: false,
+      sound: true,
+    ).countUp(const Duration(milliseconds: 200));
+    await tester.pump(const Duration(milliseconds: 250));
+    final ticked = sounds.played.length;
+    stop();
+    await tester.pump(const Duration(seconds: 2));
+    expect(ticked, inInclusiveRange(1, 9));
+    expect(sounds.played, hasLength(ticked));
+  });
 }

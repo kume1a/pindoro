@@ -48,85 +48,56 @@ class GameFeedback {
   /// A hero button (Play, Start, Continue).
   void press() => _play(Sound.tap);
 
-  void pinDrop() {
-    _play(Sound.pinTok);
-    _haptic(HapticFeedback.lightImpact);
-  }
+  void pinDrop() => _cue(Sound.pinTok, HapticFeedback.lightImpact);
 
   /// The pin lands in the cold-start moment.
-  void launch() {
-    _play(Sound.launchTok);
-    _haptic(HapticFeedback.lightImpact);
-  }
+  void launch() => _cue(Sound.launchTok, HapticFeedback.lightImpact);
 
   /// The next stop on the Path opens.
-  void unlock() {
-    _play(Sound.unlock);
-    _haptic(HapticFeedback.lightImpact);
-  }
+  void unlock() => _cue(Sound.unlock, HapticFeedback.lightImpact);
 
   /// A road trip's route reaches the next junction.
-  void junction() {
-    _play(Sound.countTick);
-    _haptic(HapticFeedback.selectionClick);
-  }
+  void junction() => _cue(Sound.countTick, HapticFeedback.selectionClick);
 
   /// A road trip's route reaches B (a two-note arrive).
-  void reached() {
-    _play(Sound.tierGreat);
-    _haptic(HapticFeedback.lightImpact);
-  }
+  void reached() => _cue(Sound.tierGreat, HapticFeedback.lightImpact);
 
   /// A unit is complete, and the next unit's signpost flips open (a
   /// three-note rise).
-  void unitDone() {
-    _play(Sound.tierPerfect);
-    _haptic(HapticFeedback.mediumImpact);
-  }
+  void unitDone() => _cue(Sound.tierPerfect, HapticFeedback.mediumImpact);
 
   /// A badge's reward sheet opens (component Badge § Reward moment).
-  void badge() {
-    _play(Sound.unlock);
-    _haptic(HapticFeedback.mediumImpact);
-  }
+  void badge() => _cue(Sound.unlock, HapticFeedback.mediumImpact);
 
-  void confirm() {
-    _play(Sound.confirm);
-    _haptic(HapticFeedback.mediumImpact);
-  }
+  void confirm() => _cue(Sound.confirm, HapticFeedback.mediumImpact);
 
-  void error() {
-    _play(Sound.errorSoft);
-    _haptic(HapticFeedback.heavyImpact);
-  }
+  void error() => _cue(Sound.errorSoft, HapticFeedback.heavyImpact);
 
   /// Soft rising ticks while a reward counts up after [delay]: they follow
-  /// [CountUp]'s ease-out, so they thin out as the digits slow down.
-  void countUp(Duration delay) {
-    if (!sound) return;
+  /// [CountUp]'s ease-out, so they thin out as the digits slow down. Returns
+  /// a stop for the ticks still to come.
+  VoidCallback countUp(Duration delay) {
+    if (!sound) return () {};
     const ticks = 10;
-    for (var i = 0; i < ticks; i++) {
-      final at = 1 - pow(1 - i / ticks, 1 / 3);
-      unawaited(
-        Future<void>.delayed(
-          delay + PindoroMotion.countUp * at,
+    final timers = [
+      for (var i = 0; i < ticks; i++)
+        Timer(
+          delay + PindoroMotion.countUp * (1 - pow(1 - i / ticks, 1 / 3)),
           () => sounds.play(Sound.countTick, speed: 1 + 0.5 * i / (ticks - 1)),
         ),
-      );
-    }
+    ];
+    return () {
+      for (final timer in timers) {
+        timer.cancel();
+      }
+    };
   }
 
   /// The round's reward total lands after counting up.
-  void reward() {
-    _play(Sound.land);
-    _haptic(HapticFeedback.mediumImpact);
-  }
+  void reward() => _cue(Sound.land, HapticFeedback.mediumImpact);
 
   /// The streak grows by a day (component Streak § Streak increase).
-  void streak() {
-    _play(Sound.streak);
-    _haptic(HapticFeedback.mediumImpact);
-  }
+  void streak() => _cue(Sound.streak, HapticFeedback.mediumImpact);
 
   void tier(Tier tier) {
     switch (tier) {
@@ -137,11 +108,9 @@ class GameFeedback {
           HapticFeedback.mediumImpact,
         ], const Duration(milliseconds: 90));
       case Tier.great:
-        _play(Sound.tierGreat);
-        _haptic(HapticFeedback.mediumImpact);
+        _cue(Sound.tierGreat, HapticFeedback.mediumImpact);
       case Tier.close:
-        _play(Sound.tierClose);
-        _haptic(HapticFeedback.lightImpact);
+        _cue(Sound.tierClose, HapticFeedback.lightImpact);
       case Tier.miss:
         _play(Sound.tierMiss);
         _sequence([
@@ -162,6 +131,11 @@ class GameFeedback {
 
   void _play(Sound s) {
     if (sound) sounds.play(s);
+  }
+
+  void _cue(Sound s, Future<void> Function() haptic) {
+    _play(s);
+    _haptic(haptic);
   }
 
   void _haptic(Future<void> Function() feedback) {
@@ -186,15 +160,23 @@ final feedbackProvider = Provider<GameFeedback>((ref) {
 });
 
 /// Plays the count-up ticks once per end screen, with its reward [CountUp].
+/// Leaving the screen stops the ticks still to come.
 mixin CountUpTicks<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   bool _ticked = false;
+  VoidCallback _stopTicks = () {};
 
   void tickCountUp(int value, Duration delay) {
     if (_ticked) return;
     _ticked = true;
     // Reduce motion shows the final value at once: nothing to tick through.
     if (value > 0 && !MediaQuery.disableAnimationsOf(context)) {
-      ref.read(feedbackProvider).countUp(delay);
+      _stopTicks = ref.read(feedbackProvider).countUp(delay);
     }
+  }
+
+  @override
+  void dispose() {
+    _stopTicks();
+    super.dispose();
   }
 }
