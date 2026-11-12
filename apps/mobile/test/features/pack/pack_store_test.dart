@@ -253,6 +253,24 @@ void main() {
     expect(pack.meta()['scope'], 'fixture');
     expect(files(), ['tbilisi_vake_fixture.sqlite']);
   });
+
+  test(
+    'leaving Vake reads as leaving while it loads and when it fails',
+    () async {
+      final c = await app(offline());
+      c.read(offlineVakeProvider.notifier).set(true);
+      await c.read(packRepositoryProvider.future);
+      expect(leavingFixture(c.read(packRepositoryProvider)), isFalse);
+
+      c.read(offlineVakeProvider.notifier).set(false);
+      expect(leavingFixture(c.read(packRepositoryProvider)), isTrue);
+      await expectLater(
+        c.read(packRepositoryProvider.future),
+        throwsA(isA<PackUnavailable>()),
+      );
+      expect(leavingFixture(c.read(packRepositoryProvider)), isTrue);
+    },
+  );
 }
 
 /// Every write fails as on a full phone.

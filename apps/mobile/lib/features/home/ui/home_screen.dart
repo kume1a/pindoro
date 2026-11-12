@@ -14,6 +14,7 @@ import 'package:pindoro/features/home/data/home_data.dart';
 import 'package:pindoro/features/home/ui/widgets/city_card.dart';
 import 'package:pindoro/features/home/ui/widgets/home_intro.dart';
 import 'package:pindoro/features/home/ui/widgets/level_card.dart';
+import 'package:pindoro/features/home/ui/widgets/offline_card.dart';
 import 'package:pindoro/features/home/ui/widgets/saved_card.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/pack/ui/pack_pending.dart';
@@ -78,8 +79,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final home = ref.watch(homeProvider(_summary?.startedAt)).value;
     final settings = ref.watch(settingsProvider).value;
     final streak = ref.watch(streakProvider).value;
-    if (home == null) {
-      return PackPending(pack: ref.watch(packRepositoryProvider));
+    final packState = ref.watch(packRepositoryProvider);
+    if (home == null || leavingFixture(packState)) {
+      return PackPending(pack: packState);
     }
     final intro = _intro(home);
     final l10n = context.l10n;
@@ -129,6 +131,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 padding: const EdgeInsets.all(PindoroSpace.s4),
                 children: [
                   for (final card in [
+                    if (ref.watch(offlineVakeProvider))
+                      OfflineCard(
+                        city: context.localName(
+                          ka: city.nameKa,
+                          en: city.nameEn,
+                        ),
+                        onDownload: () =>
+                            ref.read(offlineVakeProvider.notifier).set(false),
+                      ),
                     HomeLevelCard(
                       level: level,
                       totalXp: home.totalXp,
