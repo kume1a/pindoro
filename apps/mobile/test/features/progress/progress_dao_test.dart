@@ -329,6 +329,10 @@ void main() {
           'tbilisi',
         )).dueIn({'a': street, 'a2': street}, tomorrow);
         expect(due, hasLength(1));
+        final later = (await progress.pitStop(
+          'tbilisi',
+        )).laterIn({'a': street, 'a2': street}, today);
+        expect(later, hasLength(1));
       },
     );
 
@@ -584,6 +588,19 @@ void main() {
         'b': 200,
       });
     });
+
+    test(
+      'previous distances take a later lesson pin, not the round itself',
+      () async {
+        final r = await round(['a']);
+        await answer(r, 'a', Tier.miss, distanceM: 900);
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+        await finish(played(pinA: Tier.close));
+        final pit = await round(['a', 'b'], pitStop: true);
+        await answer(pit, 'a', Tier.great, distanceM: 40);
+        expect(await progress.previousDistances(pit), {'a': 300});
+      },
+    );
 
     group('road trips', () {
       final trip = (

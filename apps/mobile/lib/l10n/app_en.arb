@@ -248,6 +248,8 @@
   "packChooseCity": "Choose another city",
   "packNoSpaceTitle": "Not enough space",
   "packNoSpaceBody": "Free up a little space on your phone and try again.",
+  "packUpdateTitle": "This city needs a newer Pindoro",
+  "packUpdateBody": "Update the app to download it.",
   "areaPlayArea": "Play area",
   "areaCircleHelp": "Drag the map to move the circle. Drag its handle or the slider to resize it.",
   "areaRectangleHelp": "Drag the map to move the rectangle. Drag a corner to resize it.",

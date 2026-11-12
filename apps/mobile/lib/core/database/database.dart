@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.steps.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:uuid/uuid.dart';
@@ -30,6 +31,9 @@ extension SettingsArea on Settings {
 
   /// The saved difficulty; medium (the picker's default) until one is picked.
   Difficulty get difficulty => lastDifficulty ?? Difficulty.medium;
+
+  /// The chosen city; the default one until the player picks.
+  String get cityId => lastCity ?? AppConfig.defaultCityId;
 }
 
 enum AppLanguage { en, ka }

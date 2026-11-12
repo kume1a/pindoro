@@ -156,17 +156,14 @@ GoRouter buildRouter(String initialLocation) {
       ),
       GoRoute(
         path: Routes.results,
-        redirect: (_, state) =>
-            state.uri.queryParameters.containsKey('round') ? null : Routes.home,
-        pageBuilder: (_, state) => _fadePage(
-          state,
-          ResultsScreen(roundId: state.uri.queryParameters['round']!),
-        ),
+        redirect: _requires('round', otherwise: Routes.home),
+        pageBuilder: (_, state) =>
+            _fadePage(state, ResultsScreen(roundId: _param(state, 'round'))),
         routes: [
           GoRoute(
             path: 'street/:index',
             builder: (_, state) => ResultStreetScreen(
-              roundId: state.uri.queryParameters['round']!,
+              roundId: _param(state, 'round'),
               index: int.parse(state.pathParameters['index']!),
             ),
           ),
@@ -179,39 +176,33 @@ GoRouter buildRouter(String initialLocation) {
       ),
       GoRoute(
         path: Routes.lessonDone,
-        redirect: (_, state) => state.uri.queryParameters.containsKey('result')
-            ? null
-            : Routes.path,
+        redirect: _requires('result'),
         pageBuilder: (_, state) => _fadePage(
           state,
-          LessonDoneScreen(resultId: state.uri.queryParameters['result']!),
+          LessonDoneScreen(resultId: _param(state, 'result')),
         ),
       ),
       GoRoute(
         path: Routes.drive,
-        redirect: (_, state) =>
-            state.uri.queryParameters.containsKey('unit') ? null : Routes.path,
-        builder: (_, state) =>
-            DriveScreen(unitId: state.uri.queryParameters['unit']!),
+        redirect: _requires('unit'),
+        builder: (_, state) => DriveScreen(unitId: _param(state, 'unit')),
       ),
       GoRoute(
         path: Routes.unitDone,
-        redirect: (_, state) =>
-            state.uri.queryParameters.containsKey('unit') ? null : Routes.path,
+        redirect: _requires('unit'),
         pageBuilder: (_, state) => _fadePage(
           state,
           UnitDoneScreen(
-            unitId: state.uri.queryParameters['unit']!,
+            unitId: _param(state, 'unit'),
             gainedXp: int.tryParse(state.uri.queryParameters['xp'] ?? '') ?? 0,
           ),
         ),
       ),
       GoRoute(
         path: Routes.unitGuide,
-        redirect: (_, state) =>
-            state.uri.queryParameters.containsKey('unit') ? null : Routes.path,
+        redirect: _requires('unit'),
         builder: (_, state) => UnitGuideScreen(
-          unitId: state.uri.queryParameters['unit']!,
+          unitId: _param(state, 'unit'),
           lesson: int.tryParse(state.uri.queryParameters['lesson'] ?? ''),
         ),
       ),
@@ -225,3 +216,11 @@ GoRouter buildRouter(String initialLocation) {
     ],
   );
 }
+
+/// Sends a route opened without its [key] query parameter to [otherwise].
+GoRouterRedirect _requires(String key, {String otherwise = Routes.path}) =>
+    (_, state) => state.uri.queryParameters.containsKey(key) ? null : otherwise;
+
+/// A query parameter its route's [_requires] made sure of.
+String _param(GoRouterState state, String key) =>
+    state.uri.queryParameters[key]!;

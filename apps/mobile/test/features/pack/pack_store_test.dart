@@ -155,13 +155,24 @@ void main() {
     expect(files(), isEmpty);
   });
 
-  test('skips packs in a newer format', () async {
-    expect(
-      await store(
-        '20261106T000000Z',
-        format: PackStore.supportedFormatVersion + 1,
-      ).refresh('tbilisi'),
-      isNull,
+  test('skips packs in a newer format, asking for an app update', () async {
+    final newer = store(
+      '20261106T000000Z',
+      format: PackStore.supportedFormatVersion + 1,
+    );
+    await expectLater(
+      newer.refresh('tbilisi'),
+      throwsA(isA<PackFormatTooNew>()),
+    );
+    await expectLater(
+      downloadPack(newer, 'tbilisi'),
+      throwsA(
+        isA<PackUnavailable>().having(
+          (e) => e.needsUpdate,
+          'needsUpdate',
+          true,
+        ),
+      ),
     );
     expect(files(), isEmpty);
   });

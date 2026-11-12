@@ -11,6 +11,7 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/badges/data/badge_data.dart';
 import 'package:pindoro/features/league/data/league_data.dart';
 import 'package:pindoro/features/pack/data/app_update.dart';
+import 'package:pindoro/features/pitstop/data/pit_stop_data.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/progress/data/streak.dart';
@@ -49,6 +50,7 @@ class _PindoroAppState extends ConsumerState<PindoroApp> {
     _lifecycle = AppLifecycleListener(
       onResume: () => ref
         ..invalidate(streakProvider)
+        ..invalidate(pitStopProvider)
         ..invalidate(standingProvider),
     );
     // Listening keeps the standing alive, so the week's XP reaches the

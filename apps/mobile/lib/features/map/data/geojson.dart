@@ -68,12 +68,13 @@ const Polyline _world = [
 /// second hole: overlapping holes would dim their overlap.
 Map<String, dynamic> areaMaskGeoJson(List<List<Polyline>> boundary) {
   final outer = [for (final polygon in boundary) polygon.first];
+  final boxes = [for (final ring in outer) Bbox.of(ring)];
   return polygonsGeoJson([
     (
       [
         _world,
         for (final (i, ring) in outer.indexed)
-          if (!_insideBigger(ring, outer, i)) ring,
+          if (!_insideBigger(ring, outer, boxes, i)) ring,
       ],
       const {},
     ),
@@ -84,17 +85,22 @@ Map<String, dynamic> areaMaskGeoJson(List<List<Polyline>> boundary) {
 
 /// Whether most of ring [i]'s vertices lie in a ring with a bigger bbox.
 /// Most, not all: a neighbourhood often shares edges with its district, and
-/// a vertex on an edge counts either way.
-bool _insideBigger(Polyline ring, List<Polyline> rings, int i) {
-  double size(Polyline r) {
-    final b = Bbox.of(r);
-    return (b.maxLat - b.minLat) * (b.maxLon - b.minLon);
-  }
-
-  final own = size(ring);
+/// a vertex on an edge counts either way. A point outside a ring's [boxes]
+/// entry can't be inside it, which skips most neighbouring districts.
+bool _insideBigger(
+  Polyline ring,
+  List<Polyline> rings,
+  List<Bbox> boxes,
+  int i,
+) {
+  double size(Bbox b) => (b.maxLat - b.minLat) * (b.maxLon - b.minLon);
+  final own = boxes[i];
   for (final (j, other) in rings.indexed) {
-    if (j == i || size(other) <= own) continue;
-    final inside = ring.where((p) => polygonContains([other], p)).length;
+    final box = boxes[j];
+    if (j == i || size(box) <= size(own) || !box.intersects(own)) continue;
+    final inside = ring
+        .where((p) => box.contains(p) && polygonContains([other], p))
+        .length;
     if (inside * 2 > ring.length) return true;
   }
   return false;

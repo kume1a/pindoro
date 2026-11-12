@@ -60,4 +60,15 @@ void main() {
     ).single;
     expect(rings, hasLength(2), reason: 'the world + the district');
   });
+
+  test('areas side by side each cut their own hole', () {
+    final rings = _polygons(
+      areaMaskGeoJson([
+        [_square(41.7, 44.7, 0.1)],
+        [_square(41.7, 44.85, 0.05)],
+        [_square(41.9, 44.9, 0.02)],
+      ]),
+    ).single;
+    expect(rings, hasLength(4), reason: 'the world + three areas');
+  });
 }

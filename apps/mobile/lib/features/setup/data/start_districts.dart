@@ -30,7 +30,7 @@ final startDistrictsProvider =
       final city = pack.city();
       final raions = [
         for (final d in pack.districts())
-          if (d.kind == DistrictKind.district) d,
+          if (d.isRaion) d,
       ];
       final taught = {
         for (final u in buildCourse(

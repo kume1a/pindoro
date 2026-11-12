@@ -19,11 +19,11 @@ typedef DistrictGroup = ({District district, List<District> parts});
 List<DistrictGroup> groupByDistrict(List<District> areas) {
   final districts = [
     for (final d in areas)
-      if (d.kind == DistrictKind.district) d,
+      if (d.isRaion) d,
   ];
   final parts = {for (final d in districts) d.id: <District>[]};
   for (final n in areas) {
-    if (n.kind == DistrictKind.district || districts.isEmpty) continue;
+    if (n.isRaion || districts.isEmpty) continue;
     final home =
         districts
             .where((d) => boundaryContains(d.boundary, n.center))

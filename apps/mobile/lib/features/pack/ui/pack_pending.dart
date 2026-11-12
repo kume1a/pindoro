@@ -21,8 +21,14 @@ class PackPending extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // A Try again reloads as an AsyncError too; only a settled failure counts,
+    // once, on the PackPending in view (tabs keep hidden ones mounted).
     ref.listen(packRepositoryProvider, (_, next) {
-      if (next is AsyncError) ref.read(feedbackProvider).error();
+      if (next case AsyncError(
+        isLoading: false,
+      ) when TickerMode.getValuesNotifier(context).value.enabled) {
+        ref.read(feedbackProvider).error();
+      }
     });
     final c = PindoroTheme.of(context).colors;
     final content = _content(context, ref);
@@ -76,16 +82,29 @@ class PackPending extends ConsumerWidget {
     // A Try again keeps the old error while it loads; it shows its own
     // progress (or nothing) instead.
     if (pack.error case final error? when progress == null && !pack.isLoading) {
-      final noSpace = error is PackUnavailable && error.noSpace;
-      final vake =
-          error is PackUnavailable && error.city == AppConfig.defaultCityId;
+      final unavailable = error is PackUnavailable ? error : null;
+      final noSpace = unavailable?.noSpace ?? false;
+      final needsUpdate = unavailable?.needsUpdate ?? false;
+      final vake = unavailable?.city == AppConfig.defaultCityId;
       return (
         failed: true,
         child: Semantics(
           liveRegion: true,
           child: column([
-            title(noSpace ? l10n.packNoSpaceTitle : l10n.packFailedTitle),
-            body(noSpace ? l10n.packNoSpaceBody : l10n.packFailedBody),
+            title(
+              needsUpdate
+                  ? l10n.packUpdateTitle
+                  : noSpace
+                  ? l10n.packNoSpaceTitle
+                  : l10n.packFailedTitle,
+            ),
+            body(
+              needsUpdate
+                  ? l10n.packUpdateBody
+                  : noSpace
+                  ? l10n.packNoSpaceBody
+                  : l10n.packFailedBody,
+            ),
             if (vake) body(l10n.packVakeOffline),
             PindoroButton(
               label: vake ? l10n.packPlayVake : l10n.packChooseCity,
@@ -94,11 +113,13 @@ class PackPending extends ConsumerWidget {
                   ? () => ref.read(offlineVakeProvider.notifier).set(true)
                   : () => context.go(Routes.city),
             ),
-            PindoroButton(
-              label: l10n.commonTryAgain,
-              icon: PindoroGlyph.retry,
-              onPressed: () => ref.invalidate(packRepositoryProvider),
-            ),
+            // Trying again can't help until the app is updated.
+            if (!needsUpdate)
+              PindoroButton(
+                label: l10n.commonTryAgain,
+                icon: PindoroGlyph.retry,
+                onPressed: () => ref.invalidate(packRepositoryProvider),
+              ),
           ]),
         ),
       );

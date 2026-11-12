@@ -33,6 +33,11 @@ typedef CatalogPack = ({
 /// The newest sideload build the server offers, and where to download it.
 typedef AppRelease = ({int build, Uri url});
 
+/// The catalog's pack is in a newer format than this build reads.
+class PackFormatTooNew implements Exception {
+  const PackFormatTooNew();
+}
+
 /// Installs the packs listed by `/v1/catalog` as `<root>/<city>/<version>.sqlite`.
 class PackStore {
   PackStore({
@@ -58,14 +63,16 @@ class PackStore {
   /// Installs the catalog's pack for [city] when it is newer than the newest
   /// installed one. Returns the new file, or null when there was nothing to do.
   /// Throws on network or verification failures; nothing partial is left.
+  /// Throws [PackFormatTooNew] when only a newer app can read the pack.
   /// [onProgress] hears about every chunk of the download.
   Future<File?> refresh(
     String city, {
     void Function(PackProgress progress)? onProgress,
   }) async {
     final pack = await _catalogPack(city);
-    if (pack == null || pack.formatVersion > supportedFormatVersion) {
-      return null;
+    if (pack == null) return null;
+    if (pack.formatVersion > supportedFormatVersion) {
+      throw const PackFormatTooNew();
     }
     final current = newest(city);
     if (current != null && _version(current).compareTo(pack.version) >= 0) {

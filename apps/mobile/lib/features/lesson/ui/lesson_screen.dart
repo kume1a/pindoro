@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
+import 'package:pindoro/core/play_bar.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/lesson/ui/lesson_controller.dart';
@@ -232,16 +233,14 @@ class _LessonView extends ConsumerWidget {
 
   Future<void> _leave(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
-    final leave = await showDialog<bool>(
-      context: context,
-      builder: (context) => PindoroDialog(
-        title: l10n.lessonLeaveTitle,
-        body: l10n.lessonLeaveBody,
-        primary: l10n.lessonKeepLearning,
-        secondary: l10n.lessonLeave,
-      ),
+    final leave = await confirmLeave(
+      context,
+      title: l10n.lessonLeaveTitle,
+      body: l10n.lessonLeaveBody,
+      stay: l10n.lessonKeepLearning,
+      leave: l10n.lessonLeave,
     );
-    if (!(leave ?? false) || !context.mounted) return;
+    if (!leave || !context.mounted) return;
     await ref.read(lessonControllerProvider.notifier).leave();
     if (context.mounted) context.go(Routes.path);
   }
@@ -271,31 +270,15 @@ class LessonTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final xp = formatNumber(run.stepXp);
     final step = (run.index + 1).clamp(1, run.total);
-    return Row(
-      spacing: PindoroSpace.s3,
-      children: [
-        PindoroIconButton(
-          glyph: PindoroGlyph.close,
-          semanticLabel: l10n.a11yLeaveLesson,
-          onPressed: onLeave,
-        ),
-        Expanded(
-          child: QuestionBar(
-            tiers: segments(run),
-            total: run.total,
-            semanticLabel: l10n.a11yLessonStep(step, run.total),
-          ),
-        ),
-        Pill(
-          label: xp,
-          icon: PindoroGlyph.xp,
-          iconColor: PindoroTheme.of(context).colors.xpFill,
-          floating: true,
-          semanticLabel: l10n.a11yLessonXp(xp),
-        ),
-      ],
+    return PlayBar(
+      leaveLabel: l10n.a11yLeaveLesson,
+      onLeave: onLeave,
+      tiers: segments(run),
+      total: run.total,
+      barLabel: l10n.a11yLessonStep(step, run.total),
+      xp: run.stepXp,
+      xpLabel: l10n.a11yLessonXp,
     );
   }
 }

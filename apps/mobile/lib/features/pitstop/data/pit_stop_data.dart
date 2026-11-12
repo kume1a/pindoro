@@ -29,10 +29,7 @@ final pitStopProvider = FutureProvider.autoDispose<PitStopData>((ref) async {
   final cityId = pack.city().id;
   final today = calendarDay(DateTime.now());
   final items = await dao.pitStop(cityId);
-  final later = [
-    for (final i in items)
-      if (!i.dueBy(today) && streets.containsKey(i.streetId)) i,
-  ];
+  final later = items.laterIn(streets, today);
   final tally = <Tier, int>{};
   for (final a in await dao.lastPitStopAnswers(cityId)) {
     tally.update(a.tier, (n) => n + 1, ifAbsent: () => 1);

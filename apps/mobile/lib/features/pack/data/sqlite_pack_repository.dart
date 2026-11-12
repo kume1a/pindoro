@@ -3,13 +3,15 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/config.dart';
+import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/pack/data/pack_store.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 /// Reads a city pack (docs/pack-format.md) opened read-only. A pack never
-/// changes, so its meta, city and districts are decoded once.
+/// changes, so its meta, city, districts and district links are decoded
+/// once.
 class SqlitePackRepository implements PackRepository {
   SqlitePackRepository.open(String path)
     : _db = sqlite3.open(path, mode: OpenMode.readOnly);
@@ -62,20 +64,17 @@ class SqlitePackRepository implements PackRepository {
   }
 
   @override
-  Map<String, Set<String>> partsByDistrict() {
-    final byDistrict = <String, Set<String>>{};
-    for (final r in _db.select(
-      'SELECT district_id, street_id FROM street_district',
-    )) {
-      byDistrict
-          .putIfAbsent(r['district_id'] as String, () => {})
-          .add(r['street_id'] as String);
-    }
-    return byDistrict;
-  }
+  Map<String, Set<String>> partsByDistrict() => _partsByDistrict;
+
+  late final Map<String, Set<String>> _partsByDistrict = Map.unmodifiable({
+    for (final MapEntry(:key, :value) in lengthsByDistrict().entries)
+      key: Set<String>.unmodifiable(value.keys),
+  });
 
   @override
-  Map<String, Map<String, double>> lengthsByDistrict() {
+  Map<String, Map<String, double>> lengthsByDistrict() => _lengthsByDistrict;
+
+  late final Map<String, Map<String, double>> _lengthsByDistrict = () {
     final byDistrict = <String, Map<String, double>>{};
     for (final r in _db.select(
       'SELECT district_id, street_id, length_m FROM street_district',
@@ -86,8 +85,11 @@ class SqlitePackRepository implements PackRepository {
       )[r['street_id'] as String] = (r['length_m'] as num)
           .toDouble();
     }
-    return byDistrict;
-  }
+    return Map<String, Map<String, double>>.unmodifiable({
+      for (final MapEntry(:key, :value) in byDistrict.entries)
+        key: Map<String, double>.unmodifiable(value),
+    });
+  }();
 
   /// Format 3 only; built once (the graph is about 16 000 edges for Tbilisi).
   late final RoadGraph? _graph = () {
@@ -148,12 +150,18 @@ Future<City> fixtureCity(Directory root) async {
 }
 
 /// A city with no pack on the phone whose download failed: offline, or
-/// [noSpace] when the phone is full.
+/// [noSpace] when the phone is full, or [needsUpdate] when only a newer app
+/// reads the server's pack.
 class PackUnavailable implements Exception {
-  const PackUnavailable(this.city, {this.noSpace = false});
+  const PackUnavailable(
+    this.city, {
+    this.noSpace = false,
+    this.needsUpdate = false,
+  });
 
   final String city;
   final bool noSpace;
+  final bool needsUpdate;
 }
 
 /// The player chose to play the bundled Vake pack while Tbilisi can't
@@ -195,9 +203,7 @@ class PackDownloadNotifier extends Notifier<PackProgress?> {
 /// behind their back.
 final packRepositoryProvider = FutureProvider<PackRepository>((ref) async {
   final store = ref.watch(packStoreProvider);
-  final city =
-      await ref.watch(settingsProvider.selectAsync((s) => s.lastCity)) ??
-      AppConfig.defaultCityId;
+  final city = await ref.watch(settingsProvider.selectAsync((s) => s.cityId));
   final offlineVake = ref.watch(offlineVakeProvider);
   final file =
       store.newest(city) ??
@@ -250,6 +256,8 @@ Future<File> downloadPack(
     if (await store.refresh(city, onProgress: onProgress) case final file?) {
       return file;
     }
+  } on PackFormatTooNew {
+    throw PackUnavailable(city, needsUpdate: true);
   } on FileSystemException catch (e) {
     if (e.osError?.errorCode == _noSpaceLeft) {
       throw PackUnavailable(city, noSpace: true);
@@ -290,6 +298,36 @@ Future<T?> readInstalledPack<T>(
     pack.close();
   }
 }
+
+/// An open pack and its streets as the player sees them.
+typedef OpenPack = ({PackRepository pack, Map<String, NamedStreet> streets});
+
+/// The active [pack] once it and its [streets] are loaded, else null.
+OpenPack? openPackOf(
+  AsyncValue<PackRepository> pack,
+  AsyncValue<Map<String, NamedStreet>> streets,
+) => switch ((pack.value, streets.value)) {
+  (final pack?, final streets?) => (pack: pack, streets: streets),
+  _ => null,
+};
+
+/// [read] over each of [cityIds]' packs, in order: [open] for its own city,
+/// else the city's newest installed pack in [store], opened just for this
+/// (the store is only read then). A city with no pack on the phone is left
+/// out. Never downloads.
+Future<List<T>> readCityPacks<T>(
+  PackStore Function() store,
+  Iterable<String> cityIds,
+  Future<T> Function(PackRepository pack, Map<String, NamedStreet> streets)
+  read, {
+  OpenPack? open,
+}) async => [
+  for (final id in cityIds)
+    if (open != null && open.pack.city().id == id)
+      await read(open.pack, open.streets)
+    else
+      ?await readInstalledPack(store(), id, read),
+];
 
 /// The active pack's road graph; null for a pack older than format 3.
 final roadGraphProvider = FutureProvider<RoadGraph?>(

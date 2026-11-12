@@ -23,8 +23,10 @@ import 'package:pindoro_core/pindoro_core.dart';
 void main() {
   const unit = AppConfig.fixtureDistrictId;
   late AppDatabase db;
+  late List<PindoroMap> maps;
 
   setUp(() {
+    maps = [];
     db = AppDatabase(
       DatabaseConnection(
         NativeDatabase.memory(),
@@ -64,9 +66,10 @@ void main() {
           databaseProvider.overrideWithValue(db),
           remindersProvider.overrideWithValue(_NoReminders()),
           speechProvider.overrideWithValue(speech ?? _FakeSpeech()),
-          pindoroMapBuilderProvider.overrideWithValue(
-            (map) => const SizedBox.expand(),
-          ),
+          pindoroMapBuilderProvider.overrideWithValue((map) {
+            maps.add(map);
+            return const SizedBox.expand();
+          }),
           lessonRandomProvider.overrideWithValue(Random(5)),
           packRepositoryProvider.overrideWith((ref) async {
             final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
@@ -139,6 +142,14 @@ void main() {
     await settle(tester);
     await tap(tester, find.text('Check route'));
     expect(find.text('Best route!'), findsOneWidget);
+    // Once replayed, the best route keeps its identity across rebuilds, so
+    // the map doesn't send it again on every camera move.
+    final (best, builds) = (maps.last.route!.best, maps.length);
+    // Any new lesson state rebuilds the view.
+    container.read(lessonControllerProvider.notifier).openFixes();
+    await tester.pump();
+    expect(maps.length, greaterThan(builds));
+    expect(maps.last.route!.best, same(best));
     await tap(tester, find.text('Next'));
     await settle(tester);
     expect(find.text('Perfect lesson!'), findsOneWidget);

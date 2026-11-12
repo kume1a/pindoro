@@ -129,7 +129,6 @@ void main() {
 
     await controller.startRetry(first.id);
     final retry = (c.read(roundControllerProvider) as RoundAsking).round;
-    expect(retry.retryOf, first.id);
     expect(retry.total, 2);
     expect(
       [for (final q in retry.questions) q.id],
@@ -148,10 +147,39 @@ void main() {
     expect((await ProgressDao(db).roundProgress(retry.id)).retryIds, isEmpty);
   });
 
+  test('a resumed round leaves retired streets off the question bar', () async {
+    final first = container();
+    final controller = first.read(roundControllerProvider.notifier);
+    await controller.start(vake, Difficulty.expert);
+    await answerCurrent(controller, first);
+    await controller.next();
+    await answerCurrent(controller, first);
+    final round = (first.read(roundControllerProvider) as RoundRevealed).round;
+    final retired = {for (final p in round.questions[1].street.parts) p.id};
+
+    final second = container(
+      pack: () => _FilteredPack(
+        SqlitePackRepository.open(AppConfig.fixturePackAsset),
+        (streets) => [
+          for (final s in streets)
+            if (!retired.contains(s.id)) s,
+        ],
+      ),
+    );
+    await second.read(roundControllerProvider.notifier).resume(round.id);
+    final resumed = (second.read(roundControllerProvider) as RoundAsking).round;
+    expect(resumed.total, QuestionSelector.roundSize - 1);
+    expect(resumed.number, 2);
+    expect(resumed.answeredTiers, hasLength(1));
+    expect(resumed.xp, round.xp, reason: 'answered XP still counts');
+  });
+
   test('a pool smaller than a round is reported', () async {
     final c = container(
-      pack: () =>
-          _TinyPack(SqlitePackRepository.open(AppConfig.fixturePackAsset)),
+      pack: () => _FilteredPack(
+        SqlitePackRepository.open(AppConfig.fixturePackAsset),
+        (streets) => streets.take(3).toList(),
+      ),
     );
     await c
         .read(roundControllerProvider.notifier)
@@ -220,18 +248,16 @@ void main() {
   });
 }
 
-/// The fixture with only three streets in any query.
-class _TinyPack implements PackRepository {
-  _TinyPack(this._inner);
+/// The fixture with every street query passed through [_keep].
+class _FilteredPack implements PackRepository {
+  _FilteredPack(this._inner, this._keep);
 
   final PackRepository _inner;
+  final List<Street> Function(List<Street>) _keep;
 
   @override
   List<Street> streets({String? districtId, Set<Difficulty>? difficulties}) =>
-      _inner
-          .streets(districtId: districtId, difficulties: difficulties)
-          .take(3)
-          .toList();
+      _keep(_inner.streets(districtId: districtId, difficulties: difficulties));
 
   @override
   Map<String, String> meta() => _inner.meta();

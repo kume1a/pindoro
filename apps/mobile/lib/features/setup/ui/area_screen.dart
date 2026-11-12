@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
@@ -162,6 +161,8 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
     ref.read(feedbackProvider).tap();
     _lastTapped = id;
     _picked.value = step.picked;
+    // An earlier toast's Undo would restore picks from before this toggle.
+    ScaffoldMessenger.maybeOf(toastContext)?.hideCurrentSnackBar();
     if (step.narrowed) {
       showToast(
         toastContext,
@@ -241,9 +242,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
     final settings = ref.watch(settingsProvider).value;
     // While a newly chosen city loads, the provider still holds the previous
     // city's pack; picking on it would save the wrong city.
-    if (pack == null ||
-        settings == null ||
-        pack.city().id != (settings.lastCity ?? AppConfig.defaultCityId)) {
+    if (pack == null || settings == null || pack.city().id != settings.cityId) {
       return PackPending(pack: packState);
     }
     final offline = isFixturePack(pack);
@@ -268,32 +267,16 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
     ).metresPerDp(here);
 
     final names = {for (final d in districts) d.id: districtName(d, settings)};
-    final detail = detailAt(_zoom);
     final picked = [
       for (final d in districts)
         if (picks.contains(d.id)) d,
     ]..sort((a, b) => names[a.id]!.compareTo(names[b.id]!));
-    // The zoom's level first, then the nearest to the map's centre.
-    final nearest =
-        [
-          for (final d in districts)
-            if (!picks.contains(d.id)) d,
-        ]..sort((a, b) {
-          final byLevel = (isDetail(a) == detail ? 0 : 1).compareTo(
-            isDetail(b) == detail ? 0 : 1,
-          );
-          return byLevel != 0
-              ? byLevel
-              : distanceBetween(
-                  here,
-                  a.center,
-                ).compareTo(distanceBetween(here, b.center));
-        });
-    final pickedNames = [for (final d in picked) names[d.id]!];
 
     final (title, help) = switch (mode) {
       AreaMode.districts => (
-        picks.isEmpty ? l10n.areaNoneTitle : districtNames(l10n, pickedNames),
+        picks.isEmpty
+            ? l10n.areaNoneTitle
+            : districtNames(l10n, [for (final d in picked) names[d.id]!]),
         offline
             ? l10n.areaOffline
             : fewStreets(picks, streets)
@@ -445,7 +428,15 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
             spacing: PindoroSpace.s2,
             runSpacing: PindoroSpace.s2,
             children: [
-              for (final d in [...picked, ...nearest.take(_nearbyChips)])
+              for (final d in [
+                ...picked,
+                ...nearestAreas(
+                  districts,
+                  picks,
+                  here,
+                  detail: detailAt(_zoom),
+                ).take(_nearbyChips),
+              ])
                 PindoroChip(
                   label: names[d.id]!,
                   selected: picks.contains(d.id),

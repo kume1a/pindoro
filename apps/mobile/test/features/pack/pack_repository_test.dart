@@ -20,10 +20,9 @@ void main() {
   test('the fixture holds Vake and the quarters and neighbourhoods in it', () {
     expect(pack.city().id, 'tbilisi');
     final districts = pack.districts();
-    expect(
-      districts.where((d) => d.kind == DistrictKind.district).map((d) => d.id),
-      [AppConfig.fixtureDistrictId],
-    );
+    expect(districts.where((d) => d.isRaion).map((d) => d.id), [
+      AppConfig.fixtureDistrictId,
+    ]);
     expect(
       districts.map((d) => d.kind),
       containsAll([DistrictKind.quarter, DistrictKind.neighbourhood]),

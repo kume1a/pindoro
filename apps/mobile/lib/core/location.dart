@@ -59,11 +59,19 @@ class LocationService {
         ),
       );
     } on Object {
-      p = await Geolocator.getLastKnownPosition();
+      p = await _lastKnown();
     }
     return p == null
         ? const LocationUnavailable()
         : Located(LatLng(p.latitude, p.longitude));
+  }
+
+  static Future<Position?> _lastKnown() async {
+    try {
+      return await Geolocator.getLastKnownPosition();
+    } on Object {
+      return null;
+    }
   }
 
   /// The last known position when location is on and already allowed; never
