@@ -46,7 +46,7 @@ class ResultsScreen extends ConsumerStatefulWidget {
 }
 
 class _ResultsScreenState extends ConsumerState<ResultsScreen>
-    with BadgeMoments {
+    with BadgeMoments, CountUpTicks {
   final _barKey = GlobalKey();
   bool _barFull = false;
   bool _levelUpOver = false;
@@ -83,6 +83,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen>
     final crossed = after.level > before.level;
     // Badges follow the level-up moment when there is one.
     if (!crossed) showBadgesAfter(_Arrival.rows);
+    tickCountUp(data.roundXp, _Arrival.reward);
     // Until the level-up moment is over the bar fills the old level to its end.
     final inNewLevel = !crossed || _levelUpOver;
     final counts = <Tier, int>{};

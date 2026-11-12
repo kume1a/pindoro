@@ -11,6 +11,7 @@ import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/core/sounds.dart';
 import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/league/data/league_api.dart';
 import 'package:pindoro/features/league/data/league_data.dart';
@@ -120,7 +121,11 @@ class SettingsScreen extends ConsumerWidget {
                   ? PindoroGlyph.soundOn
                   : PindoroGlyph.soundOff,
               value: settings.sound,
-              onChanged: (v) => save(() => dao.setSound(on: v)),
+              // Turning sound on plays the tap once to show it.
+              onChanged: (v) {
+                if (v) ref.read(soundsProvider).play(Sound.tap);
+                save(() => dao.setSound(on: v));
+              },
             ),
             _ToggleRow(
               title: l10n.settingsHaptics,

@@ -119,8 +119,12 @@ test/drift/                    generated schema helpers + migration test
   `formatDistance`. Never uppercase.
 - **Settings** (`user_settings`, watched by `settingsProvider`): language (null = device),
   street names, theme, sound, haptics, daily goal, reminder, turn list, the league account (plus the first Home's
-  coach-mark flag); they apply immediately. `feedbackProvider` plays haptics
-  per game event behind the Haptics toggle; the Sound toggle gates nothing until a sound kit exists.
+  coach-mark flag); they apply immediately. `feedbackProvider` plays haptics and sounds per game
+  event behind the Haptics and Sound toggles. The kit is `assets/sounds/*.wav`
+  (`core/sounds.dart`, audioplayers low-latency, ambient/no focus so other audio keeps playing),
+  synthesized (FM plucks and bells in C major, a ComfyUI wooden tok under the pin drop) and
+  finished with `just sounds DIR`; hero buttons play `tap`
+  through `PindoroButton.onHeroPress`. `Sounds` stays silent until loaded, so tests need no override.
 - **Streak:** only goal-met days are stored (`goal_day`, written by `ProgressDao.markGoalIfMet`
   with the answer that reaches the goal, or by `streakProvider` when today's XP already meets it:
   a lowered goal, XP from before R2). `streakProvider` derives the
