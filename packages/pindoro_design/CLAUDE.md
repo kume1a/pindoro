@@ -34,6 +34,8 @@ as parameters; strings live in the app.
   asset groups. Icons are drawn in asphalt ink (#1B2133) with white details; `PindoroIcon` maps ink
   to its colour and white to `cut` (the surface behind). The mascot files had their `.pd-m-*` CSS
   colours inlined (flutter_svg ignores external CSS); re-inline when syncing new mascot files.
+- `assets/map_icons` are Maki icons (CC0, github.com/mapbox/maki `icons/`), not from claude.ai:
+  the basemap's landmark glyphs, drawn by `PoiMark` (`mapIconPicture`) as a `color.map.poi.*` disc.
 
 ## Rules
 

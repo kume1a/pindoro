@@ -139,6 +139,13 @@ Future<PictureInfo> glyphPicture(
   null,
 );
 
+/// A Maki map icon (assets/map_icons, CC0) as a black picture on its
+/// 15-unit grid, for the basemap's landmark icons.
+Future<PictureInfo> mapIconPicture(String icon) => vg.loadPicture(
+  SvgAssetLoader('assets/map_icons/$icon.svg', packageName: _package),
+  null,
+);
+
 class _InkMapper extends ColorMapper {
   const _InkMapper({required this.ink, required this.cut, this.accent});
 

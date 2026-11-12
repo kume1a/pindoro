@@ -98,13 +98,13 @@ class _RoadArt extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawRect(Offset.zero & size, Paint()..color = colors.mapBasemapLand);
+    canvas.drawRect(Offset.zero & size, Paint()..color = colors.mapVectorLand);
     final road = Paint()
-      ..color = colors.mapBasemapRoad
+      ..color = colors.mapVectorRoad
       ..strokeWidth = 4
       ..strokeCap = StrokeCap.round;
     final casing = Paint()
-      ..color = colors.mapBasemapCasing
+      ..color = colors.mapVectorRoadCasing
       ..strokeWidth = 6
       ..strokeCap = StrokeCap.round;
     final lines = <(Offset, Offset)>[

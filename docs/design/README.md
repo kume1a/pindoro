@@ -20,9 +20,13 @@ app icon, splash) come from the design system's asset store; see `packages/pindo
 ## Where the app deliberately differs
 
 - **Map stack.** The design system assumes CARTO raster tiles in `flutter_map`. The app uses
-  self-hosted Protomaps vector tiles in MapLibre (`docs/adr/0001-architecture.md`), so the basemap is
-  coloured from `color.map.basemap.*` and the attribution reads "© OpenStreetMap contributors,
-  Protomaps".
+  self-hosted Protomaps vector tiles in MapLibre (`docs/adr/0001-architecture.md`) and the attribution
+  reads "© OpenStreetMap contributors, Protomaps".
+- **Basemap look.** Instead of the design system's grey CARTO look (`color.map.basemap.*`), the
+  vector basemap has a Yandex-like palette: warm land, blue water, green parks, a peach road hierarchy
+  (never yellow: yellow is the answer). Its colours are app-only tokens (`color.map.vector.*`), and
+  so are the landmark icons (`color.map.poi.*`, Maki icons in `pindoro_design/assets/map_icons`). The
+  icons are discs without names; the basemap never shows text.
 - **App-only tokens** live in `packages/pindoro_design/tokens/app.json`: the skeleton shimmer's
   duration and opacity (`motion.shimmer`, `opacity.shimmer`), the league ladder's step colour
   (`color.league.ladder`) and the four avatar colours with their text (`color.avatar.*`), which the
