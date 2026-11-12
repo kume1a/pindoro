@@ -101,6 +101,9 @@ class District {
   final Bbox bbox;
   final double areaM2;
   final List<List<Polyline>> boundary;
+
+  /// A district proper, not one of the smaller areas inside.
+  bool get isRaion => kind == DistrictKind.district;
 }
 
 class Street {

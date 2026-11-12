@@ -40,15 +40,9 @@ Trip? pickTrip(
   List<List<Polyline>>? within,
   required math.Random random,
 }) {
-  final byPart = <String, Set<int>>{};
-  for (final e in graph.edges) {
-    byPart.putIfAbsent(e.streetId, () => {})
-      ..add(e.from)
-      ..add(e.to);
-  }
   bool inside(int j) => within == null || boundaryContains(within, graph.at(j));
   Set<int> junctionsOf(NamedStreet s) => {
-    for (final p in s.parts) ...?byPart[p.id],
+    for (final p in s.parts) ...graph.junctionsOfPart(p.id),
   };
   final startJunctions = {for (final s in starts) ...junctionsOf(s)}
     ..retainWhere(inside);

@@ -70,7 +70,16 @@ void main() {
       final grid = roadGrid(3, skip: {0, 1}).graph;
       expect(grid.shortestRoute(0, 8), isNull);
       expect(grid.shortestRoute(4, 4)!.edges, isEmpty);
+      expect(grid.connected(0, 8), isFalse);
+      expect(grid.connected(1, 8), isTrue);
     });
+  });
+
+  test('the junctions on a street part', () {
+    final grid = roadGrid(3).graph;
+    expect(grid.junctionsOfPart('row1'), {3, 4, 5});
+    expect(grid.junctionsOfPart('col2'), {2, 5, 8});
+    expect(grid.junctionsOfPart('elsewhere'), isEmpty);
   });
 
   test('a pack row decodes its line on first use', () {
