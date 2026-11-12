@@ -129,6 +129,19 @@ void main() {
     expect(find.text('Streets you know'), findsOneWidget);
   });
 
+  testWidgets('on the Vake stand-in, Home offers the whole city', (
+    tester,
+  ) async {
+    await pumpApp(tester, Routes.home);
+    expect(find.text('Only Vake is on your phone'), findsNothing);
+    ProviderScope.containerOf(
+      tester.element(find.byType(PindoroApp)),
+    ).read(offlineVakeProvider.notifier).set(true);
+    await settle(tester);
+    expect(find.text('Only Vake is on your phone'), findsOneWidget);
+    expect(find.text('Download Tbilisi'), findsOneWidget);
+  });
+
   testWidgets('home asks for an area the open pack lacks (offline Vake)', (
     tester,
   ) async {

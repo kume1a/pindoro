@@ -79,6 +79,15 @@
   "homeEmptyCity": "No streets known yet. Play a round and the map starts filling in.",
   "homeChooseArea": "Choose an area",
   "homeSavedTitle": "Round in progress",
+  "homeOfflineTitle": "Only Vake is on your phone",
+  "homeOfflineDownload": "Download {city}",
+  "@homeOfflineDownload": {
+    "placeholders": {
+      "city": {
+        "type": "String"
+      }
+    }
+  },
   "homeSavedAgo": "saved {time} ago",
   "@homeSavedAgo": {
     "placeholders": {

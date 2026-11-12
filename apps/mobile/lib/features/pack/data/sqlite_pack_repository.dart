@@ -271,6 +271,13 @@ Future<File> downloadPack(
 /// Whether [pack] is the bundled Vake-only stand-in.
 bool isFixturePack(PackRepository pack) => pack.meta()['scope'] == 'fixture';
 
+/// Whether [state] is downloading the whole city, or has failed to, while the
+/// Vake stand-in is still open: screens show that instead of Vake.
+bool leavingFixture(AsyncValue<PackRepository> state) =>
+    (state.isLoading || state.hasError) &&
+    state.hasValue &&
+    isFixturePack(state.requireValue);
+
 /// The pack's version, stored on rounds and answers.
 String packVersion(PackRepository pack) => pack.meta()['version']!;
 
