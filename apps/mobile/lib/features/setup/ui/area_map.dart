@@ -8,6 +8,7 @@ import 'package:pindoro/features/map/data/geojson.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/data/maplibre_convert.dart';
 import 'package:pindoro/features/map/ui/map_work.dart';
+import 'package:pindoro/features/map/ui/poi_icons.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
 import 'package:pindoro/features/map/ui/widgets/map_taps.dart';
@@ -310,6 +311,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
     final c = _controller;
     if (c == null) return;
     final colors = PindoroTheme.of(context).colors;
+    final pixelRatio = MediaQuery.devicePixelRatioOf(context);
     _pickedImages.clear();
     await _addImages(widget.districts, picked: false);
     await c.addGeoJsonSource(_allSource, _polygons(widget.districts));
@@ -407,6 +409,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
     _ready = true;
     await _syncPicked();
     await _syncVisibility();
+    await addPoiImages(c, colors, pixelRatio);
   }
 
   Future<void> _syncPicked() async {

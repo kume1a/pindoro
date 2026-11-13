@@ -15,6 +15,7 @@ import 'package:pindoro/features/map/data/geojson.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/data/maplibre_convert.dart';
 import 'package:pindoro/features/map/ui/map_work.dart';
+import 'package:pindoro/features/map/ui/poi_icons.dart';
 import 'package:pindoro/features/map/ui/route_layers.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
@@ -414,6 +415,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     await _syncOverlays();
     await _fit(_framePoints);
     _cameraMoved();
+    await addPoiImages(c, colors, pixelRatio);
   }
 
   Future<void> _syncOverlays() async {

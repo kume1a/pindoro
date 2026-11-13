@@ -9,9 +9,57 @@ const GEORGIA_BBOX = "39.9,41.0,46.8,43.6";
 const TILES_FILE = join(REPO_ROOT, "infra/tiles/georgia.pmtiles");
 const STYLES_DIR = join(MOBILE_ASSETS, "map_styles");
 const ATTRIBUTION = "© OpenStreetMap contributors, Protomaps";
-const ROAD_KINDS = ["highway", "major", "link", "minor", "other"];
 // Protomaps daily builds stop at z15; MapLibre overzooms beyond it.
 const MAX_ZOOM = 15;
+
+/** Protomaps road kind -> `color.map.vector.*` fill and casing. */
+const ROAD_PAINT: Record<string, [fill: string, casing: string]> = {
+  highway: ["highway", "highway-casing"],
+  major: ["major", "major-casing"],
+  link: ["major", "major-casing"],
+  minor: ["road", "road-casing"],
+  other: ["path", "road-casing"],
+};
+
+/** `pois` kinds drawn as icons; the app adds a `poi-<kind>` image for each (poi_icons.dart). */
+export const POI_KINDS = [
+  "station",
+  "bus_station",
+  "aerodrome",
+  "museum",
+  "theatre",
+  "cinema",
+  "gallery",
+  "attraction",
+  "monument",
+  "castle",
+  "place_of_worship",
+  "park",
+  "garden",
+  "zoo",
+  "peak",
+  "university",
+  "college",
+  "school",
+  "library",
+  "stadium",
+  "townhall",
+  "post_office",
+  "hotel",
+  "hospital",
+  "pharmacy",
+  "restaurant",
+  "cafe",
+  "bar",
+  "pub",
+  "fast_food",
+  "supermarket",
+  "mall",
+  "marketplace",
+];
+
+/** Kinds so dense in a city centre (hundreds per km²) that they wait one zoom past their min_zoom. */
+const DENSE_POI_KINDS = ["restaurant", "cafe", "bar", "pub", "fast_food", "pharmacy", "hotel"];
 
 type Mode = "light" | "dark";
 
@@ -50,43 +98,88 @@ export const resolveToken = (tokens: Map<string, TokenValue>, name: string, mode
 
 const flavorFor = (mode: Mode): Flavor => {
   const tokens = loadTokens();
-  const c = (name: string): string => resolveToken(tokens, `color.map.basemap.${name}`, mode);
+  const c = (name: string): string => resolveToken(tokens, `color.map.vector.${name}`, mode);
+  const base = namedFlavor(mode);
   const land = c("land");
   const park = c("park");
+  const wood = c("wood");
+  const grass = c("grass");
+  const sand = c("sand");
+  const industrial = c("industrial");
   const road = c("road");
-  const casing = c("casing");
+  const roadCasing = c("road-casing");
   return {
-    ...namedFlavor(mode),
+    ...base,
     background: land,
     earth: land,
     water: c("water"),
     park_a: park,
     park_b: park,
-    wood_a: park,
-    wood_b: park,
+    zoo: park,
+    wood_a: wood,
+    wood_b: wood,
+    scrub_a: grass,
+    scrub_b: grass,
+    sand,
+    beach: sand,
+    hospital: c("hospital"),
+    school: c("school"),
+    industrial,
+    military: industrial,
+    aerodrome: industrial,
+    runway: road,
+    pedestrian: c("pedestrian"),
+    pier: land,
     buildings: c("building"),
     railway: c("railway"),
     boundaries: c("boundary"),
     ...Object.fromEntries(
       ["", "tunnel_", "bridges_"].flatMap((prefix) =>
-        ROAD_KINDS.flatMap((kind) => [
-          [`${prefix}${kind}`, road],
-          [`${prefix}${kind}_casing`, casing],
+        Object.entries(ROAD_PAINT).flatMap(([kind, [fill, casing]]) => [
+          [`${prefix}${kind}`, c(fill)],
+          [`${prefix}${kind}_casing`, c(casing)],
         ]),
       ),
     ),
     minor_a: road,
     minor_b: road,
     minor_service: road,
-    minor_service_casing: casing,
-    major_casing_early: casing,
-    major_casing_late: casing,
-    highway_casing_early: casing,
-    highway_casing_late: casing,
+    minor_service_casing: roadCasing,
+    major_casing_early: c("major-casing"),
+    major_casing_late: c("major-casing"),
+    highway_casing_early: c("highway-casing"),
+    highway_casing_late: c("highway-casing"),
+    landcover: {
+      glacier: land,
+      forest: wood,
+      grassland: grass,
+      scrub: grass,
+      farmland: grass,
+      barren: sand,
+      urban_area: c("urban"),
+    },
   };
 };
 
-/** Unlabelled basemap: Protomaps layers minus every symbol layer, recoloured from tokens.json. */
+/** Landmark icons, no names: the images are drawn by the app, so the style needs no sprite or glyphs. */
+const poiLayer = {
+  id: "pois",
+  type: "symbol",
+  source: "protomaps",
+  "source-layer": "pois",
+  filter: [
+    "all",
+    ["in", ["get", "kind"], ["literal", POI_KINDS]],
+    [">=", ["zoom"], ["+", ["get", "min_zoom"], ["match", ["get", "kind"], DENSE_POI_KINDS, 1, 0]]],
+  ],
+  layout: {
+    "icon-image": ["concat", "poi-", ["get", "kind"]],
+    // Landmarks (lower min_zoom) win collisions over cafés.
+    "symbol-sort-key": ["get", "min_zoom"],
+  },
+};
+
+/** Unlabelled basemap: Protomaps layers minus every symbol layer, recoloured from the tokens, plus POI icons. */
 export const mapStyle = (mode: Mode): object => ({
   version: 8,
   name: `pindoro-${mode}`,
@@ -100,7 +193,10 @@ export const mapStyle = (mode: Mode): object => ({
       attribution: ATTRIBUTION,
     },
   },
-  layers: layers("protomaps", flavorFor(mode)).filter((layer) => layer.type !== "symbol"),
+  layers: [
+    ...layers("protomaps", flavorFor(mode)).filter((layer) => layer.type !== "symbol"),
+    poiLayer,
+  ],
 });
 
 const writeStyles = (): void => {

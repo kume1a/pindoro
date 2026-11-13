@@ -140,9 +140,249 @@
           "dark": "{color.aqua.900}"
         },
         "usage": "Illustration park (.i-park in the Illustration preview)."
+      },
+      {
+        "name": "color.map.vector.land",
+        "value": {
+          "light": "#f3f1ed",
+          "dark": "#24272d"
+        },
+        "usage": "Vector basemap land and background; also the rim of POI icons and the halo of map text drawn by the app."
+      },
+      {
+        "name": "color.map.vector.urban",
+        "value": {
+          "light": "#eeebe6",
+          "dark": "#282c33"
+        },
+        "usage": "Built-up landcover at low zooms, one step off the land."
+      },
+      {
+        "name": "color.map.vector.water",
+        "value": {
+          "light": "#a8d4f5",
+          "dark": "#1f3d5a"
+        },
+        "usage": "Seas, lakes and rivers."
+      },
+      {
+        "name": "color.map.vector.park",
+        "value": {
+          "light": "#cdebb8",
+          "dark": "#263d2f"
+        },
+        "usage": "Parks, gardens and the zoo."
+      },
+      {
+        "name": "color.map.vector.wood",
+        "value": {
+          "light": "#b8dea2",
+          "dark": "#22392a"
+        },
+        "usage": "Woods and forest, a step deeper than parks."
+      },
+      {
+        "name": "color.map.vector.grass",
+        "value": {
+          "light": "#d9efc8",
+          "dark": "#283a2e"
+        },
+        "usage": "Grass, scrub and farmland."
+      },
+      {
+        "name": "color.map.vector.sand",
+        "value": {
+          "light": "#f2ead4",
+          "dark": "#38352e"
+        },
+        "usage": "Sand, beaches and bare ground."
+      },
+      {
+        "name": "color.map.vector.building",
+        "value": {
+          "light": "#d7cbbb",
+          "dark": "#424751"
+        },
+        "usage": "Building footprints. The basemap draws them at 50 % opacity (overlapping parts read darker), so this sits two steps off the land."
+      },
+      {
+        "name": "color.map.vector.pedestrian",
+        "value": {
+          "light": "#f8f6f1",
+          "dark": "#2b2f36"
+        },
+        "usage": "Pedestrian squares and plazas, lighter than the land."
+      },
+      {
+        "name": "color.map.vector.hospital",
+        "value": {
+          "light": "#f8dfe0",
+          "dark": "#40303a"
+        },
+        "usage": "Hospital grounds."
+      },
+      {
+        "name": "color.map.vector.school",
+        "value": {
+          "light": "#efe7d8",
+          "dark": "#3a362f"
+        },
+        "usage": "School and university grounds."
+      },
+      {
+        "name": "color.map.vector.industrial",
+        "value": {
+          "light": "#e6e2ec",
+          "dark": "#30303a"
+        },
+        "usage": "Industrial, military and airport grounds."
+      },
+      {
+        "name": "color.map.vector.road",
+        "value": {
+          "light": "#ffffff",
+          "dark": "#454b55"
+        },
+        "usage": "Minor and service streets."
+      },
+      {
+        "name": "color.map.vector.road-casing",
+        "value": {
+          "light": "#ddd6cb",
+          "dark": "#30343b"
+        },
+        "usage": "Casing of minor and service streets."
+      },
+      {
+        "name": "color.map.vector.major",
+        "value": {
+          "light": "#fde3c8",
+          "dark": "#6b5743"
+        },
+        "usage": "Main roads and their links: muted peach, never yellow (yellow is the answer street)."
+      },
+      {
+        "name": "color.map.vector.major-casing",
+        "value": {
+          "light": "#e8c39e",
+          "dark": "#3d362f"
+        },
+        "usage": "Casing of main roads."
+      },
+      {
+        "name": "color.map.vector.highway",
+        "value": {
+          "light": "#f9c99b",
+          "dark": "#8a6a48"
+        },
+        "usage": "Motorways and trunk roads, a step stronger than main roads."
+      },
+      {
+        "name": "color.map.vector.highway-casing",
+        "value": {
+          "light": "#dfa46e",
+          "dark": "#4a3c30"
+        },
+        "usage": "Casing of motorways and trunk roads."
+      },
+      {
+        "name": "color.map.vector.path",
+        "value": {
+          "light": "#d6cdbf",
+          "dark": "#50555e"
+        },
+        "usage": "Footways, paths and steps (dashed)."
+      },
+      {
+        "name": "color.map.vector.railway",
+        "value": {
+          "light": "#b4ada3",
+          "dark": "#5a5f68"
+        },
+        "usage": "Railway lines."
+      },
+      {
+        "name": "color.map.vector.boundary",
+        "value": {
+          "light": "#b6aec4",
+          "dark": "#60656f"
+        },
+        "usage": "Administrative boundaries."
+      },
+      {
+        "name": "color.map.poi.food",
+        "value": {
+          "light": "#e8743b",
+          "dark": "#f08a52"
+        },
+        "usage": "Restaurant, cafe, bar and fast-food icon discs."
+      },
+      {
+        "name": "color.map.poi.shop",
+        "value": {
+          "light": "#8e63c9",
+          "dark": "#a47fdc"
+        },
+        "usage": "Supermarket, mall and market icon discs."
+      },
+      {
+        "name": "color.map.poi.culture",
+        "value": {
+          "light": "#d4508f",
+          "dark": "#e070a6"
+        },
+        "usage": "Museum, theatre, cinema, gallery, monument and attraction icon discs."
+      },
+      {
+        "name": "color.map.poi.worship",
+        "value": {
+          "light": "#8d6e4f",
+          "dark": "#a88a6b"
+        },
+        "usage": "Place of worship icon discs."
+      },
+      {
+        "name": "color.map.poi.nature",
+        "value": {
+          "light": "#3d9a4f",
+          "dark": "#57b066"
+        },
+        "usage": "Park, garden, zoo and peak icon discs."
+      },
+      {
+        "name": "color.map.poi.transit",
+        "value": {
+          "light": "#14918f",
+          "dark": "#2fb0ad"
+        },
+        "usage": "Station and airport icon discs: teal, never cobalt (cobalt is the player)."
+      },
+      {
+        "name": "color.map.poi.civic",
+        "value": {
+          "light": "#6b7c93",
+          "dark": "#8796ab"
+        },
+        "usage": "School, university, library, stadium, town hall, post office and hotel icon discs."
+      },
+      {
+        "name": "color.map.poi.health",
+        "value": {
+          "light": "#d9474f",
+          "dark": "#e8666d"
+        },
+        "usage": "Hospital and pharmacy icon discs."
+      },
+      {
+        "name": "color.map.poi.glyph",
+        "value": {
+          "light": "#ffffff",
+          "dark": "#ffffff"
+        },
+        "usage": "The symbol on a POI icon disc."
       }
     ],
-    "note": "Colours the design system's component CSS uses as primitives directly (league ladder, avatars, badge fields, illustration fills)."
+    "note": "Colours the design system has no token for: primitives its component CSS uses directly (league ladder, avatars, badge fields, illustration fills), and the vector basemap palette (color.map.vector.*, color.map.poi.*), which replaces the CARTO-based color.map.basemap.* in the app."
   },
   "duration": {
     "tokens": [

@@ -59,7 +59,7 @@ class _DistrictPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawRect(Offset.zero & size, Paint()..color = colors.mapBasemapLand);
+    canvas.drawRect(Offset.zero & size, Paint()..color = colors.mapVectorLand);
     final points = [
       for (final d in districts)
         for (final polygon in d.boundary)
@@ -113,7 +113,7 @@ class _DistrictPainter extends CustomPainter {
       }
     }
     for (final (_, path) in paths) {
-      canvas.drawPath(path, line(colors.mapBasemapLand, 1.5));
+      canvas.drawPath(path, line(colors.mapVectorLand, 1.5));
     }
   }
 

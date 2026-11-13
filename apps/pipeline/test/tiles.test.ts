@@ -23,3 +23,11 @@ it("map styles take only resolved hex colours from the tokens", () => {
     expect(JSON.stringify(mapStyle(mode))).not.toMatch(/"\{color\./);
   }
 });
+
+it("map styles never draw text: no glyphs, no text-field", () => {
+  for (const mode of ["light", "dark"] as const) {
+    const style = mapStyle(mode) as { glyphs?: string; layers: { layout?: object }[] };
+    expect(style.glyphs).toBeUndefined();
+    expect(style.layers.filter((l) => l.layout && "text-field" in l.layout)).toEqual([]);
+  }
+});

@@ -8,4 +8,5 @@ Third-party parts keep their own licences:
 
 - Map data © OpenStreetMap contributors, Open Database License 1.0 (data/LICENSE-ODbL.md).
 - Map tiles: Protomaps basemap built from OpenStreetMap data.
+- Map icons: Maki, CC0 1.0 (packages/pindoro_design/assets/map_icons).
 - FiraGO font: SIL Open Font License 1.1 (packages/pindoro_design/fonts/OFL.txt).

@@ -128,6 +128,55 @@ class CarMark {
   }
 }
 
+/// A basemap landmark (a café, a church, a metro station): a disc in its
+/// category [color] with the Maki [icon] in `color.map.poi.glyph`, rimmed in
+/// the land colour, as a PNG centred on its point. Landmarks never get names.
+class PoiMark {
+  const PoiMark({
+    required this.icon,
+    required this.color,
+    required this.colors,
+  });
+
+  final String icon;
+  final Color color;
+  final PindoroColors colors;
+
+  static const double size = PindoroSize.iconSm;
+
+  Future<Uint8List> toPng(double pixelRatio) async {
+    final glyph = await mapIconPicture(icon);
+    try {
+      return await _png(const Size.square(size), pixelRatio, (canvas) {
+        const centre = Offset(size / 2, size / 2);
+        const inset = PindoroSpace.s1;
+        canvas
+          ..drawCircle(centre, size / 2, Paint()..color = colors.mapVectorLand)
+          ..drawCircle(
+            centre,
+            size / 2 - PindoroStroke.base,
+            Paint()..color = color,
+          )
+          // Maki draws in implicit black: tint whatever it paints.
+          ..saveLayer(
+            Offset.zero & const Size.square(size),
+            Paint()
+              ..colorFilter = ColorFilter.mode(
+                colors.mapPoiGlyph,
+                BlendMode.srcIn,
+              ),
+          )
+          ..translate(inset, inset)
+          ..scale((size - 2 * inset) / glyph.size.width)
+          ..drawPicture(glyph.picture)
+          ..restore();
+      });
+    } finally {
+      glyph.picture.dispose();
+    }
+  }
+}
+
 /// A map label (an area's name, the reveal's distance) as a PNG for map
 /// symbol layers: the label on a pill face over a lip, with an optional
 /// check in front. Map styles carry no fonts, so labels are drawn here.
@@ -251,7 +300,7 @@ Future<Uint8List> outlineLabelPng(
   const halo = PindoroStroke.thick;
   final outline = painter(
     Paint()
-      ..color = c.mapBasemapLand
+      ..color = c.mapVectorLand
       ..style = PaintingStyle.stroke
       ..strokeWidth = halo
       ..strokeJoin = StrokeJoin.round,

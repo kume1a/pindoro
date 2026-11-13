@@ -553,24 +553,32 @@ void main() {
     expect(pressed, isTrue);
   });
 
-  testWidgets('endpoint pins read their letter; the car renders', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _host(
-        brightness: Brightness.light,
-        Builder(
-          builder: (context) =>
-              PinMark.endpoint('B', PindoroTheme.of(context).colors),
+  testWidgets(
+    'endpoint pins read their letter; the car and a landmark render',
+    (tester) async {
+      await tester.pumpWidget(
+        _host(
+          brightness: Brightness.light,
+          Builder(
+            builder: (context) =>
+                PinMark.endpoint('B', PindoroTheme.of(context).colors),
+          ),
         ),
-      ),
-    );
-    expect(find.bySemanticsLabel('B'), findsOneWidget);
-    final colors = PindoroTheme.of(tester.element(find.byType(PinMark))).colors;
-    final png = await tester.runAsync(() => CarMark(colors).toPng(2));
-    // PNG signature.
-    expect(png!.take(4), [0x89, 0x50, 0x4E, 0x47]);
-  });
+      );
+      expect(find.bySemanticsLabel('B'), findsOneWidget);
+      final colors = PindoroTheme.of(
+        tester.element(find.byType(PinMark)),
+      ).colors;
+      for (final mark in [
+        CarMark(colors).toPng,
+        PoiMark(icon: 'cafe', color: colors.mapPoiFood, colors: colors).toPng,
+      ]) {
+        final png = await tester.runAsync(() => mark(2));
+        // PNG signature.
+        expect(png!.take(4), [0x89, 0x50, 0x4E, 0x47]);
+      }
+    },
+  );
 
   group('goldens', skip: _goldensSkip, () {
     Future<void> pumpGallery(WidgetTester tester, Brightness brightness) async {
