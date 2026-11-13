@@ -1,8 +1,8 @@
-import rateLimit from "@fastify/rate-limit";
 import type { FastifyPluginAsyncTypebox } from "@fastify/type-provider-typebox";
 import type { FastifyRequest } from "fastify";
 import { Type } from "typebox";
 import type { Db } from "../../db/client.ts";
+import { bearer, bearerToken, clientIp, Problem, perToken } from "../../http.ts";
 import { isLeagueName, leagueName } from "./leagues.rules.ts";
 import { NameBody, NewPlayer, Player, Standing, XpBody } from "./leagues.schemas.ts";
 import {
@@ -14,35 +14,15 @@ import {
   syncXp,
 } from "./leagues.service.ts";
 
-const Problem = Type.Object({ message: Type.String() });
-const bearer = { security: [{ bearer: [] }] };
-
-/** Renames and syncs per player token; the app syncs a few times a minute at most. */
-const perPlayer = {
-  rateLimit: {
-    max: 30,
-    timeWindow: "1 minute",
-    keyGenerator: (req: FastifyRequest): string => req.headers.authorization ?? req.ip,
-  },
-};
-
-/** Cloudflare's client address in production, the socket's elsewhere. */
-const clientIp = (req: FastifyRequest): string => {
-  const forwarded = req.headers["cf-connecting-ip"];
-  return typeof forwarded === "string" ? forwarded : req.ip;
-};
-
 export const leaguesRoutes: FastifyPluginAsyncTypebox<{
   db: Db;
   now: () => Date;
   signupsPerHour: number;
 }> = async (app, { db, now, signupsPerHour }) => {
-  await app.register(rateLimit, { global: false });
-
   const unknownPlayer = (): Error => app.httpErrors.unauthorized("unknown or missing player token");
 
   const me = async (req: FastifyRequest): Promise<{ id: string; name: string }> => {
-    const token = /^Bearer (\S+)$/.exec(req.headers.authorization ?? "")?.[1];
+    const token = bearerToken(req);
     const found = token === undefined ? undefined : await playerByToken(db, token);
     if (!found) throw unknownPlayer();
     return found;
@@ -66,7 +46,7 @@ export const leaguesRoutes: FastifyPluginAsyncTypebox<{
   app.patch(
     "/v1/players/me",
     {
-      config: perPlayer,
+      config: perToken,
       schema: {
         tags: ["leagues"],
         ...bearer,
@@ -96,7 +76,7 @@ export const leaguesRoutes: FastifyPluginAsyncTypebox<{
   app.put(
     "/v1/league/me",
     {
-      config: perPlayer,
+      config: perToken,
       schema: {
         tags: ["leagues"],
         ...bearer,

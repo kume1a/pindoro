@@ -1,8 +1,6 @@
-import 'dart:async';
-import 'dart:convert';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
+import 'package:pindoro/core/api_client.dart';
 import 'package:pindoro/core/config.dart';
 
 final leagueApiProvider = Provider<LeagueApi>(
@@ -31,34 +29,15 @@ typedef Standing = ({
 
 typedef NewPlayer = ({String id, String token, String name});
 
-/// A failed league call: [status] is null when the server wasn't reached, and
-/// a 2xx one when its answer didn't parse.
-class LeagueException implements Exception {
-  const LeagueException([this.status]);
-
-  final int? status;
-
-  bool get offline => status == null;
-
-  /// The token is unknown: the player is gone on the server.
-  bool get unknownPlayer => status == 401;
-
-  @override
-  String toString() => 'LeagueException($status)';
-}
-
 /// The API's players and leagues routes (docs: `shared/openapi/openapi.json`).
 class LeagueApi {
-  LeagueApi(this.baseUrl, {http.Client? client})
-    : _client = client ?? http.Client();
+  LeagueApi(String baseUrl, {http.Client? client})
+    : _api = ApiClient(baseUrl, client: client);
 
-  final String baseUrl;
-  final http.Client _client;
-
-  static const Duration timeout = Duration(seconds: 10);
+  final ApiClient _api;
 
   Future<NewPlayer> join(String name) =>
-      _send('POST', '/v1/players', body: {'name': name}, (body) {
+      _api.json('POST', '/v1/players', body: {'name': name}, (body) {
         final player = body['player']! as Map<String, Object?>;
         return (
           id: player['id']! as String,
@@ -68,7 +47,7 @@ class LeagueApi {
       });
 
   /// The name as the server saved it.
-  Future<String> rename(String token, String name) => _send(
+  Future<String> rename(String token, String name) => _api.json(
     'PATCH',
     '/v1/players/me',
     token: token,
@@ -77,14 +56,14 @@ class LeagueApi {
   );
 
   Future<void> leave(String token) =>
-      _send('DELETE', '/v1/players/me', token: token, (_) {});
+      _api.json('DELETE', '/v1/players/me', token: token, (_) {});
 
   /// Records [xp] as this [week]'s XP and returns the league.
   Future<Standing> sync(
     String token, {
     required String week,
     required int xp,
-  }) => _send(
+  }) => _api.json(
     'PUT',
     '/v1/league/me',
     token: token,
@@ -111,41 +90,4 @@ class LeagueApi {
       );
     },
   );
-
-  /// Sends the call and [read]s its JSON body; any answer [read] can't parse
-  /// fails like a server error.
-  Future<T> _send<T>(
-    String method,
-    String path,
-    T Function(Map<String, Object?> body) read, {
-    String? token,
-    Map<String, Object?>? body,
-  }) async {
-    final request = http.Request(method, Uri.parse('$baseUrl$path'));
-    if (token != null) request.headers['authorization'] = 'Bearer $token';
-    if (body != null) {
-      request.headers['content-type'] = 'application/json';
-      request.body = jsonEncode(body);
-    }
-    final http.Response res;
-    try {
-      res = await http.Response.fromStream(
-        await _client.send(request).timeout(timeout),
-      ).timeout(timeout);
-    } on Exception {
-      throw const LeagueException();
-    }
-    if (res.statusCode < 200 || res.statusCode >= 300) {
-      throw LeagueException(res.statusCode);
-    }
-    try {
-      return read(
-        res.body.isEmpty
-            ? const {}
-            : jsonDecode(res.body) as Map<String, Object?>,
-      );
-    } on Object {
-      throw LeagueException(res.statusCode);
-    }
-  }
 }

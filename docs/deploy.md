@@ -120,7 +120,8 @@ of the fixture until the server's next pack gives it one.
 
 The `backup` service writes `pindoro-YYYY-MM-DD.dump` (`pg_dump -Fc`) and
 `<city>-identity-YYYY-MM-DD.json` into `pindoro_backups` every night at 03:00 UTC and deletes files
-older than 14 days. Everything else is rebuilt from OSM data by the workflow.
+older than 14 days. The dump holds the players' progress backups too (`account.backup`). Everything
+else is rebuilt from OSM data by the workflow.
 
 ```sh
 docker exec pindoro-backup-1 ls /backups

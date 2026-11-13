@@ -2503,5 +2503,55 @@
   "settingsLeague": "League",
   "settingsLeagueName": "League name",
   "settingsLeaveLeagues": "Leave leagues",
-  "settingsLeaveLeaguesSubtitle": "Deletes your league name and places"
+  "settingsLeaveLeaguesSubtitle": "Deletes your league name and places",
+  "settingsAccount": "Account",
+  "accountBackUp": "Back up your progress",
+  "accountBackUpSubtitle": "Get it back on a new phone",
+  "accountSignedIn": "Signed in as {username}",
+  "@accountSignedIn": {
+    "placeholders": {
+      "username": {
+        "type": "String",
+        "example": "nino"
+      }
+    }
+  },
+  "accountBackedUp": "Backed up {time} ago. Tap to back up now.",
+  "@accountBackedUp": {
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "5 min"
+      }
+    }
+  },
+  "accountNotBackedUp": "Not backed up yet. Tap to back up now.",
+  "accountBackedUpNow": "Progress backed up",
+  "accountSignedOut": "You signed in on another phone, so this one is signed out.",
+  "accountTitle": "Your account",
+  "accountIntro": "Your progress is backed up to the Pindoro server after you play. On a new phone, sign in to get it back.",
+  "accountUsername": "Username",
+  "accountUsernameClear": "Clear the username",
+  "accountPassword": "Password",
+  "accountPasswordClear": "Clear the password",
+  "accountRules": "Username: 3 to 24 letters a–z, digits, dots, dashes or underscores. Password: at least 8 characters. There is no password reset, so keep it somewhere safe.",
+  "accountSignIn": "Sign in",
+  "accountCreate": "Create account",
+  "accountTaken": "That username is taken. Try another one.",
+  "accountWrong": "Wrong username or password.",
+  "accountOffline": "Couldn’t reach Pindoro. Check your connection and try again.",
+  "accountUnavailable": "Accounts aren’t working right now. Try again later.",
+  "accountRestoreTitle": "Restore your backup?",
+  "accountRestoreBody": "Your backup from {time} ago replaces the progress on this phone. Keeping this phone’s progress replaces the backup instead.",
+  "@accountRestoreBody": {
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "2 d"
+      }
+    }
+  },
+  "accountRestore": "Restore backup",
+  "accountKeep": "Keep this phone’s",
+  "accountRestoreFailed": "Couldn’t open this backup. Update Pindoro, then sign in again."
 }

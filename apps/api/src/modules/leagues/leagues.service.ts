@@ -1,16 +1,14 @@
-import { createHash, randomBytes } from "node:crypto";
 import { and, asc, count, desc, eq, lt, notExists, notLike, type SQL, sql } from "drizzle-orm";
 import type { Static } from "typebox";
 import type { Db } from "../../db/client.ts";
 import { league, leagueMember, player } from "../../db/schema.ts";
+import { hashToken, newToken } from "../../http.ts";
 import { LEAGUE, leagueWeek, nextTier, zone } from "./leagues.rules.ts";
 import type { Player, Standing } from "./leagues.schemas.ts";
 
 type Tx = Db | Parameters<Parameters<Db["transaction"]>[0]>[0];
 type PlayerNode = Static<typeof Player>;
 type Place = { leagueId: string; tier: number };
-
-const hashToken = (token: string): string => createHash("sha256").update(token).digest("hex");
 
 // A sha256 hex never contains ":", so no token can match a left player.
 const LEFT_PREFIX = "left:";
@@ -43,7 +41,7 @@ export const createPlayer = async (
   db: Db,
   name: string,
 ): Promise<{ player: PlayerNode; token: string }> => {
-  const token = randomBytes(32).toString("base64url");
+  const token = newToken();
   const [row] = await db
     .insert(player)
     .values({ name, tokenHash: hashToken(token) })

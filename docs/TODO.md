@@ -97,7 +97,8 @@
   - The Unit guide's tip comes from the streets' main direction; no hand-written tip per district.
 
 - Leagues (R5), left out on purpose:
-  - No sign-in and no progress sync across devices: a new phone or a reinstall starts a new player.
+  - A league player has no sign-in of their own: a new phone gets its league back only through an
+    account backup (below).
   - League names aren't moderated and can't be reported.
   - The server trusts the app's XP; there is no cheat detection.
   - XP synced after Monday 00:00 (Tbilisi) for the week before is lost; so is XP earned offline
@@ -198,7 +199,11 @@ From the product plan ("Learning Every Tbilisi Route"), which the course only pa
   none.
 - Course order: centre outward, alternating river banks, rather than nearest-first from the picked
   district.
-- Accounts and sync across devices (the Roadmap's R5 card: not designed yet).
+- Accounts beyond one backup (the Roadmap's R5 card: not designed yet). Built without a design
+  (2026-11-13) and left out on purpose: no password reset (fix `password_hash` in SQL on the
+  server), no sign-out and no account delete; one phone at a time (a sign-in elsewhere signs the
+  old phone out, and the last upload wins; no merging); a write made within a minute of an app
+  kill uploads only after the next write.
 - A second city, or a Roadmap MVP card that no longer promises "any city or town from
   OpenStreetMap".
 

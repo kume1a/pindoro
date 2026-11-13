@@ -3,12 +3,14 @@
 Offline-first: progress in Drift (SQLite), city data from read-only SQLite packs.
 
 ```
-lib/main.dart                  open AppDatabase, pick the initial route, runApp
+lib/main.dart                  open AppDatabase (openDatabase), pick the initial route, runApp; a
+                               restart (restartProvider) boots again on a restored database
 lib/app/                       shell: PindoroApp, router (the only place that imports screens),
                                TabShell (bottom navigation)
 lib/core/                      shared by every feature: routes (paths + RoundSummary), config, format,
                                labels, settings, location, online, toast, page scaffold, launch overlay,
-                               database/ (Drift tables, migrations, .drift trigger, SettingsDao)
+                               api_client (ApiClient, ApiException), restart, database/ (Drift tables,
+                               migrations, .drift trigger, SettingsDao, database_file)
 lib/features/<feature>/data/   DAOs, repositories, stores and providers over the database or packs
 lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), their parts in ui/widgets/;
                                never Drift
@@ -19,7 +21,8 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                city, area, difficulty), quiz (round), results (results, street),
                                settings, streak, pitstop, me, lesson (lesson, Lesson complete, Final drive,
                                Unit complete), league (the Leagues tab, the name form; data: LeagueDao,
-                               LeagueApi, standingProvider), badges (stats, awards, the shelf tile,
+                               LeagueApi, standingProvider), account (the backup account: AccountApi,
+                               AccountDao, BackupSync, the sign-in screen and Settings group), badges (stats, awards, the shelf tile,
                                the reward sheet and BadgeMoments)
 lib/features/quiz/ui/round_controller.dart   round state machine; resumes from round_question + answers;
                                questions are NamedStreets (cityStreetsProvider); retries set round.retry_of,
@@ -34,7 +37,7 @@ test/drift/                    generated schema helpers + migration test
 ## Conventions
 
 - **Layers, lowest first:** `l10n` → `core` → `features/progress` → `features/pack` →
-  `features/map` → `features/course` → `features/league` → `features/badges` → screen features (`home`, `setup`, `quiz`, `results`,
+  `features/map` → `features/course` → `features/league` and `features/account` → `features/badges` → screen features (`home`, `setup`, `quiz`, `results`,
   `settings`, `streak`, `pitstop`, `me`, `lesson`) → `app` → `main.dart`. A file imports its own slice or a lower layer only; screen features never import
   each other. Something two features need moves down (to `core`, or to `progress`/`pack`/`map`).
   `test/architecture_test.dart` enforces this, and that `ui/` never imports Drift; a new feature
@@ -97,6 +100,19 @@ test/drift/                    generated schema helpers + migration test
   Avenue league" when the round's XP raised the rank (`rankBefore`). Settings → League renames
   (`/league-name`) and leaves (the server forgets the player). Tests override
   `leagueApiProvider` with a `MockClient`.
+- **Account and backup** (`features/account`): optional, for a lost or reset phone. Settings →
+  Account opens `/account` (username + password; Create account or Sign in). The `account` row
+  (username, token, `backedUpAt`) is this phone's sign-in. `BackupSync` (started by the app root)
+  watches `tableUpdates()` while signed in: a minute after the last write it uploads `snapshot`
+  (`VACUUM INTO` a copy beside the database file, the `account` row deleted from it, gzipped) to
+  `PUT /v1/accounts/me/backup`; going to the background flushes a waiting upload, a failed one
+  tries again a minute later, and Settings' row backs up on a tap. Signing in where the account
+  has a backup restores it (asking first when `ProgressDao.hasPlayed`; Keep uploads this phone's
+  over it): `stageRestore` writes `pindoro.sqlite.restore` (refused when `user_version` is newer
+  than `AppDatabase.version` or `quick_check` fails), then `restartProvider` closes the database,
+  renames it into place and boots again; the league identity comes back inside it. A sign-in
+  elsewhere signs this phone out (401 drops the row). Tests override `accountApiProvider` and
+  `databaseFileProvider`.
 - **Badges** (`features/badges`, spec `docs/specs/2026-11-11-badges-design.md`): pindoro_core
   `badgeProgress` is the rule; `readBadgeStats` reads the stats fresh from `ProgressDao`
   (`badgeCounts`, road trips, goal days) and the installed packs of played cities

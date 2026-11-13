@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:pindoro/core/api_client.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
@@ -13,7 +14,7 @@ import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/sounds.dart';
 import 'package:pindoro/core/toast.dart';
-import 'package:pindoro/features/league/data/league_api.dart';
+import 'package:pindoro/features/account/ui/account_screen.dart';
 import 'package:pindoro/features/league/data/league_data.dart';
 import 'package:pindoro/features/league/ui/league_name_form.dart';
 import 'package:pindoro/features/pack/data/app_update.dart';
@@ -24,7 +25,7 @@ import 'package:pindoro_design/pindoro_design.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Language, street names, daily goal, theme, sound, haptics, the turn list,
-/// the league account; changes apply at once.
+/// the backup account, the league account; changes apply at once.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -153,6 +154,8 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ],
         ),
+        SectionTitle(l10n.settingsAccount),
+        const AccountGroup(),
         if (league != null) ...[
           SectionTitle(l10n.settingsLeague),
           ListGroup(
@@ -214,7 +217,7 @@ Future<void> _leaveLeagues(
   if (!(leave ?? false)) return;
   try {
     await ref.read(leagueActionsProvider).leave(account);
-  } on LeagueException catch (e) {
+  } on ApiException catch (e) {
     if (context.mounted) {
       showToast(context, leagueFailure(l10n, e, l10n.leagueLeaveFailed));
     }

@@ -8,6 +8,7 @@ import 'package:pindoro/app/router.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/launch_overlay.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/account/data/account_data.dart';
 import 'package:pindoro/features/badges/data/badge_data.dart';
 import 'package:pindoro/features/league/data/league_data.dart';
 import 'package:pindoro/features/pack/data/app_update.dart';
@@ -52,7 +53,11 @@ class _PindoroAppState extends ConsumerState<PindoroApp> {
         ..invalidate(streakProvider)
         ..invalidate(pitStopProvider)
         ..invalidate(standingProvider),
+      // The app may not come back: a waiting backup goes up now.
+      onHide: () => unawaited(ref.read(backupSyncProvider).flushWaiting()),
     );
+    // Starts watching for progress to back up.
+    ref.read(backupSyncProvider);
     // Listening keeps the standing alive, so the week's XP reaches the
     // league at launch, on resume and after a lesson, not only on its tab.
     ref.listenManual(standingProvider, (_, _) {});
