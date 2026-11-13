@@ -1,3 +1,4 @@
+import rateLimit from "@fastify/rate-limit";
 import sensible from "@fastify/sensible";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
@@ -5,11 +6,12 @@ import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { Config } from "./config.ts";
 import { createDb } from "./db/client.ts";
+import { accountsRoutes } from "./modules/accounts/accounts.routes.ts";
 import { catalogRoutes } from "./modules/catalog/catalog.routes.ts";
 import { healthRoutes } from "./modules/health/health.routes.ts";
 import { leaguesRoutes } from "./modules/leagues/leagues.routes.ts";
 
-/** `now` is the clock the leagues read (tests move it across weeks). */
+/** `now` is the clock leagues and backups read (tests move it across weeks). */
 export const buildApp = async (
   config: Config,
   { now = (): Date => new Date() }: { now?: () => Date } = {},
@@ -23,6 +25,8 @@ export const buildApp = async (
   });
 
   await app.register(sensible);
+  // Routes opt in with `config.rateLimit`.
+  await app.register(rateLimit, { global: false });
   await app.register(swagger, {
     openapi: {
       info: { title: "Pindoro API", version: "0.1.0" },
@@ -41,5 +45,6 @@ export const buildApp = async (
         : undefined,
   });
   await app.register(leaguesRoutes, { db, now, signupsPerHour: config.SIGNUP_LIMIT });
+  await app.register(accountsRoutes, { db, now, signupsPerHour: config.SIGNUP_LIMIT });
   return app;
 };

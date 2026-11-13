@@ -64,7 +64,7 @@ class PackStore {
   /// installed one. Returns the new file, or null when there was nothing to do.
   /// Throws on network or verification failures; nothing partial is left.
   /// Throws [PackFormatTooNew] when only a newer app can read the pack.
-  /// [onProgress] hears about every chunk of the download.
+  /// [onProgress] hears 0 bytes once the catalog answers, then every chunk.
   Future<File?> refresh(
     String city, {
     void Function(PackProgress progress)? onProgress,
@@ -78,6 +78,7 @@ class PackStore {
     if (current != null && _version(current).compareTo(pack.version) >= 0) {
       return null;
     }
+    onProgress?.call((city: pack.city, received: 0, total: pack.size));
     final installed = await _install(
       city,
       pack,

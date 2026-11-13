@@ -267,7 +267,7 @@ void main() {
     tester,
   ) async {
     tester.view
-      ..physicalSize = const Size(1080, 4000)
+      ..physicalSize = const Size(1080, 4800)
       ..devicePixelRatio = 2.75;
     addTearDown(tester.view.reset);
     await tester.runAsync(joined);

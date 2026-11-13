@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:pindoro/core/api_client.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/features/league/data/league_api.dart';
 import 'package:pindoro/features/league/data/league_dao.dart';
@@ -103,7 +104,7 @@ void main() {
       await expectLater(
         api.sync('t', week: '2026-11-09', xp: 1),
         throwsA(
-          isA<LeagueException>()
+          isA<ApiException>()
               .having((e) => e.status, 'status', 200)
               .having((e) => e.offline, 'offline', false),
         ),
@@ -116,16 +117,12 @@ void main() {
       await expectLater(
         answering(() async => http.Response('', 401)).leave('t'),
         throwsA(
-          isA<LeagueException>().having(
-            (e) => e.unknownPlayer,
-            'unknown',
-            true,
-          ),
+          isA<ApiException>().having((e) => e.unknownToken, 'unknown', true),
         ),
       );
       await expectLater(
         answering(() => throw http.ClientException('down')).join('Nino'),
-        throwsA(isA<LeagueException>().having((e) => e.status, 'status', null)),
+        throwsA(isA<ApiException>().having((e) => e.status, 'status', null)),
       );
     });
   });

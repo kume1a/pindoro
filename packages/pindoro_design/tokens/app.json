@@ -126,6 +126,22 @@
         "usage": "Pit crew's shield field (not in the design preview: the darkest unused orange)."
       },
       {
+        "name": "color.illustration.block-alt",
+        "value": {
+          "light": "{color.cobalt.100}",
+          "dark": "{color.cobalt.900}"
+        },
+        "usage": "Illustration city block, the second fill (.i-block2 in the Illustration preview)."
+      },
+      {
+        "name": "color.illustration.park",
+        "value": {
+          "light": "{color.aqua.200}",
+          "dark": "{color.aqua.900}"
+        },
+        "usage": "Illustration park (.i-park in the Illustration preview)."
+      },
+      {
         "name": "color.map.vector.land",
         "value": {
           "light": "#f3f1ed",
@@ -366,7 +382,7 @@
         "usage": "The symbol on a POI icon disc."
       }
     ],
-    "note": "Colours the design system has no token for: primitives its component CSS uses directly (league ladder, avatars, badge fields), and the vector basemap palette (color.map.vector.*, color.map.poi.*), which replaces the CARTO-based color.map.basemap.* in the app."
+    "note": "Colours the design system has no token for: primitives its component CSS uses directly (league ladder, avatars, badge fields, illustration fills), and the vector basemap palette (color.map.vector.*, color.map.poi.*), which replaces the CARTO-based color.map.basemap.* in the app."
   },
   "duration": {
     "tokens": [

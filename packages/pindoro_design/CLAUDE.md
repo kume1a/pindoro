@@ -10,7 +10,7 @@ components (`QuestionBar`, `Pill`, `MapControl`, `RevealSheet` and its `TierShee
 components (`PlateChoice`, `FeedbackBar`), the league (`LeagueHeader`, `LeagueRow`,
 `ZoneDivider`), badges (`BadgeShield`, `BadgeTile`; fields `color.badge.*` in `app.json`), setup components (`SearchField`, `CitySwitcher`, `PindoroChip`,
 `DifficultyCard`, `DistrictMiniMap`) and motion (`PindoroPageTransitions`, `CountUp`, `PopIn`,
-`RiseIn`, `Celebration`, `Wiggle`, `FadeIndexedStack`; all calm down under reduce motion). Widgets take their text
+`RiseIn`, `Celebration`, `Wiggle`, `Shake`, `FadeIndexedStack`; all calm down under reduce motion). Widgets take their text
 as parameters; strings live in the app.
 
 ## Tokens

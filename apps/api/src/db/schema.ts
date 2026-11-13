@@ -1,4 +1,5 @@
 import {
+  customType,
   date,
   index,
   integer,
@@ -15,6 +16,20 @@ export const player = pgTable("player", {
   id: uuid().primaryKey().defaultRandom(),
   tokenHash: text().notNull().unique(),
   name: text().notNull(),
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
+
+const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" });
+
+// A signed-in player's progress backup: the app's SQLite file, gzipped. Not a league player, so
+// leaving Leagues never touches it. The password is a salted scrypt hash, the token a sha256.
+export const account = pgTable("account", {
+  id: uuid().primaryKey().defaultRandom(),
+  username: text().notNull().unique(),
+  passwordHash: text().notNull(),
+  tokenHash: text().notNull().unique(),
+  backup: bytea(),
+  backupAt: timestamp({ withTimezone: true }),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 
