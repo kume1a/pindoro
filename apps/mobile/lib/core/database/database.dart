@@ -291,8 +291,10 @@ class LeaguePlayers extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-/// The signed-in account (one row): its username, the secret token for its
-/// `/me` routes and when this phone last backed up. Left out of the backups.
+/// The backup account (one row): its username, the secret token for its
+/// `/me` routes (null once a sign-in on another phone signed this one out),
+/// when this phone last backed up, and since when it has progress the backup
+/// lacks. Left out of the backups.
 @DataClassName('Account')
 class Accounts extends Table {
   @override
@@ -300,8 +302,9 @@ class Accounts extends Table {
 
   IntColumn get id => integer().withDefault(const Constant(1))();
   TextColumn get username => text()();
-  TextColumn get token => text()();
+  TextColumn get token => text().nullable()();
   DateTimeColumn get backedUpAt => dateTime().nullable()();
+  DateTimeColumn get changedAt => dateTime().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -362,7 +365,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 12;
+  static const int version = 13;
 
   @override
   int get schemaVersion => version;
@@ -414,6 +417,10 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(schema.reviewCleared);
       },
       from11To12: (m, schema) => m.createTable(schema.account),
+      // Rebuilds the table: the token becomes nullable, changed_at is new.
+      from12To13: (m, schema) => m.alterTable(
+        TableMigration(schema.account, newColumns: [schema.account.changedAt]),
+      ),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

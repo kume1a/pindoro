@@ -86,3 +86,7 @@ String formatAgo(Duration ago, AppLocalizations l10n) {
   if (ago.inHours < 24) return l10n.unitHours(ago.inHours);
   return l10n.unitDays(ago.inDays);
 }
+
+/// [formatAgo] from [at] until now.
+String formatSince(DateTime at, AppLocalizations l10n) =>
+    formatAgo(DateTime.now().difference(at), l10n);

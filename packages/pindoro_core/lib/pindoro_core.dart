@@ -13,6 +13,7 @@ export 'src/geo/polyline6.dart';
 export 'src/pack/models.dart';
 export 'src/pack/pack_repository.dart';
 export 'src/pack/road_graph.dart';
+export 'src/progress/account.dart';
 export 'src/progress/badges.dart';
 export 'src/progress/league.dart';
 export 'src/progress/levels.dart';

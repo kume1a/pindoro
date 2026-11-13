@@ -8,26 +8,51 @@ final accountDaoProvider = Provider<AccountDao>(
   (ref) => AccountDao(ref.watch(databaseProvider)),
 );
 
-/// The signed-in account row (`account`).
+/// The backup account row (`account`).
 @DriftAccessor(tables: [Accounts])
 class AccountDao extends DatabaseAccessor<AppDatabase> with _$AccountDaoMixin {
   AccountDao(super.attachedDatabase);
 
-  Stream<Account?> watch() => select(accounts).watchSingleOrNull();
+  Stream<Account?> watchAccount() => select(accounts).watchSingleOrNull();
 
   Future<Account?> read() => select(accounts).getSingleOrNull();
 
-  Future<void> save({required String username, required String token}) =>
-      into(accounts).insertOnConflictUpdate(
-        AccountsCompanion.insert(
-          id: const Value(1),
-          username: username,
-          token: token,
+  /// Signs this phone in: [backedUpAt] after a restore (the backup holds this
+  /// phone's progress), [changedAt] when this phone's progress must go up.
+  Future<void> save({
+    required String username,
+    required String token,
+    DateTime? backedUpAt,
+    DateTime? changedAt,
+  }) => into(accounts).insertOnConflictUpdate(
+    AccountsCompanion.insert(
+      id: const Value(1),
+      username: username,
+      token: Value(token),
+      backedUpAt: Value(backedUpAt),
+      changedAt: Value(changedAt),
+    ),
+  );
+
+  /// The first write the backup lacks.
+  Future<void> markChanged(DateTime at) =>
+      (update(accounts)..where((a) => a.changedAt.isNull())).write(
+        AccountsCompanion(changedAt: Value(at)),
+      );
+
+  /// A backup went up; it holds every write when [complete].
+  Future<void> markBackedUp(DateTime at, {required bool complete}) =>
+      update(accounts).write(
+        AccountsCompanion(
+          backedUpAt: Value(at),
+          changedAt: complete ? const Value(null) : const Value.absent(),
         ),
       );
 
-  Future<void> markBackedUp(DateTime at) =>
-      update(accounts).write(AccountsCompanion(backedUpAt: Value(at)));
+  /// A sign-in on another phone took over: the username stays for signing
+  /// in again here.
+  Future<void> signedOutElsewhere() =>
+      update(accounts).write(const AccountsCompanion(token: Value(null)));
 
   Future<void> drop() => delete(accounts).go();
 }

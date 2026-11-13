@@ -205,10 +205,14 @@ From the product plan ("Learning Every Tbilisi Route"), which the course only pa
 - Course order: centre outward, alternating river banks, rather than nearest-first from the picked
   district.
 - Accounts beyond one backup (the Roadmap's R5 card: not designed yet). Built without a design
-  (2026-11-13) and left out on purpose: no password reset (fix `password_hash` in SQL on the
-  server), no sign-out and no account delete; one phone at a time (a sign-in elsewhere signs the
-  old phone out, and the last upload wins; no merging); a write made within a minute of an app
-  kill uploads only after the next write.
+  (2026-11-13), with a recovery code instead of an email reset. Left out on purpose: one phone at
+  a time (a sign-in elsewhere signs the old phone out, which then says so; no merging of two
+  phones' progress); the league token travels inside the backup (that is how the league comes
+  back); the account token sits in the progress database, so Android Auto Backup and iCloud
+  device backups carry it like the league token; the snapshot is gzipped on the UI isolate; no
+  cap on the number of accounts or their total backup size; the username and password fields
+  lose their screen-reader name once typed in (SearchField's hint), parked with the other
+  screen-reader work.
 - A second city, or a Roadmap MVP card that no longer promises "any city or town from
   OpenStreetMap".
 

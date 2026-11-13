@@ -13,6 +13,9 @@ class _FakeSounds implements Sounds {
 
   @override
   void play(Sound sound, {double speed = 1}) => played.add((sound, speed));
+
+  @override
+  void dispose() {}
 }
 
 void main() {

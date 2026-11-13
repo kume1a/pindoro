@@ -63,6 +63,14 @@ class Sounds {
     }
   }
 
+  /// Frees the players (a restore starts the app again with a new kit).
+  void dispose() {
+    for (final player in _players.values) {
+      unawaited(player.dispose());
+    }
+    _players.clear();
+  }
+
   /// Restarts [sound] if it is still playing; [speed] above 1 raises the pitch.
   void play(Sound sound, {double speed = 1}) {
     final player = _players[sound];
@@ -77,4 +85,8 @@ class Sounds {
   }
 }
 
-final soundsProvider = Provider<Sounds>((ref) => Sounds());
+final soundsProvider = Provider<Sounds>((ref) {
+  final sounds = Sounds();
+  ref.onDispose(sounds.dispose);
+  return sounds;
+});

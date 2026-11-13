@@ -1,0 +1,28 @@
+{
+  "username": [
+    { "raw": "nino", "username": "nino", "valid": true },
+    { "raw": "  Nino.K ", "username": "nino.k", "valid": true },
+    { "raw": "e2e_tester-9", "username": "e2e_tester-9", "valid": true },
+    { "raw": "ab", "username": "ab", "valid": false },
+    { "raw": "abc", "username": "abc", "valid": true },
+    { "raw": "abcdefghijklmnopqrstuvwx", "username": "abcdefghijklmnopqrstuvwx", "valid": true },
+    { "raw": "abcdefghijklmnopqrstuvwxy", "username": "abcdefghijklmnopqrstuvwxy", "valid": false },
+    { "raw": "has space", "username": "has space", "valid": false },
+    { "raw": "ნინო", "username": "ნინო", "valid": false },
+    { "raw": "nino@home", "username": "nino@home", "valid": false }
+  ],
+  "password": [
+    { "password": "1234567", "valid": false },
+    { "password": "12345678", "valid": true },
+    { "password": "🔑🔑🔑🔑🔑🔑", "valid": false },
+    { "password": "🔑🔑🔑🔑🔑🔑🔑🔑", "valid": true },
+    { "password": "პაროლი123", "valid": true }
+  ],
+  "recoveryCode": [
+    { "raw": "abcd-efgh-jkmn-pqrs", "code": "abcdefghjkmnpqrs", "valid": true },
+    { "raw": " ABCD EFGH JKMN PQRS ", "code": "abcdefghjkmnpqrs", "valid": true },
+    { "raw": "abcd-efgh-jkmn-pqr", "code": "abcdefghjkmnpqr", "valid": false },
+    { "raw": "abcd-efgh-jkmn-pqr1", "code": "abcdefghjkmnpqr1", "valid": false },
+    { "raw": "abcd-efgh-jkmn-pqro", "code": "abcdefghjkmnpqro", "valid": false }
+  ]
+}

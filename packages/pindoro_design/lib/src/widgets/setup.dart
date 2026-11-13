@@ -20,6 +20,7 @@ class SearchField extends StatefulWidget {
     this.textInputAction = TextInputAction.search,
     this.textCapitalization = TextCapitalization.none,
     this.obscureText = false,
+    this.autocorrect = true,
     this.autofillHints,
   });
 
@@ -37,8 +38,10 @@ class SearchField extends StatefulWidget {
   /// Hides the text, for a password.
   final bool obscureText;
 
-  /// What the platform may autofill (a username, a password); such a field
-  /// skips autocorrect and suggestions.
+  /// Off for usernames, passwords and codes: no corrections or suggestions.
+  final bool autocorrect;
+
+  /// What the platform may autofill (a username, a password).
   final Iterable<String>? autofillHints;
 
   @override
@@ -92,8 +95,8 @@ class _SearchFieldState extends State<SearchField> {
                 textCapitalization: widget.textCapitalization,
                 obscureText: widget.obscureText,
                 autofillHints: widget.autofillHints,
-                autocorrect: widget.autofillHints == null,
-                enableSuggestions: widget.autofillHints == null,
+                autocorrect: widget.autocorrect,
+                enableSuggestions: widget.autocorrect,
                 cursorColor: c.primaryBase,
                 style: PindoroType.bodyLg.copyWith(color: c.inputText),
                 decoration: InputDecoration(

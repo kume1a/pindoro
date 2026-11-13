@@ -3,7 +3,7 @@ import sensible from "@fastify/sensible";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 import type { TypeBoxTypeProvider } from "@fastify/type-provider-typebox";
-import Fastify, { type FastifyInstance } from "fastify";
+import Fastify, { type FastifyError, type FastifyInstance } from "fastify";
 import type { Config } from "./config.ts";
 import { createDb } from "./db/client.ts";
 import { accountsRoutes } from "./modules/accounts/accounts.routes.ts";
@@ -22,6 +22,14 @@ export const buildApp = async (
   const db = createDb(config.DATABASE_URL);
   app.addHook("onClose", async () => {
     await db.$client.end();
+  });
+  // A failed query's message carries its parameters (password hashes, backups): server errors log
+  // only their cause and answer a plain message.
+  app.setErrorHandler((err: FastifyError, req, reply) => {
+    if ((err.statusCode ?? 500) < 500) return reply.send(err);
+    const cause = err.cause instanceof Error ? err.cause.message : undefined;
+    req.log.error({ code: err.code, cause }, "request failed");
+    return reply.code(500).send({ message: "internal server error" });
   });
 
   await app.register(sensible);

@@ -598,12 +598,11 @@
                 "properties": {
                   "username": {
                     "type": "string",
-                    "maxLength": 100
+                    "maxLength": 1000
                   },
                   "password": {
                     "type": "string",
-                    "minLength": 8,
-                    "maxLength": 200
+                    "maxLength": 1000
                   }
                 }
               }
@@ -641,6 +640,9 @@
                       "type": "string",
                       "format": "date-time",
                       "nullable": true
+                    },
+                    "recoveryCode": {
+                      "type": "string"
                     }
                   }
                 }
@@ -704,12 +706,11 @@
                 "properties": {
                   "username": {
                     "type": "string",
-                    "maxLength": 100
+                    "maxLength": 1000
                   },
                   "password": {
                     "type": "string",
-                    "minLength": 8,
-                    "maxLength": 200
+                    "maxLength": 1000
                   }
                 }
               }
@@ -747,6 +748,104 @@
                       "type": "string",
                       "format": "date-time",
                       "nullable": true
+                    },
+                    "recoveryCode": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/accounts/reset": {
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "username",
+                  "recoveryCode",
+                  "password"
+                ],
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "recoveryCode": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "password": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "token",
+                    "account",
+                    "backupAt"
+                  ],
+                  "properties": {
+                    "token": {
+                      "type": "string"
+                    },
+                    "account": {
+                      "type": "object",
+                      "required": [
+                        "username"
+                      ],
+                      "properties": {
+                        "username": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "backupAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "nullable": true
+                    },
+                    "recoveryCode": {
+                      "type": "string"
                     }
                   }
                 }
@@ -770,6 +869,171 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/accounts/me/password": {
+      "put": {
+        "tags": [
+          "accounts"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "password",
+                  "newPassword"
+                ],
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "maxLength": 1000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/sessions/me": {
+      "delete": {
+        "tags": [
+          "accounts"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          },
+          "401": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "message"
+                  ],
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/accounts/me": {
+      "delete": {
+        "tags": [
+          "accounts"
+        ],
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
           },
           "401": {
             "description": "Default Response",
@@ -900,7 +1164,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Default Response",
+            "description": "The backup",
             "content": {
               "application/octet-stream": {
                 "schema": {
@@ -913,7 +1177,7 @@
           "401": {
             "description": "Default Response",
             "content": {
-              "application/octet-stream": {
+              "application/json": {
                 "schema": {
                   "type": "object",
                   "required": [
@@ -931,7 +1195,7 @@
           "404": {
             "description": "Default Response",
             "content": {
-              "application/octet-stream": {
+              "application/json": {
                 "schema": {
                   "type": "object",
                   "required": [

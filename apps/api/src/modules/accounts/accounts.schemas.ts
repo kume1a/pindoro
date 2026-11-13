@@ -1,19 +1,23 @@
 import { Type } from "typebox";
 
-/** Usernames are trimmed and lowercased first, so sign-in ignores case. */
-export const USERNAME = /^[a-z0-9._-]{3,24}$/;
+// Usernames, passwords and codes are checked with accounts.rules.ts; these only bound the input.
+const Text = Type.String({ maxLength: 1000 });
 
-// The username is checked with USERNAME after tidying; this only bounds the input.
-export const Credentials = Type.Object({
-  username: Type.String({ maxLength: 100 }),
-  password: Type.String({ minLength: 8, maxLength: 200 }),
-});
+export const Credentials = Type.Object({ username: Text, password: Text });
 
-/** A signed-in phone: its token, and when the account last backed up (null: never). */
+export const Reset = Type.Object({ username: Text, recoveryCode: Text, password: Text });
+
+export const PasswordChange = Type.Object({ password: Text, newPassword: Text });
+
+/**
+ * A signed-in phone: its token, and when the account last backed up (null: never). A new account
+ * and a reset also carry the recovery code, shown once.
+ */
 export const Session = Type.Object({
   token: Type.String(),
   account: Type.Object({ username: Type.String() }),
   backupAt: Type.Union([Type.String({ format: "date-time" }), Type.Null()]),
+  recoveryCode: Type.Optional(Type.String()),
 });
 
 export const BackupAt = Type.Object({ backupAt: Type.String({ format: "date-time" }) });
