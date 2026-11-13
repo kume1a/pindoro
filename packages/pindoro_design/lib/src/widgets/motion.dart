@@ -481,6 +481,27 @@ class Wiggle extends StatelessWidget {
         );
 }
 
+/// The error shake: the child jolts sideways 3 × 6 dp over 300 ms, once when
+/// built (give it a new key to shake again). Still with reduce motion on.
+class Shake extends StatelessWidget {
+  const Shake({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => _calm(context)
+      ? child
+      : TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 300),
+          builder: (_, t, child) => Transform.translate(
+            offset: Offset(math.sin(t * 3 * 2 * math.pi) * 6, 0),
+            child: child,
+          ),
+          child: child,
+        );
+}
+
 /// An [IndexedStack] that cross-fades to [index] (`duration.fast`); every
 /// child keeps its state, the hidden ones offstage with tickers off.
 /// Instant with reduce motion on.

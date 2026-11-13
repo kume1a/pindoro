@@ -7,7 +7,10 @@
 - **Designed in text, not drawn** — the 2026-11-07 design pass (map greys, 104-area picker, city
   pack download, Miss directions) lives in `tokens.json` and `docs/design/v1-screens.md`; the
   claude.ai canvas has no boards for it yet (chips at both zoom bands, district names along
-  outlines, narrow with Undo, All areas, pack download and failure, offline Vake).
+  outlines, narrow with Undo, All areas, pack download and failure, offline Vake). The pack
+  download's city scene, Connecting state and server-failure copy (2026-11-13) are local only:
+  bring them to the canvas (26–30) and the design system's `v1-screens.md`, and add
+  `color.illustration.block-alt` and `color.illustration.park` (in `app.json`) to `tokens.json`.
 - **Left out of that pass, on purpose:**
   - Download progress in the City row: tapping a city opens the Area picker at once, so the row is
     gone before a bar could show. The wait shows in the Area picker's panel instead.
@@ -19,8 +22,10 @@
   - A "Free up space" button and a free-space check before downloading: native code (Android
     `StorageManager.getAllocatableBytes`, `ACTION_MANAGE_STORAGE`) for a 1 MB pack. A full phone
     is caught when saving fails and gets its own copy.
-  - The progress bar's finishing touches from the research (red on failure, a check when done):
-    the panel goes away as soon as the pack opens.
+  - A red bar on failure: the bar goes when a download fails; Pindo and the copy carry it. The
+    done moment is the city scene's (Pindo cheers, the star lands), not a check on the bar.
+  - A minimum time on screen for a Try again that fails at once, and an exit transition from the
+    city scene into the screen behind it (the screens swap as soon as the pack opens).
 - Map labels (area names, the distance chip) are images drawn by `MapChip`, because the self-hosted
   map style has no glyphs.
 
@@ -180,8 +185,8 @@ and the specs after R5. Fix them in roughly this order.
 
 In the design system but in no release on the canvas Roadmap:
 
-- Onboarding illustration scenes and illustrated empty states ("no league yet", "city not
-  downloaded").
+- Onboarding illustration scenes and illustrated empty states ("no league yet"). The pack
+  download's city scene is the first illustration (`features/pack/ui/widgets/city_scene.dart`).
 - A player profile behind a tapped league row.
 - Fuel (lives).
 - Pindo as one rigged Rive or Lottie file instead of static expressions.

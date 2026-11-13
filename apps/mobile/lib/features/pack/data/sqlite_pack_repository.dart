@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/config.dart';
@@ -149,19 +150,30 @@ Future<City> fixtureCity(Directory root) async {
   }
 }
 
-/// A city with no pack on the phone whose download failed: offline, or
-/// [noSpace] when the phone is full, or [needsUpdate] when only a newer app
-/// reads the server's pack.
+/// Why a city's pack couldn't download.
+enum PackFailure {
+  /// The catalog never answered: offline, or the API is down.
+  unreachable,
+
+  /// The catalog answered but the pack didn't come: the server's fault.
+  server,
+
+  /// Saving the pack failed because the phone is full.
+  noSpace,
+
+  /// Only a newer app reads the server's pack.
+  needsUpdate,
+}
+
+/// A city with no pack on the phone whose download failed, and why.
 class PackUnavailable implements Exception {
-  const PackUnavailable(
-    this.city, {
-    this.noSpace = false,
-    this.needsUpdate = false,
-  });
+  const PackUnavailable(this.city, [this.reason = PackFailure.unreachable]);
 
   final String city;
-  final bool noSpace;
-  final bool needsUpdate;
+  final PackFailure reason;
+
+  @override
+  String toString() => 'PackUnavailable($city, ${reason.name})';
 }
 
 /// The player chose to play the bundled Vake pack while Tbilisi can't
@@ -252,20 +264,36 @@ Future<File> downloadPack(
   String city, {
   void Function(PackProgress progress)? onProgress,
 }) async {
+  var catalogAnswered = false;
   try {
-    if (await store.refresh(city, onProgress: onProgress) case final file?) {
-      return file;
-    }
+    final file = await store.refresh(
+      city,
+      onProgress: (p) {
+        catalogAnswered = true;
+        onProgress?.call(p);
+      },
+    );
+    if (file != null) return file;
+    // Nothing to download: the catalog doesn't list the city.
+    catalogAnswered = true;
   } on PackFormatTooNew {
-    throw PackUnavailable(city, needsUpdate: true);
+    throw PackUnavailable(city, PackFailure.needsUpdate);
   } on FileSystemException catch (e) {
     if (e.osError?.errorCode == _noSpaceLeft) {
-      throw PackUnavailable(city, noSpace: true);
+      throw PackUnavailable(city, PackFailure.noSpace);
     }
-  } on Object {
-    // Offline, server down or a bad file: the player can try again.
+    _logFailure(e);
+  } on Object catch (e) {
+    _logFailure(e);
   }
-  throw PackUnavailable(city);
+  throw PackUnavailable(
+    city,
+    catalogAnswered ? PackFailure.server : PackFailure.unreachable,
+  );
+}
+
+void _logFailure(Object error) {
+  if (kDebugMode) debugPrint('pack download failed: $error');
 }
 
 /// Whether [pack] is the bundled Vake-only stand-in.

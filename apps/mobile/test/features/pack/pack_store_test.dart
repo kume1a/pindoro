@@ -168,9 +168,9 @@ void main() {
       downloadPack(newer, 'tbilisi'),
       throwsA(
         isA<PackUnavailable>().having(
-          (e) => e.needsUpdate,
-          'needsUpdate',
-          true,
+          (e) => e.reason,
+          'reason',
+          PackFailure.needsUpdate,
         ),
       ),
     );
@@ -240,16 +240,34 @@ void main() {
     expect(c.read(packDownloadProvider), isNull);
   });
 
-  test('a full phone fails as no space, offline as unavailable', () async {
+  test('a failure says why: full phone, no catalog, or no pack file', () async {
+    Matcher failsWith(PackFailure reason) => throwsA(
+      isA<PackUnavailable>().having((e) => e.reason, 'reason', reason),
+    );
     await expectLater(
       downloadPack(_FullStore(root), 'tbilisi'),
-      throwsA(isA<PackUnavailable>().having((e) => e.noSpace, 'noSpace', true)),
+      failsWith(PackFailure.noSpace),
     );
     await expectLater(
       downloadPack(offline(), 'batumi'),
-      throwsA(
-        isA<PackUnavailable>().having((e) => e.noSpace, 'noSpace', false),
-      ),
+      failsWith(PackFailure.unreachable),
+    );
+    final packServerDown = PackStore(
+      root: root,
+      apiBaseUrl: 'http://api.test',
+      client: MockClient((req) async {
+        if (req.url.path == '/v1/catalog') return catalog('20261106T000000Z');
+        throw const SocketException('connection refused');
+      }),
+    );
+    await expectLater(
+      downloadPack(packServerDown, 'tbilisi'),
+      failsWith(PackFailure.server),
+    );
+    await expectLater(
+      downloadPack(store('20261106T000000Z'), 'batumi'),
+      failsWith(PackFailure.server),
+      reason: 'the catalog has no such city',
     );
   });
 
