@@ -80,10 +80,33 @@ void main() {
   ) async {
     await pump(tester);
     loads.last.completeError(
-      const PackUnavailable('batumi', needsUpdate: true),
+      const PackUnavailable('batumi', PackFailure.needsUpdate),
     );
     await tester.pumpAndSettle();
     expect(find.text('This city needs a newer Pindoro'), findsOneWidget);
     expect(find.text('Try again'), findsNothing);
+  });
+
+  testWidgets('Try again keeps the panel up, connecting, until it settles', (
+    tester,
+  ) async {
+    await pump(tester);
+    loads.last.completeError(const PackUnavailable('batumi'));
+    await tester.pumpAndSettle();
+    expect(find.text('Check your connection and try again.'), findsOneWidget);
+
+    await tester.tap(find.text('Try again'));
+    await tester.pump();
+    expect(find.text('Connecting…'), findsOneWidget);
+
+    loads.last.completeError(
+      const PackUnavailable('batumi', PackFailure.server),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Downloads aren\'t working right now. Try again later.'),
+      findsOneWidget,
+    );
+    expect(find.text('Connecting…'), findsNothing);
   });
 }

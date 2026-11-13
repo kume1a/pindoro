@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pindoro/app/tab_shell.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
+import 'package:pindoro/features/account/ui/account_screen.dart';
 import 'package:pindoro/features/course/ui/path_screen.dart';
 import 'package:pindoro/features/course/ui/unit_guide_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
@@ -211,6 +212,7 @@ GoRouter buildRouter(String initialLocation) {
         path: Routes.leagueName,
         builder: (_, _) => const LeagueNameScreen(),
       ),
+      GoRoute(path: Routes.account, builder: (_, _) => const AccountScreen()),
       GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
       GoRoute(path: Routes.credits, builder: (_, _) => const CreditsScreen()),
     ],

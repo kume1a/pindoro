@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pindoro/core/api_client.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/features/league/data/league_api.dart';
 import 'package:pindoro/features/league/data/league_dao.dart';
@@ -29,8 +30,8 @@ final standingProvider = FutureProvider.autoDispose<Standing?>((ref) async {
     return await ref
         .read(leagueApiProvider)
         .sync(token, week: week.key, xp: xp);
-  } on LeagueException catch (e) {
-    if (!e.unknownPlayer) rethrow;
+  } on ApiException catch (e) {
+    if (!e.unknownToken) rethrow;
     await ref.read(leagueDaoProvider).drop();
     return null;
   }
@@ -64,8 +65,8 @@ class LeagueActions {
   Future<void> leave(LeaguePlayer account) async {
     try {
       await _api.leave(account.token);
-    } on LeagueException catch (e) {
-      if (!e.unknownPlayer) rethrow;
+    } on ApiException catch (e) {
+      if (!e.unknownToken) rethrow;
     }
     await _dao.drop();
   }

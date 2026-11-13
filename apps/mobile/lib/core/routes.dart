@@ -33,6 +33,9 @@ abstract final class Routes {
 
   /// Changing the league name (Settings → League).
   static const String leagueName = '/league-name';
+
+  /// Creating an account or signing in (Settings → Account).
+  static const String account = '/account';
   static const String settings = '/settings';
   static const String credits = '/settings/credits';
 

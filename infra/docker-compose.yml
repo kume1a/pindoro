@@ -51,9 +51,14 @@ services:
       - api-geo-modules:/repo/packages/geo/node_modules
       - api-pipeline-modules:/repo/apps/pipeline/node_modules
       - ${PACKS_DIR:-./packs}:/packs:ro
+    # The catalog and the app point at packs and martin, so starting the API starts them too.
     depends_on:
       postgis:
         condition: service_healthy
+      packs:
+        condition: service_started
+      martin:
+        condition: service_started
 
   martin:
     image: ghcr.io/maplibre/martin:1.16.1

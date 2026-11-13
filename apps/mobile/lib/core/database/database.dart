@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
-import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.steps.dart';
@@ -292,6 +291,22 @@ class LeaguePlayers extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// The signed-in account (one row): its username, the secret token for its
+/// `/me` routes and when this phone last backed up. Left out of the backups.
+@DataClassName('Account')
+class Accounts extends Table {
+  @override
+  String get tableName => 'account';
+
+  IntColumn get id => integer().withDefault(const Constant(1))();
+  TextColumn get username => text()();
+  TextColumn get token => text()();
+  DateTimeColumn get backedUpAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 /// An earned badge (pindoro_core `BadgeId`): saved once and never removed,
 /// so a badge stays earned when its condition stops holding (a pack update
 /// can unmaster a district).
@@ -339,15 +354,18 @@ class ReviewClearings extends Table {
     LeaguePlayers,
     Badges,
     ReviewClearings,
+    Accounts,
   ],
   include: {'answer_immutable.drift'},
 )
 class AppDatabase extends _$AppDatabase {
-  AppDatabase([QueryExecutor? executor])
-    : super(executor ?? driftDatabase(name: 'pindoro'));
+  /// The app opens it with `openDatabase()`, tests in memory.
+  AppDatabase(super.e);
+
+  static const int version = 12;
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => version;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -395,6 +413,7 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(schema.badge);
         await m.createTable(schema.reviewCleared);
       },
+      from11To12: (m, schema) => m.createTable(schema.account),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

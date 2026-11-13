@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
@@ -12,10 +10,6 @@ import 'reveal.dart';
 import 'tappable.dart';
 
 enum PlateChoiceState { idle, selected, right, wrong, dim }
-
-/// The wrong plate's shake: 3 × 6 dp over 300 ms.
-const Duration _shakeDuration = Duration(milliseconds: 300);
-const double _shakeDp = 6;
 
 /// One answer of "Which street is this?" (`.pd-choice`): a street plate
 /// button with the local [name] and its [sub]-line. Selected, it stays down
@@ -139,28 +133,9 @@ class PlateChoice extends StatelessWidget {
       checked: selected,
       inMutuallyExclusiveGroup: true,
       onTap: onTap,
-      child: state == PlateChoiceState.wrong ? _Shake(child: plate) : plate,
+      child: state == PlateChoiceState.wrong ? Shake(child: plate) : plate,
     );
   }
-}
-
-class _Shake extends StatelessWidget {
-  const _Shake({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => MediaQuery.disableAnimationsOf(context)
-      ? child
-      : TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: 1),
-          duration: _shakeDuration,
-          builder: (_, t, child) => Transform.translate(
-            offset: Offset(math.sin(t * 3 * 2 * math.pi) * _shakeDp, 0),
-            child: child,
-          ),
-          child: child,
-        );
 }
 
 /// What Check said (`.pd-feedback` in a tier sheet): the Great or Miss badge,

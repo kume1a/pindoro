@@ -5,19 +5,19 @@ Mobile game for learning a city's streets: the player sees a street name, drops 
 
 ## Repo map
 
-| Path                      | What                                                                          |
-| ------------------------- | ----------------------------------------------------------------------------- |
-| `apps/mobile`             | Flutter app (Android + iOS), offline-first, Drift progress DB, MapLibre map   |
-| `apps/api`                | `@pindoro/api` Fastify 5 + Drizzle + PostGIS (health, catalog, leagues)       |
-| `packages/pindoro_core`   | Pure Dart: geometry, scoring, levels, question selection, pack models         |
-| `packages/pindoro_design` | Flutter design system: tokens → generated Dart, theme, widgets, FiraGO font   |
-| `packages/geo`            | `@pindoro/geo`: TS twin of pindoro_core geometry + scoring + levels           |
-| `apps/pipeline`           | `@pindoro/pipeline`: OSM → PostGIS → city packs; tiles + map styles           |
-| `data/cities/<city>`      | `city.yaml`, curated neighbourhoods, `identity.json` (seed of the street ids) |
-| `shared/fixtures`         | Golden vectors used by BOTH Dart and TS tests                                 |
-| `shared/openapi`          | `openapi.json` exported from the API                                          |
-| `infra`                   | Docker Compose (dev + prod), Caddyfile, `tiles/`, `backups/`                  |
-| `docs`                    | ADRs, `pack-format.md`, `deploy.md`, `design/`, `TODO.md`                     |
+| Path                      | What                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| `apps/mobile`             | Flutter app (Android + iOS), offline-first, Drift progress DB, MapLibre map     |
+| `apps/api`                | `@pindoro/api` Fastify 5, Drizzle, PostGIS (health, catalog, leagues, accounts) |
+| `packages/pindoro_core`   | Pure Dart: geometry, scoring, levels, question selection, pack models           |
+| `packages/pindoro_design` | Flutter design system: tokens → generated Dart, theme, widgets, FiraGO font     |
+| `packages/geo`            | `@pindoro/geo`: TS twin of pindoro_core geometry + scoring + levels             |
+| `apps/pipeline`           | `@pindoro/pipeline`: OSM → PostGIS → city packs; tiles + map styles             |
+| `data/cities/<city>`      | `city.yaml`, curated neighbourhoods, `identity.json` (seed of the street ids)   |
+| `shared/fixtures`         | Golden vectors used by BOTH Dart and TS tests                                   |
+| `shared/openapi`          | `openapi.json` exported from the API                                            |
+| `infra`                   | Docker Compose (dev + prod), Caddyfile, `tiles/`, `backups/`                    |
+| `docs`                    | ADRs, `pack-format.md`, `deploy.md`, `design/`, `TODO.md`                       |
 
 ## Design and planning on claude.ai
 

@@ -124,9 +124,25 @@
           "dark": "{color.orange.700}"
         },
         "usage": "Pit crew's shield field (not in the design preview: the darkest unused orange)."
+      },
+      {
+        "name": "color.illustration.block-alt",
+        "value": {
+          "light": "{color.cobalt.100}",
+          "dark": "{color.cobalt.900}"
+        },
+        "usage": "Illustration city block, the second fill (.i-block2 in the Illustration preview)."
+      },
+      {
+        "name": "color.illustration.park",
+        "value": {
+          "light": "{color.aqua.200}",
+          "dark": "{color.aqua.900}"
+        },
+        "usage": "Illustration park (.i-park in the Illustration preview)."
       }
     ],
-    "note": "Colours the design system's component CSS uses as primitives directly (league ladder, avatars, badge fields)."
+    "note": "Colours the design system's component CSS uses as primitives directly (league ladder, avatars, badge fields, illustration fills)."
   },
   "duration": {
     "tokens": [
