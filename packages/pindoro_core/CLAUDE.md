@@ -8,6 +8,7 @@ lib/src/scoring/    Difficulty, Tier, ScoringConfig (half-widths, fixed distance
                     RouteScoring + scoreRoute (road trips: % longer than the best drive)
 lib/src/progress/   levels: requirement, totalXpToReach, levelForXp, progressWithinLevel;
                     league: the league week (Monday 00:00 at UTC+4) and the name rule;
+                    account: the backup account's username, password and recovery-code rules;
                     badges: the starter eight and badgeProgress (Dart-only, like ReviewRules)
 lib/src/game/       Area (districts/circle/rect, in-area rule), NamedStreet (nearby same-name parts),
                     QuestionSelector (10 names, 3 × 3 grid), knowledge (per street),
@@ -30,7 +31,9 @@ lib/src/pack/       City/District/Street (pack rows), PackRepository, RoadGraph 
   Game rules the server never scores stay Dart-only: `ReviewRules`, `CourseRules`, `LessonRules`,
   `TripRules`. `LeagueRules`' week and name rule are twinned in the API
   (`apps/api/src/modules/leagues/leagues.rules.ts`), proved by `shared/fixtures/league_vectors.json`;
-  ranks and moves are the server's alone.
+  ranks and moves are the server's alone. `AccountRules` (username, password, recovery code) is
+  twinned in `apps/api/src/modules/accounts/accounts.rules.ts`, proved by
+  `shared/fixtures/account_vectors.json`.
 - Distances are measured to segments, not vertices, in a local equirectangular projection around
   the query point.
 - **A street is a name in one place.** Packs keep same-name parts as separate rows with stable ids;

@@ -9,8 +9,9 @@ lib/app/                       shell: PindoroApp, router (the only place that im
                                TabShell (bottom navigation)
 lib/core/                      shared by every feature: routes (paths + RoundSummary), config, format,
                                labels, settings, location, online, toast, page scaffold, launch overlay,
-                               api_client (ApiClient, ApiException), restart, database/ (Drift tables,
-                               migrations, .drift trigger, SettingsDao, database_file)
+                               api_client (ApiClient + apiClientProvider, ApiException), restart, database/ (Drift tables,
+                               migrations, .drift trigger, SettingsDao, database_file: the file, openDatabase,
+                               swapInDatabase)
 lib/features/<feature>/data/   DAOs, repositories, stores and providers over the database or packs
 lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), their parts in ui/widgets/;
                                never Drift
@@ -99,20 +100,26 @@ test/drift/                    generated schema helpers + migration test
   wasn't reached (`leagueFailure`), else "isn't working right now". Results shows "Up to 4th in
   Avenue league" when the round's XP raised the rank (`rankBefore`). Settings → League renames
   (`/league-name`) and leaves (the server forgets the player). Tests override
-  `leagueApiProvider` with a `MockClient`.
-- **Account and backup** (`features/account`): optional, for a lost or reset phone. Settings →
-  Account opens `/account` (username + password; Create account or Sign in). The `account` row
-  (username, token, `backedUpAt`) is this phone's sign-in. `BackupSync` (started by the app root)
-  watches `tableUpdates()` while signed in: a minute after the last write it uploads `snapshot`
-  (`VACUUM INTO` a copy beside the database file, the `account` row deleted from it, gzipped) to
-  `PUT /v1/accounts/me/backup`; going to the background flushes a waiting upload, a failed one
-  tries again a minute later, and Settings' row backs up on a tap. Signing in where the account
-  has a backup restores it (asking first when `ProgressDao.hasPlayed`; Keep uploads this phone's
-  over it): `stageRestore` writes `pindoro.sqlite.restore` (refused when `user_version` is newer
-  than `AppDatabase.version` or `quick_check` fails), then `restartProvider` closes the database,
-  renames it into place and boots again; the league identity comes back inside it. A sign-in
-  elsewhere signs this phone out (401 drops the row). Tests override `accountApiProvider` and
-  `databaseFileProvider`.
+  `apiClientProvider` with an `ApiClient` over a `MockClient`.
+- **Account and backup** (`features/account`, rules in pindoro_core `progress/account.dart`):
+  optional, for a lost or reset phone. Settings → Account (`AccountGroup`) opens `/account`
+  (Sign in, Create account, or Forgot password? with the recovery code) and, signed in, Change
+  password (`/account/password`), Sign out and Delete account. Create and a reset show the new
+  recovery code once (`showRecoveryCodeDialog`). The `account` row is this phone's sign-in:
+  username, token (null once a sign-in on another phone took over: Settings says so and the
+  username prefills), `backedUpAt`, and `changedAt` (the first write the backup lacks).
+  `BackupSync` (started by the app root) watches `tableUpdates()` while signed in: a minute after
+  the last write it uploads `snapshot` (`VACUUM INTO` a copy beside the database file, the
+  `account` row deleted from it, gzipped) to `PUT /v1/accounts/me/backup`; going to the background
+  flushes a waiting upload, a launch uploads a set `changedAt`, offline/5xx/disk failures retry a
+  minute later (a refused backup does not), and Settings' row backs up on a tap. Sign-in and reset
+  only check the credentials; `AccountActions.takeOver` then restores a backup (asking first when
+  `ProgressDao.hasPlayed`; Keep uploads this phone's over it): `stageRestore` streams the gzip
+  into `pindoro.sqlite.restore` (refused past 64 MiB, a newer `user_version` or a failed
+  `quick_check`), opens it with drift (migrating it) to save the account row, then
+  `restartProvider` closes the database and `swapInDatabase` moves it in and boots again, putting
+  the old file back if that boot fails. The league identity comes back inside the backup. Tests
+  override `apiClientProvider` and `databaseFileProvider`.
 - **Badges** (`features/badges`, spec `docs/specs/2026-11-11-badges-design.md`): pindoro_core
   `badgeProgress` is the rule; `readBadgeStats` reads the stats fresh from `ProgressDao`
   (`badgeCounts`, road trips, goal days) and the installed packs of played cities

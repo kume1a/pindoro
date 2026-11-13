@@ -11,24 +11,10 @@ import 'package:pindoro/features/account/data/account_dao.dart';
 import 'package:pindoro/features/account/data/backup.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 
-/// Trimmed and lowercased, as the server keeps usernames.
-String tidyUsername(String raw) => raw.trim().toLowerCase();
-
-final _username = RegExp(r'^[a-z0-9._-]{3,24}$');
-
-/// The server's rules: a tidied username of 3 to 24 a–z, 0–9, `.`, `_`, `-`.
-bool isUsername(String tidy) => _username.hasMatch(tidy);
-
-bool isPassword(String raw) => raw.length >= 8 && raw.length <= 200;
-
-/// The signed-in account, null when signed out.
+/// The backup account, null when there is none on this phone. A null token
+/// means a sign-in on another phone signed this one out.
 final accountProvider = StreamProvider<Account?>(
-  (ref) => ref.watch(accountDaoProvider).watch(),
-);
-
-/// The progress database's file; tests point it into a temp dir.
-final databaseFileProvider = Provider<Future<File> Function()>(
-  (ref) => databaseFile,
+  (ref) => ref.watch(accountDaoProvider).watchAccount(),
 );
 
 /// Started by the app root: keeps the account's backup in step with play.
@@ -43,10 +29,11 @@ final backupSyncProvider = Provider<BackupSync>((ref) {
   return sync;
 });
 
-/// While signed in, uploads the progress [delay] after the last write, and
-/// at once when the app goes to the background with a write waiting. A
-/// failed upload tries again after [delay].
-// ponytail: an app killed inside the delay uploads after the next write.
+/// While signed in, uploads the progress [delay] after the last write; at
+/// once when the app goes to the background with a write waiting; and at
+/// launch when the app last stopped with writes the backup lacks
+/// (`account.changed_at`). Offline, server and disk failures try again after
+/// [delay]; an unknown token signs this phone out.
 class BackupSync {
   BackupSync({
     required AppDatabase db,
@@ -58,11 +45,11 @@ class BackupSync {
        _api = api,
        _databaseFile = databaseFile {
     _subscriptions = [
-      _dao.watch().listen((account) => _account = account),
+      _dao.watchAccount().listen(_accountChanged),
       _db
           .tableUpdates()
           .where((updates) => updates.any((u) => u.table != 'account'))
-          .listen((_) => _soon()),
+          .listen((_) => _wrote()),
     ];
   }
 
@@ -74,59 +61,103 @@ class BackupSync {
   final Future<File> Function() _databaseFile;
   late final List<StreamSubscription<Object?>> _subscriptions;
   Account? _account;
-  Timer? _waiting;
+  bool _launched = false;
+  bool _wroteDuringUpload = false;
+  Timer? _pendingUpload;
   Future<void>? _running;
 
-  void _soon() {
-    if (_account == null) return;
-    _waiting?.cancel();
-    _waiting = Timer(delay, () => unawaited(backUpQuietly()));
+  bool get _signedIn => _account?.token != null;
+
+  void _accountChanged(Account? account) {
+    _account = account;
+    if (_launched) return;
+    _launched = true;
+    if (_signedIn && account?.changedAt != null) unawaited(backUpQuietly());
   }
 
-  /// Uploads now if a write is waiting (the app going to the background).
+  void _wrote() {
+    if (!_signedIn) return;
+    if (_running != null) _wroteDuringUpload = true;
+    if (_account?.changedAt == null) {
+      unawaited(_dao.markChanged(DateTime.now()));
+    }
+    _scheduleUpload();
+  }
+
+  void _scheduleUpload() {
+    _pendingUpload?.cancel();
+    _pendingUpload = Timer(delay, () => unawaited(backUpQuietly()));
+  }
+
+  /// Uploads now if a write is waiting (the app going to the background),
+  /// after any upload already running.
   Future<void> flushWaiting() async {
-    if (_waiting?.isActive ?? false) await backUpQuietly();
+    try {
+      await _running;
+    } on Object {
+      // That upload's failure has scheduled its own retry.
+    }
+    if (_pendingUpload?.isActive ?? false) await backUpQuietly();
   }
 
-  /// Uploads now, unless signed out. Throws [ApiException]; an unknown token
-  /// (signed in on another phone) signs this one out first.
+  /// Uploads now, unless signed out, and throws what failed.
   Future<void> backUp() =>
       _running ??= _upload().whenComplete(() => _running = null);
 
-  /// [backUp], trying again after [delay] when it fails.
+  /// [backUp] without throwing: a failure has already been handled.
   Future<void> backUpQuietly() async {
     try {
       await backUp();
     } on Object {
-      _soon();
+      // Retried, signed out, or (a refused backup) left for the next write.
     }
   }
 
   Future<void> _upload() async {
-    _waiting?.cancel();
-    final account = await _dao.read();
-    if (account == null) return;
-    final work = (await _databaseFile()).parent;
+    final token = (await _dao.read())?.token;
+    if (token == null) return;
+    _pendingUpload?.cancel();
+    _wroteDuringUpload = false;
     try {
-      final at = await _api.upload(account.token, await snapshot(_db, work));
-      await _dao.markBackedUp(at);
+      final work = (await _databaseFile()).parent;
+      final at = await _api.upload(token, await snapshot(_db, work));
+      await _dao.markBackedUp(at, complete: !_wroteDuringUpload);
     } on ApiException catch (e) {
-      if (e.unknownToken) await _dao.drop();
+      if (e.unknownToken) {
+        await _dao.signedOutElsewhere();
+      } else if (_mayPass(e)) {
+        _scheduleUpload();
+      }
+      rethrow;
+    } on Object {
+      _scheduleUpload();
       rethrow;
     }
   }
 
+  /// Offline, timeouts, rate limits and server errors pass; a refused
+  /// backup (too big, not gzip) would fail the same way every minute.
+  static bool _mayPass(ApiException e) => switch (e.status) {
+    null || 408 || 429 => true,
+    final status => status >= 500,
+  };
+
   void dispose() {
-    _waiting?.cancel();
+    _pendingUpload?.cancel();
     for (final s in _subscriptions) {
       unawaited(s.cancel());
     }
   }
 }
 
+/// Whether to restore a backup made at the given time over this phone's
+/// progress: true restores, false keeps this phone's, null gives up the
+/// sign-in.
+typedef AskRestore = Future<bool?> Function(DateTime backupAt);
+
 final accountActionsProvider = Provider<AccountActions>(AccountActions.new);
 
-/// Creating an account and signing in: the server first, then this phone.
+/// Every account change: the server first, then this phone.
 class AccountActions {
   const AccountActions(this._ref);
 
@@ -134,27 +165,83 @@ class AccountActions {
 
   AccountApi get _api => _ref.read(accountApiProvider);
 
-  /// The new account backs this phone's progress up right away.
-  Future<void> create(String username, String password) async =>
-      keep(await _api.create(username, password));
+  AccountDao get _dao => _ref.read(accountDaoProvider);
 
+  /// The new account backs this phone's progress up right away; its session
+  /// carries the recovery code to show.
+  Future<Session> create(String username, String password) async {
+    final session = await _api.create(username, password);
+    await _keep(session);
+    return session;
+  }
+
+  /// Checks the password; [takeOver] then brings this phone in.
   Future<Session> signIn(String username, String password) =>
       _api.signIn(username, password);
 
-  /// Whether a restore would replace progress made on this phone.
-  Future<bool> hasProgress() => _ref.read(progressDaoProvider).hasPlayed();
+  /// A new [password] with the recovery code; the session carries the new
+  /// code to show before [takeOver].
+  Future<Session> reset(
+    String username,
+    String recoveryCode,
+    String password,
+  ) => _api.reset(username, recoveryCode, password);
 
-  /// Signs this phone in; its progress goes up over any backup.
-  Future<void> keep(Session session) async {
-    await _ref
-        .read(accountDaoProvider)
-        .save(username: session.username, token: session.token);
+  /// Signs this phone in with [session]: a backup restores (the app starts
+  /// again on it) unless this phone has progress of its own and [askRestore]
+  /// keeps that instead.
+  Future<void> takeOver(
+    Session session, {
+    required AskRestore askRestore,
+  }) async {
+    final at = session.backupAt;
+    if (at != null && await _restores(at, askRestore)) return _restore(session);
+    await _keep(session);
+  }
+
+  /// 403 when [password] isn't the current one.
+  Future<void> changePassword(String password, String newPassword) =>
+      _withToken((token) => _api.changePassword(token, password, newPassword));
+
+  /// Signs this phone out; its progress stays here. Offline, the server
+  /// token dies with the next sign-in instead.
+  Future<void> signOut() async {
+    try {
+      await _withToken(_api.signOut);
+    } on ApiException catch (e) {
+      if (!e.offline && !e.unknownToken) rethrow;
+    }
+    await _dao.drop();
+  }
+
+  /// Deletes the account and its backup on the server; progress stays here.
+  Future<void> delete() async {
+    await _withToken(_api.delete);
+    await _dao.drop();
+  }
+
+  /// A backup restores straight away on a phone without progress; otherwise
+  /// the player picks.
+  Future<bool> _restores(DateTime backupAt, AskRestore askRestore) async {
+    if (!await _ref.read(progressDaoProvider).hasPlayed()) return true;
+    final choice = await askRestore(backupAt);
+    if (choice == null) throw const SignInGivenUp();
+    return choice;
+  }
+
+  /// This phone's progress goes up over any backup.
+  Future<void> _keep(Session session) async {
+    await _dao.save(
+      username: session.username,
+      token: session.token,
+      changedAt: DateTime.now(),
+    );
     await _ref.read(backupSyncProvider).backUpQuietly();
   }
 
   /// Replaces this phone's progress with the account's backup and starts the
   /// app again on it. Throws [UnreadableBackup] when this build can't open it.
-  Future<void> restore(Session session) async {
+  Future<void> _restore(Session session) async {
     final backup = await _api.download(session.token);
     final file = await _ref.read(databaseFileProvider)();
     final staged = File('${file.path}.restore');
@@ -165,6 +252,24 @@ class AccountActions {
       token: session.token,
       backedUpAt: session.backupAt,
     );
-    await _ref.read(restartProvider)(() => staged.rename(file.path));
+    await _ref.read(restartProvider)(staged);
   }
+
+  /// Runs [call] with this phone's token; an unknown one (signed in on
+  /// another phone) signs this phone out before the error goes on.
+  Future<T> _withToken<T>(Future<T> Function(String token) call) async {
+    final token = (await _dao.read())?.token;
+    if (token == null) throw const ApiException(401);
+    try {
+      return await call(token);
+    } on ApiException catch (e) {
+      if (e.unknownToken) await _dao.signedOutElsewhere();
+      rethrow;
+    }
+  }
+}
+
+/// The player closed the restore question: nothing was saved.
+class SignInGivenUp implements Exception {
+  const SignInGivenUp();
 }

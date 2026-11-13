@@ -14,7 +14,7 @@ import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/sounds.dart';
 import 'package:pindoro/core/toast.dart';
-import 'package:pindoro/features/account/ui/account_screen.dart';
+import 'package:pindoro/features/account/ui/account_group.dart';
 import 'package:pindoro/features/league/data/league_data.dart';
 import 'package:pindoro/features/league/ui/league_name_form.dart';
 import 'package:pindoro/features/pack/data/app_update.dart';

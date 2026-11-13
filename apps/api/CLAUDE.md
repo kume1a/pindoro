@@ -66,13 +66,27 @@ tier for a new week comes from their last league's result when they first sync t
 
 Optional username + password accounts that keep one progress backup each (the app's SQLite file,
 gzipped, in `account.backup`; the nightly `pg_dump` covers it). Not league players: leaving Leagues
-never touches an account. `POST /v1/accounts {username, password}` (409 when taken; usernames are
-trimmed and lowercased, `^[a-z0-9._-]{3,24}$`, passwords 8–200; `SIGNUP_LIMIT` per IP an hour) and
-`POST /v1/sessions` (10 a minute per IP) return `{token, account, backupAt}`. Passwords are salted
-`scrypt` (node:crypto), tokens sha256 like the leagues'. A sign-in issues a new token, so the phone
-signed in before gets 401: one phone at a time. `PUT /v1/accounts/me/backup` takes
-`application/octet-stream` (gzip only, at most 10 MiB) and `GET` returns it (404 before the first);
-both 30 a minute per token. No password reset, sign-out or account delete.
+never touches an account. Username, password and recovery-code rules live in `accounts.rules.ts`,
+twinned with pindoro_core `progress/account.dart` through `shared/fixtures/account_vectors.json`.
+Passwords are salted `scrypt` (node:crypto; an unknown username still costs one, so timing hides
+which exist); tokens and recovery codes are stored as sha256. One `toSession` mapper builds every
+`{token, account, backupAt, recoveryCode?}` answer.
+
+- `POST /v1/accounts {username, password}`: 201 with a one-time `recoveryCode` (409 when taken;
+  `SIGNUP_LIMIT` per IP an hour).
+- `POST /v1/sessions` and `POST /v1/accounts/reset {username, recoveryCode, password}` (which also
+  replaces the code): 10 a minute per IP plus 10 per 15 minutes per username from anywhere
+  (`createRateLimit`, checked once the body is parsed). Both issue a new token in the same
+  `UPDATE … RETURNING backup_at`, so the phone signed in before gets 401: one phone at a time.
+- `PUT /v1/accounts/me/password {password, newPassword}` (403 for a wrong current password),
+  `DELETE /v1/sessions/me` (sign out: the token dies) and `DELETE /v1/accounts/me` (account and
+  backup gone): 30 a minute per token.
+- `PUT /v1/accounts/me/backup` takes `application/octet-stream` (gzip only, at most 5 MiB); a
+  `preParsing` hook turns a dead token away before the body is read, and the save itself is
+  conditional on the token. `GET` returns it (404 before the first). Both 30 a minute per address.
+
+`clientIp` counts an IPv6 client as its /64. The root error handler logs a 5xx by its cause only
+(Drizzle puts a failed query's parameters, password hashes and backups included, in its message).
 
 ## Rules
 

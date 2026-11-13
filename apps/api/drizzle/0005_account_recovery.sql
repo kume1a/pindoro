@@ -1,0 +1,1 @@
+ALTER TABLE "account" ADD COLUMN "recovery_hash" text;

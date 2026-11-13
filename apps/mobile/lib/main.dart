@@ -37,14 +37,23 @@ Future<void> _boot({required bool coldStart}) async {
     apiBaseUrl: AppConfig.apiBaseUrl,
   );
   late final ProviderContainer container;
-  Future<void> restart(Future<void> Function() swap) async {
+  var disposed = false;
+  Future<void> close() async {
+    disposed = true;
+    container.dispose();
+    await db.close();
+  }
+
+  Future<void> restart(File restored) async {
     // Nothing on screen may read the database while it is swapped.
     runApp(const SizedBox.shrink());
     await WidgetsBinding.instance.endOfFrame;
-    container.dispose();
-    await db.close();
-    await swap();
-    await _boot(coldStart: false);
+    await close();
+    await swapInDatabase(
+      await databaseFile(),
+      restored,
+      () => _boot(coldStart: false),
+    );
   }
 
   container = ProviderContainer(
@@ -55,23 +64,33 @@ Future<void> _boot({required bool coldStart}) async {
       restartProvider.overrideWithValue(restart),
     ],
   );
-  // Preloads while the first page builds; sounds before it lands are skipped.
-  unawaited(container.read(soundsProvider).load());
-  // A pack installed in the background is used right away; a round in play
-  // keeps the streets it already loaded.
-  final city = (await SettingsDao(db).read()).cityId;
-  unawaited(
-    refreshQuietly(store, city).then((installed) {
-      if (installed) container.invalidate(packRepositoryProvider);
-    }),
-  );
-  runApp(
-    UncontrolledProviderScope(
-      container: container,
-      child: PindoroApp(
-        initialLocation: await startLocation(db),
-        coldStart: coldStart,
+  try {
+    // Preloads while the first page builds; sounds before it lands are
+    // skipped.
+    unawaited(container.read(soundsProvider).load());
+    // A pack installed in the background is used right away; a round in play
+    // keeps the streets it already loaded.
+    final city = (await SettingsDao(db).read()).cityId;
+    unawaited(
+      refreshQuietly(store, city).then((installed) {
+        if (installed && !disposed) {
+          container.invalidate(packRepositoryProvider);
+        }
+      }),
+    );
+    final initialLocation = await startLocation(db);
+    runApp(
+      UncontrolledProviderScope(
+        container: container,
+        child: PindoroApp(
+          initialLocation: initialLocation,
+          coldStart: coldStart,
+        ),
       ),
-    ),
-  );
+    );
+  } on Object {
+    // A restored database that won't open: free it so the old one can boot.
+    await close();
+    rethrow;
+  }
 }

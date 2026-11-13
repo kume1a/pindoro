@@ -1,10 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 import 'package:pindoro/core/api_client.dart';
-import 'package:pindoro/core/config.dart';
 
 final leagueApiProvider = Provider<LeagueApi>(
-  (ref) => LeagueApi(AppConfig.apiBaseUrl),
+  (ref) => LeagueApi(ref.watch(apiClientProvider)),
 );
 
 /// Where a rank moves at the week's end.
@@ -31,8 +29,7 @@ typedef NewPlayer = ({String id, String token, String name});
 
 /// The API's players and leagues routes (docs: `shared/openapi/openapi.json`).
 class LeagueApi {
-  LeagueApi(String baseUrl, {http.Client? client})
-    : _api = ApiClient(baseUrl, client: client);
+  const LeagueApi(this._api);
 
   final ApiClient _api;
 

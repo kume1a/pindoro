@@ -64,26 +64,28 @@ void main() {
       () async {
         late http.Request sent;
         final api = LeagueApi(
-          'https://api.example',
-          client: MockClient((request) async {
-            sent = request;
-            return http.Response(
-              jsonEncode(
-                _standing(
-                  members: [
-                    {
-                      'rank': 1,
-                      'name': 'Nino',
-                      'xp': 120,
-                      'zone': 'up',
-                      'you': true,
-                    },
-                  ],
+          ApiClient(
+            'https://api.example',
+            client: MockClient((request) async {
+              sent = request;
+              return http.Response(
+                jsonEncode(
+                  _standing(
+                    members: [
+                      {
+                        'rank': 1,
+                        'name': 'Nino',
+                        'xp': 120,
+                        'zone': 'up',
+                        'you': true,
+                      },
+                    ],
+                  ),
                 ),
-              ),
-              200,
-            );
-          }),
+                200,
+              );
+            }),
+          ),
         );
         final standing = await api.sync('t0k', week: '2026-11-09', xp: 120);
         expect(sent.method, 'PUT');
@@ -95,36 +97,6 @@ void main() {
         expect(standing.members.single.zone, LeagueZone.up);
       },
     );
-
-    test('an answer that doesn\'t parse fails as a server error', () async {
-      final api = LeagueApi(
-        'https://api.example',
-        client: MockClient((_) async => http.Response('{"player": 1}', 200)),
-      );
-      await expectLater(
-        api.sync('t', week: '2026-11-09', xp: 1),
-        throwsA(
-          isA<ApiException>()
-              .having((e) => e.status, 'status', 200)
-              .having((e) => e.offline, 'offline', false),
-        ),
-      );
-    });
-
-    test('a failed call carries its status, or none offline', () async {
-      LeagueApi answering(Future<http.Response> Function() reply) =>
-          LeagueApi('https://api.example', client: MockClient((_) => reply()));
-      await expectLater(
-        answering(() async => http.Response('', 401)).leave('t'),
-        throwsA(
-          isA<ApiException>().having((e) => e.unknownToken, 'unknown', true),
-        ),
-      );
-      await expectLater(
-        answering(() => throw http.ClientException('down')).join('Nino'),
-        throwsA(isA<ApiException>().having((e) => e.status, 'status', null)),
-      );
-    });
   });
 
   group('standingProvider', () {
@@ -148,8 +120,8 @@ void main() {
       final c = ProviderContainer(
         overrides: [
           databaseProvider.overrideWithValue(db),
-          leagueApiProvider.overrideWithValue(
-            LeagueApi(
+          apiClientProvider.overrideWithValue(
+            ApiClient(
               'https://api.example',
               client: MockClient((request) async {
                 sent.add(request);

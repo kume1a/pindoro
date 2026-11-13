@@ -213,6 +213,10 @@ GoRouter buildRouter(String initialLocation) {
         builder: (_, _) => const LeagueNameScreen(),
       ),
       GoRoute(path: Routes.account, builder: (_, _) => const AccountScreen()),
+      GoRoute(
+        path: Routes.accountPassword,
+        builder: (_, _) => const ChangePasswordScreen(),
+      ),
       GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
       GoRoute(path: Routes.credits, builder: (_, _) => const CreditsScreen()),
     ],

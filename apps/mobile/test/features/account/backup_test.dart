@@ -6,6 +6,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:pindoro/core/api_client.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/features/account/data/account_api.dart';
 import 'package:pindoro/features/account/data/account_dao.dart';
@@ -30,6 +31,8 @@ void main() {
     await dir.delete(recursive: true);
   });
 
+  File staged() => File('${dir.path}/pindoro.sqlite.restore');
+
   test('a snapshot keeps the progress and leaves the token out', () async {
     final backup = await snapshot(db, dir);
     final file = File('${dir.path}/plain.sqlite')
@@ -48,88 +51,127 @@ void main() {
   });
 
   test('a staged restore opens signed in, with the progress', () async {
-    final staged = File('${dir.path}/pindoro.sqlite.restore');
     final at = DateTime.utc(2026, 11, 12, 9);
     await stageRestore(
       await snapshot(db, dir),
-      staged,
+      staged(),
       username: 'nino',
       token: 'new-token',
       backedUpAt: at,
     );
-    final restored = AppDatabase(NativeDatabase(staged));
+    final restored = AppDatabase(NativeDatabase(staged()));
     final account = await AccountDao(restored).read();
     expect(account?.token, 'new-token');
     expect(account?.backedUpAt?.isAtSameMomentAs(at), isTrue);
+    expect(account?.changedAt, isNull);
     expect(await ProgressDao(restored).hasPlayed(), isTrue);
     await restored.close();
   });
 
-  test('a newer or damaged backup is refused and leaves nothing', () async {
-    final staged = File('${dir.path}/pindoro.sqlite.restore');
-    final newer = File('${dir.path}/newer.sqlite');
-    sqlite3.open(newer.path)
-      ..userVersion = AppDatabase.version + 1
-      ..close();
-    for (final backup in [
-      Uint8List.fromList(gzip.encode(newer.readAsBytesSync())),
-      Uint8List.fromList(gzip.encode(utf8.encode('not sqlite'))),
-      Uint8List.fromList(utf8.encode('not gzip')),
-    ]) {
-      await expectLater(
-        stageRestore(backup, staged, username: 'nino', token: 't'),
-        throwsA(isA<UnreadableBackup>()),
-      );
-      expect(staged.existsSync(), isFalse);
-    }
-  });
+  test(
+    'a newer, damaged or oversized backup is refused, leaving nothing',
+    () async {
+      final newer = File('${dir.path}/newer.sqlite');
+      sqlite3.open(newer.path)
+        ..userVersion = AppDatabase.version + 1
+        ..close();
+      Uint8List zipped(List<int> bytes) =>
+          Uint8List.fromList(gzip.encode(bytes));
+      for (final (backup, limit) in [
+        (zipped(newer.readAsBytesSync()), maxRestoredBytes),
+        (zipped(utf8.encode('not sqlite')), maxRestoredBytes),
+        (Uint8List.fromList(utf8.encode('not gzip')), maxRestoredBytes),
+        (await snapshot(db, dir), 1024),
+      ]) {
+        await expectLater(
+          stageRestore(
+            backup,
+            staged(),
+            username: 'nino',
+            token: 't',
+            limit: limit,
+          ),
+          throwsA(isA<UnreadableBackup>()),
+        );
+        expect(staged().existsSync(), isFalse);
+      }
+    },
+  );
 
   group('BackupSync', () {
     late List<http.Request> sent;
     late http.Response Function(http.Request) reply;
-    late BackupSync sync;
+    final syncs = <BackupSync>[];
 
     setUp(() {
       sent = [];
       reply = (_) =>
           http.Response(jsonEncode({'backupAt': '2026-11-13T12:00:00Z'}), 200);
-      sync = BackupSync(
+    });
+
+    tearDown(() {
+      for (final s in syncs) {
+        s.dispose();
+      }
+      syncs.clear();
+    });
+
+    BackupSync start() {
+      final sync = BackupSync(
         db: db,
         dao: AccountDao(db),
         api: AccountApi(
-          'https://api.example',
-          client: MockClient((request) async {
-            sent.add(request);
-            return reply(request);
-          }),
+          ApiClient(
+            'https://api.example',
+            client: MockClient((request) async {
+              sent.add(request);
+              return reply(request);
+            }),
+          ),
         ),
         databaseFile: () async => File('${dir.path}/pindoro.sqlite'),
       );
-    });
-
-    tearDown(() => sync.dispose());
+      syncs.add(sync);
+      return sync;
+    }
 
     test('uploads the gzipped snapshot with the token', () async {
-      await sync.backUp();
-      final put = sent.single;
+      await AccountDao(db).markChanged(DateTime.now());
+      await start().backUp();
+      final put = sent.last;
       expect(put.method, 'PUT');
       expect(put.url.path, '/v1/accounts/me/backup');
       expect(put.headers['authorization'], 'Bearer old-token');
-      expect(put.headers['content-type'], 'application/octet-stream');
       expect(put.bodyBytes.take(2), [0x1f, 0x8b]);
       final account = await AccountDao(db).read();
       expect(account?.backedUpAt, DateTime.utc(2026, 11, 13, 12));
+      expect(account?.changedAt, isNull);
     });
 
-    test('an unknown token signs this phone out', () async {
-      reply = (_) => http.Response('', 401);
-      await expectLater(sync.backUp(), throwsA(anything));
-      expect(await AccountDao(db).read(), isNull);
+    test('uploads at launch what the app last stopped with', () async {
+      await AccountDao(db).markChanged(DateTime.now());
+      start();
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      expect(sent.single.method, 'PUT');
+      expect((await AccountDao(db).read())?.changedAt, isNull);
     });
 
-    test('does nothing while signed out', () async {
+    test(
+      'a sign-in elsewhere signs this phone out, keeping the username',
+      () async {
+        reply = (_) => http.Response('', 401);
+        await expectLater(start().backUp(), throwsA(isA<ApiException>()));
+        final account = await AccountDao(db).read();
+        expect(account?.username, 'nino');
+        expect(account?.token, isNull);
+        await start().backUp();
+        expect(sent, hasLength(1), reason: 'signed out: nothing more goes up');
+      },
+    );
+
+    test('does nothing without an account', () async {
       await AccountDao(db).drop();
-      await sync.backUp();
+      await start().backUp();
       expect(sent, isEmpty);
     });
   });

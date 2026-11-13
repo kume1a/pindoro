@@ -2,7 +2,7 @@ import type { FastifyPluginAsyncTypebox } from "@fastify/type-provider-typebox";
 import type { FastifyRequest } from "fastify";
 import { Type } from "typebox";
 import type { Db } from "../../db/client.ts";
-import { bearer, bearerToken, clientIp, Problem, perToken } from "../../http.ts";
+import { bearer, bearerToken, Problem, perIp, perToken } from "../../http.ts";
 import { isLeagueName, leagueName } from "./leagues.rules.ts";
 import { NameBody, NewPlayer, Player, Standing, XpBody } from "./leagues.schemas.ts";
 import {
@@ -37,7 +37,7 @@ export const leaguesRoutes: FastifyPluginAsyncTypebox<{
   app.post(
     "/v1/players",
     {
-      config: { rateLimit: { max: signupsPerHour, timeWindow: "1 hour", keyGenerator: clientIp } },
+      config: perIp(signupsPerHour, "1 hour"),
       schema: { tags: ["leagues"], body: NameBody, response: { 201: NewPlayer, 400: Problem } },
     },
     async (req, reply) => reply.code(201).send(await createPlayer(db, validName(req.body.name))),

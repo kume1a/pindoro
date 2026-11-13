@@ -2538,7 +2538,7 @@
   "accountUsernameClear": "Clear the username",
   "accountPassword": "Password",
   "accountPasswordClear": "Clear the password",
-  "accountRules": "Username: 3 to 24 letters a–z, digits, dots, dashes or underscores. Password: at least 8 characters. There is no password reset, so keep it somewhere safe.",
+  "accountRules": "Username: 3 to 24 letters a–z, digits, dots, dashes or underscores. Password: at least 8 characters.",
   "accountSignIn": "Sign in",
   "accountCreate": "Create account",
   "accountTaken": "That username is taken. Try another one.",
@@ -2557,5 +2557,46 @@
   },
   "accountRestore": "Restore backup",
   "accountKeep": "Keep this phone’s",
-  "accountRestoreFailed": "Couldn’t open this backup. Update Pindoro, then sign in again."
+  "accountRestoreFailed": "Couldn’t open this backup. Update Pindoro, then sign in again.",
+  "accountSignedOutHere": "Signed out on this phone",
+  "accountSignedOutHereSubtitle": "You signed in on another phone. Tap to sign in here.",
+  "accountBackUpFailed": "Couldn’t back up this phone. Try again later.",
+  "accountTooManyTries": "Too many tries. Wait a few minutes and try again.",
+  "accountForgot": "Forgot password?",
+  "accountResetIntro": "Enter the recovery code you saved when you made the account, and a new password.",
+  "accountRecoveryCode": "Recovery code",
+  "accountRecoveryCodeClear": "Clear the code",
+  "accountNewPassword": "New password",
+  "accountReset": "Set new password",
+  "accountBackToSignIn": "Back to sign in",
+  "accountWrongCode": "Wrong username or recovery code.",
+  "accountCodeTitle": "Save your recovery code",
+  "accountCodeBody": "If you forget your password, this code lets you set a new one. It shows only now, so keep it somewhere safe.\n\n{code}",
+  "@accountCodeBody": {
+    "placeholders": {
+      "code": {
+        "type": "String",
+        "example": "abcd-efgh-jkmn-pqrs"
+      }
+    }
+  },
+  "accountCodeCopy": "Copy code",
+  "accountCodeDone": "I saved it",
+  "accountCodeCopied": "Recovery code copied",
+  "accountChangePassword": "Change password",
+  "accountCurrentPassword": "Current password",
+  "accountPasswordChanged": "Password changed",
+  "accountWrongPassword": "That isn’t your current password.",
+  "accountSignOut": "Sign out",
+  "accountSignOutSubtitle": "Your progress stays on this phone",
+  "accountSignOutTitle": "Sign out?",
+  "accountSignOutBody": "Your progress stays on this phone, but it isn’t backed up until you sign in again.",
+  "accountSignOutStay": "Stay signed in",
+  "accountDelete": "Delete account",
+  "accountDeleteSubtitle": "Deletes the account and its backup",
+  "accountDeleteTitle": "Delete your account?",
+  "accountDeleteBody": "Your account and its backup are deleted from the server. Your progress stays on this phone.",
+  "accountDeleteKeep": "Keep account",
+  "accountDeleteConfirm": "Delete",
+  "accountPasswordRule": "Password: at least 8 characters."
 }

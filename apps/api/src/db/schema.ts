@@ -22,12 +22,14 @@ export const player = pgTable("player", {
 const bytea = customType<{ data: Buffer }>({ dataType: () => "bytea" });
 
 // A signed-in player's progress backup: the app's SQLite file, gzipped. Not a league player, so
-// leaving Leagues never touches it. The password is a salted scrypt hash, the token a sha256.
+// leaving Leagues never touches it. The password is a salted scrypt hash; the token and the
+// recovery code (null on accounts made before codes) are sha256 hashes.
 export const account = pgTable("account", {
   id: uuid().primaryKey().defaultRandom(),
   username: text().notNull().unique(),
   passwordHash: text().notNull(),
   tokenHash: text().notNull().unique(),
+  recoveryHash: text(),
   backup: bytea(),
   backupAt: timestamp({ withTimezone: true }),
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),

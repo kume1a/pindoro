@@ -33,9 +33,7 @@ class SavedCard extends StatelessWidget {
             style: PindoroType.bodyMd.copyWith(color: c.textPrimary),
           ),
           Text(
-            l10n.homeSavedAgo(
-              formatAgo(DateTime.now().difference(saved.at), l10n),
-            ),
+            l10n.homeSavedAgo(formatSince(saved.at, l10n)),
             style: PindoroType.bodySm.copyWith(color: c.textSecondary),
           ),
         ],

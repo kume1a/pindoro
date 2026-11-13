@@ -1,10 +1,11 @@
-import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
+import { randomBytes, scrypt, scryptSync, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
-import { eq } from "drizzle-orm";
+import { and, eq, type SQL, sql } from "drizzle-orm";
 import type { Static } from "typebox";
 import type { Db } from "../../db/client.ts";
 import { account } from "../../db/schema.ts";
 import { hashToken, newToken } from "../../http.ts";
+import { newRecoveryCode } from "./accounts.rules.ts";
 import type { Session } from "./accounts.schemas.ts";
 
 type SessionNode = Static<typeof Session>;
@@ -22,6 +23,10 @@ const hashPassword = async (password: string): Promise<string> => {
   return `${salt.toString("hex")}:${key.toString("hex")}`;
 };
 
+// An unknown username still costs one scrypt, so timing doesn't tell which usernames exist.
+const unknownSalt = randomBytes(16);
+const UNKNOWN_USER_HASH = `${unknownSalt.toString("hex")}:${scryptSync("", unknownSalt, KEY_LENGTH).toString("hex")}`;
+
 const passwordMatches = async (password: string, stored: string): Promise<boolean> => {
   const [salt = "", key = ""] = stored.split(":");
   const actual = await scryptAsync(password, Buffer.from(salt, "hex"), KEY_LENGTH);
@@ -29,53 +34,152 @@ const passwordMatches = async (password: string, stored: string): Promise<boolea
   return expected.length === KEY_LENGTH && timingSafeEqual(actual, expected);
 };
 
-/** The new account's session, or undefined when the username is taken. */
+// A sha256 hex never contains ":", so no token can match a signed-out account.
+const signedOut = sql<string>`'out:' || ${account.id}`;
+
+const toSession = (
+  token: string,
+  username: string,
+  backupAt: Date | null,
+  recoveryCode?: string,
+): SessionNode => ({
+  token,
+  account: { username },
+  backupAt: backupAt?.toISOString() ?? null,
+  ...(recoveryCode === undefined ? {} : { recoveryCode }),
+});
+
+/** The new account's session with its recovery code, or undefined when the username is taken. */
 export const createAccount = async (
   db: Db,
   username: string,
   password: string,
 ): Promise<SessionNode | undefined> => {
   const token = newToken();
+  const recoveryCode = newRecoveryCode();
   const [row] = await db
     .insert(account)
-    .values({ username, passwordHash: await hashPassword(password), tokenHash: hashToken(token) })
+    .values({
+      username,
+      passwordHash: await hashPassword(password),
+      tokenHash: hashToken(token),
+      recoveryHash: hashToken(recoveryCode),
+    })
     .onConflictDoNothing({ target: account.username })
-    .returning({ username: account.username });
-  return row && { token, account: row, backupAt: null };
+    .returning({ id: account.id });
+  return row && toSession(token, username, null, recoveryCode);
 };
 
-/** A new token for this phone, which signs out the phone that had the old one. */
+/**
+ * A new token for this phone (the phone holding the old one is signed out), with the backup time
+ * read in the same statement, so an upload can't land unseen in between.
+ */
+const rotate = async (
+  db: Db,
+  id: string,
+  username: string,
+  set: Partial<typeof account.$inferInsert> = {},
+  recoveryCode?: string,
+): Promise<SessionNode> => {
+  const token = newToken();
+  const [row] = await db
+    .update(account)
+    .set({ ...set, tokenHash: hashToken(token) })
+    .where(eq(account.id, id))
+    .returning({ backupAt: account.backupAt });
+  return toSession(token, username, row?.backupAt ?? null, recoveryCode);
+};
+
 export const signIn = async (
   db: Db,
   username: string,
   password: string,
 ): Promise<SessionNode | undefined> => {
   const [row] = await db
-    .select({ id: account.id, passwordHash: account.passwordHash, backupAt: account.backupAt })
+    .select({ id: account.id, passwordHash: account.passwordHash })
     .from(account)
     .where(eq(account.username, username));
-  if (!row || !(await passwordMatches(password, row.passwordHash))) return undefined;
-  const token = newToken();
-  await db
-    .update(account)
-    .set({ tokenHash: hashToken(token) })
-    .where(eq(account.id, row.id));
-  return { token, account: { username }, backupAt: row.backupAt?.toISOString() ?? null };
+  const matches = await passwordMatches(password, row?.passwordHash ?? UNKNOWN_USER_HASH);
+  return row && matches ? rotate(db, row.id, username) : undefined;
 };
 
-export const accountIdByToken = async (db: Db, token: string): Promise<string | undefined> => {
+/** Sets a new password with the recovery code, which is then replaced; undefined when it's wrong. */
+export const resetPassword = async (
+  db: Db,
+  username: string,
+  recoveryCode: string,
+  password: string,
+): Promise<SessionNode | undefined> => {
   const [row] = await db
     .select({ id: account.id })
     .from(account)
-    .where(eq(account.tokenHash, hashToken(token)));
-  return row?.id;
+    .where(and(eq(account.username, username), eq(account.recoveryHash, hashToken(recoveryCode))));
+  if (!row) return undefined;
+  const next = newRecoveryCode();
+  const set = { passwordHash: await hashPassword(password), recoveryHash: hashToken(next) };
+  return rotate(db, row.id, username, set, next);
 };
 
-export const saveBackup = async (db: Db, id: string, backup: Buffer, at: Date): Promise<void> => {
-  await db.update(account).set({ backup, backupAt: at }).where(eq(account.id, id));
+const byToken = (token: string): SQL => eq(account.tokenHash, hashToken(token));
+
+export const isLiveToken = async (db: Db, token: string): Promise<boolean> => {
+  const [row] = await db.select({ id: account.id }).from(account).where(byToken(token));
+  return row !== undefined;
 };
 
-export const backupOf = async (db: Db, id: string): Promise<Buffer | undefined> => {
-  const [row] = await db.select({ backup: account.backup }).from(account).where(eq(account.id, id));
-  return row?.backup ?? undefined;
+/** "unknown" for a dead token, "wrong" for a wrong current password. */
+export const changePassword = async (
+  db: Db,
+  token: string,
+  current: string,
+  next: string,
+): Promise<"changed" | "unknown" | "wrong"> => {
+  const [row] = await db
+    .select({ id: account.id, passwordHash: account.passwordHash })
+    .from(account)
+    .where(byToken(token));
+  if (!row) return "unknown";
+  if (!(await passwordMatches(current, row.passwordHash))) return "wrong";
+  await db
+    .update(account)
+    .set({ passwordHash: await hashPassword(next) })
+    .where(eq(account.id, row.id));
+  return "changed";
+};
+
+/** False when the token was already dead. */
+export const signOut = async (db: Db, token: string): Promise<boolean> => {
+  const rows = await db
+    .update(account)
+    .set({ tokenHash: signedOut })
+    .where(byToken(token))
+    .returning({ id: account.id });
+  return rows.length > 0;
+};
+
+/** Deletes the account and its backup; false when the token was already dead. */
+export const deleteAccount = async (db: Db, token: string): Promise<boolean> => {
+  const rows = await db.delete(account).where(byToken(token)).returning({ id: account.id });
+  return rows.length > 0;
+};
+
+/** When the backup was saved; undefined when the token died meanwhile (another sign-in). */
+export const saveBackup = async (
+  db: Db,
+  token: string,
+  backup: Buffer,
+  at: Date,
+): Promise<Date | undefined> => {
+  const [row] = await db
+    .update(account)
+    .set({ backup, backupAt: at })
+    .where(byToken(token))
+    .returning({ backupAt: account.backupAt });
+  return row?.backupAt ?? undefined;
+};
+
+/** The backup (null before the first), or undefined for a dead token. */
+export const backupOf = async (db: Db, token: string): Promise<Buffer | null | undefined> => {
+  const [row] = await db.select({ backup: account.backup }).from(account).where(byToken(token));
+  return row?.backup;
 };
