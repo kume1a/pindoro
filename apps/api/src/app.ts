@@ -52,7 +52,7 @@ export const buildApp = async (
         ? { build: config.APP_BUILD, url: config.APP_URL }
         : undefined,
   });
-  await app.register(leaguesRoutes, { db, now, signupsPerHour: config.SIGNUP_LIMIT });
+  await app.register(leaguesRoutes, { db, now });
   await app.register(accountsRoutes, { db, now, signupsPerHour: config.SIGNUP_LIMIT });
   return app;
 };

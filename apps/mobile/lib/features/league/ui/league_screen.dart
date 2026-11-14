@@ -1,12 +1,16 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:pindoro/core/api_client.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/page_scaffold.dart';
+import 'package:pindoro/core/routes.dart';
+import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/league/data/league_api.dart';
 import 'package:pindoro/features/league/data/league_data.dart';
-import 'package:pindoro/features/league/ui/league_name_form.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -25,8 +29,14 @@ String leagueTierKey(int tier) => const [
 String leagueTitle(AppLocalizations l10n, int tier) =>
     l10n.leagueTitle(leagueTierKey(tier));
 
-/// The Leagues tab (canvas R5-01): the name to join with, then this week's
-/// league with its zones.
+/// A failed sync: offline when the server wasn't reached, else down for now.
+String _failure(AppLocalizations l10n, Object error) =>
+    error is ApiException && error.offline
+    ? l10n.leagueOffline
+    : l10n.leagueUnavailable;
+
+/// The Leagues tab (canvas R5-01): signed out, a way to sign in; signed in,
+/// this week's league with its zones, each player by username.
 class LeagueScreen extends ConsumerWidget {
   const LeagueScreen({super.key});
 
@@ -40,11 +50,7 @@ class LeagueScreen extends ConsumerWidget {
         AsyncValue(hasError: true, isLoading: false, :final error) => [
           _Note(
             pindo: PindoExpression.encouraging,
-            title: leagueFailure(
-              context.l10n,
-              error!,
-              context.l10n.leagueOffline,
-            ),
+            title: _failure(context.l10n, error!),
             action: PindoroButton(
               label: context.l10n.commonTryAgain,
               onPressed: () => ref.invalidate(standingProvider),
@@ -52,7 +58,20 @@ class LeagueScreen extends ConsumerWidget {
           ),
         ],
         AsyncValue(hasValue: true, :final value) => switch (value) {
-          null => [_Join(onJoin: ref.read(leagueActionsProvider).join)],
+          null => [
+            _Note(
+              pindo: PindoExpression.happy,
+              title: context.l10n.leagueSignInTitle,
+              body: context.l10n.leagueSignInBody,
+              action: PindoroButton(
+                label: context.l10n.accountSignIn,
+                onPressed: () {
+                  ref.read(feedbackProvider).tap();
+                  unawaited(context.push(Routes.account));
+                },
+              ),
+            ),
+          ],
           final standing => _league(context, standing),
         },
         _ => [
@@ -154,27 +173,6 @@ String initialsOf(String name) => name
     .take(2)
     .map((w) => String.fromCharCode(w.runes.first))
     .join();
-
-class _Join extends StatelessWidget {
-  const _Join({required this.onJoin});
-
-  final Future<void> Function(String name) onJoin;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    return _Note(
-      pindo: PindoExpression.happy,
-      title: l10n.leagueJoinTitle,
-      body: l10n.leagueJoinBody,
-      action: LeagueNameForm(
-        action: l10n.leagueJoin,
-        failed: l10n.leagueJoinFailed,
-        onSubmit: onJoin,
-      ),
-    );
-  }
-}
 
 /// Pindo over a title, an optional line and an optional action.
 class _Note extends StatelessWidget {

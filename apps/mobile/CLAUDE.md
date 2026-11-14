@@ -21,8 +21,8 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                the shared pin-drop and road-trip views), course (the Path), home, setup (welcome,
                                city, area, difficulty), quiz (round), results (results, street),
                                settings, streak, pitstop, me, lesson (lesson, Lesson complete, Final drive,
-                               Unit complete), league (the Leagues tab, the name form; data: LeagueDao,
-                               LeagueApi, standingProvider), account (the backup account: AccountApi,
+                               Unit complete), league (the Leagues tab; data: LeagueApi,
+                               standingProvider), account (the account: AccountApi,
                                AccountDao, BackupSync, the sign-in screen and Settings group), badges (stats, awards, the shelf tile,
                                the reward sheet and BadgeMoments)
 lib/features/quiz/ui/round_controller.dart   round state machine; resumes from round_question + answers;
@@ -59,7 +59,7 @@ test/drift/                    generated schema helpers + migration test
   (`?unit=&lesson=`, `&practice=1`, or `?unit=&pit-stop=1`), `/lesson-done?result=`,
   `/drive?unit=` (the Final drive, Jump ahead on a locked unit), `/unit-done?unit=&xp=` (the drive's XP, for its level-up),
   `/unit-guide?unit=` (`&lesson=` opens with that lesson's streets on the map),
-  `/league-name`, `/streak`, `/settings`, `/settings/credits`. The app opens on the Path once a course exists
+  `/streak`, `/settings`, `/settings/credits`. The app opens on the Path once a course exists
   (`course` row), or in the lesson it was killed in (`saved_lesson`); a player who finished a
   round before any course sees What's new (then placement); a saved first round reopens Free play;
   anyone else gets Welcome, whose Choose a city leads to the start-district picker. Footers end 12 dp above the bar on a tab
@@ -95,15 +95,15 @@ test/drift/                    generated schema helpers + migration test
 - **Unit guide** (`features/course/ui/unit_guide_screen.dart`): from the signpost's book button or
   a done lesson's See the streets; a map of the unit's streets (`PindoroMap` without controls), a
   tip from pindoro_core `mainAxis` and the unit's stops as rows.
-- **Leagues** (`features/league`): an anonymous account (`league_player`: player id, token, name)
-  from `POST /v1/players` when the player first joins on the Leagues tab. `standingProvider` sends
+- **Leagues** (`features/league`, a layer above `account`): signed in, the account plays under its
+  username; signed out, the tab offers Sign in (`/account`). `standingProvider` sends
   this league week's XP (pindoro_core `leagueWeek`, `ProgressDao.xpBetween`) with
   `PUT /v1/league/me` and returns the ranked league; the server owns ranks, zones and moves. The app
   root listens to it (so it syncs at launch) and invalidates it on resume; opening the tab and the
-  end of a round, lesson or road trip invalidate it too. No automatic retry; a 401 drops the account; failures read as offline only when the server
-  wasn't reached (`leagueFailure`), else "isn't working right now". Results shows "Up to 4th in
-  Avenue league" when the round's XP raised the rank (`rankBefore`). Settings → League renames
-  (`/league-name`) and leaves (the server forgets the player). Tests override
+  end of a round, lesson or road trip invalidate it too. No automatic retry; a 401 signs this phone
+  out (`signedOutElsewhere`); failures read as offline only when the server wasn't reached, else
+  "isn't working right now". Results shows "Up to 4th in
+  Avenue league" when the round's XP raised the rank (`rankBefore`). Tests override
   `apiClientProvider` with an `ApiClient` over a `MockClient`.
 - **Account and backup** (`features/account`, rules in pindoro_core `progress/account.dart`):
   optional, for a lost or reset phone. Settings → Account (`AccountGroup`) opens `/account`
@@ -122,7 +122,7 @@ test/drift/                    generated schema helpers + migration test
   into `pindoro.sqlite.restore` (refused past 64 MiB, a newer `user_version` or a failed
   `quick_check`), opens it with drift (migrating it) to save the account row, then
   `restartProvider` closes the database and `swapInDatabase` moves it in and boots again, putting
-  the old file back if that boot fails. The league identity comes back inside the backup. Tests
+  the old file back if that boot fails. Tests
   override `apiClientProvider` and `databaseFileProvider`.
 - **Badges** (`features/badges`, spec `docs/specs/2026-11-11-badges-design.md`): pindoro_core
   `badgeProgress` is the rule; `readBadgeStats` reads the stats fresh from `ProgressDao`
@@ -145,7 +145,7 @@ test/drift/                    generated schema helpers + migration test
   Numbers through `formatNumber` (narrow no-break space groups), distances through
   `formatDistance`. Never uppercase.
 - **Settings** (`user_settings`, watched by `settingsProvider`): language (null = device),
-  street names, theme, sound, haptics, daily goal, reminder, turn list, the league account (plus the first Home's
+  street names, theme, sound, haptics, daily goal, reminder, turn list, the account (plus the first Home's
   coach-mark flag); they apply immediately. `feedbackProvider` plays haptics and sounds per game
   event behind the Haptics and Sound toggles. The kit is `assets/sounds/*.wav`
   (`core/sounds.dart`, audioplayers low-latency, ambient/no focus so other audio keeps playing),

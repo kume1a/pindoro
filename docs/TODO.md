@@ -107,9 +107,9 @@
   - The Unit guide's tip comes from the streets' main direction; no hand-written tip per district.
 
 - Leagues (R5), left out on purpose:
-  - A league player has no sign-in of their own: a new phone gets its league back only through an
-    account backup (below).
-  - League names aren't moderated and can't be reported.
+  - Usernames, shown as league names, aren't moderated and can't be reported.
+  - Deleting an account drops its past league rows too, so a finished week's ranks can shift for
+    players who haven't synced the new week yet.
   - The server trusts the app's XP; there is no cheat detection.
   - XP synced after Monday 00:00 (Tbilisi) for the week before is lost; so is XP earned offline
     that week and synced only after it ends.

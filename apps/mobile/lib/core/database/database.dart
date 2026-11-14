@@ -275,23 +275,7 @@ class SavedLessons extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-/// The player's league account once they joined (one row): the server's
-/// player id, the secret token for its `/me` routes and the name others see.
-@DataClassName('LeaguePlayer')
-class LeaguePlayers extends Table {
-  @override
-  String get tableName => 'league_player';
-
-  IntColumn get id => integer().withDefault(const Constant(1))();
-  TextColumn get playerId => text()();
-  TextColumn get token => text()();
-  TextColumn get name => text()();
-
-  @override
-  Set<Column<Object>> get primaryKey => {id};
-}
-
-/// The backup account (one row): its username, the secret token for its
+/// The account (one row): its username (the name Leagues shows), the secret token for its
 /// `/me` routes (null once a sign-in on another phone signed this one out),
 /// when this phone last backed up, and since when it has progress the backup
 /// lacks. Left out of the backups.
@@ -354,7 +338,6 @@ class ReviewClearings extends Table {
     LessonResults,
     LessonAnswers,
     SavedLessons,
-    LeaguePlayers,
     Badges,
     ReviewClearings,
     Accounts,
@@ -365,7 +348,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 13;
+  static const int version = 14;
 
   @override
   int get schemaVersion => version;
@@ -421,6 +404,8 @@ class AppDatabase extends _$AppDatabase {
       from12To13: (m, schema) => m.alterTable(
         TableMigration(schema.account, newColumns: [schema.account.changedAt]),
       ),
+      // Leagues sign in with the account, so the anonymous league player goes.
+      from13To14: (m, schema) => m.deleteTable('league_player'),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

@@ -1,14 +1,12 @@
 import 'package:pindoro_core/src/progress/streak.dart';
 
 /// The weekly leagues (v1-screens.md § R5 · v2.1 Leagues). The server ranks
-/// and moves players; the app needs the week, the tiers and the name rule.
+/// and moves players; the app needs the week and the tiers.
 /// `apps/api/src/modules/leagues/leagues.rules.ts` holds the same rules;
 /// both pass `shared/fixtures/league_vectors.json`.
 abstract final class LeagueRules {
   /// Alley, Lane, Street, Avenue, Boulevard, Highway.
   static const int tiers = 6;
-  static const int nameMin = 2;
-  static const int nameMax = 20;
 
   /// Weeks run on Tbilisi time, which has no daylight saving.
   static const Duration offset = Duration(hours: 4);
@@ -31,18 +29,4 @@ LeagueWeek leagueWeek(DateTime now) {
     start: start,
     end: start.add(const Duration(days: DateTime.daysPerWeek)),
   );
-}
-
-/// [raw] trimmed, with runs of whitespace as one space.
-String leagueName(String raw) => raw.trim().replaceAll(RegExp(r'\s+'), ' ');
-
-final _nameShape = RegExp(r"^\p{L}[\p{L}\p{M} .'’-]*$", unicode: true);
-
-/// Whether a [leagueName] may be used: 2–20 characters, a letter first, then
-/// letters (with their marks), spaces and `. ' ’ -`.
-bool isLeagueName(String name) {
-  final length = name.runes.length;
-  return length >= LeagueRules.nameMin &&
-      length <= LeagueRules.nameMax &&
-      _nameShape.hasMatch(name);
 }

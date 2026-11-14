@@ -1,25 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/api_client.dart';
-import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/features/account/data/account_dao.dart';
+import 'package:pindoro/features/account/data/account_data.dart';
 import 'package:pindoro/features/league/data/league_api.dart';
-import 'package:pindoro/features/league/data/league_dao.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
-/// The league account, null until the player joins.
-final leagueAccountProvider = StreamProvider<LeaguePlayer?>(
-  (ref) => ref.watch(leagueDaoProvider).watchAccount(),
-);
-
-/// This week's league after sending the week's XP; null without an account.
-/// An unknown token (the player is gone on the server) drops the account.
+/// This week's league after sending the week's XP; null while signed out.
+/// An unknown token (a sign-in on another phone) signs this phone out.
 /// Invalidate it to sync again (the app root on resume, the Leagues tab, and
 /// the end of a round, lesson or road trip do). A failure isn't retried on its
 /// own: the next of those, or Try again, syncs.
 final standingProvider = FutureProvider.autoDispose<Standing?>((ref) async {
-  // The token only: a rename isn't a reason to sync.
+  // The token only: a backup isn't a reason to sync.
   final token = await ref.watch(
-    leagueAccountProvider.selectAsync((account) => account?.token),
+    accountProvider.selectAsync((account) => account?.token),
   );
   if (token == null) return null;
   final week = leagueWeek(DateTime.now());
@@ -32,45 +27,10 @@ final standingProvider = FutureProvider.autoDispose<Standing?>((ref) async {
         .sync(token, week: week.key, xp: xp);
   } on ApiException catch (e) {
     if (!e.unknownToken) rethrow;
-    await ref.read(leagueDaoProvider).drop();
+    await ref.read(accountDaoProvider).signedOutElsewhere();
     return null;
   }
 }, retry: (_, _) => null);
-
-final leagueActionsProvider = Provider<LeagueActions>(
-  (ref) =>
-      LeagueActions(ref.watch(leagueApiProvider), ref.watch(leagueDaoProvider)),
-);
-
-/// Joining, renaming and leaving: the server first, then the local account.
-class LeagueActions {
-  const LeagueActions(this._api, this._dao);
-
-  final LeagueApi _api;
-  final LeagueDao _dao;
-
-  Future<void> join(String name) async {
-    final player = await _api.join(name);
-    await _dao.save(
-      playerId: player.id,
-      token: player.token,
-      name: player.name,
-    );
-  }
-
-  Future<void> rename(LeaguePlayer account, String name) async =>
-      _dao.rename(await _api.rename(account.token, name));
-
-  /// A player the server no longer knows is gone already.
-  Future<void> leave(LeaguePlayer account) async {
-    try {
-      await _api.leave(account.token);
-    } on ApiException catch (e) {
-      if (!e.unknownToken) rethrow;
-    }
-    await _dao.drop();
-  }
-}
 
 /// The player's rank before their last [gained] XP, from the others' XP now
 /// (an equal player ahead of them stays ahead); null when the player isn't

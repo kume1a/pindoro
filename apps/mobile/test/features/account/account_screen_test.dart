@@ -199,10 +199,10 @@ void main() {
     await tapThrough(tester, find.text('Delete account'));
     expect(find.text('Delete your account?'), findsOneWidget);
     await tapThrough(tester, find.text('Keep account'));
-    expect(sent, isEmpty);
+    expect(sent.map((r) => r.url.path), ['/v1/league/me'], reason: 'launch');
     await tapThrough(tester, find.text('Sign out'));
     await tapThrough(tester, find.widgetWithText(PindoroButton, 'Sign out'));
-    expect(sent.single.url.path, '/v1/sessions/me');
+    expect(sent.last.url.path, '/v1/sessions/me');
     expect(await account(tester), isNull);
     expect(find.text('Back up your progress'), findsOneWidget);
   });

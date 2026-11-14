@@ -15,7 +15,7 @@ import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/launch_overlay.dart';
 import 'package:pindoro/core/routes.dart';
-import 'package:pindoro/features/league/data/league_dao.dart';
+import 'package:pindoro/features/account/data/account_dao.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
@@ -281,7 +281,6 @@ void main() {
     /// and 400 XP, so a 120 XP round started them 4th.
     http.Response league(int rank) => http.Response(
       jsonEncode({
-        'player': {'id': 'p1', 'name': 'Tornike'},
         'league': {
           'tier': 3,
           'week': leagueWeek(DateTime.now()).key,
@@ -290,7 +289,7 @@ void main() {
             for (final (i, xp) in [900, 500, 450, 400].indexed)
               {
                 'rank': i + 1,
-                'name': i + 1 == rank ? 'Tornike' : 'P$i',
+                'name': i + 1 == rank ? 'tornike' : 'p$i',
                 'xp': xp,
                 'zone': 'up',
                 'you': i + 1 == rank,
@@ -303,7 +302,7 @@ void main() {
 
     Future<String> joinedRound(WidgetTester tester) async =>
         (await tester.runAsync(() async {
-          await LeagueDao(db).save(playerId: 'p1', token: 't', name: 'Tornike');
+          await AccountDao(db).save(username: 'tornike', token: 't');
           return roundWithAnswers(2);
         }))!;
 

@@ -16,46 +16,18 @@ typedef LeagueMember = ({
   bool you,
 });
 
-/// The player's league this week (`PUT /v1/league/me`); [members] is empty
-/// until they earn XP this week.
-typedef Standing = ({
-  String name,
-  int tier,
-  DateTime endsAt,
-  List<LeagueMember> members,
-});
+/// The account's league this week (`PUT /v1/league/me`); [members] is empty
+/// until it earns XP this week.
+typedef Standing = ({int tier, DateTime endsAt, List<LeagueMember> members});
 
-typedef NewPlayer = ({String id, String token, String name});
-
-/// The API's players and leagues routes (docs: `shared/openapi/openapi.json`).
+/// The API's league route (docs: `shared/openapi/openapi.json`).
 class LeagueApi {
   const LeagueApi(this._api);
 
   final ApiClient _api;
 
-  Future<NewPlayer> join(String name) =>
-      _api.json('POST', '/v1/players', body: {'name': name}, (body) {
-        final player = body['player']! as Map<String, Object?>;
-        return (
-          id: player['id']! as String,
-          token: body['token']! as String,
-          name: player['name']! as String,
-        );
-      });
-
-  /// The name as the server saved it.
-  Future<String> rename(String token, String name) => _api.json(
-    'PATCH',
-    '/v1/players/me',
-    token: token,
-    body: {'name': name},
-    (body) => body['name']! as String,
-  );
-
-  Future<void> leave(String token) =>
-      _api.json('DELETE', '/v1/players/me', token: token, (_) {});
-
-  /// Records [xp] as this [week]'s XP and returns the league.
+  /// Records [xp] as this [week]'s XP for the account holding [token] and
+  /// returns its league.
   Future<Standing> sync(
     String token, {
     required String week,
@@ -66,10 +38,8 @@ class LeagueApi {
     token: token,
     body: {'week': week, 'xp': xp},
     (body) {
-      final player = body['player']! as Map<String, Object?>;
       final league = body['league']! as Map<String, Object?>;
       return (
-        name: player['name']! as String,
         tier: league['tier']! as int,
         endsAt: DateTime.parse(league['ends_at']! as String),
         members: [

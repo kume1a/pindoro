@@ -30,14 +30,4 @@ void main() {
       expect(leagueWeek(at.toLocal()), leagueWeek(at));
     });
   });
-
-  group('league names', () {
-    for (final v in cases('name')) {
-      test('"${v['raw']}"', () {
-        final name = leagueName(v['raw']! as String);
-        expect(name, v['name']);
-        expect(isLeagueName(name), v['valid']);
-      });
-    }
-  });
 }

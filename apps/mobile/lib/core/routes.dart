@@ -31,9 +31,6 @@ abstract final class Routes {
   /// This week's league, the fourth tab.
   static const String leagues = '/leagues';
 
-  /// Changing the league name (Settings → League).
-  static const String leagueName = '/league-name';
-
   /// Signing in, creating an account or a new password (Settings → Account).
   static const String account = '/account';
 
