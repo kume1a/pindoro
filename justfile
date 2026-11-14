@@ -85,6 +85,7 @@ test: test-dart
 # Dart and Flutter package tests (pindoro_core runs the shared golden vectors)
 test-dart:
     cd packages/pindoro_core && dart test
+    cd packages/pindoro_learning && dart test
     cd packages/pindoro_design && flutter test
     cd apps/mobile && flutter test
 
@@ -113,6 +114,11 @@ tiles:
 # Write shared/openapi/openapi.json from the API routes
 openapi:
     pnpm --filter @pindoro/api openapi
+
+# Regenerate the FSRS golden vectors with py-fsrs, in Docker (run once, never in CI; tools/fsrs-vectors)
+fsrs-vectors:
+    docker run --rm -i python:3.12-slim sh -c "pip install -q --disable-pip-version-check --root-user-action=ignore fsrs==6.3.2 >&2 && python -I -" < tools/fsrs-vectors/gen.py > shared/fixtures/fsrs_vectors.json
+    pnpm exec biome format --write shared/fixtures/fsrs_vectors.json
 
 # Run the app (pass e.g. `-d emulator-5554` or `--dart-define=TILES_BASE_URL=...`)
 run-mobile *ARGS:

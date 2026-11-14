@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GPS-free drive</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pindoro-tokens.css">
+<link rel="stylesheet" href="ds/pindoro/components/bundle.css">
+<link rel="stylesheet" href="pindoro-canvas.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="cv-flow" style="width: 1662px; height: 950px"><div class="cv-col"><div class="cv-steprow"><span class="cv-step">1</span><span class="cv-steptx">Pick today’s run or a surprise destination</span></div><dc-import name="DriveScreen" theme="light" state="setup" hint-size="390px,844px"></dc-import></div><div class="cv-arrow" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 16h22M19 9l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div><div class="cv-col"><div class="cv-steprow"><span class="cv-step">2</span><span class="cv-steptx">Recording, screen locked, no map</span></div><dc-import name="DriveScreen" theme="light" state="recording" hint-size="390px,844px"></dc-import></div><div class="cv-arrow" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 16h22M19 9l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div><div class="cv-col"><div class="cv-steprow"><span class="cv-step">3</span><span class="cv-steptx">Your track against the best route</span></div><dc-import name="DriveScreen" theme="light" state="review" hint-size="390px,844px"></dc-import></div><div class="cv-notes"><div class="cv-caprow"><span class="cv-tag cv-tag--new">New in v3</span></div><h3>Real drives are the final test</h3><ul><li>No interaction while moving: the recording screen has only End drive and a “show the way” escape that ends the test.</li><li>After parking: map-match the GPS track to directed edges (distance + heading), fill gaps with shortest legal paths, grade like a recital, flag U-turns and hesitations (< 5 km/h for > 10 s away from signals).</li><li>Each decision on the track is logged as evidence; failures count as Again on their junction cards.</li></ul><p>Flutter: DriveRecorder uses background location (Android foreground service, iOS significant-change + standard updates while in use). New icons: locate-off, stop, u-turn.</p></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1662, "height": 950}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

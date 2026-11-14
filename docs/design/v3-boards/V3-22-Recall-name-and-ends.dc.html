@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Recall the name, mark both ends</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pindoro-tokens.css">
+<link rel="stylesheet" href="ds/pindoro/components/bundle.css">
+<link rel="stylesheet" href="pindoro-canvas.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="cv-flow" style="width: 1662px; height: 950px"><div class="cv-col"><div class="cv-steprow"><span class="cv-step">1</span><span class="cv-steptx">Name it: say it in your head first</span></div><dc-import name="SessionScreen" theme="light" state="nameHidden" hint-size="390px,844px"></dc-import></div><div class="cv-arrow" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 16h22M19 9l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div><div class="cv-col"><div class="cv-steprow"><span class="cv-step">2</span><span class="cv-steptx">Then grade yourself</span></div><dc-import name="SessionScreen" theme="light" state="nameShown" hint-size="390px,844px"></dc-import></div><div class="cv-arrow" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 16h22M19 9l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div><div class="cv-col"><div class="cv-steprow"><span class="cv-step">3</span><span class="cv-steptx">Long streets: mark both ends</span></div><dc-import name="SessionScreen" theme="light" state="extent" hint-size="390px,844px"></dc-import></div><div class="cv-notes"><div class="cv-caprow"><span class="cv-tag cv-tag--new">New in v3</span></div><h3>Place → name and extent cards</h3><ul><li>Name it (card N) unlocks when the pin card reaches S ≥ 7 d, for skeleton, grid and parent streets (about 800). Forgot = Again, Knew it = Good. Every 10th N review is checked with 6 names including confusables.</li><li>Extent (card E) for streets over 1.2 km once the pin card reaches S ≥ 7 d. Each end counts within max(150 m, 10 % of length): both → Good, one → Hard, none → Again.</li><li>The three-option name question is gone as a scored item; it only appears inside an intro as scaffolding.</li></ul><p>Flutter: CardType enum {pin, name, extent} on CardState; ExtentQuestion holds two pins; Confirm stays disabled until both are placed.</p></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1662, "height": 950}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

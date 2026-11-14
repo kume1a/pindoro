@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>A new street: intro, family, guess first</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pindoro-tokens.css">
+<link rel="stylesheet" href="ds/pindoro/components/bundle.css">
+<link rel="stylesheet" href="pindoro-canvas.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="cv-flow" style="width: 1662px; height: 950px"><div class="cv-col"><div class="cv-steprow"><span class="cv-step">1</span><span class="cv-steptx">Intro card: painted street, known streets labelled</span></div><dc-import name="SessionScreen" theme="light" state="intro" hint-size="390px,844px"></dc-import></div><div class="cv-arrow" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 16h22M19 9l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div><div class="cv-col"><div class="cv-steprow"><span class="cv-step">2</span><span class="cv-steptx">A lane is taught with its parent and siblings</span></div><dc-import name="SessionScreen" theme="light" state="introFamily" hint-size="390px,844px"></dc-import></div><div class="cv-arrow" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 16h22M19 9l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div><div class="cv-col"><div class="cv-steprow"><span class="cv-step">3</span><span class="cv-steptx">Guess first when the name gives it away</span></div><dc-import name="SessionScreen" theme="light" state="pretest" hint-size="390px,844px"></dc-import></div><div class="cv-notes"><div class="cv-caprow"><span class="cv-tag cv-tag--changed">Changed in v3</span></div><h3>First meeting with a street</h3><ul><li>New streets come in groups of 3 from the same neighbourhood, mixed into reviews: intro → retrieval 1 after 3–6 other items (district zoom) → retrieval 2 at the end of the session (city zoom).</li><li>The map labels only streets you already know (Known or better), never the new one’s neighbours you haven’t met.</li><li>Intro facts: length, type, crossings, direction and distance from the centre, and name:etymology when OSM has it. TTS reads the name in the city’s language.</li><li>Children (“Nth Lane / Dead End of X”) never come before their parent reaches S ≥ 3 d; at most 4 siblings a day.</li><li>Guess first: shown for children whose parent is known. Graded, not scheduled.</li></ul><p>Flutter: IntroSheet (new) extends the R4 lesson intro; MapLabels takes the set of known street ids. The plate keeps two lines then shrinks to 20 dp.</p></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1662, "height": 950}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
