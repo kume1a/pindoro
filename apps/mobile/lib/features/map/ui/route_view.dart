@@ -45,9 +45,10 @@ const Duration _offRoadToast = Duration(seconds: 1);
 
 /// One road trip, shared by lessons and the Final drive (canvas R4-30 to
 /// R4-34): the [topBar], the plate asking for the shortest drive to the
-/// trip's destination, A and B on the map, drawing by drag (a list of turns
-/// with a screen reader on), Undo, Show the route, Check route; once checked
-/// ([reveal]) the car replays the best route and the tier sheet rises.
+/// trip's destination street, A on the map, drawing by tap or drag (a list of
+/// turns with a screen reader on), Undo, Start over, Show the route, Check
+/// route; once checked ([reveal]) the car replays the best route, the street
+/// shows and the tier sheet rises.
 class RouteView extends ConsumerStatefulWidget {
   const RouteView({
     super.key,
@@ -164,7 +165,8 @@ class _RouteViewState extends ConsumerState<RouteView>
 
   bool get _replaying => widget.reveal != null && _replay.value < 1;
 
-  /// Haptics and, for screen readers, an announcement per junction and at B.
+  /// Haptics and, for screen readers, an announcement per junction and at
+  /// the street.
   void _draft(RouteDraft next, {String? turn}) {
     final feedback = ref.read(feedbackProvider);
     if (next.edges.length > widget.draft.edges.length) feedback.junction();
@@ -173,11 +175,30 @@ class _RouteViewState extends ConsumerState<RouteView>
       final l10n = context.l10n;
       _announce(
         next.reached
-            ? l10n.a11yRouteReachedB
+            ? l10n.a11yRouteReached(_streetName)
             : l10n.a11yRouteTurned(turn, formatDistance(next.lengthM, l10n)),
       );
     }
     widget.onDraft(next);
+  }
+
+  String get _streetName =>
+      streetName(widget.trip.destination, ref.read(settingsProvider).value);
+
+  /// A tap drives along the streets up to it ([RouteDraft.driveTo]).
+  void _tap(LatLng at) {
+    final projection = _projection;
+    if (projection == null || widget.draft.reached) return;
+    final next = widget.draft.driveTo(at, snapDp * projection.metresPerDp(at));
+    if (next == null) {
+      showToast(
+        context,
+        context.l10n.routeTapMiss,
+        above: _controlsInset(context),
+      );
+    } else {
+      _draft(next);
+    }
   }
 
   void _announce(String message) => unawaited(
@@ -236,7 +257,7 @@ class _RouteViewState extends ConsumerState<RouteView>
     final trip = widget.trip;
     final draft = widget.draft;
     final graph = draft.graph;
-    final a = graph.at(trip.from), b = graph.at(trip.to);
+    final a = graph.at(trip.from);
     final listMode =
         MediaQuery.accessibleNavigationOf(context) ||
         (settings?.turnList ?? false);
@@ -244,7 +265,7 @@ class _RouteViewState extends ConsumerState<RouteView>
     final drawn = draft.lines;
     final best = reveal == null ? null : _along(_bestLines, _replay.value);
     // The full plate is taller than a pin drop's (the ask, two name lines,
-    // the sub-line); A and B must clear it.
+    // the sub-line); A must clear it.
     final topInset =
         MediaQuery.paddingOf(context).top + (reveal == null ? 260 : 180);
     final bottomInset = reveal != null
@@ -263,7 +284,9 @@ class _RouteViewState extends ConsumerState<RouteView>
                 area: widget.area,
                 route: (
                   a: a,
-                  b: b,
+                  // The street is the goal: B shows only where it's reached.
+                  b: draft.reached ? graph.at(draft.end) : null,
+                  street: reveal == null ? const [] : trip.destination.geometry,
                   drawn: drawn,
                   best: best?.lines ?? const [],
                   ghost: ghostLines,
@@ -287,13 +310,13 @@ class _RouteViewState extends ConsumerState<RouteView>
                   reached: draft.reached,
                 ),
                 frame: reveal == null
-                    ? [a, b]
+                    ? _frameAround(a, graph.at(trip.best.junctions.last))
                     : [
                         a,
-                        b,
                         for (final l in _bestLines) ...l,
                         for (final l in drawn) ...l,
                       ],
+                onTap: reveal == null && !listMode ? _tap : null,
                 onCamera: (p) => setState(() => _projection = p),
                 topInset: topInset,
                 bottomInset: bottomInset,
@@ -414,6 +437,14 @@ class _RouteViewState extends ConsumerState<RouteView>
   }
 }
 
+/// A square around [a] reaching as far as [end] in every direction: the
+/// destination street crosses it, without giving away which way it lies.
+List<LatLng> _frameAround(LatLng a, LatLng end) {
+  final m = distanceBetween(a, end);
+  final around = LocalProjection(a);
+  return [around.unproject((-m, -m)), around.unproject((m, m))];
+}
+
 /// [lines] up to [fraction] of their length, and the point reached; all of
 /// them are [lines] itself.
 ({MultiPolyline lines, LatLng tip}) _along(
@@ -506,7 +537,7 @@ class _Plate extends StatelessWidget {
   }
 }
 
-/// Undo (hold: start over) and Show the route above Check route.
+/// Undo, Start over and Check route above Show the route.
 class _Controls extends StatelessWidget {
   const _Controls({
     required this.draft,
@@ -535,13 +566,15 @@ class _Controls extends StatelessWidget {
           Row(
             spacing: PindoroSpace.s3,
             children: [
-              GestureDetector(
-                onLongPress: onStartOver,
-                child: MapControl(
-                  glyph: PindoroGlyph.back,
-                  semanticLabel: l10n.a11yRouteUndo,
-                  onPressed: onUndo,
-                ),
+              MapControl(
+                glyph: PindoroGlyph.back,
+                semanticLabel: l10n.a11yRouteUndo,
+                onPressed: onUndo,
+              ),
+              MapControl(
+                glyph: PindoroGlyph.retry,
+                semanticLabel: l10n.a11yRouteStartOver,
+                onPressed: onStartOver,
               ),
               Expanded(
                 child: Semantics(
@@ -630,10 +663,7 @@ class _TurnList extends StatelessWidget {
                         );
                         return ListRow(
                           title: label,
-                          subtitle: l10n.routeTurnHeading(
-                            t.heading.name,
-                            t.towardGoal ? 'yes' : 'no',
-                          ),
+                          subtitle: l10n.routeTurnHeading(t.heading.name),
                           onTap: () => onTurn(t.edge, label),
                         );
                       }(),

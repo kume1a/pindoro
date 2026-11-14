@@ -4,13 +4,16 @@ import 'package:pindoro/features/map/data/maplibre_convert.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// A road trip on the map: A and B, the route drawn so far (cobalt dashes),
-/// the best route as painted so far (yellow, with chevrons), the first-trip
-/// ghost, the replay [car] and the distance [chip] at the route's end (its
-/// [chipAnchor] keeps it on screen). [reached] pops B once.
+/// A road trip on the map: A, B where the route reached the destination
+/// [street] (null until then; the street itself shows once checked), the
+/// route drawn so far (cobalt dashes), the best route as painted so far
+/// (yellow, with chevrons), the first-trip ghost, the replay [car] and the
+/// distance [chip] at the route's end (its [chipAnchor] keeps it on screen).
+/// [reached] pops B once.
 typedef RouteOverlay = ({
   LatLng a,
-  LatLng b,
+  LatLng? b,
+  MultiPolyline street,
   MultiPolyline drawn,
   MultiPolyline best,
   MultiPolyline ghost,
@@ -29,6 +32,7 @@ String chipAnchor(double x, double width) => x < width / 4
 
 /// GeoJSON source ids of a road trip.
 abstract final class RouteSources {
+  static const String street = 'route-street';
   static const String best = 'route-best';
   static const String drawn = 'route-drawn';
   static const String ghost = 'route-ghost';
@@ -69,8 +73,9 @@ ml.SymbolLayerProperties endpointLayer(
   iconIgnorePlacement: true,
 );
 
-/// Adds the road-trip sources, images and layers, bottom to top: the best
-/// route, the drawn route, the ghost, A and B, the car and the chip.
+/// Adds the road-trip sources, images and layers, bottom to top: the
+/// destination street, the best route, the drawn route, the ghost, A and B,
+/// the car and the chip.
 /// Overlays never take taps (see PindoroMap).
 Future<void> addRouteLayers(
   ml.MapLibreMapController c,
@@ -97,6 +102,7 @@ Future<void> addRouteLayers(
     ),
   );
   for (final id in [
+    RouteSources.street,
     RouteSources.best,
     RouteSources.drawn,
     RouteSources.ghost,
@@ -111,17 +117,20 @@ Future<void> addRouteLayers(
   ]) {
     await c.addGeoJsonSource(id, pointsGeoJson(const []));
   }
-  for (final (id, color, width) in [
-    (
-      'casing',
-      colors.mapRouteCasing,
-      PindoroStroke.answer + 2 * PindoroStroke.base,
-    ),
-    ('line', colors.mapRouteLine, PindoroStroke.answer),
+  for (final (source, id, color, width) in [
+    for (final source in [RouteSources.street, RouteSources.best]) ...[
+      (
+        source,
+        'casing',
+        colors.mapRouteCasing,
+        PindoroStroke.answer + 2 * PindoroStroke.base,
+      ),
+      (source, 'line', colors.mapRouteLine, PindoroStroke.answer),
+    ],
   ]) {
     await c.addLineLayer(
-      RouteSources.best,
-      '${RouteSources.best}-$id',
+      source,
+      '$source-$id',
       ml.LineLayerProperties(
         lineColor: hexColor(color),
         lineWidth: width,
@@ -231,11 +240,13 @@ Future<void> syncRoute(
   Future<String> Function(String label) chipImage,
 ) async {
   final lines = <String, MultiPolyline>{
+    RouteSources.street: now?.street ?? const [],
     RouteSources.best: now?.best ?? const [],
     RouteSources.drawn: now?.drawn ?? const [],
     RouteSources.ghost: now?.ghost ?? const [],
   };
   final old = <String, MultiPolyline>{
+    RouteSources.street: before?.street ?? const [],
     RouteSources.best: before?.best ?? const [],
     RouteSources.drawn: before?.drawn ?? const [],
     RouteSources.ghost: before?.ghost ?? const [],

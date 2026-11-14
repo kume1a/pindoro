@@ -61,10 +61,9 @@ void main() {
       for (var i = 0; i < 3; i++) {
         final p = playing(c);
         expect(p.passed, i);
-        final straight = distanceBetween(
-          p.graph.at(p.trip.from),
-          p.graph.at(p.trip.to),
-        );
+        final straight = p.trip.goals
+            .map((g) => distanceBetween(p.graph.at(p.trip.from), p.graph.at(g)))
+            .reduce(min);
         expect(
           straight,
           inInclusiveRange(TripRules.driveMinM, TripRules.driveMaxM),
@@ -105,8 +104,8 @@ void main() {
     expect(third.number, 2);
     expect((
       third.trip.from,
-      third.trip.to,
-    ), isNot((second.trip.from, second.trip.to)));
+      third.trip.destination.id,
+    ), isNot((second.trip.from, second.trip.destination.id)));
     c.dispose();
 
     final again = container();

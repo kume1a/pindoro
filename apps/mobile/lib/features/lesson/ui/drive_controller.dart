@@ -150,7 +150,7 @@ class DriveController extends Notifier<DriveState> {
       passed: passed,
       number: 0,
       trip: trip,
-      draft: RouteDraft(graph, trip.from, trip.to),
+      draft: RouteDraft(graph, trip.from, trip.goals),
       used: {trip.destination.id},
       xp: 0,
       startedAt: DateTime.now(),
@@ -229,7 +229,7 @@ class DriveController extends Notifier<DriveState> {
   }
 
   /// On to Unit complete once the drive passes, else to a new trip (after a
-  /// Miss too: a new A and B).
+  /// Miss too: a new A and street).
   Future<void> next() async {
     final p = state;
     if (p is! DrivePlaying || !p.answered) return;
@@ -254,7 +254,7 @@ class DriveController extends Notifier<DriveState> {
       passed: p.passed + (p.passes ? 1 : 0),
       number: p.number + 1,
       trip: trip,
-      draft: RouteDraft(p.graph, trip.from, trip.to),
+      draft: RouteDraft(p.graph, trip.from, trip.goals),
       used: {...p.used, trip.destination.id},
       xp: p.xp,
       startedAt: DateTime.now(),

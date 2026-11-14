@@ -1678,17 +1678,21 @@
   "@routeStartAtA": {
     "description": "Under the road trip's destination street."
   },
-  "routeCoachTitle": "Drag from A along the streets to B",
+  "routeCoachTitle": "Drive from A to the street",
   "@routeCoachTitle": {
     "description": "Coach bubble on the first road trip ever."
   },
-  "routeCoachBody": "Your route snaps to the roads. The shorter the drive, the more XP.",
+  "routeCoachBody": "Tap a street to drive along it up to there, or drag along the roads. The shorter the drive, the more XP.",
   "@routeCoachBody": {
     "description": "Coach bubble body on the first road trip ever."
   },
   "routeOffRoad": "Your route only follows streets. Drag along a white road.",
   "@routeOffRoad": {
     "description": "Toast after dragging off the road for a second."
+  },
+  "routeTapMiss": "Tap a street that meets your route.",
+  "@routeTapMiss": {
+    "description": "Toast when a tap on the road trip map isn't on a street the route can drive along to it."
   },
   "routeSoFar": "{distance} so far",
   "@routeSoFar": {
@@ -1707,15 +1711,19 @@
   "@routeCheck": {
     "description": "Scores a road trip once it reaches B."
   },
-  "a11yRouteCheckDisabled": "Check route. Reach B first.",
+  "a11yRouteCheckDisabled": "Check route. Reach the street first.",
   "@a11yRouteCheckDisabled": {
-    "description": "Screen reader label of Check route before B is reached."
+    "description": "Screen reader label of Check route before the destination street is reached."
   },
-  "a11yRouteUndo": "Undo the last street. Hold to start over.",
+  "a11yRouteUndo": "Undo the last street.",
   "@a11yRouteUndo": {
     "description": "Screen reader label of the road trip's undo button."
   },
-  "a11yRouteMap": "Map. Drag along the streets from pin A to pin B.",
+  "a11yRouteStartOver": "Start over",
+  "@a11yRouteStartOver": {
+    "description": "Screen reader label of the road trip's button that clears the route."
+  },
+  "a11yRouteMap": "Map. Tap or drag along the streets from pin A to the street.",
   "@a11yRouteMap": {
     "description": "Screen reader label of the road trip map."
   },
@@ -1863,14 +1871,11 @@
       }
     }
   },
-  "routeTurnHeading": "Heads {heading, select, n{north} ne{north-east} e{east} se{south-east} s{south} sw{south-west} w{west} nw{north-west} other{on}}, {toward, select, yes{towards B} other{away from B}}",
+  "routeTurnHeading": "Heads {heading, select, n{north} ne{north-east} e{east} se{south-east} s{south} sw{south-west} w{west} nw{north-west} other{on}}",
   "@routeTurnHeading": {
-    "description": "Under a turn option: where it heads and whether towards B (yes/no).",
+    "description": "Under a turn option: where it heads.",
     "placeholders": {
       "heading": {
-        "type": "String"
-      },
-      "toward": {
         "type": "String"
       }
     }
@@ -1891,9 +1896,14 @@
       }
     }
   },
-  "a11yRouteReachedB": "You reached B. Check route is available.",
-  "@a11yRouteReachedB": {
-    "description": "Announced when the route reaches B."
+  "a11yRouteReached": "You reached {street}. Check route is available.",
+  "@a11yRouteReached": {
+    "description": "Announced when the route reaches the destination street.",
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
   },
   "routeTryAgain": "Try this trip again",
   "@routeTryAgain": {

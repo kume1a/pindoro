@@ -27,7 +27,7 @@ final _at = DateTime(2026, 11, 9, 10);
 /// A road trip to [destination]; its route is never drawn here.
 Trip _tripTo(NamedStreet destination) => (
   from: 0,
-  to: 1,
+  goals: const {1},
   destination: destination,
   best: const Route([0, 1], [], 500),
 );

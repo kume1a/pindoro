@@ -29,7 +29,7 @@ void main() {
   group('shortestRoute', () {
     test('drives the grid corner to corner along the streets', () {
       final grid = roadGrid(4).graph;
-      final route = grid.shortestRoute(0, 15)!;
+      final route = grid.shortestRoute(0, {15})!;
       expect(route.junctions.first, 0);
       expect(route.junctions.last, 15);
       expect(route.edges, hasLength(6));
@@ -48,7 +48,7 @@ void main() {
         final grid = roadGrid(6, skip: skip).graph;
         final from = random.nextInt(36), to = random.nextInt(36);
         final expected = _dijkstra(grid, from)[to];
-        final route = grid.shortestRoute(from, to);
+        final route = grid.shortestRoute(from, {to});
         if (expected == null) {
           expect(route, isNull);
         } else {
@@ -68,11 +68,56 @@ void main() {
     test('is null between parts that never meet', () {
       // Drop every edge of column 0 and row 0 around junction 0.
       final grid = roadGrid(3, skip: {0, 1}).graph;
-      expect(grid.shortestRoute(0, 8), isNull);
-      expect(grid.shortestRoute(4, 4)!.edges, isEmpty);
+      expect(grid.shortestRoute(0, {8}), isNull);
+      expect(grid.shortestRoute(4, {4})!.edges, isEmpty);
       expect(grid.connected(0, 8), isFalse);
       expect(grid.connected(1, 8), isTrue);
     });
+
+    test('ends at the nearest of several goals', () {
+      final grid = roadGrid(4).graph;
+      final route = grid.shortestRoute(0, {15, 2, 12})!;
+      expect(route.junctions.last, 2);
+      expect(route.edges, hasLength(2));
+    });
+
+    test('keeps to the edges allowed', () {
+      final grid = roadGrid(4).graph;
+      // Row 0 and column 3 only: around the corner, never across.
+      final route = grid.shortestRoute(1, {
+        7,
+      }, allow: (e) => e.streetId == 'row0' || e.streetId == 'col3')!;
+      expect(route.junctions, [1, 2, 3, 7]);
+      expect(
+        grid.shortestRoute(1, {9}, allow: (e) => e.streetId == 'row0'),
+        isNull,
+      );
+    });
+  });
+
+  test('edgeNear is the nearest edge in range, as a brute-force scan', () {
+    final grid = roadGrid(6, skip: {3, 8, 21, 40}).graph;
+    final random = Random(3);
+    for (var round = 0; round < 200; round++) {
+      final p = LatLng(
+        41.7 + random.nextDouble() * 5 * gridLat,
+        44.8 + random.nextDouble() * 5 * gridLon,
+      );
+      const withinM = 40.0;
+      final nearestM = grid.edges
+          .map((e) => pointToPolylineDistance(p, [e.line]).distanceMeters)
+          .reduce(min);
+      final edge = grid.edgeNear(p, withinM);
+      if (nearestM > withinM) {
+        expect(edge, isNull, reason: 'round $round');
+      } else {
+        expect(
+          pointToPolylineDistance(p, [edge!.line]).distanceMeters,
+          closeTo(nearestM, 1e-9),
+          reason: 'round $round',
+        );
+      }
+    }
   });
 
   test('the junctions on a street part', () {

@@ -605,7 +605,7 @@ void main() {
     group('road trips', () {
       final trip = (
         from: 0,
-        to: 1,
+        goals: const {1},
         destination: c,
         best: const Route([0, 1], [], 800),
       );

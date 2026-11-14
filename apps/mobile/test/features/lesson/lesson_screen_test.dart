@@ -15,10 +15,12 @@ import 'package:pindoro/core/speech.dart';
 import 'package:pindoro/features/lesson/ui/lesson_controller.dart';
 import 'package:pindoro/features/lesson/ui/lesson_screen.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro_design/pindoro_design.dart';
 
 void main() {
   const unit = AppConfig.fixtureDistrictId;
@@ -132,7 +134,7 @@ void main() {
 
     // Step 11: the first road trip ever, drawn along the best route.
     expect(find.text('Road trip: draw the shortest drive to'), findsOneWidget);
-    expect(find.text('Drag from A along the streets to B'), findsOneWidget);
+    expect(find.text('Drive from A to the street'), findsOneWidget);
     final trip = container.read(lessonControllerProvider) as LessonPlaying;
     var route = trip.route!;
     for (final e in (trip.run.step as TripStep).trip.best.edges) {
@@ -277,6 +279,44 @@ void main() {
     expect(find.text('At the junction, go'), findsNothing);
     await tap(tester, find.text('Check route'));
     expect(find.text('Best route!'), findsOneWidget);
+    expect(maps.last.route!.street, trip.destination.geometry);
+  });
+
+  testWidgets('a tap drives along the streets; Start over clears the route', (
+    tester,
+  ) async {
+    await pumpApp(tester, Routes.lessonOf(unit, 1));
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(LessonScreen)),
+    );
+    LessonPlaying play() =>
+        container.read(lessonControllerProvider) as LessonPlaying;
+    await toTrip(tester, container);
+    final trip = (play().run.step as TripStep).trip;
+    final graph = play().route!.graph;
+    expect(maps.last.route!.b, isNull, reason: 'the street is the goal');
+    expect(maps.last.route!.street, isEmpty);
+
+    maps.last.onCamera!(
+      MapProjection(
+        target: graph.at(trip.from),
+        zoom: 16,
+        size: const Size(400, 800),
+      ),
+    );
+    await settle(tester);
+    final next = trip.best.edges.first.other(trip.from);
+    maps.last.onTap!(graph.at(next));
+    await settle(tester);
+    expect(play().route!.end, next);
+
+    await tap(
+      tester,
+      find.byWidgetPredicate(
+        (w) => w is MapControl && w.glyph == PindoroGlyph.retry,
+      ),
+    );
+    expect(play().route!.edges, isEmpty);
   });
 }
 
