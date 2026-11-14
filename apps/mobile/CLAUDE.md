@@ -80,10 +80,14 @@ test/drift/                    generated schema helpers + migration test
   until Start in. A course with no results shows the "Start here" coach mark (`pathCoachProvider`
   hides it for the launch).
 - **Road trips:** format 3 packs carry a road graph (`roadGraphProvider`, null for an older pack:
-  no road trips). `RouteView` (`features/map`) draws a trip: a one-finger drag that starts near the
-  route's end walks pindoro_core `RouteDraft` along the streets (`RouteDrawLayer` joins the gesture
-  arena only then, so other drags pan the map), the screen ↔ map math is `MapProjection` (512 dp
-  tiles, north up), overlays are `route_layers.dart`; with a screen reader on it shows a turn list.
+  no road trips). A trip goes from A to a street (pindoro_core `pickTrip`: any junction on it is a
+  goal, the best drive turns at least twice; no B pin until it's reached, the street shows once
+  checked). `RouteView` (`features/map`) draws a trip: a tap on a street drives along it and the
+  streets at the route's end up to the tap (`RouteDraft.driveTo`), and a one-finger drag that starts
+  near the route's end walks `RouteDraft` along the streets (`RouteDrawLayer` joins the gesture
+  arena only then, so other drags pan the map); ← undoes the last street, Start over clears it. The
+  screen ↔ map math is `MapProjection` (512 dp tiles, north up), overlays are `route_layers.dart`;
+  with a screen reader on it shows a turn list.
   A lesson's trip is its step 11 (`TripStep`); the Final drive (`DriveController`) saves each trip
   as its own `lesson_result` (kind `finalDrive`) as soon as it is answered. Trips never reach the
   Pit stop or known streets. Settings → Accessibility → Choose turns from a list (`turn_list`)

@@ -80,7 +80,7 @@ final class LessonPlaying extends LessonState {
   /// The road trip's route so far: from A until something is drawn.
   RouteDraft? get route => switch (run.step) {
     TripStep(:final trip) when !run.finished =>
-      draft ?? RouteDraft(graph!, trip.from, trip.to),
+      draft ?? RouteDraft(graph!, trip.from, trip.goals),
     _ => null,
   };
 
@@ -279,7 +279,7 @@ class LessonController extends Notifier<LessonState> {
     }
   }
 
-  /// Scores the road trip once its route reaches B.
+  /// Scores the road trip once its route reaches the destination street.
   void checkRoute() {
     if (state case LessonPlaying(
       run: final run,

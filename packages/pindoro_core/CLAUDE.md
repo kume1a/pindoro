@@ -15,9 +15,10 @@ lib/src/game/       Area (districts/circle/rect, in-area rule), NamedStreet (nea
                     course (units per raion, stops, progress, Final drive gate, Jump ahead,
                     placement from known streets, the start-district order),
                     lesson (steps incl. the road trip, LessonRun, XP, card facts),
-                    road_trip (pickTrip, RouteDraft drawing, turnsAt, routeLegs)
+                    road_trip (pickTrip: a trip to a street with turns, RouteDraft drag
+                    and tap drawing, turnCount, turnsAt, routeLegs)
 lib/src/pack/       City/District/Street (pack rows), PackRepository, RoadGraph (junctions,
-                    edges, A* shortestRoute)
+                    edges, A* shortestRoute to a goal set, edgeNear)
 ```
 
 ## Rules

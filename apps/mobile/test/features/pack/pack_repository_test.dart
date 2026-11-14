@@ -76,7 +76,7 @@ void main() {
     expect(edge.line.first.lat, closeTo(graph.at(edge.from).lat, 1e-5));
     expect(edge.line.last.lon, closeTo(graph.at(edge.to).lon, 1e-5));
     final far = graph.junctions.keys.last;
-    final route = graph.shortestRoute(graph.junctions.keys.first, far);
+    final route = graph.shortestRoute(graph.junctions.keys.first, {far});
     expect(route == null || route.lengthM > 0, isTrue);
   });
 }

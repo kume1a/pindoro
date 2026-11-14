@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:math' show min;
 
 import '../geo/geo.dart';
 import '../geo/polyline6.dart';
@@ -93,15 +94,25 @@ class RoadGraph {
   bool connected(int a, int b) =>
       a == b || (_piece[a] != null && _piece[a] == _piece[b]);
 
-  /// The shortest drive from [from] to [to] (A* on edge lengths, straight
-  /// line as the heuristic); null when they aren't connected.
-  Route? shortestRoute(int from, int to) {
+  /// The shortest drive from [from] to the nearest of [goals] (A* on edge
+  /// lengths, the straight line to the nearest goal as the heuristic), over
+  /// the edges [allow] keeps; null when none is reached.
+  Route? shortestRoute(
+    int from,
+    Set<int> goals, {
+    bool Function(RoadEdge edge)? allow,
+  }) {
     // A search between pieces would expand all of [from]'s piece to fail.
-    if (!connected(from, to)) return null;
-    final goal = at(to);
+    if (!goals.any((g) => connected(from, g))) return null;
     final cost = <int, double>{from: 0};
     final via = <int, RoadEdge>{};
-    double estimate(int j) => cost[j]! + distanceBetween(at(j), goal);
+    final toGoal = <int, double>{};
+    double estimate(int j) =>
+        cost[j]! +
+        toGoal.putIfAbsent(
+          j,
+          () => goals.map((g) => distanceBetween(at(j), at(g))).reduce(min),
+        );
     // Ordered by estimate, then id, so equal estimates stay distinct entries.
     final open = SplayTreeSet<(double, int)>((a, b) {
       final byEstimate = a.$1.compareTo(b.$1);
@@ -111,9 +122,10 @@ class RoadGraph {
     while (open.isNotEmpty) {
       final (_, j) = open.first;
       open.remove(open.first);
-      if (j == to) return _route(from, to, via, cost[to]!);
+      if (goals.contains(j)) return _route(from, j, via, cost[j]!);
       if (!closed.add(j)) continue;
       for (final e in edgesAt(j)) {
+        if (allow != null && !allow(e)) continue;
         final next = e.other(j);
         final c = cost[j]! + e.lengthM;
         if (closed.contains(next) || c >= (cost[next] ?? double.infinity)) {
@@ -126,6 +138,23 @@ class RoadGraph {
       }
     }
     return null;
+  }
+
+  /// The edge nearest [p], within [withinM]; null when none is that close.
+  RoadEdge? edgeNear(LatLng p, double withinM) {
+    RoadEdge? best;
+    var bestM = withinM;
+    for (final e in edges) {
+      // A point on the edge is at most its length from both ends together,
+      // so this skips far edges without decoding their lines.
+      if (distanceBetween(p, at(e.from)) + distanceBetween(p, at(e.to)) >
+          e.lengthM + 2 * withinM) {
+        continue;
+      }
+      final m = pointToPolylineDistance(p, [e.line]).distanceMeters;
+      if (m <= bestM) (best, bestM) = (e, m);
+    }
+    return best;
   }
 
   Route _route(int from, int to, Map<int, RoadEdge> via, double lengthM) {

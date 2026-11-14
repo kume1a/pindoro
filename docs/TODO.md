@@ -62,6 +62,11 @@
     changes its lessons (results keep their lesson numbers).
   - The locked-stop bubble always sits centred under the stop's row, not on the stop.
 - Road trips (R4c), left out on purpose:
+  - Since 2026-11-14 a trip goes to a street (no B pin until reached), its best drive turns at
+    least twice (else the trip with the most turns), and taps draw too, with a Start over button.
+    The claude.ai screens R4-30 to R4-34 still show the A-to-B flow.
+  - A tap drives along street parts by id, so a same-name street of three or more parts can take
+    an extra tap.
   - The tier sheet's detour sentence ("Turning north for the main road added 212 m") and its ink
     chip at the detour.
   - The lane loader while checking: the best route is computed at once.
