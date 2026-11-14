@@ -13,7 +13,7 @@ import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/routes.dart';
-import 'package:pindoro/features/league/data/league_dao.dart';
+import 'package:pindoro/features/account/data/account_dao.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -24,8 +24,8 @@ List<Map<String, Object?>> _members(int count, {int you = 4, int tier = 3}) => [
     {
       'rank': rank,
       'name': rank == you
-          ? 'Tornike'
-          : 'Player ${String.fromCharCode(64 + rank % 26 + 1)}.',
+          ? 'tornike'
+          : 'player.${String.fromCharCode(96 + rank % 26 + 1)}',
       'xp': 3000 - rank * 100,
       'zone': rank <= 5 && tier < 5
           ? 'up'
@@ -56,7 +56,6 @@ void main() {
   http.Response standing(List<Map<String, Object?>> members, {int tier = 3}) =>
       http.Response(
         jsonEncode({
-          'player': {'id': 'p1', 'name': 'Tornike'},
           'league': {
             'tier': tier,
             'week': '2026-11-09',
@@ -103,50 +102,25 @@ void main() {
     await settle(tester);
   }
 
-  Future<void> joined() =>
-      LeagueDao(db).save(playerId: 'p1', token: 't0k', name: 'Tornike');
+  Future<void> signedIn() =>
+      AccountDao(db).save(username: 'tornike', token: 't0k');
 
-  /// Drift streams need real time: read outside the test's fake clock.
-  Future<LeaguePlayer?> account(WidgetTester tester) =>
-      tester.runAsync<LeaguePlayer?>(() => LeagueDao(db).watchAccount().first);
+  /// Drift reads need real time: read outside the test's fake clock.
+  Future<Account?> account(WidgetTester tester) =>
+      tester.runAsync<Account?>(() => AccountDao(db).read());
 
-  testWidgets('a new player picks a name, joins and sees the week', (
-    tester,
-  ) async {
-    reply = (request) => request.method == 'POST'
-        ? http.Response(
-            jsonEncode({
-              'player': {'id': 'p1', 'name': 'Tornike K.'},
-              'token': 't0k',
-            }),
-            201,
-          )
-        : standing(const []);
+  testWidgets('a signed-out player is sent to sign in', (tester) async {
     await pump(tester);
-    expect(find.text('Pick a league name'), findsOneWidget);
-    PindoroButton join() => tester.widget<PindoroButton>(
-      find.widgetWithText(PindoroButton, 'Join'),
-    );
-    await tester.enterText(find.byType(TextField), 'T');
-    await tester.pump();
-    expect(join().onPressed, isNull);
-    await tester.enterText(find.byType(TextField), '  Tornike   K. ');
-    await tester.pump();
-    await tester.runAsync(() async {
-      await tester.tap(find.text('Join'));
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-    });
-    await settle(tester);
-    expect(jsonDecode(sent.first.body), {'name': 'Tornike K.'});
-    expect((await account(tester))?.token, 't0k');
-    expect(find.text('Earn XP to join this week’s league'), findsOneWidget);
-    expect(find.text('Avenue league'), findsOneWidget);
+    expect(find.text('Sign in to join Leagues'), findsOneWidget);
+    expect(sent, isEmpty);
+    await tapThrough(tester, find.widgetWithText(PindoroButton, 'Sign in'));
+    expect(find.text('Your account'), findsOneWidget);
   });
 
   testWidgets('the board ranks the week with zones and reads each row', (
     tester,
   ) async {
-    await joined();
+    await signedIn();
     reply = (_) => standing(_members(30, you: 4, tier: 3));
     await pump(tester);
     expect(find.text('Avenue league'), findsOneWidget);
@@ -173,7 +147,7 @@ void main() {
       300,
     );
     expect(
-      find.bySemanticsLabel('26th, Player A., 400 XP, demotion zone.'),
+      find.bySemanticsLabel('26th, player.a, 400 XP, demotion zone.'),
       findsOneWidget,
     );
     final put = sent.single;
@@ -182,7 +156,7 @@ void main() {
   });
 
   testWidgets('Highway has no promotion zone', (tester) async {
-    await joined();
+    await signedIn();
     reply = (_) => standing(_members(30, tier: 5), tier: 5);
     await pump(tester);
     expect(find.text('Highway league'), findsOneWidget);
@@ -196,7 +170,7 @@ void main() {
   });
 
   testWidgets('offline says so and tries again', (tester) async {
-    await joined();
+    await signedIn();
     reply = (_) => throw http.ClientException('down');
     await pump(tester);
     expect(
@@ -213,20 +187,20 @@ void main() {
     expect(find.byType(ZoneDivider), findsNothing);
   });
 
-  testWidgets('a player the server forgot is asked for a name again', (
+  testWidgets('a phone signed out elsewhere is asked to sign in again', (
     tester,
   ) async {
-    await joined();
+    await signedIn();
     reply = (_) => http.Response('', 401);
     await pump(tester);
-    expect(find.text('Pick a league name'), findsOneWidget);
-    expect(await account(tester), isNull);
+    expect(find.text('Sign in to join Leagues'), findsOneWidget);
+    expect((await account(tester))?.token, isNull);
   });
 
   testWidgets('a server error says so over the last board, not offline', (
     tester,
   ) async {
-    await tester.runAsync(joined);
+    await tester.runAsync(signedIn);
     reply = (_) => standing(_members(3, you: 2));
     await pump(tester);
     expect(find.byType(LeagueHeader), findsOneWidget);
@@ -243,7 +217,7 @@ void main() {
   testWidgets(
     'Leagues is the fourth tab and syncs at launch and each time it opens',
     (tester) async {
-      await tester.runAsync(joined);
+      await tester.runAsync(signedIn);
       reply = (_) => standing(_members(3, you: 2));
       await pump(tester, location: Routes.me);
       final bar = tester.widget<PindoroNavBar>(find.byType(PindoroNavBar));
@@ -262,40 +236,6 @@ void main() {
       expect(sent, hasLength(3));
     },
   );
-
-  testWidgets('settings rename the player, and leave after asking', (
-    tester,
-  ) async {
-    tester.view
-      ..physicalSize = const Size(1080, 4800)
-      ..devicePixelRatio = 2.75;
-    addTearDown(tester.view.reset);
-    await tester.runAsync(joined);
-    reply = (request) => switch (request.method) {
-      'PATCH' => http.Response(
-        jsonEncode({'id': 'p1', 'name': 'Tornike B.'}),
-        200,
-      ),
-      'DELETE' => http.Response('', 204),
-      _ => http.Response('', 500),
-    };
-    await pump(tester, location: Routes.settings);
-    expect(find.text('Tornike'), findsOneWidget);
-    await tapThrough(tester, find.text('League name'));
-    await tester.enterText(find.byType(TextField), 'Tornike B.');
-    await tester.pump();
-    await tapThrough(tester, find.text('Save'));
-    expect(jsonDecode(sent.last.body), {'name': 'Tornike B.'});
-    expect(find.text('Tornike B.'), findsOneWidget, reason: 'back in Settings');
-
-    await tapThrough(tester, find.text('Leave leagues'));
-    expect(find.text('Leave leagues?'), findsOneWidget);
-    await tapThrough(tester, find.text('Leave'));
-    expect(sent.last.method, 'DELETE');
-    expect(sent.last.headers['authorization'], 'Bearer t0k');
-    expect(await account(tester), isNull);
-    expect(find.text('Leave leagues'), findsNothing);
-  });
 }
 
 Future<void> tapThrough(WidgetTester tester, Finder target) async {

@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:pindoro/core/api_client.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
@@ -15,8 +14,6 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/sounds.dart';
 import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/account/ui/account_group.dart';
-import 'package:pindoro/features/league/data/league_data.dart';
-import 'package:pindoro/features/league/ui/league_name_form.dart';
 import 'package:pindoro/features/pack/data/app_update.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/progress/ui/daily_goal.dart';
@@ -25,7 +22,7 @@ import 'package:pindoro_design/pindoro_design.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Language, street names, daily goal, theme, sound, haptics, the turn list,
-/// the backup account, the league account; changes apply at once.
+/// the account; changes apply at once.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -36,7 +33,6 @@ class SettingsScreen extends ConsumerWidget {
     if (settings == null) return const Scaffold();
     final dao = ref.read(settingsDaoProvider);
     final feedback = ref.read(feedbackProvider);
-    final league = ref.watch(leagueAccountProvider).value;
     void save(Future<void> Function() write) {
       feedback.tap();
       write();
@@ -156,29 +152,6 @@ class SettingsScreen extends ConsumerWidget {
         ),
         SectionTitle(l10n.settingsAccount),
         const AccountGroup(),
-        if (league != null) ...[
-          SectionTitle(l10n.settingsLeague),
-          ListGroup(
-            children: [
-              ListRow(
-                title: l10n.settingsLeagueName,
-                subtitle: league.name,
-                leading: const RowTile(PindoroGlyph.flag),
-                trailing: const PindoroIcon(PindoroGlyph.chevronRight),
-                onTap: () {
-                  feedback.tap();
-                  unawaited(context.push(Routes.leagueName));
-                },
-              ),
-              ListRow(
-                title: l10n.settingsLeaveLeagues,
-                subtitle: l10n.settingsLeaveLeaguesSubtitle,
-                leading: const RowTile(PindoroGlyph.close),
-                onTap: () => unawaited(_leaveLeagues(context, ref, league)),
-              ),
-            ],
-          ),
-        ],
         SectionTitle(l10n.settingsAbout),
         ListGroup(
           children: [
@@ -194,33 +167,6 @@ class SettingsScreen extends ConsumerWidget {
         ),
       ],
     );
-  }
-}
-
-/// Asks first; leaving deletes the player on the server, then here.
-Future<void> _leaveLeagues(
-  BuildContext context,
-  WidgetRef ref,
-  LeaguePlayer account,
-) async {
-  final l10n = context.l10n;
-  ref.read(feedbackProvider).tap();
-  final leave = await showDialog<bool>(
-    context: context,
-    builder: (context) => PindoroDialog(
-      title: l10n.leagueLeaveTitle,
-      body: l10n.leagueLeaveBody,
-      primary: l10n.leagueLeaveStay,
-      secondary: l10n.leagueLeaveConfirm,
-    ),
-  );
-  if (!(leave ?? false)) return;
-  try {
-    await ref.read(leagueActionsProvider).leave(account);
-  } on ApiException catch (e) {
-    if (context.mounted) {
-      showToast(context, leagueFailure(l10n, e, l10n.leagueLeaveFailed));
-    }
   }
 }
 

@@ -20,8 +20,7 @@ docker build -f apps/api/Dockerfile .   # from the repo root
 
 - `src/config.ts` – env schema (TypeBox), validated at startup; dev defaults point at the compose
   PostGIS. Vars: `NODE_ENV`, `HOST`, `PORT`, `LOG_LEVEL`, `DATABASE_URL`, `PACKS_DIR`,
-  `PACKS_PUBLIC_URL`, `SIGNUP_LIMIT` (new league players, and new accounts, per client IP per
-  hour, default 10).
+  `PACKS_PUBLIC_URL`, `SIGNUP_LIMIT` (new accounts per client IP per hour, default 10).
 - `src/app.ts` – `buildApp(config, {now})`; registers sensible, swagger (+ swagger-ui at `/docs`
   outside production), `@fastify/rate-limit` (routes opt in with `config.rateLimit`) and one
   plugin per module. `now` is the clock of leagues and backups (tests move it across weeks).
@@ -33,7 +32,7 @@ docker build -f apps/api/Dockerfile .   # from the repo root
   shared infrastructure lives in `src/db/` and `src/http.ts` (bearer token, client IP, per-token
   rate limit, token hashing, the `Problem` schema). Today: `health` (`GET /health`, DB + PostGIS
   check, 503 when down), `catalog` (`GET /v1/catalog`), `leagues` and `accounts` (below).
-- `src/db/schema.ts` – the leagues' tables `player`, `league`, `league_member`, and `account`.
+- `src/db/schema.ts` – `account`, and the leagues' tables `league` and `league_member`.
   City data never lives here: packs are static files from the pipeline. PostGIS functions only
   through drizzle `sql```.
 - `drizzle/` – migrations. `0000_postgis.sql` is custom (`CREATE EXTENSION postgis`) and must stay
@@ -48,25 +47,24 @@ missing manifests are skipped with a warning. The API never serves pack files it
 
 ## Leagues
 
-Anonymous players and weekly leagues (`docs/specs/2026-11-10-r5-leagues-design.md`).
-`POST /v1/players {name}` returns a player and a random token (only its sha256 is stored; the
-route is rate-limited per `cf-connecting-ip`); `PATCH`/`DELETE /v1/players/me` and
-`PUT /v1/league/me {week, xp}` take `Authorization: Bearer <token>` (PATCH and PUT: 30 a minute
-per token). DELETE forgets the player: the name is blanked, the token dies and this week's place
-goes (with its league, under the join lock, when that empties it), but past weeks keep the row so a finished week's ranks never shift. A PATCH or PUT that lands mid-leave re-checks the
-player row (the leave locks it first) and answers 401. The PUT records the week's XP
+Weekly leagues for accounts (`docs/specs/2026-11-10-r5-leagues-design.md`, since moved from
+anonymous named players onto accounts): every signed-in account plays, under its username. One
+route, `PUT /v1/league/me {week, xp}` with the account's `Authorization: Bearer <token>` (30 a
+minute per token). Deleting the account cascades to its `league_member` rows; a sync that lands
+mid-delete re-checks the account row (`for key share`, before any league lock) and answers 401.
+The PUT records the week's XP
 (never lower, only for the current week), joins the newest league of the player's tier with room
 (30 a league, under an advisory lock per week and tier) on the first XP, and returns the player's
 league ranked (XP, then earliest join). Rules live in `leagues.rules.ts`: weeks start Monday 00:00
-at UTC+4, ranks 1–5 move up and 26–30 down; the week and name rules match pindoro_core
+at UTC+4, ranks 1–5 move up and 26–30 down; the week rule matches pindoro_core
 `progress/league.dart` through `shared/fixtures/league_vectors.json`. Rollover is lazy: a player's
 tier for a new week comes from their last league's result when they first sync that week.
 
 ## Accounts
 
 Optional username + password accounts that keep one progress backup each (the app's SQLite file,
-gzipped, in `account.backup`; the nightly `pg_dump` covers it). Not league players: leaving Leagues
-never touches an account. Username, password and recovery-code rules live in `accounts.rules.ts`,
+gzipped, in `account.backup`; the nightly `pg_dump` covers it) and are the league players (above).
+Username, password and recovery-code rules live in `accounts.rules.ts`,
 twinned with pindoro_core `progress/account.dart` through `shared/fixtures/account_vectors.json`.
 Passwords are salted `scrypt` (node:crypto; an unknown username still costs one, so timing hides
 which exist); tokens and recovery codes are stored as sha256. One `toSession` mapper builds every
@@ -79,8 +77,8 @@ which exist); tokens and recovery codes are stored as sha256. One `toSession` ma
   (`createRateLimit`, checked once the body is parsed). Both issue a new token in the same
   `UPDATE … RETURNING backup_at`, so the phone signed in before gets 401: one phone at a time.
 - `PUT /v1/accounts/me/password {password, newPassword}` (403 for a wrong current password),
-  `DELETE /v1/sessions/me` (sign out: the token dies) and `DELETE /v1/accounts/me` (account and
-  backup gone): 30 a minute per token.
+  `DELETE /v1/sessions/me` (sign out: the token dies) and `DELETE /v1/accounts/me` (account,
+  backup and league places gone): 30 a minute per token.
 - `PUT /v1/accounts/me/backup` takes `application/octet-stream` (gzip only, at most 5 MiB); a
   `preParsing` hook turns a dead token away before the body is read, and the save itself is
   conditional on the token. `GET` returns it (404 before the first). Both 30 a minute per address.

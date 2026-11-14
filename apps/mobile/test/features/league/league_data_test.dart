@@ -8,8 +8,8 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:pindoro/core/api_client.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/features/account/data/account_dao.dart';
 import 'package:pindoro/features/league/data/league_api.dart';
-import 'package:pindoro/features/league/data/league_dao.dart';
 import 'package:pindoro/features/league/data/league_data.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
@@ -24,7 +24,6 @@ LeagueMember _member(int rank, int xp, {bool you = false}) => (
 Map<String, Object?> _standing({
   List<Map<String, Object?>> members = const [],
 }) => {
-  'player': {'id': 'p1', 'name': 'Nino'},
   'league': {
     'tier': 3,
     'week': '2026-11-09',
@@ -144,7 +143,7 @@ void main() {
     });
 
     test("sends this week's XP", () async {
-      await LeagueDao(db).save(playerId: 'p1', token: 't0k', name: 'Nino');
+      await AccountDao(db).save(username: 'nino', token: 't0k');
       final c = container();
       final sub = c.listen(standingProvider, (_, _) {});
       final standing = await c.read(standingProvider.future);
@@ -156,14 +155,18 @@ void main() {
       sub.close();
     });
 
-    test('drops the account when the server no longer knows it', () async {
-      await LeagueDao(db).save(playerId: 'p1', token: 't0k', name: 'Nino');
-      status = 401;
-      final c = container();
-      final sub = c.listen(standingProvider, (_, _) {});
-      expect(await c.read(standingProvider.future), isNull);
-      expect(await LeagueDao(db).watchAccount().first, isNull);
-      sub.close();
-    });
+    test(
+      'signs this phone out when the server no longer knows the token',
+      () async {
+        await AccountDao(db).save(username: 'nino', token: 't0k');
+        status = 401;
+        final c = container();
+        final sub = c.listen(standingProvider, (_, _) {});
+        expect(await c.read(standingProvider.future), isNull);
+        final account = await AccountDao(db).read();
+        expect((account?.username, account?.token), ('nino', null));
+        sub.close();
+      },
+    );
   });
 }

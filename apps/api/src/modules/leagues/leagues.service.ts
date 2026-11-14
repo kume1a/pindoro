@@ -1,74 +1,46 @@
-import { and, asc, count, desc, eq, lt, notExists, notLike, type SQL, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, lt, type SQL, sql } from "drizzle-orm";
 import type { Static } from "typebox";
 import type { Db } from "../../db/client.ts";
-import { league, leagueMember, player } from "../../db/schema.ts";
-import { hashToken, newToken } from "../../http.ts";
+import { account, league, leagueMember } from "../../db/schema.ts";
+import { hashToken } from "../../http.ts";
 import { LEAGUE, leagueWeek, nextTier, zone } from "./leagues.rules.ts";
-import type { Player, Standing } from "./leagues.schemas.ts";
+import type { Standing } from "./leagues.schemas.ts";
 
 type Tx = Db | Parameters<Parameters<Db["transaction"]>[0]>[0];
-type PlayerNode = Static<typeof Player>;
+/** A signed-in account: its id and its username, the name the league shows. */
+export type Me = { id: string; name: string };
 type Place = { leagueId: string; tier: number };
 
-// A sha256 hex never contains ":", so no token can match a left player.
-const LEFT_PREFIX = "left:";
-
-const livePlayer = (id: string): SQL | undefined =>
-  and(eq(player.id, id), notLike(player.tokenHash, `${LEFT_PREFIX}%`));
-
-const memberIn = (playerId: string, week: string): SQL | undefined =>
-  and(eq(leagueMember.playerId, playerId), eq(leagueMember.week, week));
+const memberIn = (accountId: string, week: string): SQL | undefined =>
+  and(eq(leagueMember.accountId, accountId), eq(leagueMember.week, week));
 
 const keepHigherXp = (xp: number): SQL => sql`greatest(${leagueMember.xp}, ${xp})`;
 
-/** The league `playerId` plays in `week`, if any. */
-const placeIn = async (db: Tx, playerId: string, week: string): Promise<Place | undefined> => {
+/** The league `accountId` plays in `week`, if any. */
+const placeIn = async (db: Tx, accountId: string, week: string): Promise<Place | undefined> => {
   const [place] = await db
     .select({ leagueId: leagueMember.leagueId, tier: league.tier })
     .from(leagueMember)
     .innerJoin(league, eq(league.id, leagueMember.leagueId))
-    .where(memberIn(playerId, week));
+    .where(memberIn(accountId, week));
   return place;
 };
 
-/** Holds a live player's row until the transaction ends, so a leave waits; false once they left. */
-const lockLivePlayer = async (tx: Tx, id: string): Promise<boolean> => {
-  const [row] = await tx.select({ id: player.id }).from(player).where(livePlayer(id)).for("share");
+/** Holds the account until the transaction ends, so a delete waits; false once it's gone. */
+const lockAccount = async (tx: Tx, id: string): Promise<boolean> => {
+  const [row] = await tx
+    .select({ id: account.id })
+    .from(account)
+    .where(eq(account.id, id))
+    .for("key share");
   return row !== undefined;
 };
 
-export const createPlayer = async (
-  db: Db,
-  name: string,
-): Promise<{ player: PlayerNode; token: string }> => {
-  const token = newToken();
+export const accountByToken = async (db: Db, token: string): Promise<Me | undefined> => {
   const [row] = await db
-    .insert(player)
-    .values({ name, tokenHash: hashToken(token) })
-    .returning({ id: player.id, name: player.name });
-  if (!row) throw new Error("player insert returned nothing");
-  return { player: row, token };
-};
-
-export const playerByToken = async (db: Db, token: string): Promise<PlayerNode | undefined> => {
-  const [row] = await db
-    .select({ id: player.id, name: player.name })
-    .from(player)
-    .where(eq(player.tokenHash, hashToken(token)));
-  return row;
-};
-
-/** The renamed player, or undefined once they left. */
-export const renamePlayer = async (
-  db: Db,
-  id: string,
-  name: string,
-): Promise<PlayerNode | undefined> => {
-  const [row] = await db
-    .update(player)
-    .set({ name })
-    .where(livePlayer(id))
-    .returning({ id: player.id, name: player.name });
+    .select({ id: account.id, name: account.username })
+    .from(account)
+    .where(eq(account.tokenHash, hashToken(token)));
   return row;
 };
 
@@ -77,64 +49,29 @@ const lockJoins = async (tx: Tx, week: string, tier: number): Promise<void> => {
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`league:${week}:${tier}`}))`);
 };
 
-/**
- * Leaving: the name goes, the token stops working and this week's place is given up (with the
- * league, when that empties it). Past weeks keep the row, so a finished week's ranks (and who moved
- * up) never shift when someone leaves.
- */
-export const forgetPlayer = async (db: Db, id: string, now: Date): Promise<void> => {
-  const week = leagueWeek(now).key;
-  await db.transaction(async (tx) => {
-    // The player row first, then the join lock: the order syncXp takes them in, so they never
-    // deadlock, and a sync that already passed auth waits here and then sees the player gone.
-    await tx
-      .update(player)
-      .set({ name: "", tokenHash: `${LEFT_PREFIX}${id}` })
-      .where(eq(player.id, id));
-    const place = await placeIn(tx, id, week);
-    if (!place) return;
-    // Under the join lock: a player joining this league can't be cascaded away with it.
-    await lockJoins(tx, week, place.tier);
-    await tx.delete(leagueMember).where(memberIn(id, week));
-    await tx
-      .delete(league)
-      .where(
-        and(
-          eq(league.id, place.leagueId),
-          notExists(
-            tx
-              .select({ one: sql`1` })
-              .from(leagueMember)
-              .where(eq(leagueMember.leagueId, place.leagueId)),
-          ),
-        ),
-      );
-  });
-};
-
 /** A league's members, best first: most XP, then the earliest to join. */
 const ranked = (
   db: Tx,
   leagueId: string,
-): Promise<{ playerId: string; name: string; xp: number }[]> =>
+): Promise<{ accountId: string; name: string; xp: number }[]> =>
   db
-    .select({ playerId: leagueMember.playerId, name: player.name, xp: leagueMember.xp })
+    .select({ accountId: leagueMember.accountId, name: account.username, xp: leagueMember.xp })
     .from(leagueMember)
-    .innerJoin(player, eq(player.id, leagueMember.playerId))
+    .innerJoin(account, eq(account.id, leagueMember.accountId))
     .where(eq(leagueMember.leagueId, leagueId))
-    .orderBy(desc(leagueMember.xp), asc(leagueMember.joinedAt), asc(leagueMember.playerId));
+    .orderBy(desc(leagueMember.xp), asc(leagueMember.joinedAt), asc(leagueMember.accountId));
 
-/** The tier `playerId` plays in `week`: from their last league's result, Alley at first. */
-const tierFor = async (db: Tx, playerId: string, week: string): Promise<number> => {
+/** The tier `accountId` plays in `week`: from their last league's result, Alley at first. */
+const tierFor = async (db: Tx, accountId: string, week: string): Promise<number> => {
   const [last] = await db
     .select({ leagueId: leagueMember.leagueId, tier: league.tier })
     .from(leagueMember)
     .innerJoin(league, eq(league.id, leagueMember.leagueId))
-    .where(and(eq(leagueMember.playerId, playerId), lt(leagueMember.week, week)))
+    .where(and(eq(leagueMember.accountId, accountId), lt(leagueMember.week, week)))
     .orderBy(desc(leagueMember.week))
     .limit(1);
   if (!last) return 0;
-  const rank = (await ranked(db, last.leagueId)).findIndex((m) => m.playerId === playerId) + 1;
+  const rank = (await ranked(db, last.leagueId)).findIndex((m) => m.accountId === accountId) + 1;
   return nextTier(rank, last.tier);
 };
 
@@ -146,7 +83,7 @@ const openLeague = async (tx: Tx, week: string, tier: number): Promise<string> =
     .leftJoin(leagueMember, eq(leagueMember.leagueId, league.id))
     .where(and(eq(league.week, week), eq(league.tier, tier)))
     .groupBy(league.id)
-    .having(sql`${count(leagueMember.playerId)} < ${LEAGUE.size}`)
+    .having(sql`${count(leagueMember.accountId)} < ${LEAGUE.size}`)
     .orderBy(desc(league.createdAt))
     .limit(1);
   if (open) return open.id;
@@ -155,18 +92,13 @@ const openLeague = async (tx: Tx, week: string, tier: number): Promise<string> =
   return created.id;
 };
 
-/** The player and their league this week, as the app shows it. */
-export const standing = async (
-  db: Db,
-  me: PlayerNode,
-  now: Date,
-): Promise<Static<typeof Standing>> => {
+/** The account's league this week, as the app shows it. */
+export const standing = async (db: Db, me: Me, now: Date): Promise<Static<typeof Standing>> => {
   const week = leagueWeek(now);
   const place = await placeIn(db, me.id, week.key);
   const tier = place?.tier ?? (await tierFor(db, me.id, week.key));
   const members = place ? await ranked(db, place.leagueId) : [];
   return {
-    player: me,
     league: {
       tier,
       week: week.key,
@@ -176,7 +108,7 @@ export const standing = async (
         name: m.name,
         xp: m.xp,
         zone: zone(i + 1, tier),
-        you: m.playerId === me.id,
+        you: m.accountId === me.id,
       })),
     },
   };
@@ -185,11 +117,11 @@ export const standing = async (
 /**
  * Records `xp` as the player's XP for `week` when it is the current week (it never goes down),
  * joining a league on the first XP; XP for an earlier week is ignored. False, with nothing
- * written, when the player has left since they were authenticated.
+ * written, when the account was deleted since it was authenticated.
  */
 export const syncXp = async (
   db: Db,
-  me: PlayerNode,
+  me: Me,
   week: string,
   xp: number,
   now: Date,
@@ -197,8 +129,8 @@ export const syncXp = async (
   const current = leagueWeek(now).key;
   if (week !== current || xp === 0) return true;
   return db.transaction(async (tx) => {
-    // Before any league row or lock: the order forgetPlayer takes them in.
-    if (!(await lockLivePlayer(tx, me.id))) return false;
+    // Before any league row or lock: a delete takes the account first, then cascades to them.
+    if (!(await lockAccount(tx, me.id))) return false;
     const [kept] = await tx
       .update(leagueMember)
       .set({ xp: keepHigherXp(xp) })
@@ -210,9 +142,9 @@ export const syncXp = async (
     const leagueId = await openLeague(tx, week, tier);
     await tx
       .insert(leagueMember)
-      .values({ playerId: me.id, week, leagueId, xp })
+      .values({ accountId: me.id, week, leagueId, xp })
       .onConflictDoUpdate({
-        target: [leagueMember.playerId, leagueMember.week],
+        target: [leagueMember.accountId, leagueMember.week],
         set: { xp: keepHigherXp(xp) },
       });
     return true;

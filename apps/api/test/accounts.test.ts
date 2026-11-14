@@ -30,7 +30,7 @@ describe("accounts", () => {
 
   // A fresh app per test: the rate limits count in memory.
   beforeEach(async () => {
-    await sql`truncate account`;
+    await sql`truncate account cascade`;
     app = await buildApp(
       loadConfig({ NODE_ENV: "test", LOG_LEVEL: "silent", DATABASE_URL, SIGNUP_LIMIT: "1000" }),
       { now: () => noon },
@@ -207,5 +207,27 @@ describe("accounts", () => {
     expect(await sql`select 1 from account`).toHaveLength(0);
     expect((await withToken("DELETE", "/v1/accounts/me", token)).statusCode).toBe(401);
     expect((await signIn("nino")).statusCode).toBe(401);
+  });
+});
+
+describe("signup limit", () => {
+  it("allows SIGNUP_LIMIT new accounts per address per hour", async () => {
+    await runMigrations(DATABASE_URL);
+    const app = await buildApp(
+      loadConfig({ NODE_ENV: "test", LOG_LEVEL: "silent", DATABASE_URL, SIGNUP_LIMIT: "2" }),
+    );
+    const post = (ip: string, username: string): Promise<number> =>
+      app
+        .inject({
+          method: "POST",
+          url: "/v1/accounts",
+          headers: { "cf-connecting-ip": ip },
+          payload: { username, password: PASSWORD },
+        })
+        .then((r) => r.statusCode);
+    const fromOne = [await post("1.1.1.1", "lim1"), await post("1.1.1.1", "lim2")];
+    expect([...fromOne, await post("1.1.1.1", "lim3")]).toEqual([201, 201, 429]);
+    expect(await post("2.2.2.2", "lim4")).toBe(201);
+    await app.close();
   });
 });

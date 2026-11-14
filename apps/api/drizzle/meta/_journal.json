@@ -43,6 +43,13 @@
       "when": 1794600170524,
       "tag": "0005_account_recovery",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794682815736,
+      "tag": "0006_leagues_on_accounts",
+      "breakpoints": true
     }
   ]
 }

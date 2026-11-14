@@ -1,4 +1,4 @@
-// The weekly league rules. pindoro_core `progress/league.dart` holds the week and name rules too;
+// The weekly league rules. pindoro_core `progress/league.dart` holds the week rule too;
 // both pass shared/fixtures/league_vectors.json.
 
 export const LEAGUE = {
@@ -7,8 +7,6 @@ export const LEAGUE = {
   size: 30,
   promote: 5,
   demote: 5,
-  nameMin: 2,
-  nameMax: 20,
   /** Weeks run on Tbilisi time, which has no daylight saving. */
   offsetMs: 4 * 60 * 60 * 1000,
 } as const;
@@ -32,17 +30,6 @@ export const leagueWeek = (now: Date): LeagueWeek => {
     start: new Date(start),
     end: new Date(start + 7 * DAY_MS),
   };
-};
-
-/** `raw` trimmed, with runs of whitespace as one space. */
-export const leagueName = (raw: string): string => raw.trim().replace(/\s+/gu, " ");
-
-const nameShape = /^\p{L}[\p{L}\p{M} .'’-]*$/u;
-
-/** 2–20 characters, a letter first, then letters (with their marks), spaces and `. ' ’ -`. */
-export const isLeagueName = (name: string): boolean => {
-  const length = [...name].length;
-  return length >= LEAGUE.nameMin && length <= LEAGUE.nameMax && nameShape.test(name);
 };
 
 export type Zone = "up" | "stay" | "down";

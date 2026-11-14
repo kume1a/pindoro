@@ -7,7 +7,6 @@ import 'package:pindoro/features/account/ui/account_screen.dart';
 import 'package:pindoro/features/course/ui/path_screen.dart';
 import 'package:pindoro/features/course/ui/unit_guide_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
-import 'package:pindoro/features/league/ui/league_name_form.dart';
 import 'package:pindoro/features/league/ui/league_screen.dart';
 import 'package:pindoro/features/lesson/ui/drive_screen.dart';
 import 'package:pindoro/features/lesson/ui/lesson_controller.dart';
@@ -208,10 +207,6 @@ GoRouter buildRouter(String initialLocation) {
         ),
       ),
       GoRoute(path: Routes.streak, builder: (_, _) => const StreakScreen()),
-      GoRoute(
-        path: Routes.leagueName,
-        builder: (_, _) => const LeagueNameScreen(),
-      ),
       GoRoute(path: Routes.account, builder: (_, _) => const AccountScreen()),
       GoRoute(
         path: Routes.accountPassword,

@@ -1,16 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import {
-  isLeagueName,
-  leagueName,
-  leagueWeek,
-  nextTier,
-  zone,
-} from "../src/modules/leagues/leagues.rules.ts";
+import { leagueWeek, nextTier, zone } from "../src/modules/leagues/leagues.rules.ts";
 
 type Vectors = {
   week: { name: string; at: string; key: string; start: string; end: string }[];
-  name: { raw: string; name: string; valid: boolean }[];
 };
 
 const vectors: Vectors = JSON.parse(
@@ -23,14 +16,6 @@ describe("leagueWeek", () => {
     expect(week.key).toBe(v.key);
     expect(week.start.toISOString()).toBe(new Date(v.start).toISOString());
     expect(week.end.toISOString()).toBe(new Date(v.end).toISOString());
-  });
-});
-
-describe("league names", () => {
-  it.each(vectors.name)('"$raw"', (v) => {
-    const name = leagueName(v.raw);
-    expect(name).toBe(v.name);
-    expect(isLeagueName(name)).toBe(v.valid);
   });
 });
 
