@@ -28,7 +28,7 @@ Accept: `just test` (or the repo's test command) is green; the new package is in
 
 ## M1 · The core loop
 
-Status: step 1 done (2026-11-14).
+Status: steps 1–4 done (2026-11-14).
 
 Spec §2.2, §3 (P only), §4, §5.1, §6.4, §7, §8 (Known only), §12, §16. Boards V3-01, V3-20, V3-21, V3-24, V3-10.
 

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.steps.dart';
 import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
 import 'package:uuid/uuid.dart';
 
 part 'database.g.dart';
@@ -74,6 +75,9 @@ class UserSettings extends Table {
 
   /// Road trips pick each turn from a list, screen reader or not.
   BoolColumn get turnList => boolean().withDefault(const Constant(false))();
+
+  /// The daily learning session's length: 15, 20 or 30 minutes.
+  IntColumn get minutesPerDay => integer().withDefault(const Constant(20))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -326,6 +330,78 @@ class ReviewClearings extends Table {
   DateTimeColumn get clearedAt => dateTime()();
 }
 
+/// One learning card per item (docs/learning/SPEC.md §2.2); an unseen item
+/// has no row. Mapped to pindoro_learning `CardState` by the learning
+/// repository.
+@DataClassName('CardStateRow')
+class CardStates extends Table {
+  @override
+  String get tableName => 'card_state';
+
+  TextColumn get itemId => text()();
+
+  /// The item id's prefix (`P`, `N`, …), kept for filtering in SQL.
+  TextColumn get type => text()();
+  TextColumn get state => textEnum<CardPhase>()();
+  RealColumn get stability => real().nullable()();
+  RealColumn get difficulty => real().nullable()();
+  DateTimeColumn get lastReviewAt => dateTime().nullable()();
+  DateTimeColumn get dueAt => dateTime().nullable()();
+  IntColumn get reps => integer().withDefault(const Constant(0))();
+  IntColumn get lapses => integer().withDefault(const Constant(0))();
+
+  /// 1 Again … 4 Easy.
+  IntColumn get lastRating => integer().nullable()();
+  RealColumn get lastDistanceM => real().nullable()();
+  TextColumn get lastSnapId => text().nullable()();
+  BoolColumn get priorKnown => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get introAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {itemId};
+}
+
+/// Every graded answer, append-only (`review_log_immutable.drift`): the
+/// FSRS optimiser and the progress numbers replay it.
+@DataClassName('ReviewLogRow')
+class ReviewLogs extends Table {
+  @override
+  String get tableName => 'review_log';
+
+  IntColumn get id => integer().autoIncrement()();
+  DateTimeColumn get ts => dateTime()();
+  TextColumn get itemId => text()();
+  TextColumn get type => text()();
+  TextColumn get format => textEnum<ReviewFormat>()();
+
+  /// 1 Again … 4 Easy.
+  IntColumn get rating => integer()();
+  RealColumn get distanceM => real().nullable()();
+  TextColumn get snapId => text().nullable()();
+  IntColumn get rtMs => integer().nullable()();
+  RealColumn get elapsedDays => real().nullable()();
+  RealColumn get rBefore => real().nullable()();
+  RealColumn get sBefore => real().nullable()();
+  RealColumn get dBefore => real().nullable()();
+  TextColumn get sessionId => text().nullable()();
+  TextColumn get source => textEnum<ReviewSource>()();
+}
+
+/// A pin for [streetA] landed on [streetB] (a mix-up), [count] times.
+@DataClassName('ConfusionRow')
+class Confusions extends Table {
+  @override
+  String get tableName => 'confusion';
+
+  TextColumn get streetA => text()();
+  TextColumn get streetB => text()();
+  IntColumn get count => integer().withDefault(const Constant(1))();
+  DateTimeColumn get lastAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {streetA, streetB};
+}
+
 @DriftDatabase(
   tables: [
     UserSettings,
@@ -341,14 +417,17 @@ class ReviewClearings extends Table {
     Badges,
     ReviewClearings,
     Accounts,
+    CardStates,
+    ReviewLogs,
+    Confusions,
   ],
-  include: {'answer_immutable.drift'},
+  include: {'answer_immutable.drift', 'review_log_immutable.drift'},
 )
 class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 14;
+  static const int version = 15;
 
   @override
   int get schemaVersion => version;
@@ -406,6 +485,19 @@ class AppDatabase extends _$AppDatabase {
       ),
       // Leagues sign in with the account, so the anonymous league player goes.
       from13To14: (m, schema) => m.deleteTable('league_player'),
+      // The v3 learning system: cards, the append-only review log, mix-ups
+      // and the minutes a day.
+      from14To15: (m, schema) async {
+        await m.createTable(schema.cardState);
+        await m.createTable(schema.reviewLog);
+        await m.createTable(schema.confusion);
+        await m.create(schema.reviewLogNoUpdate);
+        await m.create(schema.reviewLogNoDelete);
+        await m.addColumn(
+          schema.userSettings,
+          schema.userSettings.minutesPerDay,
+        );
+      },
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

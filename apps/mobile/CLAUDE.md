@@ -8,14 +8,16 @@ lib/main.dart                  open AppDatabase (openDatabase), pick the initial
 lib/app/                       shell: PindoroApp, router (the only place that imports screens),
                                TabShell (bottom navigation)
 lib/core/                      shared by every feature: routes (paths + RoundSummary), config, format,
-                               labels, settings, location, online, toast, page scaffold, launch overlay,
+                               labels, settings, location, online, toast, page scaffold, launch overlay, clock (clockProvider),
                                api_client (ApiClient + apiClientProvider, ApiException), restart, database/ (Drift tables,
                                migrations, .drift trigger, SettingsDao, database_file: the file, openDatabase,
                                swapInDatabase)
 lib/features/<feature>/data/   DAOs, repositories, stores and providers over the database or packs
 lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), their parts in ui/widgets/;
                                never Drift
-                               features: progress (ProgressDao: rounds + answer log + goal days +
+                               features: learning (LearningDao: the v3 cards, review log and
+                               mix-up pairs; pindoro_learning decides, it only stores),
+                               progress (ProgressDao: rounds + answer log + goal days +
                                Pit stop + lesson results; streakProvider, reminders, the daily goal
                                ring and sheet, the top bar, level row, level up), pack (+ the road graph), map (the map,
                                the shared pin-drop and road-trip views), course (the Path), home, setup (welcome,
@@ -37,7 +39,7 @@ test/drift/                    generated schema helpers + migration test
 
 ## Conventions
 
-- **Layers, lowest first:** `l10n` → `core` → `features/progress` → `features/pack` →
+- **Layers, lowest first:** `l10n` → `core` → `features/learning` → `features/progress` → `features/pack` →
   `features/map` → `features/course` → `features/league` and `features/account` → `features/badges` → screen features (`home`, `setup`, `quiz`, `results`,
   `settings`, `streak`, `pitstop`, `me`, `lesson`) → `app` → `main.dart`. A file imports its own slice or a lower layer only; screen features never import
   each other. Something two features need moves down (to `core`, or to `progress`/`pack`/`map`).
@@ -175,7 +177,8 @@ test/drift/                    generated schema helpers + migration test
   the answer log, goal days and review items, and the rules read from them (saved round, retry
   set, recent streets, today's XP, the Pit stop).
   Screens call these providers, never `databaseProvider`. Client ids are UUIDv7 (`newId()`).
-  `answer` is an append-only log, enforced by the `answer_immutable` trigger. Changing a table: bump `schemaVersion`, add a migration, run
+  `answer` is an append-only log, enforced by the `answer_immutable` trigger; so is `review_log`
+  (`review_log_no_update` / `review_log_no_delete`, docs/learning/SPEC.md §2.2). Changing a table: bump `schemaVersion`, add a migration, run
   `just gen` (it runs `drift_dev make-migrations`, then build_runner) and commit the new dump in
   `drift_schemas/`. Generated Dart (`*.g.dart`, `database.steps.dart`, `test/drift/**/generated/`)
   is never committed: `just gen` rebuilds it from the dumps, and `just gen-check` fails in CI

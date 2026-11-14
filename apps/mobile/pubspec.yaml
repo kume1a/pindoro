@@ -30,6 +30,7 @@ dependencies:
   path_provider: ^2.1.6
   pindoro_core: any
   pindoro_design: any
+  pindoro_learning: any
   sqlite3: ^3.9.0
   timezone: ^0.11.2
   url_launcher: ^6.3.3

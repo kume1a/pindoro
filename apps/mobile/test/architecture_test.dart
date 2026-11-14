@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 const _layers = <Set<String>>[
   {'l10n'},
   {'core'},
+  {'features/learning'},
   {'features/progress'},
   {'features/pack'},
   {'features/map'},

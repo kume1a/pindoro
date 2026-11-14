@@ -25,6 +25,7 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
     dailyGoal: StreakRules.defaultGoal,
     reminder: false,
     turnList: false,
+    minutesPerDay: 20,
   );
 
   SimpleSelectStatement<$UserSettingsTable, Settings> get _row =>
