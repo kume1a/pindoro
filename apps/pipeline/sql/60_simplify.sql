@@ -1,6 +1,6 @@
 -- Pack-ready WGS84 geometry: simplified to 3 m in UTM. The midpoint is taken on the simplified line so it
 -- always lies on the geometry the app draws. An area's centre (where its map chip sits) is its pole of
--- inaccessibility, so oddly shaped areas keep the chip well inside.
+-- inaccessibility, so oddly shaped areas keep the chip well inside; the city's is `centre` in city.yaml.
 
 CREATE TABLE pipeline.pack_street AS
 SELECT s.key,
@@ -21,6 +21,6 @@ FROM pipeline.district d
 UNION ALL
 SELECT 'city',
        ST_Area(c.geom),
-       ST_Transform(ST_PointOnSurface(c.geom), 4326),
+       ST_SetSRID(ST_GeomFromGeoJSON(p.centre), 4326),
        ST_Transform(ST_Multi(ST_SimplifyPreserveTopology(c.geom, 3)), 4326)
-FROM pipeline.city c;
+FROM pipeline.city c, pipeline.params p;

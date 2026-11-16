@@ -82,6 +82,10 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
   Future<void> setReminder({required bool on}) =>
       _update(UserSettingsCompanion(reminder: Value(on)));
 
+  /// The learning session's length: 15, 20 or 30 minutes.
+  Future<void> setMinutesPerDay(int minutes) =>
+      _update(UserSettingsCompanion(minutesPerDay: Value(minutes)));
+
   Future<void> setTurnList({required bool on}) =>
       _update(UserSettingsCompanion(turnList: Value(on)));
 

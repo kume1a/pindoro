@@ -279,5 +279,11 @@ class _FilteredPack implements PackRepository {
   RoadGraph? roadGraph() => _inner.roadGraph();
 
   @override
+  List<FamilyLink> families() => _inner.families();
+
+  @override
+  Map<String, Set<String>> chunkNeighbours() => _inner.chunkNeighbours();
+
+  @override
   void close() => _inner.close();
 }

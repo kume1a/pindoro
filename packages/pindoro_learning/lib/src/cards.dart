@@ -118,6 +118,33 @@ class LogEntry {
 CardState introduce(String itemId, DateTime now) =>
     CardState(itemId: itemId, phase: CardPhase.learning, introAt: now);
 
+/// A card for a street the old game already knew (PLAN M2 step 7): first sight rated Good and
+/// marked prior knowledge, due on a [random] day [LearningConfig.migrationDueMinDays]–
+/// [LearningConfig.migrationDueMaxDays] out, so the first reviews spread over a week. No intro and
+/// no log row: nothing was answered.
+CardState carriedOver(
+  String itemId,
+  DateTime now,
+  Random random, {
+  Fsrs fsrs = const Fsrs(),
+}) {
+  const span =
+      LearningConfig.migrationDueMaxDays - LearningConfig.migrationDueMinDays;
+  return CardState(
+    itemId: itemId,
+    phase: CardPhase.review,
+    memory: fsrs.next(null, Rating.good, now).memory,
+    dueAt: now.add(
+      Duration(
+        days: LearningConfig.migrationDueMinDays + random.nextInt(span + 1),
+      ),
+    ),
+    reps: 1,
+    lastRating: Rating.good,
+    priorKnown: true,
+  );
+}
+
 /// Applies a graded answer at [now] to [card] (null: first sight, with no intro) and returns the
 /// new card and its log row. Fuzz is seeded by the item and the time, so replays agree.
 ({CardState card, LogEntry log}) applyReview(

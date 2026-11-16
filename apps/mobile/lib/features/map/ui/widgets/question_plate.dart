@@ -21,12 +21,20 @@ class QuestionPlate extends StatelessWidget {
     required this.settings,
     required this.compact,
     this.retryDistance,
+    this.guess,
+    this.prompt,
   });
 
   final NamedStreet street;
   final Settings? settings;
   final bool compact;
   final double? retryDistance;
+
+  /// Guess first: "Guess first" over the name, this as the sub-line.
+  final String? guess;
+
+  /// The ask row instead of "Drop a pin on" ("Placement · 12 of 88").
+  final String? prompt;
 
   @override
   Widget build(BuildContext context) {
@@ -36,14 +44,17 @@ class QuestionPlate extends StatelessWidget {
     final distance = retryDistance == null
         ? null
         : l10n.quizRetryPreviousDistance(formatDistance(retryDistance!, l10n));
+    final (prompt, glyph) = switch ((guess, retryDistance)) {
+      (_?, _) => (l10n.sessionGuessFirst, PindoroGlyph.hint),
+      (_, _?) => (l10n.quizRetryPrompt, PindoroGlyph.reroute),
+      _ => (this.prompt ?? l10n.quizPrompt, PindoroGlyph.pin),
+    };
     return StreetPlate(
       name,
       compact: compact,
-      prompt: retryDistance == null ? l10n.quizPrompt : l10n.quizRetryPrompt,
-      promptGlyph: retryDistance == null
-          ? PindoroGlyph.pin
-          : PindoroGlyph.reroute,
-      subline: [?other, ?distance].join(' · ').nullIfEmpty,
+      prompt: prompt,
+      promptGlyph: glyph,
+      subline: [?other, ?distance, ?guess].join(' · ').nullIfEmpty,
       semanticLabel: other == null
           ? l10n.a11yFindStreetName(name)
           : l10n.a11yFindStreet(name, other),

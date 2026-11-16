@@ -221,6 +221,12 @@ void main() {
         expect(confusablesOf(other, all, const [('other', 'other')]), isEmpty);
       },
     );
+
+    test('takes the street’s family', () {
+      expect(confusablesOf(other, all, const [], family: {'lane-1'}), {
+        'lane-1',
+      });
+    });
   });
 
   test('normaliseName matches the pipeline', () {

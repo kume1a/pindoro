@@ -91,6 +91,7 @@ abstract final class LearningConfig {
   static const int maxSiblingsPerDay = 4;
   static const int placementSamplePerDistrict = 5;
   static const int placementPassMin = 4;
+  static const int placementPinS = 4;
   static const double familyOrphanM = 1500;
   static const double familyNearM = 500;
   static const double chunkNeighbourM = 50;

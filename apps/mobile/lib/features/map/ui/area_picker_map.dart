@@ -8,12 +8,12 @@ import 'package:pindoro/features/map/data/geojson.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/data/maplibre_convert.dart';
 import 'package:pindoro/features/map/ui/map_work.dart';
+import 'package:pindoro/features/map/ui/outline_labels.dart';
 import 'package:pindoro/features/map/ui/poi_icons.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
 import 'package:pindoro/features/map/ui/widgets/map_taps.dart';
 import 'package:pindoro/features/map/ui/widgets/map_zoom_controls.dart';
-import 'package:pindoro/features/setup/ui/outline_labels.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 

@@ -98,15 +98,17 @@ abstract final class Grader {
 }
 
 /// Streets a pin for [target] can land on by mistake (SPEC §5.1, §16.15): other streets with the
-/// same normalised name, and every street a logged confusion pairs it with. Family siblings and
-/// the parent join in M2.
+/// same normalised name, every street a logged confusion pairs it with, and its [family]
+/// (`Curriculum.familyOf`: the parent, siblings and children).
 Set<String> confusablesOf(
   NamedStreet target,
   Iterable<NamedStreet> streets,
-  Iterable<(String, String)> confusions,
-) {
+  Iterable<(String, String)> confusions, {
+  Set<String> family = const {},
+}) {
   final name = normaliseName(target.name);
   return {
+    ...family,
     for (final s in streets)
       if (s.id != target.id && normaliseName(s.name) == name) s.id,
     for (final (a, b) in confusions)

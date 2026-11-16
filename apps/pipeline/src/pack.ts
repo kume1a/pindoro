@@ -8,7 +8,7 @@ import type { Sql } from "postgres";
 import type { CityConfig } from "./config.ts";
 import { isoSeconds, replaceAtomically, writeJson } from "./io.ts";
 
-export const PACK_FORMAT_VERSION = 3;
+export const PACK_FORMAT_VERSION = 4;
 
 // Mirrors docs/pack-format.md exactly; `validate` diffs packs against it.
 export const PACK_DDL = `
@@ -45,7 +45,8 @@ CREATE TABLE district (
   max_lat         REAL NOT NULL,
   max_lon         REAL NOT NULL,
   area_m2         REAL NOT NULL,
-  boundary        TEXT NOT NULL
+  boundary        TEXT NOT NULL,
+  parent_id       TEXT REFERENCES district (id)
 );
 
 CREATE TABLE street (
@@ -61,7 +62,12 @@ CREATE TABLE street (
   min_lon     REAL NOT NULL,
   max_lat     REAL NOT NULL,
   max_lon     REAL NOT NULL,
-  geometry    TEXT NOT NULL
+  geometry    TEXT NOT NULL,
+  tier        TEXT NOT NULL CHECK (tier IN ('A', 'B', 'C')),
+  ring        INTEGER NOT NULL,
+  bank        TEXT NOT NULL CHECK (bank IN ('L', 'R')),
+  chunk_id    TEXT REFERENCES district (id),
+  etymology   TEXT
 );
 CREATE INDEX street_difficulty ON street (difficulty);
 
@@ -88,6 +94,21 @@ CREATE TABLE road_edge (
   length_m      REAL NOT NULL,
   geometry      TEXT NOT NULL
 );
+
+CREATE TABLE family (
+  parent_street_id TEXT NOT NULL REFERENCES street (id),
+  child_street_id  TEXT PRIMARY KEY REFERENCES street (id),
+  kind             TEXT NOT NULL CHECK (kind IN ('lane', 'dead_end', 'passage')),
+  n                INTEGER NOT NULL,
+  orphan           INTEGER NOT NULL CHECK (orphan IN (0, 1))
+) WITHOUT ROWID;
+CREATE INDEX family_parent ON family (parent_street_id);
+
+CREATE TABLE chunk_neighbour (
+  chunk_a TEXT NOT NULL REFERENCES district (id),
+  chunk_b TEXT NOT NULL REFERENCES district (id),
+  PRIMARY KEY (chunk_a, chunk_b)
+) WITHOUT ROWID;
 `;
 
 export const META_KEYS = [
@@ -217,9 +238,12 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
     `SELECT ${AREA_COLUMNS} FROM pipeline.pack_area a WHERE a.id = 'city'`,
   );
   const districts = await sql.unsafe(
-    `SELECT d.id, d.kind, d.osm_relation_id::float8 AS osm_relation_id, d.name_ka, d.name_en, ${AREA_COLUMNS}
+    `SELECT d.id, d.kind, d.osm_relation_id::float8 AS osm_relation_id, d.name_ka, d.name_en, ${AREA_COLUMNS},
+            CASE WHEN ${areaInPack("ap.parent_id")} THEN ap.parent_id END AS parent_id
      FROM pipeline.district d JOIN pipeline.pack_area a USING (id)
-     WHERE ${areaInPack("d.id")} ORDER BY d.id`,
+     LEFT JOIN pipeline.area_parent ap USING (id)
+     WHERE ${areaInPack("d.id")}
+     ORDER BY d.kind <> 'district', d.id -- raions first: smaller areas reference them`,
     scope,
   );
   const links = await sql.unsafe(
@@ -233,8 +257,10 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
     `SELECT s.key::float8 AS key, s.name_ka, s.name_en, s.road_class, s.difficulty, s.length_m,
             ST_Y(p.mid) AS mid_lat, ST_X(p.mid) AS mid_lon,
             ST_YMin(p.geom) AS min_lat, ST_XMin(p.geom) AS min_lon, ST_YMax(p.geom) AS max_lat, ST_XMax(p.geom) AS max_lon,
-            ST_AsGeoJSON(p.geom, 7) AS geojson
+            ST_AsGeoJSON(p.geom, 7) AS geojson, l.tier, l.ring, l.bank, s.etymology,
+            CASE WHEN ${areaInPack("l.chunk_id")} THEN l.chunk_id END AS chunk_id
      FROM pipeline.street s JOIN pipeline.pack_street p USING (key)
+     JOIN pipeline.street_learning l USING (key)
      WHERE ${streetInPack("s.key")} ORDER BY s.key`,
     scope,
   );
@@ -252,6 +278,18 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
      WHERE j.id IN (SELECT unnest(ARRAY[e.from_junction, e.to_junction]) FROM pipeline.road_edge e
                     WHERE ${streetInPack("e.street_key")})
      ORDER BY j.id`,
+    scope,
+  );
+  const families = await sql.unsafe(
+    `SELECT f.parent_key::float8 AS parent_key, f.child_key::float8 AS child_key, f.kind, f.n,
+            f.orphan::int AS orphan
+     FROM pipeline.family f
+     WHERE ${streetInPack("f.parent_key")} AND ${streetInPack("f.child_key")} ORDER BY f.child_key`,
+    scope,
+  );
+  const neighbours = await sql.unsafe(
+    `SELECT n.chunk_a, n.chunk_b FROM pipeline.chunk_neighbour n
+     WHERE ${areaInPack("n.chunk_a")} AND ${areaInPack("n.chunk_b")} ORDER BY 1, 2`,
     scope,
   );
   if (!city) throw new Error("pipeline.pack_area has no city row; did the SQL steps run?");
@@ -297,14 +335,15 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
 
       const district = db.prepare(
         `INSERT INTO district VALUES (@id, @kind, @osm_relation_id, @name_ka, @name_en, @center_lat,
-          @center_lon, @min_lat, @min_lon, @max_lat, @max_lon, @area_m2, @boundary)`,
+          @center_lon, @min_lat, @min_lon, @max_lat, @max_lon, @area_m2, @boundary, @parent_id)`,
       );
       for (const { geojson, ...d } of districts)
         district.run({ ...d, boundary: multipolygon6(geojson) });
 
       const street = db.prepare(
         `INSERT INTO street VALUES (@id, @name_ka, @name_en, @road_class, @difficulty, @length_m,
-          @mid_lat, @mid_lon, @min_lat, @min_lon, @max_lat, @max_lon, @geometry)`,
+          @mid_lat, @mid_lon, @min_lat, @min_lon, @max_lat, @max_lon, @geometry, @tier, @ring, @bank,
+          @chunk_id, @etymology)`,
       );
       for (const { key, geojson, ...s } of streets) {
         street.run({ ...s, id: streetId(key), geometry: multiline6(geojson) });
@@ -322,6 +361,13 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
       for (const { street_key, geojson, ...e } of edges) {
         edge.run({ ...e, street_id: streetId(street_key), geometry: line6(geojson) });
       }
+
+      const family = db.prepare("INSERT INTO family VALUES (?, ?, ?, ?, ?)");
+      for (const f of families) {
+        family.run(streetId(f.parent_key), streetId(f.child_key), f.kind, f.n, f.orphan);
+      }
+      const neighbour = db.prepare("INSERT INTO chunk_neighbour VALUES (?, ?)");
+      for (const n of neighbours) neighbour.run(n.chunk_a, n.chunk_b);
     })();
     db.exec("VACUUM");
   });

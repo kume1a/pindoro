@@ -7,7 +7,7 @@ Signpost widgets: `PindoroButton`, `StreetPlate`, surfaces (`LipBox`,
 `CarMark`, `glyphPng` for map images) and the round
 components (`QuestionBar`, `Pill`, `MapControl`, `RevealSheet` and its `TierSheetFrame`, `ResultRow`, `RewardTotal`,
 `TierTally`, `CoachBubble`), the v3 session (`StatChip`, `NextReviewChip`, `IntroSheet`; the session bar is
-`QuestionBar` with `height: 14`), the lesson path (`PathStop`, `Signpost` with its Unit guide book button, `LessonRoad`, the loading `Skeleton`) and lesson
+`QuestionBar` with `height: 14`), v3 progress (`MemoryBar`, `MemoryLegend`, `MemoryChart`, `ForecastBars`), the lesson path (`PathStop`, `Signpost` with its Unit guide book button, `LessonRoad`, the loading `Skeleton`) and lesson
 components (`PlateChoice`, `FeedbackBar`), the league (`LeagueHeader`, `LeagueRow`,
 `ZoneDivider`), badges (`BadgeShield`, `BadgeTile`; fields `color.badge.*` in `app.json`), setup components (`SearchField`, `CitySwitcher`, `PindoroChip`,
 `DifficultyCard`, `DistrictMiniMap`) and motion (`PindoroPageTransitions`, `CountUp`, `PopIn`,
@@ -31,7 +31,7 @@ as parameters; strings live in the app.
 
 ## Assets
 
-- `assets/icons` (62), `assets/logos`, `assets/mascot` come from the claude.ai design system's
+- `assets/icons` (78; `level` and `xp` leave with XP in M3), `assets/logos`, `assets/mascot` come from the claude.ai design system's
   asset groups. Icons are drawn in asphalt ink (#1B2133) with white details; `PindoroIcon` maps ink
   to its colour and white to `cut` (the surface behind). The mascot files had their `.pd-m-*` CSS
   colours inlined (flutter_svg ignores external CSS); re-inline when syncing new mascot files.

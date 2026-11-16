@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:pindoro_learning/pindoro_learning.dart';
 import 'package:test/test.dart';
 
@@ -162,4 +164,23 @@ void main() {
       expect((fuzzed - plain).abs(), lessThanOrEqualTo(plain * 0.05 + 0.5));
     },
   );
+
+  test('a street the old game knew: Good, prior knowledge, due in 1–7 '
+      'days', () {
+    final random = Random(3);
+    final cards = [
+      for (var i = 0; i < 40; i++) carriedOver('P:s$i', t0, random),
+    ];
+    final first = cards.first;
+    expect(first.phase, CardPhase.review);
+    expect(first.priorKnown, isTrue);
+    expect(first.introAt, isNull);
+    expect(first.lastRating, Rating.good);
+    expect(
+      first.memory!.stability,
+      fsrs.next(null, Rating.good, t0).memory.stability,
+    );
+    final days = {for (final c in cards) c.dueAt!.difference(t0).inDays};
+    expect(days, {1, 2, 3, 4, 5, 6, 7});
+  });
 }

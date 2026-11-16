@@ -132,17 +132,28 @@
 
 - v3 session (M1), left out on purpose until the milestone named:
   - The Mix-up sentence names the hit street and the way to the answer, but not the contrast line
-    ("The 4th is the next lane west, before the bend"): that needs the family table (M2).
-  - The intro has no etymology line (the pack lacks `name:etymology` until M2), no family chip
-    (M2), and the plate doesn't add the district for a shared name yet.
+    ("The 4th is the next lane west, before the bend").
+  - The intro's "where" sentence doesn't place a lane on its parent ("the 4th lane off 26 May
+    Street, counting from the west"), and the plate doesn't add the district for a shared name.
   - Known-street chips use the full name, not the short form ("Chavchavadze Ave", "1st").
   - The Mix-up reveal paints both streets at once (no cobalt-then-yellow paint), and Session done
     plays no results sound and doesn't count City memory up.
-  - Today is minimal (ready and done): no City memory card, Turns tile, backlog state or Learn 5
-    more (M2, M3). It opens from Free play only in `V3=true` builds.
-  - New streets come from the course order (`buildCourse`), capped at the course's 240 streets,
-    until the curriculum queue (M2).
+  - Today's ready and done cards are still the M1 ones (no Pindo head row, primary ring, Turns
+    tile, backlog state or Learn 5 more: M3, Turns M5). It opens from Free play only in `V3=true`
+    builds; Progress opens from its City memory card, learning settings from its gear.
   - `StatChip`, `NextReviewChip` and `IntroSheet` have widget tests but no goldens yet.
+- v3 progress and settings (M2), left out on purpose until the milestone named:
+  - Progress district: no Gateways solid or Landmarks tiles (M5); neighbourhood rows open no
+    detail. Mastered ignores name and ends cards until they exist (M4), and its definition line
+    says only "3 months or more".
+  - Learning settings: no Turns and routes, Street photos or Speak your answers toggles (M5–M7);
+    the reminder keeps its old rule and copy until the streak changes (M3).
+  - The home and work picker shows the map and the nearest neighbourhoods as chips, without the
+    "More" list and search of the design's area selector.
+  - Today has no "Drive this run today" card (M6) or "Now learning" and gateway rows (M5).
+  - The carry-over of old-game streets (`carryOverProvider`) reads the `answer` and lesson tables
+    each time a pack opens. M3 may drop those tables only once every city with a pack has been
+    carried over (keep a per-city flag, or keep the tables read-only).
 
 ## Gaps found 2026-11-11 (design vs code)
 

@@ -27,11 +27,19 @@ void main() {
   late NamedStreet a;
   late NamedStreet b;
   late NamedStreet c;
+  late NamedStreet parent;
+  late NamedStreet child;
 
   setUpAll(() {
     final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
-    final streets = streetsByPartId(repo.streets()).values.toSet().toList()
+    final byPart = streetsByPartId(repo.streets());
+    final streets = byPart.values.toSet().toList()
       ..sort((x, y) => y.lengthM.compareTo(x.lengthM));
+    final link = repo.families().firstWhere(
+      (f) => !f.orphan && byPart[f.parentId] != byPart[f.childId],
+    );
+    parent = byPart[link.parentId]!;
+    child = byPart[link.childId]!;
     repo.close();
     LatLng mid(NamedStreet s) => s.parts.first.midpoint;
     a = streets.first;
@@ -58,7 +66,11 @@ void main() {
 
   String item(NamedStreet s) => CardType.p.item(s.id);
 
-  Future<void> pump(WidgetTester tester, List<SessionStep> steps) async {
+  Future<void> pump(
+    WidgetTester tester,
+    List<SessionStep> steps, {
+    String at = Routes.session,
+  }) async {
     tester.platformDispatcher.accessibilityFeaturesTestValue =
         const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
@@ -93,7 +105,7 @@ void main() {
             ),
           ),
         ],
-        child: const PindoroApp(initialLocation: Routes.session),
+        child: PindoroApp(initialLocation: at),
       ),
     );
     await settle(tester);
@@ -196,6 +208,78 @@ void main() {
     expect(maps.last.known.map((k) => k.geometry), [c.geometry]);
     expect(maps.last.known.map((k) => k.geometry), isNot(contains(a.geometry)));
   });
+  testWidgets('a child of a known street is guessed first, then introduced '
+      'with its family', (tester) async {
+    await dao.putCard(
+      CardState(
+        itemId: item(parent),
+        phase: CardPhase.review,
+        memory: Memory(
+          stability: 30,
+          difficulty: 5,
+          lastReview: now.subtract(const Duration(days: 3)),
+        ),
+        dueAt: now.add(const Duration(days: 20)),
+        lastRating: Rating.good,
+        priorKnown: true,
+      ),
+    );
+    await pump(tester, [(kind: StepKind.intro, itemId: item(child))]);
+    expect(find.text('Guess first'), findsOneWidget);
+    expect(find.textContaining('You know ${parent.name}'), findsOneWidget);
+    expect(maps.last.known, isEmpty);
+    maps.last.onTap!(onStreet(child));
+    await settle(tester);
+    await tapThrough(tester, find.text('Confirm guess'));
+
+    expect((await dao.log()).single.format, ReviewFormat.pretest);
+    expect(await dao.card(item(child)), isNull);
+    expect(find.textContaining('Family: ${parent.name}'), findsOneWidget);
+    expect(maps.last.known.map((k) => k.label), contains(parent.name));
+    await tapThrough(tester, find.text('Got it'));
+    expect((await dao.card(item(child)))!.phase, CardPhase.learning);
+  });
+
+  testWidgets(
+    'placement: a placed street becomes a known card, a skip leaves '
+    'it unseen, then the result',
+    timeout: const Timeout(Duration(minutes: 2)),
+    (tester) async {
+      final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
+      final curriculum = Curriculum(
+        streets: streetsByPartId(repo.streets()).values,
+        districts: repo.districts(),
+        centre: repo.city().center,
+        families: repo.families(),
+        chunkNeighbours: repo.chunkNeighbours(),
+      );
+      final byPart = streetsByPartId(repo.streets());
+      final cityId = repo.city().id;
+      repo.close();
+      final asked = Placement(
+        curriculum,
+        seed: now.microsecondsSinceEpoch,
+      ).streets;
+      final first = byPart[asked.first]!;
+
+      await pump(tester, const [], at: Routes.placement);
+      expect(find.text('Placement · 1 of ${asked.length}'), findsOneWidget);
+      await answer(tester, onStreet(first));
+      expect(find.textContaining('Next review in'), findsOneWidget);
+      await tapThrough(tester, find.text('Next'));
+
+      for (var i = 0; i < asked.length; i++) {
+        if (find.text('Start learning').evaluate().isNotEmpty) break;
+        await tapThrough(tester, find.text('I don’t know this one'));
+      }
+      expect(find.text('You know 1 street already'), findsOneWidget);
+      final card = (await dao.cards()).single;
+      expect(card.itemId, item(first));
+      expect(card.priorKnown, isTrue);
+      expect((await dao.log()).single.format, ReviewFormat.placement);
+      expect((await dao.learnCity(cityId))?.placedAt, isNotNull);
+    },
+  );
 }
 
 class _NoReminders implements Reminders {

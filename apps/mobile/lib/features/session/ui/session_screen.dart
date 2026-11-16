@@ -12,6 +12,7 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/map/ui/pin_drop_view.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
+import 'package:pindoro/features/session/ui/widgets/placement_done.dart';
 import 'package:pindoro/features/session/ui/widgets/session_done.dart';
 import 'package:pindoro/features/session/ui/widgets/session_intro.dart';
 import 'package:pindoro/features/session/ui/widgets/session_top_bar.dart';
@@ -23,7 +24,10 @@ import 'package:pindoro_learning/pindoro_learning.dart';
 /// Session done. Every answer is saved as it comes, so Leave needs no
 /// confirmation.
 class SessionScreen extends ConsumerStatefulWidget {
-  const SessionScreen({super.key});
+  const SessionScreen({super.key, this.placement = false});
+
+  /// The city's placement instead of today's session (SPEC §6.2).
+  final bool placement;
 
   @override
   ConsumerState<SessionScreen> createState() => _SessionScreenState();
@@ -38,7 +42,9 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
     super.initState();
     // Providers can't change while the tree builds; begin right after.
     Future.microtask(
-      () => ref.read(sessionControllerProvider.notifier).start(),
+      () => ref
+          .read(sessionControllerProvider.notifier)
+          .start(placement: widget.placement),
     );
   }
 
@@ -62,16 +68,22 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
         title: context.l10n.todayDoneTitle,
         children: const [],
       ),
-      final SessionPlaying p when p.step.kind == StepKind.intro => SessionIntro(
-        play: p,
-        known: _known(p, settings),
-        topBar: SessionTopBar(p, onLeave: _leave),
-        onGotIt: () => unawaited(controller.introDone()),
-      ),
+      final SessionPlaying p
+          when p.step.kind == StepKind.intro && p.guess == null =>
+        SessionIntro(
+          play: p,
+          known: _known(p, settings),
+          topBar: SessionTopBar(p, onLeave: _leave),
+          onGotIt: () => unawaited(controller.introDone()),
+        ),
       final SessionPlaying p => _pin(p, settings, controller),
       SessionDone(:final summary) => SessionDoneView(
         summary: summary,
         onDone: _leave,
+      ),
+      SessionPlaced(:final summary) => PlacementDoneView(
+        summary: summary,
+        onStart: _leave,
       ),
     };
   }
@@ -86,6 +98,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
     final hit = r?.hit;
     final days = r?.nextReviewDays;
     final forgotten = r?.grade.rating == Rating.again;
+    final placing = p.step.kind == StepKind.placement;
     return PinDropView(
       area: p.area,
       questionKey: p.index,
@@ -94,11 +107,32 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
       frame: p.frame,
       known: _known(p, settings),
       topBar: SessionTopBar(p, onLeave: _leave),
+      prompt: placing
+          ? l10n.placementPrompt(
+              formatNumber(p.index + 1),
+              formatNumber(p.steps.length),
+            )
+          : null,
+      skip: placing
+          ? (label: l10n.placementSkip, onSkip: controller.skip)
+          : null,
       onPin: controller.dropPin,
       onConfirm: () => unawaited(controller.confirm()),
       onNext: () async => controller.next(),
       mixUp: hit == null ? null : _label(hit, settings),
-      headerChip: r == null
+      guess: switch (p.guess) {
+        final g? => (
+          subline: g.knownSiblings == 0
+              ? l10n.sessionGuessKnowParent(streetName(g.parent, settings))
+              : l10n.sessionGuessKnowFamily(
+                  streetName(g.parent, settings),
+                  g.knownSiblings,
+                ),
+          note: l10n.sessionGuessNote,
+        ),
+        null => null,
+      },
+      headerChip: r == null || (placing && days == null)
           ? null
           : NextReviewChip(
               label: days == null
@@ -129,7 +163,10 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                     glyph: PindoroGlyph.reroute,
                   ),
               ],
-              action: forgotten && (hit != null || r.grade.tier == Tier.miss)
+              action:
+                  !placing &&
+                      forgotten &&
+                      (hit != null || r.grade.tier == Tier.miss)
                   ? l10n.revealGotIt
                   : l10n.commonNext,
             ),

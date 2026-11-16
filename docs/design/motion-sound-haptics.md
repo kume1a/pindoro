@@ -40,15 +40,11 @@ Springy and fast. Things the player touches use springs; things the app moves us
 | Close | Small celebration | `celebrate.small` | static badge | single soft blip | `lightImpact()` |
 | Miss | Badge appears; Pindo encourages | `base` | same | low, soft two-note fall (never a buzzer) | `selectionClick()` ×2, 60 ms apart |
 | Question segment fill | Fills left to right | `fast` `ease.standard` | instant | none | none |
-| Points count-up | Digits roll up, tabular | `count-up`, ease-out cubic | final value at once | soft rising ticks | none |
-| XP bar | Grows | `slow` `ease.standard` | instant | none | none |
+| Count-up | Digits roll up, tabular (City memory on Session done) | `count-up`, ease-out cubic | final value at once | soft rising ticks | none |
 | Streak increase | Flame pops; number rolls up by one | 420 ms `ease.overshoot`; roll 300 ms | number cross-fades | streak whoosh + ding | `mediumImpact()` |
 | Streak milestone (7/30/100/365) | Big celebration | `celebrate.big` | static | streak fanfare | `heavyImpact()`, `mediumImpact()` +90 ms |
-| Level up | Big celebration; XP bar fills and resets; shield pops | `celebrate.big` | static takeover | level-up fanfare (4 notes) | `heavyImpact()`, `mediumImpact()` +120 ms, `lightImpact()` +240 ms |
 | Badge unlock | Scale from 0.4 with −8° turn; 12-dash burst | `spring.bouncy`; burst `celebrate.medium` | fade + scale 0.96 → 1 | unlock chime | `mediumImpact()` |
-| Stop unlock (path) | Lock drops; pin fills and pops; lane dashes drive to it | 600 ms `ease.linear`; pop `spring.bouncy` | instant swap | unlock tick | `lightImpact()` |
 | District fill | Fill wipes from the centroid; outline thickens; label checks | 2 × `slow` `ease.standard` | cross-fade 200 ms | district fanfare (short) | `heavyImpact()` |
-| Current stop | Floats ±4 dp | 1 600 ms loop | still | none | none |
 | Sheet / dialog | In: rise or fade + 0.96 → 1; out: reverse | `base` in, `fast` out | fade | none | none |
 | Toast | Slide 16 dp + fade | `base` in, `fast` out | fade | none | none |
 | Error | Shake 6 dp × 2 on the failed control | 300 ms | colour flash only | soft error tone | `HapticFeedback.vibrate()` (Android) / `heavyImpact()` |
@@ -65,12 +61,28 @@ The events added by v3 (Learn the whole city). Durations and curves come from th
 | Drive start / end | Timer fades in / out | medium impact |
 | Session done | Celebrate big; City memory counts up | results sound · success haptic |
 
+In Flutter: the light tick is `selectionClick()` with no sound; medium impact is `mediumImpact()`; the success haptic is `heavyImpact()`, then `mediumImpact()` 90 ms later; the Miss haptic is `selectionClick()` twice, 60 ms apart.
+
+### v3 progress motion
+
+Today, the Progress tab, Session done and the placement result. Quiet: no sound or haptic of their own, once per visit, and calm under reduce motion.
+
+| Event | Motion | Timing | Reduce motion | Sound | Haptic |
+| --- | --- | --- | --- | --- | --- |
+| Memory bar (card) first shown | Segments grow from the left edge to their widths, together | `slow` `ease.standard` | final widths at once | none | none |
+| Memory chart, Progress opened | Line draws left to right; then the area fades in and today's dot pops | line 2 × `slow` `ease.standard`; area `base`; dot `spring.bouncy` | finished chart at once | none | none |
+| Forecast bars, Progress opened | Bars grow up from the bottom, today first | `base` `ease.decelerate`, each `stagger` after the last | final bars at once | none | none |
+| City memory, Session done | Number counts up from the session's start value | `count-up`, ease-out | final value at once | results sound (with Session done) | success haptic (with Session done) |
+| Placement result | Stat tiles stagger in (fade + 8 dp rise) | `base`, `stagger` apart | at once | none | none |
+
+Compact memory bars in list rows never animate. Progress never animates backwards: a drop is drawn at its new size.
+
 ## Celebration sizes
 
 - **Small** (Close): badge wiggle ±6° and one ring pulse from the pin.
-- **Medium** (Great, badges, unlocks): badge pop, 12 lane-dash pieces burst radially, Pindo hops 12 dp, points count up.
-- **Big** (first Perfect in a round, level up, streak milestones, first mastered district): medium plus 28 pieces (dashes and stars) showering from the top and a 10 dp lane-yellow glow pulsing around the screen edge; Pindo jumps.
-- At most one big celebration per round (except level up); repeated Perfects use medium with a "Perfect ×2" counter; from the fifth Great in a row the burst drops to a pop.
+- **Medium** (Great, badges): badge pop, 12 lane-dash pieces burst radially, Pindo hops 12 dp.
+- **Big** (first Perfect in a session or round, Session done, streak milestones, first district Mastered): medium plus 28 pieces (dashes and stars) showering from the top and a 10 dp lane-yellow glow pulsing around the screen edge; Pindo jumps.
+- At most one big celebration per session or round, plus the one on Session done; repeated Perfects use medium with a "Perfect ×2" counter; from the fifth Great in a row the burst drops to a pop.
 
 ## Reduce motion
 

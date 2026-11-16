@@ -47,7 +47,11 @@ class PackStore {
     this.timeout = const Duration(seconds: 20),
   }) : _client = client ?? http.Client();
 
-  static const int supportedFormatVersion = 3;
+  static const int supportedFormatVersion = 4;
+
+  /// Format 3 packs still install while the server catches up; learning
+  /// waits for format 4.
+  static const int oldestFormatVersion = 3;
   static const int keptVersions = 2;
 
   /// Longest wait for the server, and between two chunks of a download.
@@ -132,7 +136,8 @@ class PackStore {
     );
     try {
       await tmp.writeAsBytes(gzip.decode(gz), flush: true);
-      if (_formatVersion(tmp) != supportedFormatVersion) {
+      final format = _formatVersion(tmp) ?? 0;
+      if (format < oldestFormatVersion || format > supportedFormatVersion) {
         throw const FormatException('unsupported pack format');
       }
       return await tmp.rename(_join(dir.path, '${pack.version}.sqlite'));

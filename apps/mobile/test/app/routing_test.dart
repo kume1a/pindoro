@@ -18,12 +18,12 @@ import 'package:pindoro/features/home/ui/home_screen.dart';
 import 'package:pindoro/features/lesson/ui/drive_controller.dart';
 import 'package:pindoro/features/lesson/ui/drive_screen.dart';
 import 'package:pindoro/features/lesson/ui/lesson_screen.dart';
+import 'package:pindoro/features/map/ui/area_picker_map.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/app_update.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/ui/level_up_screen.dart';
-import 'package:pindoro/features/setup/ui/area_map.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 

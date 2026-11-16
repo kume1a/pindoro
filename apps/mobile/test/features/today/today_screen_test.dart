@@ -4,10 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/app/app.dart';
+import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
+import 'package:pindoro/features/learning/data/learning_dao.dart';
+import 'package:pindoro/features/learning/data/progress.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
 import '../../support/settle.dart';
@@ -25,10 +29,17 @@ void main() {
   );
   tearDown(() => db.close());
 
+  Future<void> placed() =>
+      LearningDao(db).markPlaced(AppConfig.defaultCityId, DateTime(2026));
+
   Future<void> pump(WidgetTester tester, SessionPlan plan) async {
     tester.platformDispatcher.accessibilityFeaturesTestValue =
         const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    tester.view
+      ..physicalSize = const Size(1080, 4400)
+      ..devicePixelRatio = 2.75;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -36,6 +47,26 @@ void main() {
           pindoroMapBuilderProvider.overrideWithValue((_) => const SizedBox()),
           todayPlanProvider.overrideWith((ref) async => plan),
           dueTomorrowProvider.overrideWith((ref) async => 22),
+          packRepositoryProvider.overrideWith((ref) async {
+            final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
+            ref.onDispose(repo.close);
+            return repo;
+          }),
+          cityMemoryProvider.overrideWith(
+            (ref) async => (
+              city: (
+                memory: 1284.4,
+                total: 3282,
+                counts: {
+                  MemoryState.mastered: 412,
+                  MemoryState.solid: 630,
+                  MemoryState.known: 220,
+                  MemoryState.seen: 90,
+                },
+              ),
+              sinceYesterday: 8.2,
+            ),
+          ),
         ],
         child: const PindoroApp(initialLocation: Routes.today),
       ),
@@ -43,28 +74,40 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('ready: the session’s size, its counts and Start', (
+  const ready = SessionPlan(
+    steps: [(kind: StepKind.review, itemId: 'P:x')],
+    dueCount: 24,
+    backlog: false,
+    reviewCount: 24,
+    newCount: 10,
+    estimatedS: 24 * 12 + 10 * 45,
+  );
+
+  testWidgets('first run: placement or zero; zero goes on to ready', (
     tester,
   ) async {
-    await pump(
-      tester,
-      const SessionPlan(
-        steps: [(kind: StepKind.review, itemId: 'P:x')],
-        dueCount: 24,
-        backlog: false,
-        reviewCount: 24,
-        newCount: 10,
-        estimatedS: 24 * 12 + 10 * 45,
-      ),
-    );
+    await pump(tester, ready);
+    expect(find.text('Let’s see what you already know'), findsOneWidget);
+    expect(find.text('Today’s drive'), findsNothing);
+    await tapThrough(tester, find.text('Start from zero'));
+    expect(find.text('Today’s drive'), findsOneWidget);
+  });
+
+  testWidgets('ready: the session’s size, its counts and Start, over City '
+      'memory', (tester) async {
+    await placed();
+    await pump(tester, ready);
     expect(find.text('Today’s drive'), findsOneWidget);
     expect(find.text('About 13 min · saves as you go'), findsOneWidget);
     expect(find.text('24'), findsOneWidget);
     expect(find.text('10'), findsOneWidget);
     expect(find.text('Start'), findsOneWidget);
+    expect(find.text('+8 since yesterday'), findsOneWidget);
+    expect(find.text('1\u202f284 of 3\u202f282 streets'), findsOneWidget);
   });
 
   testWidgets('done: nothing left today, tomorrow’s reviews', (tester) async {
+    await placed();
     await pump(
       tester,
       const SessionPlan(

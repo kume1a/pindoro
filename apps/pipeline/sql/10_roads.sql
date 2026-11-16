@@ -13,13 +13,15 @@ LANGUAGE sql IMMUTABLE AS $$
 $$;
 
 CREATE TABLE pipeline.road AS
-SELECT r.way_id, r.highway, r.name_ka, r.name_en, pipeline.normalise_name(r.name_ka) AS norm_name, r.geom
+SELECT r.way_id, r.highway, r.name_ka, r.name_en, r.etymology, pipeline.normalise_name(r.name_ka) AS norm_name,
+       r.geom
 FROM (
   SELECT way_id,
          highway,
          access,
          coalesce(nullif(btrim(name_ka), ''), btrim(name)) AS name_ka,
          nullif(btrim(name_en), '') AS name_en,
+         nullif(btrim(etymology), '') AS etymology,
          ST_Transform(geom, (SELECT utm_srid FROM pipeline.params)) AS geom
   FROM osm.roads
 ) r

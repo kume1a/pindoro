@@ -9,9 +9,9 @@ void main() {
   setUpAll(() => pack = SqlitePackRepository.open(AppConfig.fixturePackAsset));
   tearDownAll(() => pack.close());
 
-  test('meta describes a v3 fixture pack with attribution', () {
+  test('meta describes a v4 fixture pack with attribution', () {
     final meta = pack.meta();
-    expect(meta['format_version'], '3');
+    expect(meta['format_version'], '4');
     expect(meta['scope'], 'fixture');
     expect(meta['version'], isNotEmpty);
     expect(meta['attribution'], contains('OpenStreetMap'));
@@ -78,5 +78,33 @@ void main() {
     final far = graph.junctions.keys.last;
     final route = graph.shortestRoute(graph.junctions.keys.first, {far});
     expect(route == null || route.lengthM > 0, isTrue);
+  });
+
+  test('curriculum data: tiers, rings, banks, chunks, raions and families', () {
+    final streets = pack.streets();
+    expect(streets.every((s) => s.tier != null && s.ring != null), isTrue);
+    expect(streets.map((s) => s.bank).toSet(), {RiverBank.right});
+    final chunks = {
+      for (final d in pack.districts())
+        if (d.kind == DistrictKind.neighbourhood) d.id: d,
+    };
+    expect(chunks.values.every((d) => d.parentId != null), isTrue);
+    expect(
+      streets.map((s) => s.chunkId).nonNulls.every(chunks.containsKey),
+      isTrue,
+    );
+    for (final MapEntry(:key, :value) in pack.chunkNeighbours().entries) {
+      expect(chunks.containsKey(key), isTrue);
+      expect(value.every(chunks.containsKey), isTrue);
+    }
+    final ids = {for (final s in streets) s.id};
+    final families = pack.families();
+    expect(families, isNotEmpty);
+    expect(
+      families.every(
+        (f) => ids.contains(f.parentId) && ids.contains(f.childId),
+      ),
+      isTrue,
+    );
   });
 }

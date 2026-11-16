@@ -16,6 +16,14 @@
     r1004 quarter "შუა" (lat 41.705-41.745, lon 44.705-44.735)              -> neighbourhood
     w114 / w115 neighbourhoods "ტყუპი" around Twin Street w2003            -> only the smaller w114
     w116 neighbourhood "ცარიელი" with no streets                            -> dropped as too thin
+    w118 "ჩრდილოეთი" (lon 44.752-44.790) and w119 "გზაჯვარედინი" (lon 44.750-44.755) overlap on
+    Cross Avenue (665 m and 415 m of it)                                    -> chunk neighbours
+  Lane families (w2015-w2022), "ტყის ..." (Forest ...):
+    w2015 ტყის ქუჩა north-west, w2021 a second ტყის ქუჩა 6 km south-east
+    w2016 ტყის I შესახვევი and w2017 ტყის II ჩიხი beside w2015, w2019 ტყის I შესახვევის I ჩიხი on w2016
+    w2018 ტყის III გასასვლელი beside w2021 (its nearer parent), w2022 ტყის IV ჩიხი 2 km off (orphan)
+    w2020 ტყის შესახვევი has no numeral                                      -> not a family
+  City params (test/sql.test.ts): centre at Split Street's middle, river west to east along lat 41.725.
 -->
 <osm version="0.6" generator="hand">
   <node id="1" version="1" lat="41.70" lon="44.70"/>
@@ -45,6 +53,22 @@
   <node id="224" version="1" lat="41.740" lon="44.775"/>
   <node id="225" version="1" lat="41.730" lon="44.780"/>
   <node id="226" version="1" lat="41.740" lon="44.780"/>
+  <node id="230" version="1" lat="41.7465" lon="44.720"/>
+  <node id="231" version="1" lat="41.7465" lon="44.730"/>
+  <node id="232" version="1" lat="41.7475" lon="44.725"/>
+  <node id="233" version="1" lat="41.7490" lon="44.725"/>
+  <node id="234" version="1" lat="41.7445" lon="44.722"/>
+  <node id="235" version="1" lat="41.7425" lon="44.722"/>
+  <node id="236" version="1" lat="41.7492" lon="44.726"/>
+  <node id="237" version="1" lat="41.7492" lon="44.729"/>
+  <node id="238" version="1" lat="41.7440" lon="44.727"/>
+  <node id="239" version="1" lat="41.7440" lon="44.730"/>
+  <node id="240" version="1" lat="41.710" lon="44.780"/>
+  <node id="241" version="1" lat="41.710" lon="44.785"/>
+  <node id="242" version="1" lat="41.712" lon="44.783"/>
+  <node id="243" version="1" lat="41.714" lon="44.783"/>
+  <node id="244" version="1" lat="41.726" lon="44.701"/>
+  <node id="245" version="1" lat="41.726" lon="44.704"/>
   <node id="301" version="1" lat="41.705" lon="44.705"/>
   <node id="302" version="1" lat="41.705" lon="44.710"/>
   <node id="303" version="1" lat="41.708" lon="44.710"/>
@@ -69,6 +93,14 @@
   <node id="514" version="1" lat="41.705" lon="44.735"/>
   <node id="515" version="1" lat="41.745" lon="44.735"/>
   <node id="516" version="1" lat="41.745" lon="44.705"/>
+  <node id="601" version="1" lat="41.728" lon="44.752"/>
+  <node id="602" version="1" lat="41.728" lon="44.790"/>
+  <node id="603" version="1" lat="41.742" lon="44.790"/>
+  <node id="604" version="1" lat="41.742" lon="44.752"/>
+  <node id="605" version="1" lat="41.726" lon="44.750"/>
+  <node id="606" version="1" lat="41.726" lon="44.755"/>
+  <node id="607" version="1" lat="41.734" lon="44.755"/>
+  <node id="608" version="1" lat="41.734" lon="44.750"/>
 
   <way id="101" version="1">
     <nd ref="1"/><nd ref="5"/><nd ref="2"/><nd ref="3"/><nd ref="6"/><nd ref="4"/><nd ref="1"/>
@@ -101,6 +133,16 @@
   <way id="117" version="1">
     <nd ref="513"/><nd ref="514"/><nd ref="515"/><nd ref="516"/><nd ref="513"/>
   </way>
+  <way id="118" version="1">
+    <nd ref="601"/><nd ref="602"/><nd ref="603"/><nd ref="604"/><nd ref="601"/>
+    <tag k="place" v="neighbourhood"/>
+    <tag k="name" v="ჩრდილოეთი"/>
+  </way>
+  <way id="119" version="1">
+    <nd ref="605"/><nd ref="606"/><nd ref="607"/><nd ref="608"/><nd ref="605"/>
+    <tag k="place" v="neighbourhood"/>
+    <tag k="name" v="გზაჯვარედინი"/>
+  </way>
 
   <way id="2001" version="1">
     <nd ref="201"/><nd ref="202"/>
@@ -132,6 +174,7 @@
     <tag k="name" v="Cross Avenue"/>
     <tag k="name:ka" v="ჯვრის გამზირი"/>
     <tag k="name:en" v="Cross Avenue"/>
+    <tag k="name:etymology" v="The cross on the hill"/>
   </way>
   <way id="2007" version="1">
     <nd ref="208"/><nd ref="209"/>
@@ -174,6 +217,47 @@
     <nd ref="225"/><nd ref="226"/>
     <tag k="highway" v="residential"/>
     <tag k="name" v="Bridge Road"/>
+  </way>
+
+  <way id="2015" version="1">
+    <nd ref="230"/><nd ref="231"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="ტყის ქუჩა"/>
+  </way>
+  <way id="2016" version="1">
+    <nd ref="232"/><nd ref="233"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="ტყის I შესახვევი"/>
+  </way>
+  <way id="2017" version="1">
+    <nd ref="234"/><nd ref="235"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="ტყის II ჩიხი"/>
+  </way>
+  <way id="2018" version="1">
+    <nd ref="242"/><nd ref="243"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="ტყის III გასასვლელი"/>
+  </way>
+  <way id="2019" version="1">
+    <nd ref="236"/><nd ref="237"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="ტყის I შესახვევის I ჩიხი"/>
+  </way>
+  <way id="2020" version="1">
+    <nd ref="238"/><nd ref="239"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="ტყის შესახვევი"/>
+  </way>
+  <way id="2021" version="1">
+    <nd ref="240"/><nd ref="241"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="ტყის ქუჩა"/>
+  </way>
+  <way id="2022" version="1">
+    <nd ref="244"/><nd ref="245"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="ტყის IV ჩიხი"/>
   </way>
 
   <relation id="1000" version="1">

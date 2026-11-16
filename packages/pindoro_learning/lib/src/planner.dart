@@ -5,7 +5,7 @@ import 'constants.dart';
 import 'fsrs.dart';
 
 /// What a session step asks (SPEC §6.4, §7). An intro writes no log row.
-enum StepKind { intro, retrieval1, review, retrieval2, relearn }
+enum StepKind { intro, retrieval1, review, retrieval2, relearn, placement }
 
 typedef SessionStep = ({StepKind kind, String itemId});
 
@@ -283,6 +283,7 @@ int remainingSeconds(
       sum +
       switch (s.kind) {
         StepKind.review || StepKind.relearn => tReviewS,
+        StepKind.placement => LearningConfig.placementPinS,
         StepKind.intro ||
         StepKind.retrieval1 ||
         StepKind.retrieval2 => tNewS ~/ 3,

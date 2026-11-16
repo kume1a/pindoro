@@ -41,9 +41,22 @@ abstract final class Routes {
   /// The v3 daily session's start (docs/learning/PLAN.md M1 step 7).
   static const String today = '/today';
 
-  /// Today's learning session (SessionScreen).
+  /// Today's learning session (SessionScreen); `?placement=1` places.
   static const String session = '/session';
+  static const String placement = '$session?placement=1';
   static const String credits = '/settings/credits';
+
+  /// City memory, recall, the forecast and the districts (v3 Progress).
+  static const String progress = '/progress';
+
+  /// `?id=<raion id>`: a district's neighbourhoods.
+  static const String progressDistrict = '/progress/district';
+
+  /// Minutes a day, home and work, street names, the reminder.
+  static const String learnSettings = '/settings/learning';
+
+  /// `?which=home|work`: the neighbourhood picker for an anchor.
+  static const String anchor = '/settings/learning/anchor';
 
   /// The course, the first tab.
   static const String path = '/path';
@@ -63,6 +76,10 @@ abstract final class Routes {
 
   /// `?unit=<raion id>` (`&lesson=<n>` opens with that lesson's streets).
   static const String unitGuide = '/unit-guide';
+
+  static String progressOf(String districtId) =>
+      '$progressDistrict?id=$districtId';
+  static String anchorOf(String which) => '$anchor?which=$which';
 
   /// The area picker starting from one district (nothing saved until Next).
   static String areaFrom(String districtId) => '$area?district=$districtId';

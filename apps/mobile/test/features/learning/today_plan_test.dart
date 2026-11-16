@@ -2,7 +2,9 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/core/clock.dart';
+import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/features/learning/data/carry_over.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -66,6 +68,7 @@ void main() {
         newCandidatesProvider.overrideWith(
           (ref) async => ['P:a1', 'P:b1', 'P:c1'],
         ),
+        carryOverProvider.overrideWith((ref) async {}),
       ],
     );
   });
@@ -104,5 +107,25 @@ void main() {
     final p = await plan();
     expect(p.estimatedS, 12 + 2 * 45);
     expect(p.backlog, isFalse);
+  });
+
+  test('new streets come from the pack’s curriculum', () async {
+    final pack = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWithValue(db),
+        clockProvider.overrideWithValue(() => now),
+        packRepositoryProvider.overrideWith((ref) async {
+          final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
+          ref.onDispose(repo.close);
+          return repo;
+        }),
+      ],
+    );
+    addTearDown(pack.dispose);
+    pack.listen(newCandidatesProvider, (_, _) {});
+    final candidates = await pack.read(newCandidatesProvider.future);
+    final streets = await pack.read(cityStreetsProvider.future);
+    expect(candidates, hasLength(LearningConfig.newPerDay[20]));
+    expect(candidates.every((id) => streets.containsKey(itemKey(id))), isTrue);
   });
 }

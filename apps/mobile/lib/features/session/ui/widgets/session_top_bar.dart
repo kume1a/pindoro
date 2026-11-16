@@ -29,7 +29,9 @@ class SessionTopBar extends StatelessWidget {
       children: [
         PindoroIconButton(
           glyph: PindoroGlyph.close,
-          semanticLabel: l10n.sessionLeave,
+          semanticLabel: play.step.kind == StepKind.placement
+              ? l10n.placementLeave
+              : l10n.sessionLeave,
           onPressed: onLeave,
         ),
         Expanded(
