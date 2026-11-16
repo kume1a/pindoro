@@ -1,7 +1,13 @@
-# City pack format (v3)
+# City pack format (v4)
 
 A city pack is a read-only SQLite database built by `pipeline` from OpenStreetMap data and
 downloaded by the app. Packs are immutable: a new build gets a new `version` and a new file name.
+
+v4 (2026-11) adds the v3 learning system's curriculum data: each street's `tier`, `ring`, `bank`,
+`chunk_id` and `etymology`, each smaller area's raion (`district.parent_id`), and the `family` and
+`chunk_neighbour` tables. The city centre is now `centre` from `city.yaml`. The app installs v3 and
+v4; learning needs v4, and a v3 pack keeps working for Explore until the background refresh
+replaces it.
 
 v3 (2026-11) adds the road graph (`junction`, `road_edge`) for road trips. The app installs v3 and
 still opens a v2 pack already on the phone, without road trips, until the background refresh
@@ -26,7 +32,7 @@ format it supports; v1 packs already on a phone still open.
 
 ```json
 {
-  "format_version": 3,
+  "format_version": 4,
   "city": "tbilisi",
   "name_ka": "თბილისი",
   "name_en": "Tbilisi",
@@ -59,7 +65,7 @@ zone. Street geometry is simplified to 3 m.
 
 ## Schema
 
-`PRAGMA user_version = 3` equals `format_version`.
+`PRAGMA user_version = 4` equals `format_version`.
 
 ```sql
 CREATE TABLE meta (
@@ -74,7 +80,7 @@ CREATE TABLE city (
   name_ka         TEXT NOT NULL,
   name_en         TEXT NOT NULL,
   osm_relation_id INTEGER NOT NULL,
-  center_lat      REAL NOT NULL,
+  center_lat      REAL NOT NULL,         -- `centre` in city.yaml (Freedom Square for Tbilisi)
   center_lon      REAL NOT NULL,
   min_lat         REAL NOT NULL,
   min_lon         REAL NOT NULL,
@@ -97,7 +103,8 @@ CREATE TABLE district (
   max_lat         REAL NOT NULL,
   max_lon         REAL NOT NULL,
   area_m2         REAL NOT NULL,
-  boundary        TEXT NOT NULL          -- multipolygon6
+  boundary        TEXT NOT NULL,         -- multipolygon6
+  parent_id       TEXT REFERENCES district (id) -- a smaller area's raion; NULL for a raion
 );
 
 CREATE TABLE street (
@@ -113,7 +120,12 @@ CREATE TABLE street (
   min_lon     REAL NOT NULL,
   max_lat     REAL NOT NULL,
   max_lon     REAL NOT NULL,
-  geometry    TEXT NOT NULL              -- multiline6
+  geometry    TEXT NOT NULL,             -- multiline6
+  tier        TEXT NOT NULL CHECK (tier IN ('A', 'B', 'C')),
+  ring        INTEGER NOT NULL,          -- floor(centroid's distance from the city centre / 2 km)
+  bank        TEXT NOT NULL CHECK (bank IN ('L', 'R')), -- side of the river, facing downstream
+  chunk_id    TEXT REFERENCES district (id), -- the neighbourhood that teaches it
+  etymology   TEXT                       -- OSM name:etymology
 );
 CREATE INDEX street_difficulty ON street (difficulty);
 
@@ -140,6 +152,21 @@ CREATE TABLE road_edge (
   length_m      REAL NOT NULL,           -- along the unsimplified way
   geometry      TEXT NOT NULL            -- polyline6 from from_junction to to_junction
 );
+
+CREATE TABLE family (
+  parent_street_id TEXT NOT NULL REFERENCES street (id),
+  child_street_id  TEXT PRIMARY KEY REFERENCES street (id),
+  kind             TEXT NOT NULL CHECK (kind IN ('lane', 'dead_end', 'passage')),
+  n                INTEGER NOT NULL,     -- the Roman numeral
+  orphan           INTEGER NOT NULL CHECK (orphan IN (0, 1)) -- child centroid > 1.5 km away
+) WITHOUT ROWID;
+CREATE INDEX family_parent ON family (parent_street_id);
+
+CREATE TABLE chunk_neighbour (
+  chunk_a TEXT NOT NULL REFERENCES district (id),
+  chunk_b TEXT NOT NULL REFERENCES district (id),
+  PRIMARY KEY (chunk_a, chunk_b)         -- both orders are stored
+) WITHOUT ROWID;
 ```
 
 ### Rules baked in by the pipeline
@@ -165,6 +192,21 @@ CREATE TABLE road_edge (
   whose geometry lost points against their node list are left out. `validate` requires 90 % of
   the edges in the largest connected part.
 
+- Curriculum (`sql/80_learning.sql`):
+  - Tier: `A` the skeleton (motorway, trunk, primary), `B` the grid (secondary, tertiary), `C` the
+    rest.
+  - Ring and bank use the street's centroid. The river is `river` in `city.yaml`, a downstream
+    line; `L` is the left bank facing downstream.
+  - Chunk: the `neighbourhood` holding most of the street's length; a street in none goes to the
+    nearest neighbourhood. Chunks border each other when their boundaries come within 50 m.
+  - A smaller area's raion is the district holding its centre (the nearest one at the city's
+    edge).
+  - Families come from `name_ka`: `<prefix> <Roman numeral> <შესახვევი | ჩიხი | გასასვლელი>` (kinds
+    `lane`, `dead_end`, `passage`) belongs to the nearest street the prefix names: its name minus
+    the type word (`ავთო ვარაზის ქუჩა`), or with its last word in the genitive (`… გზატკეცილი`,
+    `… ქუჩა`, and `… I შესახვევი` for a lane's own dead ends). Names without a numeral are not
+    families. `docs/research/family-check.md` has the data check.
+
 ### Fixture scope
 
 `pipeline build <city> --fixture` writes a pack with `meta.scope = 'fixture'` containing the full
@@ -172,7 +214,9 @@ CREATE TABLE road_edge (
 district whose id matched a live one (a street that would get a new id stays out, so the fixture
 never holds an id the server's packs don't know), with their road edges and the junctions those
 use, and the quarters and neighbourhoods whose centre lies in the district and that still link at
-least `MIN_AREA_STREETS` (10) of those streets (they link only those). The app bundles it as
+least `MIN_AREA_STREETS` (10) of those streets (they link only those). A street whose chunk, or an
+area whose raion, is outside the fixture gets NULL; families and chunk neighbours need both ends in
+it. The app bundles it as
 `apps/mobile/assets/packs_fixture/tbilisi_vake_fixture.sqlite` (not gzipped).
 
 ## Licence

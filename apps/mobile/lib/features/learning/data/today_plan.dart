@@ -1,20 +1,43 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/settings.dart';
-import 'package:pindoro/features/course/data/course_data.dart';
+import 'package:pindoro/features/learning/data/carry_over.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
-import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
-/// New streets in course order, from the start district outward, until the
-/// curriculum queue replaces it (docs/learning/PLAN.md M1 step 5).
-final newCandidatesProvider = FutureProvider<List<String>>((ref) async {
-  final plan = await ref.watch(coursePlanProvider.future);
-  return [
-    for (final unit in plan?.units ?? const <CourseUnit>[])
-      for (final street in unit.streets) CardType.p.item(street.id),
-  ];
+/// The open pack's curriculum (SPEC §6), built once per pack.
+final curriculumProvider = FutureProvider<Curriculum>((ref) async {
+  final pack = await ref.watch(packRepositoryProvider.future);
+  final streets = await ref.watch(cityStreetsProvider.future);
+  return Curriculum(
+    streets: streets.values,
+    districts: pack.districts(),
+    centre: pack.city().center,
+    families: pack.families(),
+    chunkNeighbours: pack.chunkNeighbours(),
+  );
+});
+
+/// The next new streets in curriculum order, as P items (SPEC §6.3).
+final newCandidatesProvider = FutureProvider.autoDispose<List<String>>((
+  ref,
+) async {
+  final now = ref.watch(clockProvider)();
+  final curriculumFuture = ref.watch(curriculumProvider.future);
+  final streetsFuture = ref.watch(cityStreetsProvider.future);
+  final cardsFuture = ref.watch(cityCardsProvider.future);
+  final settings = await ref.watch(settingsProvider.future);
+  final streets = await streetsFuture;
+  final picks = (await curriculumFuture).next(
+    cards: {
+      for (final card in await cardsFuture)
+        if (card.type == CardType.p) streets[itemKey(card.itemId)]!.id: card,
+    },
+    now: now,
+    count: LearningConfig.newPerDay[settings.minutesPerDay] ?? 0,
+  );
+  return [for (final id in picks) CardType.p.item(id)];
 });
 
 /// The open city's cards. A card whose street left the pack is skipped; one
@@ -24,6 +47,7 @@ final cityCardsProvider = FutureProvider.autoDispose<List<CardState>>((
 ) async {
   final dao = ref.watch(learningDaoProvider);
   final streets = await ref.watch(cityStreetsProvider.future);
+  await ref.watch(carryOverProvider.future);
   return [
     for (final card in await dao.cards())
       if (streets.containsKey(itemKey(card.itemId))) card,

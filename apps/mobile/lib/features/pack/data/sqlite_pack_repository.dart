@@ -92,14 +92,14 @@ class SqlitePackRepository implements PackRepository {
     });
   }();
 
+  bool _hasTable(String name) => _db.select(
+    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+    [name],
+  ).isNotEmpty;
+
   /// Format 3 only; built once (the graph is about 16 000 edges for Tbilisi).
   late final RoadGraph? _graph = () {
-    final hasGraph = _db
-        .select(
-          "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'road_edge'",
-        )
-        .isNotEmpty;
-    if (!hasGraph) return null;
+    if (!_hasTable('road_edge')) return null;
     return RoadGraph(
       {
         for (final r in _db.select('SELECT id, lat, lon FROM junction'))
@@ -117,6 +117,31 @@ class SqlitePackRepository implements PackRepository {
 
   @override
   RoadGraph? roadGraph() => _graph;
+
+  @override
+  List<FamilyLink> families() => _families;
+
+  late final List<FamilyLink> _families = List.unmodifiable([
+    if (_hasTable('family'))
+      for (final r in _db.select('SELECT * FROM family')) familyLinkFromRow(r),
+  ]);
+
+  @override
+  Map<String, Set<String>> chunkNeighbours() => _chunkNeighbours;
+
+  late final Map<String, Set<String>> _chunkNeighbours = () {
+    final byChunk = <String, Set<String>>{};
+    if (_hasTable('chunk_neighbour')) {
+      for (final r in _db.select(
+        'SELECT chunk_a, chunk_b FROM chunk_neighbour',
+      )) {
+        byChunk
+            .putIfAbsent(r['chunk_a'] as String, () => {})
+            .add(r['chunk_b'] as String);
+      }
+    }
+    return Map<String, Set<String>>.unmodifiable(byChunk);
+  }();
 
   @override
   void close() => _db.close();

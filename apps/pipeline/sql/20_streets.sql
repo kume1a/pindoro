@@ -35,11 +35,19 @@ name_en AS (
   WHERE name_en IS NOT NULL
   GROUP BY norm_name, cluster, name_en
   ORDER BY norm_name, cluster, sum(ST_Length(geom)) DESC, name_en
+),
+etymology AS (
+  SELECT DISTINCT ON (norm_name, cluster) norm_name, cluster, etymology
+  FROM pipeline.road_cluster
+  WHERE etymology IS NOT NULL
+  GROUP BY norm_name, cluster, etymology
+  ORDER BY norm_name, cluster, sum(ST_Length(geom)) DESC, etymology
 )
 SELECT row_number() OVER (ORDER BY m.norm_name, m.way_ids) AS key,
        m.norm_name,
        ka.name_ka,
        en.name_en,
+       et.etymology,
        c.highway AS road_class,
        CASE
          WHEN c.highway IN ('motorway', 'trunk', 'primary') THEN 'easy'
@@ -53,7 +61,8 @@ SELECT row_number() OVER (ORDER BY m.norm_name, m.way_ids) AS key,
 FROM merged m
 JOIN road_class c USING (norm_name, cluster)
 JOIN name_ka ka USING (norm_name, cluster)
-LEFT JOIN name_en en USING (norm_name, cluster);
+LEFT JOIN name_en en USING (norm_name, cluster)
+LEFT JOIN etymology et USING (norm_name, cluster);
 
 CREATE UNIQUE INDEX ON pipeline.street (key);
 CREATE INDEX ON pipeline.street USING gist (geom);

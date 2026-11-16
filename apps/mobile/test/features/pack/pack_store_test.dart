@@ -16,6 +16,7 @@ import 'package:pindoro/features/pack/data/cities.dart';
 import 'package:pindoro/features/pack/data/pack_store.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 void main() {
   final gz = gzip.encode(File(AppConfig.fixturePackAsset).readAsBytesSync());
@@ -30,6 +31,7 @@ void main() {
     String? hash,
     int? size,
     int format = PackStore.supportedFormatVersion,
+    List<int>? pack,
   }) => http.Response(
     jsonEncode({
       'cities': [
@@ -47,8 +49,9 @@ void main() {
             'format_version': format,
             'version': version,
             'url': 'http://packs.test/tbilisi/$version.sqlite.gz',
-            'sha256': hash ?? sha,
-            'size': size ?? gz.length,
+            'sha256':
+                hash ?? (pack == null ? sha : sha256.convert(pack).toString()),
+            'size': size ?? (pack ?? gz).length,
             'osm_timestamp': '2026-11-04T21:21:03Z',
           },
         },
@@ -63,6 +66,7 @@ void main() {
     String? hash,
     int? size,
     int format = PackStore.supportedFormatVersion,
+    List<int>? pack,
   }) => PackStore(
     root: root,
     apiBaseUrl: 'http://api.test',
@@ -73,9 +77,10 @@ void main() {
           hash: hash,
           size: size,
           format: format,
+          pack: pack,
         ),
         final path when path.endsWith('.sqlite.gz') => http.Response.bytes(
-          gz,
+          pack ?? gz,
           200,
         ),
         _ => http.Response('', 404),
@@ -175,6 +180,21 @@ void main() {
       ),
     );
     expect(files(), isEmpty);
+  });
+
+  test('installs a pack of the previous format', () async {
+    final dir = Directory.systemTemp.createTempSync('v3');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final v3 = File(AppConfig.fixturePackAsset).copySync('${dir.path}/v3');
+    sqlite3.open(v3.path)
+      ..execute("UPDATE meta SET value = '3' WHERE key = 'format_version'")
+      ..close();
+    final s = store(
+      '20261106T000000Z',
+      format: PackStore.oldestFormatVersion,
+      pack: gzip.encode(v3.readAsBytesSync()),
+    );
+    expect(await s.refresh('tbilisi'), isNotNull);
   });
 
   test('keeps the two newest versions', () async {

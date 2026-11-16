@@ -1,0 +1,329 @@
+import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
+import 'package:test/test.dart';
+
+const _centre = LatLng(41.70, 44.80);
+final _now = DateTime(2026, 3, 2, 9);
+
+NamedStreet _street(
+  String id, {
+  StreetTier? tier = StreetTier.c,
+  int ring = 0,
+  RiverBank bank = RiverBank.left,
+  String? chunk = 'c1',
+  double length = 300,
+}) => NamedStreet([
+  Street(
+    id: id,
+    nameKa: id,
+    nameEn: null,
+    roadClass: 'residential',
+    difficulty: Difficulty.expert,
+    lengthM: length,
+    midpoint: _centre,
+    bbox: const Bbox(41.7, 44.8, 41.7, 44.8),
+    geometry: const [
+      [_centre, _centre],
+    ],
+    tier: tier,
+    ring: ring,
+    bank: bank,
+    chunkId: chunk,
+  ),
+]);
+
+/// A square chunk [km] east of the centre, in raion [raion].
+District _chunk(String id, double km, {String raion = 'r1'}) {
+  final lon = _centre.lon + km / 83.2 - 0.004;
+  final ring = [
+    LatLng(_centre.lat - 0.004, lon),
+    LatLng(_centre.lat - 0.004, lon + 0.008),
+    LatLng(_centre.lat + 0.004, lon + 0.008),
+    LatLng(_centre.lat + 0.004, lon),
+    LatLng(_centre.lat - 0.004, lon),
+  ];
+  return District(
+    id: id,
+    kind: DistrictKind.neighbourhood,
+    osmRelationId: null,
+    nameKa: id,
+    nameEn: null,
+    center: LatLng(_centre.lat, lon + 0.004),
+    bbox: Bbox(ring[0].lat, ring[0].lon, ring[2].lat, ring[2].lon),
+    areaM2: 1e6,
+    boundary: [
+      [ring],
+    ],
+    parentId: raion,
+  );
+}
+
+/// c1 holds the centre; c2 and c3 lie 2 and 3 km east, c4 9 km east.
+final _chunks = [
+  _chunk('c1', 0),
+  _chunk('c2', 2),
+  _chunk('c3', 3, raion: 'r2'),
+  _chunk('c4', 9, raion: 'r2'),
+];
+
+/// A card introduced [daysAgo] days ago at [stability] days.
+CardState _card(String street, {double stability = 5, int daysAgo = 2}) {
+  final at = _now.subtract(Duration(days: daysAgo));
+  return CardState(
+    itemId: CardType.p.item(street),
+    phase: CardPhase.review,
+    memory: Memory(stability: stability, difficulty: 5, lastReview: at),
+    dueAt: _now.add(const Duration(days: 1)),
+    lastRating: Rating.good,
+    introAt: at,
+  );
+}
+
+FamilyLink _child(String parent, String child, int n, {bool orphan = false}) =>
+    (
+      parentId: parent,
+      childId: child,
+      kind: FamilyKind.lane,
+      n: n,
+      orphan: orphan,
+    );
+
+Curriculum _curriculum(
+  List<NamedStreet> streets, {
+  List<FamilyLink> families = const [],
+  Map<String, Set<String>> neighbours = const {},
+}) => Curriculum(
+  streets: streets,
+  districts: _chunks,
+  centre: _centre,
+  families: families,
+  chunkNeighbours: neighbours,
+);
+
+List<String> _next(
+  Curriculum curriculum, {
+  Map<String, CardState> cards = const {},
+  int count = 20,
+  List<String> anchors = const [],
+}) => curriculum.next(cards: cards, now: _now, count: count, anchors: anchors);
+
+void main() {
+  test('the skeleton, then the grid: ring by ring, banks alternating, '
+      'longest first', () {
+    final trunk = [
+      _street('b2', tier: StreetTier.b, length: 400),
+      _street('b4', tier: StreetTier.b, ring: 1, bank: RiverBank.right),
+      _street('a3', tier: StreetTier.a, ring: 1, length: 1000),
+      _street('b3', tier: StreetTier.b, bank: RiverBank.right, length: 450),
+      _street('a2', tier: StreetTier.a, bank: RiverBank.right, length: 800),
+      _street('b1', tier: StreetTier.b, length: 500),
+      _street('a1', tier: StreetTier.a, length: 900),
+    ];
+    expect(_next(_curriculum(trunk), count: 7), [
+      'a1',
+      'a2',
+      'a3',
+      'b1',
+      'b3',
+      'b2',
+      'b4',
+    ]);
+  });
+
+  test('60 % of the slots go to the skeleton and grid, in groups of 3, '
+      'while any of their core streets is unseen', () {
+    final streets = [
+      for (var i = 0; i < 12; i++)
+        _street('t$i', tier: StreetTier.b, length: 1000.0 - i),
+      for (var i = 0; i < 12; i++) _street('c$i', length: 1000.0 - i),
+    ];
+    final curriculum = _curriculum(streets);
+    expect(
+      _next(curriculum, count: 10).map((id) => id[0]).join(),
+      'tttccctttc',
+    );
+    final trunkSeen = {for (var i = 0; i < 12; i++) 't$i': _card('t$i')};
+    expect(
+      _next(curriculum, cards: trunkSeen, count: 5).map((id) => id[0]).join(),
+      'ccccc',
+    );
+  });
+
+  group('chunks', () {
+    final streets = [
+      for (final c in ['c1', 'c2', 'c3', 'c4'])
+        for (var i = 0; i < 4; i++)
+          _street('$c-$i', chunk: c, length: 900.0 - i),
+    ];
+    final neighbours = {
+      'c1': {'c2', 'c3'},
+      'c2': {'c1'},
+      'c3': {'c1', 'c4'},
+      'c4': {'c3'},
+    };
+    final curriculum = _curriculum(streets, neighbours: neighbours);
+    Map<String, CardState> finished(List<String> chunks) => {
+      for (final c in chunks)
+        for (var i = 0; i < 4; i++) '$c-$i': _card('$c-$i'),
+    };
+    String firstChunk({
+      Map<String, CardState> cards = const {},
+      List<String> anchors = const [],
+    }) => _next(
+      curriculum,
+      cards: cards,
+      count: 1,
+      anchors: anchors,
+    ).single.split('-').first;
+
+    test('the centre’s chunk first, the anchors before it', () {
+      expect(firstChunk(), 'c1');
+      expect(firstChunk(anchors: ['c4']), 'c4');
+    });
+
+    test('a started chunk goes on before a new one', () {
+      final c3Started = {
+        ...finished(['c1']),
+        'c3-0': _card('c3-0'),
+      };
+      expect(firstChunk(cards: c3Started), 'c3');
+    });
+
+    test('then the chunk bordering the most finished ones, ties nearer the '
+        'centre', () {
+      expect(firstChunk(cards: finished(['c1'])), 'c2');
+      expect(firstChunk(cards: finished(['c1', 'c4'])), 'c3');
+    });
+
+    test('a group stays in its chunk while it has streets', () {
+      expect(_next(curriculum, count: 6), [
+        'c1-0',
+        'c1-1',
+        'c1-2',
+        'c1-3',
+        'c2-0',
+        'c2-1',
+      ]);
+    });
+  });
+
+  group('families', () {
+    final parent = _street('p', length: 200);
+    final others = [_street('o1', length: 500), _street('o2', length: 250)];
+    final children = [
+      for (var n = 1; n <= 6; n++) _street('p$n', length: 300.0 - n),
+    ];
+    final curriculum = _curriculum(
+      [parent, ...others, ...children],
+      families: [for (var n = 1; n <= 6; n++) _child('p', 'p$n', n)],
+    );
+
+    test('parents first, then the other streets, then children by number', () {
+      expect(_next(curriculum), ['p', 'o1', 'o2']);
+      expect(_next(curriculum, cards: {'p': _card('p')}), [
+        'o1',
+        'o2',
+        'p1',
+        'p2',
+        'p3',
+        'p4',
+      ]);
+    });
+
+    test('a child waits for its parent’s stability to reach 3 days', () {
+      final young = {'p': _card('p', stability: 2.31)};
+      expect(_next(curriculum, cards: young), ['o1', 'o2']);
+      final ready = {'p': _card('p', stability: 3)};
+      expect(_next(curriculum, cards: ready), contains('p1'));
+    });
+
+    test('at most 4 new siblings a day, counting today’s intros', () {
+      final cards = {
+        'p': _card('p'),
+        'p1': _card('p1', daysAgo: 0),
+        'p2': _card('p2', daysAgo: 1),
+      };
+      expect(
+        _next(curriculum, cards: cards).where((id) => id.startsWith('p')),
+        ['p3', 'p4', 'p5'],
+      );
+    });
+
+    test('a family: parent, siblings and children; the chip counts them by '
+        'kind', () {
+      final nested = _curriculum(
+        [parent, ...children, _street('p1a')],
+        families: [
+          for (var n = 1; n <= 6; n++) _child('p', 'p$n', n),
+          (
+            parentId: 'p1',
+            childId: 'p1a',
+            kind: FamilyKind.deadEnd,
+            n: 1,
+            orphan: false,
+          ),
+        ],
+      );
+      expect(nested.familyOf('p2'), {'p', 'p1', 'p3', 'p4', 'p5', 'p6'});
+      expect(nested.familyOf('p1'), {'p', 'p2', 'p3', 'p4', 'p5', 'p6', 'p1a'});
+      expect(nested.familyOf('o1'), isEmpty);
+      expect(nested.familyChip('p3')?.parentId, 'p');
+      expect(nested.familyChip('p3')?.children, {FamilyKind.lane: 6});
+      expect(nested.familyChip('p1a')?.parentId, 'p1');
+      expect(nested.familyChip('p1a')?.children, {FamilyKind.deadEnd: 1});
+      expect(nested.familyChip('p')?.parentId, 'p');
+      expect(nested.familyChip('o1'), isNull);
+    });
+
+    test('an orphan is a single street', () {
+      final orphaned = _curriculum(
+        [parent, children.first],
+        families: [_child('p', 'p1', 1, orphan: true)],
+      );
+      expect(_next(orphaned), ['p1', 'p']);
+    });
+  });
+
+  test('short streets wait for 80 % of their chunk’s core streets to be '
+      'Solid', () {
+    final core = [for (var i = 0; i < 5; i++) _street('s$i')];
+    final curriculum = _curriculum([...core, _street('short', length: 90)]);
+    Map<String, CardState> solid(int count) => {
+      for (var i = 0; i < 5; i++)
+        's$i': _card('s$i', stability: i < count ? 21 : 10),
+    };
+    expect(_next(curriculum, cards: solid(3)), isEmpty);
+    expect(_next(curriculum, cards: solid(4)), ['short']);
+  });
+
+  test('placement: every core tier A street, then 5 seeded tier B streets '
+      'per raion; the sweep takes the rest', () {
+    final streets = [
+      _street('a1', tier: StreetTier.a, length: 900),
+      _street('a-short', tier: StreetTier.a, length: 100),
+      for (var i = 0; i < 8; i++)
+        _street('r1b$i', tier: StreetTier.b, chunk: 'c1'),
+      for (var i = 0; i < 3; i++)
+        _street('r2b$i', tier: StreetTier.b, chunk: 'c3'),
+    ];
+    final curriculum = _curriculum(streets);
+    final picks = curriculum.placement(7);
+    expect(picks, curriculum.placement(7));
+    expect(picks.first, 'a1');
+    expect(picks, isNot(contains('a-short')));
+    final r1 = picks.where((id) => id.startsWith('r1')).toList();
+    expect(r1, hasLength(5));
+    expect(picks.where((id) => id.startsWith('r2')), hasLength(3));
+    final sweep = curriculum.placementSweep('r1', r1);
+    expect({...sweep, ...r1}, {for (var i = 0; i < 8; i++) 'r1b$i'});
+    expect(sweep, hasLength(3));
+  });
+
+  test('a pack without curriculum columns teaches longest first', () {
+    final curriculum = _curriculum([
+      _street('x', tier: null, chunk: null, length: 200),
+      _street('y', tier: null, chunk: null, length: 700),
+    ]);
+    expect(_next(curriculum), ['y', 'x']);
+  });
+}

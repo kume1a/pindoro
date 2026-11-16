@@ -17,8 +17,9 @@ lib/src/game/       Area (districts/circle/rect, in-area rule), NamedStreet (nea
                     lesson (steps incl. the road trip, LessonRun, XP, card facts),
                     road_trip (pickTrip: a trip to a street with turns, RouteDraft drag
                     and tap drawing, turnCount, turnsAt, routeLegs)
-lib/src/pack/       City/District/Street (pack rows), PackRepository, RoadGraph (junctions,
-                    edges, A* shortestRoute to a goal set, edgeNear)
+lib/src/pack/       City/District/Street (pack rows; format 4 adds the curriculum columns and
+                    FamilyLink), PackRepository, RoadGraph (junctions, edges, A* shortestRoute
+                    to a goal set, edgeNear)
 ```
 
 ## Rules

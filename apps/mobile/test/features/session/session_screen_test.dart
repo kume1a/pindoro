@@ -27,11 +27,19 @@ void main() {
   late NamedStreet a;
   late NamedStreet b;
   late NamedStreet c;
+  late NamedStreet parent;
+  late NamedStreet child;
 
   setUpAll(() {
     final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
-    final streets = streetsByPartId(repo.streets()).values.toSet().toList()
+    final byPart = streetsByPartId(repo.streets());
+    final streets = byPart.values.toSet().toList()
       ..sort((x, y) => y.lengthM.compareTo(x.lengthM));
+    final link = repo.families().firstWhere(
+      (f) => !f.orphan && byPart[f.parentId] != byPart[f.childId],
+    );
+    parent = byPart[link.parentId]!;
+    child = byPart[link.childId]!;
     repo.close();
     LatLng mid(NamedStreet s) => s.parts.first.midpoint;
     a = streets.first;
@@ -195,6 +203,37 @@ void main() {
     await answer(tester, onStreet(a));
     expect(maps.last.known.map((k) => k.geometry), [c.geometry]);
     expect(maps.last.known.map((k) => k.geometry), isNot(contains(a.geometry)));
+  });
+  testWidgets('a child of a known street is guessed first, then introduced '
+      'with its family', (tester) async {
+    await dao.putCard(
+      CardState(
+        itemId: item(parent),
+        phase: CardPhase.review,
+        memory: Memory(
+          stability: 30,
+          difficulty: 5,
+          lastReview: now.subtract(const Duration(days: 3)),
+        ),
+        dueAt: now.add(const Duration(days: 20)),
+        lastRating: Rating.good,
+        priorKnown: true,
+      ),
+    );
+    await pump(tester, [(kind: StepKind.intro, itemId: item(child))]);
+    expect(find.text('Guess first'), findsOneWidget);
+    expect(find.textContaining('You know ${parent.name}'), findsOneWidget);
+    expect(maps.last.known, isEmpty);
+    maps.last.onTap!(onStreet(child));
+    await settle(tester);
+    await tapThrough(tester, find.text('Confirm guess'));
+
+    expect((await dao.log()).single.format, ReviewFormat.pretest);
+    expect(await dao.card(item(child)), isNull);
+    expect(find.textContaining('Family: ${parent.name}'), findsOneWidget);
+    expect(maps.last.known.map((k) => k.label), contains(parent.name));
+    await tapThrough(tester, find.text('Got it'));
+    expect((await dao.card(item(child)))!.phase, CardPhase.learning);
   });
 }
 

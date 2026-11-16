@@ -353,5 +353,11 @@ class _FakePack implements PackRepository {
   RoadGraph? roadGraph() => null;
 
   @override
+  List<FamilyLink> families() => const [];
+
+  @override
+  Map<String, Set<String>> chunkNeighbours() => const {};
+
+  @override
   void close() {}
 }

@@ -62,12 +62,14 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
         title: context.l10n.todayDoneTitle,
         children: const [],
       ),
-      final SessionPlaying p when p.step.kind == StepKind.intro => SessionIntro(
-        play: p,
-        known: _known(p, settings),
-        topBar: SessionTopBar(p, onLeave: _leave),
-        onGotIt: () => unawaited(controller.introDone()),
-      ),
+      final SessionPlaying p
+          when p.step.kind == StepKind.intro && p.guess == null =>
+        SessionIntro(
+          play: p,
+          known: _known(p, settings),
+          topBar: SessionTopBar(p, onLeave: _leave),
+          onGotIt: () => unawaited(controller.introDone()),
+        ),
       final SessionPlaying p => _pin(p, settings, controller),
       SessionDone(:final summary) => SessionDoneView(
         summary: summary,
@@ -98,6 +100,18 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
       onConfirm: () => unawaited(controller.confirm()),
       onNext: () async => controller.next(),
       mixUp: hit == null ? null : _label(hit, settings),
+      guess: switch (p.guess) {
+        final g? => (
+          subline: g.knownSiblings == 0
+              ? l10n.sessionGuessKnowParent(streetName(g.parent, settings))
+              : l10n.sessionGuessKnowFamily(
+                  streetName(g.parent, settings),
+                  g.knownSiblings,
+                ),
+          note: l10n.sessionGuessNote,
+        ),
+        null => null,
+      },
       headerChip: r == null
           ? null
           : NextReviewChip(

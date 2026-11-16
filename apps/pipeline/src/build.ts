@@ -1,4 +1,11 @@
-import { createWriteStream, existsSync, mkdirSync, renameSync, statSync } from "node:fs";
+import {
+  createWriteStream,
+  existsSync,
+  mkdirSync,
+  renameSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline as pipe } from "node:stream/promises";
@@ -69,10 +76,64 @@ const loadStreets = async (
     utmSrid: city.utm_epsg,
     expectRelations: city.expect_relations,
     neighbourhoods: readNeighbourhoods(join(cityDir(city.id), "curation/neighbourhoods.geojson")),
+    centre: city.centre,
+    river: city.river,
   });
   return sql<CurrentStreet[]>`
     SELECT key::float8 AS key, norm_name, name_ka AS name, way_ids::float8[] AS way_ids
     FROM pipeline.street ORDER BY key`;
+};
+
+const share = (part: number, whole: number): string =>
+  whole ? `${((part / whole) * 100).toFixed(1)} %` : "–";
+
+/**
+ * The data check behind the lane families: how many numbered lane, dead-end and passage names
+ * found their parent, how near it they lie, and the orphans. Markdown, for docs/research.
+ */
+const familyCheck = async (sql: Sql): Promise<string> => {
+  const [names] = await sql`
+    SELECT count(*) FILTER (WHERE norm_name ~ '\\s(შესახვევი|ჩიხი|გასასვლელი)$')::int AS family_words,
+           count(*) FILTER (WHERE norm_name ~ '^.+\\s[ivxlc]+\\s(შესახვევი|ჩიხი|გასასვლელი)$')::int AS numbered
+    FROM pipeline.street`;
+  const [found] = await sql`
+    SELECT count(*)::int AS children,
+           count(*) FILTER (WHERE kind = 'lane')::int AS lanes,
+           count(*) FILTER (WHERE kind = 'dead_end')::int AS dead_ends,
+           count(*) FILTER (WHERE kind = 'passage')::int AS passages,
+           count(*) FILTER (WHERE away_m <= 500)::int AS near,
+           count(*) FILTER (WHERE away_m <= 1500)::int AS within
+    FROM pipeline.family`;
+  const unmatched = await sql`
+    SELECT s.name_ka FROM pipeline.street s
+    WHERE s.norm_name ~ '^.+\\s[ivxlc]+\\s(შესახვევი|ჩიხი|გასასვლელი)$'
+      AND NOT EXISTS (SELECT 1 FROM pipeline.family f WHERE f.child_key = s.key)
+    ORDER BY 1`;
+  const orphans = await sql`
+    SELECT c.name_ka AS child, p.name_ka AS parent, round((f.away_m / 1000)::numeric, 1)::float8 AS km
+    FROM pipeline.family f
+    JOIN pipeline.street c ON c.key = f.child_key
+    JOIN pipeline.street p ON p.key = f.parent_key
+    WHERE f.orphan ORDER BY f.away_m DESC, 1`;
+  const { family_words, numbered } = names ?? {};
+  const { children, lanes, dead_ends, passages, near, within } = found ?? {};
+  return [
+    "| Measure | Streets | Share |",
+    "| --- | --- | --- |",
+    `| Names ending in შესახვევი, ჩიხი or გასასვლელი | ${family_words} | |`,
+    `| … with a Roman numeral | ${numbered} | ${share(numbered, family_words)} |`,
+    `| Children with a parent (lane ${lanes}, dead end ${dead_ends}, passage ${passages}) | ${children} | ${share(children, numbered)} |`,
+    `| … within 500 m of the parent | ${near} | ${share(near, children)} |`,
+    `| … within 1.5 km of the parent | ${within} | ${share(within, children)} |`,
+    `| Orphans (over 1.5 km) | ${orphans.length} | ${share(orphans.length, children)} |`,
+    "",
+    `Numbered names without a parent (${unmatched.length}): ${unmatched.map((r) => r.name_ka).join(", ")}.`,
+    "",
+    "Orphans (child → parent, km):",
+    "",
+    ...orphans.map((o) => `- ${o.child} → ${o.parent}, ${o.km}`),
+    "",
+  ].join("\n");
 };
 
 const writeFixturePack = async (
@@ -127,6 +188,9 @@ export const build = async (cityId: string, opts: { fixture: boolean }): Promise
       osmTimestamp: osmTimestamp(input),
       generatedAt: isoSeconds(now),
     };
+    const families = await familyCheck(sql);
+    writeFileSync(join(out, "family-check.md"), families);
+    console.log(`families:\n${families}`);
     if (opts.fixture) {
       await writeFixturePack(sql, pack, identity.matchedKeys);
     } else {

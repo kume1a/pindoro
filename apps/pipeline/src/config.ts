@@ -24,6 +24,10 @@ export interface CityConfig {
   extract: { url: string; max_age_days: number };
   expect_relations: number[];
   fixture: { name: string; district_relation_id: number };
+  /** The curriculum's ring centre, also the pack's city centre. */
+  centre: { lat: number; lon: number };
+  /** The river splitting the city into banks: [lat, lon] points, downstream. */
+  river: [lat: number, lon: number][];
 }
 
 export const cityDir = (city: string): string => join(REPO_ROOT, "data/cities", city);
@@ -37,6 +41,8 @@ export const loadCity = (city: string): CityConfig => {
     "osm_relation_id",
     "utm_epsg",
     "extract",
+    "centre",
+    "river",
   ] as const) {
     if (!config[key]) throw new Error(`data/cities/${city}/city.yaml: missing ${key}`);
   }

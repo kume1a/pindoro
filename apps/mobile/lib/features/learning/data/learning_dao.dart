@@ -28,6 +28,13 @@ class LearningDao extends DatabaseAccessor<AppDatabase>
   Future<void> putCard(CardState card) =>
       into(cardStates).insertOnConflictUpdate(_row(card));
 
+  /// Saves cards without graded answers in one batch (carried-over streets).
+  Future<void> putCards(Iterable<CardState> cards) => batch(
+    (b) => b.insertAllOnConflictUpdate(cardStates, [
+      for (final card in cards) _row(card),
+    ]),
+  );
+
   /// Saves one answer at once: the card's new state (none for an answer that
   /// schedules nothing, like a pretest), its log row and, for a mix-up, the
   /// confused pair.

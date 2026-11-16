@@ -78,6 +78,7 @@ class District {
     required this.bbox,
     required this.areaM2,
     required this.boundary,
+    this.parentId,
   });
 
   factory District.fromRow(PackRow r) => District(
@@ -90,6 +91,7 @@ class District {
     bbox: _bbox(r),
     areaM2: _d(r['area_m2']),
     boundary: decodeMultipolygon6(r['boundary']! as String),
+    parentId: r['parent_id'] as String?,
   );
 
   final String id;
@@ -102,9 +104,19 @@ class District {
   final double areaM2;
   final List<List<Polyline>> boundary;
 
+  /// A smaller area's raion (pack format 4); null for a raion and older packs.
+  final String? parentId;
+
   /// A district proper, not one of the smaller areas inside.
   bool get isRaion => kind == DistrictKind.district;
 }
+
+/// A street's curriculum tier (pack format 4): [a] the skeleton (motorway,
+/// trunk, primary), [b] the grid (secondary, tertiary), [c] the rest.
+enum StreetTier { a, b, c }
+
+/// The side of the city's river a street lies on, facing downstream.
+enum RiverBank { left, right }
 
 class Street {
   const Street({
@@ -117,6 +129,11 @@ class Street {
     required this.midpoint,
     required this.bbox,
     required this.geometry,
+    this.tier,
+    this.ring,
+    this.bank,
+    this.chunkId,
+    this.etymology,
   });
 
   factory Street.fromRow(PackRow r) => Street(
@@ -129,6 +146,18 @@ class Street {
     midpoint: _latLng(r, 'mid'),
     bbox: _bbox(r),
     geometry: decodeMultiline6(r['geometry']! as String),
+    tier: switch (r['tier']) {
+      final String t => StreetTier.values.byName(t.toLowerCase()),
+      _ => null,
+    },
+    ring: r['ring'] as int?,
+    bank: switch (r['bank']) {
+      'L' => RiverBank.left,
+      'R' => RiverBank.right,
+      _ => null,
+    },
+    chunkId: r['chunk_id'] as String?,
+    etymology: r['etymology'] as String?,
   );
 
   final String id;
@@ -140,4 +169,42 @@ class Street {
   final LatLng midpoint;
   final Bbox bbox;
   final MultiPolyline geometry;
+
+  // The curriculum's columns (pack format 4); null in older packs.
+  final StreetTier? tier;
+
+  /// 2 km bands round the city centre, 0 innermost.
+  final int? ring;
+  final RiverBank? bank;
+
+  /// The neighbourhood that teaches this street.
+  final String? chunkId;
+
+  /// OSM `name:etymology`.
+  final String? etymology;
 }
+
+/// A lane-family kind, by the Georgian word that ends the child's name.
+enum FamilyKind { lane, deadEnd, passage }
+
+/// A numbered lane, dead end or passage and the street it belongs to (pack
+/// format 4). [orphan]: the child lies far from its parent.
+typedef FamilyLink = ({
+  String parentId,
+  String childId,
+  FamilyKind kind,
+  int n,
+  bool orphan,
+});
+
+FamilyLink familyLinkFromRow(PackRow r) => (
+  parentId: r['parent_street_id']! as String,
+  childId: r['child_street_id']! as String,
+  kind: switch (r['kind']) {
+    'dead_end' => FamilyKind.deadEnd,
+    final String k => FamilyKind.values.byName(k),
+    _ => throw FormatException('family without a kind', r),
+  },
+  n: r['n']! as int,
+  orphan: r['orphan'] == 1,
+);

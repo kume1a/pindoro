@@ -27,6 +27,14 @@ final class SessionEmpty extends SessionState {
   const SessionEmpty();
 }
 
+/// A family member's intro chip: its parent and how many children of each
+/// kind the parent has.
+typedef SessionFamily = ({NamedStreet parent, Map<FamilyKind, int> children});
+
+/// Guess first (SPEC §6.4): a child whose parent the player knows is pinned
+/// before its intro; the guess is graded but schedules nothing.
+typedef SessionGuess = ({NamedStreet parent, int knownSiblings});
+
 /// A graded pin, as the reveal shows it.
 typedef SessionReveal = ({
   PinGrade grade,
@@ -50,6 +58,8 @@ final class SessionPlaying extends SessionState {
     required this.known,
     required this.newIndex,
     required this.newTotal,
+    this.family,
+    this.guess,
     this.frame,
     this.pin,
     this.reveal,
@@ -74,6 +84,10 @@ final class SessionPlaying extends SessionState {
   /// "New street · [newIndex] of [newTotal]".
   final int newIndex;
   final int newTotal;
+  final SessionFamily? family;
+
+  /// Set while an intro waits for its guess.
+  final SessionGuess? guess;
 
   /// Retrieval 1 frames the street's district; null frames the city.
   final List<LatLng>? frame;
@@ -96,6 +110,8 @@ final class SessionPlaying extends SessionState {
     known: known,
     newIndex: newIndex,
     newTotal: newTotal,
+    family: family,
+    guess: guess,
     frame: frame,
     pin: pin ?? this.pin,
     reveal: reveal ?? this.reveal,
@@ -128,6 +144,7 @@ class SessionController extends Notifier<SessionState> {
   late Map<String, NamedStreet> _streets;
   late Set<NamedStreet> _all;
   late PackRepository _pack;
+  late Curriculum _curriculum;
   late Map<String, CardState> _cards;
   late List<(String, String)> _confusions;
   late Map<String, int> _successes;
@@ -156,6 +173,7 @@ class SessionController extends Notifier<SessionState> {
     planSub.close();
     final streets = await ref.read(cityStreetsProvider.future);
     final pack = await ref.read(packRepositoryProvider.future);
+    final curriculum = await ref.read(curriculumProvider.future);
     final cards = await dao.cards();
     final confusions = await dao.confusionPairs();
     final log = await dao.log();
@@ -167,6 +185,7 @@ class SessionController extends Notifier<SessionState> {
     _streets = streets;
     _all = streets.values.toSet();
     _pack = pack;
+    _curriculum = curriculum;
     _cards = {for (final c in cards) c.itemId: c};
     _confusions = [...confusions];
     _successes = {};
@@ -215,10 +234,21 @@ class SessionController extends Notifier<SessionState> {
       pin: pin,
       target: target,
       nearby: _all,
-      confusable: confusablesOf(target, _all, _confusions),
+      confusable: confusablesOf(
+        target,
+        _all,
+        _confusions,
+        family: _curriculum.familyOf(target.id),
+      ),
       rtMs: rtMs,
       priorSuccesses: _successes[step.itemId] ?? 0,
     );
+    if (p.guess != null) {
+      await _saveGuess(step.itemId, grade, now, rtMs);
+      if (!ref.mounted) return;
+      _show(p.steps, p.index, p.forgotten, guessed: true);
+      return;
+    }
     final result = applyReview(
       _cards[step.itemId],
       itemId: step.itemId,
@@ -273,6 +303,29 @@ class SessionController extends Notifier<SessionState> {
     );
   }
 
+  /// A guess is logged as a pretest: no card, no confused pair.
+  Future<void> _saveGuess(
+    String itemId,
+    PinGrade grade,
+    DateTime now,
+    int rtMs,
+  ) {
+    _times.add(now);
+    return _dao.saveAnswer(
+      log: LogEntry(
+        ts: now,
+        itemId: itemId,
+        format: ReviewFormat.pretest,
+        rating: grade.rating,
+        source: ReviewSource.session,
+        distanceM: grade.distanceM,
+        snapId: grade.snapStreetId,
+        rtMs: rtMs,
+        sessionId: _sessionId,
+      ),
+    );
+  }
+
   /// After the reveal: the next step, or the summary.
   void next() {
     final p = state;
@@ -281,7 +334,12 @@ class SessionController extends Notifier<SessionState> {
     }
   }
 
-  void _show(List<SessionStep> steps, int index, Set<int> forgotten) {
+  void _show(
+    List<SessionStep> steps,
+    int index,
+    Set<int> forgotten, {
+    bool guessed = false,
+  }) {
     var i = index;
     // A street that left the pack is skipped.
     while (i < steps.length && _streets[itemKey(steps[i].itemId)] == null) {
@@ -300,28 +358,58 @@ class SessionController extends Notifier<SessionState> {
         if (s.kind == StepKind.intro) s,
     ];
     final city = _pack.city();
+    final known = {
+      for (final c in _cards.values)
+        if (c.type == CardType.p && isKnown(c, now))
+          ?_streets[itemKey(c.itemId)],
+    }..remove(street);
+    final family = _curriculum.familyOf(street.id);
+    final parent = _streets[_curriculum.parentOf(street.id)];
+    final guess =
+        step.kind == StepKind.intro && !guessed && known.contains(parent)
+        ? (
+            parent: parent!,
+            knownSiblings: known
+                .where((s) => s != parent && family.contains(s.id))
+                .length,
+          )
+        : null;
     state = SessionPlaying(
       steps: steps,
       index: i,
       forgotten: forgotten,
       street: street,
       area: (bbox: city.bbox, boundary: city.boundary),
-      known: _knownNear(street, now),
+      known: _nearestFirst(street, known, family),
       newIndex: intros.indexOf(step) + 1,
       newTotal: intros.length,
-      frame: step.kind == StepKind.retrieval1 ? _districtFrame(street) : null,
+      family: _familyOf(street),
+      guess: guess,
+      frame: step.kind == StepKind.retrieval1 || guess != null
+          ? _districtFrame(street)
+          : null,
     );
   }
 
-  /// Up to [LearningConfig.knownLabelMax] known streets nearest [street].
-  List<NamedStreet> _knownNear(NamedStreet street, DateTime now) {
-    final known = {
-      for (final c in _cards.values)
-        if (c.type == CardType.p && isKnown(c, now))
-          ?_streets[itemKey(c.itemId)],
-    }..remove(street);
+  SessionFamily? _familyOf(NamedStreet street) {
+    final chip = _curriculum.familyChip(street.id);
+    final parent = _streets[chip?.parentId];
+    return chip == null || parent == null
+        ? null
+        : (parent: parent, children: chip.children);
+  }
+
+  /// Up to [LearningConfig.knownLabelMax] of the [known] streets: [street]'s
+  /// [family] first, then the nearest.
+  List<NamedStreet> _nearestFirst(
+    NamedStreet street,
+    Set<NamedStreet> known,
+    Set<String> family,
+  ) {
     final at = street.parts.first.midpoint;
-    double away(NamedStreet s) => distanceBetween(at, s.parts.first.midpoint);
+    double away(NamedStreet s) => family.contains(s.id)
+        ? -1
+        : distanceBetween(at, s.parts.first.midpoint);
     return (known.toList()..sort((a, b) => away(a).compareTo(away(b))))
         .take(LearningConfig.knownLabelMax)
         .toList();

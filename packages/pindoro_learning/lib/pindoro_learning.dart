@@ -3,6 +3,7 @@ library;
 
 export 'src/cards.dart';
 export 'src/constants.dart';
+export 'src/curriculum.dart';
 export 'src/export.dart';
 export 'src/fsrs.dart';
 export 'src/grader.dart';

@@ -11,6 +11,8 @@ import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/map/ui/widgets/street_facts.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
+import 'package:pindoro/l10n/app_localizations.dart';
+import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// The intro sheet's rough height, so the camera frames the street above it.
@@ -93,6 +95,14 @@ class SessionIntro extends ConsumerWidget {
                   title: l10n.lessonWhereTitle,
                   where: intro.where,
                   facts: intro.facts,
+                  etymology: street.parts.first.etymology,
+                  family: switch (play.family) {
+                    final f? => l10n.sessionFamily(
+                      streetName(f.parent, settings),
+                      familyCounts(l10n, f.children),
+                    ),
+                    null => null,
+                  },
                   regionLabel: l10n.sessionIntroRegion,
                   hearLabel: l10n.lessonHearName,
                   onHear: canSpeak
@@ -117,3 +127,15 @@ class SessionIntro extends ConsumerWidget {
     );
   }
 }
+
+/// "9 lanes, 6 dead ends": a family's children by kind, the kinds it has.
+String familyCounts(AppLocalizations l10n, Map<FamilyKind, int> children) => [
+  for (final MapEntry(key: kind, value: count)
+      in children.entries.toList()
+        ..sort((a, b) => a.key.index.compareTo(b.key.index)))
+    switch (kind) {
+      FamilyKind.lane => l10n.familyLanes(count),
+      FamilyKind.deadEnd => l10n.familyDeadEnds(count),
+      FamilyKind.passage => l10n.familyPassages(count),
+    },
+].join(', ');

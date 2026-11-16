@@ -18,6 +18,11 @@ bool isKnown(CardState card, DateTime now, {Fsrs fsrs = const Fsrs()}) {
       fsrs.retrievability(memory, now) >= LearningConfig.knownMinR;
 }
 
+extension CardLabels on CardState {
+  /// Solid, SPEC §8: stability of [LearningConfig.solidDays] or more.
+  bool get isSolid => (memory?.stability ?? 0) >= LearningConfig.solidDays;
+}
+
 /// City memory, SPEC §8: the recall chance summed over the core streets'
 /// cards, so "streets you'd place right now"; unseen streets add nothing.
 double cityMemory(

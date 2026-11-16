@@ -32,6 +32,11 @@ const params: StepParams = {
   expectRelations: [1001, 1002],
   neighbourhoods: [],
   minAreaStreets: 1,
+  centre: { lat: 41.71, lon: 44.72 },
+  river: [
+    [41.725, 44.69],
+    [41.725, 44.81],
+  ],
 };
 
 describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
@@ -134,11 +139,19 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
     const ways = (
       await sql`SELECT unnest(way_ids)::float8 AS id FROM pipeline.street ORDER BY 1`
     ).map((r) => r.id);
-    expect(ways).toEqual([2001, 2002, 2003, 2004, 2006, 2008, 2012, 2013, 2014]);
+    expect(ways).toEqual([
+      2001, 2002, 2003, 2004, 2006, 2008, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020,
+      2021, 2022,
+    ]);
   });
 
   it("assigns a road crossing two districts to both", async () => {
-    expect(await districtsOf("ჯვრის გამზირი")).toEqual(["osm:r1001", "osm:r1002"]);
+    expect(await districtsOf("ჯვრის გამზირი")).toEqual([
+      "osm:r1001",
+      "osm:r1002",
+      "osm:w118",
+      "osm:w119",
+    ]);
   });
 
   it("ignores a short (< 150 m, < 30 %) stretch inside a district", async () => {
@@ -165,8 +178,8 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
 
   it("exports a pack with decodable polyline6 geometry", async () => {
     const db = await exportPack();
-    expect(db.prepare("SELECT count(*) FROM street").pluck().get()).toBe(8);
-    expect(db.prepare("SELECT count(*) FROM district").pluck().get()).toBe(4);
+    expect(db.prepare("SELECT count(*) FROM street").pluck().get()).toBe(16);
+    expect(db.prepare("SELECT count(*) FROM district").pluck().get()).toBe(6);
     const split = db
       .prepare("SELECT geometry FROM street WHERE name_ka = 'Split Street'")
       .pluck()
@@ -185,6 +198,20 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
     expect(rows).toEqual([
       { id: "osm:r1004", kind: "quarter", relation: 1004, name_ka: "შუა", name_en: "Middle" },
       { id: "osm:w114", kind: "neighbourhood", relation: null, name_ka: "ტყუპი", name_en: null },
+      {
+        id: "osm:w118",
+        kind: "neighbourhood",
+        relation: null,
+        name_ka: "ჩრდილოეთი",
+        name_en: null,
+      },
+      {
+        id: "osm:w119",
+        kind: "neighbourhood",
+        relation: null,
+        name_ka: "გზაჯვარედინი",
+        name_en: null,
+      },
     ]);
     expect(await districtsOf("Twin Street")).toContain("osm:w114");
     expect(await districtsOf("Split Street")).toContain("osm:r1004");
@@ -249,7 +276,7 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
       street_id: string;
       geometry: string;
     }[];
-    expect(edges).toHaveLength(11);
+    expect(edges).toHaveLength(19);
     for (const e of edges) {
       const line = decodePolyline6(e.geometry);
       const from = junctions.get(e.from_junction);
@@ -275,7 +302,14 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
       )
       .pluck()
       .all();
-    expect(edgeStreets).toEqual(["Bridge Road", "North Road", "Ridge Road", "ჯვრის გამზირი"]);
+    expect(edgeStreets).toEqual([
+      "Bridge Road",
+      "North Road",
+      "Ridge Road",
+      "ტყის III გასასვლელი",
+      "ტყის ქუჩა",
+      "ჯვრის გამზირი",
+    ]);
     const unused = db
       .prepare(
         `SELECT count(*) FROM junction j WHERE NOT EXISTS
@@ -332,6 +366,108 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
     );
     expect(readFileSync(file, "utf8")).toBe("previous pack");
     expect(readdirSync(dir)).toEqual(["synth.sqlite"]);
+  });
+
+  /** Each street's curriculum row by name; same-name streets in key order. */
+  const learning = async (
+    name: string,
+  ): Promise<{ tier: string; ring: number; bank: string; chunk_id: string }[]> =>
+    (await sql`
+      SELECT l.tier, l.ring, l.bank, l.chunk_id
+      FROM pipeline.street_learning l JOIN pipeline.street s USING (key)
+      WHERE s.norm_name = pipeline.normalise_name(${name}) ORDER BY s.key`) as never;
+
+  it("ranks streets into tiers, 2 km rings round the centre and river banks", async () => {
+    expect(await learning("ჯვრის გამზირი")).toMatchObject([{ tier: "A", ring: 1, bank: "L" }]);
+    expect(await learning("Edge Lane")).toMatchObject([{ tier: "B", ring: 1, bank: "R" }]);
+    expect(await learning("Split Street")).toMatchObject([{ tier: "C", ring: 0, bank: "R" }]);
+    expect(await learning("North Road")).toMatchObject([{ tier: "C", ring: 2, bank: "L" }]);
+  });
+
+  it("puts a street in the neighbourhood holding most of it, else the nearest", async () => {
+    expect((await learning("ჯვრის გამზირი"))[0]?.chunk_id).toBe("osm:w118");
+    expect((await learning("Twin Street"))[0]?.chunk_id).toBe("osm:w114");
+    expect((await learning("Split Street"))[0]?.chunk_id).toBe("osm:w114");
+    expect((await learning("Edge Lane"))[0]?.chunk_id).toBe("osm:w119");
+  });
+
+  it("links neighbourhoods within 50 m both ways and gives each area its raion", async () => {
+    expect(await sql`SELECT chunk_a, chunk_b FROM pipeline.chunk_neighbour ORDER BY 1, 2`).toEqual([
+      { chunk_a: "osm:w118", chunk_b: "osm:w119" },
+      { chunk_a: "osm:w119", chunk_b: "osm:w118" },
+    ]);
+    expect(await sql`SELECT id, parent_id FROM pipeline.area_parent ORDER BY id`).toEqual([
+      { id: "osm:r1004", parent_id: "osm:r1001" },
+      { id: "osm:w114", parent_id: "osm:r1001" },
+      { id: "osm:w118", parent_id: "osm:r1002" },
+      { id: "osm:w119", parent_id: "osm:r1002" },
+    ]);
+  });
+
+  it("parses lane families from the names: nearest parent, lanes of lanes, orphans", async () => {
+    const rows = await sql`
+      SELECT c.name_ka AS child, p.way_ids::float8[] AS parent, f.kind, f.n, f.orphan
+      FROM pipeline.family f
+      JOIN pipeline.street c ON c.key = f.child_key
+      JOIN pipeline.street p ON p.key = f.parent_key
+      ORDER BY f.n, f.kind`;
+    expect(rows).toEqual([
+      { child: "ტყის I შესახვევის I ჩიხი", parent: [2016], kind: "dead_end", n: 1, orphan: false },
+      { child: "ტყის I შესახვევი", parent: [2015], kind: "lane", n: 1, orphan: false },
+      { child: "ტყის II ჩიხი", parent: [2015], kind: "dead_end", n: 2, orphan: false },
+      { child: "ტყის III გასასვლელი", parent: [2021], kind: "passage", n: 3, orphan: false },
+      { child: "ტყის IV ჩიხი", parent: [2015], kind: "dead_end", n: 4, orphan: true },
+    ]);
+  });
+
+  it("exports the curriculum data with the configured city centre", async () => {
+    const db = await exportPack();
+    expect(db.prepare("SELECT center_lat, center_lon FROM city").get()).toEqual({
+      center_lat: 41.71,
+      center_lon: 44.72,
+    });
+    expect(
+      db
+        .prepare(
+          "SELECT tier, ring, bank, chunk_id, etymology FROM street WHERE name_en = 'Cross Avenue'",
+        )
+        .get(),
+    ).toEqual({
+      tier: "A",
+      ring: 1,
+      bank: "L",
+      chunk_id: "osm:w118",
+      etymology: "The cross on the hill",
+    });
+    expect(db.prepare("SELECT parent_id FROM district WHERE id = 'osm:w114'").pluck().get()).toBe(
+      "osm:r1001",
+    );
+    expect(
+      db
+        .prepare(
+          `SELECT c.name_ka, p.name_ka AS parent, f.kind, f.n, f.orphan FROM family f
+           JOIN street c ON c.id = f.child_street_id JOIN street p ON p.id = f.parent_street_id
+           WHERE c.name_ka = 'ტყის IV ჩიხი'`,
+        )
+        .get(),
+    ).toEqual({ name_ka: "ტყის IV ჩიხი", parent: "ტყის ქუჩა", kind: "dead_end", n: 4, orphan: 1 });
+    expect(db.prepare("SELECT count(*) FROM family").pluck().get()).toBe(5);
+    expect(db.prepare("SELECT count(*) FROM chunk_neighbour").pluck().get()).toBe(2);
+    db.close();
+  });
+
+  it("a fixture pack keeps only the chunks, raions, families and neighbours inside it", async () => {
+    const db = await exportPack("osm:r1001");
+    expect(
+      db.prepare("SELECT chunk_id FROM street WHERE name_en = 'Cross Avenue'").pluck().get(),
+    ).toBeNull();
+    expect(
+      db.prepare("SELECT chunk_id FROM street WHERE name_ka = 'Split Street'").pluck().get(),
+    ).toBe("osm:w114");
+    // ტყის III გასასვლელი's parent lies in the East.
+    expect(db.prepare("SELECT count(*) FROM family").pluck().get()).toBe(4);
+    expect(db.prepare("SELECT count(*) FROM chunk_neighbour").pluck().get()).toBe(0);
+    db.close();
   });
 
   it("adds curated neighbourhoods from GeoJSON", async () => {

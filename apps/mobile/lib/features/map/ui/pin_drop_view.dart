@@ -49,6 +49,7 @@ class PinDropView extends ConsumerWidget {
     this.known = const [],
     this.mixUp,
     this.headerChip,
+    this.guess,
   });
 
   final AreaShape area;
@@ -82,6 +83,9 @@ class PinDropView extends ConsumerWidget {
 
   /// The reveal's header chip instead of XP: the next-review chip (v3).
   final Widget? headerChip;
+
+  /// Guess first: the plate's sub-line and the note above Confirm guess.
+  final ({String subline, String note})? guess;
 
   /// Space the Confirm button takes at the bottom of the map.
   static double confirmInset(BuildContext context) =>
@@ -158,11 +162,12 @@ class PinDropView extends ConsumerWidget {
                   topBar,
                   RiseSwitcher(
                     child: QuestionPlate(
-                      key: ValueKey(questionKey),
+                      key: ValueKey((questionKey, guess != null)),
                       street: street,
                       settings: settings,
                       compact: reveal != null,
                       retryDistance: retryDistance,
+                      guess: guess?.subline,
                     ),
                   ),
                 ],
@@ -174,12 +179,28 @@ class PinDropView extends ConsumerWidget {
               left: PindoroSpace.s4,
               right: PindoroSpace.s4,
               bottom: bottomActionGap(context),
-              child: Semantics(
-                label: pin == null ? l10n.a11yConfirmDisabled : null,
-                child: PindoroButton(
-                  label: l10n.commonConfirm,
-                  onPressed: pin == null ? null : onConfirm,
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                spacing: PindoroSpace.s3,
+                children: [
+                  if (guess case (:final note, subline: _))
+                    Text(
+                      note,
+                      textAlign: TextAlign.center,
+                      style: PindoroType.bodySm.copyWith(
+                        color: PindoroTheme.of(context).colors.textSecondary,
+                      ),
+                    ),
+                  Semantics(
+                    label: pin == null ? l10n.a11yConfirmDisabled : null,
+                    child: PindoroButton(
+                      label: guess == null
+                          ? l10n.commonConfirm
+                          : l10n.sessionConfirmGuess,
+                      onPressed: pin == null ? null : onConfirm,
+                    ),
+                  ),
+                ],
               ),
             )
           else

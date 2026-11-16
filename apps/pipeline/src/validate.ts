@@ -8,7 +8,17 @@ import { type Bbox, META_KEYS, PACK_DDL, PACK_FORMAT_VERSION } from "./pack.ts";
 const MIN_EXPERT_STREETS = 30;
 /** Road trips are picked in the largest connected part; most of the graph must be in it. */
 const MIN_CONNECTED_SHARE = 0.9;
-const TABLES = ["meta", "city", "district", "street", "street_district", "junction", "road_edge"];
+const TABLES = [
+  "meta",
+  "city",
+  "district",
+  "street",
+  "street_district",
+  "junction",
+  "road_edge",
+  "family",
+  "chunk_neighbour",
+];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 interface Check {
@@ -159,6 +169,31 @@ const orphanCheck = (db: Pack): Check => {
   return check("street_district references", orphans === 0, orphans ? `${orphans} orphans` : "");
 };
 
+/**
+ * Curriculum references: chunks are neighbourhoods, parents are raions, families and chunk
+ * neighbours point at rows in the pack. A full pack gives every street a chunk.
+ */
+const learningCheck = (db: Pack, meta: Record<string, string>): Check => {
+  const bad = db
+    .prepare(
+      `SELECT
+         (SELECT count(*) FROM street s WHERE s.chunk_id IS NOT NULL AND NOT EXISTS
+            (SELECT 1 FROM district d WHERE d.id = s.chunk_id AND d.kind = 'neighbourhood'))
+       + (SELECT count(*) FROM street WHERE chunk_id IS NULL AND ? = 'full')
+       + (SELECT count(*) FROM district a WHERE a.parent_id IS NOT NULL AND NOT EXISTS
+            (SELECT 1 FROM district d WHERE d.id = a.parent_id AND d.kind = 'district'))
+       + (SELECT count(*) FROM family f WHERE f.parent_street_id = f.child_street_id
+            OR NOT EXISTS (SELECT 1 FROM street s WHERE s.id = f.parent_street_id)
+            OR NOT EXISTS (SELECT 1 FROM street s WHERE s.id = f.child_street_id))
+       + (SELECT count(*) FROM chunk_neighbour n
+            WHERE NOT EXISTS (SELECT 1 FROM district d WHERE d.id = n.chunk_a)
+               OR NOT EXISTS (SELECT 1 FROM district d WHERE d.id = n.chunk_b))`,
+    )
+    .pluck()
+    .get(meta.scope) as number;
+  return check("curriculum references", bad === 0, bad ? `${bad} bad rows` : "");
+};
+
 /** Polyline6 rounding plus float noise: an edge's ends equal its junctions within this. */
 const SAME_POINT_DEG = 2e-6;
 
@@ -255,6 +290,7 @@ export const validatePack = (file: string): boolean => {
       streetCheck(db, cityRow),
       boundaryCheck(db, cityRow),
       orphanCheck(db),
+      learningCheck(db, meta),
       ...graphChecks(db),
     ];
     console.log(`${file}\n  city ${meta.city_id}  version ${meta.version}  scope ${meta.scope}`);

@@ -484,7 +484,8 @@ rest of the spec. Numbers named here are in §13.
 14. **Snap set**: every street part in the pack, mapped to its NamedStreet (bbox prefilter, then a
     scan; add a spatial index only if it gets slow).
 15. **Confusables**: "same base name" means the same normalised `name_ka` (the 377 repeated names).
-    Until the family table exists (M2) the set is same-name streets plus logged confusions.
+    The set is same-name streets, logged confusions and the street's family: its parent and
+    siblings, and its own children (an orphan has no family).
 16. **Explore answers** update a card only when it is due or near due (due within `nearDueFraction`
     of its interval, the implicit-evidence window); otherwise they are logged only. A first-sight
     Good/Easy creates the card like placement; a failure on an unseen street is logged only.
@@ -549,3 +550,30 @@ rest of the spec. Numbers named here are in §13.
 
 Personal name aliases for fuzzy matching, CSV import of personal landmarks, the friends cooperative
 board, and per-type FSRS parameter presets.
+
+### 16.11 Curriculum (M2)
+
+35. **The skeleton is taught with the grid.** Tier A streets that placement leaves unseen are taught
+    before tier B, in the same order (ring, bank, length). The 60/40 split of §6.3 holds while any
+    core tier A or B street is unseen.
+36. **Banks alternate** within a ring, starting with the bank of the ring's longest street.
+37. **Chunk order**: home, then work, then the chunk holding the centre; then a chunk already
+    started; then the chunk bordering the most finished chunks (ties: its centre nearer the city
+    centre). A chunk is finished when none of its core tier C streets is unseen. The order is set
+    once per plan.
+38. **Within a chunk**, children are grouped by parent and ordered by number. A street that is both
+    a child and a parent (a lane with its own dead ends) is taught as a child.
+39. **Groups**: new slots fill in groups of `groupSize`, each group from one lane (skeleton and grid,
+    or chunks). A lane with nothing left gives its slots to the other.
+40. **Placement samples** a street's raion through its chunk (`district.parent_id`), with the plan
+    seed.
+41. **Streets without a chunk** (packs before format 4, and the bundled Vake pack's streets whose
+    chunk lies outside Vake) form one chunk, taught last. Without tiers every street is tier C.
+42. **Carried-over streets** (players of the old game): every street with a Great or Perfect and no
+    card gets a P card rated Good on first sight, `prior_known = 1`, due on a seeded day
+    `migrationDueMinDays`–`migrationDueMaxDays` out. No intro and no `review_log` row. It runs
+    whenever a pack opens, so streets known in Explore before M3 still come over.
+43. **Guess first** comes before the intro of a child whose parent is Known. The plate names what
+    the player knows ("You know 26 May Street and 4 of its side streets"); the map stays blank, as
+    on every question map (§16.6), although the board labels the family there. The guess is
+    logged as `pretest` and saves no confused pair.

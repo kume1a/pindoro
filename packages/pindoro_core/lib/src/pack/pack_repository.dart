@@ -24,5 +24,12 @@ abstract interface class PackRepository {
   /// The road graph (format 3); null for an older pack without one.
   RoadGraph? roadGraph();
 
+  /// Lane families (format 4); empty for an older pack.
+  List<FamilyLink> families();
+
+  /// Each neighbourhood's bordering neighbourhoods (format 4); empty for an
+  /// older pack.
+  Map<String, Set<String>> chunkNeighbours();
+
   void close();
 }
