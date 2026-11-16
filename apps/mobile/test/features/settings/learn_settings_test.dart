@@ -103,7 +103,12 @@ void main() {
     expect(find.text('Recalled 90 % · 20 reviews'), findsOneWidget);
     expect(find.text('The default weights'), findsOneWidget);
 
+    // Nothing pasted yet: Use does nothing.
+    await tapThrough(tester, find.text('Use these weights'));
+    expect(find.text('That isn’t a set of 21 FSRS weights.'), findsNothing);
+
     await tester.enterText(find.byType(TextField), '[1, 2, 3]');
+    await tester.pump();
     await tapThrough(tester, find.text('Use these weights'));
     expect(find.text('That isn’t a set of 21 FSRS weights.'), findsOneWidget);
     Future<String?> stored() async => (await tester.runAsync(
@@ -116,6 +121,7 @@ void main() {
       find.byType(TextField),
       jsonEncode({'weights': fitted}),
     );
+    await tester.pump();
     await tapThrough(tester, find.text('Use these weights'));
     expect(jsonDecode((await stored())!), fitted);
     await tapThrough(tester, find.text('Back to the default weights'));

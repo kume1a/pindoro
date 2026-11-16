@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/settings.dart';
-import 'package:pindoro/features/map/ui/pin_drop_view.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
@@ -49,9 +48,10 @@ class _EndsViewState extends ConsumerState<EndsView> {
     final task = play.task as ExtentTask;
     final grade = task.grade;
     final pins = task.pins;
+    final mapOf = ref.watch(pindoroMapBuilderProvider);
     return TaskScaffold(
       topBar: widget.topBar,
-      map: ref.watch(pindoroMapBuilderProvider)(
+      map: (insets) => mapOf(
         PindoroMap(
           area: play.area,
           pin: pins.firstOrNull,
@@ -60,8 +60,8 @@ class _EndsViewState extends ConsumerState<EndsView> {
           onTap: grade == null ? widget.onPin : null,
           onCamera: (p) => setState(() => _projection = p),
           showControls: grade == null,
-          topInset: MediaQuery.paddingOf(context).top + 180,
-          bottomInset: PinDropView.confirmInset(context),
+          topInset: insets.top,
+          bottomInset: insets.bottom,
         ),
       ),
       overlays: [

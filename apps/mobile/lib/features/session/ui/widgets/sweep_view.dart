@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
-import 'package:pindoro/features/map/ui/pin_drop_view.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
@@ -63,9 +62,10 @@ class _SweepViewState extends ConsumerState<SweepView> {
         if (!placedLabels.contains(s.id)) s.id,
     ]..sort((a, b) => names[a]!.compareTo(names[b]!));
     final tier = task.result;
+    final mapOf = ref.watch(pindoroMapBuilderProvider);
     return TaskScaffold(
       topBar: widget.topBar,
-      map: ref.watch(pindoroMapBuilderProvider)(
+      map: (insets) => mapOf(
         PindoroMap(
           area: play.area,
           frame: play.frame,
@@ -83,8 +83,8 @@ class _SweepViewState extends ConsumerState<SweepView> {
               ),
           ],
           onCamera: (p) => setState(() => _projection = p),
-          topInset: MediaQuery.paddingOf(context).top + 180,
-          bottomInset: PinDropView.confirmInset(context) + 120,
+          topInset: insets.top,
+          bottomInset: insets.bottom,
         ),
       ),
       overlays: [

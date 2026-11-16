@@ -152,7 +152,7 @@ class SectionTitle extends StatelessWidget {
 }
 
 /// Rows in one raised group (`radius.xl`, 2 dp border, `elevation.1` lip),
-/// separated by hairlines.
+/// separated by hairlines; nothing at all without rows, not an empty frame.
 class ListGroup extends StatelessWidget {
   const ListGroup({super.key, required this.children});
 
@@ -160,6 +160,7 @@ class ListGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (children.isEmpty) return const SizedBox.shrink();
     final c = PindoroTheme.of(context).colors;
     return LipBox(
       border: c.lineBase,

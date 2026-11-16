@@ -109,9 +109,13 @@ class _MemoryModelScreenState extends ConsumerState<MemoryModelScreen> {
             glyph: PindoroGlyph.edit,
             autocorrect: false,
             textInputAction: TextInputAction.done,
+            onChanged: (_) => setState(() {}),
           ),
         ),
-        PindoroButton(label: l10n.memoryWeightsUse, onPressed: _use),
+        PindoroButton(
+          label: l10n.memoryWeightsUse,
+          onPressed: _weights.text.trim().isEmpty ? null : _use,
+        ),
         if (stored != null)
           PindoroButton(
             label: l10n.memoryWeightsReset,

@@ -22,6 +22,9 @@ String areaCountLine(
       '${l10n.areaStreetCount(n, formatNumber(n))}';
 }
 
+/// The area picker's sheet, kept short so the map stays the main thing: the
+/// modes, the title over the [count] with the [countAction] beside them, the
+/// [help] line when there is one, one row of [content] and [next].
 class AreaSheet extends StatelessWidget {
   const AreaSheet({
     super.key,
@@ -29,8 +32,8 @@ class AreaSheet extends StatelessWidget {
     required this.mode,
     required this.onMode,
     required this.title,
-    required this.help,
     required this.next,
+    this.help,
     this.count,
     this.countAction,
     this.content,
@@ -40,17 +43,21 @@ class AreaSheet extends StatelessWidget {
   final AreaMode mode;
   final ValueChanged<AreaMode> onMode;
   final String title;
-  final String help;
+  final String? help;
   final String? count;
 
-  /// At the end of the count line: the "All n" chip, or Try again offline.
+  /// Beside the title and count: the "All n" chip, or Try again offline.
   final Widget? countAction;
+
+  /// One row: the chips (scrolling sideways) or the circle's slider.
   final Widget? content;
   final Widget next;
 
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
+    final help = this.help;
+    final count = this.count;
     return BottomPanel(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -63,33 +70,36 @@ class AreaSheet extends StatelessWidget {
               selected: mode,
               onChanged: onMode,
             ),
-          Text(
-            title,
-            style: PindoroType.titleLg.copyWith(color: c.textPrimary),
-          ),
-          if (count != null)
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    count!,
-                    style: PindoroType.labelMd.copyWith(color: c.textSecondary),
-                  ),
+          Row(
+            spacing: PindoroSpace.s3,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: PindoroType.titleLg.copyWith(color: c.textPrimary),
+                    ),
+                    if (count != null)
+                      Text(
+                        count,
+                        style: PindoroType.labelMd.copyWith(
+                          color: c.textSecondary,
+                        ),
+                      ),
+                  ],
                 ),
-                ?countAction,
-              ],
-            ),
-          Text(
-            help,
-            style: PindoroType.bodySm.copyWith(color: c.textSecondary),
-          ),
-          if (content != null)
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * 0.25,
               ),
-              child: SingleChildScrollView(child: content),
+              ?countAction,
+            ],
+          ),
+          if (help != null)
+            Text(
+              help,
+              style: PindoroType.bodySm.copyWith(color: c.textSecondary),
             ),
+          ?content,
           next,
         ],
       ),

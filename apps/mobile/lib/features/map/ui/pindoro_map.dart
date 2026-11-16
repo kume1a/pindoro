@@ -39,7 +39,7 @@ abstract final class _MapSources {
 }
 
 /// The dotted line from the pin to the nearest point of the street, with its
-/// distance chip half-way.
+/// distance chip hanging under its middle (never under the pin).
 typedef Measure = ({LatLng from, LatLng to, String label});
 
 /// A street drawn with its name: a known street's grey trace and white chip,
@@ -61,7 +61,8 @@ final pindoroMapBuilderProvider = Provider<Widget Function(PindoroMap map)>(
 /// pin, truth street and measure line passed in by the caller, or a road
 /// [route]. [bottomInset] is the height of whatever covers the bottom of the
 /// map (button, sheet): controls and attribution sit above it and the camera
-/// frames above it. [frame] replaces the area as what the camera fits (and
+/// frames above it; until the player moves the map, it frames again whenever
+/// an inset changes. [frame] replaces the area as what the camera fits (and
 /// fits again whenever it changes); [onCamera] hears every camera move.
 class PindoroMap extends ConsumerStatefulWidget {
   const PindoroMap({
@@ -119,6 +120,10 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     with TickerProviderStateMixin {
   ml.MapLibreMapController? _controller;
   bool _locating = false;
+
+  /// The camera is still where the last fit put it: no touch or control has
+  /// moved it since.
+  bool _framed = false;
 
   /// The pin drop: falls 24 dp and bounces once (`motion.pin-drop`).
   late final AnimationController _drop = AnimationController(
@@ -276,10 +281,14 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
         widget.hit != oldWidget.hit) {
       runMapWork(_syncOverlays);
     }
-    if (widget.truth != null && widget.truth != oldWidget.truth) {
+    final frame = widget.frame;
+    final insetsMoved =
+        widget.topInset != oldWidget.topInset ||
+        widget.bottomInset != oldWidget.bottomInset;
+    if (widget.truth != oldWidget.truth ||
+        (frame != null && !listEquals(frame, oldWidget.frame)) ||
+        (insetsMoved && _framed)) {
       unawaited(_fit(_framePoints));
-    } else if (widget.truth == null && oldWidget.truth != null) {
-      unawaited(_fitArea());
     }
     if (widget.route != oldWidget.route) {
       runMapWork(_sendRoute);
@@ -288,10 +297,6 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
           !MediaQuery.disableAnimationsOf(context)) {
         unawaited(_pop.forward(from: 0));
       }
-    }
-    final frame = widget.frame;
-    if (frame != null && !listEquals(frame, oldWidget.frame)) {
-      unawaited(_fit(frame));
     }
   }
 
@@ -319,28 +324,29 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   /// than with a bounds update, whose padding stays on the camera and moves
   /// its target off the view's centre, where [MapProjection] (taps, road
   /// trips) expects it.
-  ({LatLng target, double zoom}) _cameraFor(List<LatLng> points, Size size) =>
-      MapProjection.fit(
-        points,
-        size: size,
-        padding: EdgeInsets.fromLTRB(
-          PindoroCamera.fitPaddingX,
-          widget.topInset + PindoroSpace.s6,
-          // A road trip's A and B pins (drawn centred on their point) must
-          // clear the map controls on the right.
-          widget.onCamera != null && widget.showControls
-              ? PindoroSize.tapMin +
-                    2 * PindoroSpace.s4 +
-                    PindoroSize.pinPlayer / 2
-              : PindoroCamera.fitPaddingX,
-          // Clear of the attribution chip, which sits above the bottom inset.
-          widget.bottomInset + MapAttribution.clearance(context),
-        ),
-      );
+  ({LatLng target, double zoom}) _cameraFor(
+    List<LatLng> points,
+    Size size,
+  ) => MapProjection.fit(
+    points,
+    size: size,
+    padding: EdgeInsets.fromLTRB(
+      PindoroCamera.fitPaddingX,
+      widget.topInset + PindoroSpace.s6,
+      // A framed street, or a road trip's A and B pins (drawn centred on
+      // their point), must clear the map controls on the right.
+      widget.showControls && (widget.onCamera != null || widget.truth != null)
+          ? PindoroSize.tapMin + 2 * PindoroSpace.s4 + PindoroSize.pinPlayer / 2
+          : PindoroCamera.fitPaddingX,
+      // Clear of the attribution chip, which sits above the bottom inset.
+      widget.bottomInset + MapAttribution.clearance(context),
+    ),
+  );
 
   Future<void> _fit(List<LatLng> points) async {
     final size = _size;
     if (size == null) return;
+    _framed = true;
     final camera = _cameraFor(points, size);
     await _controller?.animateCamera(
       ml.CameraUpdate.newLatLngZoom(camera.target.toMapLibre, camera.zoom),
@@ -462,8 +468,27 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     await c.addSymbolLayer(
       _MapSources.measureLabel,
       '${_MapSources.measureLabel}-chip',
-      const ml.SymbolLayerProperties(
+      // On the line's far side from the pin (`from`), which stands above its
+      // tip: a short line's chip would otherwise hide behind it.
+      ml.SymbolLayerProperties(
         iconImage: ['get', 'icon'],
+        iconAnchor: ['get', 'anchor'],
+        iconOffset: [
+          'case',
+          [
+            '==',
+            ['get', 'anchor'],
+            'top',
+          ],
+          [
+            'literal',
+            [0, PindoroSpace.s2 * pixelRatio],
+          ],
+          [
+            'literal',
+            [0, -PindoroSpace.s2 * pixelRatio],
+          ],
+        ],
         iconAllowOverlap: true,
         iconIgnorePlacement: true,
       ),
@@ -585,7 +610,11 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       [
         Bbox.of([m.from, m.to]).center,
       ],
-      properties: {'icon': icon},
+      // A pin south of the middle reaches up to it: the chip goes above.
+      properties: {
+        'icon': icon,
+        'anchor': m.from.lat < m.to.lat ? 'bottom' : 'top',
+      },
     );
   }
 
@@ -620,6 +649,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   Future<void> _goToMyLocation() async {
     if (_locating) return;
     _locating = true;
+    _framed = false;
     try {
       final result = await ref.read(locationServiceProvider).locate();
       if (!mounted) return;
@@ -669,30 +699,33 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
               onTap: taps ? _tappedCentre : null,
               child: MapTaps(
                 onTap: taps ? _tapped : null,
-                child: ml.MapLibreMap(
-                  styleString: style.data!,
-                  initialCameraPosition: ml.CameraPosition(
-                    target: start.target.toMapLibre,
-                    zoom: start.zoom,
+                child: Listener(
+                  onPointerDown: (_) => _framed = false,
+                  child: ml.MapLibreMap(
+                    styleString: style.data!,
+                    initialCameraPosition: ml.CameraPosition(
+                      target: start.target.toMapLibre,
+                      zoom: start.zoom,
+                    ),
+                    gestureRecognizers: widget.ownsGestures
+                        ? {
+                            Factory<OneSequenceGestureRecognizer>(
+                              EagerGestureRecognizer.new,
+                            ),
+                          }
+                        : null,
+                    onMapCreated: (c) =>
+                        _controller = c..addListener(_cameraMoved),
+                    trackCameraPosition: widget.onCamera != null || taps,
+                    onStyleLoadedCallback: () => runMapWork(_addOverlays),
+                    // A tap drops the pin at once, so a second can't zoom.
+                    doubleClickZoomEnabled: taps ? false : null,
+                    rotateGesturesEnabled: false,
+                    tiltGesturesEnabled: false,
+                    compassEnabled: false,
+                    // Our own chip carries the attribution text.
+                    attributionButtonMargins: const Point(-100, -100),
                   ),
-                  gestureRecognizers: widget.ownsGestures
-                      ? {
-                          Factory<OneSequenceGestureRecognizer>(
-                            EagerGestureRecognizer.new,
-                          ),
-                        }
-                      : null,
-                  onMapCreated: (c) =>
-                      _controller = c..addListener(_cameraMoved),
-                  trackCameraPosition: widget.onCamera != null || taps,
-                  onStyleLoadedCallback: () => runMapWork(_addOverlays),
-                  // A tap drops the pin at once, so a second can't zoom.
-                  doubleClickZoomEnabled: taps ? false : null,
-                  rotateGesturesEnabled: false,
-                  tiltGesturesEnabled: false,
-                  compassEnabled: false,
-                  // Our own chip carries the attribution text.
-                  attributionButtonMargins: const Point(-100, -100),
                 ),
               ),
             ),
@@ -714,7 +747,10 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
                     onPressed: _fitArea,
                   ),
                   MapZoomControls(
-                    onCamera: (update) => _controller?.animateCamera(update),
+                    onCamera: (update) {
+                      _framed = false;
+                      unawaited(_controller?.animateCamera(update));
+                    },
                   ),
                 ],
               ),

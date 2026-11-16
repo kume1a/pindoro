@@ -193,7 +193,6 @@ class IntroSheet extends StatelessWidget {
                   PindoroIconButton(
                     glyph: PindoroGlyph.soundOn,
                     semanticLabel: hearLabel ?? '',
-                    size: PindoroSize.buttonLg,
                     onPressed: onHear,
                   ),
                 Expanded(

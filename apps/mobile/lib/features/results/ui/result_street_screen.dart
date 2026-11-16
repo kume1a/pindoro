@@ -54,110 +54,107 @@ class ResultStreetScreen extends ConsumerWidget {
     void go(int i) => context.pushReplacement(Routes.resultStreet(roundId, i));
 
     return Scaffold(
-      body: Stack(
-        children: [
-          ref.watch(pindoroMapBuilderProvider)(
-            PindoroMap(
-              area: shape,
-              pin: pin,
-              truth: street.geometry,
-              measure: (from: pin, to: nearest, label: distance),
-              topInset: MediaQuery.paddingOf(context).top + 80,
-              bottomInset: 260 + MediaQuery.paddingOf(context).bottom,
-              showControls: false,
-            ),
-          ),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(PindoroSpace.s4),
-              child: Row(
-                spacing: PindoroSpace.s3,
-                children: [
-                  MapControl(
-                    glyph: PindoroGlyph.back,
-                    semanticLabel: l10n.resultsBackToResults,
-                    onPressed: context.pop,
-                  ),
-                  Expanded(child: StreetPlate(name, compact: true)),
-                ],
+      // The map runs under the sheet; the body gets its height as padding.
+      extendBody: true,
+      body: Builder(
+        builder: (body) => Stack(
+          children: [
+            ref.watch(pindoroMapBuilderProvider)(
+              PindoroMap(
+                area: shape,
+                pin: pin,
+                truth: street.geometry,
+                measure: (from: pin, to: nearest, label: distance),
+                topInset: MediaQuery.paddingOf(context).top + 80,
+                bottomInset: MediaQuery.paddingOf(body).bottom,
+                showControls: false,
               ),
             ),
-          ),
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Container(
-              decoration: BoxDecoration(
-                color: c.surfaceOverlay,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(PindoroRadius.r2xl),
-                ),
-                border: Border(
-                  top: BorderSide(color: tier.fill, width: PindoroElevation.e2),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(PindoroSpace.s4),
+                child: Row(
+                  spacing: PindoroSpace.s3,
+                  children: [
+                    MapControl(
+                      glyph: PindoroGlyph.back,
+                      semanticLabel: l10n.resultsBackToResults,
+                      onPressed: context.pop,
+                    ),
+                    Expanded(child: StreetPlate(name, compact: true)),
+                  ],
                 ),
               ),
-              padding: EdgeInsets.fromLTRB(
-                PindoroSpace.s4,
-                PindoroSpace.s5,
-                PindoroSpace.s4,
-                PindoroSpace.s4 + MediaQuery.paddingOf(context).bottom,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                spacing: PindoroSpace.s3,
-                children: [
-                  Row(
-                    spacing: PindoroSpace.s3,
-                    children: [
-                      TierBadge(answer.tier, size: 44),
-                      Expanded(
-                        child: Text(
-                          tierWord(l10n, answer.tier),
-                          style: PindoroType.headlineSm.copyWith(
-                            color: tier.ink,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    name,
-                    style: PindoroType.titleLg.copyWith(color: c.textPrimary),
-                  ),
-                  Text(
-                    [?other, distance].join(' · '),
-                    style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
-                  ),
-                  Row(
-                    spacing: PindoroSpace.s3,
-                    children: [
-                      Expanded(
-                        child: PindoroButton(
-                          label: l10n.resultsPreviousStreet,
-                          variant: PindoroButtonVariant.secondary,
-                          onPressed: previous == null
-                              ? null
-                              : () => go(previous),
-                        ),
-                      ),
-                      Expanded(
-                        child: PindoroButton(
-                          label: l10n.resultsNextStreet,
-                          variant: PindoroButtonVariant.secondary,
-                          onPressed: next == null ? null : () => go(next),
-                        ),
-                      ),
-                    ],
-                  ),
-                  PindoroButton(
-                    label: l10n.resultsBackToResults,
-                    onPressed: context.pop,
-                  ),
-                ],
-              ),
             ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: c.surfaceOverlay,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(PindoroRadius.r2xl),
           ),
-        ],
+          border: Border(
+            top: BorderSide(color: tier.fill, width: PindoroElevation.e2),
+          ),
+        ),
+        padding: EdgeInsets.fromLTRB(
+          PindoroSpace.s4,
+          PindoroSpace.s5,
+          PindoroSpace.s4,
+          PindoroSpace.s4 + MediaQuery.paddingOf(context).bottom,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: PindoroSpace.s3,
+          children: [
+            Row(
+              spacing: PindoroSpace.s3,
+              children: [
+                TierBadge(answer.tier, size: 44),
+                Expanded(
+                  child: Text(
+                    tierWord(l10n, answer.tier),
+                    style: PindoroType.headlineSm.copyWith(color: tier.ink),
+                  ),
+                ),
+              ],
+            ),
+            Text(
+              name,
+              style: PindoroType.titleLg.copyWith(color: c.textPrimary),
+            ),
+            Text(
+              [?other, distance].join(' · '),
+              style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
+            ),
+            Row(
+              spacing: PindoroSpace.s3,
+              children: [
+                Expanded(
+                  child: PindoroButton(
+                    label: l10n.resultsPreviousStreet,
+                    variant: PindoroButtonVariant.secondary,
+                    onPressed: previous == null ? null : () => go(previous),
+                  ),
+                ),
+                Expanded(
+                  child: PindoroButton(
+                    label: l10n.resultsNextStreet,
+                    variant: PindoroButtonVariant.secondary,
+                    onPressed: next == null ? null : () => go(next),
+                  ),
+                ),
+              ],
+            ),
+            PindoroButton(
+              label: l10n.resultsBackToResults,
+              onPressed: context.pop,
+            ),
+          ],
+        ),
       ),
     );
   }

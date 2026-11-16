@@ -229,6 +229,29 @@ void main() {
     expect(find.byType(Minibar), findsOneWidget);
   });
 
+  testWidgets('a one-word badge name too long for its tile shrinks onto '
+      'one line instead of breaking mid-word', (tester) async {
+    const word = 'ადგილობრივი';
+    await tester.pumpWidget(
+      _host(
+        const SizedBox(
+          width: 110,
+          child: BadgeTile(
+            glyph: PindoroGlyph.pin,
+            field: Colors.indigo,
+            name: word,
+            condition: 'Learn one area',
+            semanticLabel: word,
+          ),
+        ),
+      ),
+    );
+    final style = tester.widget<Text>(find.text(word)).style!;
+    final name = tester.getRect(find.text(word));
+    expect(name.height, lessThan(style.fontSize! * 2), reason: 'one line');
+    expect(name.width, lessThanOrEqualTo(110), reason: 'shrunk to fit');
+  });
+
   testWidgets('the fade stack shows the old child only while fading', (
     tester,
   ) async {
