@@ -2,7 +2,6 @@ import 'dart:math';
 
 import 'cards.dart';
 import 'constants.dart';
-import 'fsrs.dart';
 import 'planner.dart';
 import 'stats.dart';
 
@@ -25,7 +24,8 @@ extension CalibrationCheck on CalibrationBin {
 }
 
 /// The calibration check (SPEC §12): reviews a day or more after the last one that moved their
-/// card, binned by the recall FSRS predicted; the bins with any.
+/// card, binned by the recall FSRS predicted; the bins with any. Implicit evidence stays out: only
+/// its failures are logged.
 List<CalibrationBin> calibration(Iterable<LogEntry> log) {
   const n = LearningConfig.calibrationBins;
   final predicted = List.filled(n, 0.0);
@@ -33,7 +33,12 @@ List<CalibrationBin> calibration(Iterable<LogEntry> log) {
   final reviews = List.filled(n, 0);
   for (final e in log) {
     final r = e.rBefore;
-    if (r == null || (e.elapsedDays ?? 0) < 1 || !changesSchedule(e)) continue;
+    if (r == null ||
+        (e.elapsedDays ?? 0) < 1 ||
+        e.source.implicit ||
+        !changesSchedule(e)) {
+      continue;
+    }
     final bin = min((r * n).floor(), n - 1);
     predicted[bin] += r;
     reviews[bin]++;
@@ -52,10 +57,11 @@ List<CalibrationBin> calibration(Iterable<LogEntry> log) {
   ];
 }
 
-/// Tier C relief (SPEC §4, §16.17): on once the days played in the last
-/// [LearningConfig.tierCReliefDays] took on average more than [LearningConfig.tierCReliefFactor]
-/// times [minutesPerDay], off again once they average under [minutesPerDay]. Replayed day by day
-/// over [LearningConfig.tierCReliefReplayDays] from off; [meanS] is today's average.
+/// Tier C relief (SPEC §4, §16.17): a day is relieved once the days played among the
+/// [LearningConfig.tierCReliefDays] before it took on average more than
+/// [LearningConfig.tierCReliefFactor] times [minutesPerDay], and not once they average under
+/// [minutesPerDay]. Replayed day by day over [LearningConfig.tierCReliefReplayDays] from off, so
+/// today's state holds all day; [meanS] is the average today is judged by.
 ({bool on, int meanS}) tierCRelief(
   Iterable<LogEntry> log, {
   required int minutesPerDay,
@@ -65,23 +71,19 @@ List<CalibrationBin> calibration(Iterable<LogEntry> log) {
   const replay = LearningConfig.tierCReliefReplayDays;
   DateTime dayBefore(int days) => DateTime(now.year, now.month, now.day - days);
   final first = dayBefore(replay + window);
-  final sessions = <(DateTime, String?), List<DateTime>>{};
+  final byDay = <DateTime, List<LogEntry>>{};
   for (final e in log) {
     final day = startOfDay(e.ts.toLocal());
-    if (!day.isBefore(first)) {
-      sessions.putIfAbsent((day, e.sessionId), () => []).add(e.ts);
-    }
+    if (!day.isBefore(first)) byDay.putIfAbsent(day, () => []).add(e);
   }
-  final spent = <DateTime, int>{};
-  for (final MapEntry(key: (day, _), value: times) in sessions.entries) {
-    final s = activeSeconds(times);
-    spent.update(day, (sum) => sum + s, ifAbsent: () => s);
-  }
+  final spent = {
+    for (final MapEntry(:key, :value) in byDay.entries) key: spentS(value),
+  };
   final budget = minutesPerDay * 60;
   var on = false;
   var meanS = 0;
   for (var d = replay; d >= 0; d--) {
-    final played = [for (var k = 0; k < window; k++) ?spent[dayBefore(d + k)]];
+    final played = [for (var k = 1; k <= window; k++) ?spent[dayBefore(d + k)]];
     meanS = played.isEmpty
         ? 0
         : played.reduce((a, b) => a + b) ~/ played.length;
@@ -100,7 +102,3 @@ double retentionOf(CardType type, {bool tierCRelieved = false}) =>
     type == CardType.p && tierCRelieved
     ? LearningConfig.retentionTierCRelief
     : LearningConfig.retentionDefault;
-
-/// Whether the scheduler runs on fitted weights rather than SPEC §4's.
-bool get usesFittedWeights =>
-    !identical(FsrsWeights.active, LearningConfig.fsrsWeights);

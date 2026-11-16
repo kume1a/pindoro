@@ -56,15 +56,21 @@ class _MemoryModelScreenState extends ConsumerState<MemoryModelScreen> {
       children: [
         SectionTitle(l10n.memoryCalibration),
         if (model != null && bins.isEmpty)
-          Text(l10n.memoryCalibrationEmpty)
+          Text(
+            l10n.memoryCalibrationEmpty,
+            style: PindoroType.bodyMd.copyWith(
+              color: PindoroTheme.of(context).colors.textSecondary,
+            ),
+          )
         else if (bins.isNotEmpty) ...[
           ForecastBars(
             counts: [for (final b in bins) (b.recalled * 100).round()],
             title: l10n.memoryCalibrationChart,
             average: l10n.memoryCalibrationHealthy,
-            startLabel: l10n.memoryBinShort(percent(bins.first.from)),
-            endLabel: l10n.memoryBinShort(percent(bins.last.from)),
+            startLabel: l10n.lessonPercent(percent(bins.first.from)),
+            endLabel: l10n.lessonPercent(percent(bins.last.from)),
             semanticsLabel: l10n.memoryCalibrationChart,
+            highlightFirst: false,
           ),
           ListGroup(
             children: [
@@ -76,8 +82,14 @@ class _MemoryModelScreenState extends ConsumerState<MemoryModelScreen> {
                     b.reviews,
                   ),
                   trailing: switch (b.calibrated) {
-                    true => const PindoroIcon(PindoroGlyph.checkCircle),
-                    false => const PindoroIcon(PindoroGlyph.target),
+                    true => PindoroIcon(
+                      PindoroGlyph.checkCircle,
+                      semanticLabel: l10n.memoryCalibrationHealthy,
+                    ),
+                    false => PindoroIcon(
+                      PindoroGlyph.target,
+                      semanticLabel: l10n.memoryBinOff,
+                    ),
                     null => null,
                   },
                 ),
@@ -89,7 +101,7 @@ class _MemoryModelScreenState extends ConsumerState<MemoryModelScreen> {
           children: [
             ListRow(
               leading: const RowTile(PindoroGlyph.chart),
-              title: usesFittedWeights
+              title: FsrsWeights.fitted
                   ? l10n.memoryWeightsFitted
                   : l10n.memoryWeightsDefault,
               subtitle: l10n.memoryWeightsReviews(

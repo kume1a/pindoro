@@ -387,6 +387,7 @@ class ForecastBars extends StatelessWidget {
     required this.endLabel,
     required this.semanticsLabel,
     this.animate = false,
+    this.highlightFirst = true,
   });
 
   final List<int> counts;
@@ -396,6 +397,9 @@ class ForecastBars extends StatelessWidget {
   final String endLabel;
   final String semanticsLabel;
   final bool animate;
+
+  /// Paints the first bar as today; off where the bars aren't days.
+  final bool highlightFirst;
 
   @override
   Widget build(BuildContext context) {
@@ -419,6 +423,7 @@ class ForecastBars extends StatelessWidget {
                 ),
         ],
         colors: c,
+        highlightFirst: highlightFirst,
       ),
     );
     return Semantics(
@@ -476,10 +481,15 @@ class ForecastBars extends StatelessWidget {
 }
 
 class _ForecastPainter extends CustomPainter {
-  _ForecastPainter({required this.heights, required this.colors});
+  _ForecastPainter({
+    required this.heights,
+    required this.colors,
+    required this.highlightFirst,
+  });
 
   final List<double> heights;
   final PindoroColors colors;
+  final bool highlightFirst;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -497,12 +507,17 @@ class _ForecastPainter extends CustomPainter {
           size.height,
           Radius.circular(radius),
         ),
-        Paint()..color = i == 0 ? colors.chartBarToday : colors.chartBar,
+        Paint()
+          ..color = highlightFirst && i == 0
+              ? colors.chartBarToday
+              : colors.chartBar,
       );
     }
   }
 
   @override
   bool shouldRepaint(_ForecastPainter old) =>
-      !listEquals(old.heights, heights) || old.colors != colors;
+      !listEquals(old.heights, heights) ||
+      old.colors != colors ||
+      old.highlightFirst != highlightFirst;
 }

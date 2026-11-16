@@ -44,9 +44,21 @@ class Scheduled {
 abstract final class FsrsWeights {
   static List<double> active = LearningConfig.fsrsWeights;
 
+  /// Whether the scheduler runs on fitted weights rather than SPEC §4's.
+  static bool get fitted => !identical(active, LearningConfig.fsrsWeights);
+
+  // py-fsrs 6.3.2's LOWER_/UPPER_BOUNDS_PARAMETERS: its Scheduler refuses anything outside them.
+  static const List<double> _min = [
+    0.001, 0.001, 0.001, 0.001, 1, 0.001, 0.001, 0.001, 0, 0, 0.001, //
+    0.001, 0.001, 0.001, 0, 0, 1, 0, 0, 0, 0.1,
+  ];
+  static const List<double> _max = [
+    100, 100, 100, 100, 10, 4, 4, 0.75, 4.5, 0.8, 3.5, //
+    5, 0.25, 0.9, 4, 1, 6, 2, 2, 0.8, 0.8,
+  ];
+
   /// Fitted weights from [json]: a list of 21 numbers, or an object holding one as `weights`
-  /// (what `just fsrs-fit` prints). Null unless the initial stabilities are positive and the
-  /// decay lies in (0, 1].
+  /// (what `just fsrs-fit` prints). Null unless each lies within py-fsrs's bounds.
   static List<double>? parse(String json) {
     final Object? decoded;
     try {
@@ -63,15 +75,10 @@ abstract final class FsrsWeights {
       return null;
     }
     final weights = [
-      for (final w in list)
-        if (w is num && w.isFinite) w.toDouble(),
+      for (final (i, w) in list.indexed)
+        if (w is num && w >= _min[i] && w <= _max[i]) w.toDouble(),
     ];
-    final plausible =
-        weights.length == list.length &&
-        weights.take(4).every((s) => s > 0) &&
-        weights[20] > 0 &&
-        weights[20] <= 1;
-    return plausible ? List.unmodifiable(weights) : null;
+    return weights.length == list.length ? List.unmodifiable(weights) : null;
   }
 }
 
