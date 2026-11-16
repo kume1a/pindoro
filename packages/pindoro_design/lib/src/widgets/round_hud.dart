@@ -16,11 +16,15 @@ class QuestionBar extends StatelessWidget {
     required this.tiers,
     required this.total,
     required this.semanticLabel,
+    this.height = 12,
   });
 
   /// Answers so far, in order.
   final List<Tier> tiers;
   final int total;
+
+  /// 12 in the quiz; 14 for a v3 session's 12 blocks.
+  final double height;
 
   /// "Question 5 of 10".
   final String semanticLabel;
@@ -39,7 +43,7 @@ class QuestionBar extends StatelessWidget {
               child: AnimatedContainer(
                 duration: PindoroMotion.durationFast,
                 curve: PindoroMotion.easeStandard,
-                height: 12,
+                height: height,
                 decoration: BoxDecoration(
                   color: i < tiers.length
                       ? (tiers[i] == Tier.miss

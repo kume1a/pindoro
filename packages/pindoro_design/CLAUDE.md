@@ -6,7 +6,8 @@ Signpost widgets: `PindoroButton`, `StreetPlate`, surfaces (`LipBox`,
 `LaneLoader`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` incl. the road trip's `PinMark.endpoint`,
 `CarMark`, `glyphPng` for map images) and the round
 components (`QuestionBar`, `Pill`, `MapControl`, `RevealSheet` and its `TierSheetFrame`, `ResultRow`, `RewardTotal`,
-`TierTally`, `CoachBubble`), the lesson path (`PathStop`, `Signpost` with its Unit guide book button, `LessonRoad`, the loading `Skeleton`) and lesson
+`TierTally`, `CoachBubble`), the v3 session (`StatChip`, `NextReviewChip`, `IntroSheet`; the session bar is
+`QuestionBar` with `height: 14`), the lesson path (`PathStop`, `Signpost` with its Unit guide book button, `LessonRoad`, the loading `Skeleton`) and lesson
 components (`PlateChoice`, `FeedbackBar`), the league (`LeagueHeader`, `LeagueRow`,
 `ZoneDivider`), badges (`BadgeShield`, `BadgeTile`; fields `color.badge.*` in `app.json`), setup components (`SearchField`, `CitySwitcher`, `PindoroChip`,
 `DifficultyCard`, `DistrictMiniMap`) and motion (`PindoroPageTransitions`, `CountUp`, `PopIn`,

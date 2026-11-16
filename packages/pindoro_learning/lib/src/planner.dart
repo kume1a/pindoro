@@ -72,10 +72,7 @@ abstract final class Planner {
 
     final due = [
       for (final c in cards)
-        if ((c.phase == CardPhase.review || c.phase == CardPhase.relearning) &&
-            c.dueAt != null &&
-            c.dueAt!.isBefore(midnight))
-          c.itemId,
+        if (isDueBefore(c, midnight)) c.itemId,
     ]..sort(mostAtRisk);
 
     final budget = max(
@@ -223,8 +220,17 @@ abstract final class Planner {
       waiting.indexWhere((w) => w.since >= w.target);
 }
 
+/// A reviewed card due before [t] (learning, suspended and unseen are not).
+bool isDueBefore(CardState card, DateTime t) =>
+    (card.phase == CardPhase.review || card.phase == CardPhase.relearning) &&
+    card.dueAt != null &&
+    card.dueAt!.isBefore(t);
+
 /// The start of the calendar day after [now], in [now]'s time zone (SPEC §16.3).
 DateTime nextMidnight(DateTime now) => _day(now, 1);
+
+/// The start of [now]'s calendar day, in [now]'s time zone (SPEC §16.3).
+DateTime startOfDay(DateTime now) => _day(now, 0);
 
 // Midnight [offset] calendar days from [now]'s day; calendar arithmetic keeps DST days right.
 DateTime _day(DateTime now, int offset) => now.isUtc
@@ -239,23 +245,66 @@ int introducedToday(Iterable<CardState> cards, DateTime now) {
       .length;
 }
 
-/// Seconds spent learning since the start of [now]'s day (SPEC §16.9): within each session, the
-/// gaps between consecutive answers, each capped at [LearningConfig.answerGapCapS].
+/// Seconds spent learning since the start of [now]'s day (SPEC §16.9), each
+/// session counted with [activeSeconds].
 int spentTodayS(Iterable<LogEntry> log, DateTime now) {
   final today = _day(now, 0);
   final bySession = <String?, List<DateTime>>{};
   for (final entry in log.where((e) => !e.ts.isBefore(today))) {
     bySession.putIfAbsent(entry.sessionId, () => []).add(entry.ts);
   }
+  return bySession.values.fold(0, (sum, times) => sum + activeSeconds(times));
+}
+
+/// Seconds between consecutive [times] of one session, each gap capped at
+/// [LearningConfig.answerGapCapS] (SPEC §16.9).
+int activeSeconds(Iterable<DateTime> times) {
+  final sorted = times.toList()..sort();
   var seconds = 0;
-  for (final times in bySession.values) {
-    times.sort();
-    for (var i = 1; i < times.length; i++) {
-      seconds += min(
-        times[i].difference(times[i - 1]).inSeconds,
-        LearningConfig.answerGapCapS,
-      );
-    }
+  for (var i = 1; i < sorted.length; i++) {
+    seconds += min(
+      sorted[i].difference(sorted[i - 1]).inSeconds,
+      LearningConfig.answerGapCapS,
+    );
   }
   return seconds;
+}
+
+/// Seconds the [steps] left should take at the planner's rates: a review or
+/// relearn [tReviewS]; an intro and each of its two retrievals a third of
+/// [tNewS] (SPEC §7).
+int remainingSeconds(
+  Iterable<SessionStep> steps, {
+  int tReviewS = LearningConfig.tReviewS,
+  int tNewS = LearningConfig.tNewS,
+}) => steps.fold(
+  0,
+  (sum, s) =>
+      sum +
+      switch (s.kind) {
+        StepKind.review || StepKind.relearn => tReviewS,
+        StepKind.intro ||
+        StepKind.retrieval1 ||
+        StepKind.retrieval2 => tNewS ~/ 3,
+      },
+);
+
+/// The session bar's 12 blocks (design system Progress, v3): each covers a
+/// twelfth of the [total] steps. Returns one entry per finished block, true
+/// when it holds a forgotten answer ([forgotten] are step indices), with
+/// [answered] steps done; the next block is the current one.
+List<bool> finishedBlocks({
+  required int total,
+  required int answered,
+  required Set<int> forgotten,
+}) {
+  const blocks = 12;
+  final out = <bool>[];
+  for (var b = 0; b < blocks; b++) {
+    final start = (b * total / blocks).ceil();
+    final end = ((b + 1) * total / blocks).ceil();
+    if (answered < end) break;
+    out.add(forgotten.any((i) => i >= start && i < end));
+  }
+  return out;
 }

@@ -44,6 +44,8 @@ Use it where it is clearer or more fun, never where it confuses.
 | Great | Great! 84 m away. So close to perfect. |
 | Close | Close. 240 m away. You're in the right neighbourhood. |
 | Miss | Not this time. 1.2 km away. It runs along the river, east of the old bridge. |
+| Mix-up (v3) | Mix-up. You placed 26 May 5th Lane. The 4th is the next lane west, before the bend. |
+| Next review (v3) | Next review in 12 days · Back in this session |
 | Results | Round complete! +640 XP |
 | Streak reminder | Your 12-day streak is running on fumes. One lesson keeps it going. |
 | Empty Pit stop | All tuned up. Missed streets will show up here. |
@@ -90,7 +92,7 @@ One geometry everywhere: a rounded pin on a 40 × 48 grid: a round head (radius 
 
 ## The map
 
-The basemap is unlabelled and low-saturation (CARTO light_nolabels / dark_nolabels style). Overlays follow one rule: **yellow paint is the truth** (answer street, correct route: `color.map.answer.*`), **cobalt is you** (pin, drawn route: `color.map.player.*`), **ink is measurement** (distance line and chip: `color.map.measure.*`). Districts are grey-hatched when locked, yellow in progress and cobalt when mastered (`color.map.district.*`). Never show the answer street before Confirm.
+The basemap is unlabelled and low-saturation (CARTO light_nolabels / dark_nolabels style). Overlays follow one rule: **yellow paint is the truth** (answer street, correct route: `color.map.answer.*`), **cobalt is you** (pin, drawn route: `color.map.player.*`), **ink is measurement** (distance line and chip: `color.map.measure.*`). Districts are grey-hatched when locked, yellow in progress and cobalt when mastered (`color.map.district.*`). Never show the answer street before Confirm. In v3 the intro and the reveal also name the streets the player already knows (grey trace, white chip), never the answer; a Mix-up draws the street the pin hit in cobalt, dashed.
 
 ## Iconography
 
@@ -108,7 +110,7 @@ Springy and fast: press 80 ms, cards 280 ms, the pin drop 520 ms with one bounce
 
 - Phone-first, 360 dp reference width; content scales to tablets with a 600 dp max column for sheets and lists.
 - Primary actions sit at the bottom in the thumb zone: Confirm, Next, Continue are full-width 56 dp buttons 26 dp above the safe area.
-- The quiz top bar is always: Leave · 10-step question bar · Fuel. Home's top bar: city switcher · streak · XP · fuel. In v1 (quick play, before Fuel exists) the Fuel slot shows the running score, and the Start screen keeps the top-left slot empty for the streak and XP pills.
+- The quiz top bar is always: Leave · 10-step question bar · Fuel. A v3 session's top bar is Leave · 12-block session bar · time left. Home's top bar: city switcher · streak · XP · fuel. In v1 (quick play, before Fuel exists) the Fuel slot shows the running score, and the Start screen keeps the top-left slot empty for the streak and XP pills.
 - Every map screen shows the map attribution chip ("© OpenStreetMap contributors, © CARTO").
 - The MVP screens (welcome, home, city, area, difficulty, quiz, reveal, results with retry, settings), the release plan (R2 daily habit, R3 Pit stop, R4 lessons and road trips, R5 leagues) and their Flutter notes are in the MVP screens section.
 - Minimum touch target 48 dp (`size.tap.min`) for everything interactive, including map controls and path stops.

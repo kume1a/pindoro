@@ -14,6 +14,7 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/sounds.dart';
 import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/account/ui/account_group.dart';
+import 'package:pindoro/features/learning/data/review_log_export.dart';
 import 'package:pindoro/features/pack/data/app_update.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/progress/ui/daily_goal.dart';
@@ -163,10 +164,27 @@ class SettingsScreen extends ConsumerWidget {
               trailing: const PindoroIcon(PindoroGlyph.chevronRight),
               onTap: () => context.push(Routes.credits),
             ),
+            ListRow(
+              title: l10n.settingsExportLog,
+              leading: const RowTile(PindoroGlyph.share),
+              onTap: () => _exportLog(context, ref),
+            ),
           ],
         ),
       ],
     );
+  }
+}
+
+/// Shares the review log as CSV; a failure says so in a toast.
+Future<void> _exportLog(BuildContext context, WidgetRef ref) async {
+  ref.read(feedbackProvider).tap();
+  try {
+    await ref.read(reviewLogExportProvider)();
+  } on Exception {
+    if (context.mounted) {
+      showToast(context, context.l10n.settingsExportLogFailed);
+    }
   }
 }
 

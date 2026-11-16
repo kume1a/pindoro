@@ -32,11 +32,22 @@ abstract final class _MapSources {
   static const String measure = 'measure';
   static const String measureEnd = 'measure-end';
   static const String measureLabel = 'measure-label';
+  static const String knownTrace = 'known-trace';
+  static const String knownLabel = 'known-label';
+  static const String hitStreet = 'hit-street';
+  static const String hitLabel = 'hit-label';
 }
 
 /// The dotted line from the pin to the nearest point of the street, with its
 /// distance chip half-way.
 typedef Measure = ({LatLng from, LatLng to, String label});
+
+/// A street drawn with its name: a known street's grey trace and white chip,
+/// or a Mix-up's hit street (Map overlays, v3).
+typedef MapLabel = ({MultiPolyline geometry, LatLng at, String label});
+
+/// A known street's trace (`opacity.street-trace` over `color.map.region.outline`).
+const double _knownTraceWidth = 6;
 
 const String _pinImage = 'player-pin';
 
@@ -67,6 +78,8 @@ class PindoroMap extends ConsumerStatefulWidget {
     this.frame,
     this.onCamera,
     this.ownsGestures = false,
+    this.known = const [],
+    this.hit,
   });
 
   final AreaShape area;
@@ -86,6 +99,13 @@ class PindoroMap extends ConsumerStatefulWidget {
   /// Inside a scroll view: drags and pinches on the map move the map, not
   /// the page.
   final bool ownsGestures;
+
+  /// Streets the player knows, traced and named (intro and reveal only;
+  /// never the answer street).
+  final List<MapLabel> known;
+
+  /// A Mix-up's hit street: dashed cobalt with a cobalt chip.
+  final MapLabel? hit;
 
   @override
   ConsumerState<PindoroMap> createState() => _PindoroMapState();
@@ -246,7 +266,9 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     }
     if (widget.pin != oldWidget.pin ||
         widget.truth != oldWidget.truth ||
-        widget.measure != oldWidget.measure) {
+        widget.measure != oldWidget.measure ||
+        widget.known != oldWidget.known ||
+        widget.hit != oldWidget.hit) {
       runMapWork(_syncOverlays);
     }
     if (widget.truth != null && widget.truth != oldWidget.truth) {
@@ -344,6 +366,19 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       enableInteraction: false,
     );
     if (widget.route != null) await addRouteLayers(c, colors, pixelRatio);
+    await c.addGeoJsonSource(_MapSources.knownTrace, linesGeoJson(const []));
+    await c.addLineLayer(
+      _MapSources.knownTrace,
+      '${_MapSources.knownTrace}-line',
+      ml.LineLayerProperties(
+        lineColor: hexColor(colors.mapRegionOutline),
+        lineWidth: _knownTraceWidth,
+        lineOpacity: PindoroOpacity.streetTrace,
+        lineCap: 'round',
+        lineJoin: 'round',
+      ),
+      enableInteraction: false,
+    );
     await c.addGeoJsonSource(_MapSources.truthStreet, linesGeoJson(const []));
     // Yellow paint over an ink casing: on light maps the casing carries contrast.
     for (final (id, color, width) in [
@@ -362,6 +397,29 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
           lineWidth: width,
           lineCap: 'round',
           lineJoin: 'round',
+        ),
+        enableInteraction: false,
+      );
+    }
+    await c.addGeoJsonSource(_MapSources.hitStreet, linesGeoJson(const []));
+    for (final (id, color, width, dash) in [
+      ('halo', colors.mapPlayerHalo, drawnHalo, null),
+      (
+        'line',
+        colors.mapPlayerRoute,
+        drawnWidth,
+        [drawnDash / drawnWidth, drawnGap / drawnWidth],
+      ),
+    ]) {
+      await c.addLineLayer(
+        _MapSources.hitStreet,
+        '${_MapSources.hitStreet}-$id',
+        ml.LineLayerProperties(
+          lineColor: hexColor(color),
+          lineWidth: width,
+          lineJoin: 'round',
+          lineCap: dash == null ? 'round' : null,
+          lineDasharray: dash,
         ),
         enableInteraction: false,
       );
@@ -402,6 +460,18 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       ),
       enableInteraction: false,
     );
+    for (final source in [_MapSources.knownLabel, _MapSources.hitLabel]) {
+      await c.addGeoJsonSource(source, pointsGeoJson(const []));
+      await c.addSymbolLayer(
+        source,
+        '$source-chip',
+        const ml.SymbolLayerProperties(
+          iconImage: ['get', 'icon'],
+          iconAllowOverlap: false,
+        ),
+        enableInteraction: false,
+      );
+    }
     _measureImages.clear();
     _sentRoute = null;
     await c.addGeoJsonSource(_MapSources.youPin, pointsGeoJson(const []));
@@ -440,6 +510,32 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     await c.setGeoJsonSource(
       _MapSources.measureLabel,
       measure == null ? pointsGeoJson(const []) : await _measureChip(measure),
+    );
+    await c.setGeoJsonSource(
+      _MapSources.knownTrace,
+      linesGeoJson([for (final k in widget.known) ...k.geometry]),
+    );
+    await c.setGeoJsonSource(
+      _MapSources.knownLabel,
+      labelledPointsGeoJson([
+        for (final k in widget.known)
+          (k.at, {'icon': await _labelImage('known', k.label, MapChip.region)}),
+      ]),
+    );
+    final hit = widget.hit;
+    await c.setGeoJsonSource(
+      _MapSources.hitStreet,
+      linesGeoJson(hit?.geometry ?? const []),
+    );
+    await c.setGeoJsonSource(
+      _MapSources.hitLabel,
+      labelledPointsGeoJson([
+        if (hit != null)
+          (
+            hit.at,
+            {'icon': await _labelImage('hit', hit.label, MapChip.picked)},
+          ),
+      ]),
     );
     if (widget.route != null) await _sendRoute();
   }
@@ -483,6 +579,23 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     if (_measureImages.add(icon)) {
       final chip = MapChip.distance(label, PindoroTheme.of(context).colors);
       await _controller!.addImage(icon, await chip.toPng(_pixelRatio));
+    }
+    return icon;
+  }
+
+  /// A street name chip's image ([chip] style), added once per label.
+  Future<String> _labelImage(
+    String kind,
+    String label,
+    MapChip Function(String, PindoroColors) chip,
+  ) async {
+    final icon = '$kind:$label';
+    if (_measureImages.add(icon)) {
+      final png = await chip(
+        label,
+        PindoroTheme.of(context).colors,
+      ).toPng(_pixelRatio);
+      await _controller!.addImage(icon, png);
     }
     return icon;
   }

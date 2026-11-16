@@ -820,6 +820,7 @@ void main() {
     await pumpApp(tester, Routes.settings);
     await tester.scrollUntilVisible(find.text('Choose turns from a list'), 300);
     await tapAndSettle(tester, 'Choose turns from a list');
+    await tester.scrollUntilVisible(find.text('Dark'), -300);
     await tapAndSettle(tester, 'Dark');
     // Back to the top, where the language control is.
     await tester.drag(find.byType(ListView), const Offset(0, 2000));

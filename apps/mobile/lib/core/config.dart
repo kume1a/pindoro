@@ -16,4 +16,8 @@ abstract final class AppConfig {
   static const String fixturePackAsset =
       'assets/packs_fixture/tbilisi_vake_fixture.sqlite';
   static const String fixtureDistrictId = 'osm:r11300449';
+
+  /// Builds made with `--dart-define=V3=true` offer the v3 Today screen from
+  /// Free play, until v3 replaces the old tabs (docs/learning/PLAN.md M3).
+  static const bool v3 = bool.fromEnvironment('V3');
 }

@@ -19,6 +19,7 @@ class RevealSheet extends StatelessWidget {
     required this.sentence,
     required this.action,
     this.xpLabel,
+    this.headerChip,
     this.chips = const [],
     this.mascot,
   });
@@ -31,6 +32,9 @@ class RevealSheet extends StatelessWidget {
 
   /// "+74 XP"; null for a Miss.
   final String? xpLabel;
+
+  /// Ends the header row instead of the XP chip: the next-review chip.
+  final Widget? headerChip;
 
   /// Usually [Pill]s ("3 in a row", "Added to your Pit stop").
   final List<Widget> chips;
@@ -78,6 +82,7 @@ class RevealSheet extends StatelessWidget {
                             ),
                           ),
                           if (xpLabel != null) XpChip(xpLabel!),
+                          ?headerChip,
                         ],
                       ),
                       Text(

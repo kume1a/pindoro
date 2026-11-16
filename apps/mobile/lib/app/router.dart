@@ -19,6 +19,7 @@ import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/quiz/ui/quiz_screen.dart';
 import 'package:pindoro/features/results/ui/result_street_screen.dart';
 import 'package:pindoro/features/results/ui/results_screen.dart';
+import 'package:pindoro/features/session/ui/session_screen.dart';
 import 'package:pindoro/features/settings/ui/settings_screen.dart';
 import 'package:pindoro/features/setup/ui/area_screen.dart';
 import 'package:pindoro/features/setup/ui/city_screen.dart';
@@ -27,6 +28,7 @@ import 'package:pindoro/features/setup/ui/start_district_screen.dart';
 import 'package:pindoro/features/setup/ui/welcome_screen.dart';
 import 'package:pindoro/features/setup/ui/whats_new_screen.dart';
 import 'package:pindoro/features/streak/ui/streak_screen.dart';
+import 'package:pindoro/features/today/ui/today_screen.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -214,6 +216,8 @@ GoRouter buildRouter(String initialLocation) {
       ),
       GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
       GoRoute(path: Routes.credits, builder: (_, _) => const CreditsScreen()),
+      GoRoute(path: Routes.today, builder: (_, _) => const TodayScreen()),
+      GoRoute(path: Routes.session, builder: (_, _) => const SessionScreen()),
     ],
   );
 }

@@ -4,18 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
-import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/speech.dart';
 import 'package:pindoro/features/lesson/ui/lesson_controller.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
+import 'package:pindoro/features/map/ui/widgets/street_facts.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
-
-/// Crossings per street: counting walks the city's streets, once is enough.
-final _crossings = Expando<int>();
 
 /// The card sheet's rough height, so the camera frames the street above it.
 const double _sheetInset = 260;
@@ -41,23 +38,12 @@ class NewStreetCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final c = PindoroTheme.of(context).colors;
     final settings = ref.watch(settingsProvider).value;
     final street = step.street;
     final cards = play.run.steps.whereType<CardStep>().length;
     final last = play.run.steps[play.run.index + 1] is! CardStep;
-    final type = roadTypeOf(street.parts.first.roadClass);
     final others = ref.watch(cityStreetsProvider).value?.values ?? const [];
-    final crossings = _crossings[street] ??= crossingCount(street, {...others});
-    final where = l10n.lessonWhere(
-      l10n.lessonRoadType(type.name),
-      directionFromCentre(street, play.cityCenter)?.name ?? 'centre',
-    );
-    final facts = l10n.lessonFacts(
-      crossings,
-      formatSize(street.lengthM, l10n),
-      l10n.lessonRoadTypeWord(type.name),
-    );
+    final intro = streetFacts(context, street, others, play.cityCenter);
     final name = streetName(street, settings);
     final language = speechLanguage(name);
     final canSpeak = ref.watch(canSpeakProvider(language)).value ?? false;
@@ -100,82 +86,25 @@ class NewStreetCard extends ConsumerWidget {
               constraints: const BoxConstraints(maxWidth: 600),
               child: RiseIn(
                 key: ValueKey(play.run.index),
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: c.surfaceRaised,
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(PindoroRadius.r2xl),
-                    ),
-                    border: Border(
-                      top: BorderSide(
-                        color: c.lineBase,
-                        width: PindoroStroke.base,
-                      ),
-                    ),
-                  ),
-                  padding: EdgeInsets.fromLTRB(
-                    PindoroSpace.s5,
-                    PindoroSpace.s5,
-                    PindoroSpace.s5,
-                    bottomActionGap(context),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    spacing: PindoroSpace.s2,
-                    children: [
-                      Text(
-                        l10n.lessonWhereTitle,
-                        style: PindoroType.titleSm.copyWith(
-                          color: c.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        where,
-                        style: PindoroType.bodyMd.copyWith(
-                          color: c.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        facts,
-                        style: PindoroType.labelMd.copyWith(
-                          color: c.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: PindoroSpace.s2),
-                      Row(
-                        spacing: PindoroSpace.s3,
-                        children: [
-                          if (canSpeak)
-                            PindoroIconButton(
-                              glyph: PindoroGlyph.soundOn,
-                              semanticLabel: l10n.lessonHearName,
-                              size: PindoroSize.buttonLg,
-                              onPressed: () {
-                                ref.read(feedbackProvider).tap();
-                                unawaited(
-                                  ref
-                                      .read(speechProvider)
-                                      .speak(name, language),
-                                );
-                              },
-                            ),
-                          Expanded(
-                            child: PindoroButton(
-                              label: last
-                                  ? l10n.lessonStartTest
-                                  : l10n.revealGotIt,
-                              onPressed: () {
-                                ref.read(feedbackProvider).tap();
-                                unawaited(onNext());
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                child: IntroSheet(
+                  title: l10n.lessonWhereTitle,
+                  where: intro.where,
+                  facts: intro.facts,
+                  regionLabel: l10n.sessionIntroRegion,
+                  hearLabel: l10n.lessonHearName,
+                  onHear: canSpeak
+                      ? () {
+                          ref.read(feedbackProvider).tap();
+                          unawaited(
+                            ref.read(speechProvider).speak(name, language),
+                          );
+                        }
+                      : null,
+                  gotItLabel: last ? l10n.lessonStartTest : l10n.revealGotIt,
+                  onGotIt: () {
+                    ref.read(feedbackProvider).tap();
+                    unawaited(onNext());
+                  },
                 ),
               ),
             ),

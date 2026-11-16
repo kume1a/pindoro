@@ -327,4 +327,43 @@ void main() {
       expect(spentTodayS(log, now), 12 + 18 + 60 + 20);
     });
   });
+
+  test('remainingSeconds: 12 s a review, 15 s an intro or retrieval', () {
+    final steps = [
+      (kind: StepKind.intro, itemId: 'P:a'),
+      (kind: StepKind.review, itemId: 'P:b'),
+      (kind: StepKind.retrieval1, itemId: 'P:a'),
+      (kind: StepKind.relearn, itemId: 'P:b'),
+      (kind: StepKind.retrieval2, itemId: 'P:a'),
+    ];
+    expect(remainingSeconds(steps), 15 + 12 + 15 + 12 + 15);
+    expect(remainingSeconds(const []), 0);
+  });
+
+  group('finishedBlocks', () {
+    test('24 steps: 2 per block, a block with a forgotten answer is red', () {
+      expect(finishedBlocks(total: 24, answered: 0, forgotten: {}), isEmpty);
+      expect(finishedBlocks(total: 24, answered: 1, forgotten: {}), isEmpty);
+      expect(finishedBlocks(total: 24, answered: 5, forgotten: {3}), [
+        false,
+        true,
+      ]);
+      expect(
+        finishedBlocks(total: 24, answered: 24, forgotten: {}),
+        hasLength(12),
+      );
+    });
+
+    test('fewer steps than blocks still ends with all 12 done', () {
+      expect(
+        finishedBlocks(total: 5, answered: 5, forgotten: {}),
+        hasLength(12),
+      );
+      expect(finishedBlocks(total: 5, answered: 0, forgotten: {}), isEmpty);
+      expect(finishedBlocks(total: 5, answered: 1, forgotten: {0}), [
+        true,
+        false,
+      ]);
+    });
+  });
 }

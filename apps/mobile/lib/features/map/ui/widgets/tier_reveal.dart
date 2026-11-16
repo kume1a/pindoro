@@ -18,10 +18,14 @@ class TierRevealSheet extends StatelessWidget {
     required this.chips,
     required this.action,
     required this.onNext,
+    this.headerChip,
   });
 
   final Tier tier;
   final int xp;
+
+  /// Takes the XP chip's place: the next-review chip (v3).
+  final Widget? headerChip;
   final String label;
   final String sentence;
   final List<Widget> chips;
@@ -37,7 +41,10 @@ class TierRevealSheet extends StatelessWidget {
         tier: tier,
         label: label,
         sentence: sentence,
-        xpLabel: tier == Tier.miss ? null : l10n.commonXp(formatNumber(xp)),
+        xpLabel: tier == Tier.miss || headerChip != null
+            ? null
+            : l10n.commonXp(formatNumber(xp)),
+        headerChip: headerChip,
         chips: chips,
         mascot: Pindo(switch (tier) {
           Tier.perfect || Tier.great => PindoExpression.cheering,

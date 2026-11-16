@@ -45,6 +45,10 @@ class PinDropView extends ConsumerWidget {
     this.retryDistance,
     this.coach = false,
     this.celebration,
+    this.frame,
+    this.known = const [],
+    this.mixUp,
+    this.headerChip,
   });
 
   final AreaShape area;
@@ -65,6 +69,19 @@ class PinDropView extends ConsumerWidget {
   /// The first question ever: the reticle and the coach bubble.
   final bool coach;
   final CelebrationSize? celebration;
+
+  /// What the camera frames while asking, instead of the whole area (a v3
+  /// retrieval 1 frames the street's district).
+  final List<LatLng>? frame;
+
+  /// Known streets named on the reveal (v3).
+  final List<MapLabel> known;
+
+  /// The reveal is a Mix-up: the pin hit this confusable street (v3).
+  final MapLabel? mixUp;
+
+  /// The reveal's header chip instead of XP: the next-review chip (v3).
+  final Widget? headerChip;
 
   /// Space the Confirm button takes at the bottom of the map.
   static double confirmInset(BuildContext context) =>
@@ -88,7 +105,7 @@ class PinDropView extends ConsumerWidget {
               area: area,
               pin: pin,
               truth: reveal == null ? null : street.geometry,
-              measure: reveal == null
+              measure: reveal == null || mixUp != null
                   ? null
                   : (
                       from: reveal.pin,
@@ -112,6 +129,9 @@ class PinDropView extends ConsumerWidget {
                   ? confirmInset(context)
                   : _sheetInset(context),
               showControls: reveal == null,
+              frame: reveal == null ? frame : null,
+              known: reveal == null ? const [] : known,
+              hit: reveal == null ? null : mixUp,
             ),
           ),
           if (coach) ...[
@@ -165,7 +185,12 @@ class PinDropView extends ConsumerWidget {
           else
             RevealDock(
               revealKey: reveal.key,
-              sheet: PinRevealSheet(reveal: reveal, onNext: onNext),
+              sheet: PinRevealSheet(
+                reveal: reveal,
+                onNext: onNext,
+                mixUp: mixUp,
+                headerChip: headerChip,
+              ),
               celebration: celebration,
             ),
         ],
@@ -177,28 +202,41 @@ class PinDropView extends ConsumerWidget {
 /// The reveal sheet: the tier, the XP counting up, the distance sentence
 /// (a Miss says which way the street lies), the chips and the action.
 class PinRevealSheet extends StatelessWidget {
-  const PinRevealSheet({super.key, required this.reveal, required this.onNext});
+  const PinRevealSheet({
+    super.key,
+    required this.reveal,
+    required this.onNext,
+    this.mixUp,
+    this.headerChip,
+  });
 
   final PinReveal reveal;
   final Future<void> Function() onNext;
+
+  /// A Mix-up: Miss colours, "Mix-up" and the street the pin hit.
+  final MapLabel? mixUp;
+  final Widget? headerChip;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final distance = formatDistance(reveal.distanceM, l10n);
+    final direction = l10n.revealMissDirection(
+      compassPoint(reveal.pin, reveal.nearest).name,
+    );
+    final mixUp = this.mixUp;
     final sentence = switch (reveal.tier) {
+      _ when mixUp != null => l10n.revealMixUpSentence(mixUp.label, direction),
       Tier.perfect => l10n.tierPerfectSentence,
       Tier.great => l10n.tierGreatSentence(distance),
       Tier.close => l10n.tierCloseSentence(distance),
-      Tier.miss => l10n.tierMissSentence(
-        distance,
-        l10n.revealMissDirection(compassPoint(reveal.pin, reveal.nearest).name),
-      ),
+      Tier.miss => l10n.tierMissSentence(distance, direction),
     };
     return TierRevealSheet(
-      tier: reveal.tier,
+      tier: mixUp == null ? reveal.tier : Tier.miss,
       xp: reveal.xp,
-      label: tierLabel(l10n, reveal.tier),
+      headerChip: headerChip,
+      label: mixUp == null ? tierLabel(l10n, reveal.tier) : l10n.revealMixUp,
       sentence: sentence,
       chips: reveal.chips,
       action: reveal.action,
