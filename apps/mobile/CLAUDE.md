@@ -29,9 +29,12 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                setup (welcome, city, area, difficulty), quiz (Explore round),
                                results (results, street), settings (+ learning settings and the
                                home/work picker), streak, me, session (SessionController plays
-                               today's plan, Learn 5 more or the city's placement; intro, pin and
-                               reveal views, Session done, the placement result), today (the
-                               Today tab), memory (the Progress tab: overview and a district)
+                               today's plan, Learn 5 more or the city's placement; each step's
+                               SessionTask: a pin, Name it, both ends, the family sweep, the
+                               crossings drill or a bearing, with their views over TaskScaffold;
+                               intro (a leech's with its mix-up and note), reveal, Session done,
+                               the placement result), today (the Today tab), memory (the Progress
+                               tab: overview and a district)
 lib/features/quiz/ui/round_controller.dart   Explore round state machine; resumes from round_question + answers;
                                questions are NamedStreets (cityStreetsProvider); retries set round.retry_of;
                                each pin also feeds the learning cards (learnFromExplore)
@@ -163,6 +166,8 @@ test/drift/                    generated schema helpers + migration test
 
 ## Map
 
+- Flutter widgets that sit on map points (the sweep's sockets, the crossings' rings, "End 1") go
+  in a `GeoAnchors` over the map, fed by `PindoroMap.onCamera`'s projection.
 - `PindoroMap` loads the bundled style, injects `{TILES_BASE_URL}` (Martin source `georgia`), and
   always shows "© OpenStreetMap contributors, Protomaps". Never point it at public OSM tile servers.
 - The basemap never shows text. Its landmark icons (the style's `pois` layer) are `poi-<kind>` images

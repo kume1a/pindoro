@@ -235,4 +235,57 @@ void main() {
       'ilia chavchavadze ave',
     );
   });
+
+  group('other cards (SPEC §5.2)', () {
+    final long = street('long');
+
+    test('ends count within max(150 m, 10 % of length), either way round', () {
+      ExtentGrade ends(LatLng a, LatLng b) =>
+          Grader.gradeExtent(pins: (a, b), street: long);
+      final both = ends(at(390, 40), at(-100, 0));
+      expect((both.hits, both.rating, both.tier), (2, Rating.good, Tier.great));
+      final one = ends(at(0, 140), at(200, 0));
+      expect((one.hits, one.rating, one.tier), (1, Rating.hard, Tier.close));
+      final none = ends(at(200, 0), at(200, 300));
+      expect((none.hits, none.rating), (0, Rating.again));
+    });
+
+    test('bearings: 20° Great, 45° Close, else Miss; the error wraps', () {
+      expect(bearingError(350, 10), 20);
+      expect(Grader.gradeBearing(bearingError(350, 10)), Tier.great);
+      expect(Grader.gradeBearing(45), Tier.close);
+      expect(Grader.gradeBearing(46), Tier.miss);
+      expect(Grader.ratingOfTier(Tier.close), Rating.hard);
+    });
+
+    test('every 10th name review is the checked one', () {
+      expect([for (var n = 0; n < 20; n++) n].where(Grader.isNameCheck), [
+        9,
+        19,
+      ]);
+      expect(Grader.gradeName(knew: false), Rating.again);
+    });
+
+    test('the name check offers 6 names, confusables before neighbours', () {
+      final nearby = [
+        for (var i = 1; i <= 8; i++) street('s$i', north: i * 100.0),
+      ];
+      final choices = nameChoices(
+        target: long,
+        streets: [
+          long,
+          ...nearby,
+          street('twin', north: 5000, name: 'long'),
+        ],
+        confusable: {'s8'},
+        random: Random(1),
+      );
+      expect(choices, hasLength(LearningConfig.nameCheckOptions));
+      expect(
+        choices.map((s) => s.id).toSet(),
+        {'long', 's8', 's1', 's2', 's3', 's4'},
+        reason: 'the far twin shares the name, so it never stands as a choice',
+      );
+    });
+  });
 }

@@ -1,0 +1,232 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/labels.dart';
+import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/map/ui/route_projection.dart';
+import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
+import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
+import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
+import 'package:pindoro/features/session/ui/session_controller.dart';
+import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
+import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro_design/pindoro_design.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
+
+/// Room the field, its match and Next take at the bottom of the map.
+const double _controlsInset = 260;
+
+/// The crossings drill (SessionScreen `crossings`): your drive along the
+/// street in cobalt from the car, a ring on each crossing, the current one
+/// numbered; type each crossing's name (a match row fills it in), Next
+/// crossing; answered rings take their tier colour and the street's name.
+class CrossingsView extends ConsumerStatefulWidget {
+  const CrossingsView({
+    super.key,
+    required this.play,
+    required this.topBar,
+    required this.onName,
+    required this.onNext,
+  });
+
+  final SessionPlaying play;
+  final Widget topBar;
+  final Future<void> Function(String typed) onName;
+  final Future<void> Function() onNext;
+
+  @override
+  ConsumerState<CrossingsView> createState() => _CrossingsViewState();
+}
+
+class _CrossingsViewState extends ConsumerState<CrossingsView> {
+  final _field = TextEditingController();
+  MapProjection? _projection;
+
+  @override
+  void dispose() {
+    _field.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final typed = _field.text.trim();
+    if (typed.isEmpty) return;
+    _field.clear();
+    unawaited(widget.onName(typed));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = PindoroTheme.of(context);
+    final settings = ref.watch(settingsProvider).value;
+    final play = widget.play;
+    final task = play.task as CrossingsTask;
+    final street = play.street;
+    final at = task.named.length;
+    final tier = task.result;
+    final streets = ref.watch(cityStreetsProvider).value?.values ?? const [];
+    final match = tier == null ? suggestStreet(_field.text, streets) : null;
+    final heading = compassPoint(task.start, task.crossings.last.at);
+    Widget ring(int i) {
+      final current = i == at && tier == null;
+      final colour = i < at
+          ? theme.tier(task.named[i] ? Tier.great : Tier.miss).lip
+          : theme.colors.mapPlayerRoute;
+      final size = current ? 24.0 : 18.0;
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (current)
+            Pill(label: formatNumber(i + 1), floating: true)
+          else
+            const SizedBox(height: 0),
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: colour,
+                width: current ? PindoroStroke.thick + 1 : PindoroStroke.thick,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return TaskScaffold(
+      topBar: widget.topBar,
+      map: ref.watch(pindoroMapBuilderProvider)(
+        PindoroMap(
+          area: play.area,
+          frame: play.frame,
+          hit: (
+            geometry: street.geometry,
+            at: street.parts.first.midpoint,
+            label: streetName(street, settings),
+          ),
+          known: [
+            for (final c in task.crossings.take(at))
+              (
+                geometry: c.street.geometry,
+                at: c.at,
+                label: streetName(c.street, settings),
+              ),
+          ],
+          onCamera: (p) => setState(() => _projection = p),
+          topInset: MediaQuery.paddingOf(context).top + 180,
+          bottomInset: _controlsInset,
+        ),
+      ),
+      overlays: [
+        Positioned.fill(
+          child: IgnorePointer(
+            child: GeoAnchors(
+              projection: _projection,
+              anchors: [
+                for (final (i, c) in task.crossings.indexed) (c.at, ring(i)),
+                (
+                  task.start,
+                  Semantics(
+                    label: l10n.sessionCrossingsFrom(
+                      l10n.compassWord(heading.name),
+                      streetName(task.from, settings),
+                    ),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: theme.colors.mapRouteArrow,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: theme.colors.mapPlayerHalo,
+                          width: PindoroStroke.base,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(PindoroSpace.s1),
+                        child: PindoroIcon(
+                          PindoroGlyph.car,
+                          size: PindoroSize.iconSm,
+                          color: theme.colors.mapRouteLine,
+                          cut: theme.colors.mapRouteArrow,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+      header: QuestionPlate(
+        key: ValueKey((play.index, 'crossings')),
+        street: street,
+        settings: settings,
+        compact: tier != null,
+        prompt: l10n.sessionCrossingsPrompt,
+        glyph: PindoroGlyph.route,
+        detail: l10n.sessionCrossingsFrom(
+          l10n.compassWord(heading.name),
+          streetName(task.from, settings),
+        ),
+      ),
+      controls: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: PindoroSpace.s2,
+        children: [
+          Text(
+            l10n.sessionCrossingsCount(
+              (at + 1).clamp(1, task.crossings.length),
+              task.crossings.length,
+            ),
+            style: PindoroType.labelMd.copyWith(
+              color: theme.colors.textSecondary,
+            ),
+          ),
+          SearchField(
+            controller: _field,
+            placeholder: l10n.sessionCrossingsHint,
+            clearLabel: l10n.commonClear,
+            glyph: PindoroGlyph.signpost,
+            autocorrect: false,
+            textInputAction: TextInputAction.next,
+            onChanged: (_) => setState(() {}),
+            onSubmitted: (_) => _submit(),
+          ),
+          if (match != null)
+            ListRow(
+              leading: const RowTile(PindoroGlyph.signpost),
+              title: streetName(match, settings),
+              subtitle: [
+                ?otherScript(match, settings),
+                l10n.sessionCrossingsMatch,
+              ].join(' · '),
+              onTap: () =>
+                  setState(() => _field.text = streetName(match, settings)),
+            ),
+          PindoroButton(
+            label: l10n.sessionCrossingsNext,
+            onPressed: _field.text.trim().isEmpty ? null : _submit,
+          ),
+        ],
+      ),
+      result: tier == null
+          ? null
+          : TaskResult(
+              resultKey: play.index,
+              tier: tier,
+              sentence: l10n.sessionCrossingsResult(
+                task.named.where((n) => n).length,
+                task.crossings.length,
+              ),
+              onNext: widget.onNext,
+            ),
+    );
+  }
+}

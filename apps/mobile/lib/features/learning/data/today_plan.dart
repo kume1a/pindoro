@@ -46,6 +46,27 @@ final streetCardsProvider = FutureProvider.autoDispose<Map<String, CardState>>((
   };
 });
 
+/// The open city's cards by item id, keyed by the street they belong to
+/// (`N:<street id>` even when the card was made on another of its parts).
+final cardsByItemProvider = FutureProvider.autoDispose<Map<String, CardState>>((
+  ref,
+) async {
+  final streets = await ref.watch(cityStreetsProvider.future);
+  return {
+    for (final card in await ref.watch(cityCardsProvider.future))
+      card.type.item(streets[itemKey(card.itemId)]!.id): card,
+  };
+});
+
+/// A P card's name and ends cards (SPEC §8 Mastered), from the open city.
+final sidesOfProvider = FutureProvider.autoDispose<SidesOf>((ref) async {
+  final streets = await ref.watch(cityStreetsProvider.future);
+  final curriculum = await ref.watch(curriculumProvider.future);
+  final byItem = await ref.watch(cardsByItemProvider.future);
+  return (CardState p) =>
+      curriculum.sidesOf(streets[itemKey(p.itemId)]!.id, byItem);
+});
+
 /// The next [count] new streets in curriculum order, as P items (SPEC §6.3).
 final newCandidatesProvider = FutureProvider.autoDispose
     .family<List<String>, int>((ref, count) async {
@@ -101,6 +122,9 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
   final settings = await ref.watch(settingsProvider.future);
   final streetsFuture = ref.watch(cityStreetsProvider.future);
   final cardsFuture = ref.watch(cityCardsProvider.future);
+  final byItemFuture = ref.watch(cardsByItemProvider.future);
+  final streetCardsFuture = ref.watch(streetCardsProvider.future);
+  final curriculumFuture = ref.watch(curriculumProvider.future);
   final candidatesFuture = ref.watch(
     newCandidatesProvider(
       extraNew ?? LearningConfig.newPerDay[settings.minutesPerDay] ?? 0,
@@ -115,17 +139,35 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
     for (final id in await candidatesFuture)
       if (!cardedStreets.contains(itemKey(id))) id,
   ];
+  final curriculum = await curriculumFuture;
+  final byItem = await byItemFuture;
   final log = await dao.log();
+  final today = log.where((e) => !e.ts.isBefore(startOfDay(now))).toList();
   final times = timeEstimates(log);
+  final seed = now.year * 10000 + now.month * 100 + now.day;
+  final learnMore = extraNew != null;
   return Planner.plan(
     cards: cards,
     newCandidates: candidates,
     minutesPerDay: settings.minutesPerDay,
     now: now,
-    seed: now.year * 10000 + now.month * 100 + now.day,
+    seed: seed,
     introducedToday: introducedToday(cards, now),
     spentTodayS: spentTodayS(log, now),
     extraNew: extraNew,
+    openSides: learnMore ? const [] : curriculum.openSides(byItem),
+    sidesStartedToday: sidesStartedToday(today, now),
+    drills: learnMore
+        ? Drills.none
+        : planDrills(
+            curriculum: curriculum,
+            streets: streets.values,
+            cards: await streetCardsFuture,
+            today: today,
+            centre: curriculum.centre,
+            now: now,
+            seed: seed,
+          ),
     tReviewS: times.tReviewS,
     tNewS: times.tNewS,
   );

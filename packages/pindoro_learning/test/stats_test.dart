@@ -130,6 +130,35 @@ void main() {
       expect(memoryState(introduce('P:x', now), now), MemoryState.seen);
     });
 
+    test('Mastered needs each name and ends card that applies at 21 days', () {
+      final p = card(
+        lastReview: DateTime.utc(2026, 3, 9),
+        stability: 95,
+        introAt: DateTime.utc(2026),
+      );
+      CardState side(double s) => card(lastReview: now, stability: s);
+      expect(isMastered(p, sides: [side(21), side(30)]), isTrue);
+      expect(isMastered(p, sides: [side(20)]), isFalse);
+      expect(isMastered(p, sides: [null]), isFalse, reason: 'not started');
+      expect(
+        memoryCounts([p], now, sidesOf: (_) => [null])[MemoryState.solid],
+        1,
+      );
+    });
+
+    test('City memory counts only pin cards', () {
+      final seen = card(lastReview: now);
+      final name = CardState(
+        itemId: 'N:x',
+        phase: CardPhase.review,
+        memory: seen.memory,
+      );
+      expect(
+        cityMemory([seen, name], now, isCore: (_) => true),
+        closeTo(1, 1e-9),
+      );
+    });
+
     test('memoryCounts tallies every state, zeros included', () {
       final counts = memoryCounts([
         introduce('P:a', now),

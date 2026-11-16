@@ -95,6 +95,7 @@ class IntroSheet extends StatelessWidget {
     this.family,
     this.hearLabel,
     this.onHear,
+    this.extra = const [],
   });
 
   /// "Where it is".
@@ -116,6 +117,9 @@ class IntroSheet extends StatelessWidget {
   /// "Hear the name"; the button shows only with [onHear].
   final String? hearLabel;
   final VoidCallback? onHear;
+
+  /// More under the facts, 12 dp apart (a leech's contrast and note).
+  final List<Widget> extra;
 
   @override
   Widget build(BuildContext context) {
@@ -172,6 +176,10 @@ class IntroSheet extends StatelessWidget {
                     if (family case final family?) ...[
                       const SizedBox(height: PindoroSpace.s3),
                       StatChip(label: family, glyph: PindoroGlyph.road),
+                    ],
+                    for (final widget in extra) ...[
+                      const SizedBox(height: PindoroSpace.s3),
+                      widget,
                     ],
                   ],
                 ),

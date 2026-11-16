@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:pindoro_core/pindoro_core.dart';
 
 import 'constants.dart';
@@ -69,6 +71,65 @@ abstract final class Grader {
     return graded(byDistance, Rating.good);
   }
 
+  /// Grades a two-pin answer for [street]'s ends (SPEC §5.2): an end counts with a pin within
+  /// `max(`[LearningConfig.extentEndMinM]`, `[LearningConfig.extentEndFraction]` × length)`,
+  /// whichever pin goes with which end. Both Good (Great), one Hard (Close), none Again (Miss).
+  static ExtentGrade gradeExtent({
+    required (LatLng, LatLng) pins,
+    required NamedStreet street,
+  }) {
+    final ends = streetEnds(street);
+    final reach = max(
+      LearningConfig.extentEndMinM,
+      LearningConfig.extentEndFraction * street.lengthM,
+    );
+    int hits((LatLng, LatLng) to) =>
+        (distanceBetween(pins.$1, to.$1) <= reach ? 1 : 0) +
+        (distanceBetween(pins.$2, to.$2) <= reach ? 1 : 0);
+    final count = max(hits(ends), hits((ends.$2, ends.$1)));
+    return (
+      ends: ends,
+      hits: count,
+      tier: const [Tier.miss, Tier.close, Tier.great][count],
+      rating: const [Rating.again, Rating.hard, Rating.good][count],
+    );
+  }
+
+  /// A bearing answer's tier (SPEC §5.2): within [LearningConfig.bearingGreatDeg] Great, within
+  /// [LearningConfig.bearingCloseDeg] Close, else Miss. Not scheduled; the log row takes
+  /// [ratingOfTier].
+  static Tier gradeBearing(double errorDeg) =>
+      errorDeg <= LearningConfig.bearingGreatDeg
+      ? Tier.great
+      : errorDeg <= LearningConfig.bearingCloseDeg
+      ? Tier.close
+      : Tier.miss;
+
+  /// A drill's display tier from its share right (the family sweep, the crossings drill): all
+  /// Great, half or more Close, else Miss.
+  static Tier gradeShare(int right, int of) => right == of
+      ? Tier.great
+      : right * 2 >= of
+      ? Tier.close
+      : Tier.miss;
+
+  /// The rating a drill's tier logs as: Perfect and Great Good, Close Hard, Miss Again.
+  static Rating ratingOfTier(Tier tier) => switch (tier) {
+    Tier.perfect || Tier.great => Rating.good,
+    Tier.close => Rating.hard,
+    Tier.miss => Rating.again,
+  };
+
+  /// Whether the next name review is the checked one (SPEC §5.2): every
+  /// [LearningConfig.nameCheckEvery]th of all name reviews, [nameReviews] done so far.
+  static bool isNameCheck(int nameReviews) =>
+      (nameReviews + 1) % LearningConfig.nameCheckEvery == 0;
+
+  /// A self-graded name (SPEC §5.2): Knew it Good, Forgot Again; a checked one Again when the
+  /// pick was wrong.
+  static Rating gradeName({required bool knew}) =>
+      knew ? Rating.good : Rating.again;
+
   // Nearest street within the snap radius; a tie goes to the target, the player's benefit.
   static String? _snap(
     LatLng pin,
@@ -95,6 +156,46 @@ abstract final class Grader {
     }
     return best;
   }
+}
+
+/// A two-pin answer for a street's ends: the true [ends] and how many pins
+/// found one.
+typedef ExtentGrade = ({
+  (LatLng, LatLng) ends,
+  int hits,
+  Tier tier,
+  Rating rating,
+});
+
+/// Degrees between two bearings, 0–180.
+double bearingError(double a, double b) =>
+    (((a - b) % 360 + 540) % 360 - 180).abs();
+
+/// The name check's [LearningConfig.nameCheckOptions] choices (SPEC §5.2): [target], its
+/// [confusable] streets nearest first, then the streets nearest it; one per name, shuffled with
+/// [random].
+List<NamedStreet> nameChoices({
+  required NamedStreet target,
+  required Iterable<NamedStreet> streets,
+  required Set<String> confusable,
+  required Random random,
+}) {
+  final at = target.parts.first.midpoint;
+  double away(NamedStreet s) => distanceBetween(at, s.parts.first.midpoint);
+  final others = streets.toSet().where((s) => s.id != target.id).toList()
+    ..sort((a, b) {
+      final byConfusable = (confusable.contains(a.id) ? 0 : 1).compareTo(
+        confusable.contains(b.id) ? 0 : 1,
+      );
+      return byConfusable != 0 ? byConfusable : away(a).compareTo(away(b));
+    });
+  final names = {normaliseName(target.name)};
+  return [
+    target,
+    ...others
+        .where((s) => names.add(normaliseName(s.name)))
+        .take(LearningConfig.nameCheckOptions - 1),
+  ]..shuffle(random);
 }
 
 /// Streets a pin for [target] can land on by mistake (SPEC §5.1, §16.15): other streets with the

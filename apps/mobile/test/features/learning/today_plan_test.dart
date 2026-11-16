@@ -69,6 +69,13 @@ void main() {
           (ref, _) async => ['P:a1', 'P:b1', 'P:c1'],
         ),
         carryOverProvider.overrideWith((ref) async {}),
+        curriculumProvider.overrideWith(
+          (ref) async => Curriculum(
+            streets: [a, b, c],
+            districts: const [],
+            centre: const LatLng(41.7, 44.8),
+          ),
+        ),
       ],
     );
   });

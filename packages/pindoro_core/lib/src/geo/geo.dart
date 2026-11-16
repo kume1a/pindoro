@@ -199,12 +199,19 @@ Xy _lerp(Xy a, Xy b, double t) =>
 
 enum CompassPoint { n, ne, e, se, s, sw, w, nw }
 
-/// Which of the eight compass points [to] lies in, seen from [from].
-CompassPoint compassPoint(LatLng from, LatLng to) {
+/// Degrees clockwise from north to [to], seen from [from] (0 ≤ result < 360).
+double bearingDegrees(LatLng from, LatLng to) {
   final (x, y) = LocalProjection(from).project(to);
-  final degrees = (math.atan2(x, y) * 180 / math.pi + 360) % 360;
-  return CompassPoint.values[((degrees + 22.5) ~/ 45) % 8];
+  return (math.atan2(x, y) * 180 / math.pi + 360) % 360;
 }
+
+/// The compass point nearest [degrees] clockwise from north.
+CompassPoint compassPointOf(double degrees) =>
+    CompassPoint.values[((degrees % 360 + 22.5) ~/ 45) % 8];
+
+/// Which of the eight compass points [to] lies in, seen from [from].
+CompassPoint compassPoint(LatLng from, LatLng to) =>
+    compassPointOf(bearingDegrees(from, to));
 
 /// Whether [p] lies inside [polygon] (outer ring first, then holes): even-odd
 /// ray casting on lat/lon, fine at city scale.

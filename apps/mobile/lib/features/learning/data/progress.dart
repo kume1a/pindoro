@@ -58,10 +58,11 @@ final cityMemoryProvider =
       final now = ref.watch(clockProvider)();
       final streets = await ref.watch(cityStreetsProvider.future);
       final cards = await ref.watch(streetCardsProvider.future);
+      final sidesOf = await ref.watch(sidesOfProvider.future);
       final log = await ref.watch(learningDaoProvider).log();
       final core = streets.values.where(Curriculum.isCore).toSet();
       return (
-        city: _summary(core, cards, now),
+        city: _summary(core, cards, now, sidesOf),
         sinceYesterday: _since(core, cards, log, now, const Duration(days: 1)),
         sinceWeek: _since(core, cards, log, now, const Duration(days: 7)),
       );
@@ -75,6 +76,8 @@ final progressProvider = FutureProvider.autoDispose<ProgressOverview>((
   final streets = await ref.watch(cityStreetsProvider.future);
   final curriculum = await ref.watch(curriculumProvider.future);
   final cards = await ref.watch(streetCardsProvider.future);
+  final allCards = await ref.watch(cityCardsProvider.future);
+  final sidesOf = await ref.watch(sidesOfProvider.future);
   final anchors = await ref.watch(anchorsProvider.future);
   final settings = await ref.watch(settingsProvider.future);
   final log = await ref.watch(learningDaoProvider).log();
@@ -87,7 +90,7 @@ final progressProvider = FutureProvider.autoDispose<ProgressOverview>((
 
   ChunkProgress chunkOf(String id) {
     final streets = curriculum.streetsIn(id).where(Curriculum.isCore);
-    final memory = _summary(streets, cards, now);
+    final memory = _summary(streets, cards, now, sidesOf);
     final seen = streets.where((s) => cards.containsKey(s.id)).length;
     final at = sequence.indexOf(id);
     return (
@@ -126,12 +129,13 @@ final progressProvider = FutureProvider.autoDispose<ProgressOverview>((
             core.where((s) => curriculum.raionOf(s.id) == id),
             cards,
             now,
+            sidesOf,
           ),
           chunks: chunks..sort((a, b) => taught(a).compareTo(taught(b))),
         ),
   ]..sort((a, b) => _share(b.memory).compareTo(_share(a.memory)));
 
-  final memory = _summary(core, cards, now);
+  final memory = _summary(core, cards, now, sidesOf);
   return (
     city: memory,
     sinceYesterday: _since(core, cards, log, now, const Duration(days: 1)),
@@ -142,7 +146,7 @@ final progressProvider = FutureProvider.autoDispose<ProgressOverview>((
       isCore: (_) => true,
     ),
     recall: recallRate(log, now),
-    forecast: forecast(cards.values, now),
+    forecast: forecast(allCards, now),
     wholeCityBy: wholeCityBy(
       unseenCore: core.where((s) => !cards.containsKey(s.id)).length,
       newPerDay: LearningConfig.newPerDay[settings.minutesPerDay] ?? 0,
@@ -157,12 +161,13 @@ MemorySummary _summary(
   Iterable<NamedStreet> streets,
   Map<String, CardState> cards,
   DateTime now,
+  SidesOf sidesOf,
 ) {
   final carded = [for (final s in streets) ?cards[s.id]];
   return (
     memory: cityMemory(carded, now, isCore: (_) => true),
     total: streets.length,
-    counts: memoryCounts(carded, now),
+    counts: memoryCounts(carded, now, sidesOf: sidesOf),
   );
 }
 

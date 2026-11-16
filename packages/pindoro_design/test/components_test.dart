@@ -833,6 +833,46 @@ void main() {
         );
       });
     }
+
+    for (final brightness in Brightness.values) {
+      testWidgets('bearing dial ${brightness.name}', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(920, 380));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        Widget dial(double player, double? truth, String caption) => SizedBox(
+          width: 280,
+          child: BearingDial(
+            playerBearing: player,
+            trueBearing: truth,
+            onChanged: (_) {},
+            caption: caption,
+            semanticsLabel: 'Compass',
+            describeBearing: (b) => '$b',
+          ),
+        );
+        await tester.pumpWidget(
+          _host(
+            brightness: brightness,
+            Row(
+              spacing: 16,
+              children: [
+                dial(300, null, 'Your arrow: west-north-west'),
+                dial(270, 252, 'Your arrow: west · Vake Park: west-south-west'),
+                dial(
+                  40,
+                  252,
+                  'Your arrow: north-east · Vake Park: west-south-west',
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await expectLater(
+          find.byType(Scaffold),
+          matchesGoldenFile('goldens/bearing_${brightness.name}.png'),
+        );
+      });
+    }
   });
 }
 

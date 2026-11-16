@@ -391,6 +391,8 @@ pindoro_core `ScoringConfig`, not copied):
 | `nightOwlBefore` (Night owl badge: an answer before this local hour) | 4                                   |
 | `familySweepMinChildren`, `familySweepWindowDays`                    | 3, 2                                |
 | `crossingsPerDay`, `bearingsPerSessionMin`, `bearingsPerSessionMax`  | 1, 1, 3                             |
+| `familySweepMax`, `crossingsMax`, `crossingsTries`                   | 6, 5, 8                             |
+| `sideNewPerDay` (name and ends cards started a day)                  | 5                                   |
 | `bearingUnlockGridSolid`                                             | 0.50                                |
 | `nameCheckEvery`, `nameCheckOptions`                                 | 10, 6                               |
 | `familyOrphanM`, `familyNearM`                                       | 1500, 500                           |
@@ -473,9 +475,10 @@ rest of the spec. Numbers named here are in §13.
    each capped at `answerGapCapS`. The session timer is an estimate and never ends a session.
    `tReviewS` / `tNewS` become the log medians once there are `timeEstimateMinSamples` samples (M3).
 10. **`review_log.format`**: `placement`, `pretest`, `retrieval1`, `retrieval2`, `review`, `relearn`,
-    `explore`, `exploreLog` (an Explore answer that schedules nothing, §16.16); later `name`, `name_check`, `extent`, `family_sweep`, `crossings`, `bearing`, `junction`,
-    `gateway`, `bridge`, `connection`, `landmark`, `scene`, `recital`, `drive`. `pretest`, `crossings`
-    and `bearing` never change a schedule; the family sweep grades the children's P cards.
+    `explore`, `exploreLog` (an Explore answer that schedules nothing, §16.16), `name`, `nameCheck`,
+    `extent`, `familySweep`, `crossings`, `bearing` (M4); later `junction`, `gateway`, `bridge`,
+    `connection`, `landmark`, `scene`, `recital`, `drive`. `pretest`, `crossings` and `bearing` never
+    change a schedule; the family sweep grades the children's P cards.
 
 ### 16.3 Grading
 
@@ -621,3 +624,49 @@ board, and per-type FSRS parameter presets.
     offers it when done; Session done offers it when nothing is left due.
 53. **Catching up** shows the days the due reviews take at the day's minutes (`due × tReviewS ÷
     budget`, rounded up) and City memory's change over the week.
+
+### 16.13 More street cards and drills (M4)
+
+54. **Name and ends cards open** when the street's P card reaches `unlockNameDays` /
+    `unlockExtentDays` of stability: a name card for tiers A and B and every family parent, an ends
+    card past `extentMinLengthM`. An open card without a row starts as a first review (no intro)
+    after the due reviews, the most stable streets first, at most `sideNewPerDay` a day, in the
+    minutes left after the new streets; a backlog and Learn 5 more start none.
+55. **The name check** is every `nameCheckEvery`th name review over all name cards. It replaces Show
+    name with `nameCheckOptions` names: the street, its confusables nearest first, then the nearest
+    streets, one per name. Right is Good; wrong is Again and saves the mixed-up pair. A self-graded
+    review (Forgot / Knew it) goes straight on, with no sheet.
+56. **A street's ends** are its two line ends farthest apart; the pins count either way round. Both
+    ends show Great, one Close, none Miss.
+57. **Name and ends answers** log as `name`, `nameCheck` and `extent` whatever their step (first
+    review, review, relearn). Again relearns them in the session like a pin. Recall rate stays on P
+    reviews; City memory counts only P cards.
+58. **Mastered** needs each name and ends card that applies at `masteredSideDays`; one not started
+    yet keeps the street from Mastered.
+59. **Leeches**: a lapse that brings `lapses` to a multiple of `leechLapses` suspends the card, so
+    lapses stay a plain count (Clear road reads it). A card suspended before today comes back first
+    among the new streets (a new slot; none in a backlog): its intro says "Back for a closer look",
+    traces its top confusion (most counts, then latest) in cobalt with its name, and takes an
+    optional note (`card_state.note`). The intro makes it relearning and due at once, so the
+    session's retrievals relearn it on its kept memory. The reveal of the suspending answer says
+    "Back tomorrow for a closer look".
+60. **The family sweep** takes the parent with the most children due within
+    `familySweepWindowDays` (at least `familySweepMinChildren`), up to `familySweepMax` of them,
+    earliest due first; they leave the review list. Each label on its own lane is Good, elsewhere
+    Again with a mixed-up pair (the child, the lane it went on). Labels are dragged, or tapped and
+    then a lane tapped.
+61. **The crossings drill** takes a Solid street of tier A or B or a family parent, trying up to
+    `crossingsTries` in seeded order. Crossings are ordered along the line between the street's
+    ends, from a seeded end; the first names where the drive starts, then up to `crossingsMax`
+    Known crossings are asked, at least two. A typed name matches by `fuzzyNameMax` against the
+    Georgian name, its Latin transliteration and the English name, each without its kind of street
+    ("street", "ქუჩა", …); a wrong name that matches another street saves the pair. A suggestion
+    row offers the street whose name the typing starts. Each answer is logged on the crossed
+    street's P item and moves no card; one drill a day.
+62. **Bearings** point from the city centre (`centre` in `city.yaml`) to the midpoint of a Solid core
+    street at least 1 km from it, in raions whose core tier B streets are `bearingUnlockGridSolid`
+    Solid; `bearingsPerSessionMin`–`bearingsPerSessionMax` a session, seeded. Logged with Great as
+    Good, Close Hard, Miss Again; no card moves. Landmarks (M5) can replace the centre later.
+63. **Drills** sit half-way through the session (the sweep, the crossings, then the bearings); a
+    backlog keeps only the sweep. The sweep and the crossings show Great when all are right, Close
+    for half or more, else Miss. Every drill answer counts `tReviewS` in the estimates.

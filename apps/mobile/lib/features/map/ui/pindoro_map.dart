@@ -80,6 +80,7 @@ class PindoroMap extends ConsumerStatefulWidget {
     this.ownsGestures = false,
     this.known = const [],
     this.hit,
+    this.morePins = const [],
   });
 
   final AreaShape area;
@@ -101,11 +102,14 @@ class PindoroMap extends ConsumerStatefulWidget {
   final bool ownsGestures;
 
   /// Streets the player knows, traced and named (intro and reveal only;
-  /// never the answer street).
+  /// never the answer street); one with an empty label is traced only.
   final List<MapLabel> known;
 
   /// A Mix-up's hit street: dashed cobalt with a cobalt chip.
   final MapLabel? hit;
+
+  /// The player's other pins (a street's second end).
+  final List<LatLng> morePins;
 
   @override
   ConsumerState<PindoroMap> createState() => _PindoroMapState();
@@ -265,6 +269,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       _startPaint();
     }
     if (widget.pin != oldWidget.pin ||
+        !listEquals(widget.morePins, oldWidget.morePins) ||
         widget.truth != oldWidget.truth ||
         widget.measure != oldWidget.measure ||
         widget.known != oldWidget.known ||
@@ -300,7 +305,11 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   /// What the camera frames: the street and the pin once revealed, else
   /// [_areaFrame].
   List<LatLng> get _framePoints => switch (widget.truth) {
-    final truth? => [...truth.expand((l) => l), ?widget.pin],
+    final truth? => [
+      ...truth.expand((l) => l),
+      ?widget.pin,
+      ...widget.morePins,
+    ],
     null => _areaFrame,
   };
 
@@ -492,7 +501,10 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     final c = _controller!;
     final pin = widget.pin;
     final measure = widget.measure;
-    await c.setGeoJsonSource(_MapSources.youPin, pointsGeoJson([?pin]));
+    await c.setGeoJsonSource(
+      _MapSources.youPin,
+      pointsGeoJson([?pin, ...widget.morePins]),
+    );
     await c.setGeoJsonSource(
       _MapSources.truthStreet,
       linesGeoJson(_paintedTruth),
@@ -519,7 +531,11 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       _MapSources.knownLabel,
       labelledPointsGeoJson([
         for (final k in widget.known)
-          (k.at, {'icon': await _labelImage('known', k.label, MapChip.region)}),
+          if (k.label.isNotEmpty)
+            (
+              k.at,
+              {'icon': await _labelImage('known', k.label, MapChip.region)},
+            ),
       ]),
     );
     final hit = widget.hit;

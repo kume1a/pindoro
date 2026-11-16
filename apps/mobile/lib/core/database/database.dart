@@ -228,6 +228,9 @@ class CardStates extends Table {
   BoolColumn get priorKnown => boolean().withDefault(const Constant(false))();
   DateTimeColumn get introAt => dateTime().nullable()();
 
+  /// The player's memory aid for a leech (SPEC §4).
+  TextColumn get note => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {itemId};
 }
@@ -310,7 +313,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 17;
+  static const int version = 18;
 
   @override
   int get schemaVersion => version;
@@ -408,6 +411,8 @@ class AppDatabase extends _$AppDatabase {
         await m.dropColumn(schema.userSettings, 'daily_goal');
         await m.dropColumn(schema.userSettings, 'turn_list');
       },
+      from17To18: (m, schema) =>
+          m.addColumn(schema.cardState, schema.cardState.note),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

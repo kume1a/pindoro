@@ -75,8 +75,7 @@
   - `StatChip`, `NextReviewChip` and `IntroSheet` have widget tests but no goldens yet.
 - v3 progress and settings (M2), left out on purpose until the milestone named:
   - Progress district: no Gateways solid or Landmarks tiles (M5); neighbourhood rows open no
-    detail. Mastered ignores name and ends cards until they exist (M4), and its definition line
-    says only "3 months or more".
+    detail. Its Mastered definition line says only "3 months or more".
   - Learning settings: no Turns and routes, Street photos or Speak your answers toggles (M5–M7).
   - The home and work picker shows the map and the nearest neighbourhoods as chips, without the
     "More" list and search of the design's area selector.
@@ -86,6 +85,12 @@
     rest of the app counts from the cards.
   - The route drawing (`RouteDraft`, `RouteDrawLayer`) is unused until the M6 recitals.
   - The Georgian draft of the new strings needs the native review like the rest.
+- v3 name, ends and drills (M4), left out on purpose:
+  - The sweep's lanes are traced like known streets (grey, solid), not dashed, and its sockets
+    have a solid outline; drill chips and sockets show full street names.
+  - Bearings point from the city centre, not a landmark, until M5 brings landmarks.
+  - The bearing sheet's title reads the tier label as elsewhere ("Great! · 18° off").
+  - No goldens for the session's task views; `BearingDial` has goldens.
 
 ## Gaps found 2026-11-11 (design vs code)
 
