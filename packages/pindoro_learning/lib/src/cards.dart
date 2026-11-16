@@ -59,7 +59,13 @@ enum ReviewFormat {
   gateway,
   bridge,
   connection,
-  landmark;
+  landmark,
+
+  /// A recital (an R card in a session), or a J card's Again from a recital decision (SPEC §4).
+  recital,
+
+  /// A J card's Again from a decision on a GPS-free drive (SPEC §4).
+  drive;
 
   /// Drill answers that are only logged (SPEC §16.10): they move no card.
   bool get logsOnly => this == crossings || this == bearing;
@@ -279,15 +285,9 @@ Random fuzzFor(String itemId, DateTime now) {
   required int rtMs,
   String? sessionId,
 }) {
-  final memory = card?.memory;
-  final dueAt = card?.dueAt;
   final reviews = card == null
       ? grade.rating == Rating.good || grade.rating == Rating.easy
-      : memory != null &&
-            dueAt != null &&
-            dueAt.difference(now).inSeconds <=
-                LearningConfig.nearDueFraction *
-                    dueAt.difference(memory.lastReview).inSeconds;
+      : isNearDue(card, now);
   final applied = applyReview(
     card,
     itemId: itemId,
@@ -303,3 +303,42 @@ Random fuzzFor(String itemId, DateTime now) {
   );
   return (card: reviews ? applied.card : null, log: applied.log);
 }
+
+/// Due or near due at [now]: due within [LearningConfig.nearDueFraction] of its interval (SPEC
+/// §4, §16.16).
+bool isNearDue(CardState card, DateTime now) {
+  final memory = card.memory;
+  final dueAt = card.dueAt;
+  return memory != null &&
+      dueAt != null &&
+      dueAt.difference(now).inSeconds <=
+          LearningConfig.nearDueFraction *
+              dueAt.difference(memory.lastReview).inSeconds;
+}
+
+/// What a decision a recital or drive tested does to its J [card] (SPEC §4 implicit evidence): a
+/// failure ([ok] false) reviews a reviewed card as Again when it is near due; anything else only
+/// leaves the evidence row (null here).
+({CardState card, LogEntry log})? implicitReview(
+  CardState? card, {
+  required bool ok,
+  required DateTime now,
+  required ReviewSource source,
+  String? sessionId,
+}) =>
+    ok ||
+        card == null ||
+        card.phase != CardPhase.review ||
+        !isNearDue(card, now)
+    ? null
+    : applyReview(
+        card,
+        itemId: card.itemId,
+        rating: Rating.again,
+        now: now,
+        format: source == ReviewSource.drive
+            ? ReviewFormat.drive
+            : ReviewFormat.recital,
+        source: source,
+        sessionId: sessionId,
+      );

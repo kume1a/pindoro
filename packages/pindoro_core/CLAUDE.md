@@ -13,12 +13,13 @@ lib/src/game/       Area (districts/circle/rect, in-area rule), NamedStreet (nea
                     QuestionSelector (10 names, 3 × 3 grid), knowledge (per street, Explore),
                     street_facts (road type, crossings in order along a street, its ends,
                     direction from the centre: the intro and the M4 drills),
-                    route_draft (RouteDraft drag and tap drawing, kept for M6 recitals)
+                    route_draft (RouteDraft drag and tap drawing along legal exits: the
+                    recital's Draw mode)
 lib/src/pack/       City/District/Street (pack rows; format 4 adds the curriculum columns and
                     FamilyLink), PackRepository, RoadGraph (junctions, edges with `Oneway` and
                     connectors (no street), turn restrictions, `legalExits`, edge-expanded A*
                     `shortestRoute` to a goal set with the U-turn penalty in `RoutingConfig`,
-                    edgeNear)
+                    edgeNear, `allowing` the player's reported moves: app only, not twinned)
 ```
 
 ## Rules

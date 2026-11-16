@@ -5,6 +5,7 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/data/carry_over.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/route_book.dart';
+import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/streak.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
@@ -89,19 +90,22 @@ final newCandidatesProvider = FutureProvider.autoDispose
     });
 
 /// The open city's cards. A street card whose street left the pack is
-/// skipped, and a route card the pack doesn't ask; one keyed by another part
-/// of a street still counts as that street's card.
+/// skipped, and a route card the pack doesn't ask or a recital whose run it
+/// lacks; one keyed by another part of a street still counts as that
+/// street's card.
 final cityCardsProvider = FutureProvider.autoDispose<List<CardState>>((
   ref,
 ) async {
   final dao = ref.watch(learningDaoProvider);
   final streets = await ref.watch(cityStreetsProvider.future);
   final routes = await ref.watch(routeBookProvider.future);
+  final runs = {for (final r in await ref.watch(runsProvider.future)) r.id};
   await ref.watch(carryOverProvider.future);
   return [
     for (final card in await dao.cards())
       if (streets.containsKey(itemKey(card.itemId)) ||
-          routes.questions.containsKey(card.itemId))
+          routes.questions.containsKey(card.itemId) ||
+          (card.type == CardType.r && runs.contains(itemKey(card.itemId))))
         card,
   ];
 });
@@ -136,6 +140,7 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
   final curriculumFuture = ref.watch(curriculumProvider.future);
   final routesFuture = ref.watch(routeBookProvider.future);
   final streakFuture = ref.watch(streakProvider.future);
+  final runsFuture = ref.watch(runsProvider.future);
   final candidatesFuture = ref.watch(
     newCandidatesProvider(
       extraNew ?? LearningConfig.newPerDay[settings.minutesPerDay] ?? 0,
@@ -180,6 +185,10 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
                 LearningConfig.phase2StableDays,
           ),
     routesStartedToday: startedToday(today, now, routeTypes),
+    openRecitals: learnMore
+        ? const []
+        : openRecitals(await runsFuture, cards: byItem, now: now),
+    recitalsStartedToday: startedToday(today, now, {CardType.r}),
     drills: learnMore
         ? Drills.none
         : planDrills(

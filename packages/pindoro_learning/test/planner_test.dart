@@ -43,6 +43,8 @@ SessionPlan plan({
   int sidesStartedToday = 0,
   List<String> openRoutes = const [],
   int routesStartedToday = 0,
+  List<String> openRecitals = const [],
+  int recitalsStartedToday = 0,
   Drills drills = Drills.none,
   int tReviewS = LearningConfig.tReviewS,
   int tNewS = LearningConfig.tNewS,
@@ -59,6 +61,8 @@ SessionPlan plan({
   sidesStartedToday: sidesStartedToday,
   openRoutes: openRoutes,
   routesStartedToday: routesStartedToday,
+  openRecitals: openRecitals,
+  recitalsStartedToday: recitalsStartedToday,
   drills: drills,
   tReviewS: tReviewS,
   tNewS: tNewS,
@@ -533,6 +537,29 @@ void main() {
       2,
     );
     expect(plan(cards: dueCards(150), openRoutes: routes).routeCount, 0);
+  });
+
+  test('recitals: one new a day after the route items, 3 minutes each, paused '
+      'like them; a due one costs 3 minutes too', () {
+    const runs = ['R:n1:n2', 'R:n3:n4'];
+    final p = plan(cards: dueCards(5), openRecitals: runs, fresh: const []);
+    expect(ofKind(p, StepKind.review).last, runs.first);
+    expect(p.routeCount, 1);
+    expect(
+      p.estimatedS,
+      5 * LearningConfig.tReviewS + LearningConfig.tRecitalS,
+    );
+    expect(plan(openRecitals: runs, recitalsStartedToday: 1).routeCount, 0);
+    expect(plan(cards: dueCards(150), openRecitals: runs).routeCount, 0);
+    final dueRecital = CardState(
+      itemId: runs.last,
+      phase: CardPhase.review,
+      memory: Memory(stability: 3, difficulty: 5, lastReview: now),
+      dueAt: now,
+    );
+    final withDue = plan(cards: [dueRecital], fresh: const []);
+    expect(withDue.estimatedS, LearningConfig.tRecitalS);
+    expect(remainingSeconds(withDue.steps), LearningConfig.tRecitalS);
   });
 
   group('finishedBlocks', () {

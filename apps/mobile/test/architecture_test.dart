@@ -25,6 +25,7 @@ const _layers = <Set<String>>[
     'features/me',
     'features/lesson',
     'features/session',
+    'features/drive',
     'features/today',
     'features/memory',
   },

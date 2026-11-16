@@ -41,8 +41,9 @@ void main() {
   late NamedStreet avenue;
   late List<Crossing> crossings;
 
-  /// The Vake pack's route items.
+  /// The Vake pack's route items, and its junctions' OSM nodes.
   late RouteBook routes;
+  late Map<int, int> nodes;
 
   setUpAll(() {
     final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
@@ -59,6 +60,7 @@ void main() {
       final p = byPart[f.parentId]!, c = byPart[f.childId]!;
       if (p != c) children.putIfAbsent(p, () => {}).add(c);
     }
+    nodes = repo.junctionNodes();
     routes = buildRouteBook(
       graph: repo.roadGraph()!,
       junctionNodes: repo.junctionNodes(),
@@ -592,6 +594,85 @@ void main() {
       final row = (await dao.log()).single;
       expect((row.format, row.rating), (ReviewFormat.landmark, Rating.good));
       expect((await dao.card(q.itemId))!.phase, CardPhase.review);
+    });
+  });
+
+  group('M6 recitals', () {
+    testWidgets('typed street by street, graded against the best route; the '
+        'turns it drives are evidence for their J cards', (tester) async {
+      final q = routes.questions.values.whereType<TurnQuestion>().firstWhere(
+        (q) =>
+            q.approachStreet != null &&
+            q.exitStreet != null &&
+            q.approachStreet != q.exitStreet,
+      );
+      final from = q.approach.other(q.junction);
+      final to = q.exits[q.correct]!.other(q.junction);
+      final run = (
+        id: runId(nodes[from]!, nodes[to]!),
+        fromNode: nodes[from]!,
+        toNode: nodes[to]!,
+        random: true,
+        items: [q.itemId],
+        createdAt: now,
+      );
+      await dao.saveRun(run);
+      await pump(tester, [
+        (kind: StepKind.review, itemId: CardType.r.item(run.id)),
+      ]);
+      expect(find.text('By heart, no map'), findsOneWidget);
+      expect(find.text('Check my route'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), q.exitStreet!.name);
+      await tester.testTextInput.receiveAction(TextInputAction.next);
+      await settle(tester);
+      expect(find.text('No street or landmark by that name'), findsNothing);
+      expect(
+        ((controller(tester).state as SessionPlaying).task as RecitalTask)
+            .steps
+            .single
+            .street
+            ?.id,
+        q.exitStreet!.id,
+      );
+      await tapThrough(tester, find.text('Check my route'));
+      expect(find.text('Next'), findsOneWidget);
+      final log = await dao.log();
+      expect(log.first.itemId, CardType.r.item(run.id));
+      expect(log.first.format, ReviewFormat.recital);
+      expect(await dao.card(CardType.r.item(run.id)), isNotNull);
+      expect(await db.select(db.implicitEvidence).get(), isNotEmpty);
+    });
+
+    testWidgets('drawn along the streets from A to B', (tester) async {
+      final graph = SqlitePackRepository.open(AppConfig.fixturePackAsset);
+      addTearDown(graph.close);
+      final q = routes.questions.values.whereType<TurnQuestion>().first;
+      final from = q.approach.other(q.junction);
+      final to = q.exits[q.correct]!.other(q.junction);
+      final run = (
+        id: runId(nodes[from]!, nodes[to]!),
+        fromNode: nodes[from]!,
+        toNode: nodes[to]!,
+        random: true,
+        items: [q.itemId],
+        createdAt: now,
+      );
+      await dao.saveRun(run);
+      await pump(tester, [
+        (kind: StepKind.review, itemId: CardType.r.item(run.id)),
+      ]);
+      await tapThrough(tester, find.text('Draw'));
+      final task = (controller(tester).state as SessionPlaying).task;
+      var draft = (task as RecitalTask).draft;
+      final best = draft.graph.shortestRoute(task.from, {task.to})!;
+      for (final e in best.edges) {
+        draft = draft.take(e);
+      }
+      controller(tester).recitalDraw(draft);
+      await settle(tester);
+      await tapThrough(tester, find.text('Check my route'));
+      expect(find.text('Perfect!'), findsOneWidget);
+      expect((await dao.log()).single.rating, Rating.easy);
     });
   });
 }

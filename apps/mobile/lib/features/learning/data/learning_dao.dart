@@ -9,7 +9,16 @@ part 'learning_dao.g.dart';
 /// (docs/learning/SPEC.md §2.2). pindoro_learning decides every change; this
 /// only maps rows and writes them.
 @DriftAccessor(
-  tables: [CardStates, ReviewLogs, Confusions, LearnCities, LandmarkPersonal],
+  tables: [
+    CardStates,
+    ReviewLogs,
+    Confusions,
+    LearnCities,
+    LandmarkPersonal,
+    ImplicitEvidence,
+    Runs,
+    TurnOverrides,
+  ],
 )
 class LearningDao extends DatabaseAccessor<AppDatabase>
     with _$LearningDaoMixin {
@@ -134,6 +143,71 @@ class LearningDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> deletePersonalLandmark(String id) =>
       (delete(landmarkPersonal)..where((l) => l.id.equals(id))).go();
+
+  /// A recital's or drive's outcome at once (SPEC §4): its own answer ([log] and [card], none
+  /// for a drive), every decision's [evidence] row and the J card [reviews] the near-due
+  /// failures make.
+  Future<void> saveTest({
+    LogEntry? log,
+    CardState? card,
+    required ReviewSource source,
+    required DateTime at,
+    required List<({String itemId, bool ok})> evidence,
+    required List<({CardState card, LogEntry log})> reviews,
+  }) => transaction(() async {
+    if (card != null) await putCard(card);
+    if (log != null) await into(reviewLogs).insert(_logRow(log));
+    await batch((b) {
+      b.insertAll(implicitEvidence, [
+        for (final e in evidence)
+          ImplicitEvidenceCompanion.insert(
+            itemId: e.itemId,
+            ts: at,
+            source: source,
+            outcome: e.ok ? 1 : 0,
+          ),
+      ]);
+      b.insertAllOnConflictUpdate(cardStates, [
+        for (final r in reviews) _row(r.card),
+      ]);
+      b.insertAll(reviewLogs, [for (final r in reviews) _logRow(r.log)]);
+    });
+  });
+
+  /// The recitals' runs, oldest first (SPEC §16.7).
+  Future<List<Run>> recitalRuns() async => [
+    for (final r in await (select(
+      runs,
+    )..orderBy([(r) => OrderingTerm.asc(r.createdAt)])).get())
+      (
+        id: r.id,
+        fromNode: r.fromNode,
+        toNode: r.toNode,
+        random: r.random,
+        items: r.items.isEmpty ? const <String>[] : r.items.split(' '),
+        createdAt: r.createdAt,
+      ),
+  ];
+
+  Future<void> saveRun(Run run) => into(runs).insertOnConflictUpdate(
+    RunRow(
+      id: run.id,
+      fromNode: run.fromNode,
+      toNode: run.toNode,
+      random: run.random,
+      items: run.items.join(' '),
+      createdAt: run.createdAt,
+    ),
+  );
+
+  /// The moves the player reported as legal (`oneway:…`, `turn:…`).
+  Future<Set<String>> reportedMoves() async => {
+    for (final r in await select(turnOverrides).get()) r.id,
+  };
+
+  Future<void> reportMove(String id, DateTime at) => into(
+    turnOverrides,
+  ).insertOnConflictUpdate(TurnOverrideRow(id: id, createdAt: at));
 
   static CardState _card(CardStateRow r) => CardState(
     itemId: r.itemId,

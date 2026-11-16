@@ -17,6 +17,7 @@ import 'package:pindoro/features/session/ui/widgets/crossings_view.dart';
 import 'package:pindoro/features/session/ui/widgets/ends_view.dart';
 import 'package:pindoro/features/session/ui/widgets/name_it_view.dart';
 import 'package:pindoro/features/session/ui/widgets/placement_done.dart';
+import 'package:pindoro/features/session/ui/widgets/recital_view.dart';
 import 'package:pindoro/features/session/ui/widgets/route_view.dart';
 import 'package:pindoro/features/session/ui/widgets/session_done.dart';
 import 'package:pindoro/features/session/ui/widgets/session_intro.dart';
@@ -131,6 +132,19 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           onChoose: controller.choose,
           onPin: controller.dropPin,
           onAnswer: (typed) => unawaited(controller.answerRoute(typed: typed)),
+          onNext: () async => controller.next(),
+          chip: _nextReviewChip(p, nextReviewDays),
+        ),
+        RecitalTask(:final nextReviewDays) => RecitalView(
+          play: p,
+          topBar: _topBar(p, controller),
+          onMode: controller.recitalMode,
+          onTurn: controller.recitalTurn,
+          onAdd: controller.recitalAdd,
+          onUndo: controller.recitalUndo,
+          onDraw: controller.recitalDraw,
+          onCheck: () => unawaited(controller.checkRecital()),
+          onReport: () => unawaited(controller.reportMove()),
           onNext: () async => controller.next(),
           chip: _nextReviewChip(p, nextReviewDays),
         ),

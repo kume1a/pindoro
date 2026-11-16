@@ -158,4 +158,67 @@ void main() {
     await dao.deletePersonalLandmark(older.id);
     expect((await dao.personalLandmarks()).map((l) => l.name), ['Church']);
   });
+
+  test('a recital saves its answer, every decision as evidence and the J '
+      'cards it failed', () async {
+    final r = applyReview(
+      null,
+      itemId: 'R:n1:n2',
+      rating: Rating.hard,
+      now: t0,
+      format: ReviewFormat.recital,
+      source: ReviewSource.session,
+    );
+    final j = applyReview(
+      null,
+      itemId: 'J:n5:n4:n6',
+      rating: Rating.again,
+      now: t0,
+      format: ReviewFormat.recital,
+      source: ReviewSource.recital,
+    );
+    await dao.saveTest(
+      log: r.log,
+      card: r.card,
+      source: ReviewSource.recital,
+      at: t0,
+      evidence: const [
+        (itemId: 'J:n5:n4:n6', ok: false),
+        (itemId: 'J:n7:n5:n8', ok: true),
+      ],
+      reviews: [j],
+    );
+    expect((await dao.log()).map((e) => (e.itemId, e.source)), [
+      ('R:n1:n2', ReviewSource.session),
+      ('J:n5:n4:n6', ReviewSource.recital),
+    ]);
+    expect((await dao.card('J:n5:n4:n6'))!.lastRating, Rating.again);
+    final evidence = await db.select(db.implicitEvidence).get();
+    expect(evidence.map((e) => (e.itemId, e.outcome, e.source)), [
+      ('J:n5:n4:n6', 0, ReviewSource.recital),
+      ('J:n7:n5:n8', 1, ReviewSource.recital),
+    ]);
+  });
+
+  test('runs round trip oldest first; reported moves are kept once', () async {
+    Run run(String id, DateTime at, List<String> items) => (
+      id: id,
+      fromNode: 1,
+      toNode: 2,
+      random: items.isEmpty,
+      items: items,
+      createdAt: at,
+    );
+    await dao.saveRun(run('n3:n4', t0.add(const Duration(days: 1)), const []));
+    await dao.saveRun(run('n1:n2', t0, const ['J:n1:n2:n3', 'J:n2:n3:n4']));
+    final runs = await dao.recitalRuns();
+    expect(runs.map((r) => (r.id, r.items.join(' '), r.random)), [
+      ('n1:n2', 'J:n1:n2:n3 J:n2:n3:n4', false),
+      ('n3:n4', '', true),
+    ]);
+    await dao.reportMove('oneway:n1:n2', t0);
+    await dao.reportMove('oneway:n1:n2', t0);
+    await dao.reportMove('turn:n1:n2:n3', t0);
+    expect(await dao.reportedMoves(), {'oneway:n1:n2', 'turn:n1:n2:n3'});
+  });
 }

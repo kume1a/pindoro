@@ -5,6 +5,9 @@
     <!-- The daily streak reminder (flutter_local_notifications), rescheduled after a reboot. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- A GPS-free drive records with the screen locked (geolocator's foreground service). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
     <application
         android:label="Pindoro"
         android:name="${applicationName}"

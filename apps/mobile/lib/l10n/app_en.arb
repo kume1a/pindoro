@@ -2072,5 +2072,244 @@
         "type": "String"
       }
     }
+  },
+  "recitalByHeart": "By heart, no map",
+  "recitalAt": "At {street}",
+  "@recitalAt": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "recitalHowTo": "How to answer",
+  "recitalType": "Type",
+  "recitalDraw": "Draw",
+  "recitalStart": "Start",
+  "recitalStep": "{n} · {step}",
+  "@recitalStep": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      },
+      "step": {
+        "type": "String"
+      }
+    }
+  },
+  "recitalLeftOnto": "Left onto {street}",
+  "@recitalLeftOnto": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "recitalRightOnto": "Right onto {street}",
+  "@recitalRightOnto": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "recitalStraightOnto": "Straight on to {street}",
+  "@recitalStraightOnto": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "recitalUTurnOnto": "U-turn onto {street}",
+  "@recitalUTurnOnto": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "recitalThen": "Then {street}",
+  "@recitalThen": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "recitalLeft": "Left",
+  "recitalStraight": "Straight",
+  "recitalRight": "Right",
+  "recitalNext": "Next street or landmark",
+  "recitalNotFound": "No street or landmark by that name",
+  "recitalCheck": "Check my route",
+  "recitalDrawHint": "Drag from A along the streets to B.",
+  "recitalLonger": "{tier} · {percent} % longer",
+  "@recitalLonger": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "recitalBestDrive": "The best drive.",
+  "recitalExtra": "A real route, {distance} longer.",
+  "@recitalExtra": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "recitalTurnsMatch": "{right} of {total} turns match the best drive.",
+  "@recitalTurnsMatch": {
+    "placeholders": {
+      "right": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "recitalNoRoute": "These streets don't make a drive from A to B.",
+  "recitalNotThere": "That route doesn't reach B.",
+  "recitalNotDrivable": "Not drivable",
+  "recitalOneway": "{street} is one-way the other direction.",
+  "@recitalOneway": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "recitalNoTurn": "No turn from {from} onto {to} here.",
+  "@recitalNoTurn": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "recitalOnewayChip": "One-way: no entry",
+  "recitalNoTurnChip": "No turn here",
+  "recitalPractice": "{count, plural, =1{Turn added to practice} other{{count} turns added to practice}}",
+  "@recitalPractice": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recitalReport": "Wrong? Report this turn",
+  "recitalReported": "Reported: it counts as legal from now on",
+  "recitalOnBest": "On the best route",
+  "recitalDetour": "Legal, but a detour",
+  "recitalWrongWay": "Not this way",
+  "a11yRecitalMap": "Map. The best route is painted yellow; your route is the blue dashed line.",
+  "todayRunTitle": "Drive this run today",
+  "todayRunRoute": "{from} → {to} · {distance}",
+  "@todayRunRoute": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "todayRunDrive": "Drive",
+  "driveTitle": "GPS-free drive",
+  "driveDestination": "Destination",
+  "driveTodaysRun": "Today's run",
+  "driveSurprise": "Surprise me",
+  "driveMyOwn": "My own",
+  "driveSurpriseNote": "A street you know, 1.5–5 km from where you start",
+  "driveWhereTo": "Where to? A street",
+  "driveRuleMap": "No map, no directions",
+  "driveRuleMapNote": "Plan it in your head before you set off",
+  "driveRuleTrack": "Your track records in the background",
+  "driveRuleTrackNote": "You can lock the screen",
+  "driveRuleHands": "Hands off the phone while driving",
+  "driveRuleHandsNote": "Check your drive once you've parked",
+  "driveStart": "Start drive",
+  "driveNoRun": "No run yet: it comes once you know the turns on one.",
+  "driveRecording": "Recording your drive",
+  "driveSoFar": "{distance} so far · the screen can stay locked",
+  "@driveSoFar": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "driveHeadingTo": "Heading to {street}",
+  "@driveHeadingTo": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "driveEnd": "I'm there: end drive",
+  "driveLost": "Lost? Show the way (ends the test)",
+  "driveNotificationTitle": "Recording your drive",
+  "driveNotificationText": "End it in Pindoro once you have parked.",
+  "driveNoLocation": "Pindoro needs your location to record the drive.",
+  "driveFound": "You found it without GPS.",
+  "driveLongWay": "A long way round: the best route is in yellow.",
+  "driveStoppedShort": "You stopped {distance} from {street}.",
+  "@driveStoppedShort": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      },
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "driveNoTrack": "Nothing was recorded on the streets.",
+  "driveUTurns": "{count, plural, =1{One U-turn.} other{{count} U-turns.}}",
+  "@driveUTurns": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "driveDriven": "Driven",
+  "driveLonger": "Longer",
+  "driveUTurnsTile": "U-turns",
+  "driveCredited": "{credited} turns credited · {failed} to practise",
+  "@driveCredited": {
+    "placeholders": {
+      "credited": {
+        "type": "String"
+      },
+      "failed": {
+        "type": "String"
+      }
+    }
+  },
+  "driveUTurnHere": "U-turn here",
+  "a11yDriveMap": "Map. Your recorded drive in blue over the best route in yellow.",
+  "driveHesitations": "{count, plural, =1{One hesitation.} other{{count} hesitations.}}",
+  "@driveHesitations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

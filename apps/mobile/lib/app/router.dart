@@ -4,6 +4,7 @@ import 'package:pindoro/app/tab_shell.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/account/ui/account_screen.dart';
+import 'package:pindoro/features/drive/ui/drive_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/me/ui/me_screen.dart';
@@ -170,6 +171,7 @@ GoRouter buildRouter(String initialLocation) {
         path: Routes.landmarkAdd,
         builder: (_, _) => const LandmarkAddScreen(),
       ),
+      GoRoute(path: Routes.drive, builder: (_, _) => const DriveScreen()),
     ],
   );
 }

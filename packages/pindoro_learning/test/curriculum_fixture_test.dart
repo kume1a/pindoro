@@ -1,39 +1,7 @@
-import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
-import 'package:sqlite3/sqlite3.dart';
 import 'package:test/test.dart';
 
-const _fixture =
-    '../../apps/mobile/assets/packs_fixture/tbilisi_vake_fixture.sqlite';
-
-/// The bundled Vake pack's curriculum.
-Curriculum _vake() {
-  final db = sqlite3.open(_fixture, mode: OpenMode.readOnly);
-  try {
-    final neighbours = <String, Set<String>>{};
-    for (final r in db.select('SELECT chunk_a, chunk_b FROM chunk_neighbour')) {
-      neighbours
-          .putIfAbsent(r['chunk_a'] as String, () => {})
-          .add(r['chunk_b'] as String);
-    }
-    return Curriculum(
-      streets: streetsByPartId([
-        for (final r in db.select('SELECT * FROM street')) Street.fromRow(r),
-      ]).values,
-      districts: [
-        for (final r in db.select('SELECT * FROM district'))
-          District.fromRow(r),
-      ],
-      centre: City.fromRow(db.select('SELECT * FROM city').first).center,
-      families: [
-        for (final r in db.select('SELECT * FROM family')) familyLinkFromRow(r),
-      ],
-      chunkNeighbours: neighbours,
-    );
-  } finally {
-    db.close();
-  }
-}
+import 'vake_fixture.dart';
 
 /// A card introduced on [introAt] whose stability grows by 2 days a day.
 CardState _card(String street, DateTime introAt, DateTime now) {
@@ -55,7 +23,7 @@ void main() {
   test(
     '120 days of Vake at 10 new streets a day keep the curriculum rules',
     () {
-      final curriculum = _vake();
+      final curriculum = Vake.load().curriculum;
       final introduced = <String, DateTime>{};
       var days = 0;
       for (var day = 0; day < 120; day++) {

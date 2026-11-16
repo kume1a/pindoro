@@ -139,9 +139,57 @@ abstract final class LearningConfig {
   static const double hesitationKmh = 5;
   static const int hesitationS = 10;
 
+  /// What a recited turn word the path doesn't make adds to the path search: soft, it only
+  /// picks between near-equal paths (§16.15).
+  static const double recitalTurnMismatchM = 200;
+
+  /// The longest name, in words, a transcript phrase is matched against.
+  static const int recitalNameWordsMax = 5;
+
+  /// Name matches this close to the best count as equal; the one nearest the previous street
+  /// wins (§5.3 step 2).
+  static const double recitalNameTieSlack = 0.05;
+
+  /// A drive keeps a GPS fix this far from the last one kept.
+  static const double driveSampleM = 20;
+
+  /// A fix snaps to edges within this distance.
+  static const double driveSnapM = 35;
+
+  /// What a fix's heading off an edge's direction adds to its snap, per 90°.
+  static const double driveHeadingM = 20;
+
+  /// What turning back between two fixes adds to the match, on an edge or at a junction.
+  static const double driveTurnBackM = 40;
+
+  /// What driving an edge against its one-way adds to a snap.
+  static const double driveWrongWayM = 15;
+
+  /// A stop this close to a junction is traffic, not a hesitation: the pack has no traffic
+  /// signals, junctions stand in for them (§16.15).
+  static const double hesitationJunctionM = 30;
+
   // Imagery (§10)
   static const double sceneApproachMinM = 25;
   static const double sceneApproachMaxM = 40;
+
+  // Recital runs in the plan (§3 R, §16.15)
+  /// What a recital takes in the day's minutes (report 2: about 3 minutes a day).
+  static const int tRecitalS = 180;
+  static const int recitalNewPerDay = 1;
+
+  /// A route-book run starts and ends about this far from its seed turn, along its streets.
+  static const double runLeadM = 800;
+
+  /// A route-book run drives at least this many J items of the book.
+  static const int runMinItems = 2;
+  static const int randomRunEveryDays = 7;
+  static const double randomRunMinM = 1500;
+  static const double randomRunMaxM = 5000;
+  static const int randomRunTries = 50;
+
+  /// A drive that ends this close to its destination arrived there.
+  static const double driveArriveM = 200;
 
   // Motivation and maps (§8, §16.6)
   static const int cityMemoryMilestone = 500;

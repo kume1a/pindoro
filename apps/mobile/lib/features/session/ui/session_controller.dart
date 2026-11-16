@@ -3,9 +3,11 @@ import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/clock.dart';
+import 'package:pindoro/core/hold.dart';
 import 'package:pindoro/features/learning/data/day.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/route_book.dart';
+import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/session/ui/session_tasks.dart';
@@ -214,6 +216,15 @@ class SessionController extends Notifier<SessionState> {
     questions: const <String, RouteQuestion>{},
   );
 
+  /// Recitals (SPEC §5.3): graded on the graph with the player's reported
+  /// moves, their runs by id, pack junctions by OSM node and back, and each
+  /// R item's task as first built.
+  RoadGraph? _graph;
+  Map<String, Run> _runs = const {};
+  Map<int, int> _byNode = const {};
+  Map<int, int> _nodes = const {};
+  final Map<String, RecitalTask?> _recitals = {};
+
   /// Name reviews so far, for the every-10th check.
   int _nameReviews = 0;
 
@@ -244,19 +255,17 @@ class SessionController extends Notifier<SessionState> {
   /// city's placement.
   Future<void> start({bool placement = false, bool more = false}) async {
     final dao = _dao;
-    // The plan disposes when unwatched: hold it while it loads.
-    final planSub = placement
+    final plan = placement
         ? null
-        : ref.listen(
+        : await ref.hold(
             (more ? learnMorePlanProvider : todayPlanProvider).future,
-            (_, _) {},
           );
-    final plan = await planSub?.read();
-    planSub?.close();
     final streets = await ref.read(cityStreetsProvider.future);
     final pack = await ref.read(packRepositoryProvider.future);
     final curriculum = await ref.read(curriculumProvider.future);
     final routes = await ref.read(routeBookProvider.future);
+    final runs = await ref.hold(runsProvider.future);
+    final graph = await ref.hold(drivingGraphProvider.future);
     final cards = await dao.cards();
     final confusions = await dao.confusionPairs();
     final log = await dao.log();
@@ -294,6 +303,10 @@ class SessionController extends Notifier<SessionState> {
     _curriculum = curriculum;
     _drills = plan?.drills ?? Drills.none;
     _routes = routes;
+    _graph = graph;
+    _runs = {for (final r in runs) r.id: r};
+    _nodes = pack.junctionNodes();
+    _byNode = {for (final e in _nodes.entries) e.value: e.key};
     _contrasts.addAll(contrasts);
     _cards = {for (final c in cards) c.itemId: c};
     _confusions = [...confusions];
@@ -907,6 +920,9 @@ class SessionController extends Notifier<SessionState> {
           ),
         ),
         _ when step.kind == StepKind.intro => const PinTask(),
+        _ when CardType.ofItem(step.itemId) == CardType.r => _recitalTask(
+          step.itemId,
+        ),
         _ when _routes.questions[step.itemId] != null => RouteTask(
           _routes.questions[step.itemId]!,
         ),
@@ -935,8 +951,195 @@ class SessionController extends Notifier<SessionState> {
         final BridgeQuestion q => q.approachStreet ?? _nearest(q.at),
         final ConnectionQuestion q => q.street,
         final LandmarkQuestion q => q.approachStreet ?? _nearest(q.landmark.at),
-        null => null,
+        null => _recitalTask(step.itemId)?.fromStreet,
       };
+
+  /// R item [itemId]'s recital: its run's ends in this pack, A's and B's
+  /// streets from the best route between them; null when the run or a
+  /// legal route is gone.
+  RecitalTask? _recitalTask(String itemId) => _recitals.putIfAbsent(itemId, () {
+    final run = _runs[itemKey(itemId)];
+    final graph = _graph;
+    final ends = run == null || graph == null
+        ? null
+        : runEnds(run, graph, _byNode, _streets);
+    return ends == null
+        ? null
+        : RecitalTask(
+            run!,
+            from: ends.from,
+            to: ends.to,
+            fromStreet: ends.fromStreet,
+            toStreet: ends.toStreet,
+            draft: RouteDraft(graph!, ends.from, {ends.to}),
+          );
+  });
+
+  void _recital(RecitalTask Function(RecitalTask t) change) {
+    final p = state;
+    if (p is! SessionPlaying || p.answered) return;
+    if (p.task case final RecitalTask t) state = p.copyWith(task: change(t));
+  }
+
+  void recitalMode(RecitalMode mode) => _recital((t) => t.copyWith(mode: mode));
+
+  /// The turn for the next typed step; again to unpick it.
+  void recitalTurn(Turn turn) =>
+      _recital((t) => t.copyWith(turn: () => t.turn == turn ? null : turn));
+
+  /// Adds the next typed step: the [suggested] street (a hint, SPEC §5.3
+  /// step 5) or the street or landmark [typed] names. False when it names
+  /// none.
+  bool recitalAdd(String typed, {NamedStreet? suggested}) {
+    final p = state;
+    if (p is! SessionPlaying || p.task is! RecitalTask) return false;
+    final t = p.task as RecitalTask;
+    final step = suggested != null
+        ? (turn: null, street: suggested, landmark: null)
+        : resolveRecital(
+            tokenizeRecital(typed),
+            streets: _all,
+            landmarks: {
+              for (final q in _routes.questions.values)
+                if (q is LandmarkQuestion) q.landmark.id: q.landmark,
+            }.values,
+            from: t.steps.lastOrNull?.street ?? t.fromStreet,
+          ).firstOrNull;
+    if (step == null) return false;
+    _recital(
+      (t) => t.copyWith(
+        steps: [
+          ...t.steps,
+          (
+            turn: t.turn ?? step.turn,
+            street: step.street,
+            landmark: step.landmark,
+          ),
+        ],
+        turn: () => null,
+        hinted: t.hinted || suggested != null,
+      ),
+    );
+    return true;
+  }
+
+  void recitalUndo() => _recital(
+    (t) => t.copyWith(steps: t.steps.take(t.steps.length - 1).toList()),
+  );
+
+  void recitalDraw(RouteDraft draft) =>
+      _recital((t) => t.copyWith(draft: draft));
+
+  /// Check my route (SPEC §5.3): grades the typed steps or the drawn route,
+  /// reviews the R card, logs every decision as evidence, reviews the
+  /// near-due J cards it failed (§4) and adds those J cards to this session.
+  Future<void> checkRecital() async {
+    final p = state;
+    if (p is! SessionPlaying || p.answered) return;
+    if (p.task case final RecitalTask t) {
+      final graph = _graph!;
+      final graded = switch (t.mode) {
+        RecitalMode.type => RecitalGrader.grade(
+          graph,
+          t.steps,
+          from: t.from,
+          to: t.to,
+          streets: _streets,
+          hinted: t.hinted,
+        ),
+        RecitalMode.draw => RecitalGrader.score(
+          graph,
+          Route(t.draft.junctions, t.draft.edges, t.draft.lengthM),
+          from: t.from,
+          to: t.to,
+          streets: _streets,
+        ),
+      };
+      final now = _now();
+      final answer = applyReview(
+        _cards[p.step.itemId],
+        itemId: p.step.itemId,
+        rating: graded.rating,
+        now: now,
+        format: ReviewFormat.recital,
+        source: ReviewSource.session,
+        sessionId: _sessionId,
+        rtMs: now.difference(_shownAt).inMilliseconds,
+      );
+      final evidence = recitalEvidence(graded, _nodes, {
+        for (final id in _routes.questions.keys)
+          if (CardType.ofItem(id) == CardType.j) id,
+      });
+      final reviews = [
+        for (final e in evidence)
+          ?implicitReview(
+            _cards[e.itemId],
+            ok: e.ok,
+            now: now,
+            source: ReviewSource.recital,
+            sessionId: _sessionId,
+          ),
+      ];
+      await _dao.saveTest(
+        log: answer.log,
+        card: answer.card,
+        source: ReviewSource.recital,
+        at: now,
+        evidence: evidence,
+        reviews: reviews,
+      );
+      if (!ref.mounted) return;
+      _cards[p.step.itemId] = answer.card;
+      for (final r in reviews) {
+        _cards[r.card.itemId] = r.card;
+      }
+      _answers.add((
+        kind: p.step.kind,
+        rating: graded.rating,
+        tier: graded.tier,
+        streetId: t.fromStreet.id,
+        mixUp: null,
+      ));
+      _times.add(now);
+      await markDayIfCounts(ref);
+      if (!ref.mounted) return;
+      final practice = {
+        for (final e in evidence)
+          if (!e.ok && _cards.containsKey(e.itemId)) e.itemId,
+      }.toList();
+      state = _answered(p, practice).copyWith(
+        task: t.copyWith(
+          graded: graded,
+          practice: practice,
+          nextReviewDays: _nextReviewDays(answer.card, now),
+        ),
+      );
+    }
+  }
+
+  /// "Wrong? Report this turn" (SPEC §15): the recital's illegal move is
+  /// legal on this phone from now on.
+  Future<void> reportMove() async {
+    final p = state;
+    if (p is! SessionPlaying) return;
+    if (p.task case RecitalTask(
+      :final graded?,
+      reported: false,
+    ) when graded.illegal != null && graded.path != null) {
+      await _dao.reportMove(
+        moveReport(graded.illegal!, graded.path!, _nodes),
+        _now(),
+      );
+      ref.invalidate(drivingGraphProvider);
+      if (!ref.mounted) return;
+      final now = state;
+      if (now is SessionPlaying && now.task is RecitalTask) {
+        state = now.copyWith(
+          task: (now.task as RecitalTask).copyWith(reported: true),
+        );
+      }
+    }
+  }
 
   NamedStreet? _nearest(LatLng at) => _all.fold<NamedStreet?>(
     null,

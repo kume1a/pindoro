@@ -100,6 +100,30 @@ void main() {
     }
   });
 
+  test('allowing: a reported one-way drives both ways, a reported turn '
+      'passes its restriction (an only_* one dropped)', () {
+    final oneway = _graph('oneway');
+    expect(oneway.canDrive(oneway.edges.first, 1), isFalse);
+    final open = oneway.allowing(twoWay: {1});
+    expect(open.canDrive(open.edges.first, 1), isTrue);
+    expect(open.edges.first.line, oneway.edges.first.line);
+
+    final noLeft = _graph('no_left_turn');
+    final approach = noLeft.edges.first;
+    Iterable<int> exits(RoadGraph g) =>
+        g.legalExits(2, approach: g.edges.first).map((e) => e.id);
+    expect(exits(noLeft), isNot(contains(2)));
+    expect(exits(noLeft.allowing(allowed: {(approach.id, 2, 2)})), contains(2));
+    expect(
+      exits(noLeft.allowing(allowed: {(approach.id, 2, 3)})),
+      isNot(contains(2)),
+    );
+
+    final only = _graph('only_straight_on');
+    expect(exits(only), [4]);
+    expect(exits(only.allowing(allowed: {(1, 2, 3)})), containsAll([2, 3, 4]));
+  });
+
   test('a pack row reads its one-way and a connector has no street', () {
     final row = {
       'id': 1,

@@ -1,10 +1,8 @@
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
-import 'package:sqlite3/sqlite3.dart';
 import 'package:test/test.dart';
 
-const _fixture =
-    '../../apps/mobile/assets/packs_fixture/tbilisi_vake_fixture.sqlite';
+import 'vake_fixture.dart';
 
 void main() {
   late RouteBook book;
@@ -12,69 +10,8 @@ void main() {
   late Map<int, int> nodes;
 
   setUpAll(() {
-    final db = sqlite3.open(_fixture, mode: OpenMode.readOnly);
-    try {
-      final streets = streetsByPartId([
-        for (final r in db.select('SELECT * FROM street')) Street.fromRow(r),
-      ]);
-      graph = RoadGraph(
-        {
-          for (final r in db.select('SELECT id, lat, lon FROM junction'))
-            r['id'] as int: LatLng(
-              (r['lat'] as num).toDouble(),
-              (r['lon'] as num).toDouble(),
-            ),
-        },
-        [
-          for (final r in db.select('SELECT * FROM road_edge'))
-            RoadEdge.fromRow(r),
-        ],
-        restrictions: [
-          for (final r in db.select('SELECT * FROM turn_restriction'))
-            (
-              fromEdge: r['from_edge'] as int,
-              via: r['via_junction'] as int,
-              toEdge: r['to_edge'] as int,
-              only: r['only'] == 1,
-            ),
-        ],
-      );
-      nodes = {
-        for (final r in db.select('SELECT id, node_id FROM junction'))
-          r['id'] as int: r['node_id'] as int,
-      };
-      final districts = [
-        for (final r in db.select('SELECT * FROM district'))
-          District.fromRow(r),
-      ];
-      book = buildRouteBook(
-        graph: graph,
-        junctionNodes: nodes,
-        items: [
-          for (final r in db.select(
-            'SELECT * FROM junction_item ORDER BY rank',
-          ))
-            JunctionItem.fromRow(r),
-        ],
-        landmarks: [
-          for (final r in db.select('SELECT * FROM landmark'))
-            Landmark.fromRow(r),
-        ],
-        bridges: const [],
-        streets: streets,
-        curriculum: Curriculum(
-          streets: streets.values,
-          districts: districts,
-          centre: City.fromRow(db.select('SELECT * FROM city').first).center,
-          families: [
-            for (final r in db.select('SELECT * FROM family'))
-              familyLinkFromRow(r),
-          ],
-        ),
-      );
-    } finally {
-      db.close();
-    }
+    final vake = Vake.load();
+    (book, graph, nodes) = (vake.book, vake.graph, vake.nodes);
   });
 
   test('every J card offers only the junction\'s legal exits, the right one '

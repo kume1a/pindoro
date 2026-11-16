@@ -56,7 +56,7 @@ double nameDistance(String a, String b) {
 
 /// The forms [street] is recognised by: its Georgian name, that name in Latin
 /// letters, and its English name.
-Set<String> _forms(NamedStreet street) {
+Set<String> nameForms(NamedStreet street) {
   final ka = nameBase(street.name);
   return {ka, transliterate(ka), if (street.nameEn case final en?) nameBase(en)}
     ..remove('');
@@ -67,7 +67,7 @@ double _distance(String typed, NamedStreet street) {
   final typedForms = {base, transliterate(base)};
   return [
     for (final t in typedForms)
-      for (final f in _forms(street)) nameDistance(t, f),
+      for (final f in nameForms(street)) nameDistance(t, f),
   ].fold(1, min);
 }
 
@@ -85,7 +85,7 @@ NamedStreet? suggestStreet(String typed, Iterable<NamedStreet> streets) {
   final typedForms = {base, transliterate(base)};
   double score(NamedStreet s) => [
     for (final t in typedForms)
-      for (final f in _forms(s))
+      for (final f in nameForms(s))
         nameDistance(t, f.length > t.length ? f.substring(0, t.length) : f) +
             (f.length - t.length).abs() / 1000,
   ].fold(1, min);
