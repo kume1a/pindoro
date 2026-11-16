@@ -80,10 +80,7 @@ class _CrossingsViewState extends ConsumerState<CrossingsView> {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (current)
-            Pill(label: formatNumber(i + 1), floating: true)
-          else
-            const SizedBox(height: 0),
+          if (current) MapTip(formatNumber(i + 1), selected: true),
           Container(
             width: size,
             height: size,
@@ -132,29 +129,10 @@ class _CrossingsViewState extends ConsumerState<CrossingsView> {
                 for (final (i, c) in task.crossings.indexed) (c.at, ring(i)),
                 (
                   task.start,
-                  Semantics(
-                    label: l10n.sessionCrossingsFrom(
+                  CarMarker(
+                    semanticsLabel: l10n.sessionCrossingsFrom(
                       l10n.compassWord(heading.name),
                       streetName(task.from, settings),
-                    ),
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: theme.colors.mapRouteArrow,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: theme.colors.mapPlayerHalo,
-                          width: PindoroStroke.base,
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(PindoroSpace.s1),
-                        child: PindoroIcon(
-                          PindoroGlyph.car,
-                          size: PindoroSize.iconSm,
-                          color: theme.colors.mapRouteLine,
-                          cut: theme.colors.mapRouteArrow,
-                        ),
-                      ),
                     ),
                   ),
                 ),

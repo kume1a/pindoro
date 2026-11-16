@@ -111,6 +111,9 @@ Accept: unlock rules match SPEC §3 in tests; drills never write their own `card
 
 ## M5 · Directed graph and route items
 
+Status: done (2026-11-16). Road trips were removed in M3, so step 2 is the routing itself and the
+M6 route drawing following legal exits.
+
 Spec §2.1 (edges, restrictions, junction items, landmarks), §3 (J, G, B, C, L), §5.2, §6.5–6.6, §9.
 Boards V3-30, V3-32.
 

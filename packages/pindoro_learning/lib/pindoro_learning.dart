@@ -12,4 +12,6 @@ export 'src/grader.dart';
 export 'src/names.dart';
 export 'src/placement.dart';
 export 'src/planner.dart';
+export 'src/route_questions.dart';
+export 'src/routes.dart';
 export 'src/stats.dart';

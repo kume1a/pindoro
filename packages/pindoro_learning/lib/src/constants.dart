@@ -117,6 +117,10 @@ abstract final class LearningConfig {
   static const int routeNewPerDayMax = 10;
   static const double routePauseFactor = 1.2;
   static const int phase2StableDays = 14;
+
+  /// A turn within this of the approach heading is straight on; past [turnUTurnDeg] a U-turn.
+  static const double turnStraightDeg = 30;
+  static const double turnUTurnDeg = 150;
   static const double junctionCoverage = 0.90;
   static const int odSamples = 20000;
   static const double landmarkRadiusM = 60;
@@ -129,7 +133,7 @@ abstract final class LearningConfig {
   static const double stretchClose = 1.60;
   static const double connectorMaxM = 150;
   static const int connectorMax = 2;
-  static const double uTurnPenaltyM = 250;
+  static const double uTurnPenaltyM = RoutingConfig.uTurnPenaltyM;
   static const double recitalLandmarkBonus = 0.1;
   static const double recitalLandmarkBonusCap = 0.3;
   static const double hesitationKmh = 5;

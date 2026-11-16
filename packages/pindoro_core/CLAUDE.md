@@ -15,15 +15,19 @@ lib/src/game/       Area (districts/circle/rect, in-area rule), NamedStreet (nea
                     direction from the centre: the intro and the M4 drills),
                     route_draft (RouteDraft drag and tap drawing, kept for M6 recitals)
 lib/src/pack/       City/District/Street (pack rows; format 4 adds the curriculum columns and
-                    FamilyLink), PackRepository, RoadGraph (junctions, edges, A* shortestRoute
-                    to a goal set, edgeNear)
+                    FamilyLink), PackRepository, RoadGraph (junctions, edges with `Oneway` and
+                    connectors (no street), turn restrictions, `legalExits`, edge-expanded A*
+                    `shortestRoute` to a goal set with the U-turn penalty in `RoutingConfig`,
+                    edgeNear)
 ```
 
 ## Rules
 
 - **In sync with `@pindoro/geo` (packages/geo).** Same algorithms, same constants, same rounding
   (polyline6 rounds half away from zero). Both suites run the golden
-  vectors in `shared/fixtures/*.json` (distance tolerance 0.5 m). Change one side → change the other
+  vectors in `shared/fixtures/*.json` (distance tolerance 0.5 m). Routing (`RoadGraph` ↔
+  `routing.ts`) is proved by `directed_route_vectors.json`: same search order (estimate, then edge
+  id with the start's -1 first, then junction), exits by edge id. Change one side → change the other
   and the vectors in the same commit.
 - **Scoring constants live only in `ScoringConfig`** (and its TS twin). No magic numbers elsewhere.
   Rules the server never scores stay Dart-only: `StreakRules`. `AccountRules` (username,

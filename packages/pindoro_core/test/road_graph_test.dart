@@ -25,6 +25,36 @@ Map<int, double> _dijkstra(RoadGraph graph, int from) {
   }
 }
 
+/// The cheapest legal cost from [from] to [to] by plain Dijkstra over
+/// (edge, junction) states, U-turns penalised: the reference for A*.
+double? _edgeDijkstra(RoadGraph graph, int from, int to) {
+  final dist = <(int, int), double>{(-1, from): 0};
+  final done = <(int, int)>{};
+  while (true) {
+    (int, int)? next;
+    for (final MapEntry(:key, :value) in dist.entries) {
+      if (!done.contains(key) && (next == null || value < dist[next]!)) {
+        next = key;
+      }
+    }
+    if (next == null) return null;
+    final (edgeId, j) = next;
+    if (j == to) return dist[next];
+    done.add(next);
+    final approach = edgeId < 0
+        ? null
+        : graph.edges.firstWhere((e) => e.id == edgeId);
+    for (final e in graph.legalExits(j, approach: approach)) {
+      final key = (e.id, e.other(j));
+      final d =
+          dist[next]! +
+          e.lengthM +
+          (e.id == edgeId ? RoutingConfig.uTurnPenaltyM : 0);
+      if (d < (dist[key] ?? double.infinity)) dist[key] = d;
+    }
+  }
+}
+
 void main() {
   group('shortestRoute', () {
     test('drives the grid corner to corner along the streets', () {
@@ -72,6 +102,55 @@ void main() {
       expect(grid.shortestRoute(4, {4})!.edges, isEmpty);
       expect(grid.connected(0, 8), isFalse);
       expect(grid.connected(1, 8), isTrue);
+    });
+
+    test('on one-ways and restrictions, costs what a plain search over '
+        '(edge, junction) costs', () {
+      final random = Random(11);
+      for (var round = 0; round < 30; round++) {
+        final grid = roadGrid(5).graph;
+        final edges = [
+          for (final e in grid.edges)
+            RoadEdge(
+              id: e.id,
+              from: e.from,
+              to: e.to,
+              streetId: e.streetId,
+              lengthM: e.lengthM,
+              line: e.line,
+              oneway: Oneway.values[random.nextInt(3)],
+            ),
+        ];
+        final restrictions = [
+          for (var i = 0; i < 6; i++)
+            if (edges[random.nextInt(edges.length)] case final e)
+              for (final to in grid.edgesAt(e.to).where((t) => t.id != e.id))
+                if (random.nextInt(3) == 0)
+                  (fromEdge: e.id, via: e.to, toEdge: to.id, only: false),
+        ];
+        final graph = RoadGraph(
+          grid.junctions,
+          edges,
+          restrictions: restrictions,
+        );
+        final from = random.nextInt(25), to = random.nextInt(25);
+        final expected = _edgeDijkstra(graph, from, to);
+        final route = graph.shortestRoute(from, {to});
+        expect(
+          route?.costM,
+          expected == null ? isNull : closeTo(expected, 1e-6),
+          reason: 'round $round',
+        );
+        if (route == null) continue;
+        for (final (i, e) in route.edges.indexed) {
+          final approach = i == 0 ? null : route.edges[i - 1];
+          expect(
+            graph.legalExits(route.junctions[i], approach: approach),
+            contains(e),
+            reason: 'round $round, step $i',
+          );
+        }
+      }
     });
 
     test('ends at the nearest of several goals', () {

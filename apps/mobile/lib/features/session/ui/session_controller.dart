@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/features/learning/data/day.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
+import 'package:pindoro/features/learning/data/route_book.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/session/ui/session_tasks.dart';
@@ -208,6 +209,10 @@ class SessionController extends Notifier<SessionState> {
   late double _memoryBefore;
   late int _seed;
   Drills _drills = Drills.none;
+  RouteBook _routes = (
+    candidates: const <RouteCandidate>[],
+    questions: const <String, RouteQuestion>{},
+  );
 
   /// Name reviews so far, for the every-10th check.
   int _nameReviews = 0;
@@ -251,6 +256,7 @@ class SessionController extends Notifier<SessionState> {
     final streets = await ref.read(cityStreetsProvider.future);
     final pack = await ref.read(packRepositoryProvider.future);
     final curriculum = await ref.read(curriculumProvider.future);
+    final routes = await ref.read(routeBookProvider.future);
     final cards = await dao.cards();
     final confusions = await dao.confusionPairs();
     final log = await dao.log();
@@ -287,6 +293,7 @@ class SessionController extends Notifier<SessionState> {
     _pack = pack;
     _curriculum = curriculum;
     _drills = plan?.drills ?? Drills.none;
+    _routes = routes;
     _contrasts.addAll(contrasts);
     _cards = {for (final c in cards) c.itemId: c};
     _confusions = [...confusions];
@@ -594,9 +601,10 @@ class SessionController extends Notifier<SessionState> {
     String? snapId,
     int? rtMs,
     NamedStreet? mixUp,
+    NamedStreet? street,
   }) async {
     final now = _now();
-    final target = _streets[itemKey(step.itemId)]!;
+    final target = street ?? _streets[itemKey(step.itemId)]!;
     final result = applyReview(
       _cards[step.itemId],
       itemId: step.itemId,
@@ -806,7 +814,7 @@ class SessionController extends Notifier<SessionState> {
     // skipped.
     SessionTask? task;
     while (i < steps.length) {
-      final street = _streets[itemKey(steps[i].itemId)];
+      final street = _stepStreet(steps[i]);
       task = street == null ? null : _taskFor(steps[i], street);
       if (task != null) break;
       i++;
@@ -820,7 +828,7 @@ class SessionController extends Notifier<SessionState> {
       return;
     }
     final step = steps[i];
-    final street = _streets[itemKey(step.itemId)]!;
+    final street = _stepStreet(step)!;
     final now = _now();
     _shownAt = now;
     final intros = [
@@ -866,6 +874,7 @@ class SessionController extends Notifier<SessionState> {
           for (final s in [street, ...lanes]) ...s.geometry.expand((l) => l),
         ],
         CrossingsTask() => street.geometry.expand((l) => l).toList(),
+        RouteTask(:final question) => _routeFrame(question),
         _ when step.kind == StepKind.retrieval1 || guess != null =>
           _districtFrame(street),
         _ => null,
@@ -898,6 +907,9 @@ class SessionController extends Notifier<SessionState> {
           ),
         ),
         _ when step.kind == StepKind.intro => const PinTask(),
+        _ when _routes.questions[step.itemId] != null => RouteTask(
+          _routes.questions[step.itemId]!,
+        ),
         _ => switch (CardType.ofItem(step.itemId)) {
           CardType.n => NameTask(
             choices: Grader.isNameCheck(_nameReviews)
@@ -913,6 +925,130 @@ class SessionController extends Notifier<SessionState> {
           _ => const PinTask(),
         },
       };
+
+  /// The street a step's plate names: its own, or a route card's street.
+  NamedStreet? _stepStreet(SessionStep step) =>
+      _streets[itemKey(step.itemId)] ??
+      switch (_routes.questions[step.itemId]) {
+        final TurnQuestion q => q.approachStreet ?? q.exitStreet,
+        final GatewayQuestion q => q.exitStreet ?? _nearest(q.at),
+        final BridgeQuestion q => q.approachStreet ?? _nearest(q.at),
+        final ConnectionQuestion q => q.street,
+        final LandmarkQuestion q => q.approachStreet ?? _nearest(q.landmark.at),
+        null => null,
+      };
+
+  NamedStreet? _nearest(LatLng at) => _all.fold<NamedStreet?>(
+    null,
+    (best, s) =>
+        best == null ||
+            distanceBetween(at, s.parts.first.midpoint) <
+                distanceBetween(at, best.parts.first.midpoint)
+        ? s
+        : best,
+  );
+
+  /// What a route card's map frames: a gateway's neighbourhood, a bridge
+  /// question's bridges and start; the city otherwise.
+  List<LatLng>? _routeFrame(RouteQuestion q) => switch (q) {
+    GatewayQuestion(:final chunk) => switch (_pack
+        .districts()
+        .where((d) => d.id == chunk)
+        .firstOrNull
+        ?.bbox) {
+      final b? => [LatLng(b.minLat, b.minLon), LatLng(b.maxLat, b.maxLon)],
+      null => null,
+    },
+    BridgeQuestion(:final at, :final options) => [
+      at,
+      for (final b in options) b.midpoint,
+    ],
+    _ => null,
+  };
+
+  /// A route card: picks the turn, bridge, junction or name before Confirm.
+  void choose(Object choice) {
+    final p = state;
+    if (p is! SessionPlaying || p.answered) return;
+    if (p.task case final RouteTask t) {
+      state = p.copyWith(task: t.copyWith(choice: choice));
+    }
+  }
+
+  /// A route card's Confirm (SPEC §5.2): grades the choice, the pin and the
+  /// [typed] street, saves the answer and shows the result.
+  Future<void> answerRoute({String typed = ''}) async {
+    final p = state;
+    if (p is! SessionPlaying || p.answered) return;
+    if (p.task case final RouteTask t) {
+      final pin = p.pin;
+      bool names(NamedStreet? s) =>
+          s != null && typed.trim().isNotEmpty && nameMatches(typed, s);
+      final (rating, format) = switch (t.question) {
+        final TurnQuestion q => (
+          RouteGrader.turn(
+            exitRight: t.choice == q.correct,
+            streetRight: typed.trim().isEmpty ? null : names(q.exitStreet),
+            streetAsked: _isKnownStreet(q.exitStreet),
+          ),
+          ReviewFormat.junction,
+        ),
+        final GatewayQuestion q when pin != null => (
+          RouteGrader.gateway(
+            distanceM: distanceBetween(pin, q.at),
+            streetRight: names(q.exitStreet),
+          ),
+          ReviewFormat.gateway,
+        ),
+        final BridgeQuestion q => (
+          t.choice == q.bridge ? Rating.good : Rating.again,
+          ReviewFormat.bridge,
+        ),
+        final ConnectionQuestion q => (
+          names(q.to) ? Rating.good : Rating.again,
+          ReviewFormat.connection,
+        ),
+        LandmarkQuestion(n: 1, :final landmark) when pin != null => (
+          RouteGrader.point(distanceBetween(pin, landmark.at)).rating,
+          ReviewFormat.landmark,
+        ),
+        final LandmarkQuestion q when q.n > 1 => (
+          (q.n == 2 ? t.choice == q.junction : t.choice == q.landmark.name)
+              ? Rating.good
+              : Rating.again,
+          ReviewFormat.landmark,
+        ),
+        _ => (null, null),
+      };
+      if (rating == null || format == null) return;
+      final card = await _review(
+        p.step,
+        rating,
+        tier: RouteGrader.tierOf(rating),
+        format: format,
+        street: p.street,
+      );
+      if (card == null) return;
+      state =
+          _answered(p, [
+            if (card.phase == CardPhase.relearning) p.step.itemId,
+          ]).copyWith(
+            task: t.copyWith(
+              rating: rating,
+              nextReviewDays: _nextReviewDays(card, _now()),
+            ),
+          );
+    }
+  }
+
+  bool _isKnownStreet(NamedStreet? s) =>
+      s != null &&
+      _cards.values.any(
+        (c) =>
+            c.type == CardType.p &&
+            _streets[itemKey(c.itemId)] == s &&
+            isKnown(c, _now()),
+      );
 
   CrossingsTask? _crossingsTask(NamedStreet street) {
     final drill = _drills.crossings;

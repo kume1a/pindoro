@@ -41,6 +41,8 @@ SessionPlan plan({
   int? extraNew,
   List<String> openSides = const [],
   int sidesStartedToday = 0,
+  List<String> openRoutes = const [],
+  int routesStartedToday = 0,
   Drills drills = Drills.none,
   int tReviewS = LearningConfig.tReviewS,
   int tNewS = LearningConfig.tNewS,
@@ -55,6 +57,8 @@ SessionPlan plan({
   extraNew: extraNew,
   openSides: openSides,
   sidesStartedToday: sidesStartedToday,
+  openRoutes: openRoutes,
+  routesStartedToday: routesStartedToday,
   drills: drills,
   tReviewS: tReviewS,
   tNewS: tNewS,
@@ -498,16 +502,37 @@ void main() {
         sBefore: s,
       );
       expect(
-        sidesStartedToday([
-          row('N:a'),
-          row('N:a', s: 2),
-          row('E:b'),
-          row('N:c', s: 9),
-          row('N:old', hoursAgo: 30),
-        ], now),
+        startedToday(
+          [
+            row('N:a'),
+            row('N:a', s: 2),
+            row('E:b'),
+            row('N:c', s: 9),
+            row('N:old', hoursAgo: 30),
+          ],
+          now,
+          sideTypes,
+        ),
         2,
       );
     });
+  });
+
+  test('new route items: 10 a day after the side cards, paused while the '
+      'due reviews take over 120 % of the minutes', () {
+    final routes = [for (var i = 0; i < 14; i++) 'J:n$i:n1:n2'];
+    final p = plan(cards: dueCards(5), openRoutes: routes, fresh: const []);
+    expect(ofKind(p, StepKind.review).skip(5), routes.take(10));
+    expect(p.routeCount, 10);
+    expect(
+      plan(
+        openRoutes: routes,
+        routesStartedToday: 8,
+        fresh: const [],
+      ).routeCount,
+      2,
+    );
+    expect(plan(cards: dueCards(150), openRoutes: routes).routeCount, 0);
   });
 
   group('finishedBlocks', () {

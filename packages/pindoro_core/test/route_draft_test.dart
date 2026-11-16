@@ -63,6 +63,36 @@ void main() {
       expect(draft.follow(offRoad, 40).edges, isEmpty);
     });
 
+    test('never follows a one-way against its direction', () {
+      final grid = roadGrid(8).graph;
+      // Row 0 one-way westwards: from junction (0, c + 1) to (0, c) only.
+      final oneway = RoadGraph(grid.junctions, [
+        for (final e in grid.edges)
+          RoadEdge(
+            id: e.id,
+            from: e.from,
+            to: e.to,
+            streetId: e.streetId,
+            lengthM: e.lengthM,
+            line: e.line,
+            oneway: e.streetId == 'row0' ? Oneway.backward : Oneway.both,
+          ),
+      ]);
+      final east = RouteDraft(oneway, j(0, 0), {
+        j(0, 3),
+      }).follow(oneway.at(j(0, 3)), 40, from: oneway.at(j(0, 0)));
+      expect(east.edges, isEmpty);
+      final west = RouteDraft(oneway, j(0, 3), {
+        j(0, 0),
+      }).follow(oneway.at(j(0, 0)), 40, from: oneway.at(j(0, 3)));
+      expect(west.reached, isTrue);
+      expect(
+        RouteDraft(oneway, j(0, 0), {j(0, 3)}).driveTo(oneway.at(j(0, 2)), 40),
+        isNull,
+        reason: 'a tap ahead on the one-way finds no legal drive along it',
+      );
+    });
+
     test('stops at the first goal it meets', () {
       final draft = RouteDraft(graph, j(0, 0), {
         j(0, 2),

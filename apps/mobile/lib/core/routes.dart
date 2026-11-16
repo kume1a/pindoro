@@ -50,6 +50,10 @@ abstract final class Routes {
   /// `?which=home|work`: the neighbourhood picker for an anchor.
   static const String anchor = '/settings/learning/anchor';
 
+  /// The player's own landmarks, and adding one on the map.
+  static const String landmarks = '/settings/learning/landmarks';
+  static const String landmarkAdd = '/settings/learning/landmarks/add';
+
   static String progressOf(String districtId) =>
       '$progressDistrict?id=$districtId';
   static String anchorOf(String which) => '$anchor?which=$which';

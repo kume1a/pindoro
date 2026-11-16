@@ -40,10 +40,16 @@ styles `apps/mobile/assets/map_styles/pindoro_{light,dark}.json`, tiles `infra/t
    `30_districts` city + subarea districts, fails on missing `expect_relations` →
    `40_neighbourhoods` curated GeoJSON → `50_street_district` (≥ 150 m or ≥ 30 %) →
    `60_simplify` 3 m pack geometry + midpoints → `70_graph` road graph (junctions at shared nodes and
-   way ends, edges between them) → `80_learning` curriculum data (tier, ring round `centre`, bank of
-   `river`, chunk, area raions, chunk neighbours, lane families parsed from `name_ka`). The build
-   prints the family data check and writes it to `out/<city>/family-check.md`
+   way ends, edges between them; directed by `oneway`, with unnamed and `*_link` connector ways and
+   node-via turn restrictions) → `80_learning` curriculum data (tier, ring round `centre`, bank of
+   `river`, chunk, area raions, chunk neighbours, lane families parsed from `name_ka`) →
+   `90_routes` bridges over `river`, junction banks, landmark candidates with their base salience.
+   The build prints the family data check and writes it to `out/<city>/family-check.md`
    (`docs/research/family-check.md` keeps Tbilisi's).
+   Then `src/routes.ts` chooses the junction items (20 000 seeded origin–destination routes on
+   `@pindoro/geo`'s directed graph, decisions to 90 % coverage, layer, destination, landmark) into
+   `pipeline.junction_item` and writes `out/<city>/coverage.md`
+   (`docs/research/junction-coverage.md` keeps Tbilisi's).
 4. `src/identity.ts`: stable UUIDs (same normalised name + way-id Jaccard ≥ 0.3, one-to-one, best
    first; unmatched → new id; vanished → `retired_at`) in the live identity file:
    `IDENTITY_DIR/<city>/identity.json` when set (the server keeps them next to the packs), else

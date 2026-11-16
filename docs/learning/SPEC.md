@@ -400,7 +400,8 @@ pindoro_core `ScoringConfig`, not copied):
 | `nearDueFraction`                                                    | 0.5 (implicit evidence and Explore) |
 | `tierCReliefFactor`                                                  | 1.2                                 |
 | `cityMemoryMilestone`, `maintenanceBadgeDays`                        | 500, 100                            |
-| `uTurnPenaltyM`                                                      | 250                                 |
+| `uTurnPenaltyM` (pindoro_core `RoutingConfig`, referenced)           | 250                                 |
+| `turnStraightDeg`, `turnUTurnDeg` (a J card's exit directions)       | 30, 150                             |
 | `phase2StableDays`                                                   | 14                                  |
 | `landmarkStructuralM`, `landmarkUniquenessM`                         | 40, 300                             |
 | `sceneApproachMinM`, `sceneApproachMaxM`                             | 25, 40                              |
@@ -423,7 +424,8 @@ pindoro_core `ScoringConfig`, not copied):
 
 ## 15. Open questions
 
-- Real Tbilisi junction count and decision-coverage curve (recompute §3 estimates from the pack).
+- Real Tbilisi junction count and decision-coverage curve (recompute §3 estimates from the pack):
+  answered in `docs/research/junction-coverage.md` (6 424 items for 90 %, §16.14).
 - How often "Nth Lane / Dead End of X" lies near X (pipeline check: share within 500 m and 1.5 km).
 - OSM turn-restriction completeness in Tbilisi; add a "report this turn" override stored locally.
 - Seconds per review and per new street on a phone (measured from `review_log`; there is no
@@ -476,8 +478,8 @@ rest of the spec. Numbers named here are in §13.
    `tReviewS` / `tNewS` become the log medians once there are `timeEstimateMinSamples` samples (M3).
 10. **`review_log.format`**: `placement`, `pretest`, `retrieval1`, `retrieval2`, `review`, `relearn`,
     `explore`, `exploreLog` (an Explore answer that schedules nothing, §16.16), `name`, `nameCheck`,
-    `extent`, `familySweep`, `crossings`, `bearing` (M4); later `junction`, `gateway`, `bridge`,
-    `connection`, `landmark`, `scene`, `recital`, `drive`. `pretest`, `crossings` and `bearing` never
+    `extent`, `familySweep`, `crossings`, `bearing` (M4), `junction`, `gateway`, `bridge`,
+    `connection`, `landmark` (M5); later `scene`, `recital`, `drive`. `pretest`, `crossings` and `bearing` never
     change a schedule; the family sweep grades the children's P cards.
 
 ### 16.3 Grading
@@ -670,3 +672,53 @@ board, and per-type FSRS parameter presets.
 63. **Drills** sit half-way through the session (the sweep, the crossings, then the bearings); a
     backlog keeps only the sweep. The sweep and the crossings show Great when all are right, Close
     for half or more, else Miss. Every drill answer counts `tReviewS` in the estimates.
+
+### 16.14 Route items (M5)
+
+64. **The directed graph** (pack format 5) is a column, not a table: `road_edge.oneway` (1 along the
+    way, -1 against it, 0 both; motorways one-way unless `oneway=no`). Connector edges (`street_id`
+    NULL) are drivable ways without a name and every `*_link`. `turn_restriction` keeps node-via
+    restrictions whose from and to ways end at the via node; way-via and ambiguous ones are left
+    out.
+65. **A decision** is a junction on a route with another legal way on, U-turns aside. Tbilisi's
+    20 000 routes drive about 74 each, and 6 424 items cover 90 % (`docs/research/junction-coverage.md`).
+    Layers: `bridge` when the exit leads onto a bridge (its own edge, or one reached before the next
+    junction with a choice); `gateway_out` from a tier C street onto tier A or B (the gateway's
+    chunk is the tier C street's), `gateway_in` the other way; `skeleton` between tier A streets;
+    else `district`. `dest_chunk_id`, where the routes through an item mostly head, is the J card's
+    "heading to".
+66. **J item ids name the exit**: `J:n<junction>:n<approach>:n<exit>`. §2.1's items are
+    (junction, approach, exit) triples and two exits from one approach are two questions, so §3's
+    `J:{junctionId}:{approachEdgeId}` gains the exit. G ids name the junction node, B ids the node
+    where the turn towards the bridge is made, with the approach street's bank.
+67. **Landmarks on turns**: each item takes the landmark within `landmarkRadiusM` with the highest
+    salience including structural (1.0 within `landmarkStructuralM` before the turn, 0.6 within it
+    after, else 0.3), and its side driving in; both live on `junction_item`. Candidates need a name
+    or brand; traffic signals are left out. Bridges are named bridge ways crossing the river line,
+    with same-name bridge ways within 200 m.
+68. **A J card** is asked only where its junction offers two or more legal ways on with distinct
+    directions (within `turnStraightDeg` straight on, past `turnUTurnDeg` a U-turn, else left or
+    right), so its buttons are exactly the legal exits. "Then you're on" is optional; left empty it
+    is Hard only once that street is Known (§5.2 "missing when asked").
+69. **Unlocks** (§3): bridges once every core tier A street is introduced; skeleton turns when the
+    approach and exit streets are Known; district turns also need the raion's core tier B streets
+    `districtJunctionUnlockSolid` Solid; gateways `gatewayUnlockKnown` of their chunk's main streets
+    (core, not lanes) Known and the main street Known; gateways in also phase 2, taken as a streak
+    of `phase2StableDays` (a counted day has nothing due left); connections when the street and both
+    end streets are Known; OSM landmarks when their turn's approach street is Known; personal
+    landmarks at once.
+70. **New route items** start like name cards (§16.13 item 54): after the reviews and side cards,
+    at most `routeNewPerDayMax` a day, none while the due reviews take more than `routePauseFactor`
+    of the minutes, none in Learn 5 more; in layer order (bridges, skeleton turns, gateways,
+    district turns, connections, landmarks), then coverage rank. Today's Turns tile counts the
+    plan's route items.
+71. **The other route cards**: a gateway asks "Way out of {chunk}" (or into), graded by a pin within
+    `landmarkRadiusM` of the junction and the main street typed (optional). A bridge question offers
+    the four nearest bridges as numbered tips. A connection asks "{street} runs from {one end}
+    to…", the ends being the first and last streets crossing it, for core tier B streets and family
+    parents. Landmarks get L1 (pin, Good within `pinGoodMaxM`), L2 (its junction among four) and L3
+    (the landmark among four names); J, G, B, C and L answers relearn after Again like pins.
+72. **Personal landmarks** (`landmark_personal`, schema 19) are added from Learning settings → Your
+    landmarks: a tap on the map or "Here" snaps to the nearest junction, then a name, a kind (fuel,
+    metro, church, shop, other), the approach they are seen from and their side. They get L cards
+    at once; they don't replace OSM landmarks on J cards yet.

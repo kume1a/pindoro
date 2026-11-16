@@ -292,6 +292,33 @@ class LearnCities extends Table {
   Set<Column<Object>> get primaryKey => {cityId};
 }
 
+/// The player's own landmarks (SPEC §2.2, §9): a name and kind at a junction,
+/// seen from one approach (`n<OSM node id>` of the junction and of the
+/// neighbouring junction along the approach) on the left or right.
+@DataClassName('PersonalLandmarkRow')
+class LandmarkPersonal extends Table {
+  @override
+  String get tableName => 'landmark_personal';
+
+  /// `me:<uuidv7>`.
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+
+  /// fuel, metro, worship, shop or other.
+  TextColumn get kind => text()();
+  RealColumn get lat => real()();
+  RealColumn get lon => real()();
+  TextColumn get junctionId => text()();
+  TextColumn get approachEdgeId => text()();
+
+  /// left or right, driving in on the approach.
+  TextColumn get side => text()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     UserSettings,
@@ -306,6 +333,7 @@ class LearnCities extends Table {
     ReviewLogs,
     Confusions,
     LearnCities,
+    LandmarkPersonal,
   ],
   include: {'answer_immutable.drift', 'review_log_immutable.drift'},
 )
@@ -313,7 +341,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 18;
+  static const int version = 19;
 
   @override
   int get schemaVersion => version;
@@ -413,6 +441,7 @@ class AppDatabase extends _$AppDatabase {
       },
       from17To18: (m, schema) =>
           m.addColumn(schema.cardState, schema.cardState.note),
+      from18To19: (m, schema) => m.createTable(schema.landmarkPersonal),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

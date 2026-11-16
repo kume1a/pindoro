@@ -91,6 +91,14 @@
   - Bearings point from the city centre, not a landmark, until M5 brings landmarks.
   - The bearing sheet's title reads the tier label as elsewhere ("Great! · 18° off").
   - No goldens for the session's task views; `BearingDial` has goldens.
+- v3 route items (M5), left out on purpose:
+  - Personal landmarks get L cards but don't take over the OSM landmark on J cards (SPEC §9
+    "always preferred on their junction"); `turn_override` ("report this turn") waits.
+  - Way-via turn restrictions are left out of the pack.
+  - The J card names no sibling junction it's confused with; the gateway, bridge and landmark
+    cards use existing widgets (the design system has no components for them).
+  - Today has no "Now learning" and gateway rows; the full Tbilisi format 5 pack isn't published
+    (`just pack tbilisi` on the server).
 
 ## Gaps found 2026-11-11 (design vs code)
 

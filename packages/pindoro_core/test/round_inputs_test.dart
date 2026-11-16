@@ -359,5 +359,17 @@ class _FakePack implements PackRepository {
   Map<String, Set<String>> chunkNeighbours() => const {};
 
   @override
+  Map<int, int> junctionNodes() => const {};
+
+  @override
+  List<Bridge> bridges() => const [];
+
+  @override
+  List<Landmark> landmarks() => const [];
+
+  @override
+  List<JunctionItem> junctionItems() => const [];
+
+  @override
   void close() {}
 }

@@ -9,6 +9,7 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/learning/data/personal_landmarks.dart';
 import 'package:pindoro/features/learning/data/progress.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -96,6 +97,19 @@ class LearnSettingsScreen extends ConsumerWidget {
                   : l10n.learnWorkSubtitle(work),
               trailing: const PindoroIcon(PindoroGlyph.chevronRight),
               onTap: () => context.push(Routes.anchorOf('work')),
+            ),
+          ],
+        ),
+        ListGroup(
+          children: [
+            ListRow(
+              leading: const RowTile(PindoroGlyph.fuelStation),
+              title: l10n.learnLandmarks,
+              subtitle: l10n.learnLandmarksSubtitle(
+                ref.watch(personalLandmarksProvider).value?.length ?? 0,
+              ),
+              trailing: const PindoroIcon(PindoroGlyph.chevronRight),
+              onTap: () => context.push(Routes.landmarks),
             ),
           ],
         ),

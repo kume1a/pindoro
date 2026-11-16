@@ -97,7 +97,8 @@ class SqlitePackRepository implements PackRepository {
     [name],
   ).isNotEmpty;
 
-  /// Format 3 only; built once (the graph is about 16 000 edges for Tbilisi).
+  /// Format 3 and later; built once (the graph is about 16 000 edges for
+  /// Tbilisi). From format 5 it is directed, with turn restrictions.
   late final RoadGraph? _graph = () {
     if (!_hasTable('road_edge')) return null;
     return RoadGraph(
@@ -111,6 +112,16 @@ class SqlitePackRepository implements PackRepository {
       [
         for (final r in _db.select('SELECT * FROM road_edge ORDER BY id'))
           RoadEdge.fromRow(r),
+      ],
+      restrictions: [
+        if (_hasTable('turn_restriction'))
+          for (final r in _db.select('SELECT * FROM turn_restriction'))
+            (
+              fromEdge: r['from_edge'] as int,
+              via: r['via_junction'] as int,
+              toEdge: r['to_edge'] as int,
+              only: r['only'] == 1,
+            ),
       ],
     );
   }();
@@ -142,6 +153,42 @@ class SqlitePackRepository implements PackRepository {
     }
     return Map<String, Set<String>>.unmodifiable(byChunk);
   }();
+
+  @override
+  Map<int, int> junctionNodes() => _junctionNodes;
+
+  late final Map<int, int> _junctionNodes = Map.unmodifiable({
+    if (_hasTable('junction_item'))
+      for (final r in _db.select('SELECT id, node_id FROM junction'))
+        r['id'] as int: r['node_id'] as int,
+  });
+
+  @override
+  List<Bridge> bridges() => _bridges;
+
+  late final List<Bridge> _bridges = List.unmodifiable([
+    if (_hasTable('bridge'))
+      for (final r in _db.select('SELECT * FROM bridge ORDER BY id'))
+        Bridge.fromRow(r),
+  ]);
+
+  @override
+  List<Landmark> landmarks() => _landmarks;
+
+  late final List<Landmark> _landmarks = List.unmodifiable([
+    if (_hasTable('landmark'))
+      for (final r in _db.select('SELECT * FROM landmark ORDER BY id'))
+        Landmark.fromRow(r),
+  ]);
+
+  @override
+  List<JunctionItem> junctionItems() => _junctionItems;
+
+  late final List<JunctionItem> _junctionItems = List.unmodifiable([
+    if (_hasTable('junction_item'))
+      for (final r in _db.select('SELECT * FROM junction_item ORDER BY rank'))
+        JunctionItem.fromRow(r),
+  ]);
 
   @override
   void close() => _db.close();

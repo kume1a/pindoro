@@ -17,6 +17,7 @@ import 'package:pindoro/features/session/ui/widgets/crossings_view.dart';
 import 'package:pindoro/features/session/ui/widgets/ends_view.dart';
 import 'package:pindoro/features/session/ui/widgets/name_it_view.dart';
 import 'package:pindoro/features/session/ui/widgets/placement_done.dart';
+import 'package:pindoro/features/session/ui/widgets/route_view.dart';
 import 'package:pindoro/features/session/ui/widgets/session_done.dart';
 import 'package:pindoro/features/session/ui/widgets/session_intro.dart';
 import 'package:pindoro/features/session/ui/widgets/session_top_bar.dart';
@@ -123,6 +124,15 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           onTurn: controller.turn,
           onCheck: () => unawaited(controller.checkBearing()),
           onNext: () async => controller.next(),
+        ),
+        RouteTask(:final nextReviewDays) => RouteView(
+          play: p,
+          topBar: _topBar(p, controller),
+          onChoose: controller.choose,
+          onPin: controller.dropPin,
+          onAnswer: (typed) => unawaited(controller.answerRoute(typed: typed)),
+          onNext: () async => controller.next(),
+          chip: _nextReviewChip(p, nextReviewDays),
         ),
         PinTask() => _pin(p, settings, controller),
       },

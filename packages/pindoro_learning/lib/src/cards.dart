@@ -52,7 +52,14 @@ enum ReviewFormat {
   /// A child's pin card graded by the family sweep (SPEC §7).
   familySweep,
   crossings,
-  bearing;
+  bearing,
+
+  /// Route cards (SPEC §3): turns, gateways, bridges, connections, landmarks.
+  junction,
+  gateway,
+  bridge,
+  connection,
+  landmark;
 
   /// Drill answers that are only logged (SPEC §16.10): they move no card.
   bool get logsOnly => this == crossings || this == bearing;

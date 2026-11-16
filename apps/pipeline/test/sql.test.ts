@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { CityConfig } from "../src/config.ts";
 import { extractCity, loadOsm, runSqlSteps, type StepParams } from "../src/load.ts";
 import { type PackOptions, writePack } from "../src/pack.ts";
+import { COVERAGE, selectJunctionItems } from "../src/routes.ts";
 
 const DB =
   process.env.TEST_DATABASE_URL ??
@@ -141,7 +142,7 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
     ).map((r) => r.id);
     expect(ways).toEqual([
       2001, 2002, 2003, 2004, 2006, 2008, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020,
-      2021, 2022,
+      2021, 2022, 2101, 2102, 2104, 2105, 2106,
     ]);
   });
 
@@ -178,7 +179,7 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
 
   it("exports a pack with decodable polyline6 geometry", async () => {
     const db = await exportPack();
-    expect(db.prepare("SELECT count(*) FROM street").pluck().get()).toBe(16);
+    expect(db.prepare("SELECT count(*) FROM street").pluck().get()).toBe(19);
     expect(db.prepare("SELECT count(*) FROM district").pluck().get()).toBe(6);
     const split = db
       .prepare("SELECT geometry FROM street WHERE name_ka = 'Split Street'")
@@ -276,7 +277,7 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
       street_id: string;
       geometry: string;
     }[];
-    expect(edges).toHaveLength(19);
+    expect(edges).toHaveLength(27);
     for (const e of edges) {
       const line = decodePolyline6(e.geometry);
       const from = junctions.get(e.from_junction);
@@ -304,8 +305,11 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
       .all();
     expect(edgeStreets).toEqual([
       "Bridge Road",
+      "Bridge Way",
+      "East Street",
       "North Road",
       "Ridge Road",
+      "Turn Street",
       "ტყის III გასასვლელი",
       "ტყის ქუჩა",
       "ჯვრის გამზირი",
@@ -376,6 +380,111 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
       SELECT l.tier, l.ring, l.bank, l.chunk_id
       FROM pipeline.street_learning l JOIN pipeline.street s USING (key)
       WHERE s.norm_name = pipeline.normalise_name(${name}) ORDER BY s.key`) as never;
+
+  /** The edges of way `wayId`: their ends' OSM nodes, one-way rule and street. */
+  const wayEdges = async (
+    wayId: number,
+  ): Promise<{ id: number; from: number; to: number; oneway: number; street: number | null }[]> =>
+    (await sql`
+      SELECT e.id::float8 AS id, f.node_id::float8 AS from, t.node_id::float8 AS to, e.oneway,
+             e.street_key::float8 AS street
+      FROM pipeline.road_edge e
+      JOIN pipeline.junction f ON f.id = e.from_junction
+      JOIN pipeline.junction t ON t.id = e.to_junction
+      WHERE e.way_id = ${wayId} ORDER BY e.id`) as never;
+
+  it("drives one-way streets one way and keeps unnamed ways and links as connectors", async () => {
+    const turn = [...(await wayEdges(2102)), ...(await wayEdges(2106))];
+    expect(turn.map((e) => [e.from, e.to, e.oneway])).toEqual([
+      [904, 902, 1],
+      [902, 905, 1],
+    ]);
+    expect((await wayEdges(2101)).every((e) => e.oneway === 0 && e.street !== null)).toBe(true);
+    for (const connector of [2103, 2005, 2011]) {
+      const edges = await wayEdges(connector);
+      expect(edges.length).toBeGreaterThan(0);
+      expect(edges.every((e) => e.street === null)).toBe(true);
+    }
+    expect(await wayEdges(2007)).toEqual([]);
+  });
+
+  it("puts a node-via turn restriction on the edges that meet at it", async () => {
+    const [from] = await wayEdges(2101);
+    const [to] = await wayEdges(2106);
+    const rows = await sql`
+      SELECT r.from_edge::float8 AS from_edge, j.node_id::float8 AS via, r.to_edge::float8 AS to_edge,
+             r.is_only
+      FROM pipeline.turn_restriction r JOIN pipeline.junction j ON j.id = r.via_junction`;
+    expect(rows).toEqual([{ from_edge: from?.id, via: 902, to_edge: to?.id, is_only: false }]);
+  });
+
+  it("groups bridge ways over the river into a named bridge on their edges", async () => {
+    const bridges = await sql`SELECT id, name_ka FROM pipeline.bridge`;
+    expect(bridges).toEqual([{ id: "w2104", name_ka: "Test Bridge" }]);
+    const [edge] = await wayEdges(2104);
+    expect(
+      await sql`SELECT bridge_id FROM pipeline.edge_bridge WHERE edge_id = ${edge?.id ?? 0}`,
+    ).toEqual([{ bridge_id: "w2104" }]);
+    const banks = await sql`
+      SELECT j.node_id::float8 AS node, b.bank FROM pipeline.junction_bank b
+      JOIN pipeline.junction j USING (id) WHERE j.node_id IN (907, 908) ORDER BY 1`;
+    expect(banks.map((b) => b.bank)).toEqual(["R", "L"]);
+  });
+
+  it("scores named landmark candidates without their turn", async () => {
+    const rows =
+      await sql`SELECT id, kind, name_ka, brand, base FROM pipeline.landmark ORDER BY id`;
+    const fuel = rows.find((r) => r.id === "osm:n910");
+    expect(fuel).toMatchObject({ kind: "fuel", name_ka: "Test Fuel", brand: "TF" });
+    // 0.30 × 0.9 type + 0.15 named + 0.15 unique (no size, no wiki).
+    expect(fuel?.base).toBeCloseTo(0.27 + 0.15 + 0.15, 6);
+    expect(rows.map((r) => r.id)).toContain("osm:w2104");
+  });
+
+  it("exports the directed graph and the route tables (pack format 5)", async () => {
+    const db = await exportPack();
+    expect(db.pragma("user_version", { simple: true })).toBe(5);
+    expect(
+      db.prepare("SELECT count(*) FROM road_edge WHERE street_id IS NULL").pluck().get(),
+    ).toBeGreaterThan(0);
+    expect(db.prepare("SELECT count(*) FROM road_edge WHERE oneway = 1").pluck().get()).toBe(2);
+    expect(db.prepare("SELECT count(*) FROM turn_restriction").pluck().get()).toBe(1);
+    expect(db.prepare("SELECT id, name_ka FROM bridge").all()).toEqual([
+      { id: "w2104", name_ka: "Test Bridge" },
+    ]);
+    expect(db.prepare("SELECT node_id FROM junction ORDER BY node_id").pluck().all()).toContain(
+      902,
+    );
+    db.close();
+  });
+
+  it("chooses junction items by route coverage, never an illegal turn, with their landmark", async () => {
+    const report = await selectJunctionItems(sql, { ...COVERAGE, pairs: 400 });
+    expect(report).toContain("Junction items chosen");
+    const items = await sql`
+      SELECT j.node_id::float8 AS node, a.way_id::float8 AS approach, x.way_id::float8 AS exit,
+             i.layer, i.rank, i.landmark_id, i.landmark_side
+      FROM pipeline.junction_item i
+      JOIN pipeline.junction j ON j.id = i.junction_id
+      JOIN pipeline.road_edge a ON a.id = i.approach_edge
+      JOIN pipeline.road_edge x ON x.id = i.exit_edge
+      ORDER BY i.rank`;
+    expect(items.length).toBeGreaterThan(0);
+    expect(items.map((i) => i.rank)).toEqual(items.map((_, k) => k + 1));
+    const at902 = items.filter((i) => i.node === 902);
+    expect(at902.length).toBeGreaterThan(0);
+    // East Street → Turn Street is a forbidden left; Turn Street runs north only.
+    expect(at902.some((i) => i.approach === 2101 && i.exit === 2106)).toBe(false);
+    expect(at902.some((i) => i.exit === 2102)).toBe(false);
+    expect(at902.every((i) => i.landmark_id === "osm:n910")).toBe(true);
+    for (const i of items) {
+      expect(["skeleton", "district", "gateway_out", "gateway_in", "bridge"]).toContain(i.layer);
+    }
+    const db = await exportPack();
+    expect(db.prepare("SELECT count(*) FROM junction_item").pluck().get()).toBe(items.length);
+    expect(db.prepare("SELECT id FROM landmark").pluck().all()).toContain("osm:n910");
+    db.close();
+  });
 
   it("ranks streets into tiers, 2 km rings round the centre and river banks", async () => {
     expect(await learning("ჯვრის გამზირი")).toMatchObject([{ tier: "A", ring: 1, bank: "L" }]);

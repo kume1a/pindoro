@@ -208,3 +208,122 @@ FamilyLink familyLinkFromRow(PackRow r) => (
   n: r['n']! as int,
   orphan: r['orphan'] == 1,
 );
+
+/// A bridge over the city's river (pack format 5): `id` is `w<lowest way id>`.
+class Bridge {
+  const Bridge({
+    required this.id,
+    required this.nameKa,
+    required this.nameEn,
+    required this.midpoint,
+    required this.geometry,
+  });
+
+  factory Bridge.fromRow(PackRow r) => Bridge(
+    id: r['id']! as String,
+    nameKa: r['name_ka']! as String,
+    nameEn: r['name_en'] as String?,
+    midpoint: _latLng(r, 'mid'),
+    geometry: decodeMultiline6(r['geometry']! as String),
+  );
+
+  final String id;
+  final String nameKa;
+  final String? nameEn;
+  final LatLng midpoint;
+  final MultiPolyline geometry;
+}
+
+/// An OSM landmark near a junction item (pack format 5, SPEC §9); `salience`
+/// leaves out the turn-dependent structural part.
+class Landmark {
+  const Landmark({
+    required this.id,
+    required this.kind,
+    required this.nameKa,
+    required this.nameEn,
+    required this.brand,
+    required this.salience,
+    required this.at,
+  });
+
+  factory Landmark.fromRow(PackRow r) => Landmark(
+    id: r['id']! as String,
+    kind: r['kind']! as String,
+    nameKa: r['name_ka']! as String,
+    nameEn: r['name_en'] as String?,
+    brand: r['brand'] as String?,
+    salience: _d(r['salience']),
+    at: LatLng(_d(r['lat']), _d(r['lon'])),
+  );
+
+  final String id;
+  final String kind;
+  final String nameKa;
+  final String? nameEn;
+  final String? brand;
+  final double salience;
+  final LatLng at;
+}
+
+/// Where a junction item sits in the route layers (SPEC §6.5).
+enum JunctionLayer { skeleton, district, gatewayOut, gatewayIn, bridge }
+
+/// A turn worth knowing (pack format 5, SPEC §6.6): arriving at
+/// [junctionId] on [approachEdge], take [exitEdge]. Ids are pack-local.
+class JunctionItem {
+  const JunctionItem({
+    required this.junctionId,
+    required this.approachEdge,
+    required this.exitEdge,
+    required this.layer,
+    required this.rank,
+    this.chunkId,
+    this.destChunkId,
+    this.landmarkId,
+    this.landmarkOnLeft,
+    this.bridgeId,
+  });
+
+  factory JunctionItem.fromRow(PackRow r) => JunctionItem(
+    junctionId: r['junction_id']! as int,
+    approachEdge: r['approach_edge']! as int,
+    exitEdge: r['exit_edge']! as int,
+    layer: switch (r['layer']! as String) {
+      'gateway_out' => JunctionLayer.gatewayOut,
+      'gateway_in' => JunctionLayer.gatewayIn,
+      final l => JunctionLayer.values.byName(l),
+    },
+    rank: r['rank']! as int,
+    chunkId: r['chunk_id'] as String?,
+    destChunkId: r['dest_chunk_id'] as String?,
+    landmarkId: r['landmark_id'] as String?,
+    landmarkOnLeft: switch (r['landmark_side']) {
+      'left' => true,
+      'right' => false,
+      _ => null,
+    },
+    bridgeId: r['bridge_id'] as String?,
+  );
+
+  final int junctionId;
+  final int approachEdge;
+  final int exitEdge;
+  final JunctionLayer layer;
+
+  /// Coverage order, 1 first.
+  final int rank;
+
+  /// A gateway's neighbourhood.
+  final String? chunkId;
+
+  /// Where the routes through it mostly head.
+  final String? destChunkId;
+  final String? landmarkId;
+
+  /// Which side the landmark is on, driving in on the approach.
+  final bool? landmarkOnLeft;
+
+  /// The bridge the exit leads onto (layer bridge).
+  final String? bridgeId;
+}

@@ -1,7 +1,12 @@
-# City pack format (v4)
+# City pack format (v5)
 
 A city pack is a read-only SQLite database built by `pipeline` from OpenStreetMap data and
 downloaded by the app. Packs are immutable: a new build gets a new `version` and a new file name.
+
+v5 (2026-11) adds the v3 route items: the road graph becomes directed (`road_edge.oneway`), takes
+unnamed ways and `*_link` roads as connector edges (`street_id` NULL) and gains `turn_restriction`;
+junctions carry their OSM node id (`junction.node_id`, the stable part of route item ids); and the
+pack adds `bridge`, `landmark` and `junction_item`. The app installs v3 to v5; route items need v5.
 
 v4 (2026-11) adds the v3 learning system's curriculum data: each street's `tier`, `ring`, `bank`,
 `chunk_id` and `etymology`, each smaller area's raion (`district.parent_id`), and the `family` and
@@ -32,7 +37,7 @@ format it supports; v1 packs already on a phone still open.
 
 ```json
 {
-  "format_version": 4,
+  "format_version": 5,
   "city": "tbilisi",
   "name_ka": "თბილისი",
   "name_en": "Tbilisi",
@@ -65,7 +70,7 @@ zone. Street geometry is simplified to 3 m.
 
 ## Schema
 
-`PRAGMA user_version = 4` equals `format_version`.
+`PRAGMA user_version = 5` equals `format_version`.
 
 ```sql
 CREATE TABLE meta (
@@ -139,19 +144,64 @@ CREATE TABLE street_district (
 CREATE INDEX street_district_district ON street_district (district_id);
 
 CREATE TABLE junction (
-  id  INTEGER PRIMARY KEY,               -- pack-local; not stable across pack versions
-  lat REAL NOT NULL,
-  lon REAL NOT NULL
+  id      INTEGER PRIMARY KEY,           -- pack-local; not stable across pack versions
+  node_id INTEGER NOT NULL,              -- OSM node id: stable, `n<node_id>` in route item ids
+  lat     REAL NOT NULL,
+  lon     REAL NOT NULL
+);
+
+CREATE TABLE bridge (
+  id       TEXT PRIMARY KEY,             -- 'w<lowest OSM way id of the bridge>'
+  name_ka  TEXT NOT NULL,                -- bridge:name, else the name of the street it carries
+  name_en  TEXT,
+  mid_lat  REAL NOT NULL,
+  mid_lon  REAL NOT NULL,
+  geometry TEXT NOT NULL                 -- multiline6
 );
 
 CREATE TABLE road_edge (
   id            INTEGER PRIMARY KEY,
   from_junction INTEGER NOT NULL REFERENCES junction (id),
   to_junction   INTEGER NOT NULL REFERENCES junction (id),
-  street_id     TEXT NOT NULL REFERENCES street (id),
+  street_id     TEXT REFERENCES street (id), -- NULL: a connector (an unnamed way or a *_link)
+  oneway        INTEGER NOT NULL CHECK (oneway IN (-1, 0, 1)), -- 1 from→to only, -1 to→from only
+  bridge_id     TEXT REFERENCES bridge (id),
   length_m      REAL NOT NULL,           -- along the unsimplified way
   geometry      TEXT NOT NULL            -- polyline6 from from_junction to to_junction
 );
+
+CREATE TABLE turn_restriction (
+  from_edge    INTEGER NOT NULL REFERENCES road_edge (id),
+  via_junction INTEGER NOT NULL REFERENCES junction (id),
+  to_edge      INTEGER NOT NULL REFERENCES road_edge (id),
+  only         INTEGER NOT NULL CHECK (only IN (0, 1)), -- 0 no_*: forbidden; 1 only_*: the only exit
+  PRIMARY KEY (from_edge, via_junction, to_edge)
+) WITHOUT ROWID;
+
+CREATE TABLE landmark (
+  id       TEXT PRIMARY KEY,             -- 'osm:n<id>', 'osm:w<id>', 'osm:r<id>'
+  kind     TEXT NOT NULL,                -- metro, bridge, square, roundabout, fuel, worship, mall, …
+  name_ka  TEXT NOT NULL,                -- the name, else the brand
+  name_en  TEXT,
+  brand    TEXT,
+  salience REAL NOT NULL,                -- SPEC §9 without the turn-dependent structural part
+  lat      REAL NOT NULL,
+  lon      REAL NOT NULL
+);
+
+CREATE TABLE junction_item (
+  junction_id   INTEGER NOT NULL REFERENCES junction (id),
+  approach_edge INTEGER NOT NULL REFERENCES road_edge (id),
+  exit_edge     INTEGER NOT NULL REFERENCES road_edge (id),
+  layer         TEXT NOT NULL CHECK (layer IN ('skeleton', 'district', 'gateway_out', 'gateway_in', 'bridge')),
+  rank          INTEGER NOT NULL,        -- coverage order, 1 first
+  chunk_id      TEXT REFERENCES district (id), -- a gateway's neighbourhood
+  dest_chunk_id TEXT REFERENCES district (id), -- where the routes through it mostly head
+  landmark_id   TEXT REFERENCES landmark (id), -- the most salient within 60 m for this turn
+  landmark_side TEXT CHECK (landmark_side IN ('left', 'right')), -- seen driving in on the approach
+  bridge_id     TEXT REFERENCES bridge (id), -- the bridge the exit leads onto (layer `bridge`)
+  PRIMARY KEY (junction_id, approach_edge, exit_edge)
+) WITHOUT ROWID;
 
 CREATE TABLE family (
   parent_street_id TEXT NOT NULL REFERENCES street (id),
@@ -186,11 +236,30 @@ CREATE TABLE chunk_neighbour (
   smallest is kept, and an area with fewer than 10 streets is dropped (too small for a round).
   Quarters tile most of a city; neighbourhoods are smaller and may overlap quarters, each other and
   districts.
-- Road graph: the ways of the pack's streets. A junction is an OSM node two of them share (or one
-  way meets twice), or a way's end; an edge is a way's stretch between two consecutive junctions,
-  simplified to 3 m with both ends kept. Edges are undirected (one-way streets are ignored). Ways
-  whose geometry lost points against their node list are left out. `validate` requires 90 % of
-  the edges in the largest connected part.
+- Road graph: the ways of the pack's streets plus connector ways (drivable classes without a name,
+  and every `*_link`). A junction is an OSM node two of them share (or one way meets twice), or a
+  way's end; an edge is a way's stretch between two consecutive junctions, simplified to 3 m with
+  both ends kept. `oneway`: `oneway=yes|1|true` and roundabouts 1, `oneway=-1|reverse` -1,
+  motorways 1 unless `oneway=no`; `oneway:psv` is ignored. Ways whose geometry lost points against
+  their node list are left out. `validate` requires 90 % of the edges in the largest connected
+  part.
+- Turn restrictions: OSM `type=restriction` relations with one `from` way, a `via` node and one
+  `to` way (way-via restrictions are left out), `restriction:motorcar` before `restriction`, none
+  that `except` cars; one row per pair of edges of those ways meeting at the via junction.
+- Bridges: named `bridge=*` ways (not `no`) crossing the city's `river`, with the same-name bridge
+  ways within 200 m of them, grouped by name (`bridge:name`, else the name of the street carried).
+- Landmarks (SPEC §9): named or branded OSM points of interest of the §9 kinds, named roundabouts
+  and named bridges; `salience` = 0.30 type + 0.15 brand or name + 0.15 size + 0.10 wiki + 0.15
+  uniqueness (one over the same kind within 300 m).
+- Junction items (`src/routes.ts`, SPEC §6.6): 20 000 origin–destination pairs drawn by street
+  length (seeded), each driven by the shortest legal route; every turn with another legal way on
+  is a decision `(junction, approach, exit)`. The most driven decisions are taken until they cover
+  90 % of the decisions driven; `rank` is that order. Layer: `bridge` when the exit leads onto a
+  bridge (its own edge, or one reached before the next junction with a choice), `gateway_out` when it leaves a tier C street for a tier A or B one (its `chunk_id` the tier
+  C street's), `gateway_in` the other way, `skeleton` between tier A streets, else `district`.
+  Each item gets the landmark within 60 m with the highest salience plus structural (1.0 within
+  40 m before the turn, 0.6 within 40 m after it, else 0.3), and its side. The build writes the
+  coverage report to `out/<city>/coverage.md`.
 
 - Curriculum (`sql/80_learning.sql`):
   - Tier: `A` the skeleton (motorway, trunk, primary), `B` the grid (secondary, tertiary), `C` the
@@ -212,8 +281,9 @@ CREATE TABLE chunk_neighbour (
 `pipeline build <city> --fixture` writes a pack with `meta.scope = 'fixture'` containing the full
 `city` row, the fixture district (Vake, `osm:r11300449` for Tbilisi), the streets assigned to the
 district whose id matched a live one (a street that would get a new id stays out, so the fixture
-never holds an id the server's packs don't know), with their road edges and the junctions those
-use, and the quarters and neighbourhoods whose centre lies in the district and that still link at
+never holds an id the server's packs don't know), with their road edges, the connectors between
+their junctions and the junctions those use, the restrictions, bridges and junction items on those
+edges and the items' landmarks, and the quarters and neighbourhoods whose centre lies in the district and that still link at
 least `MIN_AREA_STREETS` (10) of those streets (they link only those). A street whose chunk, or an
 area whose raion, is outside the fixture gets NULL; families and chunk neighbours need both ends in
 it. The app bundles it as

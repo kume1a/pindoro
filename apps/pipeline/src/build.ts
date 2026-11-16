@@ -32,6 +32,7 @@ import {
 import { isoSeconds, run, writeJson } from "./io.ts";
 import { extractCity, loadOsm, readNeighbourhoods, runSqlSteps } from "./load.ts";
 import { finalisePack, type PackOptions, packVersion, writePack } from "./pack.ts";
+import { selectJunctionItems } from "./routes.ts";
 
 const DAY_MS = 86_400_000;
 
@@ -191,6 +192,10 @@ export const build = async (cityId: string, opts: { fixture: boolean }): Promise
     const families = await familyCheck(sql);
     writeFileSync(join(out, "family-check.md"), families);
     console.log(`families:\n${families}`);
+    console.log("junction items");
+    const coverage = await selectJunctionItems(sql);
+    writeFileSync(join(out, "coverage.md"), coverage);
+    console.log(`coverage:\n${coverage}`);
     if (opts.fixture) {
       await writeFixturePack(sql, pack, identity.matchedKeys);
     } else {

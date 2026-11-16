@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
+import 'package:pindoro/features/learning/data/personal_landmarks.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
 void main() {
@@ -129,5 +130,32 @@ void main() {
     expect(row, isNull);
     await db.into(db.userSettings).insert(const UserSettingsCompanion());
     expect((await db.select(db.userSettings).getSingle()).minutesPerDay, 20);
+  });
+
+  test('personal landmarks: saved newest first, deleted by id', () async {
+    PersonalLandmarkRow at(String name, DateTime now) => newPersonalLandmark(
+      name: ' $name ',
+      kind: 'fuel',
+      lat: 41.7,
+      lon: 44.8,
+      junctionNode: 123,
+      approachNode: 456,
+      onLeft: true,
+      now: now,
+    );
+    final older = at('Connect', t0);
+    await dao.savePersonalLandmark(older);
+    await dao.savePersonalLandmark(
+      at('Church', t0.add(const Duration(hours: 1))),
+    );
+    final saved = await dao.personalLandmarks();
+    expect(saved.map((l) => l.name), ['Church', 'Connect']);
+    expect(saved.last.id, startsWith('me:'));
+    expect(
+      (saved.last.junctionId, saved.last.approachEdgeId, saved.last.side),
+      ('n123', 'n456', 'left'),
+    );
+    await dao.deletePersonalLandmark(older.id);
+    expect((await dao.personalLandmarks()).map((l) => l.name), ['Church']);
   });
 }

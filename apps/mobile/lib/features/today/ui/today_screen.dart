@@ -277,13 +277,20 @@ class _TodaysDrive extends StatelessWidget {
         StatTile(
           glyph: PindoroGlyph.retry,
           label: l10n.learnReviews,
-          value: formatNumber(plan.reviewCount),
+          value: formatNumber(plan.reviewCount - plan.routeCount),
         ),
         StatTile(
           glyph: PindoroGlyph.plus,
           label: l10n.learnNew,
           value: formatNumber(plan.newCount),
         ),
+        // Turns once the pack has route items (format 5).
+        if (plan.routeCount > 0)
+          StatTile(
+            glyph: PindoroGlyph.turnRight,
+            label: l10n.todayTurns,
+            value: formatNumber(plan.routeCount),
+          ),
       ],
       actions: PindoroButton(
         label: l10n.todayStart,

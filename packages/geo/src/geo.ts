@@ -52,6 +52,12 @@ const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.m
 // Same arithmetic as Dart's _length (Math.hypot can differ in the last bit at a tier boundary).
 const length = (x: number, y: number): number => Math.sqrt(x * x + y * y);
 
+// Metres between two points in the local projection around `a` (Dart `distanceBetween`).
+export const distanceBetween = (a: LatLng, b: LatLng): number => {
+  const [x, y] = localProjection(a).project(b);
+  return length(x, y);
+};
+
 export interface NearestPoint {
   distanceMeters: number;
   nearestPoint: LatLng;

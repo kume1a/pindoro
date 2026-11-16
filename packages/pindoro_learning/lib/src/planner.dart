@@ -32,6 +32,7 @@ class SessionPlan {
     required this.newCount,
     required this.estimatedS,
     this.drills = Drills.none,
+    this.routeCount = 0,
   });
 
   final List<SessionStep> steps;
@@ -45,6 +46,9 @@ class SessionPlan {
   final int reviewCount;
   final int newCount;
   final int estimatedS;
+
+  /// Route items among the reviews (Today's Turns).
+  final int routeCount;
 }
 
 abstract final class Planner {
@@ -52,7 +56,9 @@ abstract final class Planner {
   /// order; leeches suspended before today come back first, as intros. [introducedToday] and
   /// [spentTodayS] come from today's earlier sessions. [openSides] (`Curriculum.openSides`) start
   /// after the reviews, [LearningConfig.sideNewPerDay] a day less [sidesStartedToday], in the
-  /// minutes left. [drills] go mid-session; a backlog keeps only the family sweep, whose children
+  /// minutes left; [openRoutes] (`openRoutes`) after them, [LearningConfig.routeNewPerDayMax] a
+  /// day less [routesStartedToday], paused while the due reviews take more than
+  /// [LearningConfig.routePauseFactor] of the minutes (SPEC §7). [drills] go mid-session; a backlog keeps only the family sweep, whose children
   /// leave the reviews. [extraNew] is "Learn 5 more": that many new streets past the daily
   /// number and the minutes, with no name and ends cards. Same inputs and [seed], same session.
   static SessionPlan plan({
@@ -66,6 +72,8 @@ abstract final class Planner {
     int? extraNew,
     List<String> openSides = const [],
     int sidesStartedToday = 0,
+    List<String> openRoutes = const [],
+    int routesStartedToday = 0,
     Drills drills = Drills.none,
     int tReviewS = LearningConfig.tReviewS,
     int tNewS = LearningConfig.tNewS,
@@ -138,7 +146,23 @@ abstract final class Planner {
             LearningConfig.sideNewPerDay - sidesStartedToday,
             (budget - due.length * tReviewS - fresh.length * tNewS) ~/ tReviewS,
           );
-    final reviews = [...dueReviews, ...openSides.take(max(0, sideSlots))];
+    final sides = openSides.take(max(0, sideSlots)).toList();
+    final routeSlots =
+        extraNew != null ||
+            due.length * tReviewS > LearningConfig.routePauseFactor * budget
+        ? 0
+        : min(
+            LearningConfig.routeNewPerDayMax - routesStartedToday,
+            (budget -
+                    (due.length + sides.length) * tReviewS -
+                    fresh.length * tNewS) ~/
+                tReviewS,
+          );
+    final reviews = [
+      ...dueReviews,
+      ...sides,
+      ...openRoutes.take(max(0, routeSlots)),
+    ];
     final kept = backlog ? Drills(sweep: drills.sweep) : drills;
 
     final steps = _interleave(
@@ -159,6 +183,7 @@ abstract final class Planner {
           (fresh.length + pending.length) * tNewS +
           drillSeconds(kept, tReviewS),
       drills: kept,
+      routeCount: reviews.where(isRouteItem).length,
     );
   }
 
@@ -412,13 +437,13 @@ int remainingSeconds(
       },
 );
 
-/// Name and ends cards started since the start of [now]'s day (their first log row is today).
-int sidesStartedToday(Iterable<LogEntry> log, DateTime now) {
+/// Cards of [types] started since the start of [now]'s day (their first log row is today).
+int startedToday(Iterable<LogEntry> log, DateTime now, Set<CardType> types) {
   final today = _day(now, 0);
   return log
       .where(
         (e) =>
-            (e.type == CardType.n || e.type == CardType.e) &&
+            types.contains(e.type) &&
             e.sBefore == null &&
             !e.ts.isBefore(today),
       )
@@ -426,6 +451,20 @@ int sidesStartedToday(Iterable<LogEntry> log, DateTime now) {
       .toSet()
       .length;
 }
+
+/// The name and ends cards.
+const Set<CardType> sideTypes = {CardType.n, CardType.e};
+
+/// The route cards (SPEC §3): turns, gateways, bridges, connections, landmarks.
+const Set<CardType> routeTypes = {
+  CardType.j,
+  CardType.g,
+  CardType.b,
+  CardType.c,
+  CardType.l,
+};
+
+bool isRouteItem(String itemId) => routeTypes.contains(CardType.ofItem(itemId));
 
 /// The session bar's 12 blocks (design system Progress, v3): each covers a
 /// twelfth of the [total] steps. Returns one entry per finished block, true

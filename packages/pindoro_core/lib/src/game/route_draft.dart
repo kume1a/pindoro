@@ -33,12 +33,15 @@ class RouteDraft {
   ];
 
   /// The edge at the route's end nearest the [finger], within [snapM]: the
-  /// one being followed. Null off the road, and once a goal is reached.
+  /// one being followed, among the legal ways on (one-ways, turn
+  /// restrictions) and the last edge, to undo it. Null off the road, and
+  /// once a goal is reached.
   RoadEdge? heading(LatLng finger, double snapM) {
     if (reached) return null;
+    final last = edges.lastOrNull;
     RoadEdge? best;
     var bestM = snapM;
-    for (final e in graph.edgesAt(end)) {
+    for (final e in {...graph.legalExits(end, approach: last), ?last}) {
       final m = pointToPolylineDistance(finger, [e.line]).distanceMeters;
       if (m <= bestM) (best, bestM) = (e, m);
     }
@@ -109,9 +112,12 @@ class RouteDraft {
       tapped.streetId,
       for (final e in graph.edgesAt(end)) e.streetId,
     };
-    final route = graph.shortestRoute(end, {
-      target,
-    }, allow: (e) => streets.contains(e.streetId));
+    final route = graph.shortestRoute(
+      end,
+      {target},
+      allow: (e) => streets.contains(e.streetId),
+      approach: edges.lastOrNull,
+    );
     if (route == null || route.edges.isEmpty) return null;
     var draft = this;
     for (final e in route.edges) {
