@@ -5,7 +5,6 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/ui/junction_name.dart';
 import 'package:pindoro/features/learning/ui/landmark_glyph.dart';
-import 'package:pindoro/features/map/ui/pin_drop_view.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
@@ -91,7 +90,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
     );
     Widget confirm(String label, {required bool ready}) =>
         PindoroButton(label: label, onPressed: ready ? _answer : null);
-    Widget result(String sentence, {String? label}) => TaskResult(
+    TaskResult result(String sentence, {String? label}) => TaskResult(
       resultKey: play.index,
       tier: tier!,
       label: label,
@@ -100,7 +99,6 @@ class _RouteViewState extends ConsumerState<RouteView> {
       onNext: widget.onNext,
     );
     final map = ref.watch(pindoroMapBuilderProvider);
-    final mapTop = MediaQuery.paddingOf(context).top + 180;
 
     switch (task.question) {
       case final TurnQuestion q:
@@ -179,15 +177,15 @@ class _RouteViewState extends ConsumerState<RouteView> {
         final chunk = placeName(q.chunk);
         return TaskScaffold(
           topBar: widget.topBar,
-          map: map(
+          map: (insets) => map(
             PindoroMap(
               area: play.area,
               frame: play.frame,
               pin: play.pin,
               onTap: tier == null ? widget.onPin : null,
               truth: tier == null ? null : q.exitStreet?.geometry,
-              topInset: mapTop,
-              bottomInset: PinDropView.confirmInset(context) + 64,
+              topInset: insets.top,
+              bottomInset: insets.bottom,
             ),
           ),
           header: StreetPlate(
@@ -221,14 +219,14 @@ class _RouteViewState extends ConsumerState<RouteView> {
         final number = chosen == null ? 0 : q.options.indexOf(chosen) + 1;
         return TaskScaffold(
           topBar: widget.topBar,
-          map: map(
+          map: (insets) => map(
             PindoroMap(
               area: play.area,
               frame: play.frame,
               truth: tier == null ? null : q.bridge.geometry,
               onCamera: (p) => setState(() => _projection = p),
-              topInset: mapTop,
-              bottomInset: PinDropView.confirmInset(context),
+              topInset: insets.top,
+              bottomInset: insets.bottom,
             ),
           ),
           overlays: [
@@ -300,13 +298,13 @@ class _RouteViewState extends ConsumerState<RouteView> {
         return TaskScaffold(
           topBar: widget.topBar,
           map: q.n == 1
-              ? map(
+              ? (insets) => map(
                   PindoroMap(
                     area: play.area,
                     pin: play.pin,
                     onTap: tier == null ? widget.onPin : null,
-                    topInset: mapTop,
-                    bottomInset: PinDropView.confirmInset(context),
+                    topInset: insets.top,
+                    bottomInset: insets.bottom,
                   ),
                 )
               : null,

@@ -28,7 +28,7 @@ void main() {
   group('StreetPlate', () {
     testWidgets('short names use the largest size', (tester) async {
       await tester.pumpWidget(_host(const StreetPlate(_shortName)));
-      expect(_fontSizeOf(tester, _shortName), PindoroType.headlineMd.fontSize);
+      expect(_fontSizeOf(tester, _shortName), PindoroType.headlineSm.fontSize);
     });
 
     testWidgets('long names shrink but never below the floor or truncate', (
@@ -38,7 +38,7 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(_host(const StreetPlate(_longName)));
       final size = _fontSizeOf(tester, _longName);
-      expect(size, lessThan(PindoroType.headlineMd.fontSize!));
+      expect(size, lessThan(PindoroType.headlineSm.fontSize!));
       expect(size, greaterThanOrEqualTo(PindoroSize.plateNameMin));
       final text = tester.widget<Text>(find.text(_longName));
       expect(text.maxLines, isNull);
@@ -74,6 +74,25 @@ void main() {
       await tester.tap(find.text('start'));
       await tester.tap(find.text('disabled'));
       expect(taps, 1);
+    });
+
+    testWidgets('a row as tall as the screen leaves it its own height', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          SizedBox(
+            height: 400,
+            child: Row(
+              children: [PindoroButton(label: 'here', onPressed: () {})],
+            ),
+          ),
+        ),
+      );
+      expect(
+        tester.getSize(find.byType(PindoroButton)).height,
+        PindoroButton.height + PindoroElevation.e2,
+      );
     });
 
     testWidgets('labels are never uppercased', (tester) async {

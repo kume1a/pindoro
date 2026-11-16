@@ -169,6 +169,18 @@ and the specs after R5. Fix them in roughly this order.
 - Accepted divergences: the Home Pit stop card became the Pit stop tab's badge (R4); the cold start
   is a Flutter overlay (about 1.9 s) rather than `FlutterNativeSplash.preserve()` with the wordmark
   on the native splash.
+- Changed in the app, not yet on the claude.ai canvas (2026-11-16 UI sweep), to carry back:
+  - Area picker (v1-screens §3): the sheet is compact so the map stays the main thing: the title
+    over the count with the "All n" chip beside them, the chips in one row that scrolls sideways,
+    and the help line only while nothing is picked (or for the offline and few-streets notes).
+  - Add landmark (board V3-32): two steps. Picking the spot keeps the panel small (the kind's
+    tile, the title, the junction name and Next) and frames about 150 m around the junction;
+    Next opens the form (name, the kinds and the approaches each in one sideways row, the side)
+    with Change spot in the header and Save pinned under it.
+  - Smaller controls (2026-11-16): `PindoroButton` and `SearchField` are 48 dp
+    (`size.button.md`) instead of 56, and the street plate's name starts at `headline.sm` (22)
+    instead of `headline.md`. On claude.ai: `size.button.lg` usage, the StreetCard fit rule,
+    v1-screens § Frames, accessibility.md and signpost.md "56 dp".
 
 ## Designed, not scheduled
 

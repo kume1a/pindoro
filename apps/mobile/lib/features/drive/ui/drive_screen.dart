@@ -12,6 +12,7 @@ import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
+import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/map/ui/widgets/tier_reveal.dart';
@@ -349,83 +350,87 @@ class _Review extends ConsumerWidget {
     final points = [
       for (final line in [...lines, ...best]) ...line,
     ];
+    final mapOf = ref.watch(pindoroMapBuilderProvider);
+    final celebration = celebrationFor(tier);
     return Scaffold(
-      body: Stack(
-        children: [
-          if (city != null && graph != null && points.isNotEmpty)
-            Semantics(
-              label: l10n.a11yDriveMap,
-              child: ref.watch(pindoroMapBuilderProvider)(
-                PindoroMap(
-                  area: (bbox: city.bbox, boundary: city.boundary),
-                  frame: points,
-                  route: (
-                    a: points.first,
-                    b: graph.at(review.target.junction),
-                    street: const [],
-                    drawn: lines,
-                    best: best,
-                    ghost: const [],
-                    car: null,
-                    chip: match.uTurns.isEmpty
-                        ? null
-                        : (
-                            at: match.uTurns.first,
-                            label: l10n.driveUTurnHere,
-                            anchor: 'bottom',
-                          ),
-                    reached: true,
+      body: MapLayout(
+        map: (insets) => city == null || graph == null || points.isEmpty
+            ? const SizedBox.expand()
+            : Semantics(
+                label: l10n.a11yDriveMap,
+                child: mapOf(
+                  PindoroMap(
+                    area: (bbox: city.bbox, boundary: city.boundary),
+                    frame: points,
+                    route: (
+                      a: points.first,
+                      b: graph.at(review.target.junction),
+                      street: const [],
+                      drawn: lines,
+                      best: best,
+                      ghost: const [],
+                      car: null,
+                      chip: match.uTurns.isEmpty
+                          ? null
+                          : (
+                              at: match.uTurns.first,
+                              label: l10n.driveUTurnHere,
+                              anchor: 'bottom',
+                            ),
+                      reached: true,
+                    ),
+                    topInset: insets.top,
+                    bottomInset: insets.bottom,
                   ),
-                  topInset: MediaQuery.paddingOf(context).top,
-                  bottomInset: 420,
                 ),
               ),
-            ),
-          RevealDock(
-            revealKey: review,
-            celebration: celebrationFor(tier),
-            sheet: TierRevealSheet(
-              tier: tier,
-              label: tierLabel(l10n, tier),
-              sentence: sentence,
-              chips: [
-                SizedBox(
-                  width: double.infinity,
-                  child: Row(
-                    spacing: PindoroSpace.s2,
-                    children: [
-                      Expanded(
-                        child: StatTile(
-                          label: l10n.driveDriven,
-                          value: formatDistance(match.drivenM, l10n),
-                          glyph: PindoroGlyph.car,
-                        ),
-                      ),
-                      Expanded(
-                        child: StatTile(
-                          label: l10n.driveLonger,
-                          value: stretch == null
-                              ? '–'
-                              : '+${formatNumber(((stretch - 1) * 100).round())} %',
-                          glyph: PindoroGlyph.route,
-                        ),
-                      ),
-                      Expanded(
-                        child: StatTile(
-                          label: l10n.driveUTurnsTile,
-                          value: formatNumber(uTurns),
-                          glyph: PindoroGlyph.uTurn,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              action: l10n.commonDone,
-              onNext: () async => onDone(),
-            ),
-          ),
+        front: [
+          if (celebration != null)
+            RevealCelebration(revealKey: review, size: celebration),
         ],
+        bottom: RevealDock(
+          revealKey: review,
+          sheet: TierRevealSheet(
+            tier: tier,
+            label: tierLabel(l10n, tier),
+            sentence: sentence,
+            chips: [
+              SizedBox(
+                width: double.infinity,
+                child: Row(
+                  spacing: PindoroSpace.s2,
+                  children: [
+                    Expanded(
+                      child: StatTile(
+                        label: l10n.driveDriven,
+                        value: formatDistance(match.drivenM, l10n),
+                        glyph: PindoroGlyph.car,
+                      ),
+                    ),
+                    Expanded(
+                      child: StatTile(
+                        label: l10n.driveLonger,
+                        value: stretch == null
+                            ? '–'
+                            : '+${formatNumber(((stretch - 1) * 100).round())} %',
+                        glyph: PindoroGlyph.route,
+                      ),
+                    ),
+                    Expanded(
+                      child: StatTile(
+                        label: l10n.driveUTurnsTile,
+                        value: formatNumber(uTurns),
+                        glyph: PindoroGlyph.uTurn,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            action: l10n.commonDone,
+            onNext: () async => onDone(),
+          ),
+        ),
       ),
     );
   }

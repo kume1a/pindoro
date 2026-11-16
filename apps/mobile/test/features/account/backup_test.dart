@@ -152,9 +152,18 @@ void main() {
     test('uploads at launch what the app last stopped with', () async {
       await AccountDao(db).markChanged(DateTime.now());
       start();
-      await Future<void>.delayed(const Duration(milliseconds: 200));
+      // The launch upload runs on its own; a slow runner needs more than a
+      // fixed wait.
+      for (var i = 0; i < 50 && sent.isEmpty; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      }
       expect(sent.single.method, 'PUT');
-      expect((await AccountDao(db).read())?.changedAt, isNull);
+      await expectLater(
+        Stream.periodic(
+          const Duration(milliseconds: 50),
+        ).asyncMap((_) async => (await AccountDao(db).read())?.changedAt),
+        emitsThrough(isNull),
+      );
     });
 
     test(

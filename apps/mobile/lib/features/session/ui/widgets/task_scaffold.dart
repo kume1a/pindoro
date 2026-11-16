@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
+import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/widgets/tier_reveal.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// A session task's screen (name, ends, drills): the [map] (none for a
-/// bearing) with [overlays] over it, the top bar and [header], the
-/// [controls] at the bottom until the [result] sheet replaces them.
+/// bearing), built with what the top bar, [header] and [body] and the
+/// bottom cover, with [overlays] over it; the [controls] at the bottom until
+/// the [result] sheet replaces them.
 class TaskScaffold extends StatelessWidget {
   const TaskScaffold({
     super.key,
@@ -23,39 +25,67 @@ class TaskScaffold extends StatelessWidget {
 
   final Widget topBar;
   final Widget header;
-  final Widget? map;
+  final Widget Function(MapInsets insets)? map;
   final List<Widget> overlays;
 
-  /// Content under the header when there is no map (the bearing dial).
+  /// Content under the header: the bearing dial, a recital's modes.
   final Widget? body;
   final Widget? controls;
-  final Widget? result;
+  final TaskResult? result;
 
   @override
   Widget build(BuildContext context) {
+    final map = this.map;
+    final result = this.result;
     final controls = this.controls;
+    final bottom =
+        result ??
+        switch (controls) {
+          final c? => Padding(
+            padding: EdgeInsets.fromLTRB(
+              PindoroSpace.s4,
+              0,
+              PindoroSpace.s4,
+              bottomActionGap(context),
+            ),
+            child: c,
+          ),
+          null => null,
+        };
+    final celebration = result == null ? null : celebrationFor(result.tier);
+    final front = [
+      if ((result, celebration) case (final r?, final size?))
+        RevealCelebration(revealKey: r.resultKey, size: size),
+    ];
+    final top = Column(
+      spacing: PindoroSpace.s4,
+      children: [topBar, header, ?body],
+    );
+    if (map != null) {
+      return Scaffold(
+        body: MapLayout(
+          map: map,
+          behind: overlays,
+          top: top,
+          bottom: bottom,
+          front: front,
+        ),
+      );
+    }
+    // No map: the body (a typed recital's list) may fill the screen.
     return Scaffold(
       body: Stack(
         children: [
-          ?map,
           ...overlays,
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(PindoroSpace.s4),
-              child: Column(
-                spacing: PindoroSpace.s4,
-                children: [topBar, header, ?body],
-              ),
+              child: top,
             ),
           ),
-          if (result == null && controls != null)
-            Positioned(
-              left: PindoroSpace.s4,
-              right: PindoroSpace.s4,
-              bottom: bottomActionGap(context),
-              child: controls,
-            ),
-          ?result,
+          if (bottom != null)
+            Align(alignment: Alignment.bottomCenter, child: bottom),
+          ...front,
         ],
       ),
     );
@@ -89,7 +119,6 @@ class TaskResult extends StatelessWidget {
     final l10n = context.l10n;
     return RevealDock(
       revealKey: resultKey,
-      celebration: celebrationFor(tier),
       sheet: TierRevealSheet(
         tier: tier,
         label: label ?? tierLabel(l10n, tier),

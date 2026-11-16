@@ -6,7 +6,6 @@ import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/speech.dart';
-import 'package:pindoro/features/map/ui/pin_drop_view.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
@@ -51,15 +50,16 @@ class NameItView extends ConsumerWidget {
     final language = speechLanguage(name);
     final canSpeak = ref.watch(canSpeakProvider(language)).value ?? false;
     final picked = task.picked;
+    final mapOf = ref.watch(pindoroMapBuilderProvider);
     return TaskScaffold(
       topBar: topBar,
-      map: ref.watch(pindoroMapBuilderProvider)(
+      map: (insets) => mapOf(
         PindoroMap(
           area: play.area,
           truth: street.geometry,
           frame: play.frame,
-          topInset: MediaQuery.paddingOf(context).top + 180,
-          bottomInset: PinDropView.confirmInset(context),
+          topInset: insets.top,
+          bottomInset: insets.bottom,
         ),
       ),
       header: RiseSwitcher(
@@ -107,7 +107,6 @@ class NameItView extends ConsumerWidget {
               PindoroIconButton(
                 glyph: PindoroGlyph.soundOn,
                 semanticLabel: l10n.lessonHearName,
-                size: PindoroSize.buttonLg,
                 onPressed: () =>
                     unawaited(ref.read(speechProvider).speak(name, language)),
               ),

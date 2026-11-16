@@ -199,6 +199,10 @@ test/drift/                    generated schema helpers + migration test
 - Colour rule: **yellow = truth, cobalt = you, ink = measurement.** Never swap them.
 - Screens get the map through `pindoroMapBuilderProvider`; tests override it to capture the
   `PindoroMap` config instead of building the platform view.
+- Map insets are measured, never guessed: overlays go in `MapLayout` (`features/map/ui`: `top`,
+  `bottom`, `behind`, `front`; the map is built with their heights), or a panel in a Scaffold's
+  `bottomNavigationBar` with `extendBody` and `MediaQuery.paddingOf(body).bottom` (area, home and
+  work, Add landmark, result street). A constant inset hides the attribution once text wraps.
 - Overlay layers are added with `enableInteraction: false`: maplibre_gl turns taps on interactive
   layers into feature taps, and no pin would drop.
 

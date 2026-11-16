@@ -162,11 +162,13 @@ class BadgeTile extends StatelessWidget {
                     size: 56,
                   ),
                   const SizedBox(height: PindoroSpace.s1),
-                  Text(
-                    name,
-                    textAlign: TextAlign.center,
-                    style: PindoroType.titleSm.copyWith(
-                      color: locked ? c.textSecondary : c.textPrimary,
+                  _OneWordFits(
+                    Text(
+                      name,
+                      textAlign: TextAlign.center,
+                      style: PindoroType.titleSm.copyWith(
+                        color: locked ? c.textSecondary : c.textPrimary,
+                      ),
                     ),
                   ),
                   Text(
@@ -204,4 +206,17 @@ class BadgeTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A one-word [text] shrinks to fit its line instead of breaking mid-word (a
+/// long Georgian name in a narrow tile); names of more words wrap between them.
+class _OneWordFits extends StatelessWidget {
+  const _OneWordFits(this.text);
+
+  final Text text;
+
+  @override
+  Widget build(BuildContext context) => text.data!.trim().contains(' ')
+      ? text
+      : FittedBox(fit: BoxFit.scaleDown, child: text);
 }
