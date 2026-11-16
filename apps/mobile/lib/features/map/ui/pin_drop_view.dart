@@ -5,6 +5,7 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
+import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/map/ui/widgets/reticle.dart';
@@ -95,60 +96,52 @@ class PinDropView extends ConsumerWidget {
   /// ("I don't know this one").
   final ({String label, VoidCallback onSkip})? skip;
 
-  /// Space the Confirm button takes at the bottom of the map.
+  /// Space the Confirm button takes at the bottom of the map (for toasts).
   static double confirmInset(BuildContext context) =>
       PindoroSize.buttonLg + PindoroElevation.e2 + bottomActionGap(context);
-
-  /// The reveal sheet's rough height (it keeps half the map visible).
-  static double _sheetInset(BuildContext context) =>
-      240 + MediaQuery.paddingOf(context).bottom;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final settings = ref.watch(settingsProvider).value;
+    final mapOf = ref.watch(pindoroMapBuilderProvider);
     final reveal = this.reveal;
-    final topInset = MediaQuery.paddingOf(context).top + 180;
+    final celebration = this.celebration;
     return Scaffold(
-      body: Stack(
-        children: [
-          ref.watch(pindoroMapBuilderProvider)(
-            PindoroMap(
-              area: area,
-              pin: pin,
-              truth: reveal == null ? null : street.geometry,
-              measure: reveal == null || mixUp != null
-                  ? null
-                  : (
-                      from: reveal.pin,
-                      to: reveal.nearest,
-                      label: formatDistance(reveal.distanceM, l10n),
-                    ),
-              onTap: reveal == null
-                  ? (at) {
-                      onPin(at);
-                      if (!boundaryContains(area.boundary, at)) {
-                        showToast(
-                          context,
-                          l10n.toastPinOutsideArea,
-                          above: confirmInset(context),
-                        );
-                      }
+      body: MapLayout(
+        map: (insets) => mapOf(
+          PindoroMap(
+            area: area,
+            pin: pin,
+            truth: reveal == null ? null : street.geometry,
+            measure: reveal == null || mixUp != null
+                ? null
+                : (
+                    from: reveal.pin,
+                    to: reveal.nearest,
+                    label: formatDistance(reveal.distanceM, l10n),
+                  ),
+            onTap: reveal == null
+                ? (at) {
+                    onPin(at);
+                    if (!boundaryContains(area.boundary, at)) {
+                      showToast(
+                        context,
+                        l10n.toastPinOutsideArea,
+                        above: insets.bottom,
+                      );
                     }
-                  : null,
-              topInset: topInset,
-              bottomInset: reveal == null
-                  ? confirmInset(context) +
-                        (skip == null
-                            ? 0
-                            : PindoroSize.buttonLg + PindoroSpace.s1)
-                  : _sheetInset(context),
-              showControls: reveal == null,
-              frame: reveal == null ? frame : null,
-              known: reveal == null ? const [] : known,
-              hit: reveal == null ? null : mixUp,
-            ),
+                  }
+                : null,
+            topInset: insets.top,
+            bottomInset: insets.bottom,
+            showControls: reveal == null,
+            frame: reveal == null ? frame : null,
+            known: reveal == null ? const [] : known,
+            hit: reveal == null ? null : mixUp,
           ),
+        ),
+        behind: [
           if (coach) ...[
             const Center(child: Reticle()),
             Align(
@@ -164,74 +157,74 @@ class PinDropView extends ConsumerWidget {
               ),
             ),
           ],
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(PindoroSpace.s4),
-              child: Column(
-                spacing: PindoroSpace.s4,
-                children: [
-                  topBar,
-                  RiseSwitcher(
-                    child: QuestionPlate(
-                      key: ValueKey((questionKey, guess != null)),
-                      street: street,
-                      settings: settings,
-                      compact: reveal != null,
-                      retryDistance: retryDistance,
-                      guess: guess?.subline,
-                      prompt: prompt,
-                    ),
-                  ),
-                ],
+        ],
+        top: Column(
+          spacing: PindoroSpace.s4,
+          children: [
+            topBar,
+            RiseSwitcher(
+              child: QuestionPlate(
+                key: ValueKey((questionKey, guess != null)),
+                street: street,
+                settings: settings,
+                compact: reveal != null,
+                retryDistance: retryDistance,
+                guess: guess?.subline,
+                prompt: prompt,
               ),
             ),
-          ),
-          if (reveal == null)
-            Positioned(
-              left: PindoroSpace.s4,
-              right: PindoroSpace.s4,
-              bottom: bottomActionGap(context),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                spacing: skip == null ? PindoroSpace.s3 : PindoroSpace.s1,
-                children: [
-                  if (guess case (:final note, subline: _))
-                    Text(
-                      note,
-                      textAlign: TextAlign.center,
-                      style: PindoroType.bodySm.copyWith(
-                        color: PindoroTheme.of(context).colors.textSecondary,
+          ],
+        ),
+        bottom: reveal == null
+            ? Padding(
+                padding: EdgeInsets.fromLTRB(
+                  PindoroSpace.s4,
+                  0,
+                  PindoroSpace.s4,
+                  bottomActionGap(context),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  spacing: skip == null ? PindoroSpace.s3 : PindoroSpace.s1,
+                  children: [
+                    if (guess case (:final note, subline: _))
+                      Text(
+                        note,
+                        textAlign: TextAlign.center,
+                        style: PindoroType.bodySm.copyWith(
+                          color: PindoroTheme.of(context).colors.textSecondary,
+                        ),
+                      ),
+                    Semantics(
+                      label: pin == null ? l10n.a11yConfirmDisabled : null,
+                      child: PindoroButton(
+                        label: guess == null
+                            ? l10n.commonConfirm
+                            : l10n.sessionConfirmGuess,
+                        onPressed: pin == null ? null : onConfirm,
                       ),
                     ),
-                  Semantics(
-                    label: pin == null ? l10n.a11yConfirmDisabled : null,
-                    child: PindoroButton(
-                      label: guess == null
-                          ? l10n.commonConfirm
-                          : l10n.sessionConfirmGuess,
-                      onPressed: pin == null ? null : onConfirm,
-                    ),
-                  ),
-                  if (skip case (:final label, :final onSkip))
-                    PindoroButton(
-                      label: label,
-                      variant: PindoroButtonVariant.tertiary,
-                      onPressed: onSkip,
-                    ),
-                ],
+                    if (skip case (:final label, :final onSkip))
+                      PindoroButton(
+                        label: label,
+                        variant: PindoroButtonVariant.tertiary,
+                        onPressed: onSkip,
+                      ),
+                  ],
+                ),
+              )
+            : RevealDock(
+                revealKey: reveal.key,
+                sheet: PinRevealSheet(
+                  reveal: reveal,
+                  onNext: onNext,
+                  mixUp: mixUp,
+                  headerChip: headerChip,
+                ),
               ),
-            )
-          else
-            RevealDock(
-              revealKey: reveal.key,
-              sheet: PinRevealSheet(
-                reveal: reveal,
-                onNext: onNext,
-                mixUp: mixUp,
-                headerChip: headerChip,
-              ),
-              celebration: celebration,
-            ),
+        front: [
+          if ((reveal, celebration) case (final r?, final size?))
+            RevealCelebration(revealKey: r.key, size: size),
         ],
       ),
     );

@@ -120,6 +120,20 @@ void main() {
       await settle(tester);
       expect(maps.last.pin, spot.at, reason: 'snapped to the junction');
       expect(find.textContaining('Seen driving'), findsWidgets);
+      expect(maps.last.frame, isNotNull, reason: 'the junction is framed');
+      expect(maps.last.bottomInset, greaterThan(0), reason: 'above the panel');
+
+      // The keyboard lifts the panel, Save and all, instead of hiding it.
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300 * 2.75);
+      await tester.pump();
+      final screen =
+          tester.view.physicalSize.height / tester.view.devicePixelRatio;
+      expect(
+        tester.getBottomLeft(find.text('Save landmark')).dy,
+        lessThan(screen - 300),
+      );
+      tester.view.resetViewInsets();
+      await tester.pump();
 
       await tester.enterText(find.byType(TextField), 'Connect fuel station');
       await settle(tester);

@@ -76,6 +76,25 @@ void main() {
       expect(taps, 1);
     });
 
+    testWidgets('a row as tall as the screen leaves it its own height', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _host(
+          SizedBox(
+            height: 400,
+            child: Row(
+              children: [PindoroButton(label: 'here', onPressed: () {})],
+            ),
+          ),
+        ),
+      );
+      expect(
+        tester.getSize(find.byType(PindoroButton)).height,
+        lessThan(PindoroSize.buttonLg + PindoroElevation.e3),
+      );
+    });
+
     testWidgets('labels are never uppercased', (tester) async {
       await tester.pumpWidget(
         _host(PindoroButton(label: 'start', onPressed: () {})),

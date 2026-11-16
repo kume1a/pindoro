@@ -4,7 +4,6 @@ import 'package:pindoro/core/database/database.dart' show Settings;
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
-import 'package:pindoro/features/map/ui/pin_drop_view.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
@@ -16,9 +15,6 @@ import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
-
-/// Room the result sheet takes at the bottom of the map.
-const double _sheetInset = 360;
 
 /// Room the controls take under a scrolling body.
 const double _controlsInset = 96;
@@ -136,7 +132,7 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
       return TaskScaffold(
         topBar: widget.topBar,
         header: endpoints,
-        map: mapBuilder(
+        map: (insets) => mapBuilder(
           PindoroMap(
             area: play.area,
             frame: [graph.at(task.from), graph.at(task.to)],
@@ -152,8 +148,8 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
               reached: task.draft.reached,
             ),
             onCamera: (p) => setState(() => _projection = p),
-            topInset: MediaQuery.paddingOf(context).top + 280,
-            bottomInset: PinDropView.confirmInset(context),
+            topInset: insets.top,
+            bottomInset: insets.bottom,
           ),
         ),
         overlays: [
@@ -343,7 +339,7 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
     return TaskScaffold(
       topBar: widget.topBar,
       header: const SizedBox.shrink(),
-      map: map(
+      map: (insets) => map(
         PindoroMap(
           area: play.area,
           frame: [
@@ -362,8 +358,8 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
             chip: chip,
             reached: true,
           ),
-          topInset: MediaQuery.paddingOf(context).top + 80,
-          bottomInset: _sheetInset,
+          topInset: insets.top,
+          bottomInset: insets.bottom,
         ),
       ),
       overlays: [

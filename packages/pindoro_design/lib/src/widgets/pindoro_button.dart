@@ -131,17 +131,20 @@ class _PindoroButtonState extends State<PindoroButton> {
                 ? null
                 : Border.all(color: border, width: PindoroStroke.base),
           ),
-          alignment: Alignment.center,
-          child: widget.icon == null
-              ? label
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  spacing: PindoroSpace.s2,
-                  children: [
-                    PindoroIcon(widget.icon!, color: text, cut: face),
-                    Flexible(child: label),
-                  ],
-                ),
+          // Fills the width it is given, but never a row's height.
+          child: Center(
+            heightFactor: 1,
+            child: widget.icon == null
+                ? label
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    spacing: PindoroSpace.s2,
+                    children: [
+                      PindoroIcon(widget.icon!, color: text, cut: face),
+                      Flexible(child: label),
+                    ],
+                  ),
+          ),
         ),
       ),
     );

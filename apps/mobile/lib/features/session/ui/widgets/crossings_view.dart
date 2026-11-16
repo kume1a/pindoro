@@ -16,9 +16,6 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
-/// Room the field, its match and Next take at the bottom of the map.
-const double _controlsInset = 260;
-
 /// The crossings drill (SessionScreen `crossings`): your drive along the
 /// street in cobalt from the car, a ring on each crossing, the current one
 /// numbered; type each crossing's name (a match row fills it in), Next
@@ -96,9 +93,10 @@ class _CrossingsViewState extends ConsumerState<CrossingsView> {
       );
     }
 
+    final mapOf = ref.watch(pindoroMapBuilderProvider);
     return TaskScaffold(
       topBar: widget.topBar,
-      map: ref.watch(pindoroMapBuilderProvider)(
+      map: (insets) => mapOf(
         PindoroMap(
           area: play.area,
           frame: play.frame,
@@ -116,8 +114,8 @@ class _CrossingsViewState extends ConsumerState<CrossingsView> {
               ),
           ],
           onCamera: (p) => setState(() => _projection = p),
-          topInset: MediaQuery.paddingOf(context).top + 180,
-          bottomInset: _controlsInset,
+          topInset: insets.top,
+          bottomInset: insets.bottom,
         ),
       ),
       overlays: [

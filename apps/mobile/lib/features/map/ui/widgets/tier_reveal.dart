@@ -47,40 +47,39 @@ class TierRevealSheet extends StatelessWidget {
   );
 }
 
-/// A map screen's reveal over its whole stack: the [sheet] rising in at the
-/// bottom and the [celebration], both anew per [revealKey].
+/// A map screen's reveal [sheet] (a MapLayout's bottom): at most 600 dp wide,
+/// rising in anew per [revealKey].
 class RevealDock extends StatelessWidget {
-  const RevealDock({
-    super.key,
-    required this.revealKey,
-    required this.sheet,
-    this.celebration,
-  });
+  const RevealDock({super.key, required this.revealKey, required this.sheet});
 
   final Object revealKey;
   final Widget sheet;
-  final CelebrationSize? celebration;
+
+  @override
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(maxWidth: 600),
+    child: RiseIn(key: ValueKey(revealKey), child: sheet),
+  );
+}
+
+/// The reveal's celebration over the whole map (a MapLayout's front layer),
+/// anew per [revealKey].
+class RevealCelebration extends StatelessWidget {
+  const RevealCelebration({
+    super.key,
+    required this.revealKey,
+    required this.size,
+  });
+
+  final Object revealKey;
+  final CelebrationSize size;
 
   @override
   Widget build(BuildContext context) => Positioned.fill(
-    child: Stack(
-      children: [
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: RiseIn(key: ValueKey(revealKey), child: sheet),
-          ),
-        ),
-        if (celebration case final size?)
-          Positioned.fill(
-            child: Celebration(
-              key: ValueKey(revealKey),
-              size: size,
-              burstCenter: const Alignment(-0.78, 0.5),
-            ),
-          ),
-      ],
+    child: Celebration(
+      key: ValueKey(revealKey),
+      size: size,
+      burstCenter: const Alignment(-0.78, 0.5),
     ),
   );
 }

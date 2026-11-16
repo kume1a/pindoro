@@ -268,6 +268,8 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
         if (picks.contains(d.id)) d,
     ]..sort((a, b) => names[a.id]!.compareTo(names[b.id]!));
 
+    // The help line shows only while it says something: how to pick, or why
+    // the pick is thin.
     final (title, help) = switch (mode) {
       AreaMode.districts => (
         picks.isEmpty
@@ -277,7 +279,9 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
             ? l10n.areaOffline
             : fewStreets(picks, streets)
             ? l10n.areaFewStreets
-            : l10n.areaHelp,
+            : picks.isEmpty
+            ? l10n.areaHelp
+            : null,
       ),
       AreaMode.circle => (
         '${l10n.areaPlayArea} · ${formatSize(_radiusM, l10n)}',
@@ -420,25 +424,27 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
               )
             : null,
         content: switch (mode) {
-          AreaMode.districts => Wrap(
-            spacing: PindoroSpace.s2,
-            runSpacing: PindoroSpace.s2,
-            children: [
-              for (final d in [
-                ...picked,
-                ...nearestAreas(
-                  districts,
-                  picks,
-                  here,
-                  detail: detailAt(_zoom),
-                ).take(_nearbyChips),
-              ])
-                PindoroChip(
-                  label: names[d.id]!,
-                  selected: picks.contains(d.id),
-                  onPressed: () => _toggle(d.id, names, context),
-                ),
-            ],
+          AreaMode.districts => SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              spacing: PindoroSpace.s2,
+              children: [
+                for (final d in [
+                  ...picked,
+                  ...nearestAreas(
+                    districts,
+                    picks,
+                    here,
+                    detail: detailAt(_zoom),
+                  ).take(_nearbyChips),
+                ])
+                  PindoroChip(
+                    label: names[d.id]!,
+                    selected: picks.contains(d.id),
+                    onPressed: () => _toggle(d.id, names, context),
+                  ),
+              ],
+            ),
           ),
           AreaMode.circle => Slider(
             value: _radiusM,

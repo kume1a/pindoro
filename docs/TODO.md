@@ -169,6 +169,13 @@ and the specs after R5. Fix them in roughly this order.
 - Accepted divergences: the Home Pit stop card became the Pit stop tab's badge (R4); the cold start
   is a Flutter overlay (about 1.9 s) rather than `FlutterNativeSplash.preserve()` with the wordmark
   on the native splash.
+- Changed in the app, not yet on the claude.ai canvas (2026-11-16 UI sweep), to carry back:
+  - Area picker (v1-screens §3): the sheet is compact so the map stays the main thing: the title
+    over the count with the "All n" chip beside them, the chips in one row that scrolls sideways,
+    and the help line only while nothing is picked (or for the offline and few-streets notes).
+  - Add landmark (board V3-32): the kind's tile, the title and the junction name head the panel;
+    the kinds scroll sideways; the form scrolls within half the screen with Save pinned under it;
+    picking a spot frames about 150 m around its junction.
 
 ## Designed, not scheduled
 

@@ -423,7 +423,7 @@
   "anchorSetWork": "დააყენე სამსახურად",
   "tabToday": "დღეს",
   "tabExplore": "აღმოჩენა",
-  "mePlayingSince": "თამაშობ {month}-დან",
+  "mePlayingSince": "პირველი თამაში: {month}",
   "mePins": "დასმული პინები",
   "meCountedDays": "ჩათვლილი დღეები",
   "badgeCityMemory": "ქალაქის მეხსიერება {count}",
