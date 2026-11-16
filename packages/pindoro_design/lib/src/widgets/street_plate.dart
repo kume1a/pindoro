@@ -9,7 +9,7 @@ import 'surfaces.dart';
 const double _fontStep = 2;
 
 /// Cobalt road-sign plate with a white inner rule, floating over the map.
-/// The name starts at headline.md and shrinks until it fits two lines, down
+/// The name starts at headline.sm and shrinks until it fits two lines, down
 /// to [PindoroSize.plateNameMin]; at the floor it wraps and never truncates.
 /// [compact] (the reveal) is one line and may ellipsize.
 class StreetPlate extends StatelessWidget {
@@ -39,7 +39,7 @@ class StreetPlate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
-    final style = PindoroType.headlineMd.copyWith(color: c.streetCardText);
+    final style = PindoroType.headlineSm.copyWith(color: c.streetCardText);
     final sub = PindoroType.bodySm.copyWith(color: c.streetCardSubtext);
     return Semantics(
       header: true,

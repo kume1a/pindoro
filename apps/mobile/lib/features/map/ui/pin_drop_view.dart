@@ -98,7 +98,7 @@ class PinDropView extends ConsumerWidget {
 
   /// Space the Confirm button takes at the bottom of the map (for toasts).
   static double confirmInset(BuildContext context) =>
-      PindoroSize.buttonLg + PindoroElevation.e2 + bottomActionGap(context);
+      PindoroButton.height + PindoroElevation.e2 + bottomActionGap(context);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

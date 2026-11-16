@@ -119,9 +119,17 @@ void main() {
       ); // about 22 m off
       await settle(tester);
       expect(maps.last.pin, spot.at, reason: 'snapped to the junction');
-      expect(find.textContaining('Seen driving'), findsWidgets);
       expect(maps.last.frame, isNotNull, reason: 'the junction is framed');
       expect(maps.last.bottomInset, greaterThan(0), reason: 'above the panel');
+      // The form waits for Next, so the map keeps its room to re-pick.
+      expect(find.byType(TextField), findsNothing);
+      final picking = maps.last.bottomInset;
+      await tapThrough(tester, find.text('Next'));
+      expect(find.textContaining('Seen driving'), findsWidgets);
+      expect(maps.last.bottomInset, greaterThan(picking));
+      await tapThrough(tester, find.text('Change spot'));
+      expect(find.byType(TextField), findsNothing);
+      await tapThrough(tester, find.text('Next'));
 
       // The keyboard lifts the panel, Save and all, instead of hiding it.
       tester.view.viewInsets = const FakeViewPadding(bottom: 300 * 2.75);

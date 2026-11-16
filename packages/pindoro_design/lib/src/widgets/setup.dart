@@ -6,7 +6,7 @@ import 'graphics.dart';
 import 'surfaces.dart';
 import 'tappable.dart';
 
-/// A 56 dp search field on a 2 dp lip; the border and lip turn cobalt while
+/// A 48 dp search field on a 2 dp lip; the border and lip turn cobalt while
 /// focused, and a clear button shows once there is text.
 class SearchField extends StatefulWidget {
   const SearchField({
@@ -76,10 +76,10 @@ class _SearchFieldState extends State<SearchField> {
       lip: edge,
       border: edge,
       radius: PindoroRadius.lg,
-      // 56 dp counting the border and the lip.
+      // 48 dp counting the border and the lip.
       child: SizedBox(
         height:
-            PindoroSize.buttonLg - PindoroElevation.e1 - 2 * PindoroStroke.base,
+            PindoroSize.buttonMd - PindoroElevation.e1 - 2 * PindoroStroke.base,
         child: Row(
           children: [
             const SizedBox(width: PindoroSpace.s4),

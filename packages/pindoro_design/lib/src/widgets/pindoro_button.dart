@@ -33,6 +33,9 @@ class PindoroButton extends StatefulWidget {
   /// The bigger `elevation.3` lip for hero actions.
   final bool hero;
 
+  /// The face's least height, the lip not counted.
+  static const double height = PindoroSize.buttonMd;
+
   /// Called when any hero button is tapped: the app plays its tap sound.
   // ponytail: a static hook for the one app; an InheritedWidget if a second
   // app ever uses the design system.
@@ -117,9 +120,9 @@ class _PindoroButtonState extends State<PindoroButton> {
         margin: EdgeInsets.only(top: fullLip - lipHeight),
         padding: EdgeInsets.only(bottom: lipHeight),
         decoration: BoxDecoration(color: lip, borderRadius: radius),
-        // At least 56 dp; a label wrapping at large text sizes grows it.
+        // A label wrapping at large text sizes grows it.
         child: Container(
-          constraints: const BoxConstraints(minHeight: PindoroSize.buttonLg),
+          constraints: const BoxConstraints(minHeight: PindoroButton.height),
           padding: const EdgeInsets.symmetric(
             horizontal: PindoroSpace.s6,
             vertical: PindoroSpace.s2,

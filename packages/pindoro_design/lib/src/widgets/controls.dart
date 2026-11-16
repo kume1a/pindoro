@@ -257,15 +257,11 @@ class PindoroIconButton extends StatelessWidget {
     required this.glyph,
     required this.semanticLabel,
     required this.onPressed,
-    this.size = PindoroSize.tapMin,
   });
 
   final PindoroGlyph glyph;
   final String semanticLabel;
   final VoidCallback? onPressed;
-
-  /// Outer size, border and lip included: 48, or 56 beside a full button.
-  final double size;
 
   @override
   Widget build(BuildContext context) {
@@ -277,8 +273,9 @@ class PindoroIconButton extends StatelessWidget {
         radius: PindoroRadius.md,
         border: c.buttonSecondaryBorder,
         child: SizedBox(
-          width: size - 2 * PindoroStroke.base,
-          height: size - PindoroElevation.e1 - 2 * PindoroStroke.base,
+          width: PindoroSize.tapMin - 2 * PindoroStroke.base,
+          height:
+              PindoroSize.tapMin - PindoroElevation.e1 - 2 * PindoroStroke.base,
           child: Center(
             child: PindoroIcon(glyph, color: c.buttonSecondaryText),
           ),

@@ -107,7 +107,6 @@ class NameItView extends ConsumerWidget {
               PindoroIconButton(
                 glyph: PindoroGlyph.soundOn,
                 semanticLabel: l10n.lessonHearName,
-                size: PindoroSize.buttonLg,
                 onPressed: () =>
                     unawaited(ref.read(speechProvider).speak(name, language)),
               ),

@@ -22,8 +22,8 @@ import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
 /// Add a landmark (board V3-32 `landmarkAdd`): a tap on the map, or Here,
-/// snaps to the nearest junction; then its name, kind, the approach it is
-/// seen from and its side.
+/// snaps to the nearest junction under a small panel; Next opens its name,
+/// kind, the approach it is seen from and its side.
 class LandmarkAddScreen extends ConsumerStatefulWidget {
   const LandmarkAddScreen({super.key});
 
@@ -39,6 +39,10 @@ class _LandmarkAddScreenState extends ConsumerState<LandmarkAddScreen> {
   String _kind = personalLandmarkKinds.first;
   bool _onLeft = false;
   bool _busy = false;
+
+  /// The form is open; until then the panel stays small so the map has room
+  /// to pick the spot.
+  bool _details = false;
 
   @override
   void dispose() {
@@ -162,6 +166,8 @@ class _LandmarkAddScreenState extends ConsumerState<LandmarkAddScreen> {
       (_, final j?) =>
         junctionName(graph, j, streets, settings) ?? l10n.landmarkSnapped,
     };
+    // The form's junction; tapping off the streets closes the form.
+    final form = _details ? junction : null;
     return Scaffold(
       // The map runs under the panel (the body gets its height as padding),
       // and the panel rides above the keyboard instead of the map shrinking.
@@ -229,27 +235,32 @@ class _LandmarkAddScreenState extends ConsumerState<LandmarkAddScreen> {
                         children: [
                           Text(
                             l10n.landmarksAdd,
-                            style: PindoroType.titleLg.copyWith(
+                            style: PindoroType.titleMd.copyWith(
                               color: c.textPrimary,
                             ),
                           ),
                           Text(
                             subtitle,
-                            style: PindoroType.bodyMd.copyWith(
+                            style: PindoroType.bodySm.copyWith(
                               color: c.textSecondary,
                             ),
                           ),
                         ],
                       ),
                     ),
+                    if (form != null)
+                      PindoroChip.action(
+                        label: l10n.landmarkMove,
+                        onPressed: () => setState(() => _details = false),
+                      ),
                   ],
                 ),
-                if (junction != null)
+                if (form != null)
                   Flexible(
                     child: SingleChildScrollView(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
-                        spacing: PindoroSpace.s3,
+                        spacing: PindoroSpace.s2,
                         children: [
                           SearchField(
                             controller: _name,
@@ -260,44 +271,21 @@ class _LandmarkAddScreenState extends ConsumerState<LandmarkAddScreen> {
                             textCapitalization: TextCapitalization.sentences,
                             onChanged: (_) => setState(() {}),
                           ),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              spacing: PindoroSpace.s2,
-                              children: [
-                                for (final kind in personalLandmarkKinds)
-                                  Semantics(
-                                    inMutuallyExclusiveGroup: true,
-                                    child: PindoroChip(
-                                      label: landmarkKindName(l10n, kind),
-                                      selected: kind == _kind,
-                                      onPressed: () =>
-                                          setState(() => _kind = kind),
-                                    ),
-                                  ),
-                              ],
-                            ),
+                          _ChoiceRow(
+                            choices: {
+                              for (final kind in personalLandmarkKinds)
+                                kind: landmarkKindName(l10n, kind),
+                            },
+                            selected: _kind,
+                            onChanged: (kind) => setState(() => _kind = kind),
                           ),
-                          Wrap(
-                            spacing: PindoroSpace.s2,
-                            runSpacing: PindoroSpace.s1,
-                            children: [
-                              for (final e in _approaches(graph, junction))
-                                Semantics(
-                                  inMutuallyExclusiveGroup: true,
-                                  child: PindoroChip(
-                                    label: _approachLabel(
-                                      e,
-                                      junction,
-                                      streets,
-                                      settings,
-                                    ),
-                                    selected: e == approach,
-                                    onPressed: () =>
-                                        setState(() => _approach = e),
-                                  ),
-                                ),
-                            ],
+                          _ChoiceRow(
+                            choices: {
+                              for (final e in _approaches(graph, form))
+                                e: _approachLabel(e, form, streets, settings),
+                            },
+                            selected: approach,
+                            onChanged: (e) => setState(() => _approach = e),
                           ),
                           SegmentedControl(
                             segments: {
@@ -317,12 +305,20 @@ class _LandmarkAddScreenState extends ConsumerState<LandmarkAddScreen> {
                       ),
                     ),
                   ),
-                PindoroButton(
-                  label: l10n.landmarkSave,
-                  onPressed: canSave
-                      ? () => unawaited(_save(nodes, spot))
-                      : null,
-                ),
+                if (form != null)
+                  PindoroButton(
+                    label: l10n.landmarkSave,
+                    onPressed: canSave
+                        ? () => unawaited(_save(nodes, spot))
+                        : null,
+                  )
+                else
+                  PindoroButton(
+                    label: l10n.commonNext,
+                    onPressed: junction == null
+                        ? null
+                        : () => setState(() => _details = true),
+                  ),
               ],
             ),
           ),
@@ -330,6 +326,38 @@ class _LandmarkAddScreenState extends ConsumerState<LandmarkAddScreen> {
       ),
     );
   }
+}
+
+/// One row of chips, one of them [selected], that scrolls sideways.
+class _ChoiceRow<T> extends StatelessWidget {
+  const _ChoiceRow({
+    required this.choices,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final Map<T, String> choices;
+  final T? selected;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    child: Row(
+      spacing: PindoroSpace.s2,
+      children: [
+        for (final MapEntry(key: value, value: label) in choices.entries)
+          Semantics(
+            inMutuallyExclusiveGroup: true,
+            child: PindoroChip(
+              label: label,
+              selected: value == selected,
+              onPressed: () => onChanged(value),
+            ),
+          ),
+      ],
+    ),
+  );
 }
 
 /// About 150 m around [junction]: close enough to see its approaches.

@@ -468,12 +468,27 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     await c.addSymbolLayer(
       _MapSources.measureLabel,
       '${_MapSources.measureLabel}-chip',
-      // Under the line: the pin stands above its tip, so a short line's
-      // chip would otherwise hide behind it.
+      // On the line's far side from the pin (`from`), which stands above its
+      // tip: a short line's chip would otherwise hide behind it.
       ml.SymbolLayerProperties(
         iconImage: ['get', 'icon'],
-        iconAnchor: 'top',
-        iconOffset: [0, PindoroSpace.s2 * pixelRatio],
+        iconAnchor: ['get', 'anchor'],
+        iconOffset: [
+          'case',
+          [
+            '==',
+            ['get', 'anchor'],
+            'top',
+          ],
+          [
+            'literal',
+            [0, PindoroSpace.s2 * pixelRatio],
+          ],
+          [
+            'literal',
+            [0, -PindoroSpace.s2 * pixelRatio],
+          ],
+        ],
         iconAllowOverlap: true,
         iconIgnorePlacement: true,
       ),
@@ -595,7 +610,11 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       [
         Bbox.of([m.from, m.to]).center,
       ],
-      properties: {'icon': icon},
+      // A pin south of the middle reaches up to it: the chip goes above.
+      properties: {
+        'icon': icon,
+        'anchor': m.from.lat < m.to.lat ? 'bottom' : 'top',
+      },
     );
   }
 
