@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Placement: what you already know</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pindoro-tokens.css">
+<link rel="stylesheet" href="ds/pindoro/components/bundle.css">
+<link rel="stylesheet" href="pindoro-canvas.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="cv-flow" style="width: 1216px; height: 950px"><div class="cv-col"><div class="cv-steprow"><span class="cv-step">1</span><span class="cv-steptx">Pin the main roads and a sample of each district</span></div><dc-import name="SessionScreen" theme="light" state="placement" hint-size="390px,844px"></dc-import></div><div class="cv-arrow" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 16h22M19 9l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div><div class="cv-col"><div class="cv-steprow"><span class="cv-step">2</span><span class="cv-steptx">Known streets go straight to review</span></div><dc-import name="SessionScreen" theme="light" state="placementDone" hint-size="390px,844px"></dc-import></div><div class="cv-notes"><div class="cv-caprow"><span class="cv-tag cv-tag--new">New in v3</span></div><h3>Placement (about 15 min, once per city)</h3><ul><li>Asks all 88 skeleton streets, then 5 grid streets per district; if 4 of 5 pass, sweeps the rest of that district’s grid.</li><li>A first-sight Good or Easy creates the card as FSRS Good/Easy (S0 = 2.31 d / 8.30 d). “I don’t know this one” leaves it unseen, with no penalty.</li><li>Ends by naming where new streets start (home anchor chunk) and how many went to review.</li></ul><p>Flutter: PlacementController drives the normal pin question; grading as in the rules board; writes CardState with prior_known = true.</p></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1216, "height": 950}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

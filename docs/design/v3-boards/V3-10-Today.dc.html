@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Today tab: ready, first run, catching up, done</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pindoro-tokens.css">
+<link rel="stylesheet" href="ds/pindoro/components/bundle.css">
+<link rel="stylesheet" href="pindoro-canvas.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="cv-flow" style="width: 2108px; height: 950px"><div class="cv-col"><div class="cv-steprow"><span class="cv-step">1</span><span class="cv-steptx">Ready: one session holds everything due plus new streets</span></div><dc-import name="TodayScreen" theme="light" state="ready" hint-size="390px,844px"></dc-import></div><div class="cv-arrow" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 16h22M19 9l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div><div class="cv-col"><div class="cv-steprow"><span class="cv-step">2</span><span class="cv-steptx">First run: placement before any lesson</span></div><dc-import name="TodayScreen" theme="light" state="firstRun" hint-size="390px,844px"></dc-import></div><div class="cv-arrow" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 16h22M19 9l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div><div class="cv-col"><div class="cv-steprow"><span class="cv-step">3</span><span class="cv-steptx">Behind: reviews first, new streets paused</span></div><dc-import name="TodayScreen" theme="light" state="backlog" hint-size="390px,844px"></dc-import></div><div class="cv-arrow" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 16h22M19 9l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div><div class="cv-col"><div class="cv-steprow"><span class="cv-step">4</span><span class="cv-steptx">Done: streak kept, optional extras</span></div><dc-import name="TodayScreen" theme="light" state="done" hint-size="390px,844px"></dc-import></div><div class="cv-notes"><div class="cv-caprow"><span class="cv-tag cv-tag--changed">Changed in v3</span></div><h3>Today replaces the Path and Free play home</h3><ul><li>Tabs: Today · Explore · Progress · Me. The Path, the Pit stop tab, XP, levels and leagues are gone.</li><li>One button starts today’s session. Its size comes from the time setting (15 / 20 / 30 min): reviews due first, then up to N new streets (7 / 10 / 14).</li><li>City memory = Σ retrievability over the 3 282 core streets. It goes down when you stop; the delta is shown against yesterday.</li><li>Streak counts a day only when the due queue is cleared or the day’s minutes are spent. Freezes stay.</li><li>Backlog rule: if due × 12 s > budget, new streets are 0 and the session takes the most overdue first.</li><li>“Drive this run today” picks a run whose junction cards are due; it opens the GPS-free drive.</li></ul><p>Flutter: TodayController reads SchedulerService.dueCount(now), planSession(budgetMin) and MemoryStats.cityMemory(). New icon: chart (Progress tab). StatefulShellRoute with 4 branches; Explore is the MVP Home minus XP.</p></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 2108, "height": 950}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

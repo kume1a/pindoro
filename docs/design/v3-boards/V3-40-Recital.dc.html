@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Recite a route by heart</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pindoro-tokens.css">
+<link rel="stylesheet" href="ds/pindoro/components/bundle.css">
+<link rel="stylesheet" href="pindoro-canvas.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="cv-flow" style="width: 2554px; height: 950px"><div class="cv-col"><div class="cv-steprow"><span class="cv-step">1</span><span class="cv-steptx">A to B with no map: speak, type or draw</span></div><dc-import name="RecitalScreen" theme="light" state="ask" hint-size="390px,844px"></dc-import></div><div class="cv-arrow" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 16h22M19 9l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div><div class="cv-col"><div class="cv-steprow"><span class="cv-step">2</span><span class="cv-steptx">Live transcript resolves to streets</span></div><dc-import name="RecitalScreen" theme="light" state="listening" hint-size="390px,844px"></dc-import></div><div class="cv-arrow" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 16h22M19 9l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div><div class="cv-col"><div class="cv-steprow"><span class="cv-step">3</span><span class="cv-steptx">Type mode with turn buttons</span></div><dc-import name="RecitalScreen" theme="light" state="typing" hint-size="390px,844px"></dc-import></div><div class="cv-arrow" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 16h22M19 9l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div><div class="cv-col"><div class="cv-steprow"><span class="cv-step">4</span><span class="cv-steptx">Graded against the road graph</span></div><dc-import name="RecitalScreen" theme="light" state="result" hint-size="390px,844px"></dc-import></div><div class="cv-arrow" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 16h22M19 9l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div><div class="cv-col"><div class="cv-steprow"><span class="cv-step">5</span><span class="cv-steptx">Illegal moves are named</span></div><dc-import name="RecitalScreen" theme="light" state="resultIllegal" hint-size="390px,844px"></dc-import></div><div class="cv-notes"><div class="cv-caprow"><span class="cv-tag cv-tag--new">New in v3</span></div><h3>Route recitals (R)</h3><ul><li>Weekly random A → B pairs from the gateway phase on; route-book runs once their junctions are Known.</li><li>Speech is on-device (Vosk Georgian, 45 MB) with a grammar of the city’s street names, turn words and landmarks; the transcript is always shown for one-tap fixes; low confidence falls back to self-grading.</li><li>Grading: names resolve by fuzzy match + spatial plausibility; Viterbi path on the directed, turn-restricted graph with up to 2 unnamed connectors ≤ 150 m. Stretch ≤ 1.03 Perfect, ≤ 1.25 Great, ≤ 1.60 Close.</li><li>Failed decisions inside a recital count as Again on those junction cards; correct ones are only logged.</li><li>Draw mode is the R4 road-trip screen.</li></ul><p>Flutter: RecitalGrader.parse(tokens) → JunctionPath; RecitalGrader.score(path, a, b) → {tier, stretch, decisions[]}. New icons: mic, keyboard.</p></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 2554, "height": 950}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

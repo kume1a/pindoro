@@ -1,0 +1,15 @@
+name: pindoro_learning
+description: Pure Dart v3 learning system for Pindoro - FSRS-6, grading, session planner, curriculum.
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.10.0
+
+resolution: workspace
+
+dependencies:
+  pindoro_core: any
+
+dev_dependencies:
+  test: ^1.25.6

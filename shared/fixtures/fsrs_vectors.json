@@ -1,0 +1,579 @@
+{
+  "generator": "py-fsrs 6.3.2, tools/fsrs-vectors/gen.py",
+  "parameters": [
+    0.212, 1.2931, 2.3065, 8.2956, 6.4133, 0.8334, 3.0194, 0.001, 1.8722, 0.1666, 0.796, 1.4835,
+    0.0614, 0.2629, 1.6483, 0.6014, 1.8729, 0.5425, 0.0912, 0.0658, 0.1542
+  ],
+  "desired_retention": 0.9,
+  "maximum_interval": 365,
+  "tolerance": 0.0001,
+  "sequences": [
+    {
+      "name": "good_on_time",
+      "reviews": [
+        {
+          "at": "2026-01-05T09:00:00Z",
+          "rating": 3,
+          "elapsed_days": null,
+          "retrievability": null,
+          "stability": 2.3065,
+          "difficulty": 2.118103970459016,
+          "interval_days": 2,
+          "due": "2026-01-07T09:00:00Z"
+        },
+        {
+          "at": "2026-01-07T09:00:00Z",
+          "rating": 3,
+          "elapsed_days": 2,
+          "retrievability": 0.9094932559773545,
+          "stability": 10.964332335820698,
+          "difficulty": 2.111214235785395,
+          "interval_days": 11,
+          "due": "2026-01-18T09:00:00Z"
+        },
+        {
+          "at": "2026-01-18T09:00:00Z",
+          "rating": 3,
+          "elapsed_days": 11,
+          "retrievability": 0.8997767176252718,
+          "stability": 46.28021728755693,
+          "difficulty": 2.1043313908464483,
+          "interval_days": 46,
+          "due": "2026-03-05T09:00:00Z"
+        },
+        {
+          "at": "2026-03-05T09:00:00Z",
+          "rating": 3,
+          "elapsed_days": 46,
+          "retrievability": 0.9004166937961716,
+          "stability": 162.86220163874916,
+          "difficulty": 2.0974554287524403,
+          "interval_days": 163,
+          "due": "2026-08-15T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "good_late_then_early",
+      "reviews": [
+        {
+          "at": "2026-01-05T09:00:00Z",
+          "rating": 3,
+          "elapsed_days": null,
+          "retrievability": null,
+          "stability": 2.3065,
+          "difficulty": 2.118103970459016,
+          "interval_days": 2,
+          "due": "2026-01-07T09:00:00Z"
+        },
+        {
+          "at": "2026-01-11T14:00:00Z",
+          "rating": 3,
+          "elapsed_days": 6,
+          "retrievability": 0.8225279534224971,
+          "stability": 19.89210120412423,
+          "difficulty": 2.111214235785395,
+          "interval_days": 20,
+          "due": "2026-01-31T14:00:00Z"
+        },
+        {
+          "at": "2026-01-21T14:00:00Z",
+          "rating": 3,
+          "elapsed_days": 10,
+          "retrievability": 0.9400858408751261,
+          "stability": 54.018372480117485,
+          "difficulty": 2.1043313908464483,
+          "interval_days": 54,
+          "due": "2026-03-16T14:00:00Z"
+        },
+        {
+          "at": "2026-03-16T14:00:00Z",
+          "rating": 3,
+          "elapsed_days": 54,
+          "retrievability": 0.9000233686590454,
+          "stability": 187.17777936529157,
+          "difficulty": 2.0974554287524403,
+          "interval_days": 187,
+          "due": "2026-09-19T14:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "lapse",
+      "reviews": [
+        {
+          "at": "2026-01-05T09:00:00Z",
+          "rating": 3,
+          "elapsed_days": null,
+          "retrievability": null,
+          "stability": 2.3065,
+          "difficulty": 2.118103970459016,
+          "interval_days": 2,
+          "due": "2026-01-07T09:00:00Z"
+        },
+        {
+          "at": "2026-01-07T09:00:00Z",
+          "rating": 1,
+          "elapsed_days": 2,
+          "retrievability": 0.9094932559773545,
+          "stability": 0.6075801062519337,
+          "difficulty": 7.394502741279718,
+          "interval_days": 1,
+          "due": "2026-01-08T09:00:00Z"
+        },
+        {
+          "at": "2026-01-08T09:00:00Z",
+          "rating": 3,
+          "elapsed_days": 1,
+          "retrievability": 0.8623103828079355,
+          "stability": 2.4004040500172708,
+          "difficulty": 7.382336607835277,
+          "interval_days": 2,
+          "due": "2026-01-10T09:00:00Z"
+        },
+        {
+          "at": "2026-01-10T09:00:00Z",
+          "rating": 3,
+          "elapsed_days": 2,
+          "retrievability": 0.9120406222319877,
+          "stability": 5.939814194797877,
+          "difficulty": 7.37018264052428,
+          "interval_days": 6,
+          "due": "2026-01-16T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "lapse_after_late_review",
+      "reviews": [
+        {
+          "at": "2026-01-05T09:00:00Z",
+          "rating": 3,
+          "elapsed_days": null,
+          "retrievability": null,
+          "stability": 2.3065,
+          "difficulty": 2.118103970459016,
+          "interval_days": 2,
+          "due": "2026-01-07T09:00:00Z"
+        },
+        {
+          "at": "2026-01-17T09:00:00Z",
+          "rating": 3,
+          "elapsed_days": 12,
+          "retrievability": 0.7566540170841713,
+          "stability": 27.07817585210549,
+          "difficulty": 2.111214235785395,
+          "interval_days": 27,
+          "due": "2026-02-13T09:00:00Z"
+        },
+        {
+          "at": "2026-02-13T09:00:00Z",
+          "rating": 1,
+          "elapsed_days": 27,
+          "retrievability": 0.900198507509215,
+          "stability": 2.3436889863175066,
+          "difficulty": 7.392238132342694,
+          "interval_days": 2,
+          "due": "2026-02-15T09:00:00Z"
+        },
+        {
+          "at": "2026-02-15T09:00:00Z",
+          "rating": 3,
+          "elapsed_days": 2,
+          "retrievability": 0.9105200861172953,
+          "stability": 5.865739581274405,
+          "difficulty": 7.38007426350719,
+          "interval_days": 6,
+          "due": "2026-02-21T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "again_same_day",
+      "reviews": [
+        {
+          "at": "2026-01-05T09:00:00Z",
+          "rating": 1,
+          "elapsed_days": null,
+          "retrievability": null,
+          "stability": 0.212,
+          "difficulty": 6.4133,
+          "interval_days": 1,
+          "due": "2026-01-06T09:00:00Z"
+        },
+        {
+          "at": "2026-01-05T09:10:00Z",
+          "rating": 1,
+          "elapsed_days": 0,
+          "retrievability": 1.0,
+          "stability": 0.08335671711031604,
+          "difficulty": 8.806304468856837,
+          "interval_days": 1,
+          "due": "2026-01-06T09:10:00Z"
+        },
+        {
+          "at": "2026-01-06T09:10:00Z",
+          "rating": 3,
+          "elapsed_days": 1,
+          "retrievability": 0.6752635759821058,
+          "stability": 0.6139445736022262,
+          "difficulty": 8.792726533684817,
+          "interval_days": 1,
+          "due": "2026-01-07T09:10:00Z"
+        }
+      ]
+    },
+    {
+      "name": "easy",
+      "reviews": [
+        {
+          "at": "2026-01-05T09:00:00Z",
+          "rating": 4,
+          "elapsed_days": null,
+          "retrievability": null,
+          "stability": 8.2956,
+          "difficulty": 1.0,
+          "interval_days": 8,
+          "due": "2026-01-13T09:00:00Z"
+        },
+        {
+          "at": "2026-01-13T09:00:00Z",
+          "rating": 4,
+          "elapsed_days": 8,
+          "retrievability": 0.9024733005284542,
+          "stability": 65.62422616189994,
+          "difficulty": 1.0,
+          "interval_days": 66,
+          "due": "2026-03-20T09:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "hard_then_same_day_good",
+      "reviews": [
+        {
+          "at": "2026-01-05T09:00:00Z",
+          "rating": 2,
+          "elapsed_days": null,
+          "retrievability": null,
+          "stability": 1.2931,
+          "difficulty": 5.112170705601056,
+          "interval_days": 1,
+          "due": "2026-01-06T09:00:00Z"
+        },
+        {
+          "at": "2026-01-05T09:20:00Z",
+          "rating": 3,
+          "elapsed_days": 0,
+          "retrievability": 1.0,
+          "stability": 1.3358997622047517,
+          "difficulty": 5.102286904192293,
+          "interval_days": 1,
+          "due": "2026-01-06T09:20:00Z"
+        },
+        {
+          "at": "2026-01-06T09:20:00Z",
+          "rating": 3,
+          "elapsed_days": 1,
+          "retrievability": 0.9186382525853547,
+          "stability": 4.602246321894656,
+          "difficulty": 5.0924129865849395,
+          "interval_days": 5,
+          "due": "2026-01-11T09:20:00Z"
+        }
+      ]
+    },
+    {
+      "name": "retrieval_1_and_2",
+      "reviews": [
+        {
+          "at": "2026-01-05T09:00:00Z",
+          "rating": 3,
+          "elapsed_days": null,
+          "retrievability": null,
+          "stability": 2.3065,
+          "difficulty": 2.118103970459016,
+          "interval_days": 2,
+          "due": "2026-01-07T09:00:00Z"
+        },
+        {
+          "at": "2026-01-05T09:15:00Z",
+          "rating": 3,
+          "elapsed_days": 0,
+          "retrievability": 1.0,
+          "stability": 2.3065,
+          "difficulty": 2.111214235785395,
+          "interval_days": 2,
+          "due": "2026-01-07T09:15:00Z"
+        },
+        {
+          "at": "2026-01-07T09:15:00Z",
+          "rating": 3,
+          "elapsed_days": 2,
+          "retrievability": 0.9094932559773545,
+          "stability": 10.971048263078135,
+          "difficulty": 2.1043313908464483,
+          "interval_days": 11,
+          "due": "2026-01-18T09:15:00Z"
+        }
+      ]
+    },
+    {
+      "name": "relearn_in_session",
+      "reviews": [
+        {
+          "at": "2026-01-05T09:00:00Z",
+          "rating": 3,
+          "elapsed_days": null,
+          "retrievability": null,
+          "stability": 2.3065,
+          "difficulty": 2.118103970459016,
+          "interval_days": 2,
+          "due": "2026-01-07T09:00:00Z"
+        },
+        {
+          "at": "2026-01-07T09:00:00Z",
+          "rating": 1,
+          "elapsed_days": 2,
+          "retrievability": 0.9094932559773545,
+          "stability": 0.6075801062519337,
+          "difficulty": 7.394502741279718,
+          "interval_days": 1,
+          "due": "2026-01-08T09:00:00Z"
+        },
+        {
+          "at": "2026-01-07T09:08:00Z",
+          "rating": 1,
+          "elapsed_days": 0,
+          "retrievability": 1.0,
+          "stability": 0.22290513490476177,
+          "difficulty": 9.128819137736839,
+          "interval_days": 1,
+          "due": "2026-01-08T09:08:00Z"
+        },
+        {
+          "at": "2026-01-08T09:08:00Z",
+          "rating": 3,
+          "elapsed_days": 1,
+          "retrievability": 0.7710617317833574,
+          "stability": 0.9190974162073349,
+          "difficulty": 9.114918687895939,
+          "interval_days": 1,
+          "due": "2026-01-09T09:08:00Z"
+        }
+      ]
+    },
+    {
+      "name": "just_under_a_day_late",
+      "reviews": [
+        {
+          "at": "2026-01-05T09:00:00Z",
+          "rating": 3,
+          "elapsed_days": null,
+          "retrievability": null,
+          "stability": 2.3065,
+          "difficulty": 2.118103970459016,
+          "interval_days": 2,
+          "due": "2026-01-07T09:00:00Z"
+        },
+        {
+          "at": "2026-01-08T08:59:00Z",
+          "rating": 3,
+          "elapsed_days": 2,
+          "retrievability": 0.9094932559773545,
+          "stability": 10.964332335820698,
+          "difficulty": 2.111214235785395,
+          "interval_days": 11,
+          "due": "2026-01-19T08:59:00Z"
+        },
+        {
+          "at": "2026-01-19T08:59:00Z",
+          "rating": 3,
+          "elapsed_days": 11,
+          "retrievability": 0.8997767176252718,
+          "stability": 46.28021728755693,
+          "difficulty": 2.1043313908464483,
+          "interval_days": 46,
+          "due": "2026-03-06T08:59:00Z"
+        }
+      ]
+    },
+    {
+      "name": "easy_to_the_cap",
+      "reviews": [
+        {
+          "at": "2026-01-05T09:00:00Z",
+          "rating": 4,
+          "elapsed_days": null,
+          "retrievability": null,
+          "stability": 8.2956,
+          "difficulty": 1.0,
+          "interval_days": 8,
+          "due": "2026-01-13T09:00:00Z"
+        },
+        {
+          "at": "2026-01-13T09:00:00Z",
+          "rating": 4,
+          "elapsed_days": 8,
+          "retrievability": 0.9024733005284542,
+          "stability": 65.62422616189994,
+          "difficulty": 1.0,
+          "interval_days": 66,
+          "due": "2026-03-20T09:00:00Z"
+        },
+        {
+          "at": "2026-03-20T09:00:00Z",
+          "rating": 4,
+          "elapsed_days": 66,
+          "retrievability": 0.899607248317662,
+          "stability": 396.7750233497581,
+          "difficulty": 1.0,
+          "interval_days": 365,
+          "due": "2027-03-20T09:00:00Z"
+        },
+        {
+          "at": "2027-03-20T09:00:00Z",
+          "rating": 4,
+          "elapsed_days": 365,
+          "retrievability": 0.9056313996815197,
+          "stability": 1787.9500743399976,
+          "difficulty": 1.0,
+          "interval_days": 365,
+          "due": "2028-03-19T09:00:00Z"
+        },
+        {
+          "at": "2028-03-19T09:00:00Z",
+          "rating": 4,
+          "elapsed_days": 365,
+          "retrievability": 0.9722610144471974,
+          "stability": 3184.063889483914,
+          "difficulty": 1.0,
+          "interval_days": 365,
+          "due": "2029-03-19T09:00:00Z"
+        },
+        {
+          "at": "2029-03-19T09:00:00Z",
+          "rating": 4,
+          "elapsed_days": 365,
+          "retrievability": 0.9837114693740819,
+          "stability": 4504.140714418339,
+          "difficulty": 1.0,
+          "interval_days": 365,
+          "due": "2030-03-19T09:00:00Z"
+        },
+        {
+          "at": "2030-03-19T09:00:00Z",
+          "rating": 4,
+          "elapsed_days": 365,
+          "retrievability": 0.9882812336530631,
+          "stability": 5769.8764294552575,
+          "difficulty": 1.0,
+          "interval_days": 365,
+          "due": "2031-03-19T09:00:00Z"
+        }
+      ]
+    }
+  ],
+  "retrievability": [
+    {
+      "stability": 0.212,
+      "elapsed_days": 0,
+      "retrievability": 1.0
+    },
+    {
+      "stability": 0.212,
+      "elapsed_days": 1,
+      "retrievability": 0.7661957302284143
+    },
+    {
+      "stability": 0.212,
+      "elapsed_days": 5,
+      "retrievability": 0.6121157997905046
+    },
+    {
+      "stability": 0.212,
+      "elapsed_days": 30,
+      "retrievability": 0.4668712814735086
+    },
+    {
+      "stability": 0.212,
+      "elapsed_days": 365,
+      "retrievability": 0.31791061636841167
+    },
+    {
+      "stability": 2.3065,
+      "elapsed_days": 0,
+      "retrievability": 1.0
+    },
+    {
+      "stability": 2.3065,
+      "elapsed_days": 1,
+      "retrievability": 0.9468474993825461
+    },
+    {
+      "stability": 2.3065,
+      "elapsed_days": 5,
+      "retrievability": 0.8388614268145294
+    },
+    {
+      "stability": 2.3065,
+      "elapsed_days": 30,
+      "retrievability": 0.6675263338730357
+    },
+    {
+      "stability": 2.3065,
+      "elapsed_days": 365,
+      "retrievability": 0.45894521558406376
+    },
+    {
+      "stability": 10.0,
+      "elapsed_days": 0,
+      "retrievability": 1.0
+    },
+    {
+      "stability": 10.0,
+      "elapsed_days": 1,
+      "retrievability": 0.9856824087775146
+    },
+    {
+      "stability": 10.0,
+      "elapsed_days": 5,
+      "retrievability": 0.9403442888929227
+    },
+    {
+      "stability": 10.0,
+      "elapsed_days": 30,
+      "retrievability": 0.8093881035731708
+    },
+    {
+      "stability": 10.0,
+      "elapsed_days": 365,
+      "retrievability": 0.5735586746235102
+    },
+    {
+      "stability": 100.0,
+      "elapsed_days": 0,
+      "retrievability": 1.0
+    },
+    {
+      "stability": 100.0,
+      "elapsed_days": 1,
+      "retrievability": 0.9984967984922138
+    },
+    {
+      "stability": 100.0,
+      "elapsed_days": 5,
+      "retrievability": 0.9926480955829713
+    },
+    {
+      "stability": 100.0,
+      "elapsed_days": 30,
+      "retrievability": 0.9610242690473834
+    },
+    {
+      "stability": 100.0,
+      "elapsed_days": 365,
+      "retrievability": 0.7908969875893878
+    }
+  ]
+}

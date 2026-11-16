@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Progress and learning settings</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pindoro-tokens.css">
+<link rel="stylesheet" href="ds/pindoro/components/bundle.css">
+<link rel="stylesheet" href="pindoro-canvas.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="cv-flow" style="width: 1662px; height: 950px"><div class="cv-col"><div class="cv-steprow"><span class="cv-step">1</span><span class="cv-steptx">City memory, recall rate, forecast, districts</span></div><dc-import name="ProgressScreen" theme="light" state="overview" hint-size="390px,844px"></dc-import></div><div class="cv-arrow" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 16h22M19 9l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div><div class="cv-col"><div class="cv-steprow"><span class="cv-step">2</span><span class="cv-steptx">A district: neighbourhoods in order</span></div><dc-import name="ProgressScreen" theme="light" state="district" hint-size="390px,844px"></dc-import></div><div class="cv-arrow" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M4 16h22M19 9l7 7-7 7" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div><div class="cv-col"><div class="cv-steprow"><span class="cv-step">3</span><span class="cv-steptx">Learning settings</span></div><dc-import name="LearnSettingsScreen" theme="light" state="learning" hint-size="390px,844px"></dc-import></div><div class="cv-notes"><div class="cv-caprow"><span class="cv-tag cv-tag--new">New in v3</span></div><h3>Progress that reflects real memory</h3><ul><li>Known = a successful pin review on a later day than its intro and R ≥ 0.80 now. Solid = S ≥ 21 d. Mastered = S ≥ 90 d, last review a success, plus name and extent cards (where they apply) at S ≥ 21 d.</li><li>Recall rate = share of the last 30 days’ due reviews passed; it should sit near 0.90. Below 0.85 means grading or weights need tuning.</li><li>Whole-city date = remaining core streets ÷ current new-per-day.</li><li>Settings: minutes a day (sets new streets: 7 / 10 / 14), home and work anchors, which practice types are on, offline photo pack, voice model, plate script, reminder.</li></ul><p>Flutter: MemoryStats is computed in pindoro_learning from CardState rows; no server logic. Legend colours: cobalt 600 / cobalt 300 / yellow 400 / asphalt 300.</p></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1662, "height": 950}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
