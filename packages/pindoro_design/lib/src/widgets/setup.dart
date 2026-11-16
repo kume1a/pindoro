@@ -252,7 +252,13 @@ class PindoroChip extends StatelessWidget {
                   size: PindoroSize.iconSm,
                   color: ink,
                 ),
-              Text(label, style: PindoroType.labelLg.copyWith(color: ink)),
+              // A long label (a street's full name) wraps instead of overflowing.
+              Flexible(
+                child: Text(
+                  label,
+                  style: PindoroType.labelLg.copyWith(color: ink),
+                ),
+              ),
             ],
           ),
         ),

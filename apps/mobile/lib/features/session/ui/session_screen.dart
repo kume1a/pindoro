@@ -12,10 +12,15 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/map/ui/pin_drop_view.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
+import 'package:pindoro/features/session/ui/widgets/bearing_view.dart';
+import 'package:pindoro/features/session/ui/widgets/crossings_view.dart';
+import 'package:pindoro/features/session/ui/widgets/ends_view.dart';
+import 'package:pindoro/features/session/ui/widgets/name_it_view.dart';
 import 'package:pindoro/features/session/ui/widgets/placement_done.dart';
 import 'package:pindoro/features/session/ui/widgets/session_done.dart';
 import 'package:pindoro/features/session/ui/widgets/session_intro.dart';
 import 'package:pindoro/features/session/ui/widgets/session_top_bar.dart';
+import 'package:pindoro/features/session/ui/widgets/sweep_view.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
@@ -56,11 +61,9 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen(sessionControllerProvider, (previous, next) {
-      final shown = previous is SessionPlaying && previous.reveal != null;
-      if (next case SessionPlaying(reveal: final reveal?) when !shown) {
-        ref
-            .read(feedbackProvider)
-            .tier(reveal.hit == null ? reveal.grade.tier : Tier.miss);
+      final shown = previous is SessionPlaying && previous.answered;
+      if (next case SessionPlaying(resultTier: final tier?) when !shown) {
+        ref.read(feedbackProvider).tier(tier);
       }
     });
     final settings = ref.watch(settingsProvider).value;
@@ -76,10 +79,53 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
         SessionIntro(
           play: p,
           known: _known(p, settings),
-          topBar: SessionTopBar(p, onLeave: _leave),
-          onGotIt: () => unawaited(controller.introDone()),
+          contrast: switch (p.contrast) {
+            final c? => _label(c, settings),
+            null => null,
+          },
+          topBar: _topBar(p, controller),
+          onGotIt: (note) => unawaited(controller.introDone(note: note)),
         ),
-      final SessionPlaying p => _pin(p, settings, controller),
+      final SessionPlaying p => switch (p.task) {
+        NameTask() => NameItView(
+          play: p,
+          topBar: _topBar(p, controller),
+          onShow: controller.showName,
+          onRate: (knew) => unawaited(controller.rateName(knew: knew)),
+          onPick: (s) => unawaited(controller.pickName(s)),
+          onNext: () async => controller.next(),
+          chip: _nextReviewChip(p, (p.task as NameTask).nextReviewDays),
+        ),
+        ExtentTask(:final nextReviewDays) => EndsView(
+          play: p,
+          topBar: _topBar(p, controller),
+          onPin: controller.dropPin,
+          onConfirm: () => unawaited(controller.confirm()),
+          onNext: () async => controller.next(),
+          chip: _nextReviewChip(p, nextReviewDays),
+        ),
+        SweepTask() => SweepView(
+          play: p,
+          topBar: _topBar(p, controller),
+          onPlace: controller.placeLane,
+          onCheck: () => unawaited(controller.checkSweep()),
+          onNext: () async => controller.next(),
+        ),
+        CrossingsTask() => CrossingsView(
+          play: p,
+          topBar: _topBar(p, controller),
+          onName: controller.nameCrossing,
+          onNext: () async => controller.next(),
+        ),
+        BearingTask() => BearingView(
+          play: p,
+          topBar: _topBar(p, controller),
+          onTurn: controller.turn,
+          onCheck: () => unawaited(controller.checkBearing()),
+          onNext: () async => controller.next(),
+        ),
+        PinTask() => _pin(p, settings, controller),
+      },
       SessionDone(:final summary) => SessionDoneView(
         summary: summary,
         onDone: _leave,
@@ -112,7 +158,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
       pin: p.pin,
       frame: p.frame,
       known: _known(p, settings),
-      topBar: SessionTopBar(p, onLeave: _leave),
+      topBar: _topBar(p, controller),
       prompt: placing
           ? l10n.placementPrompt(
               formatNumber(p.index + 1),
@@ -140,13 +186,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
       },
       headerChip: r == null || (placing && days == null)
           ? null
-          : NextReviewChip(
-              label: days == null
-                  ? l10n.revealBackThisSession
-                  : l10n.revealNextReview(days),
-              backThisSession: days == null,
-              animate: !MediaQuery.disableAnimationsOf(context),
-            ),
+          : _nextReviewChip(p, days),
       celebration: r == null || hit != null
           ? null
           : celebrationFor(r.grade.tier),
@@ -175,6 +215,24 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                   ? l10n.revealGotIt
                   : l10n.commonNext,
             ),
+    );
+  }
+
+  Widget _topBar(SessionPlaying p, SessionController controller) =>
+      SessionTopBar(p, drills: controller.drills, onLeave: _leave);
+
+  /// "Next review in 12 days", "Back in this session", or for a new leech
+  /// "Back tomorrow for a closer look".
+  Widget _nextReviewChip(SessionPlaying p, int? days) {
+    final l10n = context.l10n;
+    return NextReviewChip(
+      label: p.suspended
+          ? l10n.revealLeech
+          : days == null
+          ? l10n.revealBackThisSession
+          : l10n.revealNextReview(days),
+      backThisSession: days == null && !p.suspended,
+      animate: !MediaQuery.disableAnimationsOf(context),
     );
   }
 

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 import 'package:test/test.dart';
@@ -418,5 +420,122 @@ void main() {
       _street('y', tier: null, chunk: null, length: 700),
     ]);
     expect(_next(curriculum), ['y', 'x']);
+  });
+
+  group('name and ends cards (SPEC §3)', () {
+    final curriculum = _curriculum(
+      [
+        _street('a', tier: StreetTier.a, length: 2000),
+        _street('b', tier: StreetTier.b),
+        _street('p'),
+        _street('p1'),
+        _street('long', length: 1500),
+      ],
+      families: [_child('p', 'p1', 1)],
+    );
+
+    test('a name card for tiers A and B and family parents, an ends card '
+        'past 1.2 km', () {
+      expect(curriculum.sideTypesOf('a'), [CardType.n, CardType.e]);
+      expect(curriculum.sideTypesOf('b'), [CardType.n]);
+      expect(curriculum.sideTypesOf('p'), [CardType.n]);
+      expect(curriculum.sideTypesOf('p1'), isEmpty);
+      expect(curriculum.sideTypesOf('long'), [CardType.e]);
+    });
+
+    test('they open once the pin card reaches 7 days, most stable first', () {
+      Map<String, CardState> byItem(List<CardState> cards) => {
+        for (final c in cards) c.itemId: c,
+      };
+      expect(
+        curriculum.openSides(
+          byItem([
+            _card('a', stability: 6.9),
+            _card('b', stability: 7),
+            _card('long', stability: 30),
+          ]),
+        ),
+        ['E:long', 'N:b'],
+      );
+      final named = CardState(itemId: 'N:b', phase: CardPhase.review);
+      expect(
+        curriculum.openSides(byItem([_card('b', stability: 9), named])),
+        isEmpty,
+        reason: 'b already has its name card',
+      );
+      expect(curriculum.sidesOf('a', byItem([named, _card('a')])), [
+        null,
+        null,
+      ]);
+    });
+  });
+
+  group('drills (SPEC §7)', () {
+    final lanes = [for (var n = 1; n <= 7; n++) _street('p$n')];
+    final curriculum = _curriculum(
+      [_street('p'), ...lanes],
+      families: [for (var n = 1; n <= 7; n++) _child('p', 'p$n', n)],
+    );
+    CardState dueIn(String id, int days) => CardState(
+      itemId: CardType.p.item(id),
+      phase: CardPhase.review,
+      memory: Memory(stability: 5, difficulty: 5, lastReview: _now),
+      dueAt: _now.add(Duration(days: days)),
+      lastRating: Rating.good,
+    );
+
+    test('a family sweep needs 3 children due within 2 days', () {
+      FamilySweep? sweep(Map<String, CardState> cards) =>
+          familySweep(curriculum: curriculum, cards: cards, now: _now);
+      expect(
+        sweep({
+          'p1': dueIn('p1', 0),
+          'p2': dueIn('p2', 1),
+          'p3': dueIn('p3', 3),
+        }),
+        isNull,
+      );
+      final cards = {
+        for (var n = 1; n <= 7; n++) 'p$n': dueIn('p$n', n == 7 ? 5 : 0),
+      };
+      final s = sweep(cards)!;
+      expect(s.parentId, 'p');
+      expect(s.children, hasLength(LearningConfig.familySweepMax));
+      expect(s.children, isNot(contains('P:p7')));
+    });
+
+    test('bearings need a raion whose grid is half Solid', () {
+      CardState solid(String id) => _card(id, stability: 30);
+      final grid = [
+        for (var i = 0; i < 4; i++)
+          NamedStreet([
+            Street(
+              id: 'g$i',
+              nameKa: 'g$i',
+              nameEn: null,
+              roadClass: 'secondary',
+              difficulty: Difficulty.expert,
+              lengthM: 400,
+              midpoint: LatLng(_centre.lat + 0.02 * (i + 1), _centre.lon),
+              bbox: const Bbox(41.7, 44.8, 41.8, 44.8),
+              geometry: const [],
+              tier: StreetTier.b,
+              chunkId: 'c2',
+            ),
+          ]),
+      ];
+      final c = _curriculum(grid);
+      List<String> targets(Map<String, CardState> cards) => bearingTargets(
+        curriculum: c,
+        streets: grid.toSet(),
+        cards: cards,
+        centre: _centre,
+        random: Random(1),
+      );
+      expect(targets({'g0': solid('g0')}), isEmpty);
+      final t = targets({'g0': solid('g0'), 'g1': solid('g1')});
+      expect(t, isNotEmpty);
+      expect(t.toSet().difference({'g0', 'g1'}), isEmpty);
+    });
   });
 }

@@ -75,6 +75,26 @@ class LearningDao extends DatabaseAccessor<AppDatabase>
     return [for (final row in await query.get()) _log(row)];
   }
 
+  /// The street [streetId] was most often mixed up with, either way round;
+  /// null with none.
+  Future<String?> topConfusion(String streetId) async {
+    final rows =
+        await (select(confusions)
+              ..where(
+                (c) => c.streetA.equals(streetId) | c.streetB.equals(streetId),
+              )
+              ..orderBy([
+                (c) => OrderingTerm.desc(c.count),
+                (c) => OrderingTerm.desc(c.lastAt),
+              ])
+              ..limit(1))
+            .get();
+    return switch (rows) {
+      [final row] => row.streetA == streetId ? row.streetB : row.streetA,
+      _ => null,
+    };
+  }
+
   /// [cityId]'s placement and anchors; null before either.
   Future<LearnCityRow?> learnCity(String cityId) => (select(
     learnCities,
@@ -117,6 +137,7 @@ class LearningDao extends DatabaseAccessor<AppDatabase>
     lastSnapId: r.lastSnapId,
     priorKnown: r.priorKnown,
     introAt: r.introAt,
+    note: r.note,
   );
 
   static CardStateRow _row(CardState c) => CardStateRow(
@@ -134,6 +155,7 @@ class LearningDao extends DatabaseAccessor<AppDatabase>
     lastSnapId: c.lastSnapId,
     priorKnown: c.priorKnown,
     introAt: c.introAt,
+    note: c.note,
   );
 
   static ReviewLogsCompanion _logRow(LogEntry l) => ReviewLogsCompanion.insert(

@@ -7,14 +7,14 @@ Signpost widgets: `PindoroButton`, `StreetPlate`, surfaces (`LipBox`, `ListGroup
 loading `Skeleton`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` incl. the route's
 `PinMark.endpoint`, `CarMark`, `glyphPng` for map images), the round components (`QuestionBar`,
 `Pill`, `MapControl`, `RevealSheet` and its `TierSheetFrame`, `ResultRow`, `TierTally`,
-`CoachBubble`), the v3 session (`StatChip`, `NextReviewChip`, `IntroSheet`; the session bar is
-`QuestionBar` with `height: 14`), v3 progress (`MemoryBar`, `MemoryLegend`, `MemoryChart`,
-`ForecastBars`), the streak (`StreakPill`, `StreakCalendar`, `StreakFreezeCard`), badges
-(`BadgeShield`, `BadgeTile`; fields `color.badge.*` in `app.json`), setup components
-(`SearchField`, `CitySwitcher`, `PindoroChip`, `DifficultyCard`, `DistrictMiniMap`) and motion
-(`PindoroPageTransitions`, `CountUp`, `PopIn`, `RiseIn`, `Celebration`, `Wiggle`, `Shake`,
-`FadeIndexedStack`; all calm down under reduce motion). Widgets take their text
-as parameters; strings live in the app.
+`CoachBubble`), the v3 session (`StatChip`, `NextReviewChip`, `IntroSheet`, the drills'
+`BearingDial`; the session bar is `QuestionBar` with `height: 14`), v3 progress (`MemoryBar`,
+`MemoryLegend`, `MemoryChart`, `ForecastBars`), the streak (`StreakPill`, `StreakCalendar`,
+`StreakFreezeCard`), badges (`BadgeShield`, `BadgeTile`; fields `color.badge.*` in `app.json`),
+setup components (`SearchField`, `CitySwitcher`, `PindoroChip`, `DifficultyCard`, `DistrictMiniMap`)
+and motion (`PindoroPageTransitions`, `CountUp`, `PopIn`, `RiseIn`, `Celebration`, `Wiggle`,
+`Shake`, `FadeIndexedStack`; all calm down under reduce motion). Widgets take their text as
+parameters; strings live in the app.
 
 ## Tokens
 

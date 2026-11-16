@@ -238,4 +238,49 @@ void main() {
       expect(explore(introduce(itemId, t0), Rating.good, t0).card, isNull);
     });
   });
+
+  group('leeches (SPEC §4)', () {
+    test(
+      'every 6th lapse suspends; a re-intro relearns on the kept memory',
+      () {
+        var card = rate(null, Rating.good, t0).card;
+        var at = t0;
+        for (var lapse = 1; lapse <= LearningConfig.leechLapses; lapse++) {
+          at = at.add(const Duration(days: 3));
+          card = rate(card, Rating.again, at).card;
+          expect(
+            card.phase,
+            lapse < LearningConfig.leechLapses
+                ? CardPhase.relearning
+                : CardPhase.suspended,
+          );
+          if (card.phase == CardPhase.relearning) {
+            at = at.add(const Duration(days: 1));
+            card = rate(card, Rating.good, at).card;
+          }
+        }
+        expect(card.lapses, LearningConfig.leechLapses);
+        final back = reintroduce(
+          card,
+          at.add(const Duration(days: 1)),
+          note: 'by the bakery',
+        );
+        expect(back.phase, CardPhase.relearning);
+        expect(back.memory, card.memory);
+        expect(back.note, 'by the bakery');
+        expect(isDueBefore(back, at.add(const Duration(days: 2))), isTrue);
+        final relearnt = rate(
+          back,
+          Rating.good,
+          at.add(const Duration(days: 1)),
+        );
+        expect(
+          relearnt.card.note,
+          'by the bakery',
+          reason: 'answers keep the note',
+        );
+        expect(relearnt.card.phase, CardPhase.review);
+      },
+    );
+  });
 }

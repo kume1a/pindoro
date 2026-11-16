@@ -39,6 +39,9 @@ SessionPlan plan({
   int introducedToday = 0,
   int spentTodayS = 0,
   int? extraNew,
+  List<String> openSides = const [],
+  int sidesStartedToday = 0,
+  Drills drills = Drills.none,
   int tReviewS = LearningConfig.tReviewS,
   int tNewS = LearningConfig.tNewS,
 }) => Planner.plan(
@@ -50,6 +53,9 @@ SessionPlan plan({
   introducedToday: introducedToday,
   spentTodayS: spentTodayS,
   extraNew: extraNew,
+  openSides: openSides,
+  sidesStartedToday: sidesStartedToday,
+  drills: drills,
   tReviewS: tReviewS,
   tNewS: tNewS,
 );
@@ -400,6 +406,108 @@ void main() {
     ];
     expect(remainingSeconds(steps), 15 + 12 + 15 + 12 + 15);
     expect(remainingSeconds(const []), 0);
+  });
+
+  group('name and ends cards, leeches, drills (SPEC §16.13)', () {
+    final sides = [for (var i = 0; i < 8; i++) 'N:s$i'];
+
+    test('open side cards start after the reviews, 5 a day', () {
+      final p = plan(cards: dueCards(4), openSides: sides);
+      final reviews = ofKind(p, StepKind.review).toList();
+      expect(reviews, hasLength(4 + LearningConfig.sideNewPerDay));
+      expect(reviews.skip(4), sides.take(LearningConfig.sideNewPerDay));
+      expect(
+        ofKind(plan(openSides: sides, sidesStartedToday: 4), StepKind.review),
+        ['N:s0'],
+      );
+      expect(
+        ofKind(plan(openSides: sides, extraNew: 5), StepKind.review),
+        isEmpty,
+        reason: 'Learn 5 more starts none',
+      );
+      expect(
+        ofKind(plan(cards: dueCards(150), openSides: sides), StepKind.review),
+        isNot(contains('N:s0')),
+        reason: 'a backlog starts none',
+      );
+    });
+
+    test('a leech suspended before today comes back first, as an intro', () {
+      final leech = CardState(
+        itemId: 'P:leech',
+        phase: CardPhase.suspended,
+        memory: Memory(
+          stability: 1,
+          difficulty: 9,
+          lastReview: now.subtract(const Duration(days: 1)),
+        ),
+        dueAt: now,
+        lapses: LearningConfig.leechLapses,
+      );
+      final p = plan(cards: [leech]);
+      expect(ofKind(p, StepKind.intro).first, 'P:leech');
+      expect(p.newCount, 10, reason: 'it takes a new slot');
+      final today = CardState(
+        itemId: 'P:leech',
+        phase: CardPhase.suspended,
+        memory: Memory(stability: 1, difficulty: 9, lastReview: now),
+        lapses: LearningConfig.leechLapses,
+      );
+      expect(
+        ofKind(plan(cards: [today]), StepKind.intro),
+        isNot(contains('P:leech')),
+      );
+    });
+
+    test(
+      'drills go half-way; the sweep takes its children off the reviews',
+      () {
+        final drills = Drills(
+          sweep: (parentId: 'parent', children: ['P:d0', 'P:d1', 'P:d2']),
+          crossings: (streetId: 'av', fromId: 'x', crossings: ['a', 'b']),
+          bearings: ['far'],
+        );
+        final p = plan(cards: dueCards(10), fresh: const [], drills: drills);
+        expect(p.steps.map((s) => s.kind).skip(3).take(3), [
+          StepKind.familySweep,
+          StepKind.crossings,
+          StepKind.bearing,
+        ]);
+        expect(ofKind(p, StepKind.review), hasLength(7));
+        expect(ofKind(p, StepKind.familySweep), ['P:parent']);
+        expect(p.estimatedS, 7 * 12 + (3 + 2 + 1) * 12);
+        expect(remainingSeconds(p.steps, drills: p.drills), p.estimatedS);
+        final backlog = plan(cards: dueCards(150), drills: drills);
+        expect(
+          backlog.steps
+              .where((s) => s.kind.index >= StepKind.familySweep.index)
+              .map((s) => s.kind),
+          [StepKind.familySweep],
+          reason: 'a backlog keeps only the sweep',
+        );
+      },
+    );
+
+    test('sidesStartedToday counts today\'s first name and ends answers', () {
+      LogEntry row(String item, {double? s, int hoursAgo = 1}) => LogEntry(
+        ts: now.subtract(Duration(hours: hoursAgo)),
+        itemId: item,
+        format: ReviewFormat.name,
+        rating: Rating.good,
+        source: ReviewSource.session,
+        sBefore: s,
+      );
+      expect(
+        sidesStartedToday([
+          row('N:a'),
+          row('N:a', s: 2),
+          row('E:b'),
+          row('N:c', s: 9),
+          row('N:old', hoursAgo: 30),
+        ], now),
+        2,
+      );
+    });
   });
 
   group('finishedBlocks', () {

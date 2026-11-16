@@ -1,0 +1,150 @@
+import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
+
+/// What the current step asks beyond a pin, and its answer once given
+/// (SessionScreen `nameHidden` … `orientation`, docs/design/v3-screens.md).
+sealed class SessionTask {
+  const SessionTask();
+
+  /// The answer's tier once it is graded; null while asking. A pin's lives in
+  /// the reveal.
+  Tier? get result;
+}
+
+/// A pin for a P card, a guess or a placement: the reveal holds the answer.
+final class PinTask extends SessionTask {
+  const PinTask();
+
+  @override
+  Tier? get result => null;
+}
+
+/// Name it (card N): the painted street, then its name and a self-grade; on
+/// a checked review, [choices] to pick from instead.
+final class NameTask extends SessionTask {
+  const NameTask({
+    this.choices,
+    this.shown = false,
+    this.picked,
+    this.right,
+    this.nextReviewDays,
+  });
+
+  final List<NamedStreet>? choices;
+  final bool shown;
+  final NamedStreet? picked;
+
+  /// Whether the checked pick was the street; null until picked.
+  final bool? right;
+  final int? nextReviewDays;
+
+  @override
+  Tier? get result => switch (right) {
+    null => null,
+    true => Tier.great,
+    false => Tier.miss,
+  };
+
+  NameTask copyWith({
+    bool? shown,
+    NamedStreet? picked,
+    bool? right,
+    int? nextReviewDays,
+  }) => NameTask(
+    choices: choices,
+    shown: shown ?? this.shown,
+    picked: picked ?? this.picked,
+    right: right ?? this.right,
+    nextReviewDays: nextReviewDays ?? this.nextReviewDays,
+  );
+}
+
+/// Both ends (card E): up to two pins, then the grade.
+final class ExtentTask extends SessionTask {
+  const ExtentTask({this.pins = const [], this.grade, this.nextReviewDays});
+
+  final List<LatLng> pins;
+  final ExtentGrade? grade;
+  final int? nextReviewDays;
+
+  @override
+  Tier? get result => grade?.tier;
+}
+
+/// The family sweep: each lane's label dropped on a lane ([placed]: label's
+/// street id → the lane's), then checked.
+final class SweepTask extends SessionTask {
+  const SweepTask({
+    required this.lanes,
+    this.placed = const {},
+    this.checked = false,
+  });
+
+  final List<NamedStreet> lanes;
+  final Map<String, String> placed;
+  final bool checked;
+
+  int get right => placed.entries.where((e) => e.key == e.value).length;
+
+  @override
+  Tier? get result => checked ? Grader.gradeShare(right, lanes.length) : null;
+
+  SweepTask copyWith({Map<String, String>? placed, bool? checked}) => SweepTask(
+    lanes: lanes,
+    placed: placed ?? this.placed,
+    checked: checked ?? this.checked,
+  );
+}
+
+/// The crossings drill: drive from [from] and name each crossing in turn;
+/// [named] holds whether each answered one was right.
+final class CrossingsTask extends SessionTask {
+  const CrossingsTask({
+    required this.from,
+    required this.start,
+    required this.crossings,
+    this.named = const [],
+  });
+
+  final NamedStreet from;
+
+  /// Where the drive starts: where [from] meets the street.
+  final LatLng start;
+  final List<Crossing> crossings;
+  final List<bool> named;
+
+  bool get done => named.length == crossings.length;
+
+  @override
+  Tier? get result => done
+      ? Grader.gradeShare(named.where((n) => n).length, crossings.length)
+      : null;
+}
+
+/// A bearing from the city centre to the step's street: the player's arrow,
+/// then the error once checked.
+final class BearingTask extends SessionTask {
+  const BearingTask({
+    required this.trueBearing,
+    required this.distanceM,
+    this.bearing = 0,
+    this.checked = false,
+  });
+
+  final double trueBearing;
+  final double distanceM;
+  final double bearing;
+  final bool checked;
+
+  double get error => bearingError(bearing, trueBearing);
+
+  @override
+  Tier? get result => checked ? Grader.gradeBearing(error) : null;
+
+  BearingTask copyWith({double? bearing, bool? checked}) => BearingTask(
+    trueBearing: trueBearing,
+    distanceM: distanceM,
+    bearing: bearing ?? this.bearing,
+    checked: checked ?? this.checked,
+  );
+}

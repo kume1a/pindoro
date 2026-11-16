@@ -26,6 +26,7 @@ Future<BadgeStats> readBadgeStats(
     for (final c in allCards)
       if (c.type == CardType.p) itemKey(c.itemId): c,
   };
+  final byItem = {for (final c in allCards) c.itemId: c};
   final pins = [
     for (final e in await learning.log())
       if (e.type == CardType.p &&
@@ -38,11 +39,18 @@ Future<BadgeStats> readBadgeStats(
     await dao.recentCityIds(),
     open: open,
     (pack, streets) async {
+      final curriculum = Curriculum(
+        streets: streets.values,
+        districts: pack.districts(),
+        centre: pack.city().center,
+        families: pack.families(),
+      );
       final areas = areaCounts(
         streets: streets.values,
         districts: pack.districts(),
         cards: cards,
         now: now,
+        sidesOf: (p) => curriculum.sidesOf(itemKey(p.itemId), byItem),
       );
       final perfects = pins.where((e) {
         final street = streets[itemKey(e.itemId)];

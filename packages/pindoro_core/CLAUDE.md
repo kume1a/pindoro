@@ -3,14 +3,16 @@
 Pure Dart game logic. **No Flutter imports** — it must run under plain `dart test`.
 
 ```
-lib/src/geo/        LatLng, LocalProjection, Bbox, pointToPolylineDistance, polyline6
+lib/src/geo/        LatLng, LocalProjection, Bbox, pointToPolylineDistance, bearings and compass
+                    points, polyline6
 lib/src/scoring/    Difficulty, Tier, ScoringConfig (half-widths, fixed distances, difficulty
                     factors), TierThresholds, scoreAnswer (the tier of a pin)
 lib/src/progress/   account: the account's username, password and recovery-code rules;
                     streak: calendar days, streakOf, freezes and the pill (Dart-only)
 lib/src/game/       Area (districts/circle/rect, in-area rule), NamedStreet (nearby same-name parts),
                     QuestionSelector (10 names, 3 × 3 grid), knowledge (per street, Explore),
-                    street_facts (road type, crossings, direction from the centre: the intro),
+                    street_facts (road type, crossings in order along a street, its ends,
+                    direction from the centre: the intro and the M4 drills),
                     route_draft (RouteDraft drag and tap drawing, kept for M6 recitals)
 lib/src/pack/       City/District/Street (pack rows; format 4 adds the curriculum columns and
                     FamilyLink), PackRepository, RoadGraph (junctions, edges, A* shortestRoute

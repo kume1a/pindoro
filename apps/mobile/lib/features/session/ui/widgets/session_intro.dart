@@ -20,23 +20,46 @@ const double _sheetInset = 260;
 
 /// A new street (SessionScreen `intro`): the map paints it and names the
 /// streets the player knows, the plate says "New street · 1 of 10" and the
-/// Intro sheet says where it is.
-class SessionIntro extends ConsumerWidget {
+/// Intro sheet says where it is. A leech comes back the same way, beside the
+/// street it is mixed up with ([contrast], cobalt) and with a note field
+/// (SPEC §4).
+class SessionIntro extends ConsumerStatefulWidget {
   const SessionIntro({
     super.key,
     required this.play,
     required this.known,
     required this.topBar,
     required this.onGotIt,
+    this.contrast,
   });
 
   final SessionPlaying play;
   final List<MapLabel> known;
   final Widget topBar;
-  final VoidCallback onGotIt;
+
+  /// Got it, with a leech's note as typed.
+  final ValueChanged<String?> onGotIt;
+  final MapLabel? contrast;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SessionIntro> createState() => _SessionIntroState();
+}
+
+class _SessionIntroState extends ConsumerState<SessionIntro> {
+  late final _note = TextEditingController(text: widget.play.note);
+
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final play = widget.play;
+    final known = widget.known;
+    final topBar = widget.topBar;
+    final contrast = widget.contrast;
     final l10n = context.l10n;
     final settings = ref.watch(settingsProvider).value;
     final street = play.street;
@@ -51,7 +74,9 @@ class SessionIntro extends ConsumerWidget {
     final name = streetName(street, settings);
     final language = speechLanguage(name);
     final canSpeak = ref.watch(canSpeakProvider(language)).value ?? false;
-    final prompt = l10n.lessonNewStreet(play.newIndex, play.newTotal);
+    final prompt = play.leech
+        ? l10n.sessionLeechPrompt
+        : l10n.lessonNewStreet(play.newIndex, play.newTotal);
     return Scaffold(
       body: Stack(
         children: [
@@ -60,6 +85,7 @@ class SessionIntro extends ConsumerWidget {
               area: play.area,
               truth: street.geometry,
               known: known,
+              hit: contrast,
               topInset: MediaQuery.paddingOf(context).top + 180,
               bottomInset: _sheetInset + MediaQuery.paddingOf(context).bottom,
             ),
@@ -113,10 +139,26 @@ class SessionIntro extends ConsumerWidget {
                           );
                         }
                       : null,
+                  extra: [
+                    if (contrast != null)
+                      StatChip(
+                        label: l10n.sessionLeechContrast(contrast.label),
+                        glyph: PindoroGlyph.reroute,
+                      ),
+                    if (play.leech)
+                      SearchField(
+                        controller: _note,
+                        placeholder: l10n.sessionLeechNoteHint,
+                        clearLabel: l10n.commonClear,
+                        glyph: PindoroGlyph.edit,
+                        textInputAction: TextInputAction.done,
+                        textCapitalization: TextCapitalization.sentences,
+                      ),
+                  ],
                   gotItLabel: l10n.revealGotIt,
                   onGotIt: () {
                     ref.read(feedbackProvider).tap();
-                    onGotIt();
+                    widget.onGotIt(play.leech ? _note.text : null);
                   },
                 ),
               ),

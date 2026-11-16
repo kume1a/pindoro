@@ -105,22 +105,26 @@ void main() {
           .toList();
       pack.close();
       final now = DateTime.now();
-      CardState mastered(NamedStreet s) => CardState(
-        itemId: CardType.p.item(s.id),
-        phase: CardPhase.review,
-        memory: Memory(
-          stability: 120,
-          difficulty: 5,
-          lastReview: now.subtract(const Duration(days: 1)),
-        ),
-        dueAt: now.add(const Duration(days: 100)),
-        lastRating: Rating.good,
-        priorKnown: true,
-      );
+      CardState mastered(NamedStreet s, [CardType type = CardType.p]) =>
+          CardState(
+            itemId: type.item(s.id),
+            phase: CardPhase.review,
+            memory: Memory(
+              stability: 120,
+              difficulty: 5,
+              lastReview: now.subtract(const Duration(days: 1)),
+            ),
+            dueAt: now.add(const Duration(days: 100)),
+            lastRating: Rating.good,
+            priorKnown: true,
+          );
       await LearningDao(db).putCards([mastered(inRaion.first)]);
       var stats = await readBadgeStats(dao, LearningDao(db), store);
       expect((stats.knownDistricts, stats.masteredDistricts), (1, 0));
-      await LearningDao(db).putCards(inRaion.map(mastered));
+      await LearningDao(db).putCards([
+        for (final type in [CardType.p, CardType.n, CardType.e])
+          for (final s in inRaion) mastered(s, type),
+      ]);
       stats = await readBadgeStats(dao, LearningDao(db), store);
       expect((stats.knownDistricts, stats.masteredDistricts), (1, 1));
       expect(stats.masteredNeighbourhoods, greaterThan(0));

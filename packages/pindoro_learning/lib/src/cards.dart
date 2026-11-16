@@ -43,6 +43,19 @@ enum ReviewFormat {
 
   /// An Explore answer that schedules nothing (SPEC §16.16).
   exploreLog,
+
+  /// A name card, self-graded or (every [LearningConfig.nameCheckEvery]th) checked with a choice.
+  name,
+  nameCheck,
+  extent,
+
+  /// A child's pin card graded by the family sweep (SPEC §7).
+  familySweep,
+  crossings,
+  bearing;
+
+  /// Drill answers that are only logged (SPEC §16.10): they move no card.
+  bool get logsOnly => this == crossings || this == bearing;
 }
 
 /// `review_log.source` (SPEC §2.2).
@@ -62,6 +75,7 @@ class CardState {
     this.lastSnapId,
     this.priorKnown = false,
     this.introAt,
+    this.note,
   });
 
   final String itemId;
@@ -79,6 +93,9 @@ class CardState {
   /// Created by placement or carried over from the old game, not taught.
   final bool priorKnown;
   final DateTime? introAt;
+
+  /// The player's own memory aid for a leech (SPEC §4).
+  final String? note;
 
   CardType get type => CardType.ofItem(itemId);
 }
@@ -121,6 +138,25 @@ class LogEntry {
 /// The intro card: the street is shown, nothing is graded yet (SPEC §16.5).
 CardState introduce(String itemId, DateTime now) =>
     CardState(itemId: itemId, phase: CardPhase.learning, introAt: now);
+
+/// A leech shown again (SPEC §4, §16.13): a fresh intro with the street beside its top confusion
+/// and the player's [note], then due at once, so the session's retrievals relearn it on its
+/// kept memory.
+CardState reintroduce(CardState leech, DateTime now, {String? note}) =>
+    CardState(
+      itemId: leech.itemId,
+      phase: CardPhase.relearning,
+      memory: leech.memory,
+      dueAt: now,
+      reps: leech.reps,
+      lapses: leech.lapses,
+      lastRating: leech.lastRating,
+      lastDistanceM: leech.lastDistanceM,
+      lastSnapId: leech.lastSnapId,
+      priorKnown: leech.priorKnown,
+      introAt: now,
+      note: note,
+    );
 
 /// A card for a street the old game already knew (PLAN M2 step 7): first sight rated Good and
 /// marked prior knowledge, due on a [random] day [LearningConfig.migrationDueMinDays]–
@@ -175,18 +211,25 @@ CardState carriedOver(
     fuzz: fuzzFor(itemId, now),
   );
   final lapsed = rating == Rating.again && card?.phase == CardPhase.review;
+  final lapses = (card?.lapses ?? 0) + (lapsed ? 1 : 0);
   final next = CardState(
     itemId: itemId,
-    phase: rating == Rating.again ? CardPhase.relearning : CardPhase.review,
+    phase: switch (rating) {
+      _ when lapsed && lapses % LearningConfig.leechLapses == 0 =>
+        CardPhase.suspended,
+      Rating.again => CardPhase.relearning,
+      _ => CardPhase.review,
+    },
     memory: scheduled.memory,
     dueAt: scheduled.due,
     reps: (card?.reps ?? 0) + 1,
-    lapses: (card?.lapses ?? 0) + (lapsed ? 1 : 0),
+    lapses: lapses,
     lastRating: rating,
     lastDistanceM: distanceM,
     lastSnapId: snapId,
     priorKnown: (card?.priorKnown ?? false) || priorKnown,
     introAt: card?.introAt,
+    note: card?.note,
   );
   final log = LogEntry(
     ts: now,

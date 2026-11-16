@@ -85,6 +85,9 @@ abstract final class LearningConfig {
   static const int learnMoreCount = 5;
   static const double nearDueFraction = 0.5;
 
+  /// Name and ends cards started a day, outside a backlog and within the minutes (§16.13).
+  static const int sideNewPerDay = 5;
+
   // Curriculum (§6)
   static const double tierBShare = 0.60;
   static const int childParentMinDays = 3;
@@ -104,6 +107,11 @@ abstract final class LearningConfig {
   static const int crossingsPerDay = 1;
   static const int bearingsPerSessionMin = 1;
   static const int bearingsPerSessionMax = 3;
+  static const int familySweepMax = 6;
+  static const int crossingsMax = 5;
+
+  /// Solid streets tried for a crossings drill with two Known crossings.
+  static const int crossingsTries = 8;
 
   // Route items (§6.5, §6.6, §7, §9)
   static const int routeNewPerDayMax = 10;

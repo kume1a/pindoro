@@ -1660,5 +1660,196 @@
         "type": "String"
       }
     }
-  }
+  },
+  "commonCheck": "Check",
+  "compassWord": "{direction, select, n{north} ne{north-east} e{east} se{south-east} s{south} sw{south-west} w{west} nw{north-west} other{here}}",
+  "@compassWord": {
+    "placeholders": {
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionNameAsk": "What’s this street called?",
+  "sessionNameAskNote": "Say it in your head first",
+  "sessionNameShow": "Show name",
+  "sessionNameDidYouKnow": "Did you know it?",
+  "sessionNameForgot": "Forgot",
+  "sessionNameKnew": "Knew it",
+  "sessionNameCheckAsk": "Which name is it?",
+  "sessionNameCheckNote": "Pick the painted street’s name",
+  "sessionNameRight": "It’s {name}.",
+  "@sessionNameRight": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionNameWrong": "It’s {name}, not {picked}.",
+  "@sessionNameWrong": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "picked": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionEndsPrompt": "Mark both ends of",
+  "sessionEndsCoachTitle": "Now drop a pin on the other end",
+  "sessionEndsCoachBody": "A long street counts when you know where it starts and stops.",
+  "sessionEndsConfirm": "Confirm both ends",
+  "sessionEndOne": "End 1",
+  "sessionEndsResult": "{count, plural, =0{Neither end is right.} =1{One end is right.} other{Both ends are right.}}",
+  "@sessionEndsResult": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionSweepPrompt": "Put its lanes in order",
+  "sessionSweepHint": "Drag each label onto its lane",
+  "sessionSweepCheck": "Check · {placed} of {total} placed",
+  "@sessionSweepCheck": {
+    "placeholders": {
+      "placed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionSweepResult": "{right} of {total} in the right place.",
+  "@sessionSweepResult": {
+    "placeholders": {
+      "right": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "a11ySweepSocket": "Lane {number}, {label}",
+  "@a11ySweepSocket": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "a11ySweepEmpty": "empty",
+  "sessionCrossingsPrompt": "Name the streets you cross on",
+  "sessionCrossingsFrom": "Heading {direction} from {street}",
+  "@sessionCrossingsFrom": {
+    "placeholders": {
+      "direction": {
+        "type": "String"
+      },
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionCrossingsCount": "Crossing {number} of {total}",
+  "@sessionCrossingsCount": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionCrossingsMatch": "matches what you typed",
+  "sessionCrossingsNext": "Next crossing",
+  "sessionCrossingsResult": "You named {right} of {total}.",
+  "@sessionCrossingsResult": {
+    "placeholders": {
+      "right": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionBearingAsk": "From the city centre, which way is {street}?",
+  "@sessionBearingAsk": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionBearingNote": "Drag the arrow, then Check",
+  "sessionBearingCaption": "Your arrow: {yours}",
+  "@sessionBearingCaption": {
+    "placeholders": {
+      "yours": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionBearingCaptionTruth": "Your arrow: {yours} · {street}: {truth}",
+  "@sessionBearingCaptionTruth": {
+    "placeholders": {
+      "yours": {
+        "type": "String"
+      },
+      "street": {
+        "type": "String"
+      },
+      "truth": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionBearingTitle": "{tier} · {degrees}° off",
+  "@sessionBearingTitle": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      },
+      "degrees": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionBearingSentence": "{street} is {direction} of the city centre, {distance} away.",
+  "@sessionBearingSentence": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yCompass": "Compass",
+  "sessionLeechPrompt": "Back for a closer look",
+  "sessionLeechContrast": "Not to be confused with {street}",
+  "@sessionLeechContrast": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionLeechNoteHint": "Something to remember it by (optional)",
+  "revealLeech": "Back tomorrow for a closer look",
+  "commonClear": "Clear",
+  "sessionCrossingsHint": "Street name"
 }

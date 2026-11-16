@@ -98,6 +98,8 @@ Accept: no XP strings or league calls remain (grep); streak behaves per spec in 
 
 ## M4 · More street cards and drills
 
+Status: done (2026-11-16).
+
 Spec §3 (N, E, drills), §5.2, §4 (leeches). Boards V3-22, V3-23.
 
 1. N cards (`nameHidden`, `nameShown`) with the 1-in-10 verification.

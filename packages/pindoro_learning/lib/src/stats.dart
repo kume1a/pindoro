@@ -27,7 +27,7 @@ extension CardLabels on CardState {
   bool get isSolid => (memory?.stability ?? 0) >= LearningConfig.solidDays;
 }
 
-/// City memory, SPEC §8: the recall chance summed over the core streets'
+/// City memory, SPEC §8: the recall chance summed over the core streets' P
 /// cards, so "streets you'd place right now"; unseen streets add nothing.
 double cityMemory(
   Iterable<CardState> cards,
@@ -35,23 +35,33 @@ double cityMemory(
   required bool Function(String itemId) isCore,
   Fsrs fsrs = const Fsrs(),
 }) => cards
-    .where((c) => c.memory != null && isCore(c.itemId))
+    .where((c) => c.memory != null && c.type == CardType.p && isCore(c.itemId))
     .fold(0, (sum, c) => sum + fsrs.retrievability(c.memory!, now));
 
 /// The memory bar's states, strongest first (SPEC §8). Every card is at least Seen.
 enum MemoryState { mastered, solid, known, seen }
 
-/// Mastered, SPEC §8: stability of [LearningConfig.masteredDays] or more and the last answer a
-/// success. Name and ends cards join the rule when they exist.
-bool isMastered(CardState card) =>
+/// Mastered, SPEC §8: stability of [LearningConfig.masteredDays] or more, the last answer a
+/// success, and each name and ends card that applies ([sides], null where missing) at
+/// [LearningConfig.masteredSideDays] or more.
+bool isMastered(CardState card, {Iterable<CardState?> sides = const []}) =>
     (card.memory?.stability ?? 0) >= LearningConfig.masteredDays &&
-    (card.lastRating?.isSuccess ?? false);
+    (card.lastRating?.isSuccess ?? false) &&
+    sides.every(
+      (s) => (s?.memory?.stability ?? 0) >= LearningConfig.masteredSideDays,
+    );
+
+/// A P card's name and ends cards that apply, null where missing (`Curriculum.sidesOf`).
+typedef SidesOf = Iterable<CardState?> Function(CardState p);
+
+Iterable<CardState?> _noSides(CardState _) => const [];
 
 MemoryState memoryState(
   CardState card,
   DateTime now, {
+  Iterable<CardState?> sides = const [],
   Fsrs fsrs = const Fsrs(),
-}) => isMastered(card)
+}) => isMastered(card, sides: sides)
     ? MemoryState.mastered
     : card.isSolid
     ? MemoryState.solid
@@ -59,10 +69,14 @@ MemoryState memoryState(
     ? MemoryState.known
     : MemoryState.seen;
 
-Map<MemoryState, int> memoryCounts(Iterable<CardState> cards, DateTime now) {
+Map<MemoryState, int> memoryCounts(
+  Iterable<CardState> cards,
+  DateTime now, {
+  SidesOf sidesOf = _noSides,
+}) {
   final counts = {for (final s in MemoryState.values) s: 0};
   for (final c in cards) {
-    counts.update(memoryState(c, now), (n) => n + 1);
+    counts.update(memoryState(c, now, sides: sidesOf(c)), (n) => n + 1);
   }
   return counts;
 }
@@ -101,9 +115,10 @@ DateTime? wholeCityBy({
     ? null
     : startOfDay(now).add(Duration(days: (unseenCore / newPerDay).ceil()));
 
-/// Whether [entry] moved its card's memory: a guess or a logged Explore answer never does, nor
-/// a placement pin that created no card.
+/// Whether [entry] moved its card's memory: a guess, a logged Explore answer or a drill that only
+/// logs never does, nor a placement pin that created no card.
 bool changesSchedule(LogEntry entry) =>
+    !entry.format.logsOnly &&
     entry.format != ReviewFormat.pretest &&
     entry.format != ReviewFormat.exploreLog &&
     !(entry.format == ReviewFormat.placement &&
@@ -180,7 +195,7 @@ double Function(DateTime t) _replay(
 }) {
   final core = [
     for (final c in cards)
-      if (isCore(c.itemId)) c,
+      if (c.type == CardType.p && isCore(c.itemId)) c,
   ];
   final firsts = [
     for (final e in log) e.ts,
@@ -209,6 +224,7 @@ double Function(DateTime t) _replay(
   required Iterable<District> districts,
   required Map<String, CardState> cards,
   required DateTime now,
+  SidesOf sidesOf = _noSides,
 }) {
   final raionOf = {
     for (final d in districts)
@@ -224,8 +240,12 @@ double Function(DateTime t) _replay(
     byChunk.putIfAbsent(chunk, () => []).add(s);
     byRaion.putIfAbsent(raion, () => []).add(s);
   }
-  bool mastered(List<NamedStreet> area) =>
-      area.every((s) => cards[s.id] != null && isMastered(cards[s.id]!));
+  bool mastered(List<NamedStreet> area) => area.every(
+    (s) => switch (cards[s.id]) {
+      final c? => isMastered(c, sides: sidesOf(c)),
+      null => false,
+    },
+  );
   return (
     masteredRaions: byRaion.values.where(mastered).length,
     masteredNeighbourhoods: byChunk.values.where(mastered).length,

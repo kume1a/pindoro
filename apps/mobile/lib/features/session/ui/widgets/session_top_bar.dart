@@ -8,22 +8,32 @@ import 'package:pindoro_learning/pindoro_learning.dart';
 /// Leave · the 12-block session bar · the minutes left (design system
 /// Progress, Session bar).
 class SessionTopBar extends StatelessWidget {
-  const SessionTopBar(this.play, {super.key, required this.onLeave});
+  const SessionTopBar(
+    this.play, {
+    super.key,
+    required this.onLeave,
+    this.drills = Drills.none,
+  });
 
   final SessionPlaying play;
   final VoidCallback onLeave;
+
+  /// The plan's drills, for the minutes they take.
+  final Drills drills;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
-    final answered = play.index + (play.reveal == null ? 0 : 1);
+    final answered = play.index + (play.answered ? 1 : 0);
     final blocks = finishedBlocks(
       total: play.steps.length,
       answered: answered,
       forgotten: play.forgotten,
     );
-    final minutes = (remainingSeconds(play.steps.skip(answered)) / 60).ceil();
+    final minutes =
+        (remainingSeconds(play.steps.skip(answered), drills: drills) / 60)
+            .ceil();
     return Row(
       spacing: PindoroSpace.s3,
       children: [

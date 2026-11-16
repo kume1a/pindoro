@@ -75,6 +75,9 @@ class Curriculum {
 
   final LatLng _centre;
   final Map<String, Set<String>> _neighbours;
+
+  /// The city centre the rings count from (bearings point from it).
+  LatLng get centre => _centre;
   final _byId = <String, NamedStreet>{};
   final _parentOf = <String, String>{};
   final _n = <String, int>{};
@@ -118,6 +121,52 @@ class Curriculum {
   /// The street [childId] is a numbered lane, dead end or passage of; null for the rest and for
   /// orphans, which are taught as single streets.
   String? parentOf(String childId) => _parentOf[childId];
+
+  /// [parentId]'s numbered lanes, dead ends and passages (orphans aside).
+  List<String> childrenOf(String parentId) => _children[parentId] ?? const [];
+
+  /// The name and ends cards [streetId] gets (SPEC §3): a name card for tiers A and B and every
+  /// family parent, an ends card past [LearningConfig.extentMinLengthM].
+  List<CardType> sideTypesOf(String streetId) => switch (_byId[streetId]) {
+    final s? => [
+      if (_tier(s) != StreetTier.c || _children.containsKey(s.id)) CardType.n,
+      if (s.lengthM > LearningConfig.extentMinLengthM) CardType.e,
+    ],
+    null => const [],
+  };
+
+  /// [streetId]'s name and ends cards in [byItem] (every card by item id, keyed by street id),
+  /// null where one applies but has no card yet.
+  List<CardState?> sidesOf(String streetId, Map<String, CardState> byItem) => [
+    for (final t in sideTypesOf(streetId)) byItem[t.item(streetId)],
+  ];
+
+  /// Name and ends cards open for their first review (SPEC §3): their street's P card reached
+  /// [LearningConfig.unlockNameDays] or [LearningConfig.unlockExtentDays] of stability and they
+  /// have no card yet; the most stable streets first. [byItem] holds every card by item id, keyed
+  /// by street id.
+  List<String> openSides(Map<String, CardState> byItem) {
+    final open = <(double, String)>[];
+    for (final s in _byId.values) {
+      final p = byItem[CardType.p.item(s.id)];
+      if (p == null || p.phase == CardPhase.suspended) continue;
+      final stability = p.memory?.stability ?? 0;
+      for (final type in sideTypesOf(s.id)) {
+        final item = type.item(s.id);
+        final days = type == CardType.n
+            ? LearningConfig.unlockNameDays
+            : LearningConfig.unlockExtentDays;
+        if (stability >= days && !byItem.containsKey(item)) {
+          open.add((stability, item));
+        }
+      }
+    }
+    open.sort((a, b) {
+      final byStability = b.$1.compareTo(a.$1);
+      return byStability != 0 ? byStability : a.$2.compareTo(b.$2);
+    });
+    return [for (final (_, item) in open) item];
+  }
 
   /// [id]'s family without it: its parent and siblings, and its own children.
   Set<String> familyOf(String id) => {
