@@ -73,6 +73,10 @@ class UserSettings extends Table {
   /// The daily learning session's length: 15, 20 or 30 minutes.
   IntColumn get minutesPerDay => integer().withDefault(const Constant(20))();
 
+  /// FSRS weights fitted to this player's log (`just fsrs-fit`), as JSON;
+  /// null runs SPEC §4's. Read at launch.
+  TextColumn get fsrsWeights => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -395,7 +399,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 20;
+  static const int version = 21;
 
   @override
   int get schemaVersion => version;
@@ -501,6 +505,8 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(schema.run);
         await m.createTable(schema.turnOverride);
       },
+      from20To21: (m, schema) =>
+          m.addColumn(schema.userSettings, schema.userSettings.fsrsWeights),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

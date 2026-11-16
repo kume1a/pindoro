@@ -19,8 +19,7 @@ import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
 /// Learning settings (board V3-60 `learning`): minutes a day, home and work,
-/// street names and the reminder. The practice toggles come with the
-/// features they switch.
+/// your landmarks, street names, the reminder and the memory model.
 class LearnSettingsScreen extends ConsumerWidget {
   const LearnSettingsScreen({super.key});
 
@@ -115,6 +114,17 @@ class LearnSettingsScreen extends ConsumerWidget {
         ),
         StreetNamesField(settings: settings),
         ListGroup(children: [ReminderRow(settings: settings)]),
+        ListGroup(
+          children: [
+            ListRow(
+              leading: const RowTile(PindoroGlyph.chart),
+              title: l10n.memoryModelTitle,
+              subtitle: l10n.memoryModelSubtitle,
+              trailing: const PindoroIcon(PindoroGlyph.chevronRight),
+              onTap: () => context.push(Routes.memoryModel),
+            ),
+          ],
+        ),
       ],
     );
   }

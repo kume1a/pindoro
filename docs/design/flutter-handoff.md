@@ -356,12 +356,6 @@ Widgets added for v3 (Learn the whole city). Colours come from `PindoroTheme.col
 - **Build:** a card (padding 12 × 16, 12 between rows) with the label (`labelMd`, `textSecondary`), a `Wrap` (spacing 8, run spacing 8) of tokens, then the transcript (`bodySm`, `textSecondary`). Streets and landmarks: 32 dp selected chips (`chipSelectedBg`, `.Border`, `.Text`, `StadiumBorder`, 2 dp lip; landmark adds a 20 dp kind icon) inside a 48 dp tap target. Turn words: `labelMd` in `textSecondary` on `surfaceSunken`, padding 4 × 8, `StadiumBorder`. New tokens slide 16 dp up and fade in (`PindoroMotion.durationBase`, `easeDecelerate`, `stagger` between tokens resolved together) and call `HapticFeedback.selectionClick()`. Announce each new token with `SemanticsService.announce` (polite).
 - **Tokens:** `color.chip.selected.*`, `color.surface.sunken`, `color.text.secondary`, `label.md`, `body.sm`, `radius.full`, `space.1` – `space.4`, `size.icon.sm`, `motion.duration.base`, `motion.ease.decelerate`, `motion.stagger`.
 
-### SceneCard
-
-- **Inputs:** `ImageProvider photo` (Mapillary or the player's own; `cached_network_image` with the offline pack), `String altText`, `String caption`, `String attribution` ("© Mapillary · CC BY-SA · {photographer}"), `Uri lookAround` (Google Maps at the photo's place).
-- **Build:** a `ClipRRect` (`PindoroRadius.xl`) card on `surfaceRaised` with a 4 dp `lineBase` lip; the photo `Image` at full width × 260 dp with `BoxFit.cover` and `Semantics(image: true, label: altText)`; while loading, a shimmer box of the same size on `surfaceSunken`; then caption and attribution in `labelSm`, `textSecondary`, padding 8 × 12. Below the answer controls: a full-width tertiary button with the `external` icon, "Look around in Google Maps", opening `lookAround` with `url_launcher` (`LaunchMode.externalApplication`).
-- **Tokens:** `color.surface.raised`, `color.surface.sunken`, `color.line.base`, `color.text.secondary`, `color.button.tertiary.text`, `radius.xl`, `elevation.2`, `label.sm`, `space.2`, `space.3`.
-
 ### Progress rows (ListRow variants)
 
 - **Inputs:** `RowStatus status` (`district`, `done`, `now`, `next`), `String title`, `String subtitle` ("23 of 61 seen · learning now"), `MemoryCounts? counts` (shows the compact bar), `VoidCallback onTap`.

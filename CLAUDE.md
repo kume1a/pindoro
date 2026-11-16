@@ -17,7 +17,7 @@ Mobile game for learning a city's streets: the player sees a street name, drops 
 | `data/cities/<city>`        | `city.yaml`, curated neighbourhoods, `identity.json` (seed of the street ids)       |
 | `shared/fixtures`           | Golden vectors used by BOTH Dart and TS tests                                       |
 | `shared/openapi`            | `openapi.json` exported from the API                                                |
-| `tools`                     | One-off generators run in Docker (e.g. `fsrs-vectors`), never in CI                 |
+| `tools`                     | One-off generators run in Docker (`fsrs-vectors`, `fsrs-fit`), never in CI          |
 | `infra`                     | Docker Compose (dev + prod), Caddyfile, `tiles/`, `backups/`                        |
 | `docs`                      | ADRs, `pack-format.md`, `deploy.md`, `design/`, `learning/`, `research/`, `TODO.md` |
 
@@ -79,6 +79,7 @@ never a priority. The production server still matters: it serves packs, tiles an
 | `just test`         | `test-dart`, geo + API tests, pipeline tests in the pipeline image   |
 | `just test-dart`    | pindoro_core, pindoro_learning, pindoro_design and mobile tests      |
 | `just fsrs-vectors` | Regenerate `shared/fixtures/fsrs_vectors.json` with py-fsrs (Docker) |
+| `just fsrs-fit CSV` | Fit FSRS weights to an exported review log (Docker; Memory model)    |
 | `just dev`          | PostGIS, API (tsx watch), Martin, packs server                       |
 | `just fixture H`    | Vake fixture pack bundled in the app, on the street ids live at `H`  |
 | `just pack CITY`    | Fetch, build, validate and publish a full city pack                  |

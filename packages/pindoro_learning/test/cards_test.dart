@@ -29,7 +29,7 @@ void main() {
       expect(itemId, 'P:street-1');
       expect(CardType.ofItem(itemId), CardType.p);
       expect(itemKey(itemId), 'street-1');
-      expect(CardType.ofItem(CardType.s2.item('img:7')), CardType.s2);
+      expect(CardType.ofItem(CardType.r.item('n1:n2')), CardType.r);
       expect(itemKey('J:n123:n456'), 'n123:n456');
     });
   });

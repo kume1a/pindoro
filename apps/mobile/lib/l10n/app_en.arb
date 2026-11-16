@@ -2311,5 +2311,75 @@
         "type": "int"
       }
     }
+  },
+  "memoryModelTitle": "Memory model",
+  "memoryModelSubtitle": "How well FSRS predicts you, and its weights",
+  "memoryCalibration": "Calibration",
+  "memoryCalibrationEmpty": "No reviews a day or more apart yet.",
+  "memoryCalibrationChart": "Recalled, by predicted recall",
+  "memoryCalibrationHealthy": "Healthy within ±5 points",
+  "memoryBinShort": "{from} %",
+  "@memoryBinShort": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryBin": "{from}–{to} % predicted",
+  "@memoryBin": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryBinRecalled": "Recalled {recalled} % · {count, plural, =1{1 review} other{{count} reviews}}",
+  "@memoryBinRecalled": {
+    "placeholders": {
+      "recalled": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "memoryWeights": "FSRS weights",
+  "memoryWeightsDefault": "The default weights",
+  "memoryWeightsFitted": "Weights fitted to your log",
+  "memoryWeightsReviews": "{reviews} reviews so far; a fit wants about {needed}",
+  "@memoryWeightsReviews": {
+    "placeholders": {
+      "reviews": {
+        "type": "String"
+      },
+      "needed": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryWeightsPaste": "Fitted weights",
+  "memoryWeightsHelp": "Export the review log, run just fsrs-fit on it and paste what it prints. Pindoro uses them from its next start.",
+  "memoryWeightsUse": "Use these weights",
+  "memoryWeightsReset": "Back to the default weights",
+  "memoryWeightsSaved": "Saved. Pindoro uses them from its next start.",
+  "memoryWeightsInvalid": "That isn’t a set of 21 FSRS weights.",
+  "memoryRelief": "Small-street relief",
+  "memoryReliefOn": "On: small streets come back a little later",
+  "memoryReliefOff": "Off",
+  "memoryReliefAverage": "Your days lately took {mean} min on average; you chose {budget}.",
+  "@memoryReliefAverage": {
+    "placeholders": {
+      "mean": {
+        "type": "String"
+      },
+      "budget": {
+        "type": "String"
+      }
+    }
   }
 }

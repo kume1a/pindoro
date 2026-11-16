@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/hold.dart';
+import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/data/day.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/route_book.dart';
@@ -228,6 +229,9 @@ class SessionController extends Notifier<SessionState> {
   /// Name reviews so far, for the every-10th check.
   int _nameReviews = 0;
 
+  /// Tier C pin cards aim lower while the days run long (SPEC §4).
+  bool _tierCRelief = false;
+
   /// Each leech's top confusion, read before its intro.
   final Map<String, NamedStreet> _contrasts = {};
 
@@ -270,6 +274,7 @@ class SessionController extends Notifier<SessionState> {
     final confusions = await dao.confusionPairs();
     final log = await dao.log();
     final learnCity = await dao.learnCity(pack.city().id);
+    final settings = await ref.read(settingsProvider.future);
     final contrasts = <String, NamedStreet>{};
     for (final c in cards.where((c) => c.phase == CardPhase.suspended)) {
       final top = streets[await dao.topConfusion(itemKey(c.itemId)) ?? ''];
@@ -318,6 +323,11 @@ class SessionController extends Notifier<SessionState> {
       if (e.type == CardType.n) _nameReviews++;
     }
     _anchors = [?learnCity?.homeId, ?learnCity?.workId];
+    _tierCRelief = tierCRelief(
+      log,
+      minutesPerDay: settings.minutesPerDay,
+      now: now,
+    ).on;
     _seed = now.microsecondsSinceEpoch;
     _memoryBefore = _memory(now);
     _show(steps, 0, const {});
@@ -629,6 +639,11 @@ class SessionController extends Notifier<SessionState> {
       distanceM: distanceM,
       snapId: snapId,
       rtMs: rtMs ?? now.difference(_shownAt).inMilliseconds,
+      retention: retentionOf(
+        CardType.ofItem(step.itemId),
+        tierCRelieved:
+            _tierCRelief && _curriculum.tierOf(target.id) == StreetTier.c,
+      ),
     );
     final dao = _dao;
     await dao.saveAnswer(

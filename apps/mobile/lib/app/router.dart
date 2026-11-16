@@ -19,6 +19,7 @@ import 'package:pindoro/features/settings/ui/anchor_screen.dart';
 import 'package:pindoro/features/settings/ui/landmark_add_screen.dart';
 import 'package:pindoro/features/settings/ui/landmarks_screen.dart';
 import 'package:pindoro/features/settings/ui/learn_settings_screen.dart';
+import 'package:pindoro/features/settings/ui/memory_model_screen.dart';
 import 'package:pindoro/features/settings/ui/settings_screen.dart';
 import 'package:pindoro/features/setup/ui/area_screen.dart';
 import 'package:pindoro/features/setup/ui/city_screen.dart';
@@ -170,6 +171,10 @@ GoRouter buildRouter(String initialLocation) {
       GoRoute(
         path: Routes.landmarkAdd,
         builder: (_, _) => const LandmarkAddScreen(),
+      ),
+      GoRoute(
+        path: Routes.memoryModel,
+        builder: (_, _) => const MemoryModelScreen(),
       ),
       GoRoute(path: Routes.drive, builder: (_, _) => const DriveScreen()),
     ],

@@ -6,7 +6,7 @@ decisions and numbers. Screens: canvas "Pindoro screens: MVP and releases", page
 city" (`docs/design/v3-screens.md` lists every board). Every number marked **(tunable)** lives in one
 constants file and is a starting value to be checked against the review log.
 
-Goal: the player can see any street name and place it on a blank map, recognise a street from a photo,
+Goal: the player can see any street name and place it on a blank map,
 drive from any A to any B without GPS, and recite the route by heart. First city: Tbilisi (3,282 core
 streets ≥ 150 m; 4,465 in total).
 
@@ -19,7 +19,7 @@ streets ≥ 150 m; 4,465 in total).
 - The app (`apps/mobile`) owns persistence (Drift/SQLite), UI and platform services (TTS, location,
   speech). It calls `pindoro_learning` with plain data and stores what it returns.
 - The pack pipeline (server side, at build time) computes everything graph-heavy once: families, chunks,
-  directed edges, turn restrictions, junction items, landmark salience, scene image selection.
+  directed edges, turn restrictions, junction items, landmark salience.
 - No server-side learning logic. The server only serves packs, tiles, optional backups.
 - Determinism: given the same card states, log and clock, the planner returns the same session.
   Randomness (fuzz, tie-breaks) takes a seeded `Random`.
@@ -42,7 +42,6 @@ streets ≥ 150 m; 4,465 in total).
 | `turn_restriction`   | from OSM `type=restriction` relations (`from` way, `via` node/way, `to` way; `no_*`, `only_*`; `motorcar` variants only)                                                                                                                                                             | edge-expanded graph                      |
 | `junction_item`      | `(junction_id, approach_edge_id, exit_edge_id)` selected by coverage (§6.6), with `layer` (`skeleton` / `gateway_out` / `gateway_in` / `bridge`) and `rank`                                                                                                                          | J, G, B cards                            |
 | `landmark`           | OSM landmarks with `kind`, `name`, `brand`, `salience` (§9), attached `junction_id`, `approach_edge_id`, `side`, `relation`                                                                                                                                                          | J, L cards                               |
-| `scene_image`        | `image_id, junction_id, approach_edge_id, heading, captured_at, source, licence, author, file` (cropped WebP, 960 × 540 or 1280 × 720)                                                                                                                                               | S cards                                  |
 
 ### 2.2 Local tables (app database)
 
@@ -75,26 +74,23 @@ its NamedStreet (§16), and cards whose street is no longer in the pack are skip
 
 Item id scheme: `P:{streetId}`, `N:{streetId}`, `E:{streetId}`, `J:{junctionId}:{approachEdgeId}`,
 `G:{chunkId}:{gatewayJunctionId}:{out|in}`, `B:{bridgeId}:{bank}:{approachEdgeId}`, `C:{streetId}`,
-`L:{landmarkId}:{1|2|3}`, `S1:{imageId}`, `S2:{imageId}`, `S3:{imageId}`, `R:{runId}`.
+`L:{landmarkId}:{1|2|3}`, `R:{runId}`.
 Every id inside an item id must survive pack rebuilds (§16): `{streetId}` is the NamedStreet's longest
 part id, a junction is `n<OSM node id>`, an approach or exit edge is the OSM node id of the neighbouring
-junction along it (so `J:n123:n456`), and bridge, landmark and image ids come from OSM or Mapillary ids.
+junction along it (so `J:n123:n456`), and bridge and landmark ids come from OSM ids.
 The pack's own `junction.id` is pack-local and never goes into an item id.
 
-| Card             | Cue → answer                                                               | Who gets it                                      | Unlocks when                                                                   |
-| ---------------- | -------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------ |
-| P pin            | name → place on the blank map                                              | every street in scope                            | introduced                                                                     |
-| N name it        | painted street → name (self-graded)                                        | tiers A and B + every family parent (~800)       | P stability ≥ 7 d                                                              |
-| E extent         | name → both ends                                                           | streets > 1.2 km                                 | P stability ≥ 7 d                                                              |
-| B bridge access  | street + bank → bridge and the turns onto it                               | ~48 (12 bridges × 2 banks × ~2 approaches)       | tier A streets introduced                                                      |
-| J junction       | street + heading + target + landmark → exit (+ street turned onto)         | ~450 skeleton decisions, then district junctions | skeleton: month 1; others: district grid ≥ 80 % Solid                          |
-| G gateway        | chunk + direction → exit junction + street                                 | ~6 per chunk out (~400), in = phase 2            | ≥ 70 % of the chunk's parent streets Known                                     |
-| C connection     | street → its end streets / "which street joins A and B"                    | grid + parents (~400)                            | the street and both ends Known                                                 |
-| L landmark       | L1 landmark → pin · L2 landmark → junction · L3 junction + turn → landmark | ~300 + personal                                  | personal: immediately; OSM: when its street is Known                           |
-| S1 scene → name  | photo → street name (typed)                                                | grid and up, one approach each (~800, phase 2)   | P and N Solid                                                                  |
-| S2 scene → turn  | photo + destination → exit                                                 | skeleton + gateway approaches with imagery       | the J card is Known                                                            |
-| S3 scene → place | photo → pin + heading (map on a separate screen)                           | as imagery allows                                | district ≥ 80 % Solid                                                          |
-| R recital        | A → B by heart (speak, type, draw)                                         | route-book runs + weekly random pairs            | runs: all their J/G/B items Known; random pairs: weekly from the gateway phase |
+| Card            | Cue → answer                                                               | Who gets it                                      | Unlocks when                                                                   |
+| --------------- | -------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------ |
+| P pin           | name → place on the blank map                                              | every street in scope                            | introduced                                                                     |
+| N name it       | painted street → name (self-graded)                                        | tiers A and B + every family parent (~800)       | P stability ≥ 7 d                                                              |
+| E extent        | name → both ends                                                           | streets > 1.2 km                                 | P stability ≥ 7 d                                                              |
+| B bridge access | street + bank → bridge and the turns onto it                               | ~48 (12 bridges × 2 banks × ~2 approaches)       | tier A streets introduced                                                      |
+| J junction      | street + heading + target + landmark → exit (+ street turned onto)         | ~450 skeleton decisions, then district junctions | skeleton: month 1; others: district grid ≥ 80 % Solid                          |
+| G gateway       | chunk + direction → exit junction + street                                 | ~6 per chunk out (~400), in = phase 2            | ≥ 70 % of the chunk's parent streets Known                                     |
+| C connection    | street → its end streets / "which street joins A and B"                    | grid + parents (~400)                            | the street and both ends Known                                                 |
+| L landmark      | L1 landmark → pin · L2 landmark → junction · L3 junction + turn → landmark | ~300 + personal                                  | personal: immediately; OSM: when its street is Known                           |
+| R recital       | A → B by heart (speak, type, draw)                                         | route-book runs + weekly random pairs            | runs: all their J/G/B items Known; random pairs: weekly from the gateway phase |
 
 Not scheduled (drills): family sweep (grades the children's P cards), crossings drill, bearing
 questions, the three-option name question (intro scaffolding only).
@@ -139,7 +135,7 @@ session is the planner's job (§7), not an FSRS state.
 
 | Parameter         | Value                                                                                                                                                |
 | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Desired retention | 0.90 for P N E J G B C L R · 0.85 for S1 S2 S3 **(tunable)**                                                                                         |
+| Desired retention | 0.90 for every card **(tunable)**                                                                                                                    |
 | Tier C relief     | if the 7-day mean session time > budget × 1.2, tier C P cards use 0.85 until it drops below budget **(tunable)**                                     |
 | Maximum interval  | 365 days **(tunable)**                                                                                                                               |
 | Fuzz              | ±5 % on intervals > 3 days (seeded), applied to the whole-day interval and rounded again (py-fsrs's own fuzz bands are not used)                     |
@@ -180,12 +176,12 @@ Display tiers keep their colours, icons, sounds and haptics; the XP chip becomes
 - **N name it**: self-graded "Forgot" = Again, "Knew it" = Good. Every 10th N review is verified with a
   6-name choice that includes confusables (wrong = Again).
 - **E extent**: each end counts if within `max(150 m, 10 % of length)`. Both = Good, one = Hard, none = Again.
-- **J / B / S2 decisions**: exit correct and (if typed) street correct = Good; exit correct, street wrong
+- **J / B decisions**: exit correct and (if typed) street correct = Good; exit correct, street wrong
   or missing when asked = Hard; wrong exit = Again (re-asked this session; show where the chosen exit leads
   and the sibling junction it is confused with).
 - **G gateway**: pin graded like P against the gateway junction (radius 60 m), plus street name. Both = Good,
   one = Hard, neither = Again.
-- **C connection, S1**: typed recall, fuzzy match (normalised Levenshtein ≤ 0.25 against Georgian, English,
+- **C connection**: typed recall, fuzzy match (normalised Levenshtein ≤ 0.25 against Georgian, English,
   transliteration and personal aliases). Match = Good, no match = Again; multiple choice only after a failed
   recall and it never counts.
 - **L2 / L3**: pick or type; correct = Good, else Again.
@@ -245,7 +241,7 @@ the end of the session (city zoom, same-day FSRS update). Retrieval 1 sets S0/D0
 ### 6.5 Route layers
 
 Skeleton first (B cards, then skeleton J), gateways with each chunk, then district J cards. Any A → B =
-A's gateway + skeleton path (bridge if banks differ) + B's gateway. Phase-2 route items (gateways in, S1)
+A's gateway + skeleton path (bridge if banks differ) + B's gateway. Phase-2 route items (gateways in)
 are introduced only after the due count has stayed under the daily budget for 14 days in a row.
 
 ### 6.6 Junction item selection (pipeline)
@@ -319,16 +315,10 @@ while parked → name, kind, snapped junction + approach (editable).
 
 ## 10. Imagery
 
-| Source                                     | Use                                                                                  | Rules                                                                                                                                                                           |
-| ------------------------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Mapillary (API v4)                         | offline scene cards where coverage exists                                            | CC BY-SA; download at pack build (signed URLs expire); show Mapillary logo + link and photographer credit; never in navigation synced to the device position; exclude NC images |
-| Own 360° captures                          | decision junctions without coverage                                                  | host originals on a private Panoramax instance (Docker, PostGIS) on the home server; automatic face/plate blurring before anything leaves the device owner                      |
-| Google Street View                         | only a "Look around in Google Maps" deep link (Maps URLs, opens the Google Maps app) | no API calls, no caching, no imagery inside Pindoro, never on a screen with the Pindoro map                                                                                     |
-| Yandex, Apple Look Around, Bing, KartaView | not used                                                                             | coverage or terms don't fit                                                                                                                                                     |
-
-Pack: per decision junction, the frame 25–40 m before it on the approach edge, reprojected to a forward 100°
-field of view at the approach heading, exported as WebP. Budget ~2,100 images ≈ 170 MB (960 × 540) to 315 MB
-(1280 × 720), downloadable separately from the street pack. Store licence and author per image.
+Dropped (2026-11-16, §16.16): no street photos, no photo pack. The only street-level imagery inside
+Pindoro would have come from Mapillary, which covers little of Tbilisi. Google Street View stays out of
+the app: no API calls, no caching, no imagery inside Pindoro (a Google Maps deep link is fine, as the
+drive's "Lost? Show the way" does).
 
 ## 11. Speech (recitals)
 
@@ -347,35 +337,35 @@ recitals must work without speech.
 
 ## 13. Constants (one file: `pindoro_learning/lib/src/constants.dart`)
 
-| Name                                                           | Value                   |
-| -------------------------------------------------------------- | ----------------------- |
-| `fsrsWeights`                                                  | §4 list                 |
-| `retentionDefault` / `retentionScene` / `retentionTierCRelief` | 0.90 / 0.85 / 0.85      |
-| `maxIntervalDays`                                              | 365                     |
-| `fuzzFraction`, `fuzzMinDays`                                  | 0.05, 3                 |
-| `relearnGapMin`, `relearnGapMax`                               | 5, 10 items             |
-| `leechLapses`                                                  | 6                       |
-| `pinGoodMaxM`, `snapSearchM`                                   | 100, 150                |
-| `rtHardMs`, `rtEasyMs`, `easyMinSuccesses`                     | 20000, 6000, 2          |
-| `extentEndMinM`, `extentEndFraction`                           | 150, 0.10               |
-| `extentMinLengthM`                                             | 1200                    |
-| `unlockNameDays`, `unlockExtentDays`                           | 7, 7                    |
-| `childParentMinDays`, `maxSiblingsPerDay`                      | 3, 4                    |
-| `knownMinR`, `solidDays`, `masteredDays`, `masteredSideDays`   | 0.80, 21, 90, 21        |
-| `newPerDay`                                                    | {15: 7, 20: 10, 30: 14} |
-| `tReviewS`, `tNewS`                                            | 12, 45                  |
-| `backlogCapFactor`                                             | 1.5                     |
-| `tierBShare`                                                   | 0.60                    |
-| `routeNewPerDayMax`, `routePauseFactor`                        | 10, 1.2                 |
-| `fuzzyNameMax`                                                 | 0.25                    |
-| `stretchPerfect`, `stretchGreat`, `stretchClose`               | 1.03, 1.25, 1.60        |
-| `connectorMaxM`, `connectorMax`                                | 150, 2                  |
-| `gatewayUnlockKnown`, `districtJunctionUnlockSolid`            | 0.70, 0.80              |
-| `phase2ChunkSolid`                                             | 0.80                    |
-| `bearingGreatDeg`, `bearingCloseDeg`                           | 20, 45                  |
-| `junctionCoverage`, `odSamples`                                | 0.90, 20000             |
-| `landmarkRadiusM`                                              | 60                      |
-| `hesitationKmh`, `hesitationS`                                 | 5, 10                   |
+| Name                                                         | Value                   |
+| ------------------------------------------------------------ | ----------------------- |
+| `fsrsWeights`                                                | §4 list                 |
+| `retentionDefault` / `retentionTierCRelief`                  | 0.90 / 0.85             |
+| `maxIntervalDays`                                            | 365                     |
+| `fuzzFraction`, `fuzzMinDays`                                | 0.05, 3                 |
+| `relearnGapMin`, `relearnGapMax`                             | 5, 10 items             |
+| `leechLapses`                                                | 6                       |
+| `pinGoodMaxM`, `snapSearchM`                                 | 100, 150                |
+| `rtHardMs`, `rtEasyMs`, `easyMinSuccesses`                   | 20000, 6000, 2          |
+| `extentEndMinM`, `extentEndFraction`                         | 150, 0.10               |
+| `extentMinLengthM`                                           | 1200                    |
+| `unlockNameDays`, `unlockExtentDays`                         | 7, 7                    |
+| `childParentMinDays`, `maxSiblingsPerDay`                    | 3, 4                    |
+| `knownMinR`, `solidDays`, `masteredDays`, `masteredSideDays` | 0.80, 21, 90, 21        |
+| `newPerDay`                                                  | {15: 7, 20: 10, 30: 14} |
+| `tReviewS`, `tNewS`                                          | 12, 45                  |
+| `backlogCapFactor`                                           | 1.5                     |
+| `tierBShare`                                                 | 0.60                    |
+| `routeNewPerDayMax`, `routePauseFactor`                      | 10, 1.2                 |
+| `fuzzyNameMax`                                               | 0.25                    |
+| `stretchPerfect`, `stretchGreat`, `stretchClose`             | 1.03, 1.25, 1.60        |
+| `connectorMaxM`, `connectorMax`                              | 150, 2                  |
+| `gatewayUnlockKnown`, `districtJunctionUnlockSolid`          | 0.70, 0.80              |
+| `phase2ChunkSolid`                                           | 0.80                    |
+| `bearingGreatDeg`, `bearingCloseDeg`                         | 20, 45                  |
+| `junctionCoverage`, `odSamples`                              | 0.90, 20000             |
+| `landmarkRadiusM`                                            | 60                      |
+| `hesitationKmh`, `hesitationS`                               | 5, 10                   |
 
 Added with §16 (also in `constants.dart`; distances shared with the display tiers are referenced from
 pindoro_core `ScoringConfig`, not copied):
@@ -404,7 +394,6 @@ pindoro_core `ScoringConfig`, not copied):
 | `turnStraightDeg`, `turnUTurnDeg` (a J card's exit directions)       | 30, 150                             |
 | `phase2StableDays`                                                   | 14                                  |
 | `landmarkStructuralM`, `landmarkUniquenessM`                         | 40, 300                             |
-| `sceneApproachMinM`, `sceneApproachMaxM`                             | 25, 40                              |
 | `recitalLandmarkBonus`, `recitalLandmarkBonusCap`                    | 0.1, 0.3                            |
 | `answerGapCapS`                                                      | 60                                  |
 | `timeEstimateMinSamples`                                             | 50                                  |
@@ -418,6 +407,9 @@ pindoro_core `ScoringConfig`, not copied):
 | `driveSampleM`, `driveSnapM`, `driveHeadingM` (per 90°)              | 20, 35, 20                          |
 | `driveTurnBackM`, `driveWrongWayM`, `driveArriveM`                   | 40, 15, 200                         |
 | `hesitationJunctionM`                                                | 30                                  |
+| `calibrationBins`, `calibrationTolerance`, `calibrationMinReviews`   | 10, 0.05, 20                        |
+| `fitMinReviews`                                                      | 1000                                |
+| `tierCReliefDays`, `tierCReliefReplayDays`                           | 7, 28                               |
 
 ## 14. Test vectors (required before UI work)
 
@@ -432,14 +424,24 @@ pindoro_core `ScoringConfig`, not copied):
 
 ## 15. Open questions
 
+Revisited in M8 (2026-11-16):
+
 - Real Tbilisi junction count and decision-coverage curve (recompute §3 estimates from the pack):
   answered in `docs/research/junction-coverage.md` (6 424 items for 90 %, §16.14).
-- How often "Nth Lane / Dead End of X" lies near X (pipeline check: share within 500 m and 1.5 km).
-- OSM turn-restriction completeness in Tbilisi; add a "report this turn" override stored locally.
-- Seconds per review and per new street on a phone (measured from `review_log`; there is no
-  self-experiment, decided 2026-11-14).
-- Vosk on iOS via Flutter; Georgian accuracy on street names with the constrained grammar.
-- Mapillary coverage of skeleton junctions (print a coverage report at pack build).
+- How often "Nth Lane / Dead End of X" lies near X: answered in `docs/research/family-check.md`.
+  98.5 % of numbered lanes find their parent; 97.9 % of those lie within 500 m of it and 98.7 % within
+  1.5 km (20 orphans).
+- OSM turn-restriction completeness in Tbilisi: open. The pack holds 879 restrictions; "Report this
+  turn" (§16.15 item 80) fixes a missing or wrong one on the phone, and the reports themselves will
+  show how incomplete the data is.
+- Seconds per review and per new street on a phone: measured from `review_log` (`tReview`, `tNew`
+  re-estimated from the log's medians once there are `timeEstimateMinSamples`, §16.12); the
+  numbers come with real use.
+- Vosk on iOS via Flutter; Georgian accuracy on street names with the constrained grammar: open,
+  speech is parked (§16.15 item 73).
+- Mapillary coverage of skeleton junctions: answered by looking, too thin for Tbilisi (most of the
+  city has none, the suburbs about a tenth), so the street photos were dropped (§16.16).
+- §13's numbers stay as they are until calibration on real reviews (§12, §16.17) says otherwise.
 
 ## 16. Decisions (2026-11-14)
 
@@ -487,7 +489,7 @@ rest of the spec. Numbers named here are in §13.
 10. **`review_log.format`**: `placement`, `pretest`, `retrieval1`, `retrieval2`, `review`, `relearn`,
     `explore`, `exploreLog` (an Explore answer that schedules nothing, §16.16), `name`, `nameCheck`,
     `extent`, `familySweep`, `crossings`, `bearing` (M4), `junction`, `gateway`, `bridge`,
-    `connection`, `landmark` (M5); later `scene`, `recital`, `drive`. `pretest`, `crossings` and `bearing` never
+    `connection`, `landmark` (M5); later `recital`, `drive`. `pretest`, `crossings` and `bearing` never
     change a schedule; the family sweep grades the children's P cards.
 
 ### 16.3 Grading
@@ -785,3 +787,33 @@ board, and per-type FSRS parameter presets.
 82. **Hesitations**: the pack has no traffic signals, so junctions stand in for them: a stop within
     `hesitationJunctionM` of a junction, or at the start or end, is not a hesitation. The review
     counts hesitations and U-turns in its sentence.
+
+### 16.16 Street photos (M7): dropped
+
+83. **No street photos** (decided 2026-11-16). Mapillary, the one source the app could ship, covers
+    little of Tbilisi: most of the city has no imagery and the suburbs about a tenth. Google Street
+    View covers it but can't be shown or stored inside the app (§10), and filling the gaps with our
+    own 360° captures would mean driving every approach with a camera. So the S1–S3 cards, the
+    `scene_image` photo pack, the Panoramax server and `retentionScene` are gone from the spec and
+    the code. The M7 build stays on the unmerged `feat/v3-m7` branch should a source turn up.
+
+### 16.17 Tuning (M8)
+
+84. **Fitted weights**: `just fsrs-fit <csv>` runs py-fsrs's optimizer (Docker, CPU PyTorch) on the
+    exported log's rows that moved a card (`changesSchedule`), all card types together (per-type
+    presets stay parked, §16.10), and prints `{"weights": […], "reviews", "cards"}`. Learning
+    settings → Memory model takes it pasted (§16.9 item 34): 21 finite numbers, the four initial
+    stabilities positive, the decay in (0, 1]. They are kept in `user_settings.fsrs_weights`
+    (schema 21, so the account backup carries them) and loaded at launch into
+    `FsrsWeights.active`, which every `Fsrs()` uses: scheduling, recall, labels and City memory
+    all run on one model for the whole run, so new weights apply from the next start.
+85. **Calibration** (§12): reviews at least a day after the card's last review that moved it, with
+    a predicted recall, in `calibrationBins` bins of predicted recall; a bin is healthy when its
+    share recalled (Hard or better) is within `calibrationTolerance` of its mean prediction, and
+    judged only from `calibrationMinReviews` reviews. The Memory model screen shows it as bars and
+    rows; it isn't hidden behind a debug flag, since the app ships as release builds.
+86. **Tier C relief** (§4): the mean time of the days played among the last `tierCReliefDays`
+    (days without play don't count), against today's minutes a day. It turns on above
+    `tierCReliefFactor` × the minutes and off below the minutes, replayed day by day over
+    `tierCReliefReplayDays` from off. While on, a session answer on a tier C street's P card is
+    scheduled for `retentionTierCRelief`; Explore answers and other cards keep their retention.

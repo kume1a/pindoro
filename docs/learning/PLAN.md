@@ -141,7 +141,7 @@ Spec §5.3, §11. Boards V3-40, V3-50.
 
 Accept: the illegal-route fixture is graded "Not drivable"; a recorded test drive replays as a matched path.
 
-## M7 · Street photos
+## M7 · Street photos (dropped)
 
 Spec §10. Boards V3-30 (`sceneAction`), V3-31.
 
@@ -152,8 +152,15 @@ Spec §10. Boards V3-30 (`sceneAction`), V3-31.
 
 Accept: every displayed photo shows its source and licence; no Google API key exists in the app.
 
+Status: dropped (2026-11-16). Mapillary covers too little of Tbilisi to be worth a card type, and
+Google Street View can't be used inside the app (SPEC §10, §16.16). The build is kept on the unmerged
+`feat/v3-m7` branch.
+
 ## M8 · Tuning
 
 1. Offline FSRS fit from exported logs; load weights from a JSON override.
 2. Calibration chart (predicted R bins vs observed) in a debug screen.
 3. Revisit SPEC §13 and the open questions in SPEC §15.
+
+Status: done (2026-11-16). The fit, the calibration and the tier C relief run on the player's own
+log, so the weights and §13's numbers change only once there are real reviews (SPEC §15, §16.17).

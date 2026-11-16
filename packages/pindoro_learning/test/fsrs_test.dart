@@ -176,7 +176,7 @@ void main() {
             memory,
             Rating.good,
             at,
-            retention: LearningConfig.retentionScene,
+            retention: LearningConfig.retentionTierCRelief,
           )
           .intervalDays,
       greaterThan(fsrs.next(memory, Rating.good, at).intervalDays),

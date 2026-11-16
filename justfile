@@ -120,6 +120,10 @@ fsrs-vectors:
     docker run --rm -i python:3.12-slim sh -c "pip install -q --disable-pip-version-check --root-user-action=ignore fsrs==6.3.2 >&2 && python -I -" < tools/fsrs-vectors/gen.py > shared/fixtures/fsrs_vectors.json
     pnpm exec biome format --write shared/fixtures/fsrs_vectors.json
 
+# Fit FSRS weights to an exported review log, in Docker (run once, never in CI; tools/fsrs-fit)
+fsrs-fit CSV:
+    MSYS_NO_PATHCONV=1 docker run --rm -i -v "{{ absolute_path(CSV) }}:/log.csv:ro" python:3.12-slim sh -c "pip install -q --disable-pip-version-check --root-user-action=ignore torch --index-url https://download.pytorch.org/whl/cpu >&2 && pip install -q --disable-pip-version-check --root-user-action=ignore 'fsrs[optimizer]==6.3.2' >&2 && python -I - /log.csv" < tools/fsrs-fit/fit.py
+
 # Run the app (pass e.g. `-d emulator-5554` or `--dart-define=TILES_BASE_URL=...`)
 run-mobile *ARGS:
     cd apps/mobile && flutter run {{ ARGS }}
