@@ -63,7 +63,7 @@ class TaskScaffold extends StatelessWidget {
 }
 
 /// A task's result sheet: the [tier] (its label, or [label]), the
-/// [sentence], the [chip] (next review) and Next.
+/// [sentence], the [chip] (next review), any [chips] and Next.
 class TaskResult extends StatelessWidget {
   const TaskResult({
     super.key,
@@ -73,6 +73,7 @@ class TaskResult extends StatelessWidget {
     required this.onNext,
     this.label,
     this.chip,
+    this.chips = const [],
   });
 
   final Object resultKey;
@@ -81,6 +82,7 @@ class TaskResult extends StatelessWidget {
   final Future<void> Function() onNext;
   final String? label;
   final Widget? chip;
+  final List<Widget> chips;
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +95,7 @@ class TaskResult extends StatelessWidget {
         label: label ?? tierLabel(l10n, tier),
         sentence: sentence,
         headerChip: chip,
-        chips: const [],
+        chips: chips,
         action: l10n.commonNext,
         onNext: onNext,
       ),

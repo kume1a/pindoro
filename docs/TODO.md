@@ -79,11 +79,10 @@
   - Learning settings: no Turns and routes, Street photos or Speak your answers toggles (M5–M7).
   - The home and work picker shows the map and the nearest neighbourhoods as chips, without the
     "More" list and search of the design's area selector.
-  - Today has no "Drive this run today" card (M6) or "Now learning" and gateway rows (M5).
+  - Today has no "Now learning" and gateway rows (M5).
 - v3 replacing the old game (M3), left out on purpose:
   - Explore keeps its own known-street counts (best tier in Explore and the old lessons); the
     rest of the app counts from the cards.
-  - The route drawing (`RouteDraft`, `RouteDrawLayer`) is unused until the M6 recitals.
   - The Georgian draft of the new strings needs the native review like the rest.
 - v3 name, ends and drills (M4), left out on purpose:
   - The sweep's lanes are traced like known streets (grey, solid), not dashed, and its sockets
@@ -93,12 +92,25 @@
   - No goldens for the session's task views; `BearingDial` has goldens.
 - v3 route items (M5), left out on purpose:
   - Personal landmarks get L cards but don't take over the OSM landmark on J cards (SPEC §9
-    "always preferred on their junction"); `turn_override` ("report this turn") waits.
+    "always preferred on their junction").
   - Way-via turn restrictions are left out of the pack.
   - The J card names no sibling junction it's confused with; the gateway, bridge and landmark
     cards use existing widgets (the design system has no components for them).
   - Today has no "Now learning" and gateway rows; the full Tbilisi format 5 pack isn't published
     (`just pack tbilisi` on the server).
+
+- v3 recitals and drives (M6), left out on purpose:
+  - Speech (SPEC §11): no Speak mode, transcript chips, Vosk model download or self-grade
+    fallback. The one plugin claiming iOS, `vosk_flutter_service` 0.1.3, downloads a prebuilt
+    `libvosk.xcframework` from its maintainer's GitHub release (`dart run vosk_flutter_service
+    install -t ios`); try it on a phone first. The design's TranscriptChips and the 104 dp mic
+    button come back with it, and DriveScreen's "Plan it out loud first".
+  - The recital result paints no offending segment in Miss red (a chip names it), the decisions
+    list has no "See all turns", and "Practise that turn" is automatic: failed turns join the
+    session as relearns.
+  - A drive's track is drawn as the dashed player route, not solid cobalt with a halo, and its
+    U-turn is a map chip, not the u-turn marker. The track is kept in memory only.
+  - Hesitations are counted in the drive review's sentence but not marked on the map.
 
 ## Gaps found 2026-11-11 (design vs code)
 

@@ -10,7 +10,7 @@ Mobile game for learning a city's streets: the player sees a street name, drops 
 | `apps/mobile`               | Flutter app (Android + iOS), offline-first, Drift progress DB, MapLibre map         |
 | `apps/api`                  | `@pindoro/api` Fastify 5, Drizzle, PostGIS (health, catalog, accounts)              |
 | `packages/pindoro_core`     | Pure Dart: geometry, scoring, question selection, streaks, pack models              |
-| `packages/pindoro_learning` | Pure Dart v3 learning: FSRS-6, grading, planner, curriculum, drills, route items    |
+| `packages/pindoro_learning` | Pure Dart v3 learning: FSRS-6, grading, planner, curriculum, route items, recitals  |
 | `packages/pindoro_design`   | Flutter design system: tokens → generated Dart, theme, widgets, FiraGO font         |
 | `packages/geo`              | `@pindoro/geo`: TS twin of pindoro_core geometry, scoring and directed routing      |
 | `apps/pipeline`             | `@pindoro/pipeline`: OSM → PostGIS → city packs; tiles + map styles                 |

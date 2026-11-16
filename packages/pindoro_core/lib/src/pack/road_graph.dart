@@ -50,6 +50,16 @@ class RoadEdge {
       },
       _geometry = r['geometry']! as String;
 
+  RoadEdge._twoWay(RoadEdge e)
+    : id = e.id,
+      from = e.from,
+      to = e.to,
+      streetId = e.streetId,
+      lengthM = e.lengthM,
+      oneway = Oneway.both,
+      _geometry = e._geometry,
+      _line = e._line;
+
   final int id;
   final int from;
   final int to;
@@ -97,7 +107,8 @@ class RoadGraph {
     this.junctions,
     Iterable<RoadEdge> edges, {
     Iterable<TurnRestriction> restrictions = const [],
-  }) : edges = List.unmodifiable(edges) {
+  }) : edges = List.unmodifiable(edges),
+       restrictions = List.unmodifiable(restrictions) {
     for (final e in this.edges) {
       _at.putIfAbsent(e.from, () => []).add(e);
       if (e.to != e.from) _at.putIfAbsent(e.to, () => []).add(e);
@@ -105,7 +116,7 @@ class RoadGraph {
     for (final list in _at.values) {
       list.sort((a, b) => a.id.compareTo(b.id));
     }
-    for (final r in restrictions) {
+    for (final r in this.restrictions) {
       final turn = _turns.putIfAbsent((r.fromEdge, r.via), _Turn.new);
       (r.only ? (turn.only ??= {}) : turn.no).add(r.toEdge);
     }
@@ -113,6 +124,7 @@ class RoadGraph {
 
   final Map<int, LatLng> junctions;
   final List<RoadEdge> edges;
+  final List<TurnRestriction> restrictions;
   final Map<int, List<RoadEdge>> _at = {};
   final Map<(int, int), _Turn> _turns = {};
 
@@ -121,6 +133,23 @@ class RoadGraph {
   late final Map<int, int> _piece = _pieces();
 
   late final Map<String, Set<int>> _byPart = _junctionsByPart();
+
+  /// This graph with moves the player reported as legal (app only, not twinned): the [twoWay]
+  /// edges (by id) drivable both ways, and the turns in [allowed] (from edge, via junction, to
+  /// edge) let through, an `only_*` restriction at their way in dropped.
+  RoadGraph allowing({
+    Set<int> twoWay = const {},
+    Set<(int, int, int)> allowed = const {},
+  }) => RoadGraph(
+    junctions,
+    [for (final e in edges) twoWay.contains(e.id) ? RoadEdge._twoWay(e) : e],
+    restrictions: restrictions.where(
+      (r) => !allowed.any(
+        (a) =>
+            a.$1 == r.fromEdge && a.$2 == r.via && (r.only || a.$3 == r.toEdge),
+      ),
+    ),
+  );
 
   /// The edges at [junction], by id.
   List<RoadEdge> edgesAt(int junction) => _at[junction] ?? const [];

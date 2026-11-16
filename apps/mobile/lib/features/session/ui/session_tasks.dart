@@ -180,3 +180,76 @@ final class RouteTask extends SessionTask {
         nextReviewDays: nextReviewDays ?? this.nextReviewDays,
       );
 }
+
+/// How a recital is answered (RecitalScreen). Speak waits for speech
+/// recognition (SPEC §11, parked).
+enum RecitalMode { type, draw }
+
+/// A recital (card R, SPEC §5.3): from [from] (A, on [fromStreet]) to [to]
+/// (B, on [toStreet]), pack junctions of [run], by heart. Typed as [steps]
+/// (the [turn] picked for the next one; [hinted] once a suggestion was
+/// taken) or drawn as [draft]; [graded] once checked, with the J cards that
+/// went to [practice] and whether the player [reported] the illegal move.
+final class RecitalTask extends SessionTask {
+  const RecitalTask(
+    this.run, {
+    required this.from,
+    required this.to,
+    required this.fromStreet,
+    required this.toStreet,
+    required this.draft,
+    this.mode = RecitalMode.type,
+    this.steps = const [],
+    this.turn,
+    this.hinted = false,
+    this.graded,
+    this.practice = const [],
+    this.nextReviewDays,
+    this.reported = false,
+  });
+
+  final Run run;
+  final int from;
+  final int to;
+  final NamedStreet fromStreet;
+  final NamedStreet toStreet;
+  final RouteDraft draft;
+  final RecitalMode mode;
+  final List<RecitalStep> steps;
+  final Turn? turn;
+  final bool hinted;
+  final RecitalResult? graded;
+  final List<String> practice;
+  final int? nextReviewDays;
+  final bool reported;
+
+  @override
+  Tier? get result => graded?.tier;
+
+  RecitalTask copyWith({
+    RouteDraft? draft,
+    RecitalMode? mode,
+    List<RecitalStep>? steps,
+    Turn? Function()? turn,
+    bool? hinted,
+    RecitalResult? graded,
+    List<String>? practice,
+    int? nextReviewDays,
+    bool? reported,
+  }) => RecitalTask(
+    run,
+    from: from,
+    to: to,
+    fromStreet: fromStreet,
+    toStreet: toStreet,
+    draft: draft ?? this.draft,
+    mode: mode ?? this.mode,
+    steps: steps ?? this.steps,
+    turn: turn == null ? this.turn : turn(),
+    hinted: hinted ?? this.hinted,
+    graded: graded ?? this.graded,
+    practice: practice ?? this.practice,
+    nextReviewDays: nextReviewDays ?? this.nextReviewDays,
+    reported: reported ?? this.reported,
+  );
+}

@@ -128,6 +128,8 @@ Accept: a one-way violation is impossible in drawn routes; each J card's exits a
 
 ## M6 · Recitals and GPS-free drives
 
+Status: done (2026-11-16) without step 3: speech is parked (SPEC §16.15 item 73, `docs/TODO.md`).
+
 Spec §5.3, §11. Boards V3-40, V3-50.
 
 1. `RecitalGrader` (tokenise, resolve, Viterbi with connectors, stretch, decisions) with fixture tests.

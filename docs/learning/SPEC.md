@@ -410,6 +410,14 @@ pindoro_core `ScoringConfig`, not copied):
 | `timeEstimateMinSamples`                                             | 50                                  |
 | `migrationDueMinDays`, `migrationDueMaxDays`                         | 1, 7                                |
 | `knownLabelMax`                                                      | 12                                  |
+| `tRecitalS`, `recitalNewPerDay`                                      | 180 s, 1                            |
+| `runLeadM`, `runMinItems`                                            | 800, 2                              |
+| `randomRunEveryDays`, `randomRunTries`                               | 7, 50                               |
+| `randomRunMinM`, `randomRunMaxM`                                     | 1500, 5000                          |
+| `recitalTurnMismatchM`, `recitalNameWordsMax`, `recitalNameTieSlack` | 200, 5, 0.05                        |
+| `driveSampleM`, `driveSnapM`, `driveHeadingM` (per 90°)              | 20, 35, 20                          |
+| `driveTurnBackM`, `driveWrongWayM`, `driveArriveM`                   | 40, 15, 200                         |
+| `hesitationJunctionM`                                                | 30                                  |
 
 ## 14. Test vectors (required before UI work)
 
@@ -722,3 +730,58 @@ board, and per-type FSRS parameter presets.
     landmarks: a tap on the map or "Here" snaps to the nearest junction, then a name, a kind (fuel,
     metro, church, shop, other), the approach they are seen from and their side. They get L cards
     at once; they don't replace OSM landmarks on J cards yet.
+
+### 16.15 Recitals and drives (M6)
+
+73. **Speech is parked** (decided 2026-11-16): recitals are typed or drawn. The one Flutter Vosk
+    plugin that claims iOS (`vosk_flutter_service`) downloads a prebuilt library from its single
+    maintainer's release and couldn't be tried on a phone; Speak, the transcript chips and the
+    model download wait in `docs/TODO.md`.
+74. **Runs** (`run`, schema 20) keep their ends as OSM nodes: id `n<from>:n<to>`, card
+    `R:n<from>:n<to>`, with the J items of the book their best route drives. A route-book run is
+    made when none is open: the Known, near-due J card due first that no run drives seeds it, from
+    about `runLeadM` back along its approach street to about as far on along its exit street, on the
+    best legal route; kept when that route drives the seed and at least `runMinItems` J items of
+    the book, all Known. A random pair comes every `randomRunEveryDays` once a gateway card exists
+    (the gateway phase): two junctions on Known streets `randomRunMinM`–`randomRunMaxM` apart.
+75. **R cards in the plan** start at most `recitalNewPerDay` a day, after the route items and paused
+    with them; a recital takes `tRecitalS` of the minutes, due or new. FSRS schedules R like any
+    card; an Again isn't asked again in the session.
+76. **Typing a recital**: A's street is step 1; each step is an optional turn (Left, Straight,
+    Right) and a street or landmark, typed (resolved as §5.3 step 2) or picked from the suggestion
+    row. A pick is a hint: the recital is capped at Great / Good. Among names that differ only in
+    their kind word (a street and its lane) the full name typed wins, and "and" (და) stays inside a
+    name. Draw follows legal exits only (§16.8 item 33), so a drawn route is never "Not drivable".
+77. **The path search** (§5.3 step 3): a first or last street left unsaid is A's or B's; turn words
+    cost `recitalTurnMismatchM` when the path doesn't make them and a landmark said costs the
+    distance beyond `landmarkRadiusM` from it, so both only choose between paths; a connector counts
+    only when it touches a junction of the street left or joined and costs its length again; more
+    than `connectorMax` make the recital invalid. "Not drivable" is the same search with one-ways
+    and turn restrictions ignored; the first offending move is reported, one-way before restriction.
+78. **Decisions** (§5.3 step 6) are junctions with another legal way on, U-turns aside; the start
+    counts (no approach, no turn), and so does a chosen U-turn. A path with none scores 1 unless it
+    is a Miss. The result lists the turns onto another named street.
+79. **Evidence** (§4): every decision on a J item of the book is an `implicit_evidence` row (outcome
+    1 or 0, source `recital` or `drive`). G and B ids name no approach, so only J items get it. A
+    failed decision counts against every J item at that junction from that approach; an item met
+    twice keeps its worse outcome. A failure on a near-due reviewed card is also an Again review
+    (`format` `recital` or `drive`). After a recital the J cards it failed join the session as
+    relearns ("Turn added to practice").
+80. **Report this turn** (`turn_override`, schema 20): a "Not drivable" move can be reported, and it
+    counts as legal for recitals and drives on this phone from then on: a one-way
+    (`oneway:n<from>:n<to>`) or a turn (`turn:n<from>:n<via>:n<to>`; an `only_*` restriction at its
+    way in is dropped). The route book keeps the pack's rules.
+81. **Drives** go to today's run (the route-book run whose recital is due first), a surprise (a
+    junction on Known streets `randomRunMinM`–`randomRunMaxM` from the start) or the player's own
+    street (its junction nearest the start). Fixes come once a second, also while stopped and with
+    the screen locked (Android foreground service, iOS background location on while-in-use
+    permission). The track is matched (fixes `driveSampleM` apart, snaps within `driveSnapM`,
+    `driveHeadingM` per 90° off, `driveWrongWayM` against a one-way, `driveTurnBackM` to turn back;
+    a jump is bridged by the shortest legal drive; the first and last edge count when more than half
+    was driven), then graded from its first junction to the destination when it ended within
+    `driveArriveM` of it, else it is a Miss ("You stopped … from …"). A drive reviews no R card.
+    "Lost? Show the way" ends the test unsaved and opens directions in the Google Maps app. The
+    track lives in memory: a killed app loses the drive.
+82. **Hesitations**: the pack has no traffic signals, so junctions stand in for them: a stop within
+    `hesitationJunctionM` of a junction, or at the start or end, is not a hesitation. The review
+    counts hesitations and U-turns in its sentence.

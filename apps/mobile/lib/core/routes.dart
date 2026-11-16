@@ -54,6 +54,9 @@ abstract final class Routes {
   static const String landmarks = '/settings/learning/landmarks';
   static const String landmarkAdd = '/settings/learning/landmarks/add';
 
+  /// A GPS-free drive: setup, recording and review (DriveScreen).
+  static const String drive = '/drive';
+
   static String progressOf(String districtId) =>
       '$progressDistrict?id=$districtId';
   static String anchorOf(String which) => '$anchor?which=$which';

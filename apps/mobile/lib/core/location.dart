@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
 
 sealed class LocationResult {
   const LocationResult();
@@ -90,6 +92,45 @@ class LocationService {
       return null;
     }
   }
+
+  /// A fix about every second while a GPS-free drive records, also with the
+  /// screen locked: Android keeps a foreground service up with [title] and
+  /// [text] as its notification, iOS goes on in the background (permission
+  /// asked first by [locate]). Fixes come while stopped too: hesitations
+  /// need them.
+  Stream<DriveFix> track({required String title, required String text}) =>
+      Geolocator.getPositionStream(
+        locationSettings: switch (defaultTargetPlatform) {
+          TargetPlatform.android => AndroidSettings(
+            accuracy: LocationAccuracy.bestForNavigation,
+            distanceFilter: 0,
+            intervalDuration: const Duration(seconds: 1),
+            foregroundNotificationConfig: ForegroundNotificationConfig(
+              notificationTitle: title,
+              notificationText: text,
+              enableWakeLock: true,
+            ),
+          ),
+          TargetPlatform.iOS => AppleSettings(
+            accuracy: LocationAccuracy.bestForNavigation,
+            activityType: ActivityType.automotiveNavigation,
+            distanceFilter: 0,
+            pauseLocationUpdatesAutomatically: false,
+            allowBackgroundLocationUpdates: true,
+            showBackgroundLocationIndicator: true,
+          ),
+          _ => const LocationSettings(
+            accuracy: LocationAccuracy.bestForNavigation,
+          ),
+        },
+      ).map(
+        (p) => (
+          at: LatLng(p.latitude, p.longitude),
+          t: p.timestamp,
+          headingDeg: p.heading >= 0 ? p.heading : null,
+          speedMps: p.speed >= 0 ? p.speed : null,
+        ),
+      );
 
   /// The settings page that fixes [denial].
   Future<void> openSettings(LocationDenied denial) async {

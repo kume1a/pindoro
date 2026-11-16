@@ -319,6 +319,57 @@ class LandmarkPersonal extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// What each decision a recital or drive tested said about its J card (SPEC §2.2, §4): kept for
+/// tuning; only a near-due failure also reviews the card.
+@DataClassName('EvidenceRow')
+class ImplicitEvidence extends Table {
+  @override
+  String get tableName => 'implicit_evidence';
+
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get itemId => text()();
+  DateTimeColumn get ts => dateTime()();
+  TextColumn get source => textEnum<ReviewSource>()();
+
+  /// 1 the decision was right, 0 wrong.
+  IntColumn get outcome => integer()();
+}
+
+/// The recitals' A → B (SPEC §16.7): route-book runs and weekly random pairs. Ends are
+/// `n<OSM node id>`s of pack junctions; [items] the J items the best route drives,
+/// space-separated.
+@DataClassName('RunRow')
+class Runs extends Table {
+  @override
+  String get tableName => 'run';
+
+  /// `n<from node>:n<to node>`; its card is `R:<id>`.
+  TextColumn get id => text()();
+  IntColumn get fromNode => integer()();
+  IntColumn get toNode => integer()();
+  BoolColumn get random => boolean()();
+  TextColumn get items => text()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// Moves the player reported as legal ("Wrong? Report this turn", SPEC §15): a one-way driven
+/// the other way (`oneway:n<from>:n<to>`) or a restricted turn (`turn:n<from>:n<via>:n<to>`),
+/// by OSM node ids.
+@DataClassName('TurnOverrideRow')
+class TurnOverrides extends Table {
+  @override
+  String get tableName => 'turn_override';
+
+  TextColumn get id => text()();
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     UserSettings,
@@ -334,6 +385,9 @@ class LandmarkPersonal extends Table {
     Confusions,
     LearnCities,
     LandmarkPersonal,
+    ImplicitEvidence,
+    Runs,
+    TurnOverrides,
   ],
   include: {'answer_immutable.drift', 'review_log_immutable.drift'},
 )
@@ -341,7 +395,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 19;
+  static const int version = 20;
 
   @override
   int get schemaVersion => version;
@@ -442,6 +496,11 @@ class AppDatabase extends _$AppDatabase {
       from17To18: (m, schema) =>
           m.addColumn(schema.cardState, schema.cardState.note),
       from18To19: (m, schema) => m.createTable(schema.landmarkPersonal),
+      from19To20: (m, schema) async {
+        await m.createTable(schema.implicitEvidence);
+        await m.createTable(schema.run);
+        await m.createTable(schema.turnOverride);
+      },
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

@@ -4,11 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/progress.dart';
+import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/learning/ui/city_memory_card.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -32,13 +34,16 @@ class TodayScreen extends ConsumerWidget {
         ..invalidate(learnCityProvider)
         ..invalidate(cityCardsProvider)
         ..invalidate(todayPlanProvider)
-        ..invalidate(cityMemoryProvider);
+        ..invalidate(cityMemoryProvider)
+        ..invalidate(runsProvider)
+        ..invalidate(todayRunProvider);
     }
 
     final city = ref.watch(packRepositoryProvider).value?.city();
     final learnCity = ref.watch(learnCityProvider);
     final plan = ref.watch(todayPlanProvider);
     final memory = ref.watch(cityMemoryProvider).value;
+    final run = ref.watch(todayRunProvider).value;
     final cards = switch ((learnCity, plan)) {
       (AsyncData(value: final c), _) when c?.placedAt == null => [
         _FirstRun(onOpen: open),
@@ -60,6 +65,8 @@ class TodayScreen extends ConsumerWidget {
             sinceWeek: plan.backlog ? memory.sinceWeek : null,
             onTap: () => context.go(Routes.progress),
           ),
+        if (run != null && !plan.backlog)
+          _DriveThisRun(run: run, onDrive: () => open(Routes.drive)),
         if (plan.backlog) const _MostOverdueFirst(),
       ],
       _ => const [Center(child: LaneLoader())],
@@ -343,6 +350,59 @@ class _CatchingUp extends ConsumerWidget {
         icon: PindoroGlyph.play,
         hero: true,
         onPressed: () => onStart(),
+      ),
+    );
+  }
+}
+
+/// "Drive this run today" (board V3-10): the run Today offers, and Drive.
+class _DriveThisRun extends ConsumerWidget {
+  const _DriveThisRun({required this.run, required this.onDrive});
+
+  final RunToDrive run;
+  final VoidCallback onDrive;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final c = PindoroTheme.of(context).colors;
+    final settings = ref.watch(settingsProvider).value;
+    return LipBox(
+      border: c.lineBase,
+      radius: PindoroRadius.xl,
+      padding: const EdgeInsets.symmetric(
+        horizontal: PindoroSpace.s4,
+        vertical: PindoroSpace.s3,
+      ),
+      child: Row(
+        spacing: PindoroSpace.s3,
+        children: [
+          const ExcludeSemantics(child: RowTile(PindoroGlyph.car)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.todayRunTitle,
+                  style: PindoroType.titleSm.copyWith(color: c.textPrimary),
+                ),
+                Text(
+                  l10n.todayRunRoute(
+                    streetName(run.ends.fromStreet, settings),
+                    streetName(run.ends.toStreet, settings),
+                    formatDistance(run.ends.best.lengthM, l10n),
+                  ),
+                  style: PindoroType.bodySm.copyWith(color: c.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          PindoroButton(
+            label: l10n.todayRunDrive,
+            variant: PindoroButtonVariant.secondary,
+            onPressed: onDrive,
+          ),
+        ],
       ),
     );
   }

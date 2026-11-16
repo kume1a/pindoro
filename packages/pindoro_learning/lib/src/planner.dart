@@ -47,7 +47,7 @@ class SessionPlan {
   final int newCount;
   final int estimatedS;
 
-  /// Route items among the reviews (Today's Turns).
+  /// Route items and recitals among the reviews (Today's Turns).
   final int routeCount;
 }
 
@@ -58,8 +58,10 @@ abstract final class Planner {
   /// after the reviews, [LearningConfig.sideNewPerDay] a day less [sidesStartedToday], in the
   /// minutes left; [openRoutes] (`openRoutes`) after them, [LearningConfig.routeNewPerDayMax] a
   /// day less [routesStartedToday], paused while the due reviews take more than
-  /// [LearningConfig.routePauseFactor] of the minutes (SPEC §7). [drills] go mid-session; a backlog keeps only the family sweep, whose children
-  /// leave the reviews. [extraNew] is "Learn 5 more": that many new streets past the daily
+  /// [LearningConfig.routePauseFactor] of the minutes (SPEC §7); [openRecitals] (`openRecitals`)
+  /// last, [LearningConfig.recitalNewPerDay] a day less [recitalsStartedToday], paused alike. A
+  /// recital takes [LearningConfig.tRecitalS]. [drills] go mid-session; a backlog keeps only the
+  /// family sweep, whose children leave the reviews. [extraNew] is "Learn 5 more": that many new streets past the daily
   /// number and the minutes, with no name and ends cards. Same inputs and [seed], same session.
   static SessionPlan plan({
     required List<CardState> cards,
@@ -74,6 +76,8 @@ abstract final class Planner {
     int sidesStartedToday = 0,
     List<String> openRoutes = const [],
     int routesStartedToday = 0,
+    List<String> openRecitals = const [],
+    int recitalsStartedToday = 0,
     Drills drills = Drills.none,
     int tReviewS = LearningConfig.tReviewS,
     int tNewS = LearningConfig.tNewS,
@@ -105,20 +109,19 @@ abstract final class Planner {
       for (final c in cards)
         if (isDueBefore(c, midnight)) c.itemId,
     ]..sort(mostAtRisk);
+    int cost(String id) => secondsFor(id, tReviewS);
+    final dueS = due.fold(0, (sum, id) => sum + cost(id));
 
     final budget = max(
       0,
       minutesPerDay * 60 - spentTodayS - pending.length * tNewS,
     );
-    final backlog = due.length * tReviewS > budget;
+    final backlog = dueS > budget;
     final swept = {...?drills.sweep?.children};
+    var room = budget * LearningConfig.backlogCapFactor;
     final dueReviews = [
       for (final id
-          in backlog
-              ? due.take(
-                  (budget * LearningConfig.backlogCapFactor / tReviewS).floor(),
-                )
-              : due)
+          in backlog ? due.takeWhile((id) => (room -= cost(id)) >= 0) : due)
         if (!swept.contains(id)) id,
     ];
     final newSlots =
@@ -127,7 +130,7 @@ abstract final class Planner {
             ? 0
             : min(
                 max(0, newPerDay - introducedToday - pendingEarlier),
-                (budget - due.length * tReviewS) ~/ tNewS,
+                (budget - dueS) ~/ tNewS,
               ));
     final leeches = [
       for (final c in cards)
@@ -144,24 +147,34 @@ abstract final class Planner {
         ? 0
         : min(
             LearningConfig.sideNewPerDay - sidesStartedToday,
-            (budget - due.length * tReviewS - fresh.length * tNewS) ~/ tReviewS,
+            (budget - dueS - fresh.length * tNewS) ~/ tReviewS,
           );
     final sides = openSides.take(max(0, sideSlots)).toList();
-    final routeSlots =
-        extraNew != null ||
-            due.length * tReviewS > LearningConfig.routePauseFactor * budget
+    final routesPaused =
+        extraNew != null || dueS > LearningConfig.routePauseFactor * budget;
+    final routeSlots = routesPaused
         ? 0
         : min(
             LearningConfig.routeNewPerDayMax - routesStartedToday,
-            (budget -
-                    (due.length + sides.length) * tReviewS -
-                    fresh.length * tNewS) ~/
+            (budget - dueS - sides.length * tReviewS - fresh.length * tNewS) ~/
                 tReviewS,
+          );
+    final routes = openRoutes.take(max(0, routeSlots)).toList();
+    final recitalSlots = routesPaused
+        ? 0
+        : min(
+            LearningConfig.recitalNewPerDay - recitalsStartedToday,
+            (budget -
+                    dueS -
+                    (sides.length + routes.length) * tReviewS -
+                    fresh.length * tNewS) ~/
+                LearningConfig.tRecitalS,
           );
     final reviews = [
       ...dueReviews,
       ...sides,
-      ...openRoutes.take(max(0, routeSlots)),
+      ...routes,
+      ...openRecitals.take(max(0, recitalSlots)),
     ];
     final kept = backlog ? Drills(sweep: drills.sweep) : drills;
 
@@ -179,11 +192,13 @@ abstract final class Planner {
       reviewCount: reviews.length,
       newCount: fresh.length,
       estimatedS:
-          reviews.length * tReviewS +
+          reviews.fold(0, (sum, id) => sum + cost(id)) +
           (fresh.length + pending.length) * tNewS +
           drillSeconds(kept, tReviewS),
       drills: kept,
-      routeCount: reviews.where(isRouteItem).length,
+      routeCount: reviews
+          .where((id) => isRouteItem(id) || CardType.ofItem(id) == CardType.r)
+          .length,
     );
   }
 
@@ -408,8 +423,8 @@ int activeSeconds(Iterable<DateTime> times) {
   return seconds;
 }
 
-/// Seconds the [steps] left should take at the planner's rates: a review, relearn or bearing
-/// [tReviewS]; an intro and each of its two retrievals a third of [tNewS] (SPEC §7); the sweep
+/// Seconds the [steps] left should take at the planner's rates: a review or relearn
+/// [secondsFor] its item, a bearing [tReviewS]; an intro and each of its two retrievals a third of [tNewS] (SPEC §7); the sweep
 /// and the crossings drill [tReviewS] per answer in [drills].
 int remainingSeconds(
   Iterable<SessionStep> steps, {
@@ -421,7 +436,8 @@ int remainingSeconds(
   (sum, s) =>
       sum +
       switch (s.kind) {
-        StepKind.review || StepKind.relearn || StepKind.bearing => tReviewS,
+        StepKind.review || StepKind.relearn => secondsFor(s.itemId, tReviewS),
+        StepKind.bearing => tReviewS,
         StepKind.placement => LearningConfig.placementPinS,
         StepKind.intro ||
         StepKind.retrieval1 ||
@@ -436,6 +452,10 @@ int remainingSeconds(
         ),
       },
 );
+
+/// What reviewing [itemId] takes: [LearningConfig.tRecitalS] for a recital, else [tReviewS].
+int secondsFor(String itemId, int tReviewS) =>
+    CardType.ofItem(itemId) == CardType.r ? LearningConfig.tRecitalS : tReviewS;
 
 /// Cards of [types] started since the start of [now]'s day (their first log row is today).
 int startedToday(Iterable<LogEntry> log, DateTime now, Set<CardType> types) {

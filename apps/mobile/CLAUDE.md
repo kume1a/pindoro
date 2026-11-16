@@ -8,7 +8,9 @@ lib/main.dart                  open AppDatabase (openDatabase), pick the initial
 lib/app/                       shell: PindoroApp, router (the only place that imports screens),
                                TabShell (bottom navigation)
 lib/core/                      shared by every feature: routes (paths + RoundSummary), config, format,
-                               labels, settings, location, online, toast, page scaffold, launch overlay, clock (clockProvider),
+                               labels, settings, location (+ the drive's background track), online, toast,
+                               page scaffold, launch overlay, clock (clockProvider), hold (`ref.hold` keeps an
+                               auto-dispose provider alive while a controller awaits it),
                                api_client (ApiClient + apiClientProvider, ApiException), restart, database/ (Drift tables,
                                migrations, .drift trigger, SettingsDao, database_file: the file, openDatabase,
                                swapInDatabase)
@@ -18,14 +20,17 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                features: progress (ProgressDao: Explore rounds, the answer log,
                                counted days, badges, legacy_known; streakProvider, Reminders, the
                                top bar and streak pill), pack (+ the road graph), map (the map, the
-                               area picker map, the pin-drop view; the route draw layer waits for
-                               M6 recitals), learning (LearningDao: the v3 cards, review log,
+                               area picker map, the pin-drop view, the route draw layer of
+                               the recital's Draw mode), learning (LearningDao: the v3 cards, review log,
                                mix-up pairs, learn_city and the player's landmarks
                                (`landmark_personal`, `personalLandmarksProvider`, the kind glyphs); pindoro_learning decides, it only
                                stores; today's and Learn 5 more plans, carry-over, Progress data,
                                day marking and the reminder, Explore answers into cards, the route
                                book (`routeBookProvider`: the pack's J/G/B/C/L items and your
-                               landmarks' L cards); ui/: the City memory card, junction names), account (AccountApi, AccountDao, BackupSync, the
+                               landmarks' L cards), recital runs (`runsProvider` makes route-book runs and weekly
+                               random pairs, `todayRunProvider`), `drivingGraphProvider` (the
+                               graph with the moves the player reported as legal: recitals and
+                               drives grade on it), the evidence and runs tables; ui/: the City memory card, junction names), account (AccountApi, AccountDao, BackupSync, the
                                sign-in screen and Settings group), badges (stats, awards, the
                                shelf tile, the reward sheet and BadgeMoments), home (Explore),
                                setup (welcome, city, area, difficulty), quiz (Explore round),
@@ -34,12 +39,15 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                snapped to a junction), streak, me, session (SessionController plays
                                today's plan, Learn 5 more or the city's placement; each step's
                                SessionTask: a pin, Name it, both ends, the family sweep, the
-                               crossings drill, a bearing or a route card (RouteView: the
-                               JunctionMap turn, gateway, bridge, connection, landmark), with
-                               their views over TaskScaffold;
+                               crossings drill, a bearing, a route card (RouteView: the
+                               JunctionMap turn, gateway, bridge, connection, landmark) or a
+                               recital (RecitalView: typed or drawn A → B, graded with the turns'
+                               evidence and "Report this turn"), with their views over TaskScaffold;
                                intro (a leech's with its mix-up and note), reveal, Session done,
-                               the placement result), today (the Today tab), memory (the Progress
-                               tab: overview and a district)
+                               the placement result), today (the Today tab, "Drive this run today"), memory (the Progress
+                               tab: overview and a district), drive (`/drive`: DriveController and
+                               DriveScreen: setup, a background recording with no map, the matched
+                               and graded review)
 lib/features/quiz/ui/round_controller.dart   Explore round state machine; resumes from round_question + answers;
                                questions are NamedStreets (cityStreetsProvider); retries set round.retry_of;
                                each pin also feeds the learning cards (learnFromExplore)
@@ -73,7 +81,7 @@ test/drift/                    generated schema helpers + migration test
   `/difficulty`, `/round` (`?round=` resumes, `?retry=` retries), `/results`, `/streak`,
   `/settings`, `/settings/credits`, `/session` (`?placement=1` places, `?more=1` learns 5 more),
   `/progress/district?id=`, `/settings/learning`, `/settings/learning/anchor?which=`,
-  `/settings/learning/landmarks` and `/settings/learning/landmarks/add`.
+  `/settings/learning/landmarks`, `/settings/learning/landmarks/add` and `/drive`.
   `startLocation`: a saved Explore round reopens Explore; a player who finished a round or placed
   a city (`learn_city`) opens Today; anyone else gets Welcome, whose Choose a city leads to Today
   and its placement. Footers end 12 dp above the bar on a tab (`bottomActionGap`).
