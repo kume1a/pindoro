@@ -110,15 +110,15 @@ void main() {
     expect(tester.widget<PindoroButton>(create).onPressed, isNull);
     await type(tester, ['  Nino ', 'correct horse']);
     await tapThrough(tester, create);
+    await waitFor(tester, find.text('Save your recovery code'));
     expect(jsonDecode(sent.first.body), {
       'username': 'nino',
       'password': 'correct horse',
     });
-    expect(find.text('Save your recovery code'), findsOneWidget);
     expect(find.textContaining('abcd-efgh-jkmn-pqrs'), findsOneWidget);
     await tapThrough(tester, find.text('I saved it'));
-    expect(sent.last.method, 'PUT');
-    expect(find.text('Signed in as nino'), findsOneWidget);
+    await waitFor(tester, find.text('Signed in as nino'));
+    await until(tester, () => sent.last.method == 'PUT');
     expect(find.text('Change password'), findsOneWidget);
   });
 
@@ -139,12 +139,12 @@ void main() {
     await tapThrough(tester, find.text('Back up your progress'));
     await type(tester, ['nino', 'correct horse']);
     await tapThrough(tester, find.widgetWithText(PindoroButton, 'Sign in'));
+    await waitFor(tester, find.textContaining('from 2 d ago'));
     expect(sent.single.url.path, '/v1/sessions');
-    expect(find.textContaining('from 2 d ago'), findsOneWidget);
     await tapThrough(tester, find.text('Keep this phone’s'));
-    expect(sent.last.method, 'PUT');
+    await waitFor(tester, find.text('Signed in as nino'));
+    await until(tester, () => sent.last.method == 'PUT');
     expect((await account(tester))?.token, 'new-token');
-    expect(find.text('Signed in as nino'), findsOneWidget);
   });
 
   testWidgets('a wrong password says so and stays signed out', (tester) async {
@@ -153,7 +153,7 @@ void main() {
     await tapThrough(tester, find.text('Back up your progress'));
     await type(tester, ['nino', 'correct horse']);
     await tapThrough(tester, find.widgetWithText(PindoroButton, 'Sign in'));
-    expect(find.text('Wrong username or password.'), findsOneWidget);
+    await waitFor(tester, find.text('Wrong username or password.'));
     expect(await account(tester), isNull);
   });
 
@@ -168,14 +168,14 @@ void main() {
       tester,
       find.widgetWithText(PindoroButton, 'Set new password'),
     );
+    await waitFor(tester, find.text('Save your recovery code'));
     expect(jsonDecode(sent.first.body), {
       'username': 'nino',
       'recoveryCode': _code,
       'password': 'new password',
     });
-    expect(find.text('Save your recovery code'), findsOneWidget);
     await tapThrough(tester, find.text('I saved it'));
-    expect(find.text('Signed in as nino'), findsOneWidget);
+    await waitFor(tester, find.text('Signed in as nino'));
   });
 
   testWidgets('signed out by another phone, Settings says so and keeps the '
@@ -186,7 +186,7 @@ void main() {
       await dao.signedOutElsewhere();
     });
     await pump(tester);
-    expect(find.text('Signed out on this phone'), findsOneWidget);
+    await waitFor(tester, find.text('Signed out on this phone'));
     await tapThrough(tester, find.text('Signed out on this phone'));
     expect(find.text('nino'), findsOneWidget);
   });
@@ -202,7 +202,10 @@ void main() {
     expect(sent, isEmpty, reason: 'keeping the account sends nothing');
     await tapThrough(tester, find.text('Sign out'));
     await tapThrough(tester, find.widgetWithText(PindoroButton, 'Sign out'));
-    expect(sent.last.url.path, '/v1/sessions/me');
+    await until(
+      tester,
+      () => sent.isNotEmpty && sent.last.url.path == '/v1/sessions/me',
+    );
     expect(await account(tester), isNull);
     expect(find.text('Back up your progress'), findsOneWidget);
   });
@@ -222,3 +225,21 @@ Future<void> settle(WidgetTester tester) async {
   );
   await tester.pumpAndSettle();
 }
+
+/// Lets the app's real async work (the database, gzip, the mock server)
+/// run, pumping frames between, until [done]; fails after 10 s. Fixed
+/// delays alone race a slow CI runner.
+Future<void> until(WidgetTester tester, bool Function() done) async {
+  for (var i = 0; i < 100 && !done(); i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pump();
+  }
+  expect(done(), isTrue, reason: 'still waiting after 10 s');
+  await tester.pumpAndSettle();
+}
+
+/// [until] [finder] shows exactly one widget.
+Future<void> waitFor(WidgetTester tester, Finder finder) =>
+    until(tester, () => finder.evaluate().length == 1);
