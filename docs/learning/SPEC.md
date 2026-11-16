@@ -453,9 +453,13 @@ rest of the spec. Numbers named here are in §13.
    a review, so it writes no `review_log` row. Retrieval 1 is the card's first FSRS review (S0/D0);
    retrieval 2 is a same-day review. After Again on retrieval 1 the relearn comes 5–10 items later and
    retrieval 2 still closes the session.
-6. **Interleaving with few items.** Retrieval 1 comes after `retrieval1GapMin`–`retrieval1GapMax`
-   other items when that many exist; otherwise after all remaining items of its block, and never with
-   fewer than `retrieval1GapFloor` items in between unless the session has none left.
+6. **Interleaving.** Each retrieval 1 is placed on its own, after a seeded `retrieval1GapMin`–
+   `retrieval1GapMax` other items: §7's literal pattern (3 intros, 5 reviews, the 3 retrieval 1s)
+   would put 7 items between every intro and its retrieval 1. Near the end, the closing retrieval 2s
+   of streets already retrieved count as those items; a retrieval 1 comes earlier only when every
+   step left waits on one (then with at least `retrieval1GapFloor` items in between when the
+   session has them). A relearn goes 5–10 items after its Again, at the end when fewer are left,
+   and always before the street's own retrieval 2.
 7. **Abandoned sessions.** There is no saved plan: the next session is planned from the database.
    Cards left in `learning` get retrieval 1 first and still count towards today's new streets.
    Leaving never asks for confirmation.

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
@@ -206,6 +207,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       label: l10n.homeChooseArea,
                       hero: true,
                       onPressed: () => open(Routes.area),
+                    ),
+                  if (AppConfig.v3)
+                    PindoroButton(
+                      label: l10n.homeOpenToday,
+                      variant: PindoroButtonVariant.secondary,
+                      onPressed: () => context.push(Routes.today),
                     ),
                 ],
               ),

@@ -260,3 +260,41 @@ Use `flutter_map` with CARTO `light_nolabels` / `dark_nolabels` raster tiles (fo
 
 - `flutter_launcher_icons`: iOS from `ios-light-1024.png` (+ dark and tinted variants in the asset catalogue), Android adaptive from `android-foreground.svg` / `android-background.svg` (export as PNG or vector drawable) and `android-monochrome.svg` for themed icons.
 - `flutter_native_splash`: background `color.cobalt.500` (dark `color.asphalt.950`), centred pin; the drop intro runs on the first Flutter frame (see Splash).
+
+## 12. v3 components
+
+Widgets added for v3 (Learn the whole city). Colours come from `PindoroTheme.colors` (generated names, e.g. `color.map.region.outline` → `mapRegionOutline`); sizes, radii and motion from `PindoroSize`, `PindoroRadius`, `PindoroMotion`. Opacity tokens are not generated into `pindoro_tokens.dart`; use the value given here.
+
+### NextReviewChip
+
+- **Inputs:** `int? days` (null = back in this session), `bool animate` (false when reduce motion is on or the sheet is rebuilt).
+- **Look:** icon `calendar` when `days != null`, else `retry`; label "Next review in {days, plural, one {# day} other {# days}}" or "Back in this session"; 40 dp tall, `PindoroRadius.md`, `surfaceRaised` with a 2 dp `lineBase` lip (`PindoroElevation.e1`), 24 dp icon (`PindoroSize.iconMd`) in `textPrimary`, label 900 17/22 with `FontFeature.tabularFigures()`.
+- **Motion:** scale 0.4 → 1 + fade on `PindoroMotion.springBouncy`, started after the tier badge lands, inside `PindoroMotion.celebrateSmall`. No sound, no haptic.
+- **Tokens:** `surfaceRaised`, `lineBase`, `textPrimary`, `radius.md`, `elevation.1`, `size.icon.md`, `motion.spring.bouncy`, `motion.celebrate.small`.
+
+### RevealSheet (v3 changes)
+
+- **Inputs:** `RevealResult result` (`tier`, `distanceMeters`, `int? nextReviewDays`, `MixUp? mixUp`, `List<String> chips`), `String? hint`, `VoidCallback onNext`. `MixUp` holds `placedStreetName`, `contrastLine` and `pairLabel` ("4th ↔ 5th"). `Grader.grade(pin, street, rtMs)` returns `{tier, rating, snapStreetId}`; a confusable `snapStreetId` makes the result a Mix-up.
+- **Changes:** `NextReviewChip` replaces the XP chip in the header row (`Wrap`, so it drops under the title when narrow). Mix-up uses `tier(Tier.miss)` colours, the `reroute` icon, the title "Mix-up" and **Got it**; chip row "Pair saved: {pairLabel}".
+- **Map on Mix-up:** hit street as a player route (`PolylineLayer`: 9 dp `mapPlayerHalo` under 5 dp `mapPlayerRoute`, dash 8 / 7) with a cobalt name chip; true street as answer paint (12 dp `mapAnswerCasing` + 8 dp `mapAnswerLine`). Animate the hit street's paint first, then the true street, `PindoroMotion.durationBase` each; Miss sound and Miss haptic as the badge lands.
+- **Tokens:** `feedback.miss.*`, `map.player.halo`, `map.player.route`, `map.answer.line`, `map.answer.casing`, `map.area.label.bg` / `.text` / `.lip` (cobalt chip), `motion.duration.base`.
+
+### IntroSheet
+
+- **Inputs:** `StreetIntro intro` (`name`, `otherScriptName`, `String? district` when the name is shared, `where`, `facts`, `String? etymology`, `Family? family`), `int index`, `int count` ("New street · 3 of 10"), `bool canSpeak`, `VoidCallback onHear`, `VoidCallback onGotIt`. `Family` holds `parentName`, `laneCount`, `deadEndCount`.
+- **Build:** extends the Release 4 lesson intro: `StreetPlate` (ask row with `signpost`, up to two sub-lines) over the map, then a non-dismissible sheet: title "Where it is" (`PindoroType.titleMd`), sentence (`bodyMd`, `textSecondary`), facts (`labelMd`, `textSecondary`, tabular figures), optional etymology (`bodySm`), optional family `StatChip` with the `road` icon (wraps to two lines when narrow), then a `Row` of a 56 dp secondary icon button (`sound-on`) and an expanded primary `PindoroButton` "Got it". Hide the speak button when `canSpeak` is false.
+- **Text-to-speech:** `flutter_tts` with the street's language tag; `canSpeak` comes from the installed voices for that tag.
+- **Motion:** camera flies to the street (`durationSlow`, `easeStandard`), paint draws (`durationBase`), sheet rises (`durationBase`, `easeDecelerate`).
+- **Tokens:** `surfaceOverlay`, `textPrimary`, `textSecondary`, `streetCard*`, `button.secondary.*`, `button.primary.*`, `radius.2xl`, `space.1` – `space.5`, `size.button.lg`, `size.plate.name-min`.
+
+### MapLabels (known streets)
+
+- **Inputs:** `Set<StreetId> knownStreets` (Known or better), `StreetId? answerStreet` (never labelled), `StreetId? hitStreet` (Mix-up only: the one cobalt chip), the visible street geometries with short names.
+- **Build:** a `PolylineLayer` of 6 dp traces in `mapRegionOutline` at opacity 0.55 (`opacity.street-trace`), drawn under the answer paint, plus a `MarkerLayer` of name chips: 24 dp, `PindoroRadius.full`, `mapRegionLabelBg` / `mapRegionLabelText`, `labelMd`, a 2 dp `lineBase` lip and `shadow.float`. The hit street's chip uses `mapAreaLabelBg` / `mapAreaLabelText` / `mapAreaLabelLip`. Shown on the intro and on reveals only; chips never cover the answer street or the pin.
+- **Tokens:** `map.region.outline`, `opacity.street-trace`, `map.region.label.bg` / `.text`, `map.area.label.bg` / `.text` / `.lip`, `line.base`, `shadow.float`, `radius.full`.
+
+### SessionTopBar
+
+- **Inputs:** `int plannedItems`, `int answeredItems`, `Set<int> forgottenBlocks` (0–11), `Duration timeLeft`, `VoidCallback onLeave`.
+- **Build:** `Row`: 48 dp icon button (`close`, "Leave session"), `SessionBar` (12 equal blocks, 14 dp tall, `space.1` gaps; block i covers one twelfth of `plannedItems`; current `progressCurrent`; finished `progressDone` with a 3 dp `progressDoneLip`, or `feedbackMissFill` with `feedbackMissLip` when the block is in `forgottenBlocks`; upcoming `progressTodo` with a 2 dp `progressTodoBorder`), then the time-left pill (`timer` icon in `primaryText`, "{minutes} min", tabular figures, floating shadow). Semantics: "Today’s session, 5 of 12" and "About 14 minutes left".
+- **Tokens:** `progress.*`, `feedback.miss.fill`, `feedback.miss.lip`, `primary.text`, `surface.raised`, `line.base`, `shadow.float`, `radius.xs`, `radius.full`, `space.1`, `motion.duration.fast`.

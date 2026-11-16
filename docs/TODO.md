@@ -130,6 +130,20 @@
   - Badge stats count only cities whose pack is on the phone (as Me does).
   - Chests, the design's other reward moment: nothing in the app is a chest.
 
+- v3 session (M1), left out on purpose until the milestone named:
+  - The Mix-up sentence names the hit street and the way to the answer, but not the contrast line
+    ("The 4th is the next lane west, before the bend"): that needs the family table (M2).
+  - The intro has no etymology line (the pack lacks `name:etymology` until M2), no family chip
+    (M2), and the plate doesn't add the district for a shared name yet.
+  - Known-street chips use the full name, not the short form ("Chavchavadze Ave", "1st").
+  - The Mix-up reveal paints both streets at once (no cobalt-then-yellow paint), and Session done
+    plays no results sound and doesn't count City memory up.
+  - Today is minimal (ready and done): no City memory card, Turns tile, backlog state or Learn 5
+    more (M2, M3). It opens from Free play only in `V3=true` builds.
+  - New streets come from the course order (`buildCourse`), capped at the course's 240 streets,
+    until the curriculum queue (M2).
+  - `StatChip`, `NextReviewChip` and `IntroSheet` have widget tests but no goldens yet.
+
 ## Gaps found 2026-11-11 (design vs code)
 
 Not left out on purpose: found by comparing the app with `docs/design/*.md`, the claude.ai canvas

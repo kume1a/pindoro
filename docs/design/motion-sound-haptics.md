@@ -53,6 +53,18 @@ Springy and fast. Things the player touches use springs; things the app moves us
 | Toast | Slide 16 dp + fade | `base` in, `fast` out | fade | none | none |
 | Error | Shake 6 dp × 2 on the failed control | 300 ms | colour flash only | soft error tone | `HapticFeedback.vibrate()` (Android) / `heavyImpact()` |
 
+## v3 events
+
+The events added by v3 (Learn the whole city). Durations and curves come from the tokens above; reduce motion follows the rule below.
+
+| Event | Motion | Sound · haptic |
+| --- | --- | --- |
+| Mix-up reveal | Both streets paint, cobalt then yellow (280 ms each) | Miss sound · Miss haptic |
+| Next-review chip | Pops in after the tier title (celebrate small) | none |
+| Speech token resolved | Chip slides in from the transcript | light tick |
+| Drive start / end | Timer fades in / out | medium impact |
+| Session done | Celebrate big; City memory counts up | results sound · success haptic |
+
 ## Celebration sizes
 
 - **Small** (Close): badge wiggle ±6° and one ring pulse from the pin.

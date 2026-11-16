@@ -1,0 +1,12 @@
+import 'database.dart';
+
+-- The review log is append-only (docs/learning/SPEC.md §2.2): never rewritten, never deleted.
+CREATE TRIGGER review_log_no_update BEFORE UPDATE ON review_log
+BEGIN
+  SELECT RAISE(ABORT, 'review_log rows are immutable');
+END;
+
+CREATE TRIGGER review_log_no_delete BEFORE DELETE ON review_log
+BEGIN
+  SELECT RAISE(ABORT, 'review_log rows are never deleted');
+END;

@@ -37,6 +37,12 @@ abstract final class Routes {
   /// Settings → Account → Change password.
   static const String accountPassword = '/account/password';
   static const String settings = '/settings';
+
+  /// The v3 daily session's start (docs/learning/PLAN.md M1 step 7).
+  static const String today = '/today';
+
+  /// Today's learning session (SessionScreen).
+  static const String session = '/session';
   static const String credits = '/settings/credits';
 
   /// The course, the first tab.
