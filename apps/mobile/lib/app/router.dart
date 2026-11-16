@@ -15,6 +15,8 @@ import 'package:pindoro/features/results/ui/result_street_screen.dart';
 import 'package:pindoro/features/results/ui/results_screen.dart';
 import 'package:pindoro/features/session/ui/session_screen.dart';
 import 'package:pindoro/features/settings/ui/anchor_screen.dart';
+import 'package:pindoro/features/settings/ui/landmark_add_screen.dart';
+import 'package:pindoro/features/settings/ui/landmarks_screen.dart';
 import 'package:pindoro/features/settings/ui/learn_settings_screen.dart';
 import 'package:pindoro/features/settings/ui/settings_screen.dart';
 import 'package:pindoro/features/setup/ui/area_screen.dart';
@@ -159,6 +161,14 @@ GoRouter buildRouter(String initialLocation) {
               ? Anchor.work
               : Anchor.home,
         ),
+      ),
+      GoRoute(
+        path: Routes.landmarks,
+        builder: (_, _) => const LandmarksScreen(),
+      ),
+      GoRoute(
+        path: Routes.landmarkAdd,
+        builder: (_, _) => const LandmarkAddScreen(),
       ),
     ],
   );

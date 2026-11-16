@@ -15,7 +15,11 @@ const TABLES = [
   "street",
   "street_district",
   "junction",
+  "bridge",
   "road_edge",
+  "turn_restriction",
+  "landmark",
+  "junction_item",
   "family",
   "chunk_neighbour",
 ];
@@ -207,7 +211,7 @@ interface EdgeRow {
   id: number;
   from_junction: number;
   to_junction: number;
-  street_id: string;
+  street_id: string | null;
   length_m: number;
   geometry: string;
 }
@@ -248,7 +252,7 @@ const graphChecks = (db: Pack): Check[] => {
     try {
       const line = decodePolyline6(e.geometry);
       const ok =
-        streets.has(e.street_id) &&
+        (e.street_id === null || streets.has(e.street_id)) &&
         e.length_m > 0 &&
         line.length >= 2 &&
         samePoint(line[0], junctions.get(e.from_junction)) &&
@@ -267,6 +271,34 @@ const graphChecks = (db: Pack): Check[] => {
       `${(share * 100).toFixed(1)} % of ${edges.length} edges, ${junctions.size} junctions`,
     ),
   ];
+};
+
+/**
+ * Route references (pack format 5): restrictions, bridges and junction items point at rows in the
+ * pack; an item's approach ends at its junction and its exit starts there.
+ */
+const routeCheck = (db: Pack): Check => {
+  const bad = db
+    .prepare(
+      `SELECT
+         (SELECT count(*) FROM turn_restriction r
+            WHERE NOT EXISTS (SELECT 1 FROM road_edge e WHERE e.id = r.from_edge)
+               OR NOT EXISTS (SELECT 1 FROM road_edge e WHERE e.id = r.to_edge))
+       + (SELECT count(*) FROM road_edge e WHERE e.bridge_id IS NOT NULL
+            AND NOT EXISTS (SELECT 1 FROM bridge b WHERE b.id = e.bridge_id))
+       + (SELECT count(*) FROM junction_item i
+            WHERE NOT EXISTS (SELECT 1 FROM road_edge a WHERE a.id = i.approach_edge
+                                AND i.junction_id IN (a.from_junction, a.to_junction))
+               OR NOT EXISTS (SELECT 1 FROM road_edge x WHERE x.id = i.exit_edge
+                                AND i.junction_id IN (x.from_junction, x.to_junction))
+               OR (i.landmark_id IS NOT NULL
+                   AND NOT EXISTS (SELECT 1 FROM landmark l WHERE l.id = i.landmark_id))
+               OR (i.bridge_id IS NOT NULL
+                   AND NOT EXISTS (SELECT 1 FROM bridge b WHERE b.id = i.bridge_id)))`,
+    )
+    .pluck()
+    .get() as number;
+  return check("route references", bad === 0, bad ? `${bad} bad rows` : "");
 };
 
 /** Checks a pack (.sqlite or .sqlite.gz) and prints a summary; returns false when anything fails. */
@@ -292,6 +324,7 @@ export const validatePack = (file: string): boolean => {
       orphanCheck(db),
       learningCheck(db, meta),
       ...graphChecks(db),
+      routeCheck(db),
     ];
     console.log(`${file}\n  city ${meta.city_id}  version ${meta.version}  scope ${meta.scope}`);
     console.table(districts);

@@ -148,3 +148,35 @@ final class BearingTask extends SessionTask {
     checked: checked ?? this.checked,
   );
 }
+
+/// A route card (SPEC §3): a turn, a gateway, a bridge, a connection or a
+/// landmark. [choice] is what the player picked before Confirm — a [Turn],
+/// a [Bridge], a junction (L2) or a name (L3); a pin goes in
+/// `SessionPlaying.pin`.
+final class RouteTask extends SessionTask {
+  const RouteTask(
+    this.question, {
+    this.choice,
+    this.rating,
+    this.nextReviewDays,
+  });
+
+  final RouteQuestion question;
+  final Object? choice;
+  final Rating? rating;
+  final int? nextReviewDays;
+
+  @override
+  Tier? get result => switch (rating) {
+    final r? => RouteGrader.tierOf(r),
+    null => null,
+  };
+
+  RouteTask copyWith({Object? choice, Rating? rating, int? nextReviewDays}) =>
+      RouteTask(
+        question,
+        choice: choice ?? this.choice,
+        rating: rating ?? this.rating,
+        nextReviewDays: nextReviewDays ?? this.nextReviewDays,
+      );
+}

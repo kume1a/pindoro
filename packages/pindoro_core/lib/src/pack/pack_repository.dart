@@ -31,5 +31,18 @@ abstract interface class PackRepository {
   /// older pack.
   Map<String, Set<String>> chunkNeighbours();
 
+  /// Each junction's OSM node id (format 5), by pack junction id: the stable
+  /// part of route item ids. Empty for an older pack.
+  Map<int, int> junctionNodes();
+
+  /// The bridges over the river (format 5); empty for an older pack.
+  List<Bridge> bridges();
+
+  /// The landmarks the junction items use (format 5); empty for an older pack.
+  List<Landmark> landmarks();
+
+  /// The turns worth knowing, rank order (format 5); empty for an older pack.
+  List<JunctionItem> junctionItems();
+
   void close();
 }

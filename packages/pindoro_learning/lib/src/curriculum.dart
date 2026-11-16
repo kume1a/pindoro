@@ -115,6 +115,10 @@ class Curriculum {
     null => null,
   };
 
+  /// The city's streets that pass [test].
+  Iterable<NamedStreet> streetsWhere(bool Function(NamedStreet) test) =>
+      _byId.values.where(test);
+
   /// Every street of [chunk], any tier.
   List<NamedStreet> streetsIn(String chunk) => _chunkStreets[chunk] ?? const [];
 

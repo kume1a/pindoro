@@ -8,7 +8,7 @@ import type { Sql } from "postgres";
 import type { CityConfig } from "./config.ts";
 import { isoSeconds, replaceAtomically, writeJson } from "./io.ts";
 
-export const PACK_FORMAT_VERSION = 4;
+export const PACK_FORMAT_VERSION = 5;
 
 // Mirrors docs/pack-format.md exactly; `validate` diffs packs against it.
 export const PACK_DDL = `
@@ -81,19 +81,64 @@ CREATE TABLE street_district (
 CREATE INDEX street_district_district ON street_district (district_id);
 
 CREATE TABLE junction (
-  id  INTEGER PRIMARY KEY,
-  lat REAL NOT NULL,
-  lon REAL NOT NULL
+  id      INTEGER PRIMARY KEY,
+  node_id INTEGER NOT NULL,
+  lat     REAL NOT NULL,
+  lon     REAL NOT NULL
+);
+
+CREATE TABLE bridge (
+  id       TEXT PRIMARY KEY,
+  name_ka  TEXT NOT NULL,
+  name_en  TEXT,
+  mid_lat  REAL NOT NULL,
+  mid_lon  REAL NOT NULL,
+  geometry TEXT NOT NULL
 );
 
 CREATE TABLE road_edge (
   id            INTEGER PRIMARY KEY,
   from_junction INTEGER NOT NULL REFERENCES junction (id),
   to_junction   INTEGER NOT NULL REFERENCES junction (id),
-  street_id     TEXT NOT NULL REFERENCES street (id),
+  street_id     TEXT REFERENCES street (id),
+  oneway        INTEGER NOT NULL CHECK (oneway IN (-1, 0, 1)),
+  bridge_id     TEXT REFERENCES bridge (id),
   length_m      REAL NOT NULL,
   geometry      TEXT NOT NULL
 );
+
+CREATE TABLE turn_restriction (
+  from_edge    INTEGER NOT NULL REFERENCES road_edge (id),
+  via_junction INTEGER NOT NULL REFERENCES junction (id),
+  to_edge      INTEGER NOT NULL REFERENCES road_edge (id),
+  only         INTEGER NOT NULL CHECK (only IN (0, 1)),
+  PRIMARY KEY (from_edge, via_junction, to_edge)
+) WITHOUT ROWID;
+
+CREATE TABLE landmark (
+  id       TEXT PRIMARY KEY,
+  kind     TEXT NOT NULL,
+  name_ka  TEXT NOT NULL,
+  name_en  TEXT,
+  brand    TEXT,
+  salience REAL NOT NULL,
+  lat      REAL NOT NULL,
+  lon      REAL NOT NULL
+);
+
+CREATE TABLE junction_item (
+  junction_id   INTEGER NOT NULL REFERENCES junction (id),
+  approach_edge INTEGER NOT NULL REFERENCES road_edge (id),
+  exit_edge     INTEGER NOT NULL REFERENCES road_edge (id),
+  layer         TEXT NOT NULL CHECK (layer IN ('skeleton', 'district', 'gateway_out', 'gateway_in', 'bridge')),
+  rank          INTEGER NOT NULL,
+  chunk_id      TEXT REFERENCES district (id),
+  dest_chunk_id TEXT REFERENCES district (id),
+  landmark_id   TEXT REFERENCES landmark (id),
+  landmark_side TEXT CHECK (landmark_side IN ('left', 'right')),
+  bridge_id     TEXT REFERENCES bridge (id),
+  PRIMARY KEY (junction_id, approach_edge, exit_edge)
+) WITHOUT ROWID;
 
 CREATE TABLE family (
   parent_street_id TEXT NOT NULL REFERENCES street (id),
@@ -264,21 +309,74 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
      WHERE ${streetInPack("s.key")} ORDER BY s.key`,
     scope,
   );
+  // A fixture keeps its streets' edges and the connectors between their junctions.
+  const edgeIds = (
+    await sql.unsafe(
+      `WITH street_edge AS (
+         SELECT e.* FROM pipeline.road_edge e
+         WHERE e.street_key IS NOT NULL AND ${streetInPack("e.street_key")}
+       ),
+       kept_junction AS (
+         SELECT unnest(ARRAY[from_junction, to_junction]) AS id FROM street_edge
+       )
+       SELECT id::float8 AS id FROM street_edge
+       UNION
+       SELECT e.id::float8 FROM pipeline.road_edge e
+       WHERE e.street_key IS NULL
+         AND ($1::text IS NULL OR (e.from_junction IN (SELECT id FROM kept_junction)
+                                   AND e.to_junction IN (SELECT id FROM kept_junction)))`,
+      scope,
+    )
+  ).map((r) => r.id as number);
   const edges = await sql.unsafe(
     `SELECT e.id::float8 AS id, e.from_junction::float8 AS from_junction,
-            e.to_junction::float8 AS to_junction, e.street_key::float8 AS street_key, e.length_m,
-            ST_AsGeoJSON(e.geom, 7) AS geojson
-     FROM pipeline.road_edge e
-     WHERE ${streetInPack("e.street_key")} ORDER BY e.id`,
-    scope,
+            e.to_junction::float8 AS to_junction, e.street_key::float8 AS street_key, e.oneway,
+            b.bridge_id, e.length_m, ST_AsGeoJSON(e.geom, 7) AS geojson
+     FROM pipeline.road_edge e LEFT JOIN pipeline.edge_bridge b ON b.edge_id = e.id
+     WHERE e.id = ANY($1::bigint[]) ORDER BY e.id`,
+    [edgeIds],
   );
   const junctions = await sql.unsafe(
-    `SELECT j.id::float8 AS id, ST_Y(j.geom) AS lat, ST_X(j.geom) AS lon
-     FROM pipeline.junction_point j
+    `SELECT j.id::float8 AS id, jn.node_id::float8 AS node_id, ST_Y(j.geom) AS lat, ST_X(j.geom) AS lon
+     FROM pipeline.junction_point j JOIN pipeline.junction jn USING (id)
      WHERE j.id IN (SELECT unnest(ARRAY[e.from_junction, e.to_junction]) FROM pipeline.road_edge e
-                    WHERE ${streetInPack("e.street_key")})
+                    WHERE e.id = ANY($1::bigint[]))
      ORDER BY j.id`,
-    scope,
+    [edgeIds],
+  );
+  const restrictions = await sql.unsafe(
+    `SELECT from_edge::float8 AS from_edge, via_junction::float8 AS via_junction,
+            to_edge::float8 AS to_edge, is_only::int AS only
+     FROM pipeline.turn_restriction
+     WHERE from_edge = ANY($1::bigint[]) AND to_edge = ANY($1::bigint[]) ORDER BY 1, 2, 3`,
+    [edgeIds],
+  );
+  const bridges = await sql.unsafe(
+    `SELECT b.id, b.name_ka, b.name_en, ST_AsGeoJSON(b.geom, 7) AS geojson,
+            ST_Y(ST_PointOnSurface(b.geom)) AS mid_lat, ST_X(ST_PointOnSurface(b.geom)) AS mid_lon
+     FROM pipeline.bridge b
+     WHERE b.id IN (SELECT bridge_id FROM pipeline.edge_bridge WHERE edge_id = ANY($1::bigint[]))
+        OR b.id IN (SELECT bridge_id FROM pipeline.junction_item
+                    WHERE approach_edge = ANY($1::bigint[]) AND exit_edge = ANY($1::bigint[]))
+     ORDER BY b.id`,
+    [edgeIds],
+  );
+  const items = await sql.unsafe(
+    `SELECT i.junction_id::float8 AS junction_id, i.approach_edge::float8 AS approach_edge,
+            i.exit_edge::float8 AS exit_edge, i.layer, i.rank,
+            CASE WHEN ${areaInPack("i.chunk_id")} THEN i.chunk_id END AS chunk_id,
+            CASE WHEN ${areaInPack("i.dest_chunk_id")} THEN i.dest_chunk_id END AS dest_chunk_id,
+            i.landmark_id, i.landmark_side, i.bridge_id
+     FROM pipeline.junction_item i
+     WHERE i.approach_edge = ANY($3::bigint[]) AND i.exit_edge = ANY($3::bigint[])
+     ORDER BY i.rank`,
+    [...scope, edgeIds],
+  );
+  const landmarks = await sql.unsafe(
+    `SELECT l.id, l.kind, l.name_ka, l.name_en, l.brand, l.base AS salience,
+            ST_Y(l.geom) AS lat, ST_X(l.geom) AS lon
+     FROM pipeline.landmark l WHERE l.id = ANY($1::text[]) ORDER BY l.id`,
+    [[...new Set(items.map((i) => i.landmark_id).filter((id) => id !== null))]],
   );
   const families = await sql.unsafe(
     `SELECT f.parent_key::float8 AS parent_key, f.child_key::float8 AS child_key, f.kind, f.n,
@@ -352,15 +450,37 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
       const link = db.prepare("INSERT INTO street_district VALUES (?, ?, ?, ?)");
       for (const l of links) link.run(streetId(l.street_key), l.district_id, l.length_m, l.share);
 
-      const junction = db.prepare("INSERT INTO junction VALUES (@id, @lat, @lon)");
+      const junction = db.prepare("INSERT INTO junction VALUES (@id, @node_id, @lat, @lon)");
       for (const j of junctions) junction.run(j);
+      const bridge = db.prepare(
+        "INSERT INTO bridge VALUES (@id, @name_ka, @name_en, @mid_lat, @mid_lon, @geometry)",
+      );
+      for (const { geojson, ...b } of bridges) bridge.run({ ...b, geometry: multiline6(geojson) });
       const edge = db.prepare(
-        `INSERT INTO road_edge VALUES (@id, @from_junction, @to_junction, @street_id, @length_m,
-          @geometry)`,
+        `INSERT INTO road_edge VALUES (@id, @from_junction, @to_junction, @street_id, @oneway,
+          @bridge_id, @length_m, @geometry)`,
       );
       for (const { street_key, geojson, ...e } of edges) {
-        edge.run({ ...e, street_id: streetId(street_key), geometry: line6(geojson) });
+        edge.run({
+          ...e,
+          street_id: street_key === null ? null : streetId(street_key),
+          geometry: line6(geojson),
+        });
       }
+      const restriction = db.prepare("INSERT INTO turn_restriction VALUES (?, ?, ?, ?)");
+      for (const r of restrictions) {
+        restriction.run(r.from_edge, r.via_junction, r.to_edge, r.only);
+      }
+      const landmark = db.prepare(
+        `INSERT INTO landmark VALUES (@id, @kind, @name_ka, @name_en, @brand, @salience, @lat,
+          @lon)`,
+      );
+      for (const l of landmarks) landmark.run(l);
+      const item = db.prepare(
+        `INSERT INTO junction_item VALUES (@junction_id, @approach_edge, @exit_edge, @layer, @rank,
+          @chunk_id, @dest_chunk_id, @landmark_id, @landmark_side, @bridge_id)`,
+      );
+      for (const i of items) item.run(i);
 
       const family = db.prepare("INSERT INTO family VALUES (?, ?, ?, ?, ?)");
       for (const f of families) {

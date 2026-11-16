@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
+import 'junction_sample.dart';
+
 /// Animations off, so pops and count-ups show their final frame.
 Widget _host(Widget child, {Brightness brightness = Brightness.light}) =>
     MaterialApp(
@@ -870,6 +872,92 @@ void main() {
         await expectLater(
           find.byType(Scaffold),
           matchesGoldenFile('goldens/bearing_${brightness.name}.png'),
+        );
+      });
+    }
+
+    for (final brightness in Brightness.values) {
+      testWidgets('junction map ${brightness.name}', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(1160, 640));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        Widget map(
+          JunctionState state, {
+          ExitDirection? chosen,
+          ExitDirection? correct,
+        }) => ClipRRect(
+          borderRadius: BorderRadius.circular(PindoroRadius.xl),
+          child: SizedBox(
+            width: 360,
+            height: 560,
+            child: JunctionMap(
+              geometry: sampleJunction,
+              state: state,
+              chosen: chosen,
+              correct: correct,
+              onChoose: (_) {},
+              exitLabel: exitLabel,
+              semanticsLabel: 'Unlabelled map of the junction ahead',
+              landmark: sampleLandmark,
+            ),
+          ),
+        );
+        await tester.pumpWidget(
+          _host(
+            brightness: brightness,
+            Row(
+              spacing: 16,
+              children: [
+                map(JunctionState.choosing, chosen: ExitDirection.right),
+                map(JunctionState.right, correct: ExitDirection.right),
+                map(
+                  JunctionState.wrong,
+                  chosen: ExitDirection.straight,
+                  correct: ExitDirection.right,
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await expectLater(
+          find.byType(Scaffold),
+          matchesGoldenFile('goldens/junction_${brightness.name}.png'),
+        );
+      });
+
+      testWidgets('route marks ${brightness.name}', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(560, 160));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await tester.pumpWidget(
+          _host(
+            brightness: brightness,
+            Row(
+              spacing: 16,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final d in [
+                  ExitDirection.left,
+                  ExitDirection.straight,
+                  ExitDirection.right,
+                ])
+                  ExitButton(
+                    direction: d,
+                    selected: d == ExitDirection.right,
+                    onTap: () {},
+                    semanticsLabel: exitLabel(d),
+                  ),
+                sampleLandmark,
+                const CarMarker(),
+                const MapTip('2'),
+                const MapTip('3', selected: true),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await expectLater(
+          find.byType(Scaffold),
+          matchesGoldenFile('goldens/route_marks_${brightness.name}.png'),
         );
       });
     }

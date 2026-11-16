@@ -8,7 +8,9 @@ part 'learning_dao.g.dart';
 /// The learning cards, the append-only review log and the mix-up pairs
 /// (docs/learning/SPEC.md §2.2). pindoro_learning decides every change; this
 /// only maps rows and writes them.
-@DriftAccessor(tables: [CardStates, ReviewLogs, Confusions, LearnCities])
+@DriftAccessor(
+  tables: [CardStates, ReviewLogs, Confusions, LearnCities, LandmarkPersonal],
+)
 class LearningDao extends DatabaseAccessor<AppDatabase>
     with _$LearningDaoMixin {
   LearningDao(super.attachedDatabase);
@@ -118,6 +120,20 @@ class LearningDao extends DatabaseAccessor<AppDatabase>
       onConflict: DoUpdate((_) => row),
     );
   }
+
+  /// The player's own landmarks, newest first (SPEC §9).
+  Future<List<PersonalLandmarkRow>> personalLandmarks() =>
+      (select(landmarkPersonal)..orderBy([
+            (l) => OrderingTerm.desc(l.createdAt),
+            (l) => OrderingTerm.desc(l.id),
+          ]))
+          .get();
+
+  Future<void> savePersonalLandmark(PersonalLandmarkRow landmark) =>
+      into(landmarkPersonal).insertOnConflictUpdate(landmark);
+
+  Future<void> deletePersonalLandmark(String id) =>
+      (delete(landmarkPersonal)..where((l) => l.id.equals(id))).go();
 
   static CardState _card(CardStateRow r) => CardState(
     itemId: r.itemId,

@@ -256,5 +256,17 @@ class _FilteredPack implements PackRepository {
   Map<String, Set<String>> chunkNeighbours() => _inner.chunkNeighbours();
 
   @override
+  Map<int, int> junctionNodes() => _inner.junctionNodes();
+
+  @override
+  List<Bridge> bridges() => _inner.bridges();
+
+  @override
+  List<Landmark> landmarks() => _inner.landmarks();
+
+  @override
+  List<JunctionItem> junctionItems() => _inner.junctionItems();
+
+  @override
   void close() => _inner.close();
 }

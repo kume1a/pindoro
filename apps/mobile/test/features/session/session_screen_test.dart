@@ -17,6 +17,7 @@ import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro/features/session/ui/session_screen.dart';
 import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro_design/pindoro_design.dart' show JunctionMap;
 import 'package:pindoro_learning/pindoro_learning.dart';
 
 import '../../support/settle.dart';
@@ -40,6 +41,9 @@ void main() {
   late NamedStreet avenue;
   late List<Crossing> crossings;
 
+  /// The Vake pack's route items.
+  late RouteBook routes;
+
   setUpAll(() {
     final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
     final byPart = streetsByPartId(repo.streets());
@@ -55,6 +59,20 @@ void main() {
       final p = byPart[f.parentId]!, c = byPart[f.childId]!;
       if (p != c) children.putIfAbsent(p, () => {}).add(c);
     }
+    routes = buildRouteBook(
+      graph: repo.roadGraph()!,
+      junctionNodes: repo.junctionNodes(),
+      items: repo.junctionItems(),
+      landmarks: repo.landmarks(),
+      bridges: repo.bridges(),
+      streets: byPart,
+      curriculum: Curriculum(
+        streets: byPart.values,
+        districts: repo.districts(),
+        centre: repo.city().center,
+        families: repo.families(),
+      ),
+    );
     final family = children.entries.firstWhere((e) => e.value.length >= 2);
     sweepParent = family.key;
     lanes = family.value.take(2).toList();
@@ -507,6 +525,73 @@ void main() {
       final row = (await dao.log()).single;
       expect((row.format, row.rating), (ReviewFormat.bearing, Rating.good));
       expect(await dao.cards(), isEmpty);
+    });
+  });
+
+  group('M5 route cards', () {
+    T first<T extends RouteQuestion>([bool Function(T)? test]) =>
+        routes.questions.values.whereType<T>().firstWhere(test ?? (_) => true);
+
+    testWidgets('a J card: the right exit is Right!; a wrong one comes back', (
+      tester,
+    ) async {
+      final q = first<TurnQuestion>();
+      final wrong = q.exits.keys.firstWhere((t) => t != q.correct);
+      await pump(tester, [(kind: StepKind.review, itemId: q.itemId)]);
+      expect(find.byType(JunctionMap), findsOneWidget);
+      controller(tester).choose(wrong);
+      await settle(tester);
+      await tapThrough(tester, find.text('Confirm'));
+      expect(find.text('Not this one'), findsOneWidget);
+      expect(find.text('Back in this session'), findsOneWidget);
+      await tapThrough(tester, find.text('Next'));
+      controller(tester).choose(q.correct);
+      await settle(tester);
+      await tapThrough(tester, find.text('Confirm'));
+      expect(find.text('Right!'), findsOneWidget);
+      final log = await dao.log();
+      expect(log.map((e) => (e.format, e.rating)), [
+        (ReviewFormat.junction, Rating.again),
+        (ReviewFormat.junction, Rating.good),
+      ]);
+    });
+
+    testWidgets('a gateway: the pin at the junction and the street typed', (
+      tester,
+    ) async {
+      final q = first<GatewayQuestion>((q) => q.exitStreet != null);
+      await pump(tester, [(kind: StepKind.review, itemId: q.itemId)]);
+      expect(find.text(q.out ? 'Way out of' : 'Way into'), findsOneWidget);
+      maps.last.onTap!(q.at);
+      await settle(tester);
+      await tester.enterText(find.byType(TextField), q.exitStreet!.name);
+      await tapThrough(tester, find.text('Confirm'));
+      final row = (await dao.log()).single;
+      expect((row.format, row.rating), (ReviewFormat.gateway, Rating.good));
+    });
+
+    testWidgets('a connection: type the street at the other end', (
+      tester,
+    ) async {
+      final q = first<ConnectionQuestion>();
+      await pump(tester, [(kind: StepKind.review, itemId: q.itemId)]);
+      await tester.enterText(find.byType(TextField), q.to.name);
+      await settle(tester);
+      await tapThrough(tester, find.text('Check'));
+      final row = (await dao.log()).single;
+      expect((row.format, row.rating), (ReviewFormat.connection, Rating.good));
+    });
+
+    testWidgets('a landmark card: pick its junction', (tester) async {
+      final q = first<LandmarkQuestion>((q) => q.n == 2);
+      await pump(tester, [(kind: StepKind.review, itemId: q.itemId)]);
+      expect(find.textContaining(q.landmark.name), findsWidgets);
+      controller(tester).choose(q.junction!);
+      await settle(tester);
+      await tapThrough(tester, find.text('Confirm'));
+      final row = (await dao.log()).single;
+      expect((row.format, row.rating), (ReviewFormat.landmark, Rating.good));
+      expect((await dao.card(q.itemId))!.phase, CardPhase.review);
     });
   });
 }

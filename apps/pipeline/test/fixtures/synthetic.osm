@@ -18,6 +18,11 @@
     w116 neighbourhood "ცარიელი" with no streets                            -> dropped as too thin
     w118 "ჩრდილოეთი" (lon 44.752-44.790) and w119 "გზაჯვარედინი" (lon 44.750-44.755) overlap on
     Cross Avenue (665 m and 415 m of it)                                    -> chunk neighbours
+  Routes (w2101-w2104, r3001) east of the river crossing:
+    w2101 + w2105 "East Street" (secondary) 901-902-903; w2102 + w2106 "Turn Street" one-way north
+    904-902-905; r3001 no_left_turn from w2101 via 902 onto w2106; a restriction whose ways pass
+    through the via node (r3002) is left out; w2103 unnamed 903-906-907
+    (a connector); w2104 bridge "Test Bridge" 907-908 over the river; n910 fuel "Test Fuel" at 902
   Lane families (w2015-w2022), "ტყის ..." (Forest ...):
     w2015 ტყის ქუჩა north-west, w2021 a second ტყის ქუჩა 6 km south-east
     w2016 ტყის I შესახვევი and w2017 ტყის II ჩიხი beside w2015, w2019 ტყის I შესახვევის I ჩიხი on w2016
@@ -101,6 +106,19 @@
   <node id="606" version="1" lat="41.726" lon="44.755"/>
   <node id="607" version="1" lat="41.734" lon="44.755"/>
   <node id="608" version="1" lat="41.734" lon="44.750"/>
+  <node id="901" version="1" lat="41.720" lon="44.760"/>
+  <node id="902" version="1" lat="41.720" lon="44.765"/>
+  <node id="903" version="1" lat="41.720" lon="44.770"/>
+  <node id="904" version="1" lat="41.717" lon="44.765"/>
+  <node id="905" version="1" lat="41.723" lon="44.765"/>
+  <node id="906" version="1" lat="41.722" lon="44.772"/>
+  <node id="907" version="1" lat="41.7235" lon="44.775"/>
+  <node id="908" version="1" lat="41.7265" lon="44.775"/>
+  <node id="910" version="1" lat="41.7203" lon="44.7645">
+    <tag k="amenity" v="fuel"/>
+    <tag k="name" v="Test Fuel"/>
+    <tag k="brand" v="TF"/>
+  </node>
 
   <way id="101" version="1">
     <nd ref="1"/><nd ref="5"/><nd ref="2"/><nd ref="3"/><nd ref="6"/><nd ref="4"/><nd ref="1"/>
@@ -260,6 +278,40 @@
     <tag k="name" v="ტყის IV ჩიხი"/>
   </way>
 
+  <way id="2101" version="1">
+    <nd ref="901"/><nd ref="902"/>
+    <tag k="highway" v="secondary"/>
+    <tag k="name" v="East Street"/>
+  </way>
+  <way id="2102" version="1">
+    <nd ref="904"/><nd ref="902"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="Turn Street"/>
+    <tag k="oneway" v="yes"/>
+  </way>
+  <way id="2103" version="1">
+    <nd ref="903"/><nd ref="906"/><nd ref="907"/>
+    <tag k="highway" v="residential"/>
+  </way>
+  <way id="2104" version="1">
+    <nd ref="907"/><nd ref="908"/>
+    <tag k="highway" v="secondary"/>
+    <tag k="name" v="Bridge Way"/>
+    <tag k="bridge" v="yes"/>
+    <tag k="bridge:name" v="Test Bridge"/>
+  </way>
+  <way id="2105" version="1">
+    <nd ref="902"/><nd ref="903"/>
+    <tag k="highway" v="secondary"/>
+    <tag k="name" v="East Street"/>
+  </way>
+  <way id="2106" version="1">
+    <nd ref="902"/><nd ref="905"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="Turn Street"/>
+    <tag k="oneway" v="yes"/>
+  </way>
+
   <relation id="1000" version="1">
     <member type="way" ref="101" role="outer"/>
     <member type="relation" ref="1001" role="subarea"/>
@@ -299,5 +351,19 @@
     <tag k="place" v="quarter"/>
     <tag k="name" v="შუა"/>
     <tag k="name:en" v="Middle"/>
+  </relation>
+  <relation id="3001" version="1">
+    <member type="way" ref="2101" role="from"/>
+    <member type="node" ref="902" role="via"/>
+    <member type="way" ref="2106" role="to"/>
+    <tag k="type" v="restriction"/>
+    <tag k="restriction" v="no_left_turn"/>
+  </relation>
+  <relation id="3002" version="1">
+    <member type="way" ref="2103" role="from"/>
+    <member type="node" ref="906" role="via"/>
+    <member type="way" ref="2103" role="to"/>
+    <tag k="type" v="restriction"/>
+    <tag k="restriction" v="no_u_turn"/>
   </relation>
 </osm>

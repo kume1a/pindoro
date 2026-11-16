@@ -20,18 +20,23 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                top bar and streak pill), pack (+ the road graph), map (the map, the
                                area picker map, the pin-drop view; the route draw layer waits for
                                M6 recitals), learning (LearningDao: the v3 cards, review log,
-                               mix-up pairs and learn_city; pindoro_learning decides, it only
+                               mix-up pairs, learn_city and the player's landmarks
+                               (`landmark_personal`, `personalLandmarksProvider`, the kind glyphs); pindoro_learning decides, it only
                                stores; today's and Learn 5 more plans, carry-over, Progress data,
-                               day marking and the reminder, Explore answers into cards; ui/: the
-                               City memory card), account (AccountApi, AccountDao, BackupSync, the
+                               day marking and the reminder, Explore answers into cards, the route
+                               book (`routeBookProvider`: the pack's J/G/B/C/L items and your
+                               landmarks' L cards); ui/: the City memory card, junction names), account (AccountApi, AccountDao, BackupSync, the
                                sign-in screen and Settings group), badges (stats, awards, the
                                shelf tile, the reward sheet and BadgeMoments), home (Explore),
                                setup (welcome, city, area, difficulty), quiz (Explore round),
-                               results (results, street), settings (+ learning settings and the
-                               home/work picker), streak, me, session (SessionController plays
+                               results (results, street), settings (+ learning settings, the
+                               home/work picker and your landmarks: list, add on the map
+                               snapped to a junction), streak, me, session (SessionController plays
                                today's plan, Learn 5 more or the city's placement; each step's
                                SessionTask: a pin, Name it, both ends, the family sweep, the
-                               crossings drill or a bearing, with their views over TaskScaffold;
+                               crossings drill, a bearing or a route card (RouteView: the
+                               JunctionMap turn, gateway, bridge, connection, landmark), with
+                               their views over TaskScaffold;
                                intro (a leech's with its mix-up and note), reveal, Session done,
                                the placement result), today (the Today tab), memory (the Progress
                                tab: overview and a district)
@@ -67,7 +72,8 @@ test/drift/                    generated schema helpers + migration test
   `/welcome`, `/city` (`?learn=1` goes on to Today instead of the area picker), `/area`,
   `/difficulty`, `/round` (`?round=` resumes, `?retry=` retries), `/results`, `/streak`,
   `/settings`, `/settings/credits`, `/session` (`?placement=1` places, `?more=1` learns 5 more),
-  `/progress/district?id=`, `/settings/learning` and `/settings/learning/anchor?which=`.
+  `/progress/district?id=`, `/settings/learning`, `/settings/learning/anchor?which=`,
+  `/settings/learning/landmarks` and `/settings/learning/landmarks/add`.
   `startLocation`: a saved Explore round reopens Explore; a player who finished a round or placed
   a city (`learn_city`) opens Today; anyone else gets Welcome, whose Choose a city leads to Today
   and its placement. Footers end 12 dp above the bar on a tab (`bottomActionGap`).

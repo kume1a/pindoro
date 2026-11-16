@@ -4,7 +4,9 @@ import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/data/carry_over.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
+import 'package:pindoro/features/learning/data/route_book.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
+import 'package:pindoro/features/progress/data/streak.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
 /// The open pack's curriculum (SPEC §6), built once per pack.
@@ -54,7 +56,10 @@ final cardsByItemProvider = FutureProvider.autoDispose<Map<String, CardState>>((
   final streets = await ref.watch(cityStreetsProvider.future);
   return {
     for (final card in await ref.watch(cityCardsProvider.future))
-      card.type.item(streets[itemKey(card.itemId)]!.id): card,
+      switch (streets[itemKey(card.itemId)]) {
+        final street? => card.type.item(street.id),
+        null => card.itemId,
+      }: card,
   };
 });
 
@@ -83,17 +88,21 @@ final newCandidatesProvider = FutureProvider.autoDispose
       return [for (final id in picks) CardType.p.item(id)];
     });
 
-/// The open city's cards. A card whose street left the pack is skipped; one
-/// keyed by another part of a street still counts as that street's card.
+/// The open city's cards. A street card whose street left the pack is
+/// skipped, and a route card the pack doesn't ask; one keyed by another part
+/// of a street still counts as that street's card.
 final cityCardsProvider = FutureProvider.autoDispose<List<CardState>>((
   ref,
 ) async {
   final dao = ref.watch(learningDaoProvider);
   final streets = await ref.watch(cityStreetsProvider.future);
+  final routes = await ref.watch(routeBookProvider.future);
   await ref.watch(carryOverProvider.future);
   return [
     for (final card in await dao.cards())
-      if (streets.containsKey(itemKey(card.itemId))) card,
+      if (streets.containsKey(itemKey(card.itemId)) ||
+          routes.questions.containsKey(card.itemId))
+        card,
   ];
 });
 
@@ -125,6 +134,8 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
   final byItemFuture = ref.watch(cardsByItemProvider.future);
   final streetCardsFuture = ref.watch(streetCardsProvider.future);
   final curriculumFuture = ref.watch(curriculumProvider.future);
+  final routesFuture = ref.watch(routeBookProvider.future);
+  final streakFuture = ref.watch(streakProvider.future);
   final candidatesFuture = ref.watch(
     newCandidatesProvider(
       extraNew ?? LearningConfig.newPerDay[settings.minutesPerDay] ?? 0,
@@ -133,7 +144,7 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
   final streets = await streetsFuture;
   final cards = await cardsFuture;
   final cardedStreets = {
-    for (final card in cards) streets[itemKey(card.itemId)]!.id,
+    for (final card in cards) ?streets[itemKey(card.itemId)]?.id,
   };
   final candidates = [
     for (final id in await candidatesFuture)
@@ -156,7 +167,19 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
     spentTodayS: spentTodayS(log, now),
     extraNew: extraNew,
     openSides: learnMore ? const [] : curriculum.openSides(byItem),
-    sidesStartedToday: sidesStartedToday(today, now),
+    sidesStartedToday: startedToday(today, now, sideTypes),
+    openRoutes: learnMore
+        ? const []
+        : curriculum.openRoutes(
+            (await routesFuture).candidates,
+            cards: await streetCardsFuture,
+            carded: {for (final c in cards) c.itemId},
+            now: now,
+            phase2Open:
+                (await streakFuture).summary.days >=
+                LearningConfig.phase2StableDays,
+          ),
+    routesStartedToday: startedToday(today, now, routeTypes),
     drills: learnMore
         ? Drills.none
         : planDrills(

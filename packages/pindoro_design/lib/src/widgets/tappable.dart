@@ -12,6 +12,7 @@ class Tappable extends StatelessWidget {
     this.label,
     this.button = true,
     this.checked,
+    this.toggled,
     this.selected,
     this.inMutuallyExclusiveGroup = false,
     this.onTapDown,
@@ -27,6 +28,9 @@ class Tappable extends StatelessWidget {
   final String? label;
   final bool button;
   final bool? checked;
+
+  /// A toggle button's state (an exit button), announced as on or off.
+  final bool? toggled;
   final bool? selected;
   final bool inMutuallyExclusiveGroup;
   final GestureTapDownCallback? onTapDown;
@@ -38,6 +42,7 @@ class Tappable extends StatelessWidget {
     button: button,
     enabled: onTap != null,
     checked: checked,
+    toggled: toggled,
     selected: selected,
     inMutuallyExclusiveGroup: inMutuallyExclusiveGroup,
     label: label,

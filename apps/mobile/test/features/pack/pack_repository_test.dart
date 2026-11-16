@@ -9,12 +9,31 @@ void main() {
   setUpAll(() => pack = SqlitePackRepository.open(AppConfig.fixturePackAsset));
   tearDownAll(() => pack.close());
 
-  test('meta describes a v4 fixture pack with attribution', () {
+  test('meta describes a v5 fixture pack with attribution', () {
     final meta = pack.meta();
-    expect(meta['format_version'], '4');
+    expect(meta['format_version'], '5');
     expect(meta['scope'], 'fixture');
     expect(meta['version'], isNotEmpty);
     expect(meta['attribution'], contains('OpenStreetMap'));
+  });
+
+  test('format 5 adds the junction items, their landmarks and the junctions\' '
+      'OSM nodes', () {
+    final items = pack.junctionItems();
+    expect(items, isNotEmpty);
+    expect(
+      items.map((i) => i.rank),
+      orderedEquals([...items.map((i) => i.rank)]..sort()),
+    );
+    final nodes = pack.junctionNodes();
+    expect(items.every((i) => nodes.containsKey(i.junctionId)), isTrue);
+    final landmarks = {for (final l in pack.landmarks()) l.id};
+    expect(
+      items
+          .where((i) => i.landmarkId != null)
+          .every((i) => landmarks.contains(i.landmarkId)),
+      isTrue,
+    );
   });
 
   test('the fixture holds Vake and the quarters and neighbourhoods in it', () {
@@ -71,7 +90,13 @@ void main() {
     final graph = pack.roadGraph()!;
     final parts = {for (final s in pack.streets()) s.id};
     expect(graph.edges, isNotEmpty);
-    expect(graph.edges.every((e) => parts.contains(e.streetId)), isTrue);
+    expect(
+      graph.edges.every(
+        (e) => e.streetId == null || parts.contains(e.streetId),
+      ),
+      isTrue,
+      reason: 'an edge is a street part or a connector',
+    );
     final edge = graph.edges.first;
     expect(edge.line.first.lat, closeTo(graph.at(edge.from).lat, 1e-5));
     expect(edge.line.last.lon, closeTo(graph.at(edge.to).lon, 1e-5));
