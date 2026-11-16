@@ -17,12 +17,12 @@ import 'package:pindoro_design/pindoro_design.dart';
 enum _Locating { idle, busy, denied }
 
 /// Pick a city the app has a pack for: search, "Use my location", recents.
-/// A city goes on to the area picker (Free play), or for a new player's
-/// [course] to the start-district picker.
+/// A city goes on to the area picker (Explore), or for a new player who
+/// came to [learn] to Today and its placement.
 class CityScreen extends ConsumerStatefulWidget {
-  const CityScreen({super.key, this.course = false});
+  const CityScreen({super.key, this.learn = false});
 
-  final bool course;
+  final bool learn;
 
   @override
   ConsumerState<CityScreen> createState() => _CityScreenState();
@@ -47,8 +47,11 @@ class _CityScreenState extends ConsumerState<CityScreen> {
     ref.read(feedbackProvider).tap();
     try {
       await ref.read(settingsDaoProvider).chooseCity(cityId);
-      if (mounted) {
-        await context.push(widget.course ? Routes.startDistrict : Routes.area);
+      if (!mounted) return;
+      if (widget.learn) {
+        context.go(Routes.today);
+      } else {
+        await context.push(Routes.area);
       }
     } finally {
       _picking = false;

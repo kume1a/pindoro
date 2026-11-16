@@ -10,9 +10,9 @@ import 'package:pindoro/core/launch_overlay.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/account/data/account_data.dart';
 import 'package:pindoro/features/badges/data/badge_data.dart';
-import 'package:pindoro/features/league/data/league_data.dart';
+import 'package:pindoro/features/learning/data/day.dart';
+import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/pack/data/app_update.dart';
-import 'package:pindoro/features/pitstop/data/pit_stop_data.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/progress/data/streak.dart';
@@ -47,26 +47,30 @@ class _PindoroAppState extends ConsumerState<PindoroApp> {
   @override
   void initState() {
     super.initState();
-    // The date may have changed while the app was away, and so may the XP.
+    // The date may have changed while the app was away, and so may what is
+    // due.
     _lifecycle = AppLifecycleListener(
       onResume: () => ref
         ..invalidate(streakProvider)
-        ..invalidate(pitStopProvider)
-        ..invalidate(standingProvider),
+        ..invalidate(reminderProvider)
+        ..invalidate(todayPlanProvider),
       // The app may not come back: a waiting backup goes up now.
       onHide: () => unawaited(ref.read(backupSyncProvider).flushWaiting()),
     );
     // Starts watching for progress to back up.
     ref.read(backupSyncProvider);
-    // Listening keeps the standing alive, so the week's XP reaches the
-    // league at launch, on resume and after a lesson, not only on its tab.
-    ref.listenManual(standingProvider, (_, _) {});
     unawaited(_awardPastPlay());
-    // Keeps the one reminder in step with the streak and the settings;
-    // switching it off in Settings cancels it there.
+    // Keeps the one reminder in step with the streak, what is due and the
+    // settings; switching it off in Settings cancels it there.
     ref.listenManual(reminderProvider, (_, next) {
-      if (next case AsyncData(value: final notice?)) {
-        unawaited(ref.read(remindersProvider).schedule(notice));
+      switch (next) {
+        case AsyncData(value: final notice?):
+          unawaited(ref.read(remindersProvider).schedule(notice));
+        // On but nothing due: the scheduled one would remind for nothing.
+        case AsyncData(value: null)
+            when ref.read(settingsProvider).value?.reminder ?? false:
+          unawaited(ref.read(remindersProvider).cancel());
+        default:
       }
     }, fireImmediately: true);
     ref.listenManual(appUpdateProvider, (_, next) {

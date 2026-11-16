@@ -53,18 +53,8 @@ class GameFeedback {
   /// The pin lands in the cold-start moment.
   void launch() => _cue(Sound.launchTok, HapticFeedback.lightImpact);
 
-  /// The next stop on the Path opens.
+  /// The city pack arrived (the loading scene's star lands).
   void unlock() => _cue(Sound.unlock, HapticFeedback.lightImpact);
-
-  /// A road trip's route reaches the next junction.
-  void junction() => _cue(Sound.countTick, HapticFeedback.selectionClick);
-
-  /// A road trip's route reaches B (a two-note arrive).
-  void reached() => _cue(Sound.tierGreat, HapticFeedback.lightImpact);
-
-  /// A unit is complete, and the next unit's signpost flips open (a
-  /// three-note rise).
-  void unitDone() => _cue(Sound.tierPerfect, HapticFeedback.mediumImpact);
 
   /// A badge's reward sheet opens (component Badge § Reward moment).
   void badge() => _cue(Sound.unlock, HapticFeedback.mediumImpact);
@@ -118,15 +108,6 @@ class GameFeedback {
           HapticFeedback.selectionClick,
         ], const Duration(milliseconds: 60));
     }
-  }
-
-  void levelUp() {
-    _play(Sound.levelupFanfare);
-    _sequence([
-      HapticFeedback.heavyImpact,
-      HapticFeedback.mediumImpact,
-      HapticFeedback.lightImpact,
-    ], const Duration(milliseconds: 120));
   }
 
   void _play(Sound s) {

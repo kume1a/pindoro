@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 import 'package:test/test.dart';
 
@@ -182,5 +183,59 @@ void main() {
     );
     final days = {for (final c in cards) c.dueAt!.difference(t0).inDays};
     expect(days, {1, 2, 3, 4, 5, 6, 7});
+  });
+
+  group('Explore answers (SPEC §16.16)', () {
+    PinGrade grade(Rating rating) => PinGrade(
+      tier: rating.isSuccess ? Tier.great : Tier.miss,
+      rating: rating,
+      distanceM: rating.isSuccess ? 40 : 900,
+      snapStreetId: null,
+      isMixUp: false,
+    );
+    ({CardState? card, LogEntry log}) explore(
+      CardState? card,
+      Rating r,
+      DateTime at,
+    ) => exploreAnswer(
+      card,
+      itemId: itemId,
+      grade: grade(r),
+      now: at,
+      rtMs: 5000,
+    );
+
+    test('a first-sight Good creates a prior-known card; a miss is only '
+        'logged', () {
+      final made = explore(null, Rating.good, t0);
+      expect(made.card!.priorKnown, isTrue);
+      expect(made.log.format, ReviewFormat.explore);
+      final missed = explore(null, Rating.again, t0);
+      expect(missed.card, isNull);
+      expect(missed.log.format, ReviewFormat.exploreLog);
+      expect(changesSchedule(missed.log), isFalse);
+    });
+
+    test('a card far from due is only logged; near or past due it is '
+        'reviewed', () {
+      final card = rate(
+        null,
+        Rating.good,
+        t0,
+        format: ReviewFormat.retrieval1,
+      ).card;
+      final interval = card.dueAt!.difference(t0);
+      final early = explore(card, Rating.good, t0.add(interval * 0.2));
+      expect(early.card, isNull);
+      expect(early.log.format, ReviewFormat.exploreLog);
+      final near = explore(card, Rating.good, t0.add(interval * 0.6));
+      expect(near.card!.reps, card.reps + 1);
+      expect(near.log.format, ReviewFormat.explore);
+      expect(near.log.source, ReviewSource.explore);
+    });
+
+    test('a card still waiting for retrieval 1 is left to the session', () {
+      expect(explore(introduce(itemId, t0), Rating.good, t0).card, isNull);
+    });
   });
 }

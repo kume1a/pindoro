@@ -81,6 +81,8 @@ is at S ≥ 3 d; City memory falls when the clock is advanced without reviews.
 
 ## M3 · Replace the old game layer
 
+Status: done (2026-11-16).
+
 Spec §8. Boards V3-00, V3-10, V3-24.
 
 1. Tabs become Today · Explore · Progress · Me (StatefulShellRoute, 4 branches). Explore = the MVP Home and flow,

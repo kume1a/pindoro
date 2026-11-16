@@ -4,20 +4,11 @@ import 'package:pindoro/app/tab_shell.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/account/ui/account_screen.dart';
-import 'package:pindoro/features/course/ui/path_screen.dart';
-import 'package:pindoro/features/course/ui/unit_guide_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
-import 'package:pindoro/features/league/ui/league_screen.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
-import 'package:pindoro/features/lesson/ui/drive_screen.dart';
-import 'package:pindoro/features/lesson/ui/lesson_controller.dart';
-import 'package:pindoro/features/lesson/ui/lesson_done_screen.dart';
-import 'package:pindoro/features/lesson/ui/lesson_screen.dart';
-import 'package:pindoro/features/lesson/ui/unit_done_screen.dart';
 import 'package:pindoro/features/me/ui/me_screen.dart';
 import 'package:pindoro/features/memory/ui/district_progress_screen.dart';
 import 'package:pindoro/features/memory/ui/progress_screen.dart';
-import 'package:pindoro/features/pitstop/ui/pit_stop_screen.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/quiz/ui/quiz_screen.dart';
 import 'package:pindoro/features/results/ui/result_street_screen.dart';
@@ -29,12 +20,9 @@ import 'package:pindoro/features/settings/ui/settings_screen.dart';
 import 'package:pindoro/features/setup/ui/area_screen.dart';
 import 'package:pindoro/features/setup/ui/city_screen.dart';
 import 'package:pindoro/features/setup/ui/difficulty_screen.dart';
-import 'package:pindoro/features/setup/ui/start_district_screen.dart';
 import 'package:pindoro/features/setup/ui/welcome_screen.dart';
-import 'package:pindoro/features/setup/ui/whats_new_screen.dart';
 import 'package:pindoro/features/streak/ui/streak_screen.dart';
 import 'package:pindoro/features/today/ui/today_screen.dart';
-import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// The tabs and Results arrive with a fade rather than a slide (canvas M-40,
@@ -48,51 +36,18 @@ Page<void> _fadePage(GoRouterState state, Widget child) =>
           FadeTransition(opacity: animation, child: child),
     );
 
-/// A started course opens on the Path, or in the lesson the app was killed
-/// in. A player who finished a round before any course started (Free play
-/// only, before the course existed) sees What's new; a first round saved but
-/// unfinished opens Free play, which offers to continue it; anyone else
+/// A saved Explore round reopens Explore, which offers to continue it; a
+/// player who placed a city (or finished a round) opens Today; anyone else
 /// starts at Welcome.
 Future<String> startLocation(AppDatabase db) async {
   final progress = ProgressDao(db);
-  if (await progress.hasCourse()) {
-    final saved = await progress.savedLesson(DateTime.now());
-    return saved == null ? Routes.path : _lessonRoute(saved);
+  if (await progress.resumableRound(DateTime.now()) != null) {
+    return Routes.home;
   }
-  if (await progress.hasPlayed()) return Routes.whatsNew;
-  return await progress.resumableRound(DateTime.now()) != null
-      ? Routes.home
-      : Routes.welcome;
+  return await progress.hasPlayed() ? Routes.today : Routes.welcome;
 }
 
-/// A saved lesson reopens where the app was killed (canvas R4-02).
-String _lessonRoute(SavedLesson saved) => saved.kind == LessonKind.pitStop
-    ? Routes.unitPitStop(saved.unitId)
-    : Routes.lessonOf(
-        saved.unitId,
-        saved.lesson!,
-        practice: saved.kind == LessonKind.practice,
-      );
-
-/// `/lesson?unit=…&lesson=n` (`&practice=1`) or `?unit=…&pit-stop=1`; null
-/// when it names neither.
-LessonArgs? _lessonArgs(GoRouterState state) {
-  final q = state.uri.queryParameters;
-  final unitId = q['unit'];
-  final lesson = int.tryParse(q['lesson'] ?? '');
-  if (unitId == null) return null;
-  if (q.containsKey('pit-stop')) {
-    return (unitId: unitId, kind: LessonKind.pitStop, lesson: null);
-  }
-  if (lesson == null) return null;
-  return (
-    unitId: unitId,
-    kind: q.containsKey('practice') ? LessonKind.practice : LessonKind.lesson,
-    lesson: lesson,
-  );
-}
-
-/// The tabs (Path, Free play, Pit stop, Leagues, Me) share a [TabShell]; every other
+/// The tabs (Today, Explore, Progress, Me) share a [TabShell]; every other
 /// route sits on the root navigator, over the bottom navigation.
 GoRouter buildRouter(String initialLocation) {
   // ponytail: one per tab, as long as the router (the app) lives.
@@ -122,27 +77,25 @@ GoRouter buildRouter(String initialLocation) {
         navigatorContainerBuilder: (_, shell, children) =>
             FadeIndexedStack(index: shell.currentIndex, children: children),
         branches: [
-          tab(TabShell.path, Routes.path, (_) => const PathScreen()),
+          tab(TabShell.today, Routes.today, (_) => const TodayScreen()),
           tab(
-            TabShell.freePlay,
+            TabShell.explore,
             Routes.home,
             (state) => HomeScreen(summary: state.extra as RoundSummary?),
           ),
-          tab(TabShell.pitStop, Routes.pitStop, (_) => const PitStopScreen()),
-          tab(TabShell.league, Routes.leagues, (_) => const LeagueScreen()),
+          tab(
+            TabShell.progress,
+            Routes.progress,
+            (_) => const ProgressScreen(),
+          ),
           tab(TabShell.me, Routes.me, (_) => const MeScreen()),
         ],
       ),
       GoRoute(path: Routes.welcome, builder: (_, _) => const WelcomeScreen()),
-      GoRoute(path: Routes.whatsNew, builder: (_, _) => const WhatsNewScreen()),
       GoRoute(
         path: Routes.city,
         builder: (_, state) =>
-            CityScreen(course: state.uri.queryParameters.containsKey('course')),
-      ),
-      GoRoute(
-        path: Routes.startDistrict,
-        builder: (_, _) => const StartDistrictScreen(),
+            CityScreen(learn: state.uri.queryParameters.containsKey('learn')),
       ),
       GoRoute(
         path: Routes.area,
@@ -158,7 +111,6 @@ GoRouter buildRouter(String initialLocation) {
         builder: (_, state) => QuizScreen(
           roundId: state.uri.queryParameters['round'],
           retryOf: state.uri.queryParameters['retry'],
-          pitStop: state.uri.queryParameters.containsKey('pit-stop'),
         ),
       ),
       GoRoute(
@@ -176,43 +128,6 @@ GoRouter buildRouter(String initialLocation) {
           ),
         ],
       ),
-      GoRoute(
-        path: Routes.lesson,
-        redirect: (_, state) => _lessonArgs(state) == null ? Routes.path : null,
-        builder: (_, state) => LessonScreen(args: _lessonArgs(state)!),
-      ),
-      GoRoute(
-        path: Routes.lessonDone,
-        redirect: _requires('result'),
-        pageBuilder: (_, state) => _fadePage(
-          state,
-          LessonDoneScreen(resultId: _param(state, 'result')),
-        ),
-      ),
-      GoRoute(
-        path: Routes.drive,
-        redirect: _requires('unit'),
-        builder: (_, state) => DriveScreen(unitId: _param(state, 'unit')),
-      ),
-      GoRoute(
-        path: Routes.unitDone,
-        redirect: _requires('unit'),
-        pageBuilder: (_, state) => _fadePage(
-          state,
-          UnitDoneScreen(
-            unitId: _param(state, 'unit'),
-            gainedXp: int.tryParse(state.uri.queryParameters['xp'] ?? '') ?? 0,
-          ),
-        ),
-      ),
-      GoRoute(
-        path: Routes.unitGuide,
-        redirect: _requires('unit'),
-        builder: (_, state) => UnitGuideScreen(
-          unitId: _param(state, 'unit'),
-          lesson: int.tryParse(state.uri.queryParameters['lesson'] ?? ''),
-        ),
-      ),
       GoRoute(path: Routes.streak, builder: (_, _) => const StreakScreen()),
       GoRoute(path: Routes.account, builder: (_, _) => const AccountScreen()),
       GoRoute(
@@ -221,14 +136,13 @@ GoRouter buildRouter(String initialLocation) {
       ),
       GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
       GoRoute(path: Routes.credits, builder: (_, _) => const CreditsScreen()),
-      GoRoute(path: Routes.today, builder: (_, _) => const TodayScreen()),
       GoRoute(
         path: Routes.session,
         builder: (_, state) => SessionScreen(
           placement: state.uri.queryParameters.containsKey('placement'),
+          more: state.uri.queryParameters.containsKey('more'),
         ),
       ),
-      GoRoute(path: Routes.progress, builder: (_, _) => const ProgressScreen()),
       GoRoute(
         path: Routes.progressDistrict,
         builder: (_, state) =>
@@ -251,7 +165,7 @@ GoRouter buildRouter(String initialLocation) {
 }
 
 /// Sends a route opened without its [key] query parameter to [otherwise].
-GoRouterRedirect _requires(String key, {String otherwise = Routes.path}) =>
+GoRouterRedirect _requires(String key, {String otherwise = Routes.today}) =>
     (_, state) => state.uri.queryParameters.containsKey(key) ? null : otherwise;
 
 /// A query parameter its route's [_requires] made sure of.

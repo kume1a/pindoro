@@ -150,7 +150,7 @@ class Minibar extends StatelessWidget {
     return Container(
       height: 6,
       decoration: BoxDecoration(
-        color: c.xpTrack,
+        color: c.progressTrack,
         borderRadius: BorderRadius.circular(3),
       ),
       alignment: Alignment.centerLeft,
@@ -165,7 +165,7 @@ class Minibar extends StatelessWidget {
           widthFactor: v,
           child: Container(
             decoration: BoxDecoration(
-              color: c.xpFill,
+              color: c.progressDone,
               borderRadius: BorderRadius.circular(3),
             ),
           ),

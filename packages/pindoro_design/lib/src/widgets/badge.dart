@@ -27,7 +27,7 @@ class BadgeShield extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
-    final face = locked ? c.pathNodeLockedFill : field;
+    final face = locked ? c.lockedFill : field;
     // The design draws the shield in an 88 × 100 box.
     final k = size / 88;
     return SizedBox(
@@ -35,7 +35,7 @@ class BadgeShield extends StatelessWidget {
       height: 100 * k,
       child: CustomPaint(
         painter: _ShieldPainter(
-          rim: locked ? c.pathNodeLockedLip : c.badgeRim,
+          rim: locked ? c.lockedLip : c.badgeRim,
           field: face,
         ),
         child: Stack(
@@ -47,7 +47,7 @@ class BadgeShield extends StatelessWidget {
               child: PindoroIcon(
                 locked ? PindoroGlyph.lock : glyph,
                 size: 36 * k,
-                color: locked ? c.pathNodeLockedIcon : c.textOnColor,
+                color: locked ? c.lockedIcon : c.textOnColor,
                 cut: face,
               ),
             ),
@@ -111,6 +111,7 @@ class BadgeTile extends StatelessWidget {
     this.locked = false,
     this.progress,
     this.newLabel,
+    this.retiredLabel,
   });
 
   final PindoroGlyph glyph;
@@ -122,11 +123,19 @@ class BadgeTile extends StatelessWidget {
   final double? progress;
   final String? newLabel;
 
+  /// An earned badge nobody earns now: its pill takes the New pill's place,
+  /// in sunken grey.
+  final String? retiredLabel;
+
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
     final progress = this.progress;
-    final newLabel = this.newLabel;
+    final pill = switch ((newLabel, retiredLabel)) {
+      (final label?, _) => (label, c.accentBase, c.accentOn),
+      (_, final label?) => (label, c.surfaceSunken, c.textSecondary),
+      _ => null,
+    };
     return Semantics(
       container: true,
       label: semanticLabel,
@@ -174,7 +183,7 @@ class BadgeTile extends StatelessWidget {
               ),
             ),
           ),
-          if (newLabel != null)
+          if (pill case (final label, final face, final ink))
             PositionedDirectional(
               top: PindoroSpace.s2,
               end: PindoroSpace.s2,
@@ -182,12 +191,12 @@ class BadgeTile extends StatelessWidget {
                 // The design's pill: 1 × 7 dp around label.sm.
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
                 decoration: BoxDecoration(
-                  color: c.accentBase,
+                  color: face,
                   borderRadius: BorderRadius.circular(PindoroRadius.full),
                 ),
                 child: Text(
-                  newLabel,
-                  style: PindoroType.labelSm.copyWith(color: c.accentOn),
+                  label,
+                  style: PindoroType.labelSm.copyWith(color: ink),
                 ),
               ),
             ),

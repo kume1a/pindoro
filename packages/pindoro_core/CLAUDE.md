@@ -4,19 +4,14 @@ Pure Dart game logic. **No Flutter imports** — it must run under plain `dart t
 
 ```
 lib/src/geo/        LatLng, LocalProjection, Bbox, pointToPolylineDistance, polyline6
-lib/src/scoring/    Difficulty, Tier, ScoringConfig (half-widths, fixed distances), scoreAnswer,
-                    RouteScoring + scoreRoute (road trips: % longer than the best drive)
-lib/src/progress/   levels: requirement, totalXpToReach, levelForXp, progressWithinLevel;
-                    league: the league week (Monday 00:00 at UTC+4) and the tiers;
-                    account: the account's username, password and recovery-code rules;
-                    badges: the starter eight and badgeProgress (Dart-only, like ReviewRules)
+lib/src/scoring/    Difficulty, Tier, ScoringConfig (half-widths, fixed distances, difficulty
+                    factors), TierThresholds, scoreAnswer (the tier of a pin)
+lib/src/progress/   account: the account's username, password and recovery-code rules;
+                    streak: calendar days, streakOf, freezes and the pill (Dart-only)
 lib/src/game/       Area (districts/circle/rect, in-area rule), NamedStreet (nearby same-name parts),
-                    QuestionSelector (10 names, 3 × 3 grid), knowledge (per street),
-                    course (units per raion, stops, progress, Final drive gate, Jump ahead,
-                    placement from known streets, the start-district order),
-                    lesson (steps incl. the road trip, LessonRun, XP, card facts),
-                    road_trip (pickTrip: a trip to a street with turns, RouteDraft drag
-                    and tap drawing, turnCount, turnsAt, routeLegs)
+                    QuestionSelector (10 names, 3 × 3 grid), knowledge (per street, Explore),
+                    street_facts (road type, crossings, direction from the centre: the intro),
+                    route_draft (RouteDraft drag and tap drawing, kept for M6 recitals)
 lib/src/pack/       City/District/Street (pack rows; format 4 adds the curriculum columns and
                     FamilyLink), PackRepository, RoadGraph (junctions, edges, A* shortestRoute
                     to a goal set, edgeNear)
@@ -25,17 +20,13 @@ lib/src/pack/       City/District/Street (pack rows; format 4 adds the curriculu
 ## Rules
 
 - **In sync with `@pindoro/geo` (packages/geo).** Same algorithms, same constants, same rounding
-  (polyline6 rounds half away from zero; XP uses `round()`). Both suites run the golden
+  (polyline6 rounds half away from zero). Both suites run the golden
   vectors in `shared/fixtures/*.json` (distance tolerance 0.5 m). Change one side → change the other
   and the vectors in the same commit.
-- **Scoring constants live only in `ScoringConfig` and `RouteScoring`** (and their TS twins;
-  `shared/fixtures/route_vectors.json` proves road-trip scoring). No magic numbers elsewhere.
-  Game rules the server never scores stay Dart-only: `ReviewRules`, `CourseRules`, `LessonRules`,
-  `TripRules`. `LeagueRules`' week rule is twinned in the API
-  (`apps/api/src/modules/leagues/leagues.rules.ts`), proved by `shared/fixtures/league_vectors.json`;
-  ranks and moves are the server's alone. `AccountRules` (username, password, recovery code) is
-  twinned in `apps/api/src/modules/accounts/accounts.rules.ts`, proved by
-  `shared/fixtures/account_vectors.json`.
+- **Scoring constants live only in `ScoringConfig`** (and its TS twin). No magic numbers elsewhere.
+  Rules the server never scores stay Dart-only: `StreakRules`. `AccountRules` (username,
+  password, recovery code) is twinned in `apps/api/src/modules/accounts/accounts.rules.ts`, proved
+  by `shared/fixtures/account_vectors.json`. Learning rules live in pindoro_learning.
 - Distances are measured to segments, not vertices, in a local equirectangular projection around
   the query point.
 - **A street is a name in one place.** Packs keep same-name parts as separate rows with stable ids;

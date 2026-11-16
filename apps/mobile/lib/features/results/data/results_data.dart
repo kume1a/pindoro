@@ -15,8 +15,6 @@ typedef ResultsData = ({
   Area? area,
   AreaShape? shape,
   List<ResultEntry> entries,
-  int totalXp,
-  int roundXp,
   int retryCount,
   int newlyKnown,
   bool firstPerfect,
@@ -47,8 +45,6 @@ final resultsProvider = FutureProvider.autoDispose.family<ResultsData, String>((
     entries: [
       for (final a in answers) (answer: a, street: streets[a.streetId]),
     ],
-    totalXp: await dao.totalXp(),
-    roundXp: answers.xp,
     retryCount: progress.retryIds.length,
     newlyKnown: newlyKnown(
       knownBefore: knownBefore,

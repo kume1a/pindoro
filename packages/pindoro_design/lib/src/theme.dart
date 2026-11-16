@@ -166,8 +166,8 @@ ThemeData buildPindoroTheme(Brightness brightness) {
     scaffoldBackgroundColor: c.surfaceBase,
     iconTheme: IconThemeData(color: c.textPrimary, size: PindoroSize.iconMd),
     progressIndicatorTheme: ProgressIndicatorThemeData(
-      color: c.xpFill,
-      linearTrackColor: c.xpTrack,
+      color: c.progressDone,
+      linearTrackColor: c.progressTrack,
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,

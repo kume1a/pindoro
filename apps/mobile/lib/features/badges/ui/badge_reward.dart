@@ -8,7 +8,6 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/badges/data/badge_data.dart';
 import 'package:pindoro/features/badges/ui/badge_look.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
-import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// The reward moment's shield (component Badge).
@@ -19,7 +18,7 @@ const double _rewardShield = 110;
 Future<void> showBadgeRewards(
   BuildContext context,
   WidgetRef ref,
-  List<BadgeId> ids,
+  List<String> ids,
 ) async {
   for (final id in ids) {
     if (!context.mounted) return;
@@ -41,12 +40,14 @@ Future<void> showBadgeRewards(
 class _BadgeRewardSheet extends StatelessWidget {
   const _BadgeRewardSheet(this.id);
 
-  final BadgeId id;
+  /// The stored badge id.
+  final String id;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
+    final look = badgeLook(context, id);
     return Stack(
       children: [
         const Positioned.fill(
@@ -74,8 +75,8 @@ class _BadgeRewardSheet extends StatelessWidget {
                 Center(
                   child: PopIn(
                     child: BadgeShield(
-                      glyph: badgeGlyph(id),
-                      field: badgeField(c, id),
+                      glyph: look.glyph,
+                      field: look.field,
                       size: _rewardShield,
                     ),
                   ),
@@ -86,10 +87,7 @@ class _BadgeRewardSheet extends StatelessWidget {
                   style: PindoroType.headlineLg.copyWith(color: c.rewardText),
                 ),
                 Text(
-                  l10n.badgeRewardBody(
-                    l10n.badgeName(id.name),
-                    l10n.badgeCondition(id.name),
-                  ),
+                  l10n.badgeRewardBody(look.name, look.condition),
                   textAlign: TextAlign.center,
                   style: PindoroType.bodyLg.copyWith(color: c.textPrimary),
                 ),
@@ -110,9 +108,9 @@ class _BadgeRewardSheet extends StatelessWidget {
 
 /// For an end screen: awards this play's badges as it opens (its play is
 /// saved by then) and shows their reward sheets once [showBadgesAfter] is
-/// first called, after the arrival and any level-up moment.
+/// first called, after the arrival.
 mixin BadgeMoments<T extends ConsumerStatefulWidget> on ConsumerState<T> {
-  late final Future<List<BadgeId>> _earned;
+  late final Future<List<String>> _earned;
   bool _scheduled = false;
 
   @override

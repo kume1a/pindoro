@@ -7,21 +7,38 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/progress/data/streak.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro_design/pindoro_design.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
 
-/// Session done: the counts, City memory before and after, and what to watch
-/// out for (mix-ups, streets Close twice). No XP.
-class SessionDoneView extends ConsumerWidget {
+/// Session done: the counts, City memory counting up from the session's
+/// start, and what to watch out for (mix-ups, streets Close twice).
+class SessionDoneView extends ConsumerStatefulWidget {
   const SessionDoneView({
     super.key,
     required this.summary,
     required this.onDone,
+    this.onLearnMore,
   });
 
   final SessionSummary summary;
   final VoidCallback onDone;
 
+  /// "Learn 5 more", under Done.
+  final VoidCallback? onLearnMore;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SessionDoneView> createState() => _SessionDoneViewState();
+}
+
+/// City memory counts up once the screen has risen in.
+const Duration _countFrom = PindoroMotion.durationSlow;
+
+class _SessionDoneViewState extends ConsumerState<SessionDoneView>
+    with CountUpTicks {
+  @override
+  Widget build(BuildContext context) {
+    final summary = widget.summary;
+    final onDone = widget.onDone;
+    final onLearnMore = widget.onLearnMore;
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
     final settings = ref.watch(settingsProvider).value;
@@ -29,6 +46,10 @@ class SessionDoneView extends ConsumerWidget {
     final s = summary;
     Widget tile(String label, String value) => Expanded(
       child: StatTile(label: label, value: value),
+    );
+    tickCountUp(
+      (s.memoryAfter.round() - s.memoryBefore.round()).abs(),
+      _countFrom,
     );
     final watch = [
       for (final (target, hit) in s.mixUps)
@@ -49,7 +70,20 @@ class SessionDoneView extends ConsumerWidget {
       children: [
         PageScaffold(
           showBack: false,
-          footer: PindoroButton(label: l10n.commonDone, onPressed: onDone),
+          footer: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: PindoroSpace.s1,
+            children: [
+              PindoroButton(label: l10n.commonDone, onPressed: onDone),
+              if (onLearnMore case final learnMore?)
+                PindoroButton(
+                  label: l10n.todayLearnMore(LearningConfig.learnMoreCount),
+                  variant: PindoroButtonVariant.tertiary,
+                  onPressed: learnMore,
+                ),
+            ],
+          ),
           children: [
             const Center(child: Pindo(PindoExpression.proud, height: 120)),
             Text(
@@ -86,12 +120,20 @@ class SessionDoneView extends ConsumerWidget {
                 ListRow(
                   leading: const RowTile(PindoroGlyph.city),
                   title: l10n.sessionDoneMemory,
-                  trailing: Text(
-                    l10n.sessionDoneMemoryChange(
-                      formatNumber(s.memoryBefore.round()),
-                      formatNumber(s.memoryAfter.round()),
+                  trailing: CountUp(
+                    value: s.memoryAfter.round(),
+                    from: s.memoryBefore.round(),
+                    delay: _countFrom,
+                    onEnd: ref.read(feedbackProvider).reward,
+                    builder: (context, memory) => Text(
+                      l10n.sessionDoneMemoryChange(
+                        formatNumber(s.memoryBefore.round()),
+                        formatNumber(memory),
+                      ),
+                      style: PindoroType.numericSm.copyWith(
+                        color: c.textPrimary,
+                      ),
                     ),
-                    style: PindoroType.numericSm.copyWith(color: c.textPrimary),
                   ),
                 ),
               ],

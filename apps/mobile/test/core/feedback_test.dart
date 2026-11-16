@@ -24,7 +24,7 @@ void main() {
       final file = File('assets/${sound.path}');
       expect(file.existsSync(), isTrue, reason: file.path);
     }
-    expect(Sound.levelupFanfare.path, 'sounds/levelup_fanfare.wav');
+    expect(Sound.tierPerfect.path, 'sounds/tier_perfect.wav');
   });
 
   test('sounds play per event behind the Sound toggle', () {

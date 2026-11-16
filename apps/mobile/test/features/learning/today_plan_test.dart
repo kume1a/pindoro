@@ -66,7 +66,7 @@ void main() {
           },
         ),
         newCandidatesProvider.overrideWith(
-          (ref) async => ['P:a1', 'P:b1', 'P:c1'],
+          (ref, _) async => ['P:a1', 'P:b1', 'P:c1'],
         ),
         carryOverProvider.overrideWith((ref) async {}),
       ],
@@ -103,6 +103,13 @@ void main() {
     );
   });
 
+  test('Learn 5 more plans new streets past the daily number', () async {
+    container.listen(learnMorePlanProvider, (_, _) {});
+    final p = await container.read(learnMorePlanProvider.future);
+    expect(p.newCount, 2);
+    expect(p.backlog, isFalse);
+  });
+
   test('takes the minutes a day from settings', () async {
     final p = await plan();
     expect(p.estimatedS, 12 + 2 * 45);
@@ -122,10 +129,11 @@ void main() {
       ],
     );
     addTearDown(pack.dispose);
-    pack.listen(newCandidatesProvider, (_, _) {});
-    final candidates = await pack.read(newCandidatesProvider.future);
+    final count = LearningConfig.newPerDay[20]!;
+    pack.listen(newCandidatesProvider(count), (_, _) {});
+    final candidates = await pack.read(newCandidatesProvider(count).future);
     final streets = await pack.read(cityStreetsProvider.future);
-    expect(candidates, hasLength(LearningConfig.newPerDay[20]));
+    expect(candidates, hasLength(count));
     expect(candidates.every((id) => streets.containsKey(itemKey(id))), isTrue);
   });
 }

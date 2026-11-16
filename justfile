@@ -39,7 +39,7 @@ branding:
 # EBU R128's gate, so loudness is measured over 4 s of padding: one gain to -18 LUFS, a -1.5 dB limiter.
 sounds dir:
     mkdir -p apps/mobile/assets/sounds
-    for s in tap pin_tok confirm tier_perfect tier_great tier_close tier_miss count_tick land levelup_fanfare error_soft launch_tok unlock streak; do \
+    for s in tap pin_tok confirm tier_perfect tier_great tier_close tier_miss count_tick land error_soft launch_tok unlock streak; do \
       set -- "{{dir}}/${s}"_[0-9]*.flac; \
       if [ $# -ne 1 ] || [ ! -f "$1" ]; then echo "$s: keep exactly one take in {{dir}}"; exit 1; fi; \
       lufs=$(ffmpeg -nostats -i "$1" -af "{{sound_trim}},apad=whole_dur=4,ebur128" -f null - 2>&1 | sed -n 's/^ *I: *\(-*[0-9.]*\) LUFS.*/\1/p' | tail -n 1); \

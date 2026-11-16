@@ -1,5 +1,8 @@
+import 'package:pindoro_core/pindoro_core.dart';
+
 import 'cards.dart';
 import 'constants.dart';
+import 'curriculum.dart';
 import 'fsrs.dart';
 import 'placement.dart';
 import 'planner.dart';
@@ -98,10 +101,11 @@ DateTime? wholeCityBy({
     ? null
     : startOfDay(now).add(Duration(days: (unseenCore / newPerDay).ceil()));
 
-/// Whether [entry] moved its card's memory: a guess never does, nor a placement pin that
-/// created no card.
+/// Whether [entry] moved its card's memory: a guess or a logged Explore answer never does, nor
+/// a placement pin that created no card.
 bool changesSchedule(LogEntry entry) =>
     entry.format != ReviewFormat.pretest &&
+    entry.format != ReviewFormat.exploreLog &&
     !(entry.format == ReviewFormat.placement &&
         !Placement.passes(entry.rating));
 
@@ -196,3 +200,49 @@ double Function(DateTime t) _replay(
     ],
   );
 }
+
+/// Raions and neighbourhoods whose every core street is Mastered (SPEC §8),
+/// and raions with a Known street, over [streets] and their chunks' raions
+/// ([districts]); [cards] are P cards by street id.
+({int masteredRaions, int masteredNeighbourhoods, int knownRaions}) areaCounts({
+  required Iterable<NamedStreet> streets,
+  required Iterable<District> districts,
+  required Map<String, CardState> cards,
+  required DateTime now,
+}) {
+  final raionOf = {
+    for (final d in districts)
+      if (d.kind == DistrictKind.neighbourhood && d.parentId != null)
+        d.id: d.parentId!,
+  };
+  final byChunk = <String, List<NamedStreet>>{};
+  final byRaion = <String, List<NamedStreet>>{};
+  for (final s in streets.toSet().where(Curriculum.isCore)) {
+    final chunk = s.parts.first.chunkId;
+    final raion = raionOf[chunk];
+    if (chunk == null || raion == null) continue;
+    byChunk.putIfAbsent(chunk, () => []).add(s);
+    byRaion.putIfAbsent(raion, () => []).add(s);
+  }
+  bool mastered(List<NamedStreet> area) =>
+      area.every((s) => cards[s.id] != null && isMastered(cards[s.id]!));
+  return (
+    masteredRaions: byRaion.values.where(mastered).length,
+    masteredNeighbourhoods: byChunk.values.where(mastered).length,
+    knownRaions: byRaion.values
+        .where(
+          (area) => area.any(
+            (s) => switch (cards[s.id]) {
+              final c? => isKnown(c, now),
+              null => false,
+            },
+          ),
+        )
+        .length,
+  );
+}
+
+/// A street once became a leech and none is left (SPEC §16.8, Clear road).
+bool leechesCleared(Iterable<CardState> cards) =>
+    cards.any((c) => c.lapses >= LearningConfig.leechLapses) &&
+    !cards.any((c) => c.phase == CardPhase.suspended);

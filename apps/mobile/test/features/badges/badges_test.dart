@@ -13,11 +13,13 @@ import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/badges/data/badge_data.dart';
+import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/pack_store.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
 
 void main() {
   late AppDatabase db;
@@ -75,7 +77,6 @@ void main() {
         pin: const LatLng(41.7, 44.75),
         distanceM: 0,
         tier: Tier.perfect,
-        xp: 100,
         packVersion: 'v1',
       );
     }
@@ -84,27 +85,50 @@ void main() {
 
   group('stats', () {
     test('nothing played: no stats, no pack opened', () async {
-      final stats = await readBadgeStats(dao, store);
+      final stats = await readBadgeStats(dao, LearningDao(db), store);
       expect((stats.pins, stats.knownDistricts), (0, 0));
     });
 
-    test('raions known and mastered come from the installed pack', () async {
+    test('raions and neighbourhoods Mastered come from the cards, in the '
+        'installed pack', () async {
       install();
+      await LearningDao(db).markPlaced('tbilisi', DateTime(2026));
       final pack = SqlitePackRepository.open(AppConfig.fixturePackAsset);
-      final raion = pack.partsByDistrict()[AppConfig.fixtureDistrictId]!;
+      final raionOf = {for (final d in pack.districts()) d.id: ?d.parentId};
+      final inRaion = streetsByPartId(pack.streets()).values
+          .toSet()
+          .where(
+            (s) =>
+                Curriculum.isCore(s) &&
+                raionOf[s.parts.first.chunkId] == AppConfig.fixtureDistrictId,
+          )
+          .toList();
       pack.close();
-      await know([raion.first]);
-      var stats = await readBadgeStats(dao, store);
+      final now = DateTime.now();
+      CardState mastered(NamedStreet s) => CardState(
+        itemId: CardType.p.item(s.id),
+        phase: CardPhase.review,
+        memory: Memory(
+          stability: 120,
+          difficulty: 5,
+          lastReview: now.subtract(const Duration(days: 1)),
+        ),
+        dueAt: now.add(const Duration(days: 100)),
+        lastRating: Rating.good,
+        priorKnown: true,
+      );
+      await LearningDao(db).putCards([mastered(inRaion.first)]);
+      var stats = await readBadgeStats(dao, LearningDao(db), store);
       expect((stats.knownDistricts, stats.masteredDistricts), (1, 0));
-      await know(raion);
-      stats = await readBadgeStats(dao, store);
+      await LearningDao(db).putCards(inRaion.map(mastered));
+      stats = await readBadgeStats(dao, LearningDao(db), store);
       expect((stats.knownDistricts, stats.masteredDistricts), (1, 1));
-      expect(stats.pins, raion.length + 1);
+      expect(stats.masteredNeighbourhoods, greaterThan(0));
     });
 
     test('a city whose pack isn\'t installed counts no raions', () async {
       await know(['a']);
-      final stats = await readBadgeStats(dao, store);
+      final stats = await readBadgeStats(dao, LearningDao(db), store);
       expect((stats.pins, stats.knownDistricts), (1, 0));
     });
   });
@@ -168,19 +192,28 @@ void main() {
       (tester) async {
         await tester.runAsync(() async {
           await know([streets.first.id]);
-          await dao.earn([BadgeId.firstPin], DateTime.now());
+          await dao.earn(['firstPin', 'pitCrew'], DateTime.now());
         });
         await pump(tester, Routes.me);
-        await tester.scrollUntilVisible(find.text('Badges · 1 of 8'), 300);
+        await tester.scrollUntilVisible(find.text('Badges · 2 of 11'), 300);
         expect(find.bySemanticsLabel('First pin, earned.'), findsOneWidget);
         expect(
-          find.bySemanticsLabel('Road trip, locked, 0 of 5.'),
+          find.bySemanticsLabel('Keeper, locked, 0 of 100.'),
           findsOneWidget,
         );
         expect(find.bySemanticsLabel('Navigator, locked.'), findsOneWidget);
-        expect(find.text('New'), findsOneWidget);
+        expect(
+          find.bySemanticsLabel('Pit crew, retired, earned.'),
+          findsOneWidget,
+        );
+        expect(find.bySemanticsLabel(RegExp('^Road trip')), findsNothing);
+        expect(
+          find.bySemanticsLabel('City memory 500, locked, 0 of 500.'),
+          findsOneWidget,
+        );
+        expect(find.text('New'), findsNWidgets(2));
 
-        await tapThrough(tester, find.bySemanticsLabel('Leagues').first);
+        await tapThrough(tester, find.bySemanticsLabel('Today').first);
         await tapThrough(tester, find.bySemanticsLabel('Me').first);
         expect(find.text('New'), findsNothing);
       },
@@ -192,7 +225,7 @@ void main() {
       late String round;
       await tester.runAsync(() async {
         // Any saved badge keeps the quiet launch award out of the way.
-        await dao.earn([BadgeId.onFire], DateTime.now());
+        await dao.earn(['onFire'], DateTime.now());
         round = await know([streets.first.id]);
         await dao.finishRound(round);
       });
@@ -205,7 +238,7 @@ void main() {
       await tapThrough(tester, find.text('Nice!'));
       expect(find.text('Badge unlocked'), findsNothing);
       final seen = await tester.runAsync(
-        () async => (await dao.earnedBadges())[BadgeId.firstPin]?.seenAt,
+        () async => (await dao.earnedBadges())['firstPin']?.seenAt,
       );
       expect(seen, isNotNull);
     });
@@ -216,19 +249,19 @@ void main() {
       await tester.runAsync(() => know([streets.first.id]));
       await pump(tester, Routes.home);
       final saved = await tester.runAsync(dao.earnedBadges);
-      expect(saved![BadgeId.firstPin]?.seenAt, isNull);
-      expect(saved.keys, contains(BadgeId.firstPin));
+      expect(saved!['firstPin']?.seenAt, isNull);
+      expect(saved.keys, contains('firstPin'));
       expect(find.text('Badge unlocked'), findsNothing);
     });
 
     testWidgets('launch awards nothing once a badge exists', (tester) async {
       await tester.runAsync(() async {
-        await dao.earn([BadgeId.onFire], DateTime.now());
+        await dao.earn(['onFire'], DateTime.now());
         await know([streets.first.id]);
       });
       await pump(tester, Routes.home);
       final saved = await tester.runAsync(dao.earnedBadges);
-      expect(saved!.keys, {BadgeId.onFire});
+      expect(saved!.keys, {'onFire'});
     });
   });
 }

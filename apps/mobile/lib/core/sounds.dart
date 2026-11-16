@@ -16,7 +16,6 @@ enum Sound {
   tierMiss,
   countTick,
   land,
-  levelupFanfare,
   errorSoft,
   launchTok,
   unlock,

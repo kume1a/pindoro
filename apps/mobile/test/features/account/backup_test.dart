@@ -12,6 +12,7 @@ import 'package:pindoro/features/account/data/account_api.dart';
 import 'package:pindoro/features/account/data/account_dao.dart';
 import 'package:pindoro/features/account/data/account_data.dart';
 import 'package:pindoro/features/account/data/backup.dart';
+import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -22,7 +23,7 @@ void main() {
   setUp(() async {
     dir = await Directory.systemTemp.createTemp('pindoro-backup-test');
     db = AppDatabase(NativeDatabase.memory());
-    await ProgressDao(db).place('tbilisi', [('vake', 1), ('vake', 2)]);
+    await LearningDao(db).markPlaced('tbilisi', DateTime(2026));
     await AccountDao(db).save(username: 'nino', token: 'old-token');
   });
 
@@ -38,7 +39,7 @@ void main() {
     final file = File('${dir.path}/plain.sqlite')
       ..writeAsBytesSync(gzip.decode(backup));
     final raw = sqlite3.open(file.path);
-    expect(raw.select('select count(*) c from lesson_result').first['c'], 2);
+    expect(raw.select('select count(*) c from learn_city').first['c'], 1);
     expect(raw.select('select count(*) c from account').first['c'], 0);
     raw.close();
     expect(

@@ -7,12 +7,11 @@ import '../theme.dart';
 import 'graphics.dart';
 import 'tappable.dart';
 
-/// A bottom-nav destination. [badge] counts what waits there (hidden at 0 or
-/// null); [semanticLabel] replaces [label] for screen readers.
+/// A bottom-nav destination; [semanticLabel] replaces [label] for screen
+/// readers. Tabs carry no counts.
 typedef PindoroNavItem = ({
   PindoroGlyph glyph,
   String label,
-  int? badge,
   String? semanticLabel,
 });
 
@@ -80,7 +79,6 @@ class _NavItem extends StatelessWidget {
     final c = PindoroTheme.of(context).colors;
     final ink = selected ? c.tabActiveIcon : c.tabInactiveIcon;
     final pill = selected ? c.tabActiveBg : c.surfaceRaised;
-    final badge = item.badge ?? 0;
     return Tappable(
       onTap: onTap,
       selected: selected,
@@ -89,22 +87,15 @@ class _NavItem extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         spacing: 3,
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 56,
-                height: 34,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: pill,
-                  borderRadius: BorderRadius.circular(PindoroRadius.md),
-                ),
-                child: PindoroIcon(item.glyph, color: ink, cut: pill),
-              ),
-              if (badge > 0)
-                PositionedDirectional(top: -6, end: -6, child: _Badge(badge)),
-            ],
+          Container(
+            width: 56,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: pill,
+              borderRadius: BorderRadius.circular(PindoroRadius.md),
+            ),
+            child: PindoroIcon(item.glyph, color: ink, cut: pill),
           ),
           Text(
             item.label,
@@ -112,35 +103,6 @@ class _NavItem extends StatelessWidget {
             style: PindoroType.labelMd.copyWith(color: ink),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// The due count: an 18 dp cobalt pill with a 2 dp `color.surface.raised`
-/// ring that lifts it off the icon pill.
-class _Badge extends StatelessWidget {
-  const _Badge(this.count);
-
-  final int count;
-
-  static const double _size = 18 + 2 * PindoroStroke.base;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = PindoroTheme.of(context).colors;
-    return Container(
-      constraints: const BoxConstraints(minWidth: _size, minHeight: _size),
-      padding: const EdgeInsets.symmetric(horizontal: 5),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: c.primaryBase,
-        borderRadius: BorderRadius.circular(PindoroRadius.full),
-        border: Border.all(color: c.surfaceRaised, width: PindoroStroke.base),
-      ),
-      child: Text(
-        '$count',
-        style: PindoroType.labelSm.copyWith(color: c.primaryOn),
       ),
     );
   }

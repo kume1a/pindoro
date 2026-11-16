@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/clock.dart';
+import 'package:pindoro/features/learning/data/day.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -186,13 +187,17 @@ class SessionController extends Notifier<SessionState> {
   LearningDao get _dao => ref.read(learningDaoProvider);
   DateTime _now() => ref.read(clockProvider)();
 
-  /// Today's session, or with [placement] the city's placement.
-  Future<void> start({bool placement = false}) async {
+  /// Today's session, with [more] "Learn 5 more", or with [placement] the
+  /// city's placement.
+  Future<void> start({bool placement = false, bool more = false}) async {
     final dao = _dao;
     // The plan disposes when unwatched: hold it while it loads.
     final planSub = placement
         ? null
-        : ref.listen(todayPlanProvider.future, (_, _) {});
+        : ref.listen(
+            (more ? learnMorePlanProvider : todayPlanProvider).future,
+            (_, _) {},
+          );
     final plan = await planSub?.read();
     planSub?.close();
     final streets = await ref.read(cityStreetsProvider.future);
@@ -322,6 +327,8 @@ class SessionController extends Notifier<SessionState> {
     if (hit != null) _confusions.add((target.id, hit.id));
     _answers.add((step: step, grade: grade, streetId: target.id));
     _times.add(now);
+    await markDayIfCounts(ref);
+    if (!ref.mounted) return;
 
     final forgot = grade.rating == Rating.again;
     final rest = p.steps.sublist(p.index + 1);
@@ -375,6 +382,7 @@ class SessionController extends Notifier<SessionState> {
       priorKnown: true,
     );
     await _dao.saveAnswer(card: placed ? result.card : null, log: result.log);
+    await markDayIfCounts(ref);
     if (!ref.mounted) return;
     if (placed) _cards[step.itemId] = result.card;
     _times.add(now);

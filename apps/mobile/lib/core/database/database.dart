@@ -67,14 +67,8 @@ class UserSettings extends Table {
   BoolColumn get homeCoachSeen =>
       boolean().withDefault(const Constant(false))();
 
-  /// XP a day that counts toward the streak (pindoro_core `StreakRules`).
-  IntColumn get dailyGoal => integer().withDefault(const Constant(500))();
-
-  /// The 19:00 reminder when today's goal isn't met.
+  /// The 19:00 reminder when today's day hasn't counted and reviews are due.
   BoolColumn get reminder => boolean().withDefault(const Constant(false))();
-
-  /// Road trips pick each turn from a list, screen reader or not.
-  BoolColumn get turnList => boolean().withDefault(const Constant(false))();
 
   /// The daily learning session's length: 15, 20 or 30 minutes.
   IntColumn get minutesPerDay => integer().withDefault(const Constant(20))();
@@ -99,9 +93,6 @@ class Rounds extends Table {
   /// The round whose Close and Miss streets this round retries.
   TextColumn get retryOf => text().nullable().references(Rounds, #id)();
 
-  /// A Pit stop round: the due streets of the Pit stop.
-  BoolColumn get pitStop => boolean().withDefault(const Constant(false))();
-
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -118,7 +109,6 @@ class Answers extends Table {
   RealColumn get pinLon => real()();
   RealColumn get distanceM => real()();
   TextColumn get tier => textEnum<Tier>()();
-  IntColumn get xp => integer()();
   TextColumn get packVersion => text()();
   DateTimeColumn get createdAt => dateTime().clientDefault(DateTime.now)();
 
@@ -158,128 +148,21 @@ class GoalDays extends Table {
   Set<Column<Object>> get primaryKey => {date};
 }
 
-/// A street in the Pit stop (pindoro_core `nextReview`), kept with every
-/// answer; graduated streets have no row.
-@DataClassName('ReviewItem')
-class ReviewItems extends Table {
+/// Streets the old game knew (a Great or Perfect in a lesson), kept from the
+/// lesson tables when v3 dropped them, so carry-over still finds them.
+@DataClassName('LegacyKnownRow')
+class LegacyKnown extends Table {
   @override
-  String get tableName => 'review_item';
+  String get tableName => 'legacy_known';
 
   TextColumn get cityId => text()();
   TextColumn get streetId => text()();
-
-  /// 1–4: due 1, 3, 7 or 21 days after the last answer.
-  IntColumn get step => integer()();
-
-  /// Great-or-better answers in a row.
-  IntColumn get greatRun => integer()();
-
-  /// The calendar day it's due (`YYYY-MM-DD`, pindoro_core `dayKey`).
-  TextColumn get dueOn => text()();
-  TextColumn get lastTier => textEnum<Tier>()();
-  DateTimeColumn get lastAt => dateTime()();
 
   @override
   Set<Column<Object>> get primaryKey => {cityId, streetId};
 }
 
-/// Where a city's course starts (pindoro_core `buildCourse`): saved the first
-/// time its Path opens.
-@DataClassName('CourseRow')
-class Courses extends Table {
-  @override
-  String get tableName => 'course';
-
-  TextColumn get cityId => text()();
-  TextColumn get startDistrictId => text()();
-
-  @override
-  Set<Column<Object>> get primaryKey => {cityId};
-}
-
-/// A finished lesson, practice or unit Pit stop; nothing is written before
-/// it finishes, so leaving one drops its XP.
-@DataClassName('LessonResult')
-class LessonResults extends Table {
-  @override
-  String get tableName => 'lesson_result';
-
-  TextColumn get id => text().clientDefault(newId)();
-  TextColumn get cityId => text()();
-
-  /// The unit's raion (district id).
-  TextColumn get unitId => text()();
-  TextColumn get kind => textEnum<LessonKind>()();
-
-  /// The lesson's number in its unit; null for the unit's Pit stop.
-  IntColumn get lesson => integer().nullable()();
-  TextColumn get difficulty => textEnum<Difficulty>()();
-
-  /// Everything it earned, bonuses included.
-  IntColumn get xp => integer()();
-  BoolColumn get perfect => boolean()();
-
-  /// Tests right first time, out of [tests].
-  IntColumn get rightFirst => integer()();
-  IntColumn get tests => integer()();
-  IntColumn get durationMs => integer()();
-  DateTimeColumn get finishedAt => dateTime().clientDefault(DateTime.now)();
-
-  @override
-  Set<Column<Object>> get primaryKey => {id};
-}
-
-enum LessonAnswerKind { pin, name, trip }
-
-/// A lesson result's answers in order; a name answer is Great when right and
-/// Miss when wrong, and has no distance.
-@DataClassName('LessonAnswer')
-class LessonAnswers extends Table {
-  @override
-  String get tableName => 'lesson_answer';
-
-  TextColumn get resultId => text().references(LessonResults, #id)();
-  IntColumn get position => integer()();
-  TextColumn get streetId => text()();
-  TextColumn get kind => textEnum<LessonAnswerKind>()();
-  TextColumn get tier => textEnum<Tier>()();
-  IntColumn get xp => integer()();
-
-  /// A mistake's second try at the end of the lesson.
-  BoolColumn get fix => boolean()();
-  RealColumn get distanceM => real().nullable()();
-
-  @override
-  Set<Column<Object>> get primaryKey => {resultId, position};
-}
-
-/// The lesson in play, saved after every step so an app kill resumes it:
-/// re-planned from [seed] and its [progress] replayed (pindoro_core
-/// `LessonRun.restore`). One row; dropped when the lesson ends or is left.
-@DataClassName('SavedLesson')
-class SavedLessons extends Table {
-  @override
-  String get tableName => 'saved_lesson';
-
-  IntColumn get id => integer().withDefault(const Constant(1))();
-  TextColumn get cityId => text()();
-  TextColumn get unitId => text()();
-  TextColumn get kind => textEnum<LessonKind>()();
-  IntColumn get lesson => integer().nullable()();
-  TextColumn get difficulty => textEnum<Difficulty>()();
-  TextColumn get packVersion => text()();
-  IntColumn get seed => integer()();
-  DateTimeColumn get startedAt => dateTime()();
-  DateTimeColumn get savedAt => dateTime()();
-
-  /// `{"index": n, "answers": [...]}`: the step and the answers so far.
-  TextColumn get progress => text()();
-
-  @override
-  Set<Column<Object>> get primaryKey => {id};
-}
-
-/// The account (one row): its username (the name Leagues shows), the secret token for its
+/// The account (one row): its username, the secret token for its
 /// `/me` routes (null once a sign-in on another phone signed this one out),
 /// when this phone last backed up, and since when it has progress the backup
 /// lacks. Left out of the backups.
@@ -298,7 +181,8 @@ class Accounts extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-/// An earned badge (pindoro_core `BadgeId`): saved once and never removed,
+/// An earned badge (pindoro_learning `BadgeId` by name, or a City memory
+/// milestone's `cityMemoryBadge`): saved once and never removed,
 /// so a badge stays earned when its condition stops holding (a pack update
 /// can unmaster a district).
 @DataClassName('BadgeRow')
@@ -306,7 +190,7 @@ class Badges extends Table {
   @override
   String get tableName => 'badge';
 
-  TextColumn get id => textEnum<BadgeId>()();
+  TextColumn get id => text()();
   DateTimeColumn get earnedAt => dateTime()();
 
   /// When the player saw it (its reward sheet closed, or Me showed it); null
@@ -315,19 +199,6 @@ class Badges extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => {id};
-}
-
-/// A street leaving the Pit stop with two Greats in a row; Pit crew counts
-/// them. A street cleared twice has two rows.
-@DataClassName('ReviewClearing')
-class ReviewClearings extends Table {
-  @override
-  String get tableName => 'review_cleared';
-
-  IntColumn get id => integer().autoIncrement()();
-  TextColumn get cityId => text()();
-  TextColumn get streetId => text()();
-  DateTimeColumn get clearedAt => dateTime()();
 }
 
 /// One learning card per item (docs/learning/SPEC.md §2.2); an unseen item
@@ -425,13 +296,8 @@ class LearnCities extends Table {
     Answers,
     RoundQuestions,
     GoalDays,
-    ReviewItems,
-    Courses,
-    LessonResults,
-    LessonAnswers,
-    SavedLessons,
+    LegacyKnown,
     Badges,
-    ReviewClearings,
     Accounts,
     CardStates,
     ReviewLogs,
@@ -444,7 +310,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 16;
+  static const int version = 17;
 
   @override
   int get schemaVersion => version;
@@ -516,6 +382,32 @@ class AppDatabase extends _$AppDatabase {
         );
       },
       from15To16: (m, schema) => m.createTable(schema.learnCity),
+      // v3 replaces the old game layer: lessons, the Path, the Pit stop, XP
+      // and the daily XP goal go. Lesson knowledge stays for carry-over.
+      from16To17: (m, schema) async {
+        await m.createTable(schema.legacyKnown);
+        await customStatement('''
+          INSERT OR IGNORE INTO legacy_known (city_id, street_id)
+          SELECT r.city_id, a.street_id
+          FROM lesson_answer a JOIN lesson_result r ON r.id = a.result_id
+          WHERE a.kind <> 'trip' AND a.tier IN ('perfect', 'great')
+            AND NOT (a.kind = 'name' AND a.fix = 1)
+        ''');
+        for (final table in [
+          'saved_lesson',
+          'lesson_answer',
+          'lesson_result',
+          'course',
+          'review_item',
+          'review_cleared',
+        ]) {
+          await m.deleteTable(table);
+        }
+        await m.dropColumn(schema.answer, 'xp');
+        await m.dropColumn(schema.round, 'pit_stop');
+        await m.dropColumn(schema.userSettings, 'daily_goal');
+        await m.dropColumn(schema.userSettings, 'turn_list');
+      },
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

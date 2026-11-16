@@ -4,8 +4,6 @@ import 'package:pindoro_core/pindoro_core.dart';
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
-import 'motion.dart';
-import 'painters.dart';
 import 'round_hud.dart';
 import 'tappable.dart';
 
@@ -38,8 +36,8 @@ class StreakPill extends StatelessWidget {
       StreakPillState.off => Pill(
         label: label,
         icon: PindoroGlyph.flame,
-        iconColor: c.pathNodeLockedIcon,
-        iconAccent: c.pathNodeLockedFill,
+        iconColor: c.lockedIcon,
+        iconAccent: c.lockedFill,
         foreground: c.textSecondary,
       ),
       StreakPillState.atRisk => Pill(
@@ -65,66 +63,6 @@ class StreakPill extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: PindoroSize.tapMin),
         child: Center(widthFactor: 1, child: pill),
-      ),
-    );
-  }
-}
-
-/// Today's XP toward the daily goal: a [stroke] ring (`color.xp.track` under
-/// `color.xp.fill`) around the flame, full when the goal is met. A new
-/// [progress] animates over `duration.slow`.
-class DailyGoalRing extends StatelessWidget {
-  const DailyGoalRing({
-    super.key,
-    required this.progress,
-    required this.semanticLabel,
-    this.size = 56,
-    this.stroke = 9,
-  });
-
-  /// 0–1.
-  final double progress;
-  final String semanticLabel;
-  final double size;
-  final double stroke;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = PindoroTheme.of(context).colors;
-    final (duration, curve) = delayedMotion(
-      context,
-      Duration.zero,
-      PindoroMotion.durationSlow,
-      PindoroMotion.easeStandard,
-    );
-    return Semantics(
-      label: semanticLabel,
-      container: true,
-      image: true,
-      excludeSemantics: true,
-      child: SizedBox.square(
-        dimension: size,
-        child: TweenAnimationBuilder<double>(
-          tween: Tween(end: progress.clamp(0, 1)),
-          duration: duration,
-          curve: curve,
-          builder: (_, v, child) => CustomPaint(
-            painter: RingPainter(
-              value: v,
-              stroke: stroke,
-              track: c.xpTrack,
-              fill: c.xpFill,
-            ),
-            child: child,
-          ),
-          child: Center(
-            child: PindoroIcon(
-              PindoroGlyph.flame,
-              color: c.streakFlame,
-              accent: c.streakCore,
-            ),
-          ),
-        ),
       ),
     );
   }

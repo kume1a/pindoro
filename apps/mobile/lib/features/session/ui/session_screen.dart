@@ -24,10 +24,13 @@ import 'package:pindoro_learning/pindoro_learning.dart';
 /// Session done. Every answer is saved as it comes, so Leave needs no
 /// confirmation.
 class SessionScreen extends ConsumerStatefulWidget {
-  const SessionScreen({super.key, this.placement = false});
+  const SessionScreen({super.key, this.placement = false, this.more = false});
 
   /// The city's placement instead of today's session (SPEC §6.2).
   final bool placement;
+
+  /// "Learn 5 more" instead of today's session.
+  final bool more;
 
   @override
   ConsumerState<SessionScreen> createState() => _SessionScreenState();
@@ -44,11 +47,11 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
     Future.microtask(
       () => ref
           .read(sessionControllerProvider.notifier)
-          .start(placement: widget.placement),
+          .start(placement: widget.placement, more: widget.more),
     );
   }
 
-  void _leave() => context.canPop() ? context.pop() : context.go(Routes.home);
+  void _leave() => context.canPop() ? context.pop() : context.go(Routes.today);
 
   @override
   Widget build(BuildContext context) {
@@ -80,6 +83,9 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
       SessionDone(:final summary) => SessionDoneView(
         summary: summary,
         onDone: _leave,
+        onLearnMore: summary.cleared
+            ? () => context.pushReplacement(Routes.learnMore)
+            : null,
       ),
       SessionPlaced(:final summary) => PlacementDoneView(
         summary: summary,
@@ -149,7 +155,6 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           : (
               key: p.index,
               tier: r.grade.tier,
-              xp: 0,
               distanceM: r.grade.distanceM,
               pin: r.pin,
               nearest: r.nearest,

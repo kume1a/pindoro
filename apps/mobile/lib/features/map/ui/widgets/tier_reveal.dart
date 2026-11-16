@@ -1,18 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:pindoro/core/format.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// A checked answer's sheet (a pin or a road trip): the tier's [label], the
-/// XP counting up (a Miss shows none), the [sentence], the [chips], Pindo
-/// and the [action] that calls [onNext].
+/// A checked pin's sheet: the tier's [label], the [headerChip] (the next
+/// review), the [sentence], the [chips], Pindo and the [action] that calls
+/// [onNext].
 class TierRevealSheet extends StatelessWidget {
   const TierRevealSheet({
     super.key,
     required this.tier,
-    required this.xp,
     required this.label,
     required this.sentence,
     required this.chips,
@@ -22,9 +20,6 @@ class TierRevealSheet extends StatelessWidget {
   });
 
   final Tier tier;
-  final int xp;
-
-  /// Takes the XP chip's place: the next-review chip (v3).
   final Widget? headerChip;
   final String label;
   final String sentence;
@@ -33,32 +28,23 @@ class TierRevealSheet extends StatelessWidget {
   final Future<void> Function() onNext;
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    return CountUp(
-      value: xp,
-      builder: (context, xp) => RevealSheet(
-        tier: tier,
-        label: label,
-        sentence: sentence,
-        xpLabel: tier == Tier.miss || headerChip != null
-            ? null
-            : l10n.commonXp(formatNumber(xp)),
-        headerChip: headerChip,
-        chips: chips,
-        mascot: Pindo(switch (tier) {
-          Tier.perfect || Tier.great => PindoExpression.cheering,
-          Tier.close => PindoExpression.happy,
-          Tier.miss => PindoExpression.encouraging,
-        }, height: 80),
-        action: PindoroButton(
-          tier: tier,
-          label: action,
-          onPressed: () => unawaited(onNext()),
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => RevealSheet(
+    tier: tier,
+    label: label,
+    sentence: sentence,
+    headerChip: headerChip,
+    chips: chips,
+    mascot: Pindo(switch (tier) {
+      Tier.perfect || Tier.great => PindoExpression.cheering,
+      Tier.close => PindoExpression.happy,
+      Tier.miss => PindoExpression.encouraging,
+    }, height: 80),
+    action: PindoroButton(
+      tier: tier,
+      label: action,
+      onPressed: () => unawaited(onNext()),
+    ),
+  );
 }
 
 /// A map screen's reveal over its whole stack: the [sheet] rising in at the

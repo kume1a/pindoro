@@ -134,5 +134,8 @@ abstract final class LearningConfig {
   // Motivation and maps (§8, §16.6)
   static const int cityMemoryMilestone = 500;
   static const int maintenanceBadgeDays = 100;
+
+  /// Night owl: an answer from midnight until this local hour.
+  static const int nightOwlBefore = 4;
   static const int knownLabelMax = 12;
 }

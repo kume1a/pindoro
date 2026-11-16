@@ -14,8 +14,8 @@ import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/database_file.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/account/data/account_dao.dart';
+import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
-import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 const _code = 'abcdefghjkmnpqrs';
@@ -126,7 +126,7 @@ void main() {
     tester,
   ) async {
     await tester.runAsync(
-      () => ProgressDao(db).place('tbilisi', [('vake', 1)]),
+      () => LearningDao(db).markPlaced('tbilisi', DateTime(2026)),
     );
     final at = DateTime.now().subtract(const Duration(days: 2)).toUtc();
     reply = (request) => request.method == 'POST'
@@ -199,7 +199,7 @@ void main() {
     await tapThrough(tester, find.text('Delete account'));
     expect(find.text('Delete your account?'), findsOneWidget);
     await tapThrough(tester, find.text('Keep account'));
-    expect(sent.map((r) => r.url.path), ['/v1/league/me'], reason: 'launch');
+    expect(sent, isEmpty, reason: 'keeping the account sends nothing');
     await tapThrough(tester, find.text('Sign out'));
     await tapThrough(tester, find.widgetWithText(PindoroButton, 'Sign out'));
     expect(sent.last.url.path, '/v1/sessions/me');

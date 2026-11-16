@@ -25,11 +25,7 @@ class SavedCard extends StatelessWidget {
             style: PindoroType.titleMd.copyWith(color: c.primaryText),
           ),
           Text(
-            l10n.homeSavedProgress(
-              saved.answered + 1,
-              saved.total,
-              formatNumber(saved.xp),
-            ),
+            l10n.commonQuestionProgress(saved.answered + 1, saved.total),
             style: PindoroType.bodyMd.copyWith(color: c.textPrimary),
           ),
           Text(

@@ -380,32 +380,33 @@ recitals must work without speech.
 Added with §16 (also in `constants.dart`; distances shared with the display tiers are referenced from
 pindoro_core `ScoringConfig`, not copied):
 
-| Name                                                                | Value                               |
-| ------------------------------------------------------------------- | ----------------------------------- |
-| `coreMinLengthM`                                                    | 150                                 |
-| `groupSize`, `reviewsPerBlock`                                      | 3, 5                                |
-| `retrieval1GapMin`, `retrieval1GapMax`, `retrieval1GapFloor`        | 3, 6, 2 items                       |
-| `learnMoreCount`                                                    | 5                                   |
-| `placementSamplePerDistrict`, `placementPassMin`                    | 5, 4                                |
-| `placementPinS` (time estimate per placement pin)                   | 4 s                                 |
-| `familySweepMinChildren`, `familySweepWindowDays`                   | 3, 2                                |
-| `crossingsPerDay`, `bearingsPerSessionMin`, `bearingsPerSessionMax` | 1, 1, 3                             |
-| `bearingUnlockGridSolid`                                            | 0.50                                |
-| `nameCheckEvery`, `nameCheckOptions`                                | 10, 6                               |
-| `familyOrphanM`, `familyNearM`                                      | 1500, 500                           |
-| `chunkNeighbourM`                                                   | 50                                  |
-| `nearDueFraction`                                                   | 0.5 (implicit evidence and Explore) |
-| `tierCReliefFactor`                                                 | 1.2                                 |
-| `cityMemoryMilestone`, `maintenanceBadgeDays`                       | 500, 100                            |
-| `uTurnPenaltyM`                                                     | 250                                 |
-| `phase2StableDays`                                                  | 14                                  |
-| `landmarkStructuralM`, `landmarkUniquenessM`                        | 40, 300                             |
-| `sceneApproachMinM`, `sceneApproachMaxM`                            | 25, 40                              |
-| `recitalLandmarkBonus`, `recitalLandmarkBonusCap`                   | 0.1, 0.3                            |
-| `answerGapCapS`                                                     | 60                                  |
-| `timeEstimateMinSamples`                                            | 50                                  |
-| `migrationDueMinDays`, `migrationDueMaxDays`                        | 1, 7                                |
-| `knownLabelMax`                                                     | 12                                  |
+| Name                                                                 | Value                               |
+| -------------------------------------------------------------------- | ----------------------------------- |
+| `coreMinLengthM`                                                     | 150                                 |
+| `groupSize`, `reviewsPerBlock`                                       | 3, 5                                |
+| `retrieval1GapMin`, `retrieval1GapMax`, `retrieval1GapFloor`         | 3, 6, 2 items                       |
+| `learnMoreCount`                                                     | 5                                   |
+| `placementSamplePerDistrict`, `placementPassMin`                     | 5, 4                                |
+| `placementPinS` (time estimate per placement pin)                    | 4 s                                 |
+| `nightOwlBefore` (Night owl badge: an answer before this local hour) | 4                                   |
+| `familySweepMinChildren`, `familySweepWindowDays`                    | 3, 2                                |
+| `crossingsPerDay`, `bearingsPerSessionMin`, `bearingsPerSessionMax`  | 1, 1, 3                             |
+| `bearingUnlockGridSolid`                                             | 0.50                                |
+| `nameCheckEvery`, `nameCheckOptions`                                 | 10, 6                               |
+| `familyOrphanM`, `familyNearM`                                       | 1500, 500                           |
+| `chunkNeighbourM`                                                    | 50                                  |
+| `nearDueFraction`                                                    | 0.5 (implicit evidence and Explore) |
+| `tierCReliefFactor`                                                  | 1.2                                 |
+| `cityMemoryMilestone`, `maintenanceBadgeDays`                        | 500, 100                            |
+| `uTurnPenaltyM`                                                      | 250                                 |
+| `phase2StableDays`                                                   | 14                                  |
+| `landmarkStructuralM`, `landmarkUniquenessM`                         | 40, 300                             |
+| `sceneApproachMinM`, `sceneApproachMaxM`                             | 25, 40                              |
+| `recitalLandmarkBonus`, `recitalLandmarkBonusCap`                    | 0.1, 0.3                            |
+| `answerGapCapS`                                                      | 60                                  |
+| `timeEstimateMinSamples`                                             | 50                                  |
+| `migrationDueMinDays`, `migrationDueMaxDays`                         | 1, 7                                |
+| `knownLabelMax`                                                      | 12                                  |
 
 ## 14. Test vectors (required before UI work)
 
@@ -472,7 +473,7 @@ rest of the spec. Numbers named here are in §13.
    each capped at `answerGapCapS`. The session timer is an estimate and never ends a session.
    `tReviewS` / `tNewS` become the log medians once there are `timeEstimateMinSamples` samples (M3).
 10. **`review_log.format`**: `placement`, `pretest`, `retrieval1`, `retrieval2`, `review`, `relearn`,
-    `explore`; later `name`, `name_check`, `extent`, `family_sweep`, `crossings`, `bearing`, `junction`,
+    `explore`, `exploreLog` (an Explore answer that schedules nothing, §16.16); later `name`, `name_check`, `extent`, `family_sweep`, `crossings`, `bearing`, `junction`,
     `gateway`, `bridge`, `connection`, `landmark`, `scene`, `recital`, `drive`. `pretest`, `crossings`
     and `bearing` never change a schedule; the family sweep grades the children's P cards.
 
@@ -540,8 +541,10 @@ rest of the spec. Numbers named here are in §13.
     "a district Mastered" (§8 Mastered); add neighbourhood Mastered, 100-day maintenance, zero leeches
     and City memory milestones every `cityMemoryMilestone` streets; retire pitCrew and roadTrip.
     Earned badges stay earned.
-33. **Road-trip drawing** (`RouteView`, the draw layer, `RouteDraft`) survives the removal of lessons
-    in M3 because the recital's Draw mode (M6) reuses it.
+33. **Road-trip drawing** survives the removal of lessons in M3 for the recital's Draw mode (M6):
+    `RouteDraft`, the draw layer, the route layers and `MapProjection`. The trip screen
+    (`RouteView`), trip picking and route scoring go; M6 builds its Draw screen on the drawing
+    parts and grades with the recital grader.
 
 ### 16.9 Tuning (M8)
 
@@ -594,3 +597,27 @@ board, and per-type FSRS parameter presets.
     the teaching order, then begun ones, then the rest in teaching order ("Starts after" names the
     chunk before it). Districts sort by their share remembered. The replay of §16.20 skips
     `pretest` rows and placement rows that made no card.
+
+### 16.12 Replacing the old game (M3)
+
+47. **A day counts** for the streak once the player answered that day (a session, placement or
+    Explore) and then either nothing is due before midnight or the day's minutes are spent. It is
+    checked after every learning answer and written to `goal_day` once; a day never un-counts.
+48. **The reminder** fires at 19:00 on a day that hasn't counted, and only when a review is due by
+    the end of that day.
+49. **Badge rules**: Keeper is 100 counted days, in a row or not. Clear road needs a street that
+    once became a leech (`leechLapses` lapses) and no suspended card now. City memory milestones
+    use the open city's City memory (Σ R) and are stored as `cityMemory<n>`. Bullseye counts
+    Explore Perfects and session or placement pins Perfect at medium. Explorer keeps its rule (5
+    raions with a street known), now from the cards. Pit crew and Road trip are retired: earned
+    ones show with a Retired pill, unearned ones never show.
+50. **Time estimates**: once the log holds `timeEstimateMinSamples` reviews, `tReviewS` is the median
+    gap before a review answer in its session and `tNewS` keeps its default ratio to it.
+51. **The old tables** go in schema 17 (`review_item`, `review_cleared`, `course`,
+    `lesson_result`, `lesson_answer`, `saved_lesson`, and the XP, Pit stop, daily goal and turn
+    list columns). Streets the lessons knew are kept in `legacy_known` first, so carry-over still
+    finds them for cities not opened yet.
+52. **Learn 5 more** plans `learnMoreCount` new streets past the daily number and the minutes. Today
+    offers it when done; Session done offers it when nothing is left due.
+53. **Catching up** shows the days the due reviews take at the day's minutes (`due × tReviewS ÷
+    budget`, rounded up) and City memory's change over the week.

@@ -13,11 +13,9 @@ String dayKey(DateTime day) =>
 
 DateTime parseDayKey(String key) => DateTime.parse('${key}T00:00:00Z');
 
-/// The daily-habit rules (v1-screens.md § R2 · v1.1 Daily habit).
+/// The daily-habit rules: freezes, the at-risk hour, the reminder and the
+/// milestones. Which days count is pindoro_learning's (SPEC §8).
 abstract final class StreakRules {
-  static const List<int> goals = [250, 500, 1000];
-  static const int defaultGoal = 500;
-
   /// A freeze is earned on every this-many goal days of a run.
   static const int freezeEvery = 7;
   static const int maxFreezes = 2;

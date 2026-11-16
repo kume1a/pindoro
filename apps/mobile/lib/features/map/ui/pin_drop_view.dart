@@ -12,13 +12,12 @@ import 'package:pindoro/features/map/ui/widgets/tier_reveal.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// A confirmed pin: its tier, XP and distance, where it was and the nearest
+/// A confirmed pin: its tier and distance, where it was and the nearest
 /// point of the street (the measure line), the sheet's [chips] and the
 /// [action] label (Next, Got it, See results).
 typedef PinReveal = ({
   Object key,
   Tier tier,
-  int xp,
   double distanceM,
   LatLng pin,
   LatLng nearest,
@@ -26,7 +25,7 @@ typedef PinReveal = ({
   String action,
 });
 
-/// One pin drop, shared by Free play rounds and lessons: the map framed on
+/// One pin drop, shared by Explore rounds and learning sessions: the map framed on
 /// [area], the [topBar] and the street plate, Confirm until [reveal], then
 /// the measure and the reveal sheet. A tap drops (or moves) the pin; outside
 /// the area a toast says the street is inside it.
@@ -274,7 +273,6 @@ class PinRevealSheet extends StatelessWidget {
     };
     return TierRevealSheet(
       tier: mixUp == null ? reveal.tier : Tier.miss,
-      xp: reveal.xp,
       headerChip: headerChip,
       label: mixUp == null ? tierLabel(l10n, reveal.tier) : l10n.revealMixUp,
       sentence: sentence,

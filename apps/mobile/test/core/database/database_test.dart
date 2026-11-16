@@ -31,13 +31,12 @@ void main() {
             pinLon: 44.75,
             distanceM: 42,
             tier: Tier.great,
-            xp: 117,
             packVersion: 'v1',
           ),
         );
     expect(answer.id[14], '7', reason: 'UUID version nibble');
     await expectLater(
-      db.update(db.answers).write(const AnswersCompanion(xp: Value(1))),
+      db.update(db.answers).write(const AnswersCompanion(distanceM: Value(1))),
       throwsA(isA<SqliteException>()),
     );
   });

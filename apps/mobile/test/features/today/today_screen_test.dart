@@ -65,6 +65,7 @@ void main() {
                 },
               ),
               sinceYesterday: 8.2,
+              sinceWeek: -41.2,
             ),
           ),
         ],
@@ -122,5 +123,33 @@ void main() {
     expect(find.text('Done for today'), findsOneWidget);
     expect(find.text('22 reviews due tomorrow'), findsOneWidget);
     expect(find.text('Start'), findsNothing);
+    expect(find.text('Learn 5 more'), findsOneWidget);
+    expect(find.text('Free play'), findsOneWidget);
+  });
+
+  testWidgets('catching up: the reviews waiting, no new streets, Catch up and '
+      'the week’s change', (tester) async {
+    await placed();
+    await pump(
+      tester,
+      const SessionPlan(
+        steps: [(kind: StepKind.review, itemId: 'P:x')],
+        dueCount: 186,
+        backlog: true,
+        reviewCount: 150,
+        newCount: 0,
+        estimatedS: 150 * 12,
+      ),
+    );
+    expect(find.text('186 reviews waiting'), findsOneWidget);
+    expect(
+      find.text(
+        'New streets are paused until you catch up. About 2 days at 20 min.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Catch up'), findsOneWidget);
+    expect(find.text('−41 this week'), findsOneWidget);
+    expect(find.textContaining('Most overdue first'), findsOneWidget);
   });
 }

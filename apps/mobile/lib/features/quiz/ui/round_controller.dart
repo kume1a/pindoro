@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/database/database.dart';
-import 'package:pindoro/features/league/data/league_data.dart';
+import 'package:pindoro/features/learning/data/explore.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -44,7 +45,7 @@ class RoundContext {
   /// Answers given so far, in order.
   final List<Answer> answers;
 
-  /// For a retry or Pit stop: how far the pin was last time, by question id.
+  /// For a retry: how far the pin was last time, by question id.
   final Map<String, double> previousDistanceM;
 
   PlannedQuestion get question => questions[index];
@@ -53,7 +54,6 @@ class RoundContext {
   int get number => index + 1;
   int get total => questions.length;
   bool get isLast => index == questions.length - 1;
-  int get xp => answers.xp;
 
   /// The question bar's filled segments: one per answered question.
   List<Tier> get answeredTiers => [
@@ -107,11 +107,6 @@ final class RoundAreaMissing extends RoundState {
   const RoundAreaMissing();
 }
 
-/// A Pit stop with nothing due (it emptied since the screen was opened).
-final class RoundNothingDue extends RoundState {
-  const RoundNothingDue();
-}
-
 final class RoundFinished extends RoundState {
   const RoundFinished(this.roundId);
 
@@ -148,6 +143,17 @@ final class RoundRevealed extends RoundInPlay {
 
 class RoundController extends Notifier<RoundState> {
   bool _saving = false;
+
+  /// When the current question showed: an Explore pin's response time.
+  DateTime _askedAt = DateTime(0);
+
+  DateTime _now() => ref.read(clockProvider)();
+
+  /// Shows [round]'s current question.
+  void _asking(RoundContext round) {
+    _askedAt = _now();
+    state = RoundAsking(round);
+  }
 
   @override
   RoundState build() => const RoundLoading();
@@ -214,7 +220,6 @@ class RoundController extends Notifier<RoundState> {
     required Difficulty difficulty,
     required List<PlannedQuestion> questions,
     String? retryOf,
-    bool pitStop = false,
   }) async {
     final version = packVersion(pack);
     final roundId = await dao.startRound(
@@ -224,13 +229,12 @@ class RoundController extends Notifier<RoundState> {
       packVersion: version,
       streetIds: [for (final q in questions) q.id],
       retryOf: retryOf,
-      pitStop: pitStop,
     );
-    final previous = _replays(retryOf: retryOf, pitStop: pitStop)
+    final previous = retryOf != null
         ? await dao.previousDistances(roundId)
         : const <String, double>{};
     if (!ref.mounted) return;
-    state = RoundAsking(
+    _asking(
       RoundContext(
         id: roundId,
         shape: shape,
@@ -242,10 +246,6 @@ class RoundController extends Notifier<RoundState> {
       ),
     );
   }
-
-  /// Retry and Pit stop rounds show the reroute plate with the last distance.
-  static bool _replays({required String? retryOf, required bool pitStop}) =>
-      retryOf != null || pitStop;
 
   /// Plays [roundId]'s Close and Miss streets in a new round with the same
   /// city, area and difficulty. An empty retry set starts nothing.
@@ -282,39 +282,6 @@ class RoundController extends Notifier<RoundState> {
     );
   }
 
-  /// Plays the open city's Pit stop: up to [ReviewRules.pitStopSize] due
-  /// streets, most overdue first, framed by the districts that hold them.
-  Future<void> startPitStop(Difficulty difficulty) async {
-    state = const RoundLoading();
-    final dao = _progress;
-    final pack = await ref.read(packRepositoryProvider.future);
-    if (!ref.mounted) return;
-    final cityId = pack.city().id;
-    final streets = await ref.read(cityStreetsProvider.future);
-    final today = calendarDay(DateTime.now());
-    final due = (await dao.pitStop(cityId)).dueIn(streets, today);
-    final questions = resolveQuestions(streets, [
-      for (final item in due.take(ReviewRules.pitStopSize)) item.streetId,
-    ]);
-    if (!ref.mounted) return;
-    final area = DistrictsArea(districtsHolding(pack, questions));
-    final shape = area.shapeIn(pack);
-    if (questions.isEmpty || shape == null) {
-      state = const RoundNothingDue();
-      return;
-    }
-    await _ask(
-      dao,
-      pack,
-      cityId: cityId,
-      area: area,
-      shape: shape,
-      difficulty: difficulty,
-      questions: questions,
-      pitStop: true,
-    );
-  }
-
   Future<void> resume(String roundId) async {
     state = const RoundLoading();
     final dao = _progress;
@@ -336,15 +303,11 @@ class RoundController extends Notifier<RoundState> {
       if (ref.mounted) _finish(roundId);
       return;
     }
-    final previous =
-        _replays(
-          retryOf: progress.round.retryOf,
-          pitStop: progress.round.pitStop,
-        )
+    final previous = progress.round.retryOf != null
         ? await dao.previousDistances(roundId)
         : const <String, double>{};
     if (!ref.mounted) return;
-    state = RoundAsking(
+    _asking(
       RoundContext(
         id: roundId,
         shape: shape,
@@ -362,8 +325,9 @@ class RoundController extends Notifier<RoundState> {
     if (state case RoundAsking(:final round)) state = RoundAsking(round, pin);
   }
 
-  /// Scores and saves the pin. The last answer also finishes the round, so a
-  /// fully answered round is never left to resume.
+  /// Scores and saves the pin, and feeds it to the learning cards. The last
+  /// answer also finishes the round, so a fully answered round is never left
+  /// to resume.
   Future<void> confirm() async {
     if (_saving) return;
     if (state case RoundAsking(:final round, pin: final pin?)) {
@@ -372,21 +336,28 @@ class RoundController extends Notifier<RoundState> {
         final dao = _progress;
         final question = round.question;
         final nearest = question.street.nearest(pin);
-        final score = scoreAnswer(
-          nearest.distanceM,
-          nearest.part.roadClass,
-          round.difficulty,
-        );
+        final rtMs = _now().difference(_askedAt).inMilliseconds;
         final answer = await dao.recordAnswer(
           roundId: round.id,
           streetId: question.id,
           pin: pin,
           distanceM: nearest.distanceM,
-          tier: score.tier,
-          xp: score.xp,
+          tier: scoreAnswer(
+            nearest.distanceM,
+            nearest.part.roadClass,
+            round.difficulty,
+          ),
           packVersion: round.packVersion,
         );
         if (round.isLast) await dao.finishRound(round.id);
+        if (!ref.mounted) return;
+        await learnFromExplore(
+          ref,
+          street: question.street,
+          pin: pin,
+          rtMs: rtMs,
+          roundId: round.id,
+        );
         if (ref.mounted) {
           state = RoundRevealed(
             round.withAnswer(answer),
@@ -407,17 +378,12 @@ class RoundController extends Notifier<RoundState> {
       if (round.isLast) {
         _finish(round.id);
       } else {
-        state = RoundAsking(round.advance());
+        _asking(round.advance());
       }
     }
   }
 
-  /// The results, with the round's XP on its way to the league first, so
-  /// Results never reads the standing from before the round.
-  void _finish(String roundId) {
-    ref.invalidate(standingProvider);
-    state = RoundFinished(roundId);
-  }
+  void _finish(String roundId) => state = RoundFinished(roundId);
 }
 
 /// Planned ids → their streets in [cityStreets]. Ids are stable across pack
@@ -429,24 +395,3 @@ List<PlannedQuestion> resolveQuestions(
   for (final id in ids)
     if (cityStreets[id] case final street?) (id: id, street: street),
 ];
-
-/// The city districts (not quarters or neighbourhoods) holding any part of
-/// [questions]' streets: a Pit stop round's area.
-Set<String> districtsHolding(
-  PackRepository pack,
-  List<PlannedQuestion> questions,
-) {
-  final parts = {
-    for (final q in questions)
-      for (final p in q.street.parts) p.id,
-  };
-  final districts = {
-    for (final d in pack.districts())
-      if (d.isRaion) d.id,
-  };
-  return {
-    for (final MapEntry(key: id, value: inside)
-        in pack.partsByDistrict().entries)
-      if (districts.contains(id) && inside.any(parts.contains)) id,
-  };
-}

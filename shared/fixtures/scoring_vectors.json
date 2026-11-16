@@ -154,240 +154,210 @@
       "distance_m": 0,
       "road_class": "residential",
       "difficulty": "medium",
-      "tier": "perfect",
-      "xp": 100
+      "tier": "perfect"
     },
     {
       "name": "perfect boundary: half-width 5 + 20 m",
       "distance_m": 25,
       "road_class": "residential",
       "difficulty": "medium",
-      "tier": "perfect",
-      "xp": 100
+      "tier": "perfect"
     },
     {
       "name": "just past perfect",
       "distance_m": 25.01,
       "road_class": "residential",
       "difficulty": "medium",
-      "tier": "great",
-      "xp": 89
+      "tier": "great"
     },
     {
       "name": "canvas example: 84 m",
       "distance_m": 84,
       "road_class": "residential",
       "difficulty": "medium",
-      "tier": "great",
-      "xp": 74
+      "tier": "great"
     },
     {
       "name": "great boundary",
       "distance_m": 100,
       "road_class": "residential",
       "difficulty": "medium",
-      "tier": "great",
-      "xp": 70
+      "tier": "great"
     },
     {
       "name": "just past great",
       "distance_m": 100.01,
       "road_class": "residential",
       "difficulty": "medium",
-      "tier": "close",
-      "xp": 60
+      "tier": "close"
     },
     {
       "name": "canvas example: 240 m",
       "distance_m": 240,
       "road_class": "residential",
       "difficulty": "medium",
-      "tier": "close",
-      "xp": 39
+      "tier": "close"
     },
     {
       "name": "close boundary",
       "distance_m": 300,
       "road_class": "residential",
       "difficulty": "medium",
-      "tier": "close",
-      "xp": 30
+      "tier": "close"
     },
     {
       "name": "just past close",
       "distance_m": 300.01,
       "road_class": "residential",
       "difficulty": "medium",
-      "tier": "miss",
-      "xp": 0
+      "tier": "miss"
     },
     {
       "name": "wide road: motorway perfect at 34 m",
       "distance_m": 34,
       "road_class": "motorway",
       "difficulty": "medium",
-      "tier": "perfect",
-      "xp": 100
+      "tier": "perfect"
     },
     {
       "name": "wide road: great from 34 m",
       "distance_m": 35,
       "road_class": "motorway",
       "difficulty": "medium",
-      "tier": "great",
-      "xp": 86
+      "tier": "great"
     },
     {
       "name": "easy perfect boundary (primary)",
       "distance_m": 45,
       "road_class": "primary",
       "difficulty": "easy",
-      "tier": "perfect",
-      "xp": 100
+      "tier": "perfect"
     },
     {
       "name": "easy scales the curve: 126 m = 84 m at medium",
       "distance_m": 126,
       "road_class": "primary",
       "difficulty": "easy",
-      "tier": "great",
-      "xp": 74
+      "tier": "great"
     },
     {
       "name": "easy great boundary",
       "distance_m": 150,
       "road_class": "primary",
       "difficulty": "easy",
-      "tier": "great",
-      "xp": 70
+      "tier": "great"
     },
     {
       "name": "easy scales the curve: 360 m = 240 m at medium",
       "distance_m": 360,
       "road_class": "primary",
       "difficulty": "easy",
-      "tier": "close",
-      "xp": 39
+      "tier": "close"
     },
     {
       "name": "easy close boundary",
       "distance_m": 450,
       "road_class": "primary",
       "difficulty": "easy",
-      "tier": "close",
-      "xp": 30
+      "tier": "close"
     },
     {
       "name": "easy miss",
       "distance_m": 451,
       "road_class": "primary",
       "difficulty": "easy",
-      "tier": "miss",
-      "xp": 0
+      "tier": "miss"
     },
     {
       "name": "hard inside perfect (secondary 19.6 m)",
       "distance_m": 19.5,
       "road_class": "secondary",
       "difficulty": "hard",
-      "tier": "perfect",
-      "xp": 100
+      "tier": "perfect"
     },
     {
       "name": "hard scales the curve: 58.8 m = 84 m at medium",
       "distance_m": 58.8,
       "road_class": "secondary",
       "difficulty": "hard",
-      "tier": "great",
-      "xp": 74
+      "tier": "great"
     },
     {
       "name": "hard scales the curve: 168 m = 240 m at medium",
       "distance_m": 168,
       "road_class": "secondary",
       "difficulty": "hard",
-      "tier": "close",
-      "xp": 39
+      "tier": "close"
     },
     {
       "name": "unlisted class uses 5 m: expert perfect boundary",
       "distance_m": 12.5,
       "road_class": "living_street",
       "difficulty": "expert",
-      "tier": "perfect",
-      "xp": 100
+      "tier": "perfect"
     },
     {
       "name": "expert scales the curve: 42 m = 84 m at medium",
       "distance_m": 42,
       "road_class": "living_street",
       "difficulty": "expert",
-      "tier": "great",
-      "xp": 74
+      "tier": "great"
     },
     {
       "name": "expert scales the curve: 120 m = 240 m at medium",
       "distance_m": 120,
       "road_class": "living_street",
       "difficulty": "expert",
-      "tier": "close",
-      "xp": 39
+      "tier": "close"
     },
     {
       "name": "expert miss",
       "distance_m": 151,
       "road_class": "living_street",
       "difficulty": "expert",
-      "tier": "miss",
-      "xp": 0
+      "tier": "miss"
     },
     {
       "name": "great XP rounds .5 up: 26 m",
       "distance_m": 26,
       "road_class": "residential",
       "difficulty": "medium",
-      "tier": "great",
-      "xp": 89
+      "tier": "great"
     },
     {
       "name": "close XP rounds .5 up: 110 m",
       "distance_m": 110,
       "road_class": "residential",
       "difficulty": "medium",
-      "tier": "close",
-      "xp": 59
+      "tier": "close"
     },
     {
       "name": "hard great boundary (secondary 70 m)",
       "distance_m": 70,
       "road_class": "secondary",
       "difficulty": "hard",
-      "tier": "great",
-      "xp": 70
+      "tier": "great"
     },
     {
       "name": "hard close boundary (secondary 210 m)",
       "distance_m": 210,
       "road_class": "secondary",
       "difficulty": "hard",
-      "tier": "close",
-      "xp": 30
+      "tier": "close"
     },
     {
       "name": "expert great boundary (50 m)",
       "distance_m": 50,
       "road_class": "living_street",
       "difficulty": "expert",
-      "tier": "great",
-      "xp": 70
+      "tier": "great"
     },
     {
       "name": "expert close boundary (150 m)",
       "distance_m": 150,
       "road_class": "living_street",
       "difficulty": "expert",
-      "tier": "close",
-      "xp": 30
+      "tier": "close"
     }
   ],
   "polyline6": [

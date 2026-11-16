@@ -71,14 +71,14 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('a Miss goes to the Pit stop', (tester) async {
+  testWidgets('a Miss says so, with no points', (tester) async {
     await pumpRound(tester);
     map!.onTap!(const LatLng(41.9, 45.2));
     await tester.pump();
     await tester.tap(find.text('Confirm'));
     await settle(tester);
     expect(find.text('Not this time'), findsOneWidget);
-    expect(find.text('Added to your Pit stop'), findsOneWidget);
+    expect(find.textContaining('XP'), findsNothing);
   });
 
   testWidgets('confirm reveals the score, next asks the following street', (
@@ -105,8 +105,7 @@ void main() {
 
     expect(find.byType(RevealSheet), findsOneWidget);
     expect(find.text('Perfect!'), findsOneWidget);
-    expect(find.text('+100 XP'), findsOneWidget);
-    expect(find.text('100'), findsOneWidget, reason: 'the round XP pill');
+    expect(find.textContaining('XP'), findsNothing);
     expect(map!.truth, isNotNull);
     expect(map!.onTap, isNull, reason: 'no new pins while revealed');
 

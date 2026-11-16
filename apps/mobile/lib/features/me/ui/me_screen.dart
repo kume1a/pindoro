@@ -6,19 +6,16 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
-import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
-import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/badges/data/badge_data.dart';
 import 'package:pindoro/features/badges/ui/badge_look.dart';
 import 'package:pindoro/features/me/data/me_data.dart';
-import 'package:pindoro/features/progress/ui/level_card.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// Level, four stats and the cities with progress (canvas MeScreen);
-/// Settings from the gear.
+/// Four stats, the badges and the cities with their City memory (design
+/// system Bottom nav, Me); Settings from the gear.
 class MeScreen extends ConsumerWidget {
   const MeScreen({super.key});
 
@@ -44,37 +41,31 @@ class MeScreen extends ConsumerWidget {
     BuildContext context,
     MeData me,
     List<BadgeView>? badges,
-    Set<BadgeId> fresh,
+    Set<String> fresh,
   ) {
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
-    final total = formatNumber(me.totalXp);
-    final level = progressWithinLevel(me.totalXp);
-    final known = me.cities.fold(0, (sum, city) => sum + city.count.known);
     return [
-      LevelCard(
-        level: level,
-        subtitle: switch (me.since) {
-          final since? => l10n.meXpSince(total, _month(context, since)),
-          null => l10n.homeXpTotal(total),
-        },
-        caption: toNextLevelLabel(l10n, level),
-      ),
+      if (me.since case final since?)
+        Text(
+          l10n.mePlayingSince(_month(context, since)),
+          style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
+        ),
       _TileGrid([
         StatTile(
-          glyph: PindoroGlyph.pin,
+          glyph: PindoroGlyph.checkCircle,
           label: l10n.meStreetsKnown,
-          value: formatNumber(known),
+          value: formatNumber(me.knownStreets),
         ),
         StatTile(
-          glyph: PindoroGlyph.road,
-          label: l10n.meLessons,
-          value: formatNumber(me.lessonsDone),
+          glyph: PindoroGlyph.pin,
+          label: l10n.mePins,
+          value: formatNumber(me.pins),
         ),
         StatTile(
-          glyph: PindoroGlyph.car,
-          label: l10n.meRoadTrips,
-          value: formatNumber(me.roadTrips),
+          glyph: PindoroGlyph.calendar,
+          label: l10n.meCountedDays,
+          value: formatNumber(me.countedDays),
         ),
         StatTile(
           glyph: PindoroGlyph.flame,
@@ -137,8 +128,7 @@ class _TileGrid extends StatelessWidget {
   );
 }
 
-/// A city with its course's unit and its known streets; a tap opens its
-/// Path.
+/// A city with its City memory; a tap makes it the city and opens Today.
 class _CityRow extends ConsumerWidget {
   const _CityRow(this.city);
 
@@ -150,25 +140,16 @@ class _CityRow extends ConsumerWidget {
     final name = context.localName(ka: city.nameKa, en: city.nameEn);
     final known = formatNumber(city.count.known);
     final total = formatNumber(city.count.total);
-    final unit = city.unit;
-    final settings = ref.watch(settingsProvider).value;
     return ListRow(
       title: name,
-      subtitle: unit == null
-          ? l10n.meCityStreets(known, total)
-          : l10n.meCityUnit(
-              unit.number,
-              districtName(unit.district, settings),
-              known,
-              total,
-            ),
+      subtitle: l10n.meCityStreets(known, total),
       below: Minibar(value: city.count.fraction),
       leading: const RowTile(PindoroGlyph.pin),
       trailing: const PindoroIcon(PindoroGlyph.chevronRight),
-      semanticsLabel: l10n.a11yDistrictRow(name, known, total),
+      semanticsLabel: l10n.a11yCityMemoryRow(name, known, total),
       onTap: () async {
         await ref.read(settingsDaoProvider).chooseCity(city.id);
-        if (context.mounted) context.go(Routes.path);
+        if (context.mounted) context.go(Routes.today);
       },
     );
   }
