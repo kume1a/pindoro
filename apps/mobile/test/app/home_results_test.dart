@@ -14,6 +14,7 @@ import 'package:pindoro/core/launch_overlay.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/ui/city_memory_card.dart';
+import 'package:pindoro/features/pack/data/photo_pack.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
@@ -62,6 +63,7 @@ void main() {
         ref.onDispose(repo.close);
         return repo;
       }),
+      photoPackProvider.overrideWith((ref) async => null),
     ],
     child: PindoroApp(initialLocation: location, coldStart: coldStart),
   );
@@ -345,6 +347,7 @@ void main() {
         ),
       );
       await pumpApp(tester, Routes.learnSettings);
+      await toReminder(tester);
       await tester.tap(find.text('Reminder'));
       await settle(tester);
       final settings = await tester.runAsync(() => SettingsDao(db).read());
@@ -359,6 +362,7 @@ void main() {
     testWidgets('without permission the reminder stays off', (tester) async {
       reminders.allowed = false;
       await pumpApp(tester, Routes.learnSettings);
+      await toReminder(tester);
       await tester.tap(find.text('Reminder'));
       await settle(tester);
       expect(
@@ -417,4 +421,10 @@ class _FakeReminders implements Reminders {
 
   @override
   Future<void> cancel() async => cancels++;
+}
+
+/// Scrolls learning settings to its last row, the reminder.
+Future<void> toReminder(WidgetTester tester) async {
+  await tester.drag(find.byType(Scrollable), const Offset(0, -600));
+  await tester.pump(const Duration(seconds: 1));
 }

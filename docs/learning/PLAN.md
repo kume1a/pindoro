@@ -152,6 +152,9 @@ Spec §10. Boards V3-30 (`sceneAction`), V3-31.
 
 Accept: every displayed photo shows its source and licence; no Google API key exists in the app.
 
+Status: done (2026-11-16). No photo pack is built yet: that needs a Mapillary token on the server
+(`docs/deploy.md` § 8), and the Panoramax profile hasn't run there.
+
 ## M8 · Tuning
 
 1. Offline FSRS fit from exported logs; load weights from a JSON override.

@@ -9,7 +9,8 @@ loading `Skeleton`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` inc
 `Pill`, `MapControl`, `RevealSheet` and its `TierSheetFrame`, `ResultRow`, `TierTally`,
 `CoachBubble`), the v3 session (`StatChip`, `NextReviewChip`, `IntroSheet`, the drills'
 `BearingDial`; the session bar is `QuestionBar` with `height: 14`), v3 route items (`JunctionMap`
-with `JunctionGeometry`, `ExitButton`, `LandmarkBadge`, `MapLabelChip`, `CarMarker`, `MapTip`), v3
+with `JunctionGeometry`, `ExitButton`, `LandmarkBadge`, `MapLabelChip`, `CarMarker`, `MapTip`, the street
+photo `SceneCard`), v3
 progress (`MemoryBar`, `MemoryLegend`, `MemoryChart`, `ForecastBars`), the streak (`StreakPill`, `StreakCalendar`,
 `StreakFreezeCard`), badges (`BadgeShield`, `BadgeTile`; fields `color.badge.*` in `app.json`),
 setup components (`SearchField`, `CitySwitcher`, `PindoroChip`, `DifficultyCard`, `DistrictMiniMap`)

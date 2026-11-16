@@ -35,18 +35,19 @@ District _chunk(String id) => District(
   parentId: 'r1',
 );
 
-CardState _card(String street, {double stability = 10}) => CardState(
-  itemId: CardType.p.item(street),
-  phase: CardPhase.review,
-  memory: Memory(
-    stability: stability,
-    difficulty: 5,
-    lastReview: _now.subtract(const Duration(days: 1)),
-  ),
-  dueAt: _now.add(const Duration(days: 9)),
-  lastRating: Rating.good,
-  priorKnown: true,
-);
+CardState _card(String street, {double stability = 10, String? item}) =>
+    CardState(
+      itemId: item ?? CardType.p.item(street),
+      phase: CardPhase.review,
+      memory: Memory(
+        stability: stability,
+        difficulty: 5,
+        lastReview: _now.subtract(const Duration(days: 1)),
+      ),
+      dueAt: _now.add(const Duration(days: 9)),
+      lastRating: Rating.good,
+      priorKnown: true,
+    );
 
 RouteCandidate _candidate(
   String id,
@@ -57,6 +58,8 @@ RouteCandidate _candidate(
   bool phase2 = false,
   bool personal = false,
   int rank = 1,
+  Set<String> knownCards = const {},
+  Set<String> solidCards = const {},
 }) => (
   itemId: id,
   layer: layer,
@@ -66,6 +69,8 @@ RouteCandidate _candidate(
   chunk: chunk,
   phase2: phase2,
   personal: personal,
+  knownCards: knownCards,
+  solidCards: solidCards,
 );
 
 void main() {
@@ -84,6 +89,8 @@ void main() {
     expect(RouteIds.gateway('osm:w9', 12, out: true), 'G:osm:w9:n12:out');
     expect(RouteIds.bridge('w7', 'L', 12), 'B:w7:L:n12');
     expect(RouteIds.landmark('osm:n5', 2), 'L:osm:n5:2');
+    expect(RouteIds.scene('m123', 2), 'S2:m123');
+    expect(CardType.ofItem(RouteIds.scene('p9', 3)), CardType.s3);
     expect(CardType.ofItem(RouteIds.connection('s1')), CardType.c);
   });
 
@@ -104,12 +111,14 @@ void main() {
       Map<String, CardState> cards,
       List<RouteCandidate> candidates, {
       Set<String> carded = const {},
+      Map<String, CardState> items = const {},
       bool phase2Open = false,
     }) => curriculum.openRoutes(
       candidates,
       cards: cards,
       carded: carded,
       now: _now,
+      items: items,
       phase2Open: phase2Open,
     );
 
@@ -159,6 +168,42 @@ void main() {
       expect(open(cards, [out, into], phase2Open: true), ['G:in', 'G:out']);
     });
 
+    test('street photos wait for their cards: S1 its street\'s pin and name '
+        'Solid in phase 2, S2 its turn Known, S3 its raion\'s grid Solid', () {
+      final photos = [
+        _candidate(
+          'S1:m1',
+          RouteLayer.scene,
+          known: {'b1'},
+          phase2: true,
+          solidCards: {'P:b1', 'N:b1'},
+        ),
+        _candidate(
+          'S2:m1',
+          RouteLayer.scene,
+          known: {'b1'},
+          knownCards: {'J:x'},
+        ),
+        _candidate('S3:m1', RouteLayer.scene, known: {'b1'}, raion: 'r1'),
+      ];
+      final b1 = _card('b1', stability: 30);
+      final cards = {'b1': b1};
+      final grid = {...cards, 'b2': _card('b2', stability: 30)};
+      final items = {
+        'P:b1': b1,
+        'N:b1': _card('b1', stability: 30, item: 'N:b1'),
+        'J:x': _card('b1', item: 'J:x'),
+      };
+      expect(open(cards, photos), isEmpty);
+      expect(open(grid, photos), ['S3:m1']);
+      expect(open(grid, photos, items: items), ['S2:m1', 'S3:m1']);
+      expect(open(grid, photos, items: items, phase2Open: true), [
+        'S1:m1',
+        'S2:m1',
+        'S3:m1',
+      ]);
+    });
+
     test('a personal landmark opens at once', () {
       expect(
         open(const {}, [
@@ -184,5 +229,36 @@ void main() {
     expect(RouteGrader.point(15).tier, Tier.perfect);
     expect(RouteGrader.point(150).rating, Rating.again);
     expect(RouteGrader.tierOf(Rating.hard), Tier.close);
+    expect(
+      RouteGrader.scenePlace(distanceM: 60, headingOffDeg: 30),
+      Rating.good,
+    );
+    expect(
+      RouteGrader.scenePlace(distanceM: 160, headingOffDeg: 30),
+      Rating.hard,
+    );
+    expect(
+      RouteGrader.scenePlace(distanceM: 60, headingOffDeg: 90),
+      Rating.hard,
+    );
+    expect(
+      RouteGrader.scenePlace(distanceM: 160, headingOffDeg: 90),
+      Rating.again,
+    );
+  });
+
+  test('street photos aim for 85 % recall, so they wait longer (SPEC §4)', () {
+    expect(retentionOf(CardType.s2), LearningConfig.retentionScene);
+    expect(retentionOf(CardType.p), LearningConfig.retentionDefault);
+    final now = DateTime(2026, 3, 2);
+    DateTime due(String item) => applyReview(
+      null,
+      itemId: item,
+      rating: Rating.good,
+      now: now,
+      format: ReviewFormat.review,
+      source: ReviewSource.session,
+    ).card.dueAt!;
+    expect(due('S1:m1').isAfter(due('C:m1')), isTrue);
   });
 }

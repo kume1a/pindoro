@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart' show DatabaseConnection;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -12,14 +14,17 @@ import 'package:pindoro/core/speech.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/pack/data/photo_pack.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro/features/session/ui/session_screen.dart';
 import 'package:pindoro_core/pindoro_core.dart';
-import 'package:pindoro_design/pindoro_design.dart' show JunctionMap;
+import 'package:pindoro_design/pindoro_design.dart'
+    show BearingDial, JunctionMap, SceneCard;
 import 'package:pindoro_learning/pindoro_learning.dart';
 
+import '../../support/photo_pack.dart';
 import '../../support/settle.dart';
 
 void main() {
@@ -45,6 +50,13 @@ void main() {
   late RouteBook routes;
   late Map<int, int> nodes;
 
+  /// Street photos at the approaches of the book's turns, and the scene
+  /// cards they make; [photos] is the session's photo pack (none unless a
+  /// test opens one).
+  late List<SceneImage> images;
+  late List<SceneQuestion> scenes;
+  PhotoPack? photos;
+
   setUpAll(() {
     final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
     final byPart = streetsByPartId(repo.streets());
@@ -61,7 +73,7 @@ void main() {
       if (p != c) children.putIfAbsent(p, () => {}).add(c);
     }
     nodes = repo.junctionNodes();
-    routes = buildRouteBook(
+    RouteBook book({List<SceneImage> scenes = const []}) => buildRouteBook(
       graph: repo.roadGraph()!,
       junctionNodes: repo.junctionNodes(),
       items: repo.junctionItems(),
@@ -74,7 +86,30 @@ void main() {
         centre: repo.city().center,
         families: repo.families(),
       ),
+      scenes: scenes,
     );
+    routes = book();
+    final graph = repo.roadGraph()!;
+    images = [
+      for (final (i, q)
+          in routes.questions.values.whereType<TurnQuestion>().indexed)
+        SceneImage(
+          id: 'm$i',
+          junctionNode: nodes[q.junction]!,
+          approachNode: nodes[q.approach.other(q.junction)]!,
+          at: graph.at(q.approach.other(q.junction)),
+          heading: 90,
+          distanceM: 30,
+          source: 'mapillary',
+          licence: 'CC BY-SA 4.0',
+          author: 'tester',
+          capturedAt: DateTime.utc(2025, 6),
+          link: 'https://www.mapillary.com/app/?pKey=$i',
+        ),
+    ];
+    scenes = book(
+      scenes: images,
+    ).questions.values.whereType<SceneQuestion>().toList();
     final family = children.entries.firstWhere((e) => e.value.length >= 2);
     sweepParent = family.key;
     lanes = family.value.take(2).toList();
@@ -136,6 +171,7 @@ void main() {
             ref.onDispose(repo.close);
             return repo;
           }),
+          photoPackProvider.overrideWith((ref) async => photos),
           todayPlanProvider.overrideWith(
             (ref) async => SessionPlan(
               steps: steps,
@@ -597,6 +633,69 @@ void main() {
     });
   });
 
+  group('M7 street photos', () {
+    late Directory dir;
+    setUp(() {
+      dir = Directory.systemTemp.createTempSync('photos');
+      photos = PhotoPack.open(writePhotoPack(dir, images).path);
+    });
+    tearDown(() {
+      photos?.close();
+      photos = null;
+      dir.deleteSync(recursive: true);
+    });
+
+    SceneQuestion scene(int n) => scenes.firstWhere((q) => q.n == n);
+    const credit = '© Mapillary · CC BY-SA 4.0 · tester';
+
+    testWidgets('S2: the photo with its credit, then a tap on the way to go', (
+      tester,
+    ) async {
+      final q = scene(2);
+      await pump(tester, [(kind: StepKind.review, itemId: q.itemId)]);
+      expect(find.byType(SceneCard), findsOneWidget);
+      expect(find.text(credit), findsOneWidget);
+      expect(find.text('Look around in Google Maps'), findsOneWidget);
+      expect(maps, isEmpty, reason: 'a photo never shares a screen with a map');
+      await tapThrough(tester, find.text(turnWordEn(q.correct!)));
+      expect(find.text('Right!'), findsOneWidget);
+      expect(find.text(credit), findsOneWidget);
+      final row = (await dao.log()).single;
+      expect((row.format, row.rating), (ReviewFormat.scene, Rating.good));
+    });
+
+    testWidgets('S1: the street typed from the photo', (tester) async {
+      final q = scene(1);
+      await pump(tester, [(kind: StepKind.review, itemId: q.itemId)]);
+      expect(find.text('Which street is this?'), findsOneWidget);
+      expect(find.text(q.street!.name), findsNothing);
+      await tester.enterText(find.byType(TextField), q.street!.name);
+      await settle(tester);
+      await tapThrough(tester, find.text('Check'));
+      expect(find.text(q.street!.name), findsWidgets);
+      final row = (await dao.log()).single;
+      expect((row.format, row.rating), (ReviewFormat.scene, Rating.good));
+    });
+
+    testWidgets('S3: the photo, then its place on the map, then the way it '
+        'looks', (tester) async {
+      final q = scene(3);
+      await pump(tester, [(kind: StepKind.review, itemId: q.itemId)]);
+      expect(find.text('Taken 2025'), findsOneWidget);
+      await tapThrough(tester, find.text('Find it on the map'));
+      expect(find.byType(SceneCard), findsNothing);
+      maps.last.onTap!(q.image.at);
+      await settle(tester);
+      await tapThrough(tester, find.text('Next'));
+      expect(find.byType(BearingDial), findsOneWidget);
+      controller(tester).choose(q.image.heading + 10);
+      await settle(tester);
+      await tapThrough(tester, find.text('Confirm'));
+      final row = (await dao.log()).single;
+      expect((row.format, row.rating), (ReviewFormat.scene, Rating.good));
+    });
+  });
+
   group('M6 recitals', () {
     testWidgets('typed street by street, graded against the best route; the '
         'turns it drives are evidence for their J cards', (tester) async {
@@ -686,3 +785,10 @@ class _NoSpeech implements Speech {
   @override
   dynamic noSuchMethod(Invocation invocation) async => false;
 }
+
+String turnWordEn(Turn turn) => switch (turn) {
+  Turn.left => 'Left',
+  Turn.straight => 'Straight',
+  Turn.right => 'Right',
+  Turn.uTurn => 'U-turn',
+};

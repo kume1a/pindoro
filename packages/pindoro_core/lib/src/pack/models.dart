@@ -327,3 +327,57 @@ class JunctionItem {
   /// The bridge the exit leads onto (layer bridge).
   final String? bridgeId;
 }
+
+/// A street photo of the photo pack (docs/pack-format.md, SPEC §10): taken
+/// [distanceM] before the junction with OSM node [junctionNode], driving in
+/// from the one with node [approachNode], looking along [heading]. Its WebP
+/// stays in the photo pack until shown.
+class SceneImage {
+  const SceneImage({
+    required this.id,
+    required this.junctionNode,
+    required this.approachNode,
+    required this.at,
+    required this.heading,
+    required this.distanceM,
+    required this.source,
+    required this.licence,
+    required this.author,
+    this.capturedAt,
+    this.link,
+  });
+
+  factory SceneImage.fromRow(PackRow r) => SceneImage(
+    id: r['id']! as String,
+    junctionNode: r['junction_node']! as int,
+    approachNode: r['approach_node']! as int,
+    at: LatLng(_d(r['lat']), _d(r['lon'])),
+    heading: _d(r['heading']),
+    distanceM: _d(r['distance_m']),
+    source: r['source']! as String,
+    licence: r['licence']! as String,
+    author: r['author']! as String,
+    capturedAt: switch (r['captured_at']) {
+      final String t => DateTime.tryParse(t),
+      _ => null,
+    },
+    link: r['link'] as String?,
+  );
+
+  /// `m<Mapillary id>` or `p<Panoramax uuid>`; the scene cards' item key.
+  final String id;
+  final int junctionNode;
+  final int approachNode;
+  final LatLng at;
+  final double heading;
+  final double distanceM;
+
+  /// `mapillary` or `panoramax`.
+  final String source;
+  final String licence;
+  final String author;
+  final DateTime? capturedAt;
+
+  /// The photo's page at its source.
+  final String? link;
+}

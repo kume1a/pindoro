@@ -11,6 +11,7 @@ import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
+import 'package:pindoro/features/session/ui/widgets/scene_view.dart';
 import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -107,7 +108,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
         final graphOk = graph != null;
         final chosen = task.choice as Turn?;
         final right = tier == null ? null : chosen == q.correct;
-        final exitWord = _turnWord(l10n, q.correct);
+        final exitWord = turnWord(l10n, q.correct);
         return TaskScaffold(
           topBar: widget.topBar,
           header: StreetPlate(
@@ -142,7 +143,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
                       onChoose: (d) =>
                           widget.onChoose(Turn.values.byName(d.name)),
                       exitLabel: (d) =>
-                          _turnWord(l10n, Turn.values.byName(d.name)),
+                          turnWord(l10n, Turn.values.byName(d.name)),
                       semanticsLabel: l10n.a11yJunctionMap,
                       carLabel: l10n.a11yJunctionYou,
                       animate: !MediaQuery.disableAnimationsOf(context),
@@ -292,6 +293,17 @@ class _RouteViewState extends ConsumerState<RouteView> {
               : result(l10n.routeConnectionResult(name(q.street), name(q.to))),
         );
 
+      case SceneQuestion():
+        return SceneView(
+          play: play,
+          topBar: widget.topBar,
+          onChoose: widget.onChoose,
+          onPin: widget.onPin,
+          onAnswer: widget.onAnswer,
+          onNext: widget.onNext,
+          chip: widget.chip,
+        );
+
       case final LandmarkQuestion q:
         final landmark = q.landmark;
         final subline = landmark.personal
@@ -370,7 +382,8 @@ class _RouteViewState extends ConsumerState<RouteView> {
 
 ExitDirection _direction(Turn turn) => ExitDirection.values.byName(turn.name);
 
-String _turnWord(AppLocalizations l10n, Turn turn) => switch (turn) {
+/// The exit button's word for [turn].
+String turnWord(AppLocalizations l10n, Turn turn) => switch (turn) {
   Turn.left => l10n.routeExitLeft,
   Turn.straight => l10n.routeExitStraight,
   Turn.right => l10n.routeExitRight,

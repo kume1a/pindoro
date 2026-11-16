@@ -4,7 +4,7 @@ name: Deploy
 # (docs/deploy.md). Every run starts the stack, then fills in what is missing:
 # - a push to prod deploys, then downloads the tiles and builds each city pack that isn't published;
 # - on the 2nd of each month it rebuilds every city pack from fresh OSM data;
-# - by hand (Run workflow) it rebuilds one city, all of them, or the tiles.
+# - by hand (Run workflow) it rebuilds one city, all of them, or the tiles, and builds photo packs.
 on:
   push:
     branches: [prod]
@@ -19,6 +19,9 @@ on:
         description: Download the Georgia tiles again
         type: boolean
         default: false
+      photos:
+        description: "Street photo packs to build: none, all, or a city id (needs MAPILLARY_TOKEN)"
+        default: none
 
 # One run at a time, never cancelled midway: a killed `compose up` can leave the stack
 # half-recreated, and pack builds share one database schema.
@@ -96,6 +99,20 @@ jobs:
             $DC run --rm pipeline build "$city"
             $DC run --rm pipeline validate "$city"
             $DC run --rm pipeline publish "$city"
+          done
+
+      # Photo packs are built only by hand: thousands of Mapillary calls, and the photos rarely change.
+      - name: Photos
+        if: inputs.photos && inputs.photos != 'none'
+        env:
+          PHOTOS: ${{ inputs.photos }}
+        run: |
+          set -euo pipefail
+          [ "$PHOTOS" = all ] || [ -f "data/cities/$PHOTOS/city.yaml" ] || { echo "no city '$PHOTOS' in data/cities"; exit 1; }
+          for dir in data/cities/*/; do
+            city=$(basename "$dir")
+            case "$PHOTOS" in all | "$city") ;; *) continue ;; esac
+            $DC run --rm pipeline photos "$city"
           done
 
       - name: Show the stack

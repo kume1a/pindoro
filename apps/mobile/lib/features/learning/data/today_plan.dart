@@ -180,6 +180,7 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
             cards: await streetCardsFuture,
             carded: {for (final c in cards) c.itemId},
             now: now,
+            items: byItem,
             phase2Open:
                 (await streakFuture).summary.days >=
                 LearningConfig.phase2StableDays,

@@ -951,6 +951,7 @@ class SessionController extends Notifier<SessionState> {
         final BridgeQuestion q => q.approachStreet ?? _nearest(q.at),
         final ConnectionQuestion q => q.street,
         final LandmarkQuestion q => q.approachStreet ?? _nearest(q.landmark.at),
+        final SceneQuestion q => q.street ?? _nearest(q.image.at),
         null => _recitalTask(step.itemId)?.fromStreet,
       };
 
@@ -1152,7 +1153,8 @@ class SessionController extends Notifier<SessionState> {
   );
 
   /// What a route card's map frames: a gateway's neighbourhood, a bridge
-  /// question's bridges and start; the city otherwise.
+  /// question's bridges and start, a placed photo's district; the city
+  /// otherwise.
   List<LatLng>? _routeFrame(RouteQuestion q) => switch (q) {
     GatewayQuestion(:final chunk) => switch (_pack
         .districts()
@@ -1166,6 +1168,7 @@ class SessionController extends Notifier<SessionState> {
       at,
       for (final b in options) b.midpoint,
     ],
+    SceneQuestion(n: 3, :final street?) => _districtFrame(street),
     _ => null,
   };
 
@@ -1220,6 +1223,24 @@ class SessionController extends Notifier<SessionState> {
               ? Rating.good
               : Rating.again,
           ReviewFormat.landmark,
+        ),
+        SceneQuestion(n: 1, :final street) => (
+          names(street) ? Rating.good : Rating.again,
+          ReviewFormat.scene,
+        ),
+        SceneQuestion(n: 2, :final correct) => (
+          RouteGrader.turn(exitRight: t.choice == correct),
+          ReviewFormat.scene,
+        ),
+        SceneQuestion(n: 3, :final image) when pin != null => (
+          RouteGrader.scenePlace(
+            distanceM: distanceBetween(pin, image.at),
+            headingOffDeg: bearingError(
+              t.choice as double? ?? 0,
+              image.heading,
+            ),
+          ),
+          ReviewFormat.scene,
         ),
         _ => (null, null),
       };

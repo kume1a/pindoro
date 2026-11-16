@@ -13,7 +13,7 @@ Mobile game for learning a city's streets: the player sees a street name, drops 
 | `packages/pindoro_learning` | Pure Dart v3 learning: FSRS-6, grading, planner, curriculum, route items, recitals  |
 | `packages/pindoro_design`   | Flutter design system: tokens → generated Dart, theme, widgets, FiraGO font         |
 | `packages/geo`              | `@pindoro/geo`: TS twin of pindoro_core geometry, scoring and directed routing      |
-| `apps/pipeline`             | `@pindoro/pipeline`: OSM → PostGIS → city packs; tiles + map styles                 |
+| `apps/pipeline`             | `@pindoro/pipeline`: OSM → PostGIS → city packs, photo packs; tiles + map styles    |
 | `data/cities/<city>`        | `city.yaml`, curated neighbourhoods, `identity.json` (seed of the street ids)       |
 | `shared/fixtures`           | Golden vectors used by BOTH Dart and TS tests                                       |
 | `shared/openapi`            | `openapi.json` exported from the API                                                |
@@ -82,6 +82,7 @@ never a priority. The production server still matters: it serves packs, tiles an
 | `just dev`          | PostGIS, API (tsx watch), Martin, packs server                       |
 | `just fixture H`    | Vake fixture pack bundled in the app, on the street ids live at `H`  |
 | `just pack CITY`    | Fetch, build, validate and publish a full city pack                  |
+| `just photos CITY`  | Build and publish the city's street photo pack (`MAPILLARY_TOKEN`)   |
 | `just tiles`        | Georgia PMTiles extract + regenerate the app map styles              |
 | `just openapi`      | Write `shared/openapi/openapi.json`                                  |
 | `just run-mobile`   | `flutter run` in `apps/mobile` (args pass through)                   |

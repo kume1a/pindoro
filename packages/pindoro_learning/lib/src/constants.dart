@@ -169,10 +169,6 @@ abstract final class LearningConfig {
   /// signals, junctions stand in for them (§16.15).
   static const double hesitationJunctionM = 30;
 
-  // Imagery (§10)
-  static const double sceneApproachMinM = 25;
-  static const double sceneApproachMaxM = 40;
-
   // Recital runs in the plan (§3 R, §16.15)
   /// What a recital takes in the day's minutes (report 2: about 3 minutes a day).
   static const int tRecitalS = 180;

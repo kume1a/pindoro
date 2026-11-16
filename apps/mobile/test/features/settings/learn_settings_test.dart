@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart' show DatabaseConnection;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -10,9 +12,12 @@ import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/map/ui/area_picker_map.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/pack/data/photo_pack.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
+import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
+import '../../support/photo_pack.dart';
 import '../../support/settle.dart';
 
 void main() {
@@ -28,7 +33,7 @@ void main() {
   );
   tearDown(() => db.close());
 
-  Future<void> pump(WidgetTester tester) async {
+  Future<void> pump(WidgetTester tester, {PhotoPack? photos}) async {
     tester.view
       ..physicalSize = const Size(1080, 4400)
       ..devicePixelRatio = 2.75;
@@ -46,6 +51,7 @@ void main() {
             ref.onDispose(repo.close);
             return repo;
           }),
+          photoPackProvider.overrideWith((ref) async => photos),
         ],
         child: const PindoroApp(initialLocation: Routes.learnSettings),
       ),
@@ -58,6 +64,10 @@ void main() {
     timeout: const Timeout(Duration(minutes: 1)),
     (tester) async {
       await pump(tester);
+      expect(
+        find.text('Photo cards of the junctions you know, a separate download'),
+        findsOneWidget,
+      );
       await tapThrough(tester, find.text('30 min'));
       expect((await db.select(db.userSettings).getSingle()).minutesPerDay, 30);
       expect(find.textContaining('About 14 new streets a day'), findsOneWidget);
@@ -74,4 +84,30 @@ void main() {
       expect(find.text('Not set'), findsOneWidget);
     },
   );
+
+  testWidgets('street photos: on with a photo pack on the phone', (
+    tester,
+  ) async {
+    final dir = Directory.systemTemp.createTempSync('photos');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final photos = PhotoPack.open(
+      writePhotoPack(dir, [
+        for (final id in ['m1', 'm2'])
+          SceneImage(
+            id: id,
+            junctionNode: 1,
+            approachNode: 2,
+            at: const LatLng(41.7, 44.77),
+            heading: 0,
+            distanceM: 30,
+            source: 'mapillary',
+            licence: 'CC BY-SA 4.0',
+            author: 'tester',
+          ),
+      ]).path,
+    );
+    addTearDown(photos.close);
+    await pump(tester, photos: photos);
+    expect(find.text('2 photos on this phone'), findsOneWidget);
+  });
 }

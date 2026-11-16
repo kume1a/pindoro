@@ -5,6 +5,7 @@ import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
+import 'package:pindoro/features/pack/data/photo_pack.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -136,5 +137,44 @@ Future<void> _setReminder(
     await dao.setReminder(on: true);
   } else if (context.mounted) {
     showToast(context, context.l10n.settingsReminderDenied);
+  }
+}
+
+/// Street photos (board V3-60): on downloads the city's photo pack, off
+/// deletes it; the subtitle follows the download.
+class StreetPhotosRow extends ConsumerWidget {
+  const StreetPhotosRow({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final progress = ref.watch(photosDownloadProvider);
+    final photos = ref.watch(photoPackProvider).value;
+    final download = ref.read(photosDownloadProvider.notifier);
+    return ToggleRow(
+      title: l10n.learnStreetPhotos,
+      subtitle: switch ((progress, photos)) {
+        (final p?, _) => l10n.learnStreetPhotosDownloading(
+          formatNumber((p * 100).floor()),
+        ),
+        (null, final pack?) => l10n.learnStreetPhotosOn(pack.images.length),
+        (null, null) => l10n.learnStreetPhotosOff,
+      },
+      glyph: PindoroGlyph.photo,
+      value: progress != null || photos != null,
+      onChanged: (on) async {
+        ref.read(feedbackProvider).tap();
+        if (!on) return download.turnOff();
+        final outcome = await download.turnOn();
+        if (!context.mounted) return;
+        switch (outcome) {
+          case PhotosOutcome.none:
+            showToast(context, l10n.learnStreetPhotosNone);
+          case PhotosOutcome.failed:
+            showToast(context, l10n.learnStreetPhotosFailed);
+          case PhotosOutcome.installed:
+        }
+      },
+    );
   }
 }

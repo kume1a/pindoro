@@ -13,6 +13,26 @@ x-logging: &logging
     max-size: 10m
     max-file: "3"
 
+# The private Panoramax instance (profile `panoramax`, docs/deploy.md § 8). Its database sits on the
+# internal network only.
+x-panoramax-env: &panoramax-env
+  DB_URL: postgres://panoramax:panoramax@panoramax-db/panoramax
+  FS_URL: /data/panoramax
+  FLASK_SECRET_KEY: ${PANORAMAX_SECRET_KEY:-}
+  API_BLUR_URL: http://panoramax-blur:8000
+  API_PICTURES_LICENSE_SPDX_ID: CC-BY-SA-4.0
+  API_PICTURES_LICENSE_URL: https://creativecommons.org/licenses/by-sa/4.0/
+  PICTURE_PROCESS_DERIVATES_STRATEGY: PREPROCESS
+
+x-panoramax: &panoramax
+  profiles: [panoramax]
+  image: panoramax/api:2.17.0
+  restart: unless-stopped
+  logging: *logging
+  environment: *panoramax-env
+  volumes:
+    - panoramax-pictures:/data/panoramax
+
 services:
   postgis:
     image: postgis/postgis:16-3.6
@@ -117,6 +137,9 @@ services:
       PACKS_DIR: /packs
       # The live street ids sit next to each city's packs (packs/<city>/identity.json).
       IDENTITY_DIR: /packs
+      # `pipeline photos`: a secret, and the private Panoramax (http://panoramax-api:5000) if any.
+      MAPILLARY_TOKEN: ${MAPILLARY_TOKEN:-}
+      PANORAMAX_URL: ${PANORAMAX_URL:-}
     volumes:
       - tiles:/repo/infra/tiles
       - packs:/packs
@@ -125,6 +148,94 @@ services:
     depends_on:
       postgis:
         condition: service_healthy
+
+  # Our own 360° captures for decision junctions Mapillary lacks (SPEC §10), opt-in with
+  # COMPOSE_PROFILES=panoramax. Faces and plates are blurred before a picture is stored; the API is
+  # published on the server's loopback only, never through Caddy or the tunnel.
+  panoramax-db:
+    profiles: [panoramax]
+    image: postgis/postgis:16-3.6
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      POSTGRES_USER: panoramax
+      POSTGRES_PASSWORD: panoramax
+      POSTGRES_DB: panoramax
+    volumes:
+      - panoramax-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U panoramax -d panoramax"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  panoramax-migrations:
+    <<: *panoramax
+    command: db-upgrade
+    restart: "no"
+    volumes: []
+    depends_on:
+      panoramax-db:
+        condition: service_healthy
+
+  panoramax-api:
+    <<: *panoramax
+    command: api
+    environment:
+      <<: *panoramax-env
+      # Pictures are processed by panoramax-worker, and uploads need the instance's token.
+      PICTURE_PROCESS_THREADS_LIMIT: 0
+      API_FORCE_AUTH_ON_UPLOAD: "true"
+    # Internal networks cannot publish ports.
+    networks: [default, egress]
+    ports:
+      - "127.0.0.1:${PANORAMAX_PORT:-5005}:5000"
+    depends_on:
+      panoramax-migrations:
+        condition: service_completed_successfully
+
+  panoramax-worker:
+    <<: *panoramax
+    command: picture-worker
+    depends_on:
+      panoramax-migrations:
+        condition: service_completed_successfully
+      panoramax-blur:
+        condition: service_started
+
+  # Blurs what panoramax-detect finds (faces, licence plates) in the JPEG itself.
+  panoramax-blur:
+    profiles: [panoramax]
+    image: panoramax/sgblur:latest@sha256:d6080fb28650b1a63c6d533f865c6acb79a5db2ec82c279c01a7b3430641755f
+    restart: unless-stopped
+    logging: *logging
+    environment:
+      WEB_CONCURRENCY: "2"
+      DETECT_URL: http://panoramax-detect:8001
+    depends_on:
+      panoramax-detect:
+        condition: service_healthy
+
+  # The detection model runs on the CPU: slow (seconds a picture) but enough for a few hundred
+  # captures. With an NVIDIA GPU, add a `deploy.resources.reservations.devices` entry for it.
+  panoramax-detect:
+    profiles: [panoramax]
+    image: panoramax/sgblur:latest@sha256:d6080fb28650b1a63c6d533f865c6acb79a5db2ec82c279c01a7b3430641755f
+    restart: unless-stopped
+    logging: *logging
+    entrypoint: ["uvicorn", "src.detect.detect_api:app", "--host", "0.0.0.0", "--port", "8001"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import requests; requests.get('http://localhost:8001/').raise_for_status()",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
 
 networks:
   default:
@@ -140,3 +251,5 @@ volumes:
   caddy-config:
   pipeline-cache:
   pipeline-out:
+  panoramax-db:
+  panoramax-pictures:

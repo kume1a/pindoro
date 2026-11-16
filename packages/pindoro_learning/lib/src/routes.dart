@@ -38,12 +38,25 @@ abstract final class RouteIds {
   /// L1 (landmark → pin), L2 (landmark → junction) or L3 (junction and turn → landmark).
   static String landmark(String landmarkId, int n) =>
       CardType.l.item('$landmarkId:$n');
+
+  /// S1 (photo → street), S2 (photo and destination → exit) or S3 (photo → place and heading)
+  /// of the photo pack's image [imageId].
+  static String scene(String imageId, int n) =>
+      CardType.values.byName('s$n').item(imageId);
 }
 
 /// The route layers in teaching order (SPEC §6.5): bridges right after the skeleton streets,
 /// skeleton turns, gateways with each chunk, then district turns; connections and landmarks
-/// once their streets are Known.
-enum RouteLayer { bridge, skeleton, gateway, district, connection, landmark }
+/// once their streets are Known; street photos last (SPEC §10).
+enum RouteLayer {
+  bridge,
+  skeleton,
+  gateway,
+  district,
+  connection,
+  landmark,
+  scene,
+}
 
 /// A route item the pack offers, with what opens it (SPEC §3, §16.14).
 typedef RouteCandidate = ({
@@ -68,6 +81,12 @@ typedef RouteCandidate = ({
 
   /// The player's own landmark: open at once.
   bool personal,
+
+  /// Cards (item ids) that must be Known: an S2's turn.
+  Set<String> knownCards,
+
+  /// Cards (item ids) that must be Solid: an S1's pin and name cards.
+  Set<String> solidCards,
 });
 
 extension RouteUnlocks on Curriculum {
@@ -75,18 +94,23 @@ extension RouteUnlocks on Curriculum {
   /// bridges once every core tier A street is introduced; skeleton turns, connections and OSM
   /// landmarks once their streets are Known; district turns also need their raion's grid
   /// Solid; gateways their chunk's main streets Known, and phase 2 for the way in; personal
-  /// landmarks at once. [cards] are P cards by street id; [carded] holds every carded item id.
+  /// landmarks at once; street photos after their cards (S1 its street's pin and name Solid, in
+  /// phase 2; S2 its turn Known; S3 its raion's grid Solid). [cards] are P cards by street id,
+  /// [items] every card by item id; [carded] holds every carded item id.
   List<String> openRoutes(
     List<RouteCandidate> candidates, {
     required Map<String, CardState> cards,
     required Set<String> carded,
     required DateTime now,
+    Map<String, CardState> items = const {},
     bool phase2Open = false,
   }) {
     bool known(String street) => switch (cards[street]) {
       final c? => isKnown(c, now),
       null => false,
     };
+    bool cardIs(String item, bool Function(CardState c) test) =>
+        items[item] != null && test(items[item]!);
     final skeletonIntroduced = streetsWhere(
       (s) => tierOf(s.id) == StreetTier.a && Curriculum.isCore(s),
     ).every((s) => cards.containsKey(s.id));
@@ -116,6 +140,8 @@ extension RouteUnlocks on Curriculum {
         !carded.contains(c.itemId) &&
         (c.personal ||
             (c.known.every(known) &&
+                c.knownCards.every((i) => cardIs(i, (c) => isKnown(c, now))) &&
+                c.solidCards.every((i) => cardIs(i, (c) => c.isSolid)) &&
                 switch (c.layer) {
                   RouteLayer.bridge => skeletonIntroduced,
                   RouteLayer.district =>
@@ -124,6 +150,9 @@ extension RouteUnlocks on Curriculum {
                     (!c.phase2 || phase2Open) &&
                         c.chunk != null &&
                         chunkReady(c.chunk!),
+                  RouteLayer.scene =>
+                    (!c.phase2 || phase2Open) &&
+                        (c.raion == null || raionReady(c.raion!)),
                   _ => true,
                 }));
     return [
@@ -181,6 +210,21 @@ abstract final class RouteGrader {
           : Rating.again,
     );
   }
+
+  /// S3: the pin within [LearningConfig.pinGoodMaxM] of where the photo was taken and the
+  /// heading within [LearningConfig.bearingCloseDeg] of its view; both Good, one Hard, neither
+  /// Again.
+  static Rating scenePlace({
+    required double distanceM,
+    required double headingOffDeg,
+  }) => switch ((
+    distanceM <= LearningConfig.pinGoodMaxM,
+    headingOffDeg <= LearningConfig.bearingCloseDeg,
+  )) {
+    (true, true) => Rating.good,
+    (false, false) => Rating.again,
+    _ => Rating.hard,
+  };
 
   /// The display tier of a route rating: Good Great, Hard Close, Again Miss.
   static Tier tierOf(Rating rating) => switch (rating) {

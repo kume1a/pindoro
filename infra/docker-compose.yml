@@ -85,6 +85,9 @@ services:
     environment:
       DATABASE_URL: *database-url
       PACKS_DIR: /packs
+      # `pipeline photos` (just photos): from the shell, never committed.
+      MAPILLARY_TOKEN: ${MAPILLARY_TOKEN:-}
+      PANORAMAX_URL: ${PANORAMAX_URL:-}
     volumes:
       - ../data:/repo/data
       - ../apps/mobile/assets:/repo/apps/mobile/assets

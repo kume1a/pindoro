@@ -4,6 +4,7 @@ import { parseArgs } from "node:util";
 import { build, fetchExtract } from "./build.ts";
 import { buildDir, builtManifestFile } from "./config.ts";
 import { readManifest } from "./pack.ts";
+import { photoSourcesFromEnv, photos } from "./photos.ts";
 import { publish } from "./publish.ts";
 import { tiles } from "./tiles.ts";
 import { validatePack } from "./validate.ts";
@@ -13,6 +14,8 @@ const USAGE = `usage: pipeline <command>
   build <city> [--fixture]  osmium + osm2pgsql + SQL steps + stable ids + pack export
   validate <pack|city>      check a .sqlite / .sqlite.gz pack (or a city's last build) and print a summary
   publish <city>            copy the last built pack into PACKS_DIR and commit its street ids
+  photos <city>             build and publish the street photo pack against the published pack
+                            (env MAPILLARY_TOKEN, optional PANORAMAX_URL)
   tiles [--styles-only]     extract Georgia from the latest Protomaps build + write map styles`;
 
 const { positionals, values } = parseArgs({
@@ -50,6 +53,9 @@ const commands: Record<string, () => Promise<void> | void> = {
     if (!validatePack(packPath(required()))) process.exitCode = 1;
   },
   publish: () => publish(required()),
+  photos: async () => {
+    await photos(required(), photoSourcesFromEnv());
+  },
   tiles: () => tiles({ stylesOnly: values["styles-only"] }),
 };
 

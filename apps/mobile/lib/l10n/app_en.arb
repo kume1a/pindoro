@@ -2311,5 +2311,123 @@
         "type": "int"
       }
     }
+  },
+  "sceneApproachCaption": "Approach photo · {distance} before the junction",
+  "@sceneApproachCaption": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "sceneLookingCaption": "Looking {direction} · taken {year}",
+  "@sceneLookingCaption": {
+    "placeholders": {
+      "direction": {
+        "type": "String"
+      },
+      "year": {
+        "type": "String"
+      }
+    }
+  },
+  "sceneTakenCaption": "Taken {year}",
+  "@sceneTakenCaption": {
+    "placeholders": {
+      "year": {
+        "type": "String"
+      }
+    }
+  },
+  "sceneStreetPhoto": "Street photo",
+  "sceneCredit": "© {source} · {licence} · {author}",
+  "@sceneCredit": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      },
+      "licence": {
+        "type": "String"
+      },
+      "author": {
+        "type": "String"
+      }
+    }
+  },
+  "sceneLookAround": "Look around in Google Maps",
+  "sceneNameAsk": "Which street is this?",
+  "sceneNameNote": "Type it from memory. Georgian or English both count.",
+  "sceneDontKnow": "I don’t know",
+  "sceneNameResult": "{other} · looking {direction}, {distance} before {crossing}.",
+  "@sceneNameResult": {
+    "placeholders": {
+      "other": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      },
+      "crossing": {
+        "type": "String"
+      }
+    }
+  },
+  "sceneTheJunction": "the junction",
+  "sceneTurnAsk": "Which way at this junction?",
+  "sceneHeadingTo": "Heading to {place}",
+  "@sceneHeadingTo": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "scenePlaceAsk": "Where was this photo taken?",
+  "scenePlaceNote": "Find the spot on the map, then the way the camera looks.",
+  "scenePlaceStart": "Find it on the map",
+  "scenePlacePin": "Tap where the photo was taken.",
+  "sceneHeadingAsk": "Which way does the photo look?",
+  "scenePlaceResult": "Taken {distance} from your pin, looking {direction}.",
+  "@scenePlaceResult": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yScenePhoto": "Street-level photo of the road ahead",
+  "learnStreetPhotos": "Street photos",
+  "learnStreetPhotosOff": "Photo cards of the junctions you know, a separate download",
+  "learnStreetPhotosOn": "{count, plural, =1{1 photo on this phone} other{{count} photos on this phone}}",
+  "@learnStreetPhotosOn": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "learnStreetPhotosDownloading": "Downloading… {percent} %",
+  "@learnStreetPhotosDownloading": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "learnStreetPhotosNone": "This city has no street photos yet",
+  "learnStreetPhotosFailed": "The photos didn’t download. Try again.",
+  "sceneExit": "{turn, select, left{Left} straight{Straight} right{Right} other{U-turn}}",
+  "@sceneExit": {
+    "placeholders": {
+      "turn": {
+        "type": "String"
+      }
+    }
   }
 }

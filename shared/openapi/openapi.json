@@ -199,6 +199,38 @@
                                 "format": "date-time"
                               }
                             }
+                          },
+                          "photos": {
+                            "type": "object",
+                            "required": [
+                              "format_version",
+                              "version",
+                              "url",
+                              "sha256",
+                              "size",
+                              "count"
+                            ],
+                            "properties": {
+                              "format_version": {
+                                "type": "integer"
+                              },
+                              "version": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": "string",
+                                "format": "uri"
+                              },
+                              "sha256": {
+                                "type": "string"
+                              },
+                              "size": {
+                                "type": "integer"
+                              },
+                              "count": {
+                                "type": "integer"
+                              }
+                            }
                           }
                         }
                       }

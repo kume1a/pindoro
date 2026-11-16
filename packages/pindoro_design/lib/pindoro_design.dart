@@ -19,6 +19,7 @@ export 'src/widgets/progress.dart';
 export 'src/widgets/results.dart';
 export 'src/widgets/reveal.dart';
 export 'src/widgets/round_hud.dart';
+export 'src/widgets/scene.dart';
 export 'src/widgets/session.dart';
 export 'src/widgets/setup.dart';
 export 'src/widgets/skeleton.dart';

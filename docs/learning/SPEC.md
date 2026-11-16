@@ -380,44 +380,44 @@ recitals must work without speech.
 Added with §16 (also in `constants.dart`; distances shared with the display tiers are referenced from
 pindoro_core `ScoringConfig`, not copied):
 
-| Name                                                                 | Value                               |
-| -------------------------------------------------------------------- | ----------------------------------- |
-| `coreMinLengthM`                                                     | 150                                 |
-| `groupSize`, `reviewsPerBlock`                                       | 3, 5                                |
-| `retrieval1GapMin`, `retrieval1GapMax`, `retrieval1GapFloor`         | 3, 6, 2 items                       |
-| `learnMoreCount`                                                     | 5                                   |
-| `placementSamplePerDistrict`, `placementPassMin`                     | 5, 4                                |
-| `placementPinS` (time estimate per placement pin)                    | 4 s                                 |
-| `nightOwlBefore` (Night owl badge: an answer before this local hour) | 4                                   |
-| `familySweepMinChildren`, `familySweepWindowDays`                    | 3, 2                                |
-| `crossingsPerDay`, `bearingsPerSessionMin`, `bearingsPerSessionMax`  | 1, 1, 3                             |
-| `familySweepMax`, `crossingsMax`, `crossingsTries`                   | 6, 5, 8                             |
-| `sideNewPerDay` (name and ends cards started a day)                  | 5                                   |
-| `bearingUnlockGridSolid`                                             | 0.50                                |
-| `nameCheckEvery`, `nameCheckOptions`                                 | 10, 6                               |
-| `familyOrphanM`, `familyNearM`                                       | 1500, 500                           |
-| `chunkNeighbourM`                                                    | 50                                  |
-| `nearDueFraction`                                                    | 0.5 (implicit evidence and Explore) |
-| `tierCReliefFactor`                                                  | 1.2                                 |
-| `cityMemoryMilestone`, `maintenanceBadgeDays`                        | 500, 100                            |
-| `uTurnPenaltyM` (pindoro_core `RoutingConfig`, referenced)           | 250                                 |
-| `turnStraightDeg`, `turnUTurnDeg` (a J card's exit directions)       | 30, 150                             |
-| `phase2StableDays`                                                   | 14                                  |
-| `landmarkStructuralM`, `landmarkUniquenessM`                         | 40, 300                             |
-| `sceneApproachMinM`, `sceneApproachMaxM`                             | 25, 40                              |
-| `recitalLandmarkBonus`, `recitalLandmarkBonusCap`                    | 0.1, 0.3                            |
-| `answerGapCapS`                                                      | 60                                  |
-| `timeEstimateMinSamples`                                             | 50                                  |
-| `migrationDueMinDays`, `migrationDueMaxDays`                         | 1, 7                                |
-| `knownLabelMax`                                                      | 12                                  |
-| `tRecitalS`, `recitalNewPerDay`                                      | 180 s, 1                            |
-| `runLeadM`, `runMinItems`                                            | 800, 2                              |
-| `randomRunEveryDays`, `randomRunTries`                               | 7, 50                               |
-| `randomRunMinM`, `randomRunMaxM`                                     | 1500, 5000                          |
-| `recitalTurnMismatchM`, `recitalNameWordsMax`, `recitalNameTieSlack` | 200, 5, 0.05                        |
-| `driveSampleM`, `driveSnapM`, `driveHeadingM` (per 90°)              | 20, 35, 20                          |
-| `driveTurnBackM`, `driveWrongWayM`, `driveArriveM`                   | 40, 15, 200                         |
-| `hesitationJunctionM`                                                | 30                                  |
+| Name                                                                 | Value                                                                                                    |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `coreMinLengthM`                                                     | 150                                                                                                      |
+| `groupSize`, `reviewsPerBlock`                                       | 3, 5                                                                                                     |
+| `retrieval1GapMin`, `retrieval1GapMax`, `retrieval1GapFloor`         | 3, 6, 2 items                                                                                            |
+| `learnMoreCount`                                                     | 5                                                                                                        |
+| `placementSamplePerDistrict`, `placementPassMin`                     | 5, 4                                                                                                     |
+| `placementPinS` (time estimate per placement pin)                    | 4 s                                                                                                      |
+| `nightOwlBefore` (Night owl badge: an answer before this local hour) | 4                                                                                                        |
+| `familySweepMinChildren`, `familySweepWindowDays`                    | 3, 2                                                                                                     |
+| `crossingsPerDay`, `bearingsPerSessionMin`, `bearingsPerSessionMax`  | 1, 1, 3                                                                                                  |
+| `familySweepMax`, `crossingsMax`, `crossingsTries`                   | 6, 5, 8                                                                                                  |
+| `sideNewPerDay` (name and ends cards started a day)                  | 5                                                                                                        |
+| `bearingUnlockGridSolid`                                             | 0.50                                                                                                     |
+| `nameCheckEvery`, `nameCheckOptions`                                 | 10, 6                                                                                                    |
+| `familyOrphanM`, `familyNearM`                                       | 1500, 500                                                                                                |
+| `chunkNeighbourM`                                                    | 50                                                                                                       |
+| `nearDueFraction`                                                    | 0.5 (implicit evidence and Explore)                                                                      |
+| `tierCReliefFactor`                                                  | 1.2                                                                                                      |
+| `cityMemoryMilestone`, `maintenanceBadgeDays`                        | 500, 100                                                                                                 |
+| `uTurnPenaltyM` (pindoro_core `RoutingConfig`, referenced)           | 250                                                                                                      |
+| `turnStraightDeg`, `turnUTurnDeg` (a J card's exit directions)       | 30, 150                                                                                                  |
+| `phase2StableDays`                                                   | 14                                                                                                       |
+| `landmarkStructuralM`, `landmarkUniquenessM`                         | 40, 300                                                                                                  |
+| Photo pack, pipeline `PhotoConfig` (`photos.ts`, not app tunables)   | approach 25–40 m, snap 12 m, flat photo within 30°, panorama 100° FOV, 960 × 540 WebP q 70, budget 2 100 |
+| `recitalLandmarkBonus`, `recitalLandmarkBonusCap`                    | 0.1, 0.3                                                                                                 |
+| `answerGapCapS`                                                      | 60                                                                                                       |
+| `timeEstimateMinSamples`                                             | 50                                                                                                       |
+| `migrationDueMinDays`, `migrationDueMaxDays`                         | 1, 7                                                                                                     |
+| `knownLabelMax`                                                      | 12                                                                                                       |
+| `tRecitalS`, `recitalNewPerDay`                                      | 180 s, 1                                                                                                 |
+| `runLeadM`, `runMinItems`                                            | 800, 2                                                                                                   |
+| `randomRunEveryDays`, `randomRunTries`                               | 7, 50                                                                                                    |
+| `randomRunMinM`, `randomRunMaxM`                                     | 1500, 5000                                                                                               |
+| `recitalTurnMismatchM`, `recitalNameWordsMax`, `recitalNameTieSlack` | 200, 5, 0.05                                                                                             |
+| `driveSampleM`, `driveSnapM`, `driveHeadingM` (per 90°)              | 20, 35, 20                                                                                               |
+| `driveTurnBackM`, `driveWrongWayM`, `driveArriveM`                   | 40, 15, 200                                                                                              |
+| `hesitationJunctionM`                                                | 30                                                                                                       |
 
 ## 14. Test vectors (required before UI work)
 
@@ -785,3 +785,33 @@ board, and per-type FSRS parameter presets.
 82. **Hesitations**: the pack has no traffic signals, so junctions stand in for them: a stop within
     `hesitationJunctionM` of a junction, or at the start or end, is not a hesitation. The review
     counts hesitations and U-turns in its sentence.
+
+### 16.16 Street photos (M7)
+
+83. **The photo pack** is a second, optional download per city (`docs/pack-format.md`, photo pack
+    v1): a SQLite file of 960 × 540 WebP frames with source, licence, author and link, naming each
+    junction and approach by OSM node, so street pack rebuilds don't touch it. Learning settings →
+    Street photos is the download: on fetches the catalog's photo pack (streamed to disk), off
+    deletes it; no setting is stored. A new photo pack installs when Street photos is turned on
+    again, not in the background.
+84. **Which photos** (pipeline `photos`): the approaches of the pack's junction items, skeleton and
+    gateway by rank, then one approach for each tier A/B street still without one, then district
+    turns, up to 2 100; Mapillary first, then the private Panoramax for the targets it lacks;
+    NonCommercial licences never. A panorama is reprojected to 100° at the direction of travel,
+    assuming a level horizon.
+85. **Which cards a photo makes**: S2 when its approach has a skeleton turn or a gateway with a
+    destination (the lowest rank's), opening once that J or G card is Known; S1 for the first photo
+    on each tier A or B street, opening in phase 2 once the street's P and N cards are Solid; S3 for
+    every photo whose street has a raion, opening once that raion's grid is
+    `districtJunctionUnlockSolid` Solid (the district turn rule). S cards are route items: they share
+    `routeNewPerDayMax` and the pause, after the landmarks, and FSRS schedules them for
+    `retentionScene`.
+86. **Grading**: S1 is typed like C (fuzzy name); S2 is a J decision without the street (tapping a
+    way answers); S3 is the pin within `pinGoodMaxM` of where the photo was taken and the heading
+    within `bearingCloseDeg` of its view: both Good, one Hard, neither Again. All log `scene`.
+87. **Screens**: the question sits above the photo; S3 is three screens (the photo, then the map
+    framed on the street's district, then the heading on the BearingDial), so the photo never shares
+    a screen with the map. A caption never gives the answer away: S3's says only the year. The credit
+    reads "© Source · licence · author" and opens the photo's page (Mapillary; our Panoramax has
+    none); there is no Mapillary logo, the design system has none. "Look around in Google Maps"
+    (a Maps URL, no key) shows on S2's question, as the board does, and on every result.

@@ -17,6 +17,7 @@ import 'package:pindoro/features/drive/ui/drive_controller.dart';
 import 'package:pindoro/features/drive/ui/drive_screen.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/pack/data/photo_pack.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -70,6 +71,7 @@ void main() {
         ref.onDispose(repo.close);
         return repo;
       }),
+      photoPackProvider.overrideWith((ref) async => null),
       todayRunProvider.overrideWith(
         (ref) async => (
           run: (

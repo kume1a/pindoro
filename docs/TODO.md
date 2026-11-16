@@ -76,7 +76,7 @@
 - v3 progress and settings (M2), left out on purpose until the milestone named:
   - Progress district: no Gateways solid or Landmarks tiles (M5); neighbourhood rows open no
     detail. Its Mastered definition line says only "3 months or more".
-  - Learning settings: no Turns and routes, Street photos or Speak your answers toggles (M5–M7).
+  - Learning settings: no Turns and routes or Speak your answers toggles (M5, M6).
   - The home and work picker shows the map and the nearest neighbourhoods as chips, without the
     "More" list and search of the design's area selector.
   - Today has no "Now learning" and gateway rows (M5).
@@ -111,6 +111,14 @@
   - A drive's track is drawn as the dashed player route, not solid cobalt with a halo, and its
     U-turn is a map chip, not the u-turn marker. The track is kept in memory only.
   - Hesitations are counted in the drive review's sentence but not marked on the map.
+
+- v3 street photos (M7), left out on purpose:
+  - No "The view from the other end" card on the S1 result (the board's): photos are taken only
+    driving in to a junction item, so the other way usually has none.
+  - The credit is text ("© Mapillary · CC BY-SA 4.0 · author", opening the photo's page), with no
+    Mapillary logo: the design system has none.
+  - A newer photo pack installs only when Street photos is turned on again; the background pack
+    refresh doesn't fetch it (a few hundred MB).
 
 ## Gaps found 2026-11-11 (design vs code)
 
@@ -195,9 +203,15 @@ landmarks, recitals and drives) and the curriculum order.
 - 11 Tbilisi streets fall in gaps between raion polygons and belong to no district.
 - A retired street id is never revived; a street that reappears in OSM gets a new id.
 - Old pack versions are never pruned from `PACKS_DIR` (the app keeps its 2 newest).
-- Pack downloads hold the whole `.gz` in memory; stream to disk if packs grow past a few MB.
+- Downloads stream to disk, but a street pack is gunzipped in memory; stream that too if packs
+  grow past a few MB.
 - Decide a refresh cadence for the Georgia tiles (Protomaps daily builds); in production only a
   Deploy run with the tiles box ticked downloads them again.
+- Street photos (M7): no photo pack is built yet; it needs the `MAPILLARY_TOKEN` secret and a
+  Deploy run with `photos` set (`docs/deploy.md` § 8). The coverage report then answers SPEC §15's
+  Mapillary question. Panoramas are reprojected assuming a level horizon (no pitch/roll from the
+  source), and only junction-item approaches are photographed, so a tier A/B street with none gets
+  no S1 photo.
 
 ## Infra / CI
 
@@ -207,6 +221,8 @@ landmarks, recitals and drives) and the curriculum order.
 - Production server: live since 2026-11-11 behind the host's shared tunnel; the Deploy workflow on
   its self-hosted runner deploys `prod`, builds missing packs and refreshes them monthly
   (`docs/deploy.md`).
+- The private Panoramax (profile `panoramax`) hasn't run on the server yet; its pictures volume is
+  not in the nightly backup (`docs/deploy.md` § 8). Blurring runs on the CPU.
 - **No App Store or Play Store release is planned** (decided 2026-11-11): friends sideload the APK.
   Create the Android signing key and `key.properties` once, then
   `just release apk <public host>` (`docs/deploy.md` § 7).

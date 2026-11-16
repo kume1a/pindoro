@@ -289,7 +289,83 @@ area whose raion, is outside the fixture gets NULL; families and chunk neighbour
 it. The app bundles it as
 `apps/mobile/assets/packs_fixture/tbilisi_vake_fixture.sqlite` (not gzipped).
 
+## Photo pack (v1)
+
+Street photos for the scene cards (SPEC §10) ship as a second, optional download per city, built by
+`pipeline photos <city>` against the city's published pack. It holds no pack-local ids: an image
+names its junction and approach by OSM node ids, so it survives street pack rebuilds, and the app
+skips an image whose junction or approach its pack no longer has.
+
+```
+<PACKS_DIR>/<city>/
+  photos.json                                   # current photo pack of the city
+  tbilisi-photos-20261116T101500Z.sqlite        # not gzipped (WebP doesn't shrink), immutable
+```
+
+`photos.json`:
+
+```json
+{
+  "format_version": 1,
+  "city": "tbilisi",
+  "version": "20261116T101500Z",
+  "file": "tbilisi-photos-20261116T101500Z.sqlite",
+  "sha256": "<hex sha256 of the file>",
+  "size": 172000000,
+  "count": 2100,
+  "generated_at": "2026-11-16T10:15:00Z"
+}
+```
+
+`/v1/catalog` adds it to the city as `photos: { format_version, version, url, sha256, size, count }`,
+absent while the city has none.
+
+```sql
+CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+-- format_version '1', city, version, generated_at
+
+CREATE TABLE scene_image (
+  id            TEXT PRIMARY KEY,  -- 'm<Mapillary image id>' or 'p<Panoramax picture uuid>'
+  junction_node INTEGER NOT NULL,  -- OSM node id of the junction ahead (junction.node_id)
+  approach_node INTEGER NOT NULL,  -- OSM node id of the junction the approach edge comes from
+  lat           REAL NOT NULL,     -- where the photo was taken
+  lon           REAL NOT NULL,
+  heading       REAL NOT NULL,     -- view direction of the stored frame, degrees from north
+  distance_m    REAL NOT NULL,     -- along the approach edge to the junction (25–40)
+  captured_at   TEXT,              -- ISO 8601 UTC; NULL when the source doesn't say
+  source        TEXT NOT NULL CHECK (source IN ('mapillary', 'panoramax')),
+  licence       TEXT NOT NULL,     -- display form: 'CC BY-SA 4.0' (Mapillary, our Panoramax);
+                                   -- CC BY 4.0, CC0 1.0 and Etalab 2.0 also pass, NC never does
+  author        TEXT NOT NULL,     -- the photographer's user name at the source
+  link          TEXT,              -- the photo's page at the source, for the credit; NULL for
+                                   -- the private Panoramax, which has no public page
+  width         INTEGER NOT NULL,  -- 960
+  height        INTEGER NOT NULL,  -- 540
+  webp          BLOB NOT NULL
+);
+```
+
+Rules baked in:
+
+- **Targets** are the approaches (junction + approach edge) of the pack's `junction_item` rows, in
+  this order until `PhotoConfig.budget` (2 100) images: skeleton and gateway layers by rank, then
+  for each tier A or B street still without a photo its other approaches by rank until one has
+  one, then the district layer by rank.
+- **A frame** fits a target when the camera snaps within 12 m of the approach edge, 25–40 m before
+  the junction along it, and, for a flat photo, its compass angle is within 30° of the direction of
+  travel there. Among fits: a panorama or the smallest angle off, then the newest. Mapillary
+  (`computed_*` geometry and angle when present) is tried first, then the private Panoramax instance
+  (`PANORAMAX_URL`) for targets Mapillary lacks. NonCommercial licences are skipped.
+- **The stored frame** is 960 × 540 WebP looking along the approach: a flat photo is centre-cropped
+  to 16:9, a panorama is reprojected to a 100° horizontal field of view at the direction of travel.
+- `out/<city>/photo-coverage.md` reports targets, photos per source and the targets left without a
+  photo, per layer. A build that finds no photo publishes nothing.
+- One image serves one target at most.
+
 ## Licence
 
 Packs are a Derivative Database of OpenStreetMap, © OpenStreetMap contributors, available under the
 ODbL 1.0 (see `data/LICENSE-ODbL.md`). Every map in the app shows the attribution.
+
+Photo packs hold photos under their own licence (Mapillary: CC BY-SA 4.0), each with its author and
+link; the app shows the source, licence and author on every photo.

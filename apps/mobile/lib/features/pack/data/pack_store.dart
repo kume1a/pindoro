@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
@@ -53,6 +52,7 @@ class PackStore {
   /// waits for format 4.
   static const int oldestFormatVersion = 3;
   static const int keptVersions = 2;
+  static const int photosFormatVersion = 1;
 
   /// Longest wait for the server, and between two chunks of a download.
   final Duration timeout;
@@ -83,72 +83,100 @@ class PackStore {
       return null;
     }
     onProgress?.call((city: pack.city, received: 0, total: pack.size));
-    final installed = await _install(
-      city,
-      pack,
-      await _download(pack, onProgress),
-    );
+    final dir = _cityDir(city)..createSync(recursive: true);
+    final gz = _temp(dir, pack.version);
+    final File installed;
+    try {
+      await _downloadTo(
+        gz,
+        url: pack.url,
+        size: pack.size,
+        sha: pack.sha256,
+        onProgress: (received) => onProgress?.call((
+          city: pack.city,
+          received: received,
+          total: pack.size,
+        )),
+      );
+      // ponytail: gunzipped in memory (~1 MB gz); stream it past a few MB.
+      installed = await _install(city, pack, await gz.readAsBytes());
+    } finally {
+      if (gz.existsSync()) gz.deleteSync();
+    }
     for (final old in _installed(city).skip(keptVersions)) {
       old.deleteSync();
     }
     return installed;
   }
 
-  /// The pack's .gz, checked against the catalog's size and sha256.
-  Future<Uint8List> _download(
-    CatalogPack pack,
-    void Function(PackProgress progress)? onProgress,
-  ) async {
-    // ponytail: whole pack in memory (~1 MB gz); stream to disk past a few MB.
-    final uri = Uri.parse(pack.url);
+  /// Streams [url] into [dest], checked against [size] and [sha]; throws
+  /// on a mismatch, a non-200 answer or a stall.
+  Future<void> _downloadTo(
+    File dest, {
+    required String url,
+    required int size,
+    required String sha,
+    void Function(int received)? onProgress,
+  }) async {
+    final uri = Uri.parse(url);
     final res = await _client.send(http.Request('GET', uri)).timeout(timeout);
     if (res.statusCode != 200) {
       throw HttpException('HTTP ${res.statusCode}', uri: uri);
     }
-    final bytes = BytesBuilder(copy: false);
-    await for (final chunk in res.stream.timeout(timeout)) {
-      bytes.add(chunk);
-      onProgress?.call((
-        city: pack.city,
-        received: bytes.length,
-        total: pack.size,
-      ));
+    final digest = _DigestSink();
+    final hasher = sha256.startChunkedConversion(digest);
+    final out = dest.openWrite();
+    var received = 0;
+    try {
+      await for (final chunk in res.stream.timeout(timeout)) {
+        hasher.add(chunk);
+        out.add(chunk);
+        received += chunk.length;
+        onProgress?.call(received);
+      }
+    } finally {
+      await out.close();
     }
-    final gz = bytes.takeBytes();
-    if (gz.length != pack.size) {
-      throw FormatException('size ${gz.length} != ${pack.size}');
+    hasher.close();
+    if (received != size) {
+      throw FormatException('size $received != $size');
     }
-    if (sha256.convert(gz).toString() != pack.sha256) {
+    if (digest.value.toString() != sha) {
       throw const FormatException('sha256 mismatch');
     }
-    return gz;
   }
+
+  /// A download's file in [dir], unique per call so overlapping refreshes
+  /// never share one.
+  File _temp(Directory dir, String version) => File(
+    _join(
+      dir.path,
+      '$version.${DateTime.now().microsecondsSinceEpoch}.download',
+    ),
+  );
 
   /// Unpacks [gz] as `<city>/<version>.sqlite`; nothing partial is left.
   Future<File> _install(String city, CatalogPack pack, Uint8List gz) async {
-    final dir = _cityDir(city)..createSync(recursive: true);
-    // Unique per call, so overlapping refreshes never share a temp file.
-    final tmp = File(
-      _join(
-        dir.path,
-        '${pack.version}.${DateTime.now().microsecondsSinceEpoch}.download',
-      ),
-    );
+    final tmp = _temp(_cityDir(city), '${pack.version}.sqlite');
     try {
       await tmp.writeAsBytes(gzip.decode(gz), flush: true);
       final format = _formatVersion(tmp) ?? 0;
       if (format < oldestFormatVersion || format > supportedFormatVersion) {
         throw const FormatException('unsupported pack format');
       }
-      return await tmp.rename(_join(dir.path, '${pack.version}.sqlite'));
+      return await tmp.rename(
+        _join(_cityDir(city).path, '${pack.version}.sqlite'),
+      );
     } finally {
       if (tmp.existsSync()) tmp.deleteSync();
     }
   }
 
   /// Installed packs of [city], newest first.
-  List<File> _installed(String city) {
-    final dir = _cityDir(city);
+  List<File> _installed(String city) => _sqliteFiles(_cityDir(city));
+
+  /// The `.sqlite` files directly in [dir], newest version first.
+  static List<File> _sqliteFiles(Directory dir) {
     if (!dir.existsSync()) return const [];
     return dir
         .listSync()
@@ -159,6 +187,63 @@ class PackStore {
   }
 
   Directory _cityDir(String city) => Directory(_join(root.path, city));
+
+  Directory _photosDir(String city) =>
+      Directory(_join(_cityDir(city).path, 'photos'));
+
+  /// The installed photo pack of [city] (SPEC §10), if any.
+  File? photos(String city) => _sqliteFiles(_photosDir(city)).firstOrNull;
+
+  /// Installs the catalog's photo pack for [city] as
+  /// `<city>/photos/<version>.sqlite` when it is newer than the installed
+  /// one, streamed to disk, and keeps only it. Returns the photo pack, or
+  /// null when the server has none for [city]. Throws like [refresh].
+  Future<File?> refreshPhotos(
+    String city, {
+    void Function(PackProgress progress)? onProgress,
+  }) async {
+    final entry = await _catalogEntry(city);
+    final photos = entry?['photos'] as Map<String, Object?>?;
+    if (entry == null || photos == null) return null;
+    if (photos['format_version']! as int > photosFormatVersion) {
+      throw const PackFormatTooNew();
+    }
+    final version = photos['version']! as String;
+    final current = this.photos(city);
+    if (current != null && _version(current).compareTo(version) >= 0) {
+      return current;
+    }
+    final size = photos['size']! as int;
+    final dir = _photosDir(city)..createSync(recursive: true);
+    final tmp = _temp(dir, version);
+    try {
+      onProgress?.call((city: _city(entry), received: 0, total: size));
+      await _downloadTo(
+        tmp,
+        url: photos['url']! as String,
+        size: size,
+        sha: photos['sha256']! as String,
+        onProgress: (received) => onProgress?.call((
+          city: _city(entry),
+          received: received,
+          total: size,
+        )),
+      );
+      final installed = await tmp.rename(_join(dir.path, '$version.sqlite'));
+      for (final old in _sqliteFiles(dir).skip(1)) {
+        old.deleteSync();
+      }
+      return installed;
+    } finally {
+      if (tmp.existsSync()) tmp.deleteSync();
+    }
+  }
+
+  /// Deletes [city]'s photo pack (Street photos off).
+  void removePhotos(String city) {
+    final dir = _photosDir(city);
+    if (dir.existsSync()) dir.deleteSync(recursive: true);
+  }
 
   /// Every city the server has a pack for.
   Future<List<CatalogCity>> cities() async => [
@@ -192,21 +277,33 @@ class PackStore {
       ((await _catalog())['cities']! as List<Object?>)
           .cast<Map<String, Object?>>();
 
+  Future<Map<String, Object?>?> _catalogEntry(String city) async =>
+      (await _catalogCities()).where((e) => e['id'] == city).firstOrNull;
+
   Future<CatalogPack?> _catalogPack(String city) async {
-    for (final entry in await _catalogCities()) {
-      if (entry['id'] != city) continue;
-      final p = entry['pack']! as Map<String, Object?>;
-      return (
-        city: _city(entry),
-        version: p['version']! as String,
-        url: p['url']! as String,
-        sha256: p['sha256']! as String,
-        size: p['size']! as int,
-        formatVersion: p['format_version']! as int,
-      );
-    }
-    return null;
+    final entry = await _catalogEntry(city);
+    if (entry == null) return null;
+    final p = entry['pack']! as Map<String, Object?>;
+    return (
+      city: _city(entry),
+      version: p['version']! as String,
+      url: p['url']! as String,
+      sha256: p['sha256']! as String,
+      size: p['size']! as int,
+      formatVersion: p['format_version']! as int,
+    );
   }
+}
+
+/// Holds the digest a chunked hash ends with.
+class _DigestSink implements Sink<Digest> {
+  late Digest value;
+
+  @override
+  void add(Digest data) => value = data;
+
+  @override
+  void close() {}
 }
 
 /// Native separators, so built paths equal the ones `listSync()` returns.

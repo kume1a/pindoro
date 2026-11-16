@@ -475,14 +475,17 @@ int startedToday(Iterable<LogEntry> log, DateTime now, Set<CardType> types) {
 /// The name and ends cards.
 const Set<CardType> sideTypes = {CardType.n, CardType.e};
 
-/// The route cards (SPEC §3): turns, gateways, bridges, connections, landmarks.
+/// The route cards (SPEC §3): turns, gateways, bridges, connections, landmarks, street photos.
 const Set<CardType> routeTypes = {
   CardType.j,
   CardType.g,
   CardType.b,
   CardType.c,
   CardType.l,
+  ...sceneTypes,
 };
+
+const Set<CardType> sceneTypes = {CardType.s1, CardType.s2, CardType.s3};
 
 bool isRouteItem(String itemId) => routeTypes.contains(CardType.ofItem(itemId));
 

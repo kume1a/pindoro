@@ -9,6 +9,7 @@ import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/route_book.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
+import 'package:pindoro/features/pack/data/photo_pack.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
@@ -142,6 +143,7 @@ void main() {
           ref.onDispose(repo.close);
           return repo;
         }),
+        photoPackProvider.overrideWith((ref) async => null),
       ],
     );
     addTearDown(pack.dispose);

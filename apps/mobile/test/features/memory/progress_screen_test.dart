@@ -10,6 +10,7 @@ import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/pack/data/photo_pack.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
@@ -59,6 +60,7 @@ void main() {
             ref.onDispose(repo.close);
             return repo;
           }),
+          photoPackProvider.overrideWith((ref) async => null),
         ],
         child: const PindoroApp(initialLocation: Routes.progress),
       ),

@@ -12,10 +12,10 @@
 	handle_path /packs/* {
 		root * /srv/packs
 
-		# Versioned pack files never change; the pointers to them do.
-		@immutable path *.sqlite.gz
+		# Versioned pack and photo pack files never change; the pointers to them do.
+		@immutable path *.sqlite.gz *.sqlite
 		header @immutable Cache-Control "public, max-age=31536000, immutable"
-		@pointers path */manifest.json
+		@pointers path */manifest.json */photos.json
 		header @pointers Cache-Control "public, max-age=60"
 
 		file_server

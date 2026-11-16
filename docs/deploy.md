@@ -18,7 +18,8 @@ internet ─▶ Cloudflare (TLS, DNS) ─▶ host tunnel ─▶ host:HTTP_PORT �
 ```
 
 Services in `infra/docker-compose.prod.yml`: `postgis`, `api`, `martin`, `caddy`, `backup`
-(nightly), and `pipeline` (profile, run by the workflow). All state lives in Docker volumes of the
+(nightly), `pipeline` (profile, run by the workflow) and, opt-in, a private Panoramax instance for
+our own street photos (profile `panoramax`, § 8). All state lives in Docker volumes of the
 `pindoro` project, never in the checkout: `pindoro_pgdata`, `pindoro_packs` (packs and their
 manifests, the live street ids, sideload APKs), `pindoro_tiles`, `pindoro_backups`.
 
@@ -62,18 +63,22 @@ variable and secret becomes a line of `.env` on each run (see `.env.example`). T
 public repository are public and print variables in clear text, so anything secret is a secret,
 which the logs mask:
 
-| Variable        | Value                                                  |
-| --------------- | ------------------------------------------------------ |
-| `PUBLIC_HOST`   | `pindoro.example.com`                                  |
-| `POSTGRES_USER` | `pindoro`                                              |
-| `POSTGRES_DB`   | `pindoro`                                              |
-| `HTTP_PORT`     | only if 8100 is taken; change the tunnel route with it |
-| `APP_BUILD`     | the newest sideload build (§ 7), once there is one     |
-| `APP_URL`       | its APK link (§ 7)                                     |
+| Variable           | Value                                                  |
+| ------------------ | ------------------------------------------------------ |
+| `PUBLIC_HOST`      | `pindoro.example.com`                                  |
+| `POSTGRES_USER`    | `pindoro`                                              |
+| `POSTGRES_DB`      | `pindoro`                                              |
+| `HTTP_PORT`        | only if 8100 is taken; change the tunnel route with it |
+| `APP_BUILD`        | the newest sideload build (§ 7), once there is one     |
+| `APP_URL`          | its APK link (§ 7)                                     |
+| `COMPOSE_PROFILES` | `panoramax`, only to run the private Panoramax (§ 8)   |
+| `PANORAMAX_URL`    | `http://panoramax-api:5000`, with that profile (§ 8)   |
 
-| Secret              | Value                                                           |
-| ------------------- | --------------------------------------------------------------- |
-| `POSTGRES_PASSWORD` | `openssl rand -hex 24`: it goes into a connection URL, keep hex |
+| Secret                 | Value                                                           |
+| ---------------------- | --------------------------------------------------------------- |
+| `POSTGRES_PASSWORD`    | `openssl rand -hex 24`: it goes into a connection URL, keep hex |
+| `MAPILLARY_TOKEN`      | a Mapillary client token, for street photo packs (§ 8)          |
+| `PANORAMAX_SECRET_KEY` | `openssl rand -hex 32`, with the `panoramax` profile (§ 8)      |
 
 PostGIS publishes no port, so its password never leaves the server's Docker network. It needs no
 recovery: to change it, set it on the server, then update the secret and run the Deploy workflow:
@@ -199,3 +204,55 @@ Each friend, once:
 
 SideStore refreshes its apps in the background while LocalDevVPN is connected on Wi-Fi. A free
 Apple ID runs 3 sideloaded apps at a time, SideStore included.
+
+## 8. Street photos
+
+Scene cards show street photos from a second, optional download per city: the photo pack
+(`docs/pack-format.md`, photo pack), built against the city's published pack. Photos come from
+Mapillary first, then from our own 360° captures on a private Panoramax instance for the decision
+junctions Mapillary lacks.
+
+**Mapillary token.** Sign in at [mapillary.com](https://www.mapillary.com), open **Dashboard →
+Developers → Register application** (any name; read access only), and copy its **client token**
+(`MLY|…`) into the `MAPILLARY_TOKEN` secret. It is used only by the pipeline on the server; the app
+never sees it.
+
+**Building.** Actions → Deploy → **Run workflow** with `photos` set to a city id (or `all`). It
+looks up about 2 100 junction approaches, downloads the chosen frames, and publishes
+`packs/<city>/photos.json` with the pack next to it (about 170 MB). `out/<city>/photo-coverage.md`
+in the `pindoro_pipeline-out` volume reports what each layer got and what is still missing. On a
+dev machine, `MAPILLARY_TOKEN=… just photos tbilisi` does the same into `infra/packs` (it needs that
+city's pack published there first). A street pack rebuild doesn't need new photos: they name their
+junctions by OSM node, and the app skips the few whose junction is gone.
+
+**Own captures (Panoramax).** For junctions without Mapillary coverage, capture 360° photos (an
+equirectangular camera; GPS and heading in the EXIF) and keep them in a private Panoramax
+instance. Its faces and licence plates are blurred on the server before a picture is stored, and
+the API listens on the server's loopback only, never through Caddy or the tunnel.
+
+1. Set the secret `PANORAMAX_SECRET_KEY` and the variables `COMPOSE_PROFILES=panoramax` and
+   `PANORAMAX_URL=http://panoramax-api:5000`, then run the Deploy workflow. It starts
+   `panoramax-db`, `-api`, `-worker`, `-blur` and `-detect`. Blurring runs on the CPU: expect a
+   few seconds a picture.
+2. Get the upload token once (keep it private):
+
+   ```sh
+   docker exec pindoro-panoramax-api-1 panoramax_backend default-account-tokens get
+   ```
+
+3. From your computer, tunnel to the server and upload a folder of captures with the
+   [Panoramax CLI](https://docs.panoramax.fr/cli/) (`pipx install panoramax_cli`):
+
+   ```sh
+   ssh -N -L 5005:127.0.0.1:5005 <server> &
+   panoramax_cli upload --api-url http://localhost:5005 --token <token> ./captures
+   ```
+
+   Set your name as the photos' EXIF `Artist` before uploading (`exiftool -Artist="Your Name"
+   ./captures`): the app credits it on every photo. Pictures are CC BY-SA 4.0
+   (`API_PICTURES_LICENSE_SPDX_ID`).
+
+4. Build the photo pack again (above); the coverage report counts the Panoramax photos.
+
+The originals live in the `pindoro_panoramax-pictures` volume and are not in the nightly backup:
+keep the camera's copies.

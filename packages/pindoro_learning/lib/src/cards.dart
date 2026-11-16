@@ -61,6 +61,9 @@ enum ReviewFormat {
   connection,
   landmark,
 
+  /// A street photo card, S1 to S3 (SPEC §10).
+  scene,
+
   /// A recital (an R card in a session), or a J card's Again from a recital decision (SPEC §4).
   recital,
 
@@ -198,6 +201,12 @@ CardState carriedOver(
   );
 }
 
+/// The recall a card is scheduled for (SPEC §4): street photos aim lower.
+double retentionOf(CardType type) => switch (type) {
+  CardType.s1 || CardType.s2 || CardType.s3 => LearningConfig.retentionScene,
+  _ => LearningConfig.retentionDefault,
+};
+
 /// Applies a graded answer at [now] to [card] (null: first sight, with no intro) and returns the
 /// new card and its log row. Fuzz is seeded by the item and the time, so replays agree.
 ({CardState card, LogEntry log}) applyReview(
@@ -212,7 +221,7 @@ CardState carriedOver(
   String? snapId,
   int? rtMs,
   bool priorKnown = false,
-  double retention = LearningConfig.retentionDefault,
+  double? retention,
   Fsrs fsrs = const Fsrs(),
 }) {
   final before = card?.memory;
@@ -220,7 +229,7 @@ CardState carriedOver(
     before,
     rating,
     now,
-    retention: retention,
+    retention: retention ?? retentionOf(CardType.ofItem(itemId)),
     fuzz: fuzzFor(itemId, now),
   );
   final lapsed = rating == Rating.again && card?.phase == CardPhase.review;

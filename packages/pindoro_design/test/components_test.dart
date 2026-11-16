@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -960,8 +961,74 @@ void main() {
           matchesGoldenFile('goldens/route_marks_${brightness.name}.png'),
         );
       });
+
+      testWidgets('scene ${brightness.name}', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(392, 720));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final photo = await tester.runAsync(_samplePhoto);
+        await tester.pumpWidget(
+          _host(
+            brightness: brightness,
+            Column(
+              spacing: 16,
+              children: [
+                SceneCard(
+                  photo: photo,
+                  caption: 'Approach photo · 25 m before the junction',
+                  attribution: '© Mapillary · CC BY-SA · sample_user',
+                  semanticsLabel: 'Street-level photo looking north',
+                  onAttribution: () {},
+                ),
+                const SceneCard(
+                  photo: null,
+                  caption: 'Looking south · taken 2025',
+                  attribution: '© Mapillary · CC BY-SA · sample_user',
+                  semanticsLabel: 'Loading photo',
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.runAsync(
+          () => precacheImage(
+            photo!,
+            tester.element(find.byType(SceneCard).first),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await expectLater(
+          find.byType(Scaffold),
+          matchesGoldenFile('goldens/scene_${brightness.name}.png'),
+        );
+      });
     }
   });
+}
+
+/// A stand-in street photo: sky over a road vanishing to the horizon.
+Future<ImageProvider> _samplePhoto() async {
+  final recorder = ui.PictureRecorder();
+  Canvas(recorder)
+    ..drawRect(
+      const Rect.fromLTWH(0, 0, 160, 90),
+      Paint()..color = PindoroPalette.cobalt100,
+    )
+    ..drawRect(
+      const Rect.fromLTWH(0, 45, 160, 45),
+      Paint()..color = PindoroPalette.asphalt300,
+    )
+    ..drawPath(
+      Path()
+        ..moveTo(20, 90)
+        ..lineTo(76, 45)
+        ..lineTo(84, 45)
+        ..lineTo(140, 90)
+        ..close(),
+      Paint()..color = PindoroPalette.asphalt600,
+    );
+  final image = await recorder.endRecording().toImage(160, 90);
+  final png = await image.toByteData(format: ui.ImageByteFormat.png);
+  return MemoryImage(png!.buffer.asUint8List());
 }
 
 final Object _goldensSkip = Platform.isLinux

@@ -32,6 +32,7 @@ void main() {
     int? size,
     int format = PackStore.supportedFormatVersion,
     List<int>? pack,
+    Map<String, Object?>? photos,
   }) => http.Response(
     jsonEncode({
       'cities': [
@@ -54,6 +55,7 @@ void main() {
             'size': size ?? (pack ?? gz).length,
             'osm_timestamp': '2026-11-04T21:21:03Z',
           },
+          'photos': ?photos,
         },
       ],
     }),
@@ -129,6 +131,64 @@ void main() {
     expect(cities.single.bbox?.maxLat, 41.8);
     expect(cityAt(cities, const LatLng(41.7, 44.8))?.id, 'tbilisi');
     expect(cityAt(cities, const LatLng(42.2, 42.7)), isNull);
+  });
+
+  group('street photos', () {
+    final bytes = utf8.encode('a photo pack');
+
+    PackStore photoStore(String? version, {String? hash}) => PackStore(
+      root: root,
+      apiBaseUrl: 'http://api.test',
+      client: MockClient(
+        (req) async => switch (req.url.path) {
+          '/v1/catalog' => catalog(
+            '20261106T000000Z',
+            photos: version == null
+                ? null
+                : {
+                    'format_version': PackStore.photosFormatVersion,
+                    'version': version,
+                    'url':
+                        'http://packs.test/tbilisi/tbilisi-photos-$version.sqlite',
+                    'sha256': hash ?? sha256.convert(bytes).toString(),
+                    'size': bytes.length,
+                    'count': 2,
+                  },
+          ),
+          final path when path.endsWith('.sqlite') => http.Response.bytes(
+            bytes,
+            200,
+          ),
+          _ => http.Response('', 404),
+        },
+      ),
+    );
+
+    test('installs once, a newer one replaces it, off deletes it', () async {
+      final first = photoStore('20261110T000000Z');
+      final file = await first.refreshPhotos('tbilisi');
+      expect(file!.readAsBytesSync(), bytes);
+      expect(first.photos('tbilisi')!.path, file.path);
+      expect((await first.refreshPhotos('tbilisi'))!.path, file.path);
+      await photoStore('20261112T000000Z').refreshPhotos('tbilisi');
+      expect(files(), ['20261112T000000Z.sqlite']);
+      first.removePhotos('tbilisi');
+      expect(first.photos('tbilisi'), isNull);
+      expect(files(), isEmpty);
+    });
+
+    test('a city without photos installs none', () async {
+      expect(await photoStore(null).refreshPhotos('tbilisi'), isNull);
+      expect(files(), isEmpty);
+    });
+
+    test('a sha256 mismatch leaves nothing behind', () async {
+      await expectLater(
+        photoStore('20261110T000000Z', hash: '0' * 64).refreshPhotos('tbilisi'),
+        throwsA(isA<FormatException>()),
+      );
+      expect(files(), isEmpty);
+    });
   });
 
   test('nothing is installed at first', () {

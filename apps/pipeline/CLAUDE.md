@@ -14,19 +14,22 @@ docker compose -f infra/docker-compose.yml run --rm pipeline fetch tbilisi
 docker compose -f infra/docker-compose.yml run --rm pipeline build tbilisi [--fixture]
 docker compose -f infra/docker-compose.yml run --rm pipeline validate <pack.sqlite[.gz]>
 docker compose -f infra/docker-compose.yml run --rm pipeline publish tbilisi
+docker compose -f infra/docker-compose.yml run --rm pipeline photos tbilisi   # just photos tbilisi
 docker compose -f infra/docker-compose.yml run --rm pipeline tiles [--styles-only]
 pnpm pipeline <cmd> …                         # same CLI on the host (needs the tools on PATH)
 pnpm --filter @pindoro/pipeline test          # DB tests skip without osm2pgsql/osmium
 ```
 
 Env: `DATABASE_URL` (default `postgres://pindoro:pindoro@localhost:5433/pindoro`), `PACKS_DIR`
-(default `infra/packs`), `IDENTITY_DIR` (production: `/packs`, see step 4). Tests:
+(default `infra/packs`), `IDENTITY_DIR` (production: `/packs`, see step 4), `MAPILLARY_TOKEN` and
+`PANORAMAX_URL` (`photos` only, never committed). Tests:
 `TEST_DATABASE_URL` (default `…:5433/pindoro_pipeline_test`); `PINDORO_REQUIRE_OSM_TOOLS=1` turns
 the skip into a failure (CI).
 
 Outputs: cache `apps/pipeline/.cache/<city>/`, builds `apps/pipeline/out/<city>/` (pack, `.gz`, `manifest.json`,
 `identity.json` staged for publish, `identity-diff-<version>.json`), fixture `apps/mobile/assets/packs_fixture/<city>_<name>_fixture.sqlite`,
 styles `apps/mobile/assets/map_styles/pindoro_{light,dark}.json`, tiles `infra/tiles/georgia.pmtiles`.
+`photos` writes `out/<city>/<city>-photos-<version>.sqlite`, `photos.json` and `photo-coverage.md`.
 
 ## Build steps
 
@@ -62,6 +65,19 @@ styles `apps/mobile/assets/map_styles/pindoro_{light,dark}.json`, tiles `infra/t
    **Stable street ids are sacred**: never regenerate or hand-edit identity.json; review the diff
    report instead.
 5. `src/pack.ts`: better-sqlite3 pack (polyline6 via `@pindoro/geo`) → gzip → `manifest.json`.
+
+## Street photos (`photos <city>`)
+
+`src/photos.ts` builds the optional photo pack (`docs/pack-format.md`, photo pack) against the
+city's **published** pack (format ≥ 5), so it runs after `publish`: targets are `junction_item`
+approaches (skeleton and gateway by rank, then one per tier A/B street still without a photo, then
+district turns, up to 2 100 photos); `src/photo-sources.ts` searches Mapillary (Graph API v4, token
+in a header) and then the private Panoramax (STAC `/api/search`) for a frame 25–40 m before the
+junction looking along the approach; `sharp` centre-crops a flat photo or reprojects a panorama to a
+100° view, 960 × 540 WebP. Lookups run 8 at a time in chunks, kept in target order, so the same
+answers fill the same pack. It publishes straight into `PACKS_DIR/<city>/` (the file, then
+`photos.json`; the previous file stays, older ones go) and prints the coverage report. Tests use a
+fake `fetch` (`test/photos.test.ts`), never the network.
 
 ## ODbL
 

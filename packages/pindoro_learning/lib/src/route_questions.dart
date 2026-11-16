@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:pindoro_core/pindoro_core.dart';
 
+import 'cards.dart';
 import 'curriculum.dart';
 import 'routes.dart';
 
@@ -127,6 +128,35 @@ final class LandmarkQuestion extends RouteQuestion {
   final NamedStreet? approachStreet;
 }
 
+/// A street photo card (SPEC §3, §5.2): S1 which street is [street]; S2 heading to [destChunk],
+/// which way at the junction ahead ([exits], the right one [correct], onto [exitStreet]); S3
+/// where was [image] taken and which way does it look. The photo is taken on [approach] before
+/// [junction].
+final class SceneQuestion extends RouteQuestion {
+  const SceneQuestion(
+    super.itemId, {
+    required this.n,
+    required this.image,
+    required this.junction,
+    required this.approach,
+    this.street,
+    this.exits = const {},
+    this.correct,
+    this.exitStreet,
+    this.destChunk,
+  });
+
+  final int n;
+  final SceneImage image;
+  final int junction;
+  final RoadEdge approach;
+  final NamedStreet? street;
+  final Map<Turn, RoadEdge> exits;
+  final Turn? correct;
+  final NamedStreet? exitStreet;
+  final String? destChunk;
+}
+
 /// The city's route items: what opens each (for the planner) and what each asks.
 typedef RouteBook = ({
   List<RouteCandidate> candidates,
@@ -181,12 +211,14 @@ RouteBook buildRouteBook({
   required Map<String, NamedStreet> streets,
   required Curriculum curriculum,
   List<RouteLandmark> personal = const [],
+  List<SceneImage> scenes = const [],
 }) {
   final edges = {for (final e in graph.edges) e.id: e};
   final candidates = <RouteCandidate>[];
   final questions = <String, RouteQuestion>{};
   final byLandmark = {for (final l in landmarks) l.id: l};
   final onTurns = <String, RouteLandmark>{};
+  final sceneTurns = <(int, int), ({String itemId, JunctionItem item})>{};
   NamedStreet? streetOf(RoadEdge e) => streets[e.streetId];
   void add(RouteCandidate c, RouteQuestion q) {
     if (questions.containsKey(c.itemId)) return;
@@ -233,6 +265,9 @@ RouteBook buildRouteBook({
         };
         if (landmark != null) onTurns.putIfAbsent(landmark.id, () => landmark);
         final id = RouteIds.junction(node, from, to);
+        if (item.layer == JunctionLayer.skeleton) {
+          _keepFirst(sceneTurns, (item.junctionId, approach.id), id, item);
+        }
         add(
           (
             itemId: id,
@@ -245,6 +280,8 @@ RouteBook buildRouteBook({
             chunk: null,
             phase2: false,
             personal: false,
+            knownCards: const {},
+            solidCards: const {},
           ),
           TurnQuestion(
             id,
@@ -263,6 +300,7 @@ RouteBook buildRouteBook({
         if (chunk == null) continue;
         final out = item.layer == JunctionLayer.gatewayOut;
         final id = RouteIds.gateway(chunk, node, out: out);
+        _keepFirst(sceneTurns, (item.junctionId, approach.id), id, item);
         add(
           (
             itemId: id,
@@ -273,6 +311,8 @@ RouteBook buildRouteBook({
             chunk: chunk,
             phase2: !out,
             personal: false,
+            knownCards: const {},
+            solidCards: const {},
           ),
           GatewayQuestion(
             id,
@@ -311,6 +351,8 @@ RouteBook buildRouteBook({
             chunk: null,
             phase2: false,
             personal: false,
+            knownCards: const {},
+            solidCards: const {},
           ),
           BridgeQuestion(
             id,
@@ -345,6 +387,8 @@ RouteBook buildRouteBook({
       chunk: null,
       phase2: false,
       personal: false,
+      knownCards: const {},
+      solidCards: const {},
     ), ConnectionQuestion(id, street: street, from: from, to: to));
   }
 
@@ -388,6 +432,8 @@ RouteBook buildRouteBook({
           chunk: null,
           phase2: false,
           personal: landmark.personal,
+          knownCards: const {},
+          solidCards: const {},
         ),
         LandmarkQuestion(
           id,
@@ -405,7 +451,116 @@ RouteBook buildRouteBook({
       );
     }
   }
+  final junctionOf = {for (final e in junctionNodes.entries) e.value: e.key};
+  final named = <String>{};
+  for (final image in scenes) {
+    final junction = junctionOf[image.junctionNode];
+    final approach = junction == null
+        ? null
+        : graph
+              .edgesAt(junction)
+              .where(
+                (e) => junctionNodes[e.other(junction)] == image.approachNode,
+              )
+              .firstOrNull;
+    if (junction == null || approach == null) continue;
+    final street = streetOf(approach);
+    RouteCandidate scene(
+      int n, {
+      required int rank,
+      String? raion,
+      bool phase2 = false,
+      Set<String> knownCards = const {},
+      Set<String> solidCards = const {},
+    }) => (
+      itemId: RouteIds.scene(image.id, n),
+      layer: RouteLayer.scene,
+      rank: rank,
+      known: {?street?.id},
+      raion: raion,
+      chunk: null,
+      phase2: phase2,
+      personal: false,
+      knownCards: knownCards,
+      solidCards: solidCards,
+    );
+    final turn = sceneTurns[(junction, approach.id)];
+    final exits = exitsByTurn(graph, junction, approach);
+    final correct = exits?.entries
+        .where((e) => e.value.id == turn?.item.exitEdge)
+        .firstOrNull
+        ?.key;
+    if (turn != null &&
+        exits != null &&
+        exits.length > 1 &&
+        correct != null &&
+        turn.item.destChunkId != null) {
+      final c = scene(2, rank: 1, knownCards: {turn.itemId});
+      add(
+        c,
+        SceneQuestion(
+          c.itemId,
+          n: 2,
+          image: image,
+          junction: junction,
+          approach: approach,
+          street: street,
+          exits: exits,
+          correct: correct,
+          exitStreet: streetOf(exits[correct]!),
+          destChunk: turn.item.destChunkId,
+        ),
+      );
+    }
+    if (street == null) continue;
+    if (curriculum.tierOf(street.id) != StreetTier.c && named.add(street.id)) {
+      final c = scene(
+        1,
+        rank: 2,
+        phase2: true,
+        solidCards: {CardType.p.item(street.id), CardType.n.item(street.id)},
+      );
+      add(
+        c,
+        SceneQuestion(
+          c.itemId,
+          n: 1,
+          image: image,
+          junction: junction,
+          approach: approach,
+          street: street,
+        ),
+      );
+    }
+    final raion = curriculum.raionOf(street.id);
+    if (raion == null) continue;
+    final c = scene(3, rank: 3, raion: raion);
+    add(
+      c,
+      SceneQuestion(
+        c.itemId,
+        n: 3,
+        image: image,
+        junction: junction,
+        approach: approach,
+        street: street,
+      ),
+    );
+  }
   return (candidates: candidates, questions: questions);
+}
+
+/// Keeps the lowest-rank [item] for an approach: the turn its S2 photo asks.
+void _keepFirst(
+  Map<(int, int), ({String itemId, JunctionItem item})> turns,
+  (int, int) approach,
+  String itemId,
+  JunctionItem item,
+) {
+  final kept = turns[approach];
+  if (kept == null || item.rank < kept.item.rank) {
+    turns[approach] = (itemId: itemId, item: item);
+  }
 }
 
 /// The pack junction with OSM node [node] (a personal landmark's), or null.

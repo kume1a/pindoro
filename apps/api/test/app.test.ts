@@ -24,6 +24,17 @@ const manifest = {
   bbox: { min_lat: 41.57, min_lon: 44.59, max_lat: 41.84, max_lon: 45.02 },
 };
 
+const photos = {
+  format_version: 1,
+  city: "tbilisi",
+  version: "20261116T101500Z",
+  file: "tbilisi-photos-20261116T101500Z.sqlite",
+  sha256: "b".repeat(64),
+  size: 5678,
+  count: 12,
+  generated_at: "2026-11-16T10:15:00Z",
+};
+
 const appWith = (env: Record<string, string>): Promise<FastifyInstance> =>
   buildApp(
     loadConfig({
@@ -44,6 +55,7 @@ describe("api", () => {
     packsDir = await mkdtemp(join(tmpdir(), "pindoro-packs-"));
     await mkdir(join(packsDir, "tbilisi"));
     await writeFile(join(packsDir, "tbilisi", "manifest.json"), JSON.stringify(manifest));
+    await writeFile(join(packsDir, "tbilisi", "photos.json"), JSON.stringify(photos));
     await mkdir(join(packsDir, "broken"));
     await writeFile(join(packsDir, "broken", "manifest.json"), "{ not json");
     // A file name outside the city's dir must never become a pack url.
@@ -51,6 +63,16 @@ describe("api", () => {
     await writeFile(
       join(packsDir, "escape", "manifest.json"),
       JSON.stringify({ ...manifest, city: "escape", file: "../tbilisi/x.sqlite.gz" }),
+    );
+    // An invalid photos.json leaves the city's pack listed, without photos.
+    await mkdir(join(packsDir, "kutaisi"));
+    await writeFile(
+      join(packsDir, "kutaisi", "manifest.json"),
+      JSON.stringify({ ...manifest, city: "kutaisi", file: "kutaisi-20261105T221700Z.sqlite.gz" }),
+    );
+    await writeFile(
+      join(packsDir, "kutaisi", "photos.json"),
+      JSON.stringify({ ...photos, file: "../tbilisi/x.sqlite" }),
     );
     app = await appWith({ PACKS_DIR: packsDir });
   });
@@ -74,11 +96,25 @@ describe("api", () => {
     expect(res.json()).toEqual({ status: "unavailable" });
   });
 
-  it("GET /v1/catalog lists valid manifests with absolute pack urls", async () => {
+  it("GET /v1/catalog lists valid manifests with absolute pack and photo urls", async () => {
     const res = await app.inject({ method: "GET", url: "/v1/catalog" });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({
       cities: [
+        {
+          id: "kutaisi",
+          name_ka: "თბილისი",
+          name_en: "Tbilisi",
+          bbox: manifest.bbox,
+          pack: {
+            format_version: 1,
+            version: manifest.version,
+            url: "https://packs.example.com/kutaisi/kutaisi-20261105T221700Z.sqlite.gz",
+            sha256: manifest.sha256,
+            size: 1234,
+            osm_timestamp: manifest.osm_timestamp,
+          },
+        },
         {
           id: "tbilisi",
           name_ka: "თბილისი",
@@ -91,6 +127,14 @@ describe("api", () => {
             sha256: manifest.sha256,
             size: 1234,
             osm_timestamp: manifest.osm_timestamp,
+          },
+          photos: {
+            format_version: 1,
+            version: photos.version,
+            url: "https://packs.example.com/tbilisi/tbilisi-photos-20261116T101500Z.sqlite",
+            sha256: photos.sha256,
+            size: 5678,
+            count: 12,
           },
         },
       ],

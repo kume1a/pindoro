@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -107,5 +108,37 @@ void main() {
     final right = tester.getCenter(find.bySemanticsLabel('Turn right'));
     final left = tester.getCenter(find.bySemanticsLabel('Turn left'));
     expect(right.dx, greaterThan(left.dx), reason: 'west is right going south');
+  });
+
+  testWidgets('a scene card reads its photo, caption and credit; the credit '
+      'opens the source', (tester) async {
+    final handle = tester.ensureSemantics();
+    var opened = 0;
+    await tester.pumpWidget(
+      _host(
+        SceneCard(
+          photo: null,
+          caption: 'Approach photo',
+          attribution: '© Mapillary · CC BY-SA · someone',
+          semanticsLabel: 'Street-level photo',
+          onAttribution: () => opened++,
+        ),
+      ),
+    );
+    expect(find.byType(Skeleton), findsOneWidget);
+    await tester.tap(find.text('© Mapillary · CC BY-SA · someone'));
+    expect(opened, 1);
+    await tester.pumpWidget(
+      _host(
+        SceneCard(
+          photo: MemoryImage(Uint8List(0)),
+          caption: 'Approach photo',
+          attribution: '© Mapillary · CC BY-SA · someone',
+          semanticsLabel: 'Street-level photo',
+        ),
+      ),
+    );
+    expect(find.bySemanticsLabel('Street-level photo'), findsOneWidget);
+    handle.dispose();
   });
 }

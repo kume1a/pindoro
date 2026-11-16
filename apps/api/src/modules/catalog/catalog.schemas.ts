@@ -22,6 +22,19 @@ export const Manifest = Type.Object({
 });
 export type Manifest = Static<typeof Manifest>;
 
+// <PACKS_DIR>/<city>/photos.json, written by `pipeline photos` (docs/pack-format.md, photo pack).
+export const PhotosManifest = Type.Object({
+  format_version: Type.Integer(),
+  city: Type.String({ pattern: "^[a-z0-9-]+$" }),
+  version: Type.String(),
+  file: Type.String({ pattern: "^[A-Za-z0-9._-]+$" }),
+  sha256: Type.String({ pattern: "^[0-9a-f]{64}$" }),
+  size: Type.Integer({ minimum: 0 }),
+  count: Type.Integer({ minimum: 0 }),
+  generated_at: Type.String(),
+});
+export type PhotosManifest = Static<typeof PhotosManifest>;
+
 const Pack = Type.Object({
   format_version: Type.Integer(),
   version: Type.String(),
@@ -29,6 +42,15 @@ const Pack = Type.Object({
   sha256: Type.String(),
   size: Type.Integer(),
   osm_timestamp: Type.String({ format: "date-time" }),
+});
+
+const Photos = Type.Object({
+  format_version: Type.Integer(),
+  version: Type.String(),
+  url: Type.String({ format: "uri" }),
+  sha256: Type.String(),
+  size: Type.Integer(),
+  count: Type.Integer(),
 });
 
 const AppRelease = Type.Object({
@@ -48,6 +70,8 @@ export const Catalog = Type.Object({
       // Missing for packs published before the manifest carried it.
       bbox: Type.Optional(Bbox),
       pack: Pack,
+      // The optional street photo pack; absent while the city has none.
+      photos: Type.Optional(Photos),
     }),
   ),
 });

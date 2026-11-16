@@ -107,6 +107,10 @@ pack CITY:
     {{ dc }} run --rm pipeline validate {{ CITY }}
     {{ dc }} run --rm pipeline publish {{ CITY }}
 
+# Build and publish a city's street photo pack (env MAPILLARY_TOKEN; PANORAMAX_URL optional)
+photos CITY:
+    {{ dc }} run --rm --build pipeline photos {{ CITY }}
+
 # Download the Georgia vector tiles and regenerate the app map styles
 tiles:
     {{ dc }} run --rm --build pipeline tiles
