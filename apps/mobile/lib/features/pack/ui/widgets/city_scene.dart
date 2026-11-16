@@ -97,8 +97,8 @@ class _CitySceneState extends State<CityScene>
                 Positioned.fill(
                   child: CustomPaint(
                     painter: _Streets(
-                      road: c.pathRoad,
-                      lane: c.pathLane,
+                      road: c.roadBase,
+                      lane: c.roadLane,
                       ghost: c.lineBase,
                       drive: _loop.value,
                     ),
@@ -125,7 +125,7 @@ class _CitySceneState extends State<CityScene>
                       child: PindoroIcon(
                         PindoroGlyph.star,
                         size: 32,
-                        color: c.xpFill,
+                        color: c.progressDone,
                         cut: c.primarySoft,
                       ),
                     ),

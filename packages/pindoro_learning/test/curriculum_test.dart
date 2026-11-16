@@ -364,6 +364,54 @@ void main() {
     });
   });
 
+  test('areaCounts: neighbourhoods and raions all Mastered, raions with a '
+      'Known street; leeches cleared once one was', () {
+    CardState card(String id, double stability) => CardState(
+      itemId: CardType.p.item(id),
+      phase: CardPhase.review,
+      memory: Memory(
+        stability: stability,
+        difficulty: 5,
+        lastReview: _now.subtract(const Duration(days: 1)),
+      ),
+      lastRating: Rating.good,
+      introAt: _now.subtract(const Duration(days: 30)),
+    );
+    final streets = [
+      _street('m1', chunk: 'c1'),
+      _street('m2', chunk: 'c1'),
+      _street('k1', chunk: 'c3'),
+      _street('u1', chunk: 'c3'),
+    ];
+    expect(
+      areaCounts(
+        streets: streets,
+        districts: _chunks,
+        cards: {
+          'm1': card('m1', 95),
+          'm2': card('m2', 120),
+          'k1': card('k1', 10),
+        },
+        now: _now,
+      ),
+      (masteredRaions: 1, masteredNeighbourhoods: 1, knownRaions: 2),
+    );
+    final lapsed = CardState(
+      itemId: 'P:x',
+      phase: CardPhase.review,
+      lapses: LearningConfig.leechLapses,
+    );
+    expect(leechesCleared([card('m1', 95)]), isFalse);
+    expect(leechesCleared([lapsed]), isTrue);
+    expect(
+      leechesCleared([
+        lapsed,
+        const CardState(itemId: 'P:y', phase: CardPhase.suspended),
+      ]),
+      isFalse,
+    );
+  });
+
   test('a pack without curriculum columns teaches longest first', () {
     final curriculum = _curriculum([
       _street('x', tier: null, chunk: null, length: 200),

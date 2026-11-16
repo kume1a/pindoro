@@ -5,10 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/quiz/ui/round_controller.dart';
 import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
 
 void main() {
   const vake = DistrictsArea({AppConfig.fixtureDistrictId});
@@ -76,11 +78,30 @@ void main() {
     final revealed = c.read(roundControllerProvider) as RoundRevealed;
     expect(revealed.answer.distanceM, closeTo(0, 0.5));
     expect(revealed.answer.tier, Tier.perfect);
-    expect(revealed.answer.xp, 100, reason: 'XP is the same at every level');
     expect(
       await ProgressDao(db).answersForRound(revealed.round.id),
       hasLength(1),
     );
+  });
+
+  test('an Explore pin feeds the learning cards (SPEC §16.16): a first-sight '
+      'Good makes a known card, a miss is only logged', () async {
+    final c = container();
+    final controller = c.read(roundControllerProvider.notifier);
+    await controller.start(vake, Difficulty.expert);
+    final first =
+        (c.read(roundControllerProvider) as RoundAsking).round.current;
+    await answerCurrent(controller, c);
+    await controller.next();
+    await answerCurrent(controller, c, miss: true);
+    final learning = LearningDao(db);
+    final cards = await learning.cards();
+    expect(cards.map((card) => card.itemId), [CardType.p.item(first.id)]);
+    expect(cards.single.priorKnown, isTrue);
+    expect((await learning.log()).map((e) => e.format), [
+      ReviewFormat.explore,
+      ReviewFormat.exploreLog,
+    ]);
   });
 
   test('a new controller resumes at the next unanswered street', () async {
@@ -171,7 +192,6 @@ void main() {
     expect(resumed.total, QuestionSelector.roundSize - 1);
     expect(resumed.number, 2);
     expect(resumed.answeredTiers, hasLength(1));
-    expect(resumed.xp, round.xp, reason: 'answered XP still counts');
   });
 
   test('a pool smaller than a round is reported', () async {
@@ -196,55 +216,6 @@ void main() {
         .read(roundControllerProvider.notifier)
         .start(const DistrictsArea({'osm:r1'}), Difficulty.expert);
     expect(c.read(roundControllerProvider), isA<RoundAreaMissing>());
-  });
-
-  group('Pit stop', () {
-    final today = calendarDay(DateTime.now());
-
-    /// [count] distinct streets in the Pit stop, the first most overdue;
-    /// the last one isn't due until tomorrow.
-    Future<List<String>> pitStop(ProviderContainer c, int count) async {
-      final streets = await c.read(cityStreetsProvider.future);
-      final ids = {for (final s in streets.values) s.id}.take(count).toList();
-      await db.batch(
-        (b) => b.insertAll(db.reviewItems, [
-          for (final (i, id) in ids.indexed)
-            ReviewItemsCompanion.insert(
-              cityId: 'tbilisi',
-              streetId: id,
-              step: 1,
-              greatRun: 0,
-              dueOn: dayKey(today.add(Duration(days: i - count + 2))),
-              lastTier: Tier.miss,
-              lastAt: DateTime.now(),
-            ),
-        ]),
-      );
-      return ids;
-    }
-
-    test('asks up to 10 due streets, most overdue first', () async {
-      final c = container();
-      final ids = await pitStop(c, 13);
-      await c
-          .read(roundControllerProvider.notifier)
-          .startPitStop(Difficulty.expert);
-      final round = (c.read(roundControllerProvider) as RoundAsking).round;
-      expect([for (final q in round.questions) q.id], ids.take(10));
-      expect(
-        (await ProgressDao(db).roundProgress(round.id)).round.pitStop,
-        isTrue,
-      );
-    });
-
-    test('nothing due is reported', () async {
-      final c = container();
-      await pitStop(c, 1); // due tomorrow
-      await c
-          .read(roundControllerProvider.notifier)
-          .startPitStop(Difficulty.expert);
-      expect(c.read(roundControllerProvider), isA<RoundNothingDue>());
-    });
   });
 }
 

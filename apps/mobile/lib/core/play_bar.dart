@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:pindoro/core/format.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// A play screen's top bar (a round, a lesson, a Final drive): ✕ to leave,
-/// the question bar and the XP so far.
+/// An Explore round's top bar: ✕ to leave and the question bar.
 class PlayBar extends StatelessWidget {
   const PlayBar({
     super.key,
@@ -13,8 +11,6 @@ class PlayBar extends StatelessWidget {
     required this.tiers,
     required this.total,
     required this.barLabel,
-    required this.xp,
-    required this.xpLabel,
   });
 
   final String leaveLabel;
@@ -24,14 +20,9 @@ class PlayBar extends StatelessWidget {
   final List<Tier> tiers;
   final int total;
   final String barLabel;
-  final int xp;
-
-  /// Reads the formatted XP out.
-  final String Function(String xp) xpLabel;
 
   @override
   Widget build(BuildContext context) {
-    final formatted = formatNumber(xp);
     return Row(
       spacing: PindoroSpace.s3,
       children: [
@@ -46,13 +37,6 @@ class PlayBar extends StatelessWidget {
             total: total,
             semanticLabel: barLabel,
           ),
-        ),
-        Pill(
-          label: formatted,
-          icon: PindoroGlyph.xp,
-          iconColor: PindoroTheme.of(context).colors.xpFill,
-          floating: true,
-          semanticLabel: xpLabel(formatted),
         ),
       ],
     );

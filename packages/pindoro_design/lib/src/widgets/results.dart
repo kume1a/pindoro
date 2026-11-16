@@ -8,14 +8,13 @@ import 'reveal.dart';
 import 'surfaces.dart';
 
 /// One round answer on the results list: tier tile, street name, tier word
-/// and distance, XP. Tapping opens it on the map.
+/// and distance. Tapping opens it on the map.
 class ResultRow extends StatelessWidget {
   const ResultRow({
     super.key,
     required this.tier,
     required this.street,
     required this.detail,
-    required this.xp,
     required this.semanticLabel,
     this.onTap,
   });
@@ -25,7 +24,6 @@ class ResultRow extends StatelessWidget {
 
   /// "Great · 84 m"; the tier word is drawn in the tier ink.
   final ({String tierWord, String rest}) detail;
-  final int xp;
   final String semanticLabel;
   final VoidCallback? onTap;
 
@@ -48,78 +46,15 @@ class ResultRow extends StatelessWidget {
         ],
       ),
       leading: TierBadge(tier),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        spacing: PindoroSpace.s3,
-        children: [
-          Text(
-            xp > 0 ? '+$xp' : '0',
-            style: PindoroType.numericSm.copyWith(
-              color: xp > 0 ? c.rewardText : c.textSecondary,
-            ),
-          ),
-          if (onTap != null)
-            PindoroIcon(
+      trailing: onTap == null
+          ? null
+          : PindoroIcon(
               PindoroGlyph.chevronRight,
               size: PindoroSize.iconSm,
               color: c.textSecondary,
             ),
-        ],
-      ),
       onTap: onTap,
       semanticsLabel: semanticLabel,
-    );
-  }
-}
-
-/// The round's XP total on the lane-yellow reward plate.
-class RewardTotal extends StatelessWidget {
-  const RewardTotal({
-    super.key,
-    required this.value,
-    required this.semanticLabel,
-  });
-
-  /// "+695 XP".
-  final String value;
-  final String semanticLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = PindoroTheme.of(context).colors;
-    return Semantics(
-      label: semanticLabel,
-      excludeSemantics: true,
-      child: LipBox(
-        face: c.rewardBase,
-        lip: c.rewardLip,
-        lipHeight: PindoroElevation.e3,
-        padding: const EdgeInsets.symmetric(
-          horizontal: PindoroSpace.s6,
-          vertical: PindoroSpace.s3,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          spacing: PindoroSpace.s2,
-          children: [
-            PindoroIcon(
-              PindoroGlyph.xp,
-              size: PindoroSize.iconLg,
-              color: c.rewardOn,
-              cut: c.rewardBase,
-            ),
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  value,
-                  style: PindoroType.numericXl.copyWith(color: c.rewardOn),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

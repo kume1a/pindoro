@@ -44,7 +44,6 @@ enum PindoroGlyph {
   keyboard('keyboard'),
   labelsOff('labels-off'),
   layers('layers'),
-  level('level'),
   locate('locate'),
   locateOff('locate-off'),
   lock('lock'),
@@ -83,7 +82,6 @@ enum PindoroGlyph {
   user('user'),
   users('users'),
   wrench('wrench'),
-  xp('xp'),
   zoomIn('zoom-in'),
   zoomOut('zoom-out');
 

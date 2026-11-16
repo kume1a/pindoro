@@ -61,7 +61,6 @@ void main() {
         pin: street.parts.first.midpoint,
         distanceM: 10,
         tier: tier,
-        xp: 0,
         packVersion: 'v',
       );
     }

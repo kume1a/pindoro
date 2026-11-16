@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
@@ -17,13 +16,12 @@ import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/account/ui/account_group.dart';
 import 'package:pindoro/features/learning/data/review_log_export.dart';
 import 'package:pindoro/features/pack/data/app_update.dart';
-import 'package:pindoro/features/progress/ui/daily_goal.dart';
 import 'package:pindoro/features/settings/ui/widgets/settings_rows.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Language, street names, daily goal, theme, sound, haptics, the turn list,
-/// the account; changes apply at once.
+/// Language, street names, the way to the learning settings, theme, sound,
+/// haptics, the account; changes apply at once.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -61,30 +59,15 @@ class SettingsScreen extends ConsumerWidget {
           settings: settings,
           help: l10n.settingsStreetNamesHelp,
         ),
-        if (AppConfig.v3)
-          ListGroup(
-            children: [
-              ListRow(
-                title: l10n.learnSettingsTitle,
-                leading: const RowTile(PindoroGlyph.road),
-                trailing: const PindoroIcon(PindoroGlyph.chevronRight),
-                onTap: () => context.push(Routes.learnSettings),
-              ),
-            ],
-          ),
-        SectionTitle(l10n.settingsDailyGoal),
         ListGroup(
           children: [
             ListRow(
-              title: l10n.dailyGoalPerDay(formatNumber(settings.dailyGoal)),
-              subtitle: l10n.dailyGoalKeepsStreak(
-                goalRounds(context, settings.dailyGoal),
-              ),
-              leading: const RowTile(PindoroGlyph.flame),
+              title: l10n.learnSettingsTitle,
+              subtitle: l10n.settingsLearningSubtitle,
+              leading: const RowTile(PindoroGlyph.road),
               trailing: const PindoroIcon(PindoroGlyph.chevronRight),
-              onTap: () => showDailyGoalSheet(context, ref),
+              onTap: () => context.push(Routes.learnSettings),
             ),
-            ReminderRow(settings: settings),
           ],
         ),
         SectionTitle(l10n.settingsDisplay),
@@ -126,18 +109,6 @@ class SettingsScreen extends ConsumerWidget {
                 if (v) unawaited(HapticFeedback.selectionClick());
                 unawaited(dao.setHaptics(on: v));
               },
-            ),
-          ],
-        ),
-        SectionTitle(l10n.settingsAccessibility),
-        ListGroup(
-          children: [
-            ToggleRow(
-              title: l10n.settingsTurnList,
-              subtitle: l10n.settingsTurnListSubtitle,
-              glyph: PindoroGlyph.route,
-              value: settings.turnList,
-              onChanged: (v) => save(() => dao.setTurnList(on: v)),
             ),
           ],
         ),

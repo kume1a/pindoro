@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:drift/drift.dart' show DatabaseConnection, Value;
 import 'package:drift/native.dart';
 import 'package:flutter/widgets.dart';
@@ -12,23 +10,24 @@ import 'package:pindoro/core/api_client.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
-import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/launch_overlay.dart';
 import 'package:pindoro/core/routes.dart';
-import 'package:pindoro/features/account/data/account_dao.dart';
+import 'package:pindoro/features/learning/data/learning_dao.dart';
+import 'package:pindoro/features/learning/ui/city_memory_card.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
 
 void main() {
   late AppDatabase db;
   late _FakeReminders reminders;
   late List<Street> streets;
 
-  /// What the league server answers; offline unless a test says otherwise.
-  late http.Response Function(http.Request) leagueReply;
+  /// What the server answers; offline unless a test says otherwise.
+  late http.Response Function(http.Request) serverReply;
 
   setUpAll(() {
     final pack = SqlitePackRepository.open(AppConfig.fixturePackAsset);
@@ -44,7 +43,7 @@ void main() {
       ),
     );
     reminders = _FakeReminders();
-    leagueReply = (_) => http.Response('', 503);
+    serverReply = (_) => http.Response('', 503);
   });
   tearDown(() => db.close());
 
@@ -55,7 +54,7 @@ void main() {
       apiClientProvider.overrideWithValue(
         ApiClient(
           'https://api.example',
-          client: MockClient((request) async => leagueReply(request)),
+          client: MockClient((request) async => serverReply(request)),
         ),
       ),
       packRepositoryProvider.overrideWith((ref) async {
@@ -92,7 +91,6 @@ void main() {
   Future<String> roundWithAnswers(
     int answered, {
     Tier tier = Tier.great,
-    int xp = 60,
     bool pickArea = true,
   }) async {
     if (pickArea) await SettingsDao(db).chooseArea(vake, cityId: 'tbilisi');
@@ -114,7 +112,6 @@ void main() {
               pinLon: s.midpoint.lon,
               distanceM: 42,
               tier: tier,
-              xp: xp,
               packVersion: 'v1',
             ),
           );
@@ -125,7 +122,6 @@ void main() {
   testWidgets('home without an area asks for one', (tester) async {
     await pumpApp(tester, Routes.home);
     expect(find.text('Choose an area'), findsOneWidget);
-    expect(find.text('Level 1'), findsOneWidget);
     expect(find.text('Streets you know'), findsOneWidget);
   });
 
@@ -207,20 +203,14 @@ void main() {
     expect(find.text('Round in progress'), findsOneWidget);
   });
 
-  testWidgets('results list each answer with its street and the level', (
+  testWidgets('results list each answer with its street, no points', (
     tester,
   ) async {
-    final id = (await tester.runAsync(() => roundWithAnswers(2, xp: 600)))!;
+    final id = (await tester.runAsync(() => roundWithAnswers(2)))!;
     await pumpApp(tester, '${Routes.results}?round=$id');
-    expect(find.text('Level 2!'), findsOneWidget, reason: 'level-up moment');
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-
     expect(find.byType(ResultRow), findsNWidgets(2));
     expect(find.text(streets[0].nameKa), findsOneWidget);
-    expect(find.text('+600'), findsNWidgets(2));
-    expect(find.text('+1 200 XP'), findsOneWidget);
-    expect(find.text('Level 2'), findsOneWidget);
+    expect(find.textContaining('XP'), findsNothing);
   });
 
   testWidgets('done on results counts the round into home', (tester) async {
@@ -234,8 +224,6 @@ void main() {
 
     expect(find.text('Streets you know'), findsOneWidget);
     expect(find.text('+2'), findsOneWidget, reason: 'newly known streets');
-    expect(find.text('+120 XP'), findsOneWidget, reason: 'tip on the bar');
-    expect(find.text('120'), findsOneWidget, reason: 'XP pill counted up');
   });
 
   testWidgets('back on results goes home, as Done does', (tester) async {
@@ -276,54 +264,6 @@ void main() {
     expect(find.textContaining('Retry'), findsNothing);
   });
 
-  group('league chip', () {
-    /// The player at [rank] of 4 with 500 XP now; the others hold 900, 450
-    /// and 400 XP, so a 120 XP round started them 4th.
-    http.Response league(int rank) => http.Response(
-      jsonEncode({
-        'league': {
-          'tier': 3,
-          'week': leagueWeek(DateTime.now()).key,
-          'ends_at': leagueWeek(DateTime.now()).end.toIso8601String(),
-          'members': [
-            for (final (i, xp) in [900, 500, 450, 400].indexed)
-              {
-                'rank': i + 1,
-                'name': i + 1 == rank ? 'tornike' : 'p$i',
-                'xp': xp,
-                'zone': 'up',
-                'you': i + 1 == rank,
-              },
-          ],
-        },
-      }),
-      200,
-    );
-
-    Future<String> joinedRound(WidgetTester tester) async =>
-        (await tester.runAsync(() async {
-          await AccountDao(db).save(username: 'tornike', token: 't');
-          return roundWithAnswers(2);
-        }))!;
-
-    testWidgets('says how far the round moved the player up', (tester) async {
-      final id = await joinedRound(tester);
-      leagueReply = (_) => league(2);
-      await pumpApp(tester, Routes.resultsOf(id));
-      expect(find.text('Up to 2nd in Avenue league'), findsOneWidget);
-      await tester.tap(find.text('Up to 2nd in Avenue league'));
-      await settle(tester);
-      expect(find.byType(LeagueHeader), findsOneWidget);
-    });
-
-    testWidgets('stays away when the rank held, or offline', (tester) async {
-      final id = await joinedRound(tester);
-      leagueReply = (_) => league(4);
-      await pumpApp(tester, Routes.resultsOf(id));
-      expect(find.textContaining('league'), findsNothing);
-    });
-  });
-
   testWidgets('results without a round go home', (tester) async {
     await pumpApp(tester, Routes.results);
     expect(find.text('Streets you know'), findsOneWidget);
@@ -342,53 +282,31 @@ void main() {
       ]),
     );
 
-    testWidgets('home shows the pill and ring; the pill opens Streak', (
-      tester,
-    ) async {
+    testWidgets('Today shows the pill; it opens Streak', (tester) async {
       await tester.runAsync(() async {
-        await roundWithAnswers(10);
         await goalDays(1, 0);
-        await SettingsDao(db).markHomeCoachSeen();
+        await LearningDao(db).markPlaced('tbilisi', DateTime(2026));
       });
-      await pumpApp(tester, Routes.home);
-      expect(
-        find.bySemanticsLabel('2-day streak. Goal met today.'),
-        findsOneWidget,
-      );
-      expect(
-        find.bySemanticsLabel('Daily goal met, 600 of 500 XP'),
-        findsOneWidget,
-      );
+      await pumpApp(tester, Routes.today);
+      final pill = find.bySemanticsLabel('2-day streak. Goal met today.');
+      expect(pill, findsOneWidget);
 
-      await tester.tap(find.bySemanticsLabel('2-day streak. Goal met today.'));
+      await tester.tap(pill);
       await settle(tester);
       expect(find.text('Streak'), findsOneWidget);
       expect(find.text('day streak'), findsOneWidget);
       expect(find.text('Your best: 2 days'), findsOneWidget);
       expect(find.text('No streak freeze yet'), findsOneWidget);
-      expect(find.text('Met today with 600 XP'), findsOneWidget);
+      expect(find.textContaining('A day counts'), findsOneWidget);
     });
 
-    testWidgets('streak shows a held freeze; Change saves a new goal', (
-      tester,
-    ) async {
+    testWidgets('streak shows a held freeze', (tester) async {
       await tester.runAsync(() => goalDays(7, 1));
       await pumpApp(tester, Routes.streak);
       expect(find.text('Streak freeze equipped · 1 of 2'), findsOneWidget);
-      expect(find.text('0 of 500 XP today'), findsOneWidget);
-
-      await tester.ensureVisible(find.text('Change'));
-      await tester.pump();
-      await tester.tap(find.text('Change'));
-      await settle(tester);
-      await tester.tap(find.text('${formatNumber(1000)} XP a day'));
-      await settle(tester);
-      expect(find.text('Daily goal: ${formatNumber(1000)} XP'), findsOneWidget);
-      final settings = await tester.runAsync(() => SettingsDao(db).read());
-      expect(settings!.dailyGoal, 1000);
     });
 
-    testWidgets('results show the streak once the round met today\'s goal', (
+    testWidgets('results show the streak once the round made today count', (
       tester,
     ) async {
       late String id;
@@ -409,56 +327,24 @@ void main() {
       );
     });
 
-    testWidgets('settings show and change the daily goal', (tester) async {
-      await pumpApp(tester, Routes.settings);
-      expect(find.text('500 XP a day'), findsOneWidget);
-      expect(
-        find.text('About two rounds · keeps your streak going'),
-        findsOneWidget,
+    testWidgets('the reminder asks first, then schedules the next one while '
+        'reviews are due', (tester) async {
+      await tester.runAsync(
+        () => LearningDao(db).putCard(
+          CardState(
+            itemId: 'P:x',
+            phase: CardPhase.review,
+            memory: Memory(
+              stability: 3,
+              difficulty: 5,
+              lastReview: DateTime.now().subtract(const Duration(days: 5)),
+            ),
+            dueAt: DateTime.now().subtract(const Duration(days: 1)),
+            lastRating: Rating.good,
+          ),
+        ),
       );
-      await tester.tap(find.text('500 XP a day'));
-      await settle(tester);
-      await tester.tap(find.text('250 XP a day'));
-      await settle(tester);
-      expect(
-        find.text('About one round · keeps your streak going'),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('a goal lowered below today\'s XP marks today', (tester) async {
-      await tester.runAsync(() => roundWithAnswers(5)); // 300 XP
-      await pumpApp(tester, Routes.streak);
-      expect(find.text('300 of 500 XP today'), findsOneWidget);
-      await tester.ensureVisible(find.text('Change'));
-      await tester.pump();
-      await tester.tap(find.text('Change'));
-      await settle(tester);
-      await tester.tap(find.text('250 XP a day'));
-      await settle(tester);
-      expect(find.text('Met today with 300 XP'), findsOneWidget);
-      final days = await tester.runAsync(ProgressDao(db).goalDayRounds);
-      expect(days, {today: null});
-    });
-
-    testWidgets('XP from before the streak existed counts for today', (
-      tester,
-    ) async {
-      await tester.runAsync(() async {
-        await roundWithAnswers(10); // 600 XP, no goal day written
-        await SettingsDao(db).markHomeCoachSeen();
-      });
-      await pumpApp(tester, Routes.home);
-      expect(
-        find.bySemanticsLabel('1-day streak. Goal met today.'),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('the reminder asks first, then schedules the next one', (
-      tester,
-    ) async {
-      await pumpApp(tester, Routes.settings);
+      await pumpApp(tester, Routes.learnSettings);
       await tester.tap(find.text('Reminder'));
       await settle(tester);
       final settings = await tester.runAsync(() => SettingsDao(db).read());
@@ -472,7 +358,7 @@ void main() {
 
     testWidgets('without permission the reminder stays off', (tester) async {
       reminders.allowed = false;
-      await pumpApp(tester, Routes.settings);
+      await pumpApp(tester, Routes.learnSettings);
       await tester.tap(find.text('Reminder'));
       await settle(tester);
       expect(
@@ -489,150 +375,29 @@ void main() {
   });
 
   group('me', () {
-    testWidgets('level, stats and cities; a city opens its Path', (
-      tester,
-    ) async {
-      // One Great of 4 000 XP: level 4 (from 3 750), today's goal met.
+    testWidgets('stats, badges and cities; a city opens Today', (tester) async {
       await tester.runAsync(() async {
-        await roundWithAnswers(1, xp: 4000);
-        await ProgressDao(
-          db,
-        ).saveCourseStart('tbilisi', AppConfig.fixtureDistrictId);
-        await db
-            .into(db.lessonResults)
-            .insert(
-              LessonResultsCompanion.insert(
-                cityId: 'tbilisi',
-                unitId: AppConfig.fixtureDistrictId,
-                kind: LessonKind.lesson,
-                lesson: const Value(1),
-                difficulty: Difficulty.medium,
-                xp: 0,
-                perfect: false,
-                rightFirst: 4,
-                tests: 6,
-                durationMs: 90000,
-              ),
-            );
+        await roundWithAnswers(1);
+        await LearningDao(db).markPlaced('tbilisi', DateTime(2026));
       });
-      // The Path's current stop floats for good; settle without motion.
-      tester.platformDispatcher.accessibilityFeaturesTestValue =
-          const FakeAccessibilityFeatures(disableAnimations: true);
-      addTearDown(
-        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
-      );
       await pumpApp(tester, Routes.me);
-      expect(find.text('Level 4'), findsOneWidget);
-      expect(find.textContaining('playing since'), findsOneWidget);
-      expect(find.text('${formatNumber(1500)} XP to level 5'), findsOneWidget);
+      expect(find.textContaining('Playing since'), findsOneWidget);
       for (final label in [
-        'Streets known, 1',
-        'Lessons, 1',
-        'Road trips, 0',
-        'Best streak, 1 day',
+        'Streets known, 0',
+        'Pins dropped, 1',
+        'Days counted, 0',
+        'Best streak, 0 days',
       ]) {
         expect(find.bySemanticsLabel(label), findsOneWidget);
       }
-      expect(find.textContaining('Unit 1 · ვაკის რაიონი · 1 /'), findsOne);
       final tbilisi = find.bySemanticsLabel(
-        RegExp(r'^Tbilisi, 1 of \S+ streets known$'),
+        RegExp(r'^Tbilisi, 0 of \S+ streets in memory$'),
       );
       expect(tbilisi, findsOneWidget);
 
       await tester.tap(tbilisi);
       await settle(tester);
-      expect(find.text('1 of 6 lessons'), findsOneWidget);
-    });
-  });
-
-  group('pit stop', () {
-    final today = calendarDay(DateTime.now());
-
-    /// The fixture's first streets in the Pit stop, due [dueIn] days from
-    /// today (negative: overdue).
-    Future<void> review(int count, {int dueIn = -1}) => db.batch(
-      (b) => b.insertAll(db.reviewItems, [
-        for (final s in streets.take(count))
-          ReviewItemsCompanion.insert(
-            cityId: 'tbilisi',
-            streetId: s.id,
-            step: 1,
-            greatRun: 0,
-            dueOn: dayKey(today.add(Duration(days: dueIn))),
-            lastTier: Tier.miss,
-            lastAt: DateTime.now().subtract(const Duration(days: 1)),
-          ),
-      ]),
-    );
-
-    testWidgets('the Pit stop tab counts and lists the due streets', (
-      tester,
-    ) async {
-      await tester.runAsync(() async {
-        await review(6);
-        await SettingsDao(db).markHomeCoachSeen();
-      });
-      await pumpApp(tester, Routes.home);
-      final tab = find.bySemanticsLabel('Pit stop, 6 streets due');
-      expect(tab, findsOneWidget);
-
-      await tester.tap(tab);
-      await settle(tester);
-      expect(find.text('6 streets to tune up'), findsOneWidget);
-      expect(find.text('+ 2 more streets'), findsOneWidget);
-      expect(
-        find.bySemanticsLabel(RegExp(r'Miss, 1 day ago\. Review step 1 of 4')),
-        findsNWidgets(4),
-      );
-      expect(find.text('Start Pit stop · 6 streets'), findsOneWidget);
-    });
-
-    testWidgets('nothing due: all tuned up, with the next review', (
-      tester,
-    ) async {
-      await tester.runAsync(() => review(3, dueIn: 1));
-      await pumpApp(tester, Routes.pitStop);
-      expect(find.text('All tuned up'), findsOneWidget);
-      expect(find.text('Next review: tomorrow · 3 streets'), findsOneWidget);
-    });
-
-    testWidgets('a Pit stop round ends in Pit stop results', (tester) async {
-      late String id;
-      await tester.runAsync(() async {
-        id = await ProgressDao(db).startRound(
-          cityId: 'tbilisi',
-          area: vake,
-          difficulty: Difficulty.expert,
-          packVersion: 'v1',
-          streetIds: [streets[0].id, streets[1].id],
-          pitStop: true,
-        );
-        for (final (s, tier) in [
-          (streets[0], Tier.great),
-          (streets[1], Tier.miss),
-        ]) {
-          await ProgressDao(db).recordAnswer(
-            roundId: id,
-            streetId: s.id,
-            pin: s.midpoint,
-            distanceM: 42,
-            tier: tier,
-            xp: tier == Tier.great ? 80 : 0,
-            packVersion: 'v1',
-          );
-        }
-        await ProgressDao(db).finishRound(id);
-      });
-      await pumpApp(tester, Routes.resultsOf(id));
-      expect(find.text('Pit stop complete'), findsOneWidget);
-      expect(find.text('1 to your Pit stop'), findsOneWidget);
-      expect(find.text('Play a new round'), findsOneWidget);
-      await tester.drag(find.byType(ListView), const Offset(0, -600));
-      await tester.pumpAndSettle();
-      expect(
-        find.textContaining('in your Pit stop', findRichText: true),
-        findsOneWidget,
-      );
+      expect(find.byType(CityMemoryCard), findsOneWidget);
     });
   });
 }

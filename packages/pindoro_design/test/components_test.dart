@@ -126,13 +126,6 @@ void main() {
     expect(find.bySemanticsLabel('Question 3 of 10'), findsOneWidget);
   });
 
-  testWidgets('the review gauge reads its step', (tester) async {
-    await tester.pumpWidget(
-      _host(const ReviewGauge(2, semanticLabel: 'Review step 2 of 4')),
-    );
-    expect(find.bySemanticsLabel('Review step 2 of 4'), findsOneWidget);
-  });
-
   testWidgets('the streak pill is one labelled button', (tester) async {
     var taps = 0;
     await tester.pumpWidget(
@@ -153,7 +146,7 @@ void main() {
     );
   });
 
-  testWidgets('the nav bar reports taps and reads the current tab and badge', (
+  testWidgets('the nav bar reports taps and reads the current tab', (
     tester,
   ) async {
     int? tapped;
@@ -161,17 +154,11 @@ void main() {
       _host(
         PindoroNavBar(
           items: const [
+            (glyph: PindoroGlyph.road, label: 'Today', semanticLabel: null),
             (
-              glyph: PindoroGlyph.map,
-              label: 'Free play',
-              badge: null,
-              semanticLabel: null,
-            ),
-            (
-              glyph: PindoroGlyph.wrench,
-              label: 'Pit stop',
-              badge: 7,
-              semanticLabel: 'Pit stop, 7 streets due',
+              glyph: PindoroGlyph.chart,
+              label: 'Progress',
+              semanticLabel: 'Progress, tab',
             ),
           ],
           current: 0,
@@ -179,16 +166,15 @@ void main() {
         ),
       ),
     );
-    expect(find.text('7'), findsOneWidget);
     expect(
-      tester.getSemantics(find.bySemanticsLabel('Free play')),
+      tester.getSemantics(find.bySemanticsLabel('Today')),
       isSemantics(isButton: true, isSelected: true),
     );
     expect(
-      tester.getSemantics(find.bySemanticsLabel('Pit stop, 7 streets due')),
+      tester.getSemantics(find.bySemanticsLabel('Progress, tab')),
       isSemantics(isButton: true, isSelected: false),
     );
-    await tester.tap(find.bySemanticsLabel('Pit stop, 7 streets due'));
+    await tester.tap(find.bySemanticsLabel('Progress, tab'));
     expect(tapped, 1);
   });
 
@@ -199,12 +185,7 @@ void main() {
         home: Scaffold(
           bottomNavigationBar: PindoroNavBar(
             items: const [
-              (
-                glyph: PindoroGlyph.user,
-                label: 'Me',
-                badge: null,
-                semanticLabel: null,
-              ),
+              (glyph: PindoroGlyph.user, label: 'Me', semanticLabel: null),
             ],
             current: 0,
             onSelect: (_) {},
@@ -286,91 +267,6 @@ void main() {
     expect(tester.getCenter(find.text('1')).dx, tester.getCenter(first).dx);
   });
 
-  testWidgets('a path stop reads its label and takes taps, locked too', (
-    tester,
-  ) async {
-    final taps = <String>[];
-    await tester.pumpWidget(
-      _host(
-        Column(
-          spacing: 64,
-          children: [
-            const SizedBox(height: 40),
-            PathStop(
-              look: PathStopLook.current,
-              glyph: PindoroGlyph.play,
-              big: true,
-              ring: 0.3,
-              tip: 'Start',
-              semanticLabel: 'Lesson 1. Current.',
-              onTap: () => taps.add('current'),
-            ),
-            PathStop(
-              look: PathStopLook.locked,
-              glyph: PindoroGlyph.lock,
-              semanticLabel: 'Lesson 2. Locked.',
-              onTap: () => taps.add('locked'),
-            ),
-          ],
-        ),
-      ),
-    );
-    await tester.tap(find.bySemanticsLabel('Lesson 1. Current.'));
-    await tester.tap(find.bySemanticsLabel('Lesson 2. Locked.'));
-    expect(taps, ['current', 'locked']);
-    expect(find.text('Start'), findsOneWidget);
-  });
-
-  testWidgets('a signpost is one heading', (tester) async {
-    final semantics = tester.ensureSemantics();
-    await tester.pumpWidget(
-      _host(
-        const Signpost(
-          number: 2,
-          line: '2 of 6 lessons',
-          title: 'Vake',
-          semanticLabel: 'Unit 2, Vake. 2 of 6 lessons done.',
-        ),
-      ),
-    );
-    expect(
-      tester.getSemantics(
-        find.bySemanticsLabel('Unit 2, Vake. 2 of 6 lessons done.'),
-      ),
-      matchesSemantics(
-        label: 'Unit 2, Vake. 2 of 6 lessons done.',
-        isHeader: true,
-      ),
-    );
-    semantics.dispose();
-  });
-
-  testWidgets('an open signpost has a book button; a locked one has none', (
-    tester,
-  ) async {
-    var guides = 0;
-    Widget sign({required bool locked}) => Signpost(
-      number: 2,
-      line: '2 of 6 lessons',
-      title: 'Vake',
-      locked: locked,
-      semanticLabel: 'Unit 2, Vake.',
-      onGuide: () => guides++,
-      guideLabel: 'Unit guide',
-    );
-    await tester.pumpWidget(_host(sign(locked: false)));
-    final button = find.bySemanticsLabel('Unit guide');
-    expect(tester.getSize(button), const Size(48, 48));
-    await tester.tap(button);
-    expect(guides, 1);
-    expect(
-      tester.getSemantics(find.bySemanticsLabel('Unit 2, Vake.')),
-      matchesSemantics(label: 'Unit 2, Vake.', isHeader: true),
-    );
-    await tester.pumpWidget(_host(sign(locked: true)));
-    expect(find.bySemanticsLabel('Unit guide'), findsNothing);
-  });
-
   testWidgets('a skeleton shimmers, and holds still under reduce motion', (
     tester,
   ) async {
@@ -424,133 +320,6 @@ void main() {
     );
     await tester.tap(find.text('Up to 4th in Avenue league'));
     expect(taps, 1);
-  });
-
-  testWidgets('the league header is one heading with the tier raised', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _host(
-        const LeagueHeader(
-          title: 'Avenue league',
-          subtitle: 'Top 5 move up · 3 days left',
-          tier: 3,
-          tiers: 6,
-          semanticLabel: 'Avenue league, 4th of 6 leagues.',
-        ),
-      ),
-    );
-    expect(
-      tester.getSemantics(find.byType(LeagueHeader)),
-      matchesSemantics(
-        label: 'Avenue league, 4th of 6 leagues.',
-        isHeader: true,
-      ),
-    );
-    final steps = [
-      for (var i = 0; i < 6; i++)
-        tester.getSize(find.byKey(ValueKey('ladder-$i'))).height,
-    ];
-    expect(steps, [20, 20, 20, 28, 20, 20]);
-  });
-
-  testWidgets('league rows: medals for the top 3, your row highlighted', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _host(
-        ListGroup(
-          children: [
-            for (final rank in [1, 4])
-              LeagueRow(
-                rank: rank,
-                name: rank == 4 ? 'You' : 'Nino K.',
-                xp: '1 410 XP',
-                initials: 'NK',
-                avatar: rank,
-                you: rank == 4,
-                semanticLabel: '${rank}th',
-              ),
-            const ZoneDivider(label: 'Promotion zone', up: true),
-          ],
-        ),
-      ),
-    );
-    final c = PindoroTheme.of(tester.element(find.byType(ListGroup))).colors;
-    expect(find.byType(PindoroIcon), findsNWidgets(2));
-    expect(find.text('4'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-    Color back(String name) => tester
-        .widget<ColoredBox>(
-          find
-              .ancestor(of: find.text(name), matching: find.byType(ColoredBox))
-              .last,
-        )
-        .color;
-    expect(back('You'), c.primarySoft);
-    expect(back('Nino K.'), c.surfaceRaised);
-    expect(find.bySemanticsLabel('4th'), findsOneWidget);
-    expect(
-      tester.widget<Text>(find.text('Promotion zone')).style?.color,
-      c.leaguePromote,
-    );
-  });
-
-  testWidgets('plate choices are a radio group that reports taps', (
-    tester,
-  ) async {
-    final semantics = tester.ensureSemantics();
-    String? tapped;
-    await tester.pumpWidget(
-      _host(
-        Column(
-          children: [
-            for (final (name, state) in [
-              ('Pekini Avenue', PlateChoiceState.selected),
-              ('Kostava Street', PlateChoiceState.idle),
-            ])
-              PlateChoice(
-                name: name,
-                sub: 'sub',
-                state: state,
-                onTap: () => tapped = name,
-              ),
-          ],
-        ),
-      ),
-    );
-    await tester.tap(find.text('Kostava Street'));
-    expect(tapped, 'Kostava Street');
-    expect(
-      tester.getSemantics(find.bySemanticsLabel('Pekini Avenue, sub')),
-      matchesSemantics(
-        label: 'Pekini Avenue, sub',
-        hasCheckedState: true,
-        isChecked: true,
-        isInMutuallyExclusiveGroup: true,
-        hasEnabledState: true,
-        isEnabled: true,
-        hasTapAction: true,
-      ),
-    );
-    semantics.dispose();
-  });
-
-  testWidgets('the feedback bar runs its action', (tester) async {
-    var pressed = false;
-    await tester.pumpWidget(
-      _host(
-        FeedbackBar(
-          right: false,
-          title: 'Not quite',
-          body: 'The marked plate is right.',
-          action: 'Got it',
-          onAction: () => pressed = true,
-        ),
-      ),
-    );
-    await tester.tap(find.text('Got it'));
-    expect(pressed, isTrue);
   });
 
   testWidgets(
@@ -607,7 +376,7 @@ void main() {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Pill(label: '338', icon: PindoroGlyph.xp),
+                  const Pill(label: '14 min', icon: PindoroGlyph.timer),
                 ],
               ),
               const StreetPlate(
@@ -615,13 +384,6 @@ void main() {
                 prompt: 'Try again: drop a pin on',
                 promptGlyph: PindoroGlyph.reroute,
                 subline: 'Vake · you were 1.2 km away',
-              ),
-              const Row(
-                spacing: 12,
-                children: [
-                  LevelBadge(3, size: 44),
-                  Expanded(child: XpBar(value: 0.87, semanticLabel: 'Level 3')),
-                ],
               ),
               PindoroButton(label: 'Got it', tier: Tier.miss, onPressed: () {}),
               SegmentedControl(
@@ -683,7 +445,11 @@ void main() {
                 tier: Tier.great,
                 label: 'Great!',
                 sentence: '84 m away. So close to perfect.',
-                xpLabel: '+74 XP',
+                headerChip: NextReviewChip(
+                  label: 'Next review in 12 days',
+                  backThisSession: false,
+                  animate: false,
+                ),
                 chips: [Pill(label: '2 in a row')],
                 action: SizedBox(height: 56),
               ),
@@ -693,14 +459,10 @@ void main() {
                     tier: Tier.close,
                     street: 'Davit Aghmashenebeli Avenue',
                     detail: (tierWord: 'Close', rest: ' · 240 m · to retry'),
-                    xp: 39,
                     semanticLabel: 'Question 2',
                     onTap: () {},
                   ),
                 ],
-              ),
-              const Center(
-                child: RewardTotal(value: '+695 XP', semanticLabel: '695 XP'),
               ),
               const TierTally(
                 counts: {Tier.perfect: 3, Tier.great: 4, Tier.close: 2},
@@ -737,26 +499,12 @@ void main() {
       testWidgets('navigation ${brightness.name}', (tester) async {
         await tester.binding.setSurfaceSize(const Size(400, 420));
         addTearDown(() => tester.binding.setSurfaceSize(null));
-        PindoroNavBar bar(int current, int due) => PindoroNavBar(
-          items: [
-            (
-              glyph: PindoroGlyph.map,
-              label: 'Free play',
-              badge: null,
-              semanticLabel: null,
-            ),
-            (
-              glyph: PindoroGlyph.wrench,
-              label: 'Pit stop',
-              badge: due,
-              semanticLabel: null,
-            ),
-            (
-              glyph: PindoroGlyph.user,
-              label: 'Me',
-              badge: null,
-              semanticLabel: null,
-            ),
+        PindoroNavBar bar(int current) => PindoroNavBar(
+          items: const [
+            (glyph: PindoroGlyph.road, label: 'Today', semanticLabel: null),
+            (glyph: PindoroGlyph.map, label: 'Explore', semanticLabel: null),
+            (glyph: PindoroGlyph.chart, label: 'Progress', semanticLabel: null),
+            (glyph: PindoroGlyph.user, label: 'Me', semanticLabel: null),
           ],
           current: current,
           onSelect: (_) {},
@@ -781,8 +529,8 @@ void main() {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   spacing: 12,
                   children: [
-                    bar(0, 7),
-                    bar(1, 12),
+                    bar(0),
+                    bar(2),
                     pair(
                       const StatTile(
                         glyph: PindoroGlyph.pin,
@@ -790,16 +538,16 @@ void main() {
                         value: '180',
                       ),
                       const StatTile(
-                        glyph: PindoroGlyph.road,
-                        label: 'Lessons',
-                        value: '14',
+                        glyph: PindoroGlyph.retry,
+                        label: 'Reviews',
+                        value: '24',
                       ),
                     ),
                     pair(
                       const StatTile(
-                        glyph: PindoroGlyph.car,
-                        label: 'Road trips',
-                        value: '9',
+                        glyph: PindoroGlyph.plus,
+                        label: 'New',
+                        value: '10',
                       ),
                       StatTile(
                         glyph: PindoroGlyph.flame,
@@ -818,130 +566,6 @@ void main() {
         await expectLater(
           find.byType(Scaffold),
           matchesGoldenFile('goldens/navigation_${brightness.name}.png'),
-        );
-      });
-    }
-
-    for (final brightness in Brightness.values) {
-      testWidgets('pit stop ${brightness.name}', (tester) async {
-        await tester.binding.setSurfaceSize(const Size(400, 400));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
-        await tester.pumpWidget(
-          _host(
-            brightness: brightness,
-            Builder(
-              builder: (context) {
-                final c = PindoroTheme.of(context).colors;
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  spacing: 12,
-                  children: [
-                    Row(
-                      spacing: 12,
-                      children: [
-                        RowTile(
-                          PindoroGlyph.wrench,
-                          face: c.pathNodeReviewFill,
-                          ink: c.pathNodeReviewIcon,
-                          lip: c.pathNodeReviewLip,
-                        ),
-                        for (var step = 1; step <= 4; step++)
-                          ReviewGauge(step, semanticLabel: '$step'),
-                      ],
-                    ),
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: PitStopChip('Added to your Pit stop'),
-                    ),
-                    ListGroup(
-                      children: [
-                        for (final (tier, step) in [
-                          (Tier.miss, 1),
-                          (Tier.close, 3),
-                        ])
-                          ListRow(
-                            title: 'Davit Aghmashenebeli Avenue',
-                            subtitle: 'Missed · 1 day ago',
-                            leading: TierBadge(tier),
-                            trailing: ReviewGauge(step, semanticLabel: ''),
-                          ),
-                      ],
-                    ),
-                    const Row(
-                      spacing: 8,
-                      children: [
-                        Swatch(progress: DistrictProgress.notStarted, size: 22),
-                        Swatch(progress: DistrictProgress.inProgress, size: 22),
-                        Swatch(progress: DistrictProgress.complete, size: 22),
-                      ],
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        await expectLater(
-          find.byType(Scaffold),
-          matchesGoldenFile('goldens/pit_stop_${brightness.name}.png'),
-        );
-      });
-    }
-
-    for (final brightness in Brightness.values) {
-      testWidgets('league ${brightness.name}', (tester) async {
-        await tester.binding.setSurfaceSize(const Size(400, 460));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
-        await tester.pumpWidget(
-          _host(
-            brightness: brightness,
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              spacing: 12,
-              children: [
-                const LeagueHeader(
-                  title: 'Avenue league',
-                  subtitle: 'Top 5 move up · 3 days left',
-                  tier: 3,
-                  tiers: 6,
-                  semanticLabel: '',
-                ),
-                ListGroup(
-                  children: [
-                    for (final (rank, name, xp) in [
-                      (1, 'Nino K.', '2 140 XP'),
-                      (2, 'Giorgi B.', '1 980 XP'),
-                      (3, 'Ana M.', '1 655 XP'),
-                      (4, 'You', '1 410 XP'),
-                    ])
-                      LeagueRow(
-                        rank: rank,
-                        name: name,
-                        xp: xp,
-                        initials: name.substring(0, 1),
-                        avatar: rank - 1,
-                        you: name == 'You',
-                        semanticLabel: '',
-                      ),
-                    const ZoneDivider(
-                      label: 'Promotion zone · top 5 move up to Boulevard',
-                      up: true,
-                    ),
-                    const ZoneDivider(
-                      label: 'Demotion zone · bottom 5 move down to Street',
-                      up: false,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        await expectLater(
-          find.byType(Scaffold),
-          matchesGoldenFile('goldens/league_${brightness.name}.png'),
         );
       });
     }
@@ -1058,13 +682,6 @@ void main() {
                       ),
                   ],
                 ),
-                const Row(
-                  spacing: 12,
-                  children: [
-                    DailyGoalRing(progress: 0.64, semanticLabel: '320 of 500'),
-                    DailyGoalRing(progress: 1, semanticLabel: 'met'),
-                  ],
-                ),
                 StreakCalendar(
                   month: DateTime(2026, 11),
                   today: 5,
@@ -1097,138 +714,6 @@ void main() {
     }
 
     for (final brightness in Brightness.values) {
-      testWidgets('path ${brightness.name}', (tester) async {
-        await tester.binding.setSurfaceSize(const Size(400, 900));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
-        const xs = [195.0, 128.0, 195.0, 262.0, 195.0, 128.0, 195.0];
-        final points = [
-          const Offset(195, 0),
-          for (final (i, x) in xs.indexed) Offset(x - 16, 150 + 104.0 * i),
-        ];
-        Widget stop(int i, PathStopLook look, PindoroGlyph glyph) {
-          final big = look == PathStopLook.current;
-          final size = PathStop.sizeOf(big: big);
-          return Positioned(
-            left: points[i + 1].dx - size / 2,
-            top: points[i + 1].dy - size / 2,
-            child: PathStop(
-              look: look,
-              glyph: glyph,
-              big: big,
-              ring: big ? 0.25 : null,
-              tip: big ? 'Start' : null,
-              semanticLabel: '$i',
-              onTap: () {},
-            ),
-          );
-        }
-
-        await tester.pumpWidget(
-          _host(
-            brightness: brightness,
-            SizedBox(
-              height: 860,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: LessonRoad(points: points, driven: 3.5),
-                  ),
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    child: Column(
-                      spacing: 8,
-                      children: [
-                        Signpost(
-                          number: 2,
-                          line: '2 of 6 lessons',
-                          title: 'Vake District',
-                          semanticLabel: 'open',
-                          onGuide: () {},
-                          guideLabel: 'Unit guide',
-                        ),
-                        const Signpost(
-                          number: 3,
-                          line: 'Locked',
-                          title: 'Saburtalo District',
-                          locked: true,
-                          semanticLabel: 'locked',
-                        ),
-                      ],
-                    ),
-                  ),
-                  stop(0, PathStopLook.done, PindoroGlyph.check),
-                  stop(1, PathStopLook.perfect, PindoroGlyph.star),
-                  stop(2, PathStopLook.review, PindoroGlyph.wrench),
-                  stop(3, PathStopLook.current, PindoroGlyph.play),
-                  stop(4, PathStopLook.locked, PindoroGlyph.lock),
-                  stop(5, PathStopLook.locked, PindoroGlyph.wrench),
-                  stop(6, PathStopLook.locked, PindoroGlyph.trophy),
-                ],
-              ),
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        await expectLater(
-          find.byType(Scaffold),
-          matchesGoldenFile('goldens/path_${brightness.name}.png'),
-        );
-      });
-    }
-
-    for (final brightness in Brightness.values) {
-      testWidgets('lesson ${brightness.name}', (tester) async {
-        await tester.binding.setSurfaceSize(const Size(400, 900));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
-        await tester.pumpWidget(
-          _host(
-            brightness: brightness,
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              spacing: 12,
-              children: [
-                for (final (name, state) in [
-                  ('Kostava Street', PlateChoiceState.idle),
-                  ('Pekini Avenue', PlateChoiceState.selected),
-                  ('Ilia Chavchavadze Avenue', PlateChoiceState.right),
-                  ('Vazha-Pshavela Avenue', PlateChoiceState.wrong),
-                  ('Abashidze Street', PlateChoiceState.dim),
-                ])
-                  PlateChoice(
-                    name: name,
-                    sub: 'sub-line',
-                    state: state,
-                    onTap: () {},
-                  ),
-                FeedbackBar(
-                  right: true,
-                  title: 'Correct!',
-                  body: 'Pekini Avenue',
-                  xpLabel: '+50 XP',
-                  action: 'Continue',
-                  onAction: () {},
-                ),
-                FeedbackBar(
-                  right: false,
-                  title: 'Not quite',
-                  body: 'The marked plate is right. It comes back at the end.',
-                  action: 'Got it',
-                  onAction: () {},
-                ),
-              ],
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        await expectLater(
-          find.byType(Scaffold),
-          matchesGoldenFile('goldens/lesson_${brightness.name}.png'),
-        );
-      });
-    }
-
-    for (final brightness in Brightness.values) {
       testWidgets('route ${brightness.name}', (tester) async {
         await tester.binding.setSurfaceSize(const Size(400, 240));
         addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -1243,7 +728,6 @@ void main() {
                   children: [
                     PinMark.endpoint('A', c),
                     PinMark.endpoint('B', c),
-                    const LevelBadge.glyph(PindoroGlyph.trophy, size: 110),
                   ],
                 );
               },

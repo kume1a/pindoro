@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,12 +8,7 @@ import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/badges/ui/badge_reward.dart';
-import 'package:pindoro/features/league/data/league_api.dart';
-import 'package:pindoro/features/league/data/league_data.dart';
-import 'package:pindoro/features/league/ui/league_screen.dart';
 import 'package:pindoro/features/progress/data/streak.dart';
-import 'package:pindoro/features/progress/ui/level_row.dart';
-import 'package:pindoro/features/progress/ui/level_up_screen.dart';
 import 'package:pindoro/features/results/data/results_data.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -26,16 +19,13 @@ const int _toughRetries = 5;
 
 /// When each part of the results arrival starts (canvas M-40).
 abstract final class _Arrival {
-  static const Duration reward = Duration(milliseconds: 200);
-  static const Duration bar = Duration(milliseconds: 1100);
   static const Duration chips = Duration(milliseconds: 1520);
   static const Duration rows = Duration(milliseconds: 1640);
 }
 
-/// Round results: reward, level, tier tally, every answer, retry and play
-/// again. They arrive in sequence; a level crossed in the round fills the bar,
-/// opens the level-up moment from it once, then the bar refills in the new
-/// level.
+/// An Explore round's results: Pindo and the title, what the round earned
+/// (streets newly known, the streak), the tier tally, every answer, retry and
+/// play again, arriving in sequence.
 class ResultsScreen extends ConsumerStatefulWidget {
   const ResultsScreen({super.key, required this.roundId});
 
@@ -46,31 +36,7 @@ class ResultsScreen extends ConsumerStatefulWidget {
 }
 
 class _ResultsScreenState extends ConsumerState<ResultsScreen>
-    with BadgeMoments, CountUpTicks {
-  final _barKey = GlobalKey();
-  bool _barFull = false;
-  bool _levelUpOver = false;
-
-  /// The full bar glows, then the level-up moment grows out of it.
-  Future<void> _openLevelUp(int level, int totalXp) async {
-    if (_barFull) return;
-    setState(() => _barFull = true);
-    await Future<void>.delayed(PindoroMotion.durationBase);
-    if (!mounted) return;
-    ref.read(feedbackProvider).levelUp();
-    final bar = _barKey.currentContext?.findRenderObject() as RenderBox?;
-    await Navigator.of(context).push(
-      levelUpRoute(
-        level: level,
-        totalXp: totalXp,
-        from: bar?.localToGlobal(bar.size.center(Offset.zero)),
-      ),
-    );
-    if (!mounted) return;
-    setState(() => _levelUpOver = true);
-    showBadgesAfter(Duration.zero);
-  }
-
+    with BadgeMoments {
   @override
   Widget build(BuildContext context) {
     final data = ref.watch(resultsProvider(widget.roundId)).value;
@@ -78,24 +44,15 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen>
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
     final settings = ref.watch(settingsProvider).value;
-    final before = progressWithinLevel(data.totalXp - data.roundXp);
-    final after = progressWithinLevel(data.totalXp);
-    final crossed = after.level > before.level;
-    // Badges follow the level-up moment when there is one.
-    if (!crossed) showBadgesAfter(_Arrival.rows);
-    tickCountUp(data.roundXp, _Arrival.reward);
-    // Until the level-up moment is over the bar fills the old level to its end.
-    final inNewLevel = !crossed || _levelUpOver;
+    showBadgesAfter(_Arrival.rows);
     final counts = <Tier, int>{};
     for (final e in data.entries) {
       counts.update(e.answer.tier, (n) => n + 1, ifAbsent: () => 1);
     }
     final streak = ref.watch(streakProvider).value;
     final streakDays = streak?.summary.days ?? 0;
-    final metGoal = streak?.summary.metToday ?? false;
-    // This round met today's goal: the streak grows by a day as it lands.
-    final grewStreak = metGoal && streak?.goalRoundId == widget.roundId;
-    // Chips pop in with the arrival; the level chip right after the level up.
+    // This round made today count: the streak grows by a day as it lands.
+    final grewStreak = streak?.todayRoundId == widget.roundId;
     final chips = [
       if (data.newlyKnown > 0)
         PopIn(
@@ -106,14 +63,14 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen>
             iconColor: c.successBase,
           ),
         ),
-      if (metGoal)
+      if (grewStreak)
         PopIn(
           delay: _Arrival.chips,
           child: CountUp(
             value: streakDays,
-            from: grewStreak ? streakDays - 1 : streakDays,
+            from: streakDays - 1,
             delay: _Arrival.chips,
-            onEnd: grewStreak ? ref.read(feedbackProvider).streak : null,
+            onEnd: ref.read(feedbackProvider).streak,
             builder: (context, days) => Pill(
               label: l10n.streakDays(formatNumber(days)),
               icon: PindoroGlyph.flame,
@@ -123,47 +80,16 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen>
             ),
           ),
         ),
-      if (data.retryCount > 0)
-        PopIn(
-          delay: _Arrival.chips,
-          child: PitStopChip(l10n.resultsToPitStop(data.retryCount)),
-        ),
-      // Not the standing from before this round while the sync runs.
-      if (_leagueRise(ref.watch(standingProvider).unwrapPrevious().value, data)
-          case (:final rank, :final tier))
-        PopIn(
-          delay: _Arrival.chips,
-          child: Pill(
-            label: l10n.resultsLeagueUp(
-              formatOrdinal(rank, l10n),
-              leagueTitle(l10n, tier),
-            ),
-            icon: PindoroGlyph.flag,
-            iconColor: c.primaryText,
-            onTap: () => context.go(Routes.leagues),
-          ),
-        ),
-      if (_levelUpOver)
-        PopIn(
-          delay: PindoroMotion.durationSlow,
-          child: Pill(
-            label: l10n.levelUpTitle(after.level),
-            icon: PindoroGlyph.xp,
-            iconColor: c.xpFill,
-          ),
-        ),
     ];
     final RoundSummary summary = (
       roundId: data.round.id,
       startedAt: data.round.startedAt,
-      roundXp: data.roundXp,
     );
     void goHome() => context.go(Routes.home, extra: summary);
     void playAgain() => context.go(Routes.round);
     void retry() => context.go(Routes.retry(widget.roundId));
-    final pitStop = data.round.pitStop;
-    // A retry or Pit stop replays streets: no retry of its own.
-    final isRetry = data.round.retryOf != null || pitStop;
+    // A retry replays streets: no retry of its own.
+    final isRetry = data.round.retryOf != null;
     // A tough round (canvas M-42) makes Retry the main action.
     final tough = !isRetry && data.retryCount >= _toughRetries;
     final (secondary, primary) = isRetry
@@ -178,9 +104,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen>
             (l10n.resultsPlayAgain, playAgain),
           );
     final page = PageScaffold(
-      title: pitStop
-          ? l10n.resultsPitStopTitle
-          : isRetry
+      title: isRetry
           ? l10n.resultsRetryTitle
           : data.retryCount == 0
           ? l10n.resultsFlawless
@@ -212,56 +136,14 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen>
             areaLabel(context, area, data.pack, settings),
             style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
           ),
-        Row(
-          spacing: PindoroSpace.s3,
-          children: [
-            PopIn(
-              child: Pindo(
-                tough ? PindoExpression.encouraging : PindoExpression.proud,
-                height: 64,
-              ),
-            ),
-            Expanded(
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: PopIn(
-                  delay: _Arrival.reward,
-                  child: CountUp(
-                    value: data.roundXp,
-                    delay: _Arrival.reward,
-                    onEnd: ref.read(feedbackProvider).reward,
-                    builder: (context, xp) => RewardTotal(
-                      value: l10n.commonXp(formatNumber(xp)),
-                      semanticLabel: l10n.a11yRewardTotal(
-                        formatNumber(data.roundXp),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        if (inNewLevel)
-          LevelRow(
-            key: const ValueKey('new level'),
-            level: after,
-            from: crossed ? 0 : before.fraction,
-            delay: crossed ? Duration.zero : _Arrival.bar,
-          )
-        else
-          LevelRow(
-            level: before,
-            value: 1,
-            from: before.fraction,
-            delay: _Arrival.bar,
-            barKey: _barKey,
-            ring: _barFull,
-            // The bar's animation can end inside a frame (reduce motion).
-            onFilled: () => WidgetsBinding.instance.addPostFrameCallback(
-              (_) => _openLevelUp(after.level, data.totalXp),
+        Center(
+          child: PopIn(
+            child: Pindo(
+              tough ? PindoExpression.encouraging : PindoExpression.proud,
+              height: 96,
             ),
           ),
+        ),
         if (chips.isNotEmpty)
           Wrap(
             spacing: PindoroSpace.s2,
@@ -370,20 +252,12 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen>
     final word = tierWord(l10n, a.tier);
     final rest = a.tier == Tier.perfect
         ? ' · ${l10n.resultsOnStreet}'
-        : ' · $distance'
-              '${isRetryTier(a.tier) ? ' · ${l10n.resultsInPitStop}' : ''}';
+        : ' · $distance';
     return ResultRow(
       tier: a.tier,
       street: name,
       detail: (tierWord: word, rest: rest),
-      xp: a.xp,
-      semanticLabel: l10n.a11yResultRow(
-        index + 1,
-        name,
-        word,
-        distance,
-        formatNumber(a.xp),
-      ),
+      semanticLabel: l10n.a11yResultRow(index + 1, name, word, distance),
       onTap: !opens
           ? null
           : () {
@@ -392,18 +266,4 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen>
             },
     );
   }
-}
-
-/// The rank this round's XP (its answers in this league week) moved the
-/// player up to, with the league's tier; null when it moved them nowhere.
-({int rank, int tier})? _leagueRise(Standing? standing, ResultsData data) {
-  if (standing == null) return null;
-  final start = leagueWeek(DateTime.now()).start;
-  final gained = data.entries
-      .where((e) => !e.answer.createdAt.isBefore(start))
-      .fold(0, (sum, e) => sum + e.answer.xp);
-  final me = standing.members.where((m) => m.you).firstOrNull;
-  final before = gained == 0 ? null : rankBefore(standing.members, gained);
-  if (me == null || before == null || me.rank >= before) return null;
-  return (rank: me.rank, tier: standing.tier);
 }

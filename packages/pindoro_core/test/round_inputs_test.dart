@@ -159,7 +159,7 @@ void main() {
       final n = street.nearest(pin);
       expect(n.part.id, 's');
       expect(
-        scoreAnswer(n.distanceM, n.part.roadClass, Difficulty.medium).tier,
+        scoreAnswer(n.distanceM, n.part.roadClass, Difficulty.medium),
         Tier.perfect,
       );
     });

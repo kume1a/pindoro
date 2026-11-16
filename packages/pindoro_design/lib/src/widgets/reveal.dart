@@ -8,9 +8,9 @@ import 'motion.dart';
 import 'round_hud.dart';
 import 'surfaces.dart';
 
-/// The answer-reveal sheet in tier colours: badge, label, XP chip, distance
-/// sentence, optional chips, and the tier-coloured action pinned at the
-/// bottom. Its content scrolls when text is large.
+/// The answer-reveal sheet in tier colours: badge, label, an optional header
+/// chip, the distance sentence, optional chips, and the tier-coloured action
+/// pinned at the bottom. Its content scrolls when text is large.
 class RevealSheet extends StatelessWidget {
   const RevealSheet({
     super.key,
@@ -18,7 +18,6 @@ class RevealSheet extends StatelessWidget {
     required this.label,
     required this.sentence,
     required this.action,
-    this.xpLabel,
     this.headerChip,
     this.chips = const [],
     this.mascot,
@@ -30,13 +29,10 @@ class RevealSheet extends StatelessWidget {
   final String label;
   final String sentence;
 
-  /// "+74 XP"; null for a Miss.
-  final String? xpLabel;
-
-  /// Ends the header row instead of the XP chip: the next-review chip.
+  /// Ends the header row: the next-review chip.
   final Widget? headerChip;
 
-  /// Usually [Pill]s ("3 in a row", "Added to your Pit stop").
+  /// Usually [Pill]s ("3 in a row").
   final List<Widget> chips;
 
   /// The tier-coloured Next / Got it button.
@@ -81,7 +77,6 @@ class RevealSheet extends StatelessWidget {
                               color: style.ink,
                             ),
                           ),
-                          if (xpLabel != null) XpChip(xpLabel!),
                           ?headerChip,
                         ],
                       ),
@@ -112,7 +107,7 @@ class RevealSheet extends StatelessWidget {
   }
 }
 
-/// The bottom sheet of [RevealSheet] and [FeedbackBar] in [tier] colours: full
+/// The bottom sheet of [RevealSheet] in [tier] colours: full
 /// width on the tier background, its top rounded with a tier-fill edge, and
 /// [top] padding over [child], which stays clear of the system bottom inset.
 class TierSheetFrame extends StatelessWidget {
@@ -176,31 +171,6 @@ class TierBadge extends StatelessWidget {
             cut: style.fill,
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// "+74 XP" on the reward face.
-class XpChip extends StatelessWidget {
-  const XpChip(this.label, {super.key});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = PindoroTheme.of(context).colors;
-    return LipBox(
-      face: c.rewardBase,
-      lip: c.rewardLip,
-      radius: PindoroRadius.full,
-      padding: const EdgeInsets.symmetric(
-        horizontal: PindoroSpace.s3,
-        vertical: PindoroSpace.s1,
-      ),
-      child: Text(
-        label,
-        style: PindoroType.numericSm.copyWith(color: c.rewardOn),
       ),
     );
   }

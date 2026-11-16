@@ -4,19 +4,10 @@
   "commonNext": "Next",
   "commonConfirm": "Confirm",
   "commonBack": "Back",
-  "commonContinue": "Continue",
   "commonDone": "Done",
   "commonUndo": "Undo",
   "commonCancel": "Cancel",
   "commonTryAgain": "Try again",
-  "commonXp": "+{xp} XP",
-  "@commonXp": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      }
-    }
-  },
   "commonAttribution": "© OpenStreetMap contributors, Protomaps",
   "commonChooseCity": "Choose a city",
   "commonQuestionProgress": "Question {question} of {total}",
@@ -35,33 +26,6 @@
   "welcomeFindCity": "Find another city",
   "welcomeEmptyTitle": "No recent cities yet",
   "welcomeEmptyBody": "Cities you play will show up here, ready to resume.",
-  "homeLevel": "Level {level}",
-  "@homeLevel": {
-    "placeholders": {
-      "level": {
-        "type": "int"
-      }
-    }
-  },
-  "homeXpToNextLevel": "{xp} XP to level {level}",
-  "@homeXpToNextLevel": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      },
-      "level": {
-        "type": "int"
-      }
-    }
-  },
-  "homeXpTotal": "{xp} XP in total",
-  "@homeXpTotal": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      }
-    }
-  },
   "homeKnownTitle": "Streets you know",
   "homeCoachTitle": "Your city fills in here",
   "homeCoachBody": "Every Great or Perfect adds a street you know. Tap anywhere to close.",
@@ -304,7 +268,7 @@
   "quizCoachTitle": "Drop a pin where you think this street is",
   "quizCoachBody": "You can drag it before you confirm.",
   "quizLeaveTitle": "Leave for now?",
-  "quizLeaveBody": "Your round is saved at question {question} of {total}, with the {xp} XP you’ve earned. Pick it up from Home.",
+  "quizLeaveBody": "Your round is saved at question {question} of {total}. Pick it up from Explore.",
   "@quizLeaveBody": {
     "placeholders": {
       "question": {
@@ -312,9 +276,6 @@
       },
       "total": {
         "type": "int"
-      },
-      "xp": {
-        "type": "String"
       }
     }
   },
@@ -408,34 +369,9 @@
     }
   },
   "resultsNoRetry": "No streets to retry",
-  "resultsInPitStop": "in your Pit stop",
   "resultsOnStreet": "On the street",
   "resultsPlayAgain": "Play again",
   "resultsNewRound": "Play a new round",
-  "levelUpTitle": "Level {level}!",
-  "@levelUpTitle": {
-    "placeholders": {
-      "level": {
-        "type": "int"
-      }
-    }
-  },
-  "levelUpBody": "{xp} XP in total. Every Great and Perfect got you here.",
-  "@levelUpBody": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      }
-    }
-  },
-  "levelUpNext": "Next: level {level}",
-  "@levelUpNext": {
-    "placeholders": {
-      "level": {
-        "type": "int"
-      }
-    }
-  },
   "settingsTitle": "Settings",
   "settingsLanguage": "Language",
   "settingsAppLanguage": "App language",
@@ -490,31 +426,13 @@
   },
   "a11yMap": "Map. Double-tap to drop your pin at the centre.",
   "a11yConfirmDisabled": "Confirm. Drop a pin first.",
-  "a11yReveal": "{tier}. {distance} away. Plus {xp} XP.",
+  "a11yReveal": "{tier}. {distance} away.",
   "@a11yReveal": {
     "placeholders": {
       "tier": {
         "type": "String"
       },
       "distance": {
-        "type": "String",
-        "example": "84 m"
-      },
-      "xp": {
-        "type": "String"
-      }
-    }
-  },
-  "a11yLevelProgress": "Level {level}, {xp} of {xpNeeded} XP",
-  "@a11yLevelProgress": {
-    "placeholders": {
-      "level": {
-        "type": "int"
-      },
-      "xp": {
-        "type": "String"
-      },
-      "xpNeeded": {
         "type": "String"
       }
     }
@@ -540,15 +458,7 @@
       }
     }
   },
-  "a11yRoundXp": "{xp} XP this round",
-  "@a11yRoundXp": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      }
-    }
-  },
-  "a11yResultRow": "Question {question}. {street}. {tier}, {distance}, plus {xp} XP. Show on map.",
+  "a11yResultRow": "Question {question}. {street}. {tier}, {distance}. Show on map.",
   "@a11yResultRow": {
     "placeholders": {
       "question": {
@@ -562,9 +472,6 @@
       },
       "distance": {
         "type": "String"
-      },
-      "xp": {
-        "type": "String"
       }
     }
   },
@@ -574,14 +481,6 @@
   "@resultsNextStreet": {},
   "resultsBackToResults": "Back to results",
   "@resultsBackToResults": {},
-  "a11yRewardTotal": "Plus {xp} XP this round",
-  "@a11yRewardTotal": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      }
-    }
-  },
   "a11yTierTally": "{perfect} Perfect, {great} Great, {close} Close, {miss} Miss",
   "@a11yTierTally": {
     "placeholders": {
@@ -676,20 +575,6 @@
         "type": "String"
       },
       "total": {
-        "type": "String"
-      }
-    }
-  },
-  "homeSavedProgress": "Question {question} of {total} · {xp} XP so far",
-  "@homeSavedProgress": {
-    "placeholders": {
-      "question": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      },
-      "xp": {
         "type": "String"
       }
     }
@@ -836,82 +721,6 @@
   "streakFreezeBody": "Miss a day and your streak stays put. You earn one for every 7 days in a row.",
   "streakFreezeNone": "No streak freeze yet",
   "streakFreezeNoneBody": "You earn one for every 7 days in a row.",
-  "streakPlay": "Play a round",
-  "dailyGoalTitle": "Daily goal: {goal} XP",
-  "@dailyGoalTitle": {
-    "placeholders": {
-      "goal": {
-        "type": "String"
-      }
-    }
-  },
-  "dailyGoalMetToday": "Met today with {xp} XP",
-  "@dailyGoalMetToday": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      }
-    }
-  },
-  "dailyGoalToday": "{xp} of {goal} XP today",
-  "@dailyGoalToday": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      },
-      "goal": {
-        "type": "String"
-      }
-    }
-  },
-  "dailyGoalA11y": "Daily goal: {xp} of {goal} XP",
-  "@dailyGoalA11y": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      },
-      "goal": {
-        "type": "String"
-      }
-    }
-  },
-  "dailyGoalA11yMet": "Daily goal met, {xp} of {goal} XP",
-  "@dailyGoalA11yMet": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      },
-      "goal": {
-        "type": "String"
-      }
-    }
-  },
-  "dailyGoalChange": "Change",
-  "dailyGoalSheetTitle": "Daily goal",
-  "dailyGoalPerDay": "{goal} XP a day",
-  "@dailyGoalPerDay": {
-    "placeholders": {
-      "goal": {
-        "type": "String"
-      }
-    }
-  },
-  "dailyGoalRounds": "{rounds, plural, =1{About one round} =2{About two rounds} other{About {rounds} rounds}}",
-  "@dailyGoalRounds": {
-    "placeholders": {
-      "rounds": {
-        "type": "int"
-      }
-    }
-  },
-  "dailyGoalKeepsStreak": "{rounds} · keeps your streak going",
-  "@dailyGoalKeepsStreak": {
-    "placeholders": {
-      "rounds": {
-        "type": "String"
-      }
-    }
-  },
   "resultsStreakA11y": "Daily goal met, {days}-day streak",
   "@resultsStreakA11y": {
     "placeholders": {
@@ -920,9 +729,8 @@
       }
     }
   },
-  "settingsDailyGoal": "Daily goal",
   "settingsReminder": "Reminder",
-  "settingsReminderSubtitle": "{time}, only if today's goal isn't met",
+  "settingsReminderSubtitle": "{time}, only if reviews are due",
   "@settingsReminderSubtitle": {
     "placeholders": {
       "time": {
@@ -931,7 +739,7 @@
     }
   },
   "settingsReminderDenied": "Notifications are off for Pindoro. Turn them on in your phone's settings.",
-  "reminderStreak": "Your {days}-day streak ends at midnight. One round keeps it going.",
+  "reminderStreak": "Your {days}-day streak ends at midnight. Today’s session keeps it going.",
   "@reminderStreak": {
     "placeholders": {
       "days": {
@@ -939,102 +747,8 @@
       }
     }
   },
-  "reminderNoStreak": "Today's goal is waiting. One round gets your streak going.",
+  "reminderNoStreak": "Reviews are waiting. Today’s session starts your streak.",
   "reminderChannel": "Daily reminder",
-  "revealToPitStop": "Added to your Pit stop",
-  "resultsToPitStop": "{count} to your Pit stop",
-  "@resultsToPitStop": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "resultsPitStopTitle": "Pit stop complete",
-  "pitStopTitle": "Pit stop",
-  "pitStopToTuneUp": "{count, plural, =1{1 street to tune up} other{{count} streets to tune up}}",
-  "@pitStopToTuneUp": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "pitStopRule": "Missed streets come back after 1, 3, 7 and 21 days. Two Greats in a row and a street graduates.",
-  "pitStopMore": "{count, plural, =1{+ 1 more street} other{+ {count} more streets}}",
-  "@pitStopMore": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "pitStopStart": "{count, plural, =1{Start Pit stop · 1 street} other{Start Pit stop · {count} streets}}",
-  "@pitStopStart": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "pitStopLast": "Your last Pit stop",
-  "pitStopLastA11y": "Last Pit stop: {perfect} Perfect, {great} Great, {close} Close, {miss} Miss",
-  "@pitStopLastA11y": {
-    "placeholders": {
-      "perfect": {
-        "type": "int"
-      },
-      "great": {
-        "type": "int"
-      },
-      "close": {
-        "type": "int"
-      },
-      "miss": {
-        "type": "int"
-      }
-    }
-  },
-  "pitStopEmptyTitle": "All tuned up",
-  "pitStopEmptyBody": "Streets you miss come back here when they’re due. Nothing is due today.",
-  "pitStopStreets": "{count, plural, =1{1 street} other{{count} streets}}",
-  "@pitStopStreets": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "pitStopNext": "{days, plural, =1{Next review: tomorrow · {streets}} other{Next review: in {days} days · {streets}}}",
-  "@pitStopNext": {
-    "placeholders": {
-      "days": {
-        "type": "int"
-      },
-      "streets": {
-        "type": "String"
-      }
-    }
-  },
-  "pitStopAge": "{days, plural, =0{today} =1{1 day ago} other{{days} days ago}}",
-  "@pitStopAge": {
-    "placeholders": {
-      "days": {
-        "type": "int"
-      }
-    }
-  },
-  "pitStopStep": "Review step {step} of {steps}",
-  "@pitStopStep": {
-    "placeholders": {
-      "step": {
-        "type": "int"
-      },
-      "steps": {
-        "type": "int"
-      }
-    }
-  },
   "a11yDistrictRow": "{name}, {known} of {total} streets known",
   "@a11yDistrictRow": {
     "placeholders": {
@@ -1075,7 +789,7 @@
       }
     }
   },
-  "badgeName": "{badge, select, firstPin{First pin} bullseye{Bullseye} onFire{On fire} navigator{Navigator} roadTrip{Road trip} nightOwl{Night owl} explorer{Explorer} other{Pit crew}}",
+  "badgeName": "{badge, select, firstPin{First pin} bullseye{Bullseye} onFire{On fire} navigator{Navigator} local{Local} keeper{Keeper} clearRoad{Clear road} nightOwl{Night owl} explorer{Explorer} roadTrip{Road trip} other{Pit crew}}",
   "@badgeName": {
     "placeholders": {
       "badge": {
@@ -1083,7 +797,7 @@
       }
     }
   },
-  "badgeCondition": "{badge, select, firstPin{Drop your first pin} bullseye{10 Perfect answers} onFire{7-day streak} navigator{Master a district} roadTrip{Finish 5 road trips} nightOwl{Play after midnight} explorer{Know streets in 5 districts} other{Clear 50 Pit stop streets}}",
+  "badgeCondition": "{badge, select, firstPin{Drop your first pin} bullseye{10 Perfect answers} onFire{7-day streak} navigator{Master a district} local{Master a neighbourhood} keeper{Keep up your reviews on 100 days} clearRoad{Clear every leech} nightOwl{Play after midnight} explorer{Know streets in 5 districts} roadTrip{Was: finish 5 road trips} other{Was: clear 50 Pit stop streets}}",
   "@badgeCondition": {
     "placeholders": {
       "badge": {
@@ -1128,17 +842,15 @@
         "type": "String"
       },
       "value": {
-        "type": "int"
+        "type": "String"
       },
       "target": {
-        "type": "int"
+        "type": "String"
       }
     }
   },
   "meCities": "Cities",
   "meStreetsKnown": "Streets known",
-  "meLessons": "Lessons",
-  "meRoadTrips": "Road trips",
   "meBestStreak": "Best streak",
   "meDays": "{count, plural, =1{1 day} other{{count} days}}",
   "@meDays": {
@@ -1148,304 +860,9 @@
       }
     }
   },
-  "meXpSince": "{xp} XP in total · playing since {month}",
-  "@meXpSince": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      },
-      "month": {
-        "type": "String"
-      }
-    }
-  },
-  "meCityStreets": "{known} / {total} streets",
+  "meCityStreets": "{known} of {total} streets in memory",
   "@meCityStreets": {
     "placeholders": {
-      "known": {
-        "type": "String"
-      },
-      "total": {
-        "type": "String"
-      }
-    }
-  },
-  "tabFreePlay": "Free play",
-  "a11yPitStopTab": "{count, plural, =1{Pit stop, 1 street due} other{Pit stop, {count} streets due}}",
-  "@a11yPitStopTab": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "tabPath": "Path",
-  "pathUnitLine": "{done} of {total} lessons",
-  "@pathUnitLine": {
-    "placeholders": {
-      "done": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "pathUnitLocked": "Locked",
-  "a11ySignpost": "Unit {number}, {district}. {done} of {total} lessons done.",
-  "@a11ySignpost": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      },
-      "district": {
-        "type": "String"
-      },
-      "done": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "a11ySignpostLocked": "Unit {number}, {district}. Locked.",
-  "@a11ySignpostLocked": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      },
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "pathTipStart": "Start",
-  "pathTipTuneUp": "Tune up",
-  "lessonTitle": "{count, plural, =0{{street}} other{{street} and {count} more}}",
-  "@lessonTitle": {
-    "placeholders": {
-      "street": {
-        "type": "String"
-      },
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "a11yStopLesson": "Lesson {number}, {title}.",
-  "@a11yStopLesson": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      },
-      "title": {
-        "type": "String"
-      }
-    }
-  },
-  "a11yStopPitStop": "{count, plural, =0{Pit stop.} =1{Pit stop, 1 street to tune up.} other{Pit stop, {count} streets to tune up.}}",
-  "@a11yStopPitStop": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "a11yStopFinalDrive": "Final drive.",
-  "a11yStopCurrent": "Current. Double-tap to start.",
-  "a11yStopDone": "Done. Double-tap to practise.",
-  "a11yStopPerfect": "Perfect. Double-tap to practise.",
-  "a11yStopPitStopDone": "Done.",
-  "a11yStopLocked": "Locked.",
-  "pathLockedLesson": "Lesson {number} is locked",
-  "@pathLockedLesson": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      }
-    }
-  },
-  "pathLockedPitStop": "The Pit stop is locked",
-  "pathFinishLesson": "Finish lesson {number} first.",
-  "@pathFinishLesson": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      }
-    }
-  },
-  "pathFinishPitStop": "Finish the Pit stop first.",
-  "pathFinishUnit": "Finish {district}’s Final drive first.",
-  "@pathFinishUnit": {
-    "placeholders": {
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "pathLockedUnit": "Unit {number} is locked",
-  "@pathLockedUnit": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      }
-    }
-  },
-  "pathSheetLessonKicker": "Lesson {number} of {total} · Unit {unit} · {district}",
-  "@pathSheetLessonKicker": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      },
-      "unit": {
-        "type": "int"
-      },
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "pathSheetLessonBody": "{count, plural, =1{Meet 1 new street in {district}, then a short test.} other{Meet {count} new streets in {district}, then a short test.}}",
-  "@pathSheetLessonBody": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      },
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "pathChipNewStreets": "{count, plural, =1{1 new street} other{{count} new streets}}",
-  "@pathChipNewStreets": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "pathChipStreets": "{count, plural, =1{1 street} other{{count} streets}}",
-  "@pathChipStreets": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "pathChipUpToXp": "up to {xp} XP",
-  "@pathChipUpToXp": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      }
-    }
-  },
-  "pathStartLesson": "Start lesson",
-  "pathSheetDoneKicker": "Lesson {number} of {total} · Done",
-  "@pathSheetDoneKicker": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "pathSheetPerfectKicker": "Lesson {number} of {total} · Perfect",
-  "@pathSheetPerfectKicker": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "pathSheetDoneResult": "{accuracy} % accuracy · {xp} XP · {time}",
-  "@pathSheetDoneResult": {
-    "placeholders": {
-      "accuracy": {
-        "type": "String"
-      },
-      "xp": {
-        "type": "String"
-      },
-      "time": {
-        "type": "String"
-      }
-    }
-  },
-  "pathSheetPerfectResult": "No mistakes · {xp} XP",
-  "@pathSheetPerfectResult": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      }
-    }
-  },
-  "pathSheetPractiseBody": "Practise replays the test without the intro cards and earns half XP.",
-  "pathPractiseAgain": "Practise again",
-  "pathSheetPitKicker": "Pit stop · Unit {unit} · {district}",
-  "@pathSheetPitKicker": {
-    "placeholders": {
-      "unit": {
-        "type": "int"
-      },
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "pathSheetPitTitle": "{count, plural, =1{Tune up 1 street} other{Tune up {count} streets}}",
-  "@pathSheetPitTitle": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "pathSheetPitBody": "The streets you missed in lessons 1–{last} come back once here. Finish it to open lesson {next}.",
-  "@pathSheetPitBody": {
-    "placeholders": {
-      "last": {
-        "type": "int"
-      },
-      "next": {
-        "type": "int"
-      }
-    }
-  },
-  "pathStartPitStop": "Start Pit stop",
-  "pathPitStopDone": "Pit stop done",
-  "durationMinSec": "{minutes} min {seconds} s",
-  "@durationMinSec": {
-    "placeholders": {
-      "minutes": {
-        "type": "int"
-      },
-      "seconds": {
-        "type": "int"
-      }
-    }
-  },
-  "pathLoadError": "Couldn’t load the course",
-  "pathOpenFreePlay": "Open Free play",
-  "pathNoDistricts": "Lessons need this city’s districts. Play it in Free play for now.",
-  "meCityUnit": "Unit {number} · {district} · {known} / {total} streets",
-  "@meCityUnit": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      },
-      "district": {
-        "type": "String"
-      },
       "known": {
         "type": "String"
       },
@@ -1507,742 +924,11 @@
       }
     }
   },
-  "lessonStartTest": "Start the test",
-  "lessonWhichStreet": "Which street is this?",
-  "lessonCheck": "Check",
-  "lessonRight": "Correct!",
-  "lessonWrong": "Not quite",
-  "lessonWrongBody": "The marked plate is right. It comes back at the end.",
-  "lessonWrongFixBody": "The marked plate is right. It goes to your Pit stop.",
-  "lessonComesBack": "Comes back at the end",
-  "lessonFixesTitle": "{count, plural, =1{Let’s fix 1 mistake} other{Let’s fix {count} mistakes}}",
-  "@lessonFixesTitle": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "lessonFixesBody": "Get these right to finish the lesson. Fixes earn half XP, and you can’t fail: anything still wrong goes to your Pit stop.",
-  "lessonFixPin": "{tier} · {distance} · drop a pin again",
-  "@lessonFixPin": {
-    "placeholders": {
-      "tier": {
-        "type": "String"
-      },
-      "distance": {
-        "type": "String"
-      }
-    }
-  },
-  "lessonFixName": "Named wrong · name it again",
-  "lessonFixTrip": "Missed the road trip · drive it again",
-  "lessonFixThem": "Fix them",
-  "lessonLeaveTitle": "Leave this lesson?",
-  "lessonLeaveBody": "You’ll lose this lesson’s progress. Your streak and the XP you earned today are safe.",
-  "lessonKeepLearning": "Keep learning",
-  "lessonLeave": "Leave",
-  "a11yLessonStep": "Step {step} of {total}",
-  "@a11yLessonStep": {
-    "placeholders": {
-      "step": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "a11yLessonXp": "{xp} XP this lesson",
-  "@a11yLessonXp": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      }
-    }
-  },
-  "a11yLeaveLesson": "Leave the lesson",
-  "a11yNameRight": "Right. {name}. Plus {xp} XP.",
-  "@a11yNameRight": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      },
-      "xp": {
-        "type": "String"
-      }
-    }
-  },
-  "a11yNameWrong": "Wrong. The answer is {name}.",
-  "@a11yNameWrong": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "lessonDoneTitle": "Lesson complete!",
-  "lessonDonePerfectTitle": "Perfect lesson!",
-  "lessonDonePitStopTitle": "Pit stop complete!",
-  "lessonDonePracticeTitle": "Practice complete!",
-  "lessonDoneLesson": "Lesson {number} · {title}",
-  "@lessonDoneLesson": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      },
-      "title": {
-        "type": "String"
-      }
-    }
-  },
-  "lessonDoneUnit": "Unit {number} · {district}",
-  "@lessonDoneUnit": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      },
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "lessonDoneBonusPerfect": "Includes +{finish} for finishing and +{perfect} Perfect bonus",
-  "@lessonDoneBonusPerfect": {
-    "placeholders": {
-      "finish": {
-        "type": "String"
-      },
-      "perfect": {
-        "type": "String"
-      }
-    }
-  },
-  "lessonDoneBonusFixes": "{count, plural, =0{Includes +{finish} for finishing} =1{Includes +{finish} for finishing and {xp} XP from 1 fix} other{Includes +{finish} for finishing and {xp} XP from {count} fixes}}",
-  "@lessonDoneBonusFixes": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      },
-      "finish": {
-        "type": "String"
-      },
-      "xp": {
-        "type": "String"
-      }
-    }
-  },
-  "lessonStatAccuracy": "Accuracy",
-  "lessonStatNewStreets": "New streets",
-  "lessonStatStreets": "Streets",
-  "lessonStatTime": "Time",
   "lessonPercent": "{value} %",
   "@lessonPercent": {
     "placeholders": {
       "value": {
         "type": "String"
-      }
-    }
-  },
-  "lessonClock": "{minutes}:{seconds}",
-  "@lessonClock": {
-    "placeholders": {
-      "minutes": {
-        "type": "String"
-      },
-      "seconds": {
-        "type": "String"
-      }
-    }
-  },
-  "a11yLessonReward": "Plus {xp} XP this lesson",
-  "@a11yLessonReward": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      }
-    }
-  },
-  "routeAsk": "Road trip: draw the shortest drive to",
-  "@routeAsk": {
-    "description": "The road trip plate's prompt above the destination street."
-  },
-  "driveAsk": "Final drive {trip} of 3: draw the shortest drive to",
-  "@driveAsk": {
-    "description": "The Final drive plate's prompt; {trip} is the trip being driven.",
-    "placeholders": {
-      "trip": {
-        "type": "int"
-      }
-    }
-  },
-  "routeStartAtA": "Start at A",
-  "@routeStartAtA": {
-    "description": "Under the road trip's destination street."
-  },
-  "routeCoachTitle": "Drive from A to the street",
-  "@routeCoachTitle": {
-    "description": "Coach bubble on the first road trip ever."
-  },
-  "routeCoachBody": "Tap a street to drive along it up to there, or drag along the roads. The shorter the drive, the more XP.",
-  "@routeCoachBody": {
-    "description": "Coach bubble body on the first road trip ever."
-  },
-  "routeOffRoad": "Your route only follows streets. Drag along a white road.",
-  "@routeOffRoad": {
-    "description": "Toast after dragging off the road for a second."
-  },
-  "routeTapMiss": "Tap a street that meets your route.",
-  "@routeTapMiss": {
-    "description": "Toast when a tap on the road trip map isn't on a street the route can drive along to it."
-  },
-  "routeSoFar": "{distance} so far",
-  "@routeSoFar": {
-    "description": "Map chip at the end of the route being drawn.",
-    "placeholders": {
-      "distance": {
-        "type": "String"
-      }
-    }
-  },
-  "routeShow": "Show the route",
-  "@routeShow": {
-    "description": "Gives up a road trip (asks first)."
-  },
-  "routeCheck": "Check route",
-  "@routeCheck": {
-    "description": "Scores a road trip once it reaches B."
-  },
-  "a11yRouteCheckDisabled": "Check route. Reach the street first.",
-  "@a11yRouteCheckDisabled": {
-    "description": "Screen reader label of Check route before the destination street is reached."
-  },
-  "a11yRouteUndo": "Undo the last street.",
-  "@a11yRouteUndo": {
-    "description": "Screen reader label of the road trip's undo button."
-  },
-  "a11yRouteStartOver": "Start over",
-  "@a11yRouteStartOver": {
-    "description": "Screen reader label of the road trip's button that clears the route."
-  },
-  "a11yRouteMap": "Map. Tap or drag along the streets from pin A to the street.",
-  "@a11yRouteMap": {
-    "description": "Screen reader label of the road trip map."
-  },
-  "routeShowTitle": "Show the best route?",
-  "@routeShowTitle": {
-    "description": "Dialog before giving up a road trip."
-  },
-  "routeShowLessonBody": "This road trip will count as a Miss and come back at the end of the lesson.",
-  "@routeShowLessonBody": {
-    "description": "Dialog body before giving up a lesson's road trip."
-  },
-  "routeShowDriveBody": "This trip will count as a Miss.",
-  "@routeShowDriveBody": {
-    "description": "Dialog body before giving up a Final drive trip."
-  },
-  "routeKeepDriving": "Keep driving",
-  "@routeKeepDriving": {
-    "description": "Closes the Show the route dialog."
-  },
-  "routeShowConfirm": "Show the best route",
-  "@routeShowConfirm": {
-    "description": "Confirms giving up a road trip."
-  },
-  "routeReplay": "Driving the best route…",
-  "@routeReplay": {
-    "description": "Banner while the car drives the best route."
-  },
-  "routeSkip": "Skip",
-  "@routeSkip": {
-    "description": "Skips the best-route replay."
-  },
-  "routeTierPerfect": "Best route!",
-  "@routeTierPerfect": {
-    "description": "Tier sheet title of a Perfect road trip."
-  },
-  "routeTierGreat": "Great drive",
-  "@routeTierGreat": {
-    "description": "Tier sheet title of a Great road trip."
-  },
-  "routeTierClose": "Close",
-  "@routeTierClose": {
-    "description": "Tier sheet title of a Close road trip."
-  },
-  "routeTierMiss": "Here’s the best drive",
-  "@routeTierMiss": {
-    "description": "Tier sheet title of a Miss (or shown) road trip."
-  },
-  "routePerfectSentence": "{best}. You found the shortest drive.",
-  "@routePerfectSentence": {
-    "description": "A Perfect road trip's sentence; {best} is the route length.",
-    "placeholders": {
-      "best": {
-        "type": "String"
-      }
-    }
-  },
-  "routeLongerSentence": "{percent} % longer than the best route.",
-  "@routeLongerSentence": {
-    "description": "A Great or Close road trip's sentence.",
-    "placeholders": {
-      "percent": {
-        "type": "String"
-      }
-    }
-  },
-  "routeLengths": "{drawn} · best {best}",
-  "@routeLengths": {
-    "description": "Chip with the drawn and the best route lengths.",
-    "placeholders": {
-      "drawn": {
-        "type": "String"
-      },
-      "best": {
-        "type": "String"
-      }
-    }
-  },
-  "routeLegsSentence": "{legs}: {best}.",
-  "@routeLegsSentence": {
-    "description": "A Miss road trip's sentence: the best route's streets, then its length.",
-    "placeholders": {
-      "legs": {
-        "type": "String"
-      },
-      "best": {
-        "type": "String"
-      }
-    }
-  },
-  "routeLegFirst": "{heading, select, n{North} ne{North-east} e{East} se{South-east} s{South} sw{South-west} w{West} nw{North-west} other{Along}} on {street}",
-  "@routeLegFirst": {
-    "description": "The best route's first street with its heading (n, ne, e, se, s, sw, w, nw).",
-    "placeholders": {
-      "heading": {
-        "type": "String"
-      },
-      "street": {
-        "type": "String"
-      }
-    }
-  },
-  "routeLegNext": "then {heading, select, n{north} ne{north-east} e{east} se{south-east} s{south} sw{south-west} w{west} nw{north-west} other{along}} on {street}",
-  "@routeLegNext": {
-    "description": "A later street of the best route with its heading.",
-    "placeholders": {
-      "heading": {
-        "type": "String"
-      },
-      "street": {
-        "type": "String"
-      }
-    }
-  },
-  "routeLegsMore": "{count, plural, =1{then 1 more street} other{then {count} more streets}}",
-  "@routeLegsMore": {
-    "description": "The best route's streets past the third.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "routeTurnList": "Turn by turn · {distance} from A",
-  "@routeTurnList": {
-    "description": "Turn-by-turn header with the route length so far.",
-    "placeholders": {
-      "distance": {
-        "type": "String"
-      }
-    }
-  },
-  "routeTurnAsk": "At the junction, go",
-  "@routeTurnAsk": {
-    "description": "Above the turn options."
-  },
-  "routeTurn": "{turn, select, start{Onto {street}} left{Left onto {street}} straight{Straight on {street}} right{Right onto {street}} back{Back along {street}} other{Onto {street}}}",
-  "@routeTurn": {
-    "description": "A turn option (start, left, straight, right, back).",
-    "placeholders": {
-      "turn": {
-        "type": "String"
-      },
-      "street": {
-        "type": "String"
-      }
-    }
-  },
-  "routeTurnHeading": "Heads {heading, select, n{north} ne{north-east} e{east} se{south-east} s{south} sw{south-west} w{west} nw{north-west} other{on}}",
-  "@routeTurnHeading": {
-    "description": "Under a turn option: where it heads.",
-    "placeholders": {
-      "heading": {
-        "type": "String"
-      }
-    }
-  },
-  "routeUndoTurn": "Undo last turn",
-  "@routeUndoTurn": {
-    "description": "Turn by turn: drops the last street."
-  },
-  "a11yRouteTurned": "{turn}. {distance} so far.",
-  "@a11yRouteTurned": {
-    "description": "Announced after picking a turn.",
-    "placeholders": {
-      "turn": {
-        "type": "String"
-      },
-      "distance": {
-        "type": "String"
-      }
-    }
-  },
-  "a11yRouteReached": "You reached {street}. Check route is available.",
-  "@a11yRouteReached": {
-    "description": "Announced when the route reaches the destination street.",
-    "placeholders": {
-      "street": {
-        "type": "String"
-      }
-    }
-  },
-  "routeTryAgain": "Try this trip again",
-  "@routeTryAgain": {
-    "description": "Final drive: a new trip after a Miss."
-  },
-  "pathTipFinalDrive": "Final drive",
-  "@pathTipFinalDrive": {
-    "description": "Tip above the current Final drive stop."
-  },
-  "pathLockedFinalDrive": "The Final drive is locked",
-  "@pathLockedFinalDrive": {
-    "description": "Bubble title on a locked Final drive."
-  },
-  "pathFinalDriveDone": "Final drive passed",
-  "@pathFinalDriveDone": {
-    "description": "Bubble on a passed Final drive."
-  },
-  "a11yStopFinalDriveTrips": "{passed} of 3 road trips passed.",
-  "@a11yStopFinalDriveTrips": {
-    "description": "Screen reader: the current Final drive's trips passed.",
-    "placeholders": {
-      "passed": {
-        "type": "int"
-      }
-    }
-  },
-  "pathSheetDriveKicker": "Final drive · Unit {unit} · {district}",
-  "@pathSheetDriveKicker": {
-    "description": "Final drive sheet kicker.",
-    "placeholders": {
-      "unit": {
-        "type": "int"
-      },
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "pathSheetDriveTitle": "Drive across {district}",
-  "@pathSheetDriveTitle": {
-    "description": "Final drive sheet title.",
-    "placeholders": {
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "pathSheetDriveBody": "Three road trips on the streets you learned in this unit.",
-  "@pathSheetDriveBody": {
-    "description": "Final drive sheet body."
-  },
-  "pathSheetDriveOpens": "Finish to open Unit {unit} · {district}.",
-  "@pathSheetDriveOpens": {
-    "description": "Final drive sheet: what passing opens.",
-    "placeholders": {
-      "unit": {
-        "type": "int"
-      },
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "pathSheetDrivePassed": "You passed {count} of 3.",
-  "@pathSheetDrivePassed": {
-    "description": "Final drive sheet: trips already passed.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "pathSheetDriveNoGraph": "Road trips need the newest {city} pack. Connect to the internet to get it.",
-  "@pathSheetDriveNoGraph": {
-    "description": "Final drive sheet when the pack has no road graph yet.",
-    "placeholders": {
-      "city": {
-        "type": "String"
-      }
-    }
-  },
-  "pathChipTrips": "{count, plural, =1{1 road trip} other{{count} road trips}}",
-  "@pathChipTrips": {
-    "description": "Final drive sheet chip: road trips left.",
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "pathStartDrive": "Start the drive",
-  "@pathStartDrive": {
-    "description": "Starts the Final drive."
-  },
-  "pathSheetUnitLockedKicker": "Unit {unit} · Locked",
-  "@pathSheetUnitLockedKicker": {
-    "description": "A locked unit's sheet kicker.",
-    "placeholders": {
-      "unit": {
-        "type": "int"
-      }
-    }
-  },
-  "pathSheetUnitLockedBody": "Finish {previous}’s Final drive to open {district}. Know {district} already? Pass its Final drive to jump ahead.",
-  "@pathSheetUnitLockedBody": {
-    "description": "A locked unit's sheet body.",
-    "placeholders": {
-      "previous": {
-        "type": "String"
-      },
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "pathKeepGoing": "Keep going in {district}",
-  "@pathKeepGoing": {
-    "description": "Closes a locked unit's sheet.",
-    "placeholders": {
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "pathJumpAhead": "Jump ahead",
-  "@pathJumpAhead": {
-    "description": "Starts a locked unit's Final drive."
-  },
-  "driveLeaveTitle": "Leave the Final drive?",
-  "@driveLeaveTitle": {
-    "description": "Dialog before leaving the Final drive."
-  },
-  "driveLeaveBody": "The trips you passed are kept.",
-  "@driveLeaveBody": {
-    "description": "Dialog body before leaving the Final drive."
-  },
-  "driveMissing": "There’s no road trip to drive here right now.",
-  "@driveMissing": {
-    "description": "Toast back on the Path when a Final drive can’t plan a trip (the district or pack changed)."
-  },
-  "a11yLeaveDrive": "Leave the Final drive",
-  "@a11yLeaveDrive": {
-    "description": "Screen reader label of the Final drive's close button."
-  },
-  "a11yDriveStep": "Road trip {trip} of 3",
-  "@a11yDriveStep": {
-    "description": "Screen reader label of the Final drive's bar.",
-    "placeholders": {
-      "trip": {
-        "type": "int"
-      }
-    }
-  },
-  "unitDoneKicker": "Unit {unit} complete",
-  "@unitDoneKicker": {
-    "description": "Unit complete kicker.",
-    "placeholders": {
-      "unit": {
-        "type": "int"
-      }
-    }
-  },
-  "unitDoneTitle": "{district} complete!",
-  "@unitDoneTitle": {
-    "description": "Unit complete title.",
-    "placeholders": {
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "unitDoneBody": "You learned {streets} streets in {district} and drove across it three times.",
-  "@unitDoneBody": {
-    "description": "Unit complete body.",
-    "placeholders": {
-      "streets": {
-        "type": "int"
-      },
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "unitDoneStreets": "Streets",
-  "@unitDoneStreets": {
-    "description": "Unit complete stat tile."
-  },
-  "unitDoneXp": "XP",
-  "@unitDoneXp": {
-    "description": "Unit complete stat tile."
-  },
-  "unitDoneNext": "Next · Unit {unit}",
-  "@unitDoneNext": {
-    "description": "Unit complete: the next unit's signpost line.",
-    "placeholders": {
-      "unit": {
-        "type": "int"
-      }
-    }
-  },
-  "unitDoneContinueTo": "Continue to {district}",
-  "@unitDoneContinueTo": {
-    "description": "Unit complete's button when another unit follows.",
-    "placeholders": {
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "a11yUnitTrophy": "Unit {unit} trophy",
-  "@a11yUnitTrophy": {
-    "description": "Screen reader label of Unit complete's trophy.",
-    "placeholders": {
-      "unit": {
-        "type": "int"
-      }
-    }
-  },
-  "a11yStopPassed": "Passed.",
-  "@a11yStopPassed": {
-    "description": "Screen reader: a passed Final drive."
-  },
-  "whatsNewChip": "New in 2.0",
-  "whatsNewTitle": "{city} is now a course",
-  "@whatsNewTitle": {
-    "placeholders": {
-      "city": {
-        "type": "String"
-      }
-    }
-  },
-  "whatsNewBody": "Learn the city district by district. Everything you’ve already learned counts.",
-  "whatsNewLessons": "Lessons on a path",
-  "whatsNewLessonsLine": "New streets first, then a short test and a road trip.",
-  "whatsNewTrips": "Road trips",
-  "whatsNewTripsLine": "Draw the shortest drive between two points.",
-  "whatsNewFreePlay": "Free play is still here",
-  "whatsNewFreePlayLine": "Quick rounds in any area, just like before.",
-  "whatsNewShowPath": "Show me my path",
-  "placementTitle": "You start in Unit {number}",
-  "@placementTitle": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      }
-    }
-  },
-  "placementAllTitle": "You know every unit",
-  "placementBody": "You already know {count} streets in {city}, so your course skips what you know.",
-  "@placementBody": {
-    "description": "{count} is a formatted number.",
-    "placeholders": {
-      "count": {
-        "type": "String"
-      },
-      "city": {
-        "type": "String"
-      }
-    }
-  },
-  "placementUnit": "Unit {number} · {district}",
-  "@placementUnit": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      },
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "placementComplete": "Complete · you know {known} of its {total} streets",
-  "@placementComplete": {
-    "placeholders": {
-      "known": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "placementCurrent": "{done} of {total} lessons done · lesson {lesson} is next",
-  "@placementCurrent": {
-    "placeholders": {
-      "done": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      },
-      "lesson": {
-        "type": "int"
-      }
-    }
-  },
-  "placementOpensAfter": "Opens after {district}",
-  "@placementOpensAfter": {
-    "placeholders": {
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "placementFromUnit1": "Start from Unit 1 instead",
-  "placementStartLesson": "Start lesson {number}",
-  "@placementStartLesson": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      }
-    }
-  },
-  "startTitle": "Where do you want to start?",
-  "startBody": "Your course goes district by district. Start where you live or where you need it most; the rest follow, nearest first.",
-  "startStreets": "{count, plural, =1{1 street} other{{count} streets}}",
-  "@startStreets": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "startHint": "{hint, select, near{nearest to you} centre{city centre} n{north} ne{north-east} e{east} se{south-east} s{south} sw{south-west} w{west} nw{north-west} other{}}",
-  "@startHint": {
-    "description": "Where a district is: near (to the player), centre (holds the city centre) or its compass point from the city centre.",
-    "placeholders": {
-      "hint": {
-        "type": "String"
-      }
-    }
-  },
-  "startCount": "{count, plural, =1{1 district · from OpenStreetMap} other{{count} districts · from OpenStreetMap}}",
-  "@startCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
       }
     }
   },
@@ -2254,256 +940,7 @@
       }
     }
   },
-  "pathCoachTitle": "Start here",
-  "pathCoachBody": "Your first lesson: {count} streets in {district}, then a short test.",
-  "@pathCoachBody": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      },
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "pathSheetPlacedBody": "You already knew these streets when the course started.",
-  "settingsAccessibility": "Accessibility",
-  "settingsTurnList": "Choose turns from a list",
-  "settingsTurnListSubtitle": "Road trips ask for each turn instead of a drawing",
   "lessonHearName": "Hear the name",
-  "pathLoadingTitle": "Laying out your course",
-  "pathLoadingBody": "Finding {city}’s districts and their streets. This takes a few seconds the first time.",
-  "@pathLoadingBody": {
-    "placeholders": {
-      "city": {
-        "type": "String"
-      }
-    }
-  },
-  "pathUnitGuide": "Unit guide",
-  "pathSeeStreets": "See the streets",
-  "unitGuideTitle": "Unit guide",
-  "unitGuideMap": "Map of {district} with this unit’s streets in yellow",
-  "@unitGuideMap": {
-    "placeholders": {
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "unitGuideTip": "{axis, select, ns{Most of {district}’s streets run north to south.} nesw{Most of {district}’s streets run north-east to south-west.} ew{Most of {district}’s streets run east to west.} nwse{Most of {district}’s streets run north-west to south-east.} other{{district}’s streets run every way.}} Learn the long ones first; the side streets hang off them.",
-  "@unitGuideTip": {
-    "placeholders": {
-      "axis": {
-        "type": "String"
-      },
-      "district": {
-        "type": "String"
-      }
-    }
-  },
-  "unitGuideLessons": "Lessons",
-  "unitGuideLessonTitle": "{number} · {title}",
-  "@unitGuideLessonTitle": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      },
-      "title": {
-        "type": "String"
-      }
-    }
-  },
-  "unitGuideDone": "Done · {accuracy} % · {count, plural, =1{1 street} other{{count} streets}}",
-  "@unitGuideDone": {
-    "placeholders": {
-      "accuracy": {
-        "type": "String"
-      },
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "unitGuidePlaced": "Done · {count, plural, =1{1 street} other{{count} streets}}",
-  "@unitGuidePlaced": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "unitGuidePerfect": "Perfect · {count, plural, =1{1 street} other{{count} streets}}",
-  "@unitGuidePerfect": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "unitGuideNext": "Next · {streets}",
-  "@unitGuideNext": {
-    "placeholders": {
-      "streets": {
-        "type": "String"
-      }
-    }
-  },
-  "unitGuideLocked": "Locked",
-  "unitGuideOpensAfter": "Opens after lesson {number}",
-  "@unitGuideOpensAfter": {
-    "placeholders": {
-      "number": {
-        "type": "int"
-      }
-    }
-  },
-  "unitGuidePitStop": "Pit stop",
-  "unitGuideTuneUp": "{count, plural, =0{Nothing to tune up} =1{1 street to tune up} other{{count} streets to tune up}}",
-  "@unitGuideTuneUp": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "unitGuideStopDone": "Done",
-  "unitGuideFinalDrive": "Final drive",
-  "unitGuideTrips": "{passed} of {total} road trips",
-  "@unitGuideTrips": {
-    "placeholders": {
-      "passed": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "unitGuidePassed": "Passed",
-  "unitGuideOnMap": "On the map",
-  "tabLeagues": "Leagues",
-  "leagueTitle": "{tier, select, alley{Alley league} lane{Lane league} street{Street league} avenue{Avenue league} boulevard{Boulevard league} other{Highway league}}",
-  "@leagueTitle": {
-    "placeholders": {
-      "tier": {
-        "type": "String"
-      }
-    }
-  },
-  "leagueTierName": "{tier, select, alley{Alley} lane{Lane} street{Street} avenue{Avenue} boulevard{Boulevard} other{Highway}}",
-  "@leagueTierName": {
-    "placeholders": {
-      "tier": {
-        "type": "String"
-      }
-    }
-  },
-  "leagueRuleUp": "Top 5 move up",
-  "leagueRuleDown": "Bottom 5 move down",
-  "leagueDaysLeft": "{count, plural, =0{Last day} =1{1 day left} other{{count} days left}}",
-  "@leagueDaysLeft": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "leagueHeadA11y": "{league}, {rank} of {total} leagues. {rule}. {days}.",
-  "@leagueHeadA11y": {
-    "placeholders": {
-      "league": {
-        "type": "String"
-      },
-      "rank": {
-        "type": "String"
-      },
-      "total": {
-        "type": "int"
-      },
-      "rule": {
-        "type": "String"
-      },
-      "days": {
-        "type": "String"
-      }
-    }
-  },
-  "leagueListA11y": "{count, plural, =1{This week, 1 player} other{This week, {count} players}}",
-  "@leagueListA11y": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "leagueYou": "You",
-  "leagueXp": "{xp} XP",
-  "@leagueXp": {
-    "placeholders": {
-      "xp": {
-        "type": "String"
-      }
-    }
-  },
-  "leagueRowA11y": "{rank}, {name}, {xp} XP, {zone}.",
-  "@leagueRowA11y": {
-    "placeholders": {
-      "rank": {
-        "type": "String"
-      },
-      "name": {
-        "type": "String"
-      },
-      "xp": {
-        "type": "String"
-      },
-      "zone": {
-        "type": "String"
-      }
-    }
-  },
-  "leagueZoneA11y": "{zone, select, up{promotion zone} down{demotion zone} other{safe}}",
-  "@leagueZoneA11y": {
-    "placeholders": {
-      "zone": {
-        "type": "String"
-      }
-    }
-  },
-  "leagueZoneUp": "Promotion zone · top 5 move up to {tier}",
-  "@leagueZoneUp": {
-    "placeholders": {
-      "tier": {
-        "type": "String"
-      }
-    }
-  },
-  "leagueZoneDown": "Demotion zone · bottom 5 move down to {tier}",
-  "@leagueZoneDown": {
-    "placeholders": {
-      "tier": {
-        "type": "String"
-      }
-    }
-  },
-  "leagueEmptyTitle": "Earn XP to join this week’s league",
-  "leagueEmptyBody": "Finish a lesson or a round and you’re in, with up to 29 other players.",
-  "leagueSignInTitle": "Sign in to join Leagues",
-  "leagueSignInBody": "Players in your league see your username next to your XP.",
-  "leagueOffline": "Can’t reach the league. Check your connection and try again.",
-  "leagueUnavailable": "The league isn’t working right now. Try again later.",
-  "resultsLeagueUp": "Up to {rank} in {league}",
-  "@resultsLeagueUp": {
-    "placeholders": {
-      "rank": {
-        "type": "String"
-      },
-      "league": {
-        "type": "String"
-      }
-    }
-  },
   "settingsAccount": "Account",
   "accountBackUp": "Back up your progress",
   "accountBackUpSubtitle": "Get it back on a new phone",
@@ -2529,7 +966,7 @@
   "accountBackedUpNow": "Progress backed up",
   "accountSignedOut": "You signed in on another phone, so this one is signed out.",
   "accountTitle": "Your account",
-  "accountIntro": "Your progress is backed up to the Pindoro server after you play. On a new phone, sign in to get it back. Your username is your name in Leagues.",
+  "accountIntro": "Your progress is backed up to the Pindoro server after you play. On a new phone, sign in to get it back.",
   "accountUsername": "Username",
   "accountUsernameClear": "Clear the username",
   "accountPassword": "Password",
@@ -2589,166 +1026,639 @@
   "accountSignOutBody": "Your progress stays on this phone, but it isn’t backed up until you sign in again.",
   "accountSignOutStay": "Stay signed in",
   "accountDelete": "Delete account",
-  "accountDeleteSubtitle": "Deletes the account, its backup and league places",
+  "accountDeleteSubtitle": "Deletes the account and its backup",
   "accountDeleteTitle": "Delete your account?",
-  "accountDeleteBody": "Your account, its backup and your league places are deleted from the server. Your progress stays on this phone.",
+  "accountDeleteBody": "Your account and its backup are deleted from the server. Your progress stays on this phone.",
   "accountDeleteKeep": "Keep account",
   "accountDeleteConfirm": "Delete",
   "accountPasswordRule": "Password: at least 8 characters.",
   "revealMixUp": "Mix-up",
   "revealMixUpSentence": "You placed {street}. {hint}",
-  "@revealMixUpSentence": {"placeholders": {"street": {"type": "String"}, "hint": {"type": "String"}}},
+  "@revealMixUpSentence": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      },
+      "hint": {
+        "type": "String"
+      }
+    }
+  },
   "revealNextReview": "{days, plural, =1{Next review in 1 day} other{Next review in {days} days}}",
-  "@revealNextReview": {"placeholders": {"days": {"type": "int"}}},
+  "@revealNextReview": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "revealBackThisSession": "Back in this session",
   "revealPairSaved": "Pair saved: {pair}",
-  "@revealPairSaved": {"placeholders": {"pair": {"type": "String"}}},
+  "@revealPairSaved": {
+    "placeholders": {
+      "pair": {
+        "type": "String"
+      }
+    }
+  },
   "sessionLeave": "Leave session",
   "sessionProgress": "Today’s session, {block} of 12",
-  "@sessionProgress": {"placeholders": {"block": {"type": "int"}}},
+  "@sessionProgress": {
+    "placeholders": {
+      "block": {
+        "type": "int"
+      }
+    }
+  },
   "sessionMinutes": "{minutes} min",
-  "@sessionMinutes": {"placeholders": {"minutes": {"type": "int"}}},
+  "@sessionMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "sessionMinutesLeft": "About {minutes} minutes left",
-  "@sessionMinutesLeft": {"placeholders": {"minutes": {"type": "int"}}},
+  "@sessionMinutesLeft": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "sessionIntroRegion": "About this street",
   "sessionFamily": "Family: {parent} · {children}",
-  "@sessionFamily": {"placeholders": {"parent": {"type": "String"}, "children": {"type": "String"}}},
+  "@sessionFamily": {
+    "placeholders": {
+      "parent": {
+        "type": "String"
+      },
+      "children": {
+        "type": "String"
+      }
+    }
+  },
   "familyLanes": "{count, plural, =1{1 lane} other{{count} lanes}}",
-  "@familyLanes": {"placeholders": {"count": {"type": "int"}}},
+  "@familyLanes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "familyDeadEnds": "{count, plural, =1{1 dead end} other{{count} dead ends}}",
-  "@familyDeadEnds": {"placeholders": {"count": {"type": "int"}}},
+  "@familyDeadEnds": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "familyPassages": "{count, plural, =1{1 passage} other{{count} passages}}",
-  "@familyPassages": {"placeholders": {"count": {"type": "int"}}},
+  "@familyPassages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "sessionGuessFirst": "Guess first",
   "sessionGuessKnowParent": "You know {parent}",
-  "@sessionGuessKnowParent": {"placeholders": {"parent": {"type": "String"}}},
+  "@sessionGuessKnowParent": {
+    "placeholders": {
+      "parent": {
+        "type": "String"
+      }
+    }
+  },
   "sessionGuessKnowFamily": "{count, plural, =1{You know {parent} and one of its side streets} other{You know {parent} and {count} of its side streets}}",
-  "@sessionGuessKnowFamily": {"placeholders": {"parent": {"type": "String"}, "count": {"type": "int"}}},
+  "@sessionGuessKnowFamily": {
+    "placeholders": {
+      "parent": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "sessionGuessNote": "A guess never counts against you. Then we’ll show you.",
   "sessionConfirmGuess": "Confirm guess",
   "sessionDoneTitle": "Session done",
   "sessionDoneCleared": "{minutes} min · everything due today is cleared",
-  "@sessionDoneCleared": {"placeholders": {"minutes": {"type": "int"}}},
+  "@sessionDoneCleared": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "learnReviews": "Reviews",
   "learnNew": "New",
   "learnNewStreets": "New streets",
   "sessionDoneRecalled": "Recalled",
   "sessionDoneStreak": "Streak",
   "sessionStreakDays": "{days, plural, =1{1 day} other{{days} days}}",
-  "@sessionStreakDays": {"placeholders": {"days": {"type": "int"}}},
+  "@sessionStreakDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "sessionPercent": "{percent} %",
-  "@sessionPercent": {"placeholders": {"percent": {"type": "int"}}},
+  "@sessionPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "sessionDoneMemory": "City memory",
   "sessionDoneMemoryChange": "{before} → {after}",
-  "@sessionDoneMemoryChange": {"placeholders": {"before": {"type": "String"}, "after": {"type": "String"}}},
+  "@sessionDoneMemoryChange": {
+    "placeholders": {
+      "before": {
+        "type": "String"
+      },
+      "after": {
+        "type": "String"
+      }
+    }
+  },
   "sessionDoneWatchOut": "Watch out for",
   "sessionDoneMixedUp": "Mixed up today · you’ll see them side by side",
   "sessionDoneCloseTwice": "Close twice · back tomorrow",
-  "todayTitle": "Today",
   "todayDriveTitle": "Today’s drive",
   "todayDriveSubtitle": "About {minutes} min · saves as you go",
-  "@todayDriveSubtitle": {"placeholders": {"minutes": {"type": "int"}}},
+  "@todayDriveSubtitle": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "todayStart": "Start",
   "todayDoneTitle": "Done for today",
   "todayDueTomorrow": "{count, plural, =0{Nothing due tomorrow} =1{1 review due tomorrow} other{{count} reviews due tomorrow}}",
-  "@todayDueTomorrow": {"placeholders": {"count": {"type": "int"}}},
-  "homeOpenToday": "Today’s session (preview)",
+  "@todayDueTomorrow": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "placementPrompt": "Placement · {index} of {total}",
-  "@placementPrompt": {"placeholders": {"index": {"type": "String"}, "total": {"type": "String"}}},
+  "@placementPrompt": {
+    "placeholders": {
+      "index": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
   "placementSkip": "I don’t know this one",
   "placementLeave": "Leave placement",
   "placementDoneTitle": "{count, plural, =0{Let’s start from the beginning} =1{You know 1 street already} other{You know {shown} streets already}}",
-  "@placementDoneTitle": {"placeholders": {"count": {"type": "int"}, "shown": {"type": "String"}}},
+  "@placementDoneTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "shown": {
+        "type": "String"
+      }
+    }
+  },
   "placementDoneReview": "They go straight into review, spaced out so they stay put.",
   "placementDoneStart": "New streets start in {name}.",
-  "@placementDoneStart": {"placeholders": {"name": {"type": "String"}}},
+  "@placementDoneStart": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "placementMainRoads": "Main roads",
   "placementDistricts": "Districts",
   "placementSampled": "{count} sampled",
-  "@placementSampled": {"placeholders": {"count": {"type": "String"}}},
+  "@placementSampled": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
   "placementInReview": "In review",
   "placementStartIn": "Start in",
   "placementStartLearning": "Start learning",
   "commonXOfY": "{value} of {total}",
-  "@commonXOfY": {"placeholders": {"value": {"type": "String"}, "total": {"type": "String"}}},
+  "@commonXOfY": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
   "todayFirstRunTitle": "Let’s see what you already know",
   "todayFirstRunBody": "About 15 minutes of quick pins: the main roads, then a few streets from each district. Anything you place well goes straight to review, so you never re-learn it.",
   "todayFirstRunMainRoads": "Main roads and bridges",
   "todayFirstRunMainRoadsCount": "{count} streets · about {minutes} min",
-  "@todayFirstRunMainRoadsCount": {"placeholders": {"count": {"type": "String"}, "minutes": {"type": "String"}}},
+  "@todayFirstRunMainRoadsCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "String"
+      }
+    }
+  },
   "todayFirstRunSample": "A sample from each district",
   "todayFirstRunSampleCount": "{count} per district · more if you know them",
-  "@todayFirstRunSampleCount": {"placeholders": {"count": {"type": "String"}}},
+  "@todayFirstRunSampleCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
   "todayHomeWork": "Home and work",
   "todayHomeWorkSubtitle": "Set them to start learning near you",
   "todayStartPlacement": "Start placement",
   "todayStartFromZero": "Start from zero",
   "memoryOfStreets": "of {total} streets",
-  "@memoryOfStreets": {"placeholders": {"total": {"type": "String"}}},
+  "@memoryOfStreets": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      }
+    }
+  },
   "memorySinceYesterday": "{change} since yesterday",
-  "@memorySinceYesterday": {"placeholders": {"change": {"type": "String"}}},
+  "@memorySinceYesterday": {
+    "placeholders": {
+      "change": {
+        "type": "String"
+      }
+    }
+  },
   "memoryNote": "Streets you’d place right now. It drops if you stop, and climbs as reviews stick.",
   "memoryMastered": "Mastered",
   "memorySolid": "Solid",
   "memoryKnown": "Known",
   "memorySeen": "Seen",
   "a11yMemoryBar": "{name}: {mastered} mastered, {solid} solid, {known} known, {seen} seen of {total}",
-  "@a11yMemoryBar": {"placeholders": {"name": {"type": "String"}, "mastered": {"type": "String"}, "solid": {"type": "String"}, "known": {"type": "String"}, "seen": {"type": "String"}, "total": {"type": "String"}}},
+  "@a11yMemoryBar": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "mastered": {
+        "type": "String"
+      },
+      "solid": {
+        "type": "String"
+      },
+      "known": {
+        "type": "String"
+      },
+      "seen": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
   "a11yCityMemory": "City memory: {memory} of {total} streets you’d place today, {change} since yesterday.",
-  "@a11yCityMemory": {"placeholders": {"memory": {"type": "String"}, "total": {"type": "String"}, "change": {"type": "String"}}},
+  "@a11yCityMemory": {
+    "placeholders": {
+      "memory": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      },
+      "change": {
+        "type": "String"
+      }
+    }
+  },
   "progressTitle": "Progress",
   "progressCityMemory": "City memory · streets you’d place today",
   "progressOfShare": "of {total} · {percent} %",
-  "@progressOfShare": {"placeholders": {"total": {"type": "String"}, "percent": {"type": "String"}}},
+  "@progressOfShare": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
   "progressToday": "Today",
   "a11yMemoryChart": "City memory over the last 10 weeks, from {from} to {to} streets.",
-  "@a11yMemoryChart": {"placeholders": {"from": {"type": "String"}, "to": {"type": "String"}}},
+  "@a11yMemoryChart": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
   "progressRecall": "Recall, 30 days",
   "progressWholeCity": "Whole city by",
   "progressNoValue": "–",
   "progressForecastTitle": "Reviews, next 14 days",
   "progressForecastAverage": "about {count} a day",
-  "@progressForecastAverage": {"placeholders": {"count": {"type": "String"}}},
+  "@progressForecastAverage": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
   "a11yForecast": "Reviews, next 14 days, about {average} a day. Today {today}.",
-  "@a11yForecast": {"placeholders": {"average": {"type": "String"}, "today": {"type": "String"}}},
+  "@a11yForecast": {
+    "placeholders": {
+      "average": {
+        "type": "String"
+      },
+      "today": {
+        "type": "String"
+      }
+    }
+  },
   "progressMasteredCount": "{count} mastered",
-  "@progressMasteredCount": {"placeholders": {"count": {"type": "String"}}},
+  "@progressMasteredCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
   "progressLearning": "learning {name}",
-  "@progressLearning": {"placeholders": {"name": {"type": "String"}}},
+  "@progressLearning": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "progressInMemory": "{memory} of {total} streets in memory",
-  "@progressInMemory": {"placeholders": {"memory": {"type": "String"}, "total": {"type": "String"}}},
+  "@progressInMemory": {
+    "placeholders": {
+      "memory": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
   "progressNeighbourhoods": "Neighbourhoods",
   "progressChunkMastered": "{total} of {total} · mastered",
-  "@progressChunkMastered": {"placeholders": {"total": {"type": "String"}}},
+  "@progressChunkMastered": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      }
+    }
+  },
   "progressChunkNow": "{seen} of {total} seen · learning now",
-  "@progressChunkNow": {"placeholders": {"seen": {"type": "String"}, "total": {"type": "String"}}},
+  "@progressChunkNow": {
+    "placeholders": {
+      "seen": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
   "progressChunkSeen": "{seen} of {total} seen",
-  "@progressChunkSeen": {"placeholders": {"seen": {"type": "String"}, "total": {"type": "String"}}},
+  "@progressChunkSeen": {
+    "placeholders": {
+      "seen": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
   "progressChunkAfter": "Starts after {name} · {total} streets",
-  "@progressChunkAfter": {"placeholders": {"name": {"type": "String"}, "total": {"type": "String"}}},
+  "@progressChunkAfter": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
   "progressChunkStreets": "{total} streets",
-  "@progressChunkStreets": {"placeholders": {"total": {"type": "String"}}},
+  "@progressChunkStreets": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      }
+    }
+  },
   "progressMasteredMeans": "Mastered = remembered for 3 months or more.",
   "learnSettingsTitle": "Learning settings",
   "learnSettingsSection": "Learning",
   "learnTimeADay": "Time a day",
   "learnPace": "About {count} new streets a day, plus reviews. Whole city by {date} at this pace.",
-  "@learnPace": {"placeholders": {"count": {"type": "String"}, "date": {"type": "String"}}},
+  "@learnPace": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "learnWhereYouStart": "Where you start",
   "learnHome": "Home",
   "learnWork": "Work",
   "learnHomeSubtitle": "{name} · learning starts here",
-  "@learnHomeSubtitle": {"placeholders": {"name": {"type": "String"}}},
+  "@learnHomeSubtitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "learnWorkSubtitle": "{name} · comes next",
-  "@learnWorkSubtitle": {"placeholders": {"name": {"type": "String"}}},
+  "@learnWorkSubtitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "learnAnchorUnset": "Not set",
   "anchorHomeTitle": "Home: {name}",
-  "@anchorHomeTitle": {"placeholders": {"name": {"type": "String"}}},
+  "@anchorHomeTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "anchorWorkTitle": "Work: {name}",
-  "@anchorWorkTitle": {"placeholders": {"name": {"type": "String"}}},
+  "@anchorWorkTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "anchorSetHome": "Set as home",
   "anchorSetWork": "Set as work",
-  "anchorMore": "More",
-  "a11yAnchorMap": "Neighbourhood map. Tap a neighbourhood to choose it.",
-  "todayLearningSettings": "Learning settings"
+  "tabToday": "Today",
+  "tabExplore": "Explore",
+  "mePlayingSince": "Playing since {month}",
+  "@mePlayingSince": {
+    "placeholders": {
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "mePins": "Pins dropped",
+  "meCountedDays": "Days counted",
+  "badgeCityMemory": "City memory {count}",
+  "@badgeCityMemory": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "badgeCityMemoryCondition": "City memory reaches {count} streets",
+  "@badgeCityMemoryCondition": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "badgeRetired": "Retired",
+  "a11yBadgeRetired": "{name}, retired, earned.",
+  "@a11yBadgeRetired": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsLearningSubtitle": "Minutes a day, home and work, the reminder",
+  "streakOpenToday": "Today’s session",
+  "streakRule": "A day counts once nothing is due or your minutes for the day are spent.",
+  "memoryThisWeek": "{change} this week",
+  "@memoryThisWeek": {
+    "placeholders": {
+      "change": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yTodayReady": "Today’s session: {reviews} reviews and {newCount} new streets, about {minutes} minutes.",
+  "@a11yTodayReady": {
+    "placeholders": {
+      "reviews": {
+        "type": "int"
+      },
+      "newCount": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yTodayBacklog": "{count} reviews waiting. New streets are paused until you catch up, about {days} days at {minutes} minutes.",
+  "@a11yTodayBacklog": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "todayBacklogTitle": "{count, plural, =1{1 review waiting} other{{shown} reviews waiting}}",
+  "@todayBacklogTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "shown": {
+        "type": "String"
+      }
+    }
+  },
+  "todayBacklogSubtitle": "New streets are paused until you catch up. {days, plural, =1{About 1 day} other{About {days} days}} at {minutes} min.",
+  "@todayBacklogSubtitle": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "todayBacklogToday": "Today",
+  "todayMinutes": "Minutes",
+  "todayCatchUp": "Catch up",
+  "todayBacklogInfo": "Most overdue first, so the streets you’re about to lose come back before the rest. Nothing is lost for good: a forgotten street just comes back sooner.",
+  "todayStreakKept": "{days}-day streak kept",
+  "@todayStreakKept": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "todayLearnMore": "Learn {count} more",
+  "@todayLearnMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todayFreePlay": "Free play",
+  "a11yCityMemoryRow": "{name}, {known} of {total} streets in memory",
+  "@a11yCityMemoryRow": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "known": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  }
 }

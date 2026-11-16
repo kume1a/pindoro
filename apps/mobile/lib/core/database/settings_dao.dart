@@ -22,9 +22,7 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
     sound: true,
     haptics: true,
     homeCoachSeen: false,
-    dailyGoal: StreakRules.defaultGoal,
     reminder: false,
-    turnList: false,
     minutesPerDay: 20,
   );
 
@@ -76,18 +74,12 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
   Future<void> setHaptics({required bool on}) =>
       _update(UserSettingsCompanion(haptics: Value(on)));
 
-  Future<void> setDailyGoal(int goal) =>
-      _update(UserSettingsCompanion(dailyGoal: Value(goal)));
-
   Future<void> setReminder({required bool on}) =>
       _update(UserSettingsCompanion(reminder: Value(on)));
 
   /// The learning session's length: 15, 20 or 30 minutes.
   Future<void> setMinutesPerDay(int minutes) =>
       _update(UserSettingsCompanion(minutesPerDay: Value(minutes)));
-
-  Future<void> setTurnList({required bool on}) =>
-      _update(UserSettingsCompanion(turnList: Value(on)));
 
   Future<void> markHomeCoachSeen() =>
       _update(const UserSettingsCompanion(homeCoachSeen: Value(true)));

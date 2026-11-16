@@ -46,23 +46,21 @@ final streetCardsProvider = FutureProvider.autoDispose<Map<String, CardState>>((
   };
 });
 
-/// The next new streets in curriculum order, as P items (SPEC §6.3).
-final newCandidatesProvider = FutureProvider.autoDispose<List<String>>((
-  ref,
-) async {
-  final now = ref.watch(clockProvider)();
-  final curriculumFuture = ref.watch(curriculumProvider.future);
-  final cardsFuture = ref.watch(streetCardsProvider.future);
-  final anchorsFuture = ref.watch(anchorsProvider.future);
-  final settings = await ref.watch(settingsProvider.future);
-  final picks = (await curriculumFuture).next(
-    cards: await cardsFuture,
-    now: now,
-    count: LearningConfig.newPerDay[settings.minutesPerDay] ?? 0,
-    anchors: await anchorsFuture,
-  );
-  return [for (final id in picks) CardType.p.item(id)];
-});
+/// The next [count] new streets in curriculum order, as P items (SPEC §6.3).
+final newCandidatesProvider = FutureProvider.autoDispose
+    .family<List<String>, int>((ref, count) async {
+      final now = ref.watch(clockProvider)();
+      final curriculumFuture = ref.watch(curriculumProvider.future);
+      final cardsFuture = ref.watch(streetCardsProvider.future);
+      final anchors = await ref.watch(anchorsProvider.future);
+      final picks = (await curriculumFuture).next(
+        cards: await cardsFuture,
+        now: now,
+        count: count,
+        anchors: anchors,
+      );
+      return [for (final id in picks) CardType.p.item(id)];
+    });
 
 /// The open city's cards. A card whose street left the pack is skipped; one
 /// keyed by another part of a street still counts as that street's card.
@@ -87,13 +85,27 @@ final dueTomorrowProvider = FutureProvider.autoDispose<int>((ref) async {
 });
 
 /// Today's session over the open city's cards (SPEC §7, §16.2).
-final todayPlanProvider = FutureProvider.autoDispose<SessionPlan>((ref) async {
+final todayPlanProvider = FutureProvider.autoDispose<SessionPlan>(
+  (ref) => _plan(ref),
+);
+
+/// "Learn 5 more" (SPEC §7): [LearningConfig.learnMoreCount] new streets past
+/// the daily number.
+final learnMorePlanProvider = FutureProvider.autoDispose<SessionPlan>(
+  (ref) => _plan(ref, extraNew: LearningConfig.learnMoreCount),
+);
+
+Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
   final dao = ref.watch(learningDaoProvider);
   final now = ref.watch(clockProvider)();
+  final settings = await ref.watch(settingsProvider.future);
   final streetsFuture = ref.watch(cityStreetsProvider.future);
   final cardsFuture = ref.watch(cityCardsProvider.future);
-  final candidatesFuture = ref.watch(newCandidatesProvider.future);
-  final settings = await ref.watch(settingsProvider.future);
+  final candidatesFuture = ref.watch(
+    newCandidatesProvider(
+      extraNew ?? LearningConfig.newPerDay[settings.minutesPerDay] ?? 0,
+    ).future,
+  );
   final streets = await streetsFuture;
   final cards = await cardsFuture;
   final cardedStreets = {
@@ -103,6 +115,8 @@ final todayPlanProvider = FutureProvider.autoDispose<SessionPlan>((ref) async {
     for (final id in await candidatesFuture)
       if (!cardedStreets.contains(itemKey(id))) id,
   ];
+  final log = await dao.log();
+  final times = timeEstimates(log);
   return Planner.plan(
     cards: cards,
     newCandidates: candidates,
@@ -110,6 +124,9 @@ final todayPlanProvider = FutureProvider.autoDispose<SessionPlan>((ref) async {
     now: now,
     seed: now.year * 10000 + now.month * 100 + now.day,
     introducedToday: introducedToday(cards, now),
-    spentTodayS: spentTodayS(await dao.log(since: startOfDay(now)), now),
+    spentTodayS: spentTodayS(log, now),
+    extraNew: extraNew,
+    tReviewS: times.tReviewS,
+    tNewS: times.tNewS,
   );
-});
+}

@@ -49,12 +49,16 @@ class CityMemoryCard extends StatelessWidget {
     super.key,
     required this.memory,
     this.sinceYesterday,
+    this.sinceWeek,
     this.history,
     this.onTap,
   });
 
   final MemorySummary memory;
   final double? sinceYesterday;
+
+  /// Shown instead of [sinceYesterday] while catching up ("−41 this week").
+  final double? sinceWeek;
   final ({DateTime start, List<double> values})? history;
   final VoidCallback? onTap;
 
@@ -66,7 +70,8 @@ class CityMemoryCard extends StatelessWidget {
     final locale = Localizations.localeOf(context).toLanguageTag();
     final number = formatNumber(memory.memory.round());
     final total = formatNumber(memory.total);
-    final change = sinceYesterday;
+    final week = sinceWeek;
+    final change = week ?? sinceYesterday;
     final history = this.history;
     final percent = memory.total == 0
         ? 0
@@ -126,7 +131,9 @@ class CityMemoryCard extends StatelessWidget {
                 ),
                 if (change != null)
                   Text(
-                    l10n.memorySinceYesterday(signedNumber(change)),
+                    week == null
+                        ? l10n.memorySinceYesterday(signedNumber(change))
+                        : l10n.memoryThisWeek(signedNumber(change)),
                     style: PindoroType.labelMd.copyWith(
                       color: change.round() < 0
                           ? c.textSecondary

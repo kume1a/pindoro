@@ -22,8 +22,6 @@ Polyline _line(Object? v) => [for (final p in v! as List<Object?>) _ll(p)];
 
 void main() {
   final scoring = _fixture('scoring_vectors.json');
-  final levels = _fixture('levels_vectors.json');
-  final routes = _fixture('route_vectors.json');
   final tolerance = _d(scoring['distance_tolerance_m']);
 
   group('pointToPolylineDistance', () {
@@ -65,13 +63,12 @@ void main() {
     for (final v in _cases(scoring, 'score')) {
       final difficulty = Difficulty.values.byName(v['difficulty']! as String);
       test(v['name'], () {
-        final s = scoreAnswer(
+        final tier = scoreAnswer(
           _d(v['distance_m']),
           v['road_class']! as String,
           difficulty,
         );
-        expect(s.tier.name, v['tier']);
-        expect(s.xp, v['xp']);
+        expect(tier.name, v['tier']);
       });
     }
   });
@@ -88,45 +85,6 @@ void main() {
         expect(
           () => decodePolyline6(v['encoded']! as String),
           throwsFormatException,
-        );
-      });
-    }
-  });
-
-  group('levels', () {
-    for (final v in _cases(levels, 'requirement')) {
-      test('requirement(${v['n']})', () {
-        expect(requirement(v['n']! as int), v['xp']);
-      });
-    }
-    for (final v in _cases(levels, 'total_xp_to_reach')) {
-      test('totalXpToReach(${v['n']})', () {
-        expect(totalXpToReach(v['n']! as int), v['xp']);
-      });
-    }
-    for (final v in _cases(levels, 'progress')) {
-      test('${v['xp']} xp', () {
-        final p = progressWithinLevel(v['xp']! as int);
-        expect(levelForXp(v['xp']! as int), v['level']);
-        expect(p, (
-          level: v['level'],
-          xpIntoLevel: v['xpIntoLevel'],
-          xpForLevel: v['xpForLevel'],
-        ));
-      });
-    }
-  });
-
-  group('route scoring', () {
-    for (final v in _cases(routes, 'route_score')) {
-      test(v['name'], () {
-        expect(
-          scoreRoute(
-            _d(v['drawn_m']),
-            _d(v['best_m']),
-            Difficulty.values.byName(v['difficulty']! as String),
-          ),
-          (tier: Tier.values.byName(v['tier']! as String), xp: v['xp']),
         );
       });
     }

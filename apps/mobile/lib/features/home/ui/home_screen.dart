@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
@@ -14,12 +13,10 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/home/data/home_data.dart';
 import 'package:pindoro/features/home/ui/widgets/city_card.dart';
 import 'package:pindoro/features/home/ui/widgets/home_intro.dart';
-import 'package:pindoro/features/home/ui/widgets/level_card.dart';
 import 'package:pindoro/features/home/ui/widgets/offline_card.dart';
 import 'package:pindoro/features/home/ui/widgets/saved_card.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/pack/ui/pack_pending.dart';
-import 'package:pindoro/features/progress/data/streak.dart';
 import 'package:pindoro/features/progress/ui/play_top_bar.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -29,8 +26,8 @@ import 'package:pindoro_design/pindoro_design.dart';
 // anyway, because the summary only travels with Results' Done.
 final _introsPlayed = <String>{};
 
-/// Level, XP and the streets you know in the city, district by district;
-/// Play (or Continue round) pinned in the thumb zone. Right after a round
+/// Explore: the streets you know in the city, district by district; Play
+/// (or Continue round) pinned in the thumb zone. Right after a round
 /// ([summary]) the numbers count up from where they were, once.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key, this.summary});
@@ -67,19 +64,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (mounted) setState(() => _settled = true);
       },
     );
-    return (
-      xpBefore: home.totalXp - summary.roundXp,
-      roundXp: summary.roundXp,
-      before: before,
-      settled: _settled,
-    );
+    return (before: before, settled: _settled);
   }
 
   @override
   Widget build(BuildContext context) {
     final home = ref.watch(homeProvider(_summary?.startedAt)).value;
     final settings = ref.watch(settingsProvider).value;
-    final streak = ref.watch(streakProvider).value;
     final packState = ref.watch(packRepositoryProvider);
     if (home == null || leavingFixture(packState)) {
       return PackPending(pack: packState);
@@ -88,7 +79,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
     final city = home.pack.city();
-    final level = progressWithinLevel(home.totalXp);
     // Areas picked in another pack (offline, the Vake one stands in) aren't
     // playable here, so Play asks for an area instead.
     final area = switch (settings?.area) {
@@ -116,15 +106,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             PlayTopBar(
               city: city,
-              xp: CountUp(
-                value: home.totalXp,
-                from: intro?.xpBefore ?? home.totalXp,
-                delay: HomeIntroAt.xp,
-                builder: (context, xp) => XpPill(
-                  home.totalXp,
-                  shown: xp,
-                  ring: intro != null && !intro.settled,
-                ),
+              trailing: PindoroIconButton(
+                glyph: PindoroGlyph.settings,
+                semanticLabel: l10n.a11ySettings,
+                onPressed: () => open(Routes.settings),
               ),
             ),
             Expanded(
@@ -141,12 +126,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         onDownload: () =>
                             ref.read(offlineVakeProvider.notifier).set(false),
                       ),
-                    HomeLevelCard(
-                      level: level,
-                      totalXp: home.totalXp,
-                      intro: intro,
-                      streak: streak,
-                    ),
                     if (saved != null) SavedCard(saved: saved),
                     CityCard(
                       home: home,
@@ -207,12 +186,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       label: l10n.homeChooseArea,
                       hero: true,
                       onPressed: () => open(Routes.area),
-                    ),
-                  if (AppConfig.v3)
-                    PindoroButton(
-                      label: l10n.homeOpenToday,
-                      variant: PindoroButtonVariant.secondary,
-                      onPressed: () => context.push(Routes.today),
                     ),
                 ],
               ),

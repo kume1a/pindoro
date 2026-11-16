@@ -38,6 +38,9 @@ SessionPlan plan({
   int seed = 1,
   int introducedToday = 0,
   int spentTodayS = 0,
+  int? extraNew,
+  int tReviewS = LearningConfig.tReviewS,
+  int tNewS = LearningConfig.tNewS,
 }) => Planner.plan(
   cards: cards,
   newCandidates: fresh ?? candidates(30),
@@ -46,6 +49,9 @@ SessionPlan plan({
   seed: seed,
   introducedToday: introducedToday,
   spentTodayS: spentTodayS,
+  extraNew: extraNew,
+  tReviewS: tReviewS,
+  tNewS: tNewS,
 );
 
 Iterable<String> ofKind(SessionPlan p, StepKind kind) =>
@@ -86,6 +92,18 @@ void main() {
         expect(ofKind(p, StepKind.intro), ['P:n0', 'P:n2', 'P:n3', 'P:n4']);
       },
     );
+  });
+
+  test('Learn 5 more: five new streets past the daily number and the '
+      'minutes', () {
+    final p = plan(introducedToday: 10, spentTodayS: 1200, extraNew: 5);
+    expect(p.newCount, 5);
+    expect(ofKind(p, StepKind.intro), hasLength(5));
+  });
+
+  test('catchUpDays: the due reviews in days of the minutes', () {
+    expect(catchUpDays(dueCount: 186, minutesPerDay: 20), 2);
+    expect(catchUpDays(dueCount: 300, minutesPerDay: 15), 4);
   });
 
   group('backlog mode', () {
@@ -310,6 +328,50 @@ void main() {
         due('c'),
       ];
       expect(introducedToday(cards, now), 1);
+    });
+
+    test('the daily day counts once something was answered and nothing is '
+        'due, or the minutes are spent (SPEC §8)', () {
+      final today = [answer('s1', now.subtract(const Duration(minutes: 5)))];
+      expect(
+        dayCounts(
+          cards: const [],
+          today: const [],
+          minutesPerDay: 20,
+          now: now,
+        ),
+        isFalse,
+      );
+      expect(
+        dayCounts(cards: const [], today: today, minutesPerDay: 20, now: now),
+        isTrue,
+      );
+      final stillDue = [due('a')];
+      expect(
+        dayCounts(cards: stillDue, today: today, minutesPerDay: 20, now: now),
+        isFalse,
+      );
+      final long = [
+        for (var i = 0; i <= 40; i++)
+          answer('s1', now.subtract(Duration(seconds: 30 * (40 - i)))),
+      ];
+      expect(
+        dayCounts(cards: stillDue, today: long, minutesPerDay: 20, now: now),
+        isTrue,
+      );
+    });
+
+    test('time estimates follow the log medians once there are 50 reviews', () {
+      final start = DateTime.utc(2026, 3, 1, 8);
+      List<LogEntry> reviews(int n, int gapS) => [
+        for (var i = 0; i <= n; i++)
+          answer('s', start.add(Duration(seconds: gapS * i))),
+      ];
+      expect(timeEstimates(reviews(10, 6)), (
+        tReviewS: LearningConfig.tReviewS,
+        tNewS: LearningConfig.tNewS,
+      ));
+      expect(timeEstimates(reviews(60, 6)), (tReviewS: 6, tNewS: 23));
     });
 
     test('spentTodayS sums the gaps between answers, each capped at 60 s', () {

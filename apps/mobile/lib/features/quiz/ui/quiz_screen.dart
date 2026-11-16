@@ -20,20 +20,14 @@ import 'package:pindoro/features/quiz/ui/setup_states.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// Plays a round: resumes [roundId], retries [retryOf]'s missed streets,
-/// plays the [pitStop], or starts one from the saved area and difficulty.
+/// Plays an Explore round: resumes [roundId], retries [retryOf]'s missed
+/// streets, or starts one from the saved area and difficulty.
 /// Setup states, the question and the reveal are one route.
 class QuizScreen extends ConsumerStatefulWidget {
-  const QuizScreen({
-    super.key,
-    this.roundId,
-    this.retryOf,
-    this.pitStop = false,
-  });
+  const QuizScreen({super.key, this.roundId, this.retryOf});
 
   final String? roundId;
   final String? retryOf;
-  final bool pitStop;
 
   @override
   ConsumerState<QuizScreen> createState() => _QuizScreenState();
@@ -81,7 +75,6 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     final retryOf = widget.retryOf;
     if (retryOf != null) return controller.startRetry(retryOf);
     final settings = await ref.read(settingsDaoProvider).read();
-    if (widget.pitStop) return controller.startPitStop(settings.difficulty);
     await controller.start(settings.area, settings.difficulty);
   }
 
@@ -91,8 +84,6 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
       switch (next) {
         case RoundFinished(:final roundId):
           context.go(Routes.resultsOf(roundId));
-        case RoundNothingDue():
-          context.go(Routes.pitStop);
         case RoundRevealed(:final answer) when previous is! RoundRevealed:
           _announce(context, answer);
         case RoundAsking() when previous is! RoundAsking:
@@ -115,7 +106,6 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         l10n.a11yReveal(
           tierLabel(l10n, answer.tier),
           formatDistance(answer.distanceM, l10n),
-          formatNumber(answer.xp),
         ),
         Directionality.of(context),
       ),
@@ -168,7 +158,6 @@ class _RoundView extends ConsumerWidget {
             : (
                 key: answer.id,
                 tier: answer.tier,
-                xp: answer.xp,
                 distanceM: answer.distanceM,
                 pin: revealed.pin,
                 nearest: revealed.nearest,
@@ -177,8 +166,6 @@ class _RoundView extends ConsumerWidget {
                     Pill(label: l10n.revealPerfectRepeat(round.perfects)),
                   if (round.streak >= 2)
                     Pill(label: l10n.revealStreak(round.streak)),
-                  if (isRetryTier(answer.tier))
-                    PitStopChip(l10n.revealToPitStop),
                 ],
                 action: answer.tier == Tier.miss
                     ? l10n.revealGotIt
@@ -218,7 +205,7 @@ class _RoundView extends ConsumerWidget {
     final leave = await confirmLeave(
       context,
       title: l10n.quizLeaveTitle,
-      body: l10n.quizLeaveBody(resumesAt, round.total, formatNumber(round.xp)),
+      body: l10n.quizLeaveBody(resumesAt, round.total),
       stay: l10n.quizLeaveKeepPlaying,
       leave: l10n.quizLeaveConfirm,
     );
@@ -226,7 +213,7 @@ class _RoundView extends ConsumerWidget {
   }
 }
 
-/// Leave, the question bar and the round's XP.
+/// Leave and the question bar.
 class _TopBar extends StatelessWidget {
   const _TopBar(this.round, {required this.onLeave});
 
@@ -242,8 +229,6 @@ class _TopBar extends StatelessWidget {
       tiers: round.answeredTiers,
       total: round.total,
       barLabel: l10n.commonQuestionProgress(round.number, round.total),
-      xp: round.xp,
-      xpLabel: l10n.a11yRoundXp,
     );
   }
 }

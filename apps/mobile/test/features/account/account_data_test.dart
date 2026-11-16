@@ -14,7 +14,7 @@ import 'package:pindoro/features/account/data/account_api.dart';
 import 'package:pindoro/features/account/data/account_dao.dart';
 import 'package:pindoro/features/account/data/account_data.dart';
 import 'package:pindoro/features/account/data/backup.dart';
-import 'package:pindoro/features/progress/data/progress_dao.dart';
+import 'package:pindoro/features/learning/data/learning_dao.dart';
 
 void main() {
   late Directory dir;
@@ -100,7 +100,7 @@ void main() {
   });
 
   group('a phone with progress', () {
-    setUp(() => ProgressDao(db).place('tbilisi', [('vake', 1)]));
+    setUp(() => LearningDao(db).markPlaced('tbilisi', DateTime(2026)));
 
     test('keeps its own when the player says so', () async {
       DateTime? asked;

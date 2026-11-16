@@ -9,9 +9,8 @@ import { createDb } from "./db/client.ts";
 import { accountsRoutes } from "./modules/accounts/accounts.routes.ts";
 import { catalogRoutes } from "./modules/catalog/catalog.routes.ts";
 import { healthRoutes } from "./modules/health/health.routes.ts";
-import { leaguesRoutes } from "./modules/leagues/leagues.routes.ts";
 
-/** `now` is the clock leagues and backups read (tests move it across weeks). */
+/** `now` is the clock backups read (tests move it). */
 export const buildApp = async (
   config: Config,
   { now = (): Date => new Date() }: { now?: () => Date } = {},
@@ -52,7 +51,6 @@ export const buildApp = async (
         ? { build: config.APP_BUILD, url: config.APP_URL }
         : undefined,
   });
-  await app.register(leaguesRoutes, { db, now });
   await app.register(accountsRoutes, { db, now, signupsPerHour: config.SIGNUP_LIMIT });
   return app;
 };

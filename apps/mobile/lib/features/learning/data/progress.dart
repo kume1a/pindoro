@@ -49,11 +49,12 @@ typedef ProgressOverview = ({
   List<RaionProgress> districts,
 });
 
-/// The open city's City memory and its change since yesterday (Today).
+/// The open city's City memory and its change since yesterday and over the
+/// week (Today).
 final cityMemoryProvider =
-    FutureProvider.autoDispose<({MemorySummary city, double sinceYesterday})>((
-      ref,
-    ) async {
+    FutureProvider.autoDispose<
+      ({MemorySummary city, double sinceYesterday, double sinceWeek})
+    >((ref) async {
       final now = ref.watch(clockProvider)();
       final streets = await ref.watch(cityStreetsProvider.future);
       final cards = await ref.watch(streetCardsProvider.future);
@@ -61,7 +62,8 @@ final cityMemoryProvider =
       final core = streets.values.where(Curriculum.isCore).toSet();
       return (
         city: _summary(core, cards, now),
-        sinceYesterday: _sinceYesterday(core, cards, log, now),
+        sinceYesterday: _since(core, cards, log, now, const Duration(days: 1)),
+        sinceWeek: _since(core, cards, log, now, const Duration(days: 7)),
       );
     });
 
@@ -132,7 +134,7 @@ final progressProvider = FutureProvider.autoDispose<ProgressOverview>((
   final memory = _summary(core, cards, now);
   return (
     city: memory,
-    sinceYesterday: _sinceYesterday(core, cards, log, now),
+    sinceYesterday: _since(core, cards, log, now, const Duration(days: 1)),
     history: cityMemoryHistory(
       cards: coreCards,
       log: log,
@@ -166,16 +168,17 @@ MemorySummary _summary(
 
 double _share(MemorySummary m) => m.total == 0 ? 0 : m.memory / m.total;
 
-double _sinceYesterday(
+/// How City memory changed over the last [span].
+double _since(
   Iterable<NamedStreet> core,
   Map<String, CardState> cards,
   List<LogEntry> log,
   DateTime now,
+  Duration span,
 ) {
   final carded = [for (final s in core) ?cards[s.id]];
-  final yesterday = now.subtract(const Duration(days: 1));
   return cityMemory(carded, now, isCore: (_) => true) -
-      cityMemoryAt(carded, log, yesterday);
+      cityMemoryAt(carded, log, now.subtract(span));
 }
 
 /// Core streets not met yet: what the whole-city date counts down.

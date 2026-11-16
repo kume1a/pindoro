@@ -43,90 +43,23 @@
   - The Streak calendar shows the current month only (the board has no month arrows).
   - The pill doesn't turn "at risk" at 18:00 while the app stays open; it updates on the next
     resume or progress change.
-  - Days before the R2 update aren't backfilled: streaks start with it.
+  - Days before the R2 update aren't backfilled: streaks start with it. Days counted under the
+    old XP goal stay counted.
   - iOS: the reminder has never run on a device; foreground presentation
     (`UNUserNotificationCenter` delegate in `AppDelegate`) isn't set up.
-- Pit stop (R3), left out on purpose:
-  - Answers from before the R3 update don't enter the Pit stop (it starts empty).
-  - The Results chip "n to your Pit stop" isn't tappable; the Pit stop tab is the way in.
-  - Review items of a retired street stay in the table; readers skip them (`dueIn`).
-- Tabs and Me (R4a), left out on purpose:
+- Tabs and Me, left out on purpose:
   - Only Best streak opens something (Streak); the lists behind the other tiles don't exist yet.
   - A played city whose pack isn't on the phone is left out of Me's cities.
-  - After a Pit stop round, Done still lands on Free play (with the Home intro), not the Pit stop
-    tab.
-- Course and lessons (R4b), left out on purpose:
-  - Cities without district polygons get no course (units by rings from the centre).
-  - Lesson titles and where sentences are generated; no editorial text per district.
-  - The course is rebuilt from the pack each time: a pack update that reorders a raion's streets
-    changes its lessons (results keep their lesson numbers).
-  - The locked-stop bubble always sits centred under the stop's row, not on the stop.
-- Road trips (R4c), left out on purpose:
-  - Since 2026-11-14 a trip goes to a street (no B pin until reached), its best drive turns at
-    least twice (else the trip with the most turns), and taps draw too, with a Start over button.
-    The claude.ai screens R4-30 to R4-34 still show the A-to-B flow.
-  - A tap drives along street parts by id, so a same-name street of three or more parts can take
-    an extra tap.
-  - The tier sheet's detour sentence ("Turning north for the main road added 212 m") and its ink
-    chip at the detour.
-  - The lane loader while checking: the best route is computed at once.
-  - One-way streets are ignored. The graph holds the pack's named streets only, so unnamed links and
-    ramps are missing and some best drives detour around them.
-  - B pops when reached but has no ring pulse.
-  - Units have no titles: the locked unit's sheet, Unit complete's signpost and the Unit guide
-    show the district.
-  - A killed Final drive keeps its passed trips but drops the trip in progress.
-  - A raion with no 800–2 500 m trip gets lesson-length ones (500–1 500 m) in its Final drive, so
-    its unit can still be passed; the design only has the longer drive.
-  - R4b progress isn't carried over: a unit opened by its lesson 6 locks again until the Final
-    drive before it passes.
-  - Jump ahead and the R4-61 storyboard have no widget test (the bundled fixture has one raion);
-    pindoro_core tests the rules and the emulator check covered them.
-  - Packs grew to about 2.3 MB gzipped (a street UUID on each of about 16 000 edges); reference
-    streets by row number if pack size starts to matter.
-- First launch (R4d), left out on purpose:
-  - The start district can't be changed later. A new city's course starts at the raion of its last
-    Free play area, without the picker.
-  - Placement covers the open city when What's new shows; other cities' courses start unplaced.
-  - The picker describes a district by its direction from the centre, not a hand-written line
-    ("old town hills").
-  - The "Start here" coach mark has no seen flag: it shows on each launch until the city has a
-    lesson result.
-  - A city without raions never gets a course row: What's new would show on every launch there and
-    a new player would return to Welcome. No catalog city lacks raions today.
-  - "Show me my path" shows nothing while placement is worked out (about a second for Tbilisi).
-  - The Path builds every unit so it can scroll to a current stop far down; fine for about 10
-    units, a city with many more needs a jump to an estimated offset first.
-
-- Finishing v2.0 (R4e), left out on purpose:
-  - Starting a lesson doesn't cache its streets, road graph and tiles (zoom 14–17): it needs the
-    connection the Path had.
-  - Hear the name shows only where the device has a voice for the name's language (often not for
-    Georgian, especially on iOS); there is no recorded fallback.
-  - A pack update between an app kill and the next launch starts the killed lesson over.
-  - The Unit guide's tip comes from the streets' main direction; no hand-written tip per district.
-
-- Leagues (R5), left out on purpose:
-  - Usernames, shown as league names, aren't moderated and can't be reported.
-  - Deleting an account drops its past league rows too, so a finished week's ranks can shift for
-    players who haven't synced the new week yet.
-  - The server trusts the app's XP; there is no cheat detection.
-  - XP synced after Monday 00:00 (Tbilisi) for the week before is lost; so is XP earned offline
-    that week and synced only after it ends.
-  - No "You moved up" moment at the week's end; the header just shows the new league.
-  - The token sits in the app's database, not the keychain.
-  - The Results chip shows after Free play rounds only (as designed); lessons don't show a move.
-  - A league week only fills from players syncing; with few players, leagues stay small (no
-    demotion zone below 26 players).
+- Hear the name shows only where the device has a voice for the name's language (often not for
+  Georgian, especially on iOS); there is no recorded fallback.
 
 - Badges, left out on purpose:
   - No badge detail screen, no sharing, and the earned date shows nowhere.
   - Explorer is "know streets in 5 districts", not the design's "3 cities": the catalog has one
     city. Navigator's sheet says the condition, not the district ("you mastered Vake").
-  - Pit crew counts streets cleared from the update on: clearings weren't recorded before.
-  - A badge earned on a screen that was killed, or in a Final drive left before Unit complete,
-    gets its sheet at the next end screen. The launch award is quiet and only runs while the
-    player has no badges.
+  - Badges are awarded on Explore's Results only; one earned in a session gets its sheet at the
+    next Results. The launch award is quiet and only runs while the player has no badges.
+  - City memory milestones are reached on the open city only.
   - Badge stats count only cities whose pack is on the phone (as Me does).
   - Chests, the design's other reward moment: nothing in the app is a chest.
 
@@ -137,23 +70,22 @@
     Street, counting from the west"), and the plate doesn't add the district for a shared name.
   - Known-street chips use the full name, not the short form ("Chavchavadze Ave", "1st").
   - The Mix-up reveal paints both streets at once (no cobalt-then-yellow paint), and Session done
-    plays no results sound and doesn't count City memory up.
-  - Today's ready and done cards are still the M1 ones (no Pindo head row, primary ring, Turns
-    tile, backlog state or Learn 5 more: M3, Turns M5). It opens from Free play only in `V3=true`
-    builds; Progress opens from its City memory card, learning settings from its gear.
+    shows City memory as a number, without the card-size memory bar.
+  - Today has no Turns tile (M5).
   - `StatChip`, `NextReviewChip` and `IntroSheet` have widget tests but no goldens yet.
 - v3 progress and settings (M2), left out on purpose until the milestone named:
   - Progress district: no Gateways solid or Landmarks tiles (M5); neighbourhood rows open no
     detail. Mastered ignores name and ends cards until they exist (M4), and its definition line
     says only "3 months or more".
-  - Learning settings: no Turns and routes, Street photos or Speak your answers toggles (M5–M7);
-    the reminder keeps its old rule and copy until the streak changes (M3).
+  - Learning settings: no Turns and routes, Street photos or Speak your answers toggles (M5–M7).
   - The home and work picker shows the map and the nearest neighbourhoods as chips, without the
     "More" list and search of the design's area selector.
   - Today has no "Drive this run today" card (M6) or "Now learning" and gateway rows (M5).
-  - The carry-over of old-game streets (`carryOverProvider`) reads the `answer` and lesson tables
-    each time a pack opens. M3 may drop those tables only once every city with a pack has been
-    carried over (keep a per-city flag, or keep the tables read-only).
+- v3 replacing the old game (M3), left out on purpose:
+  - Explore keeps its own known-street counts (best tier in Explore and the old lessons); the
+    rest of the app counts from the cards.
+  - The route drawing (`RouteDraft`, `RouteDrawLayer`) is unused until the M6 recitals.
+  - The Georgian draft of the new strings needs the native review like the rest.
 
 ## Gaps found 2026-11-11 (design vs code)
 
@@ -170,38 +102,33 @@ and the specs after R5. Fix them in roughly this order.
   - Parked, not a priority (2026-11-11: nobody playing uses a screen reader): the pin's label and
     "Pin dropped, …" announcement; focus moving to the plate on a new street and to Next after
     the reveal; a screen-reader node for the area rectangle's handles; the map's "Drag with two
-    fingers" hint, a district's state word, a locked stop's "Finish lesson n to unlock" and
-    descriptions of Pindo in empty states.
+    fingers" hint, a district's state word and descriptions of Pindo in empty states.
 - Motion and celebrations (`docs/design/motion-sound-haptics.md`):
   - No district-mastered moment: no fill wipe, outline and check, no heavy haptic, no big
     celebration for the first mastered district.
   - A round can get two big celebrations: Results also goes big on a flawless round (not in the
     design).
-  - Streak milestones (7, 30, 100, 365) play the medium celebration, not the big one; Lesson
-    complete plays no milestone or streak haptic.
+  - Streak milestones (7, 30, 100, 365) play the medium celebration, not the big one.
   - The pin can't be dragged (lift 12 dp, follow the finger); taps only.
   - Missing details: the pin drop's squash, shadow and tip ripple; Confirm's halo; Close's ring
-    pulse at the pin; Pindo's hop and jump (Pindo is static, `sleepy` unused); the level-up
-    shield stamp (0.92 → 1.22, −6°) and Pindo's sticker outline; the round XP pill counting up;
-    the Path stop unlock's lock drop.
+    pulse at the pin; Pindo's hop and jump (Pindo is static, `sleepy` unused) and Pindo's sticker
+    outline.
   - Reduce motion still animates the map camera and the question bar's fill.
   - No haptic on Next; the error haptic is `heavyImpact` rather than `vibrate()` on Android.
   - Sound kit: brighter and glassier than the design's "warm and wooden" (synthesized FM plucks and
     bells in C major, pitch-glide pops, a ComfyUI wooden tok under the pin drop) for a more
     polished game feel. One WAV for both platforms, not OGG + CAF, at -18 LUFS rather than -16
-    (measured over 4 s, since EBU R128 gates sub-second clips out). Events the kit has no sound for reuse one: the Path unlock and badges play
-    `unlock`, junctions `count_tick`, reaching B `tier_great`, Unit complete `tier_perfect`.
+    (measured over 4 s, since EBU R128 gates sub-second clips out). Events the kit has no sound for reuse one: the city pack arriving and badges
+    play `unlock`.
     No new-street chime, replay whoosh, streak-milestone or district fanfare.
 - Smaller:
-  - The map makes room for the road-trip tier sheet when the replay starts, not with a 60 dp pan
-    after it.
   - Upgrade maplibre_gl 0.27.1 → 0.28.0 (Flutter 3.44+, iOS 15.5, SwiftPM; Android points become
     logical pixels, calls throw instead of returning false, channel mocks need a fake
     `MapLibrePlatform`).
 - Ops for sideloading:
   - No crash reporting (`FlutterError.onError`, `PlatformDispatcher.onError`); without paid cloud,
     the API's log could take the reports.
-  - Rate limits are in memory and cover signups, renames and the XP sync only; `/v1/catalog`
+  - Rate limits are in memory and cover signups and renames only; `/v1/catalog`
     (reads every manifest per request) and `/health` have none, and the Cloudflare cache rule for
     tiles and packs is optional in `docs/deploy.md`.
   - Little alerting: GitHub emails a failed Deploy run, but a failed nightly backup only logs and
@@ -215,31 +142,21 @@ and the specs after R5. Fix them in roughly this order.
 
 In the design system but in no release on the canvas Roadmap:
 
-- Onboarding illustration scenes and illustrated empty states ("no league yet"). The pack
-  download's city scene is the first illustration (`features/pack/ui/widgets/city_scene.dart`).
-- A player profile behind a tapped league row.
+- Onboarding illustration scenes and illustrated empty states. The pack download's city scene is
+  the first illustration (`features/pack/ui/widgets/city_scene.dart`).
 - Fuel (lives).
 - Pindo as one rigged Rive or Lottie file instead of static expressions.
 
 ## Next release candidates (design on claude.ai first)
 
-From the product plan ("Learning Every Tbilisi Route"), which the course only partly follows:
+The v3 learning plan (`docs/learning/PLAN.md`) holds the route work (one-way streets, junctions,
+landmarks, recitals and drives) and the curriculum order.
 
-- Free point-to-point road trips: a random A → B anywhere in the city, the plan's daily drill.
-  Road trips exist only inside lessons and Final drives.
-- One-way streets and turn bans in road trips (edges are undirected today); the plan calls the Old
-  Town and Sololaki one-ways the hardest part.
-- A skeleton unit before the districts: the bridges in order and the main roads that feed them.
-- Landmarks (metro stations, malls, bus and railway stations) as targets and trip ends; packs have
-  none.
-- Course order: centre outward, alternating river banks, rather than nearest-first from the picked
-  district.
 - Accounts beyond one backup (the Roadmap's R5 card: not designed yet). Built without a design
   (2026-11-13), with a recovery code instead of an email reset. Left out on purpose: one phone at
   a time (a sign-in elsewhere signs the old phone out, which then says so; no merging of two
-  phones' progress); the league token travels inside the backup (that is how the league comes
-  back); the account token sits in the progress database, so Android Auto Backup and iCloud
-  device backups carry it like the league token; the snapshot is gzipped on the UI isolate; no
+  phones' progress); the account token sits in the progress database, so Android Auto Backup and
+  iCloud device backups carry it; the snapshot is gzipped on the UI isolate; no
   cap on the number of accounts or their total backup size; the username and password fields
   lose their screen-reader name once typed in (SearchField's hint), parked with the other
   screen-reader work.
@@ -271,7 +188,7 @@ From the product plan ("Learning Every Tbilisi Route"), which the course only pa
 - Parked, store-only, not a priority: a privacy policy, `PrivacyInfo.xcprivacy`,
   `CFBundleLocalizations` and a Georgian location prompt, the iPad device family and
   `DEVELOPMENT_TEAM`, a release workflow (fastlane, Play/TestFlight upload), the Play data-safety
-  form and Android auto-backup of the league token.
+  form and Android auto-backup of the account token.
 - iOS is built unsigned in CI (macOS runner) and has run on the simulator (iPhone 16, iOS 18.6),
   never on a device. The iOS release workflow publishes a sideload IPA and a SideStore source
   (`docs/deploy.md` § 7) but has never run; the first SideStore install is the first device check,

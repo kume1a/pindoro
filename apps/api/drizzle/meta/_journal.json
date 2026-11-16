@@ -50,6 +50,13 @@
       "when": 1794682815736,
       "tag": "0006_leagues_on_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794835304448,
+      "tag": "0007_drop_leagues",
+      "breakpoints": true
     }
   ]
 }

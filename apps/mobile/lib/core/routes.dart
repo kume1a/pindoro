@@ -1,18 +1,13 @@
 /// Paths from docs/design/v1-screens.md § Navigation.
 abstract final class Routes {
+  /// Explore, the second tab: Free play on any area.
   static const String home = '/';
   static const String welcome = '/welcome';
-
-  /// Once, for a player who played before the course existed.
-  static const String whatsNew = '/whats-new';
   static const String city = '/city';
 
-  /// The city picker of a new player's course: a city leads on to
-  /// [startDistrict] instead of the area picker.
-  static const String cityForCourse = '$city?course=1';
-
-  /// "Where do you want to start?": the open city's first unit.
-  static const String startDistrict = '/start-district';
+  /// The city picker of a new player: a city leads on to Today (placement)
+  /// instead of the area picker.
+  static const String cityToLearn = '$city?learn=1';
   static const String area = '/area';
   static const String difficulty = '/difficulty';
 
@@ -22,14 +17,7 @@ abstract final class Routes {
   /// `?round=<id>`; `/results/street/<index>?round=<id>` opens one answer.
   static const String results = '/results';
   static const String streak = '/streak';
-  static const String pitStop = '/pit-stop';
-
-  /// The Pit stop's due streets as a round.
-  static const String pitStopRound = '$round?pit-stop=1';
   static const String me = '/me';
-
-  /// This week's league, the fourth tab.
-  static const String leagues = '/leagues';
 
   /// Signing in, creating an account or a new password (Settings → Account).
   static const String account = '/account';
@@ -38,15 +26,19 @@ abstract final class Routes {
   static const String accountPassword = '/account/password';
   static const String settings = '/settings';
 
-  /// The v3 daily session's start (docs/learning/PLAN.md M1 step 7).
+  /// Today's session, City memory and placement: the first tab.
   static const String today = '/today';
 
-  /// Today's learning session (SessionScreen); `?placement=1` places.
+  /// Today's learning session (SessionScreen); `?placement=1` places,
+  /// `?more=1` learns 5 more.
   static const String session = '/session';
   static const String placement = '$session?placement=1';
+
+  /// "Learn 5 more": five new streets past the daily number.
+  static const String learnMore = '$session?more=1';
   static const String credits = '/settings/credits';
 
-  /// City memory, recall, the forecast and the districts (v3 Progress).
+  /// City memory, recall, the forecast and the districts: the third tab.
   static const String progress = '/progress';
 
   /// `?id=<raion id>`: a district's neighbourhoods.
@@ -57,25 +49,6 @@ abstract final class Routes {
 
   /// `?which=home|work`: the neighbourhood picker for an anchor.
   static const String anchor = '/settings/learning/anchor';
-
-  /// The course, the first tab.
-  static const String path = '/path';
-
-  /// `?unit=<raion id>&lesson=<n>` (`&practice=1` replays its test) or
-  /// `?unit=<raion id>&pit-stop=1`.
-  static const String lesson = '/lesson';
-
-  /// `?result=<lesson result id>`.
-  static const String lessonDone = '/lesson-done';
-
-  /// `?unit=<raion id>`: the unit's Final drive (Jump ahead on a locked unit).
-  static const String drive = '/drive';
-
-  /// `?unit=<raion id>`: the reward after a unit's Final drive.
-  static const String unitDone = '/unit-done';
-
-  /// `?unit=<raion id>` (`&lesson=<n>` opens with that lesson's streets).
-  static const String unitGuide = '/unit-guide';
 
   static String progressOf(String districtId) =>
       '$progressDistrict?id=$districtId';
@@ -88,17 +61,8 @@ abstract final class Routes {
   static String resultsOf(String roundId) => '$results?round=$roundId';
   static String resultStreet(String roundId, int index) =>
       '$results/street/$index?round=$roundId';
-  static String lessonOf(String unitId, int n, {bool practice = false}) =>
-      '$lesson?unit=$unitId&lesson=$n${practice ? '&practice=1' : ''}';
-  static String unitPitStop(String unitId) => '$lesson?unit=$unitId&pit-stop=1';
-  static String lessonDoneOf(String resultId) => '$lessonDone?result=$resultId';
-  static String driveOf(String unitId) => '$drive?unit=$unitId';
-  static String unitDoneOf(String unitId, {required int xp}) =>
-      '$unitDone?unit=$unitId&xp=$xp';
-  static String unitGuideOf(String unitId, {int? lesson}) =>
-      '$unitGuide?unit=$unitId${lesson == null ? '' : '&lesson=$lesson'}';
 }
 
 /// What a finished round changed, for Home's one-time intro (canvas M-43). Results passes it to
 /// [Routes.home] as the route's `extra`.
-typedef RoundSummary = ({String roundId, DateTime startedAt, int roundXp});
+typedef RoundSummary = ({String roundId, DateTime startedAt});

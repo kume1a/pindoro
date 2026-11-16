@@ -8,11 +8,11 @@ Mobile game for learning a city's streets: the player sees a street name, drops 
 | Path                        | What                                                                                |
 | --------------------------- | ----------------------------------------------------------------------------------- |
 | `apps/mobile`               | Flutter app (Android + iOS), offline-first, Drift progress DB, MapLibre map         |
-| `apps/api`                  | `@pindoro/api` Fastify 5, Drizzle, PostGIS (health, catalog, leagues, accounts)     |
-| `packages/pindoro_core`     | Pure Dart: geometry, scoring, levels, question selection, pack models               |
+| `apps/api`                  | `@pindoro/api` Fastify 5, Drizzle, PostGIS (health, catalog, accounts)              |
+| `packages/pindoro_core`     | Pure Dart: geometry, scoring, question selection, streaks, pack models              |
 | `packages/pindoro_learning` | Pure Dart v3 learning: FSRS-6, grading, session planner, curriculum, stats          |
 | `packages/pindoro_design`   | Flutter design system: tokens → generated Dart, theme, widgets, FiraGO font         |
-| `packages/geo`              | `@pindoro/geo`: TS twin of pindoro_core geometry + scoring + levels                 |
+| `packages/geo`              | `@pindoro/geo`: TS twin of pindoro_core geometry + scoring                          |
 | `apps/pipeline`             | `@pindoro/pipeline`: OSM → PostGIS → city packs; tiles + map styles                 |
 | `data/cities/<city>`        | `city.yaml`, curated neighbourhoods, `identity.json` (seed of the street ids)       |
 | `shared/fixtures`           | Golden vectors used by BOTH Dart and TS tests                                       |
@@ -45,7 +45,7 @@ by Caddy). See `docs/adr/0001-architecture.md`.
 
 **No App Store or Play Store release is planned.** The app is sideloaded to friends (an Android APK
 from `just release apk`, an iOS IPA through SideStore from the iOS release workflow), so store-only work is parked in `docs/TODO.md` and is
-never a priority. The production server still matters: it serves packs, tiles and Leagues.
+never a priority. The production server still matters: it serves packs, tiles and account backups.
 
 ## Golden rules
 

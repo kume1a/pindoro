@@ -118,8 +118,6 @@ class ResultStreetScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      if (answer.xp > 0)
-                        XpChip(l10n.commonXp(formatNumber(answer.xp))),
                     ],
                   ),
                   Text(

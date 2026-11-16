@@ -6,12 +6,11 @@ import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/progress/data/streak.dart';
-import 'package:pindoro/features/progress/ui/daily_goal.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// The streak in full (canvas R2-02): count and best, this month's calendar,
-/// freezes held, the daily goal with Change, and Play a round.
+/// freezes held, what makes a day count, and Today's session.
 class StreakScreen extends ConsumerWidget {
   const StreakScreen({super.key});
 
@@ -24,15 +23,13 @@ class StreakScreen extends ConsumerWidget {
     final summary = view.summary;
     final days = formatNumber(summary.days);
     final best = l10n.streakBest(summary.best, formatNumber(summary.best));
-    final xp = formatNumber(view.todayXp);
-    final goal = formatNumber(view.goal);
     return PageScaffold(
       title: l10n.streakTitle,
       footer: PindoroButton(
-        label: l10n.streakPlay,
+        label: l10n.streakOpenToday,
         icon: PindoroGlyph.play,
         hero: true,
-        onPressed: () => context.push(Routes.round),
+        onPressed: () => context.go(Routes.today),
       ),
       children: [
         Semantics(
@@ -45,7 +42,7 @@ class StreakScreen extends ConsumerWidget {
             children: [
               PindoroIcon(
                 PindoroGlyph.flame,
-                size: PindoroSize.nodeCurrent - PindoroSpace.s2,
+                size: PindoroSize.buttonLg,
                 color: c.streakFlame,
                 accent: c.streakCore,
               ),
@@ -98,44 +95,9 @@ class StreakScreen extends ConsumerWidget {
             title: l10n.streakFreezeNone,
             body: l10n.streakFreezeNoneBody,
           ),
-        LipBox(
-          border: c.lineBase,
-          padding: const EdgeInsetsDirectional.fromSTEB(
-            PindoroSpace.s4,
-            PindoroSpace.s3,
-            PindoroSpace.s3,
-            PindoroSpace.s3,
-          ),
-          child: Row(
-            spacing: PindoroSpace.s3,
-            children: [
-              GoalRing(view),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.dailyGoalTitle(goal),
-                      style: PindoroType.titleMd.copyWith(color: c.textPrimary),
-                    ),
-                    Text(
-                      summary.metToday
-                          ? l10n.dailyGoalMetToday(xp)
-                          : l10n.dailyGoalToday(xp, goal),
-                      style: PindoroType.bodySm.copyWith(
-                        color: c.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              PindoroButton(
-                label: l10n.dailyGoalChange,
-                variant: PindoroButtonVariant.secondary,
-                onPressed: () => showDailyGoalSheet(context, ref),
-              ),
-            ],
-          ),
+        Text(
+          l10n.streakRule,
+          style: PindoroType.bodySm.copyWith(color: c.textSecondary),
         ),
       ],
     );

@@ -129,6 +129,5 @@ void main() {
       ),
     );
     expect(find.text('Next review in 12 days'), findsOneWidget);
-    expect(find.byType(XpChip), findsNothing);
   });
 }

@@ -7,17 +7,10 @@ import 'package:pindoro_core/pindoro_core.dart';
 
 typedef DistrictCount = ({District district, KnownCount count});
 
-typedef HomeSavedRound = ({
-  Round round,
-  int answered,
-  int total,
-  int xp,
-  DateTime at,
-});
+typedef HomeSavedRound = ({Round round, int answered, int total, DateTime at});
 
 typedef HomeData = ({
   PackRepository pack,
-  int totalXp,
   HomeSavedRound? saved,
   KnownCount cityKnown,
   List<DistrictCount> districts,
@@ -54,7 +47,6 @@ final homeProvider = FutureProvider.autoDispose.family<HomeData, DateTime?>((
   final byId = {for (final d in districts) d.district.id: d};
   return (
     pack: pack,
-    totalXp: await dao.totalXp(),
     saved: progress == null ? null : _saved(progress, streets),
     cityKnown: counts.city,
     districts: districts,
@@ -83,7 +75,6 @@ HomeSavedRound? _saved(
     round: progress.round,
     answered: answered,
     total: playable.length,
-    xp: progress.answers.xp,
     at: progress.lastActiveAt,
   );
 }

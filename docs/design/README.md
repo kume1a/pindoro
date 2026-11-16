@@ -28,10 +28,9 @@ app icon, splash) come from the design system's asset store; see `packages/pindo
   so are the landmark icons (`color.map.poi.*`, Maki icons in `pindoro_design/assets/map_icons`). The
   icons are discs without names; the basemap never shows text.
 - **App-only tokens** live in `packages/pindoro_design/tokens/app.json`: the skeleton shimmer's
-  duration and opacity (`motion.shimmer`, `opacity.shimmer`), the league ladder's step colour
-  (`color.league.ladder`) and the four avatar colours with their text (`color.avatar.*`), which the
-  design system's component CSS (`.pd-skel`, `.pd-ladder`, `.pd-avatar`) uses without a token. Drop
-  them there once `tokens.json` gains them.
+  duration and opacity (`motion.shimmer`, `opacity.shimmer`), which the design system's component
+  CSS (`.pd-skel`) uses without a token, and the badge fields (`color.badge.*`). Drop them there
+  once `tokens.json` gains them.
 - **Generated Dart.** `lib/src/generated/pindoro_tokens.dart` is generated from both token files by
   `tool/generate_tokens.dart`; the artifact's `handoff/pindoro_tokens.dart` is not used. Type roles
   all carry tabular figures and skip the Noto fallback (the system font covers missing glyphs).

@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'constants.dart';
 import 'fsrs.dart';
+import 'grader.dart';
 
 /// Card types; an item id is `<TYPE>:<key>` (SPEC §3).
 enum CardType {
@@ -39,6 +40,9 @@ enum ReviewFormat {
   review,
   relearn,
   explore,
+
+  /// An Explore answer that schedules nothing (SPEC §16.16).
+  exploreLog,
 }
 
 /// `review_log.source` (SPEC §2.2).
@@ -212,4 +216,40 @@ Random fuzzFor(String itemId, DateTime now) {
     hash = ((hash ^ unit) * 0x01000193) & 0xffffffff;
   }
   return Random(hash);
+}
+
+/// An Explore answer (SPEC §16.16): it reviews [card] only when the card is due or near due (due
+/// within [LearningConfig.nearDueFraction] of its interval); a first-sight Good or Easy creates the
+/// card as known from before, like placement; anything else is only logged.
+({CardState? card, LogEntry log}) exploreAnswer(
+  CardState? card, {
+  required String itemId,
+  required PinGrade grade,
+  required DateTime now,
+  required int rtMs,
+  String? sessionId,
+}) {
+  final memory = card?.memory;
+  final dueAt = card?.dueAt;
+  final reviews = card == null
+      ? grade.rating == Rating.good || grade.rating == Rating.easy
+      : memory != null &&
+            dueAt != null &&
+            dueAt.difference(now).inSeconds <=
+                LearningConfig.nearDueFraction *
+                    dueAt.difference(memory.lastReview).inSeconds;
+  final applied = applyReview(
+    card,
+    itemId: itemId,
+    rating: grade.rating,
+    now: now,
+    format: reviews ? ReviewFormat.explore : ReviewFormat.exploreLog,
+    source: ReviewSource.explore,
+    sessionId: sessionId,
+    distanceM: grade.distanceM,
+    snapId: grade.snapStreetId,
+    rtMs: rtMs,
+    priorKnown: card == null,
+  );
+  return (card: reviews ? applied.card : null, log: applied.log);
 }

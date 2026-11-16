@@ -67,7 +67,7 @@ class DifficultyCard extends StatelessWidget {
                       width: 14,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: i <= level ? c.primaryText : c.xpTrack,
+                        color: i <= level ? c.primaryText : c.progressTrack,
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),

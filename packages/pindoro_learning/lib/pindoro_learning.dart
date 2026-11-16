@@ -1,6 +1,7 @@
 /// Pure Dart learning system for Pindoro (docs/learning/SPEC.md).
 library;
 
+export 'src/badges.dart';
 export 'src/cards.dart';
 export 'src/constants.dart';
 export 'src/curriculum.dart';

@@ -4,8 +4,7 @@ import 'package:pindoro/features/progress/data/streak.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// The streak in the top bar of Free play and the Path, in this moment's
-/// state; opens Streak.
+/// The streak in Today's top bar, in this moment's state; opens Streak.
 class TopStreakPill extends StatelessWidget {
   const TopStreakPill(this.view, {super.key, required this.onPressed});
 

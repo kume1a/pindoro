@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
 
 part 'progress_dao.g.dart';
 
@@ -16,9 +17,6 @@ typedef RoundProgress = ({
 });
 
 extension AnswerLog on Iterable<Answer> {
-  /// XP these answers earned.
-  int get xp => fold(0, (sum, a) => sum + a.xp);
-
   /// The answers to [streetIds]: a resumed round plays on without the
   /// streets retired from the pack since.
   Iterable<Answer> to(Set<String> streetIds) =>
@@ -42,56 +40,19 @@ extension RoundProgressRules on RoundProgress {
   }
 }
 
-extension ReviewItemState on ReviewItem {
-  ReviewState get state =>
-      (step: step, greatRun: greatRun, dueOn: parseDayKey(dueOn));
-
-  /// Due on or before the calendar day [today].
-  bool dueBy(DateTime today) => !parseDayKey(dueOn).isAfter(today);
-}
-
-extension PitStopItems on Iterable<ReviewItem> {
-  /// Items due by [today] whose street is still in the pack's [streets], one
-  /// per street: older Free play rounds could file a street under another of
-  /// its parts, and the first (most overdue) item wins.
-  List<ReviewItem> dueIn(Map<String, NamedStreet> streets, DateTime today) =>
-      _onePerStreet(streets, (i) => i.dueBy(today));
-
-  /// Items due after [today], like [dueIn]: soonest first, one per street.
-  List<ReviewItem> laterIn(Map<String, NamedStreet> streets, DateTime today) =>
-      _onePerStreet(streets, (i) => !i.dueBy(today));
-
-  List<ReviewItem> _onePerStreet(
-    Map<String, NamedStreet> streets,
-    bool Function(ReviewItem) keep,
-  ) {
-    final seen = <String>{};
-    return [
-      for (final i in this)
-        if (streets[i.streetId] case final street?
-            when keep(i) && seen.add(street.id))
-          i,
-    ];
-  }
-}
-
-/// Rounds, the append-only answer log, goal-met days and the Pit stop: what
-/// the player has played, and the rules read from it (saved round, retry set,
-/// recent streets, the daily goal, streets to review).
+/// Explore rounds, the append-only answer log, the days that counted and the
+/// badges: what the player has played, and the rules read from it (saved
+/// round, retry set, recent streets).
 @DriftAccessor(
   tables: [
     Rounds,
     Answers,
     RoundQuestions,
     GoalDays,
-    UserSettings,
-    ReviewItems,
-    Courses,
-    LessonResults,
-    LessonAnswers,
-    SavedLessons,
+    LegacyKnown,
+    LearnCities,
+    ReviewLogs,
     Badges,
-    ReviewClearings,
   ],
 )
 class ProgressDao extends DatabaseAccessor<AppDatabase>
@@ -99,21 +60,14 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
   ProgressDao(super.attachedDatabase);
 
   /// Distinct cities of past rounds, most recent first, then the cities
-  /// played only in lessons.
-  Future<List<String>> recentCityIds() async {
-    final ids = <String>{};
+  /// placed or started from zero.
+  Future<List<String>> recentCityIds() async => {
     for (final r in await (select(
       rounds,
-    )..orderBy([(_) => OrderingTerm.desc(_rowid)])).get()) {
-      ids.add(r.cityId);
-    }
-    for (final r in await (select(
-      lessonResults,
-    )..orderBy([(r) => OrderingTerm.desc(r.finishedAt)])).get()) {
-      ids.add(r.cityId);
-    }
-    return ids.toList();
-  }
+    )..orderBy([(_) => OrderingTerm.desc(_rowid)])).get())
+      r.cityId,
+    for (final c in await select(learnCities).get()) c.cityId,
+  }.toList();
 
   /// District ids of past rounds in [cityId], most recently played first.
   Future<List<String>> recentDistrictIds(String cityId) async {
@@ -134,41 +88,28 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
   Future<bool> hasAnswered() async =>
       await (select(answers)..limit(1)).getSingleOrNull() != null;
 
-  /// Welcome shows until the player finishes a first round or lesson.
+  /// Welcome shows until the player finished a round or placed a city (or
+  /// started one from zero).
   Future<bool> hasPlayed() async =>
       await (select(rounds)
                 ..where((r) => r.finishedAt.isNotNull())
                 ..limit(1))
               .getSingleOrNull() !=
           null ||
-      await (select(lessonResults)..limit(1)).getSingleOrNull() != null;
+      await (select(learnCities)..limit(1)).getSingleOrNull() != null;
 
-  /// When play began: the first round's start or the first lesson's end.
+  /// When play began: the first round's start or the first learning answer.
   /// Null before either.
   Future<DateTime?> firstPlayedAt() async {
     final round = rounds.startedAt.min();
-    final lesson = lessonResults.finishedAt.min();
+    final logged = reviewLogs.ts.min();
     final times = [
       (await (selectOnly(rounds)..addColumns([round])).getSingle()).read(round),
       (await (selectOnly(
-        lessonResults,
-      )..addColumns([lesson])).getSingle()).read(lesson),
+        reviewLogs,
+      )..addColumns([logged])).getSingle()).read(logged),
     ].nonNulls;
     return times.isEmpty ? null : times.reduce((a, b) => a.isBefore(b) ? a : b);
-  }
-
-  /// Every answer's XP plus every lesson result's.
-  Future<int> totalXp() async {
-    final answered = answers.xp.sum();
-    final learned = lessonResults.xp.sum();
-    return ((await (selectOnly(
-              answers,
-            )..addColumns([answered])).getSingle()).read(answered) ??
-            0) +
-        ((await (selectOnly(
-              lessonResults,
-            )..addColumns([learned])).getSingle()).read(learned) ??
-            0);
   }
 
   /// Inserts the round and its planned streets atomically; returns the round id.
@@ -179,7 +120,6 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     required String packVersion,
     required List<String> streetIds,
     String? retryOf,
-    bool pitStop = false,
   }) => transaction(() async {
     final round = await into(rounds).insertReturning(
       RoundsCompanion.insert(
@@ -188,7 +128,6 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
         difficulty: difficulty,
         packVersion: packVersion,
         retryOf: Value(retryOf),
-        pitStop: Value(pitStop),
       ),
     );
     await batch(
@@ -204,193 +143,31 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     return round.id;
   });
 
-  /// Appends one answer to the log (the `answer_immutable` trigger keeps it),
-  /// moves its street in the Pit stop, and marks today when this answer
-  /// reached the daily goal.
+  /// Appends one answer to the log (the `answer_immutable` trigger keeps it).
   Future<Answer> recordAnswer({
     required String roundId,
     required String streetId,
     required LatLng pin,
     required double distanceM,
     required Tier tier,
-    required int xp,
     required String packVersion,
-  }) => transaction(() async {
-    final answer = await into(answers).insertReturning(
-      AnswersCompanion.insert(
-        roundId: roundId,
-        streetId: streetId,
-        pinLat: pin.lat,
-        pinLon: pin.lon,
-        distanceM: distanceM,
-        tier: tier,
-        xp: xp,
-        packVersion: packVersion,
-      ),
-    );
-    final city = await (select(
-      rounds,
-    )..where((r) => r.id.equals(roundId))).map((r) => r.cityId).getSingle();
-    await _review(city, streetId, tier, answer.createdAt);
-    await markGoalIfMet(answer.createdAt, roundId: roundId);
-    return answer;
-  });
+  }) => into(answers).insertReturning(
+    AnswersCompanion.insert(
+      roundId: roundId,
+      streetId: streetId,
+      pinLat: pin.lat,
+      pinLon: pin.lon,
+      distanceM: distanceM,
+      tier: tier,
+      packVersion: packVersion,
+    ),
+  );
 
-  /// Applies a [tier] answered [at] to [streetId]'s place in [cityId]'s Pit
-  /// stop.
-  Future<void> _review(
-    String cityId,
-    String streetId,
-    Tier tier,
-    DateTime at,
-  ) async {
-    Expression<bool> isItem(ReviewItems r) =>
-        r.cityId.equals(cityId) & r.streetId.equals(streetId);
-    final current = await (select(
-      reviewItems,
-    )..where(isItem)).getSingleOrNull();
-    final next = nextReview(current?.state, tier, calendarDay(at));
-    if (next == null) {
-      // A Great on a street never in the Pit stop clears nothing.
-      if (current != null) {
-        await (delete(reviewItems)..where(isItem)).go();
-        await into(reviewClearings).insert(
-          ReviewClearingsCompanion.insert(
-            cityId: cityId,
-            streetId: streetId,
-            clearedAt: at,
-          ),
-        );
-      }
-      return;
-    }
-    await into(reviewItems).insertOnConflictUpdate(
-      ReviewItemsCompanion.insert(
-        cityId: cityId,
-        streetId: streetId,
-        step: next.step,
-        greatRun: next.greatRun,
-        dueOn: dayKey(next.dueOn),
-        lastTier: tier,
-        lastAt: at,
-      ),
-    );
-  }
-
-  /// Saves a finished lesson: its result, its answers and the [reviews] the
-  /// Pit stop takes (pindoro_core `reviewAnswers`), then marks today when it
-  /// reached the daily goal. Returns the result's id.
-  Future<String> finishLesson({
-    required String cityId,
-    required String unitId,
-    required LessonKind kind,
-    required int? lesson,
-    required Difficulty difficulty,
-    required LessonRun run,
-    required DateTime startedAt,
-    required List<({String streetId, Tier tier})> reviews,
-  }) => transaction(() async {
-    final now = DateTime.now();
-    final result = await into(lessonResults).insertReturning(
-      LessonResultsCompanion.insert(
-        cityId: cityId,
-        unitId: unitId,
-        kind: kind,
-        lesson: Value(lesson),
-        difficulty: difficulty,
-        xp: run.xp,
-        perfect: run.perfect,
-        rightFirst: run.rightFirst,
-        tests: run.tests,
-        durationMs: now.difference(startedAt).inMilliseconds,
-        finishedAt: Value(now),
-      ),
-    );
-    await batch(
-      (b) => b.insertAll(lessonAnswers, [
-        for (final (i, a) in run.answers.indexed)
-          LessonAnswersCompanion.insert(
-            resultId: result.id,
-            position: i,
-            streetId: a.step.street.id,
-            kind: switch (a.step) {
-              PinStep() => LessonAnswerKind.pin,
-              NameStep() => LessonAnswerKind.name,
-              TripStep() => LessonAnswerKind.trip,
-            },
-            tier: a.tier,
-            xp: a.xp,
-            fix: a.step.fix,
-            distanceM: Value(a.distanceM),
-          ),
-      ]),
-    );
-    for (final r in reviews) {
-      await _review(cityId, r.streetId, r.tier, now);
-    }
-    await markGoalIfMet(now);
-    await dropSavedLesson();
-    return result.id;
-  });
-
-  /// Saves one answered Final drive trip as its own result (passed when
-  /// Close or better), with [CourseRules.unitBonusXp] when it [completesUnit],
-  /// then marks today when it reached the daily goal. Returns the result's id.
-  Future<String> finishTrip({
-    required String cityId,
-    required String unitId,
-    required Difficulty difficulty,
-    required Trip trip,
-    required Score score,
-    required bool completesUnit,
-    required DateTime startedAt,
-  }) => transaction(() async {
-    final now = DateTime.now();
-    final passed = score.tier != Tier.miss;
-    final result = await into(lessonResults).insertReturning(
-      LessonResultsCompanion.insert(
-        cityId: cityId,
-        unitId: unitId,
-        kind: LessonKind.finalDrive,
-        difficulty: difficulty,
-        xp: score.xp + (completesUnit ? CourseRules.unitBonusXp : 0),
-        perfect: score.tier == Tier.perfect,
-        rightFirst: passed ? 1 : 0,
-        tests: 1,
-        durationMs: now.difference(startedAt).inMilliseconds,
-        finishedAt: Value(now),
-      ),
-    );
-    await into(lessonAnswers).insert(
-      LessonAnswersCompanion.insert(
-        resultId: result.id,
-        position: 0,
-        streetId: trip.destination.id,
-        kind: LessonAnswerKind.trip,
-        tier: score.tier,
-        xp: score.xp,
-        fix: false,
-      ),
-    );
-    await markGoalIfMet(now);
-    return result.id;
-  });
-
-  /// Road trips answered in every city: lessons, practice and Final drives.
-  Future<int> roadTrips() async {
-    final n = lessonAnswers.resultId.count();
-    return (await (selectOnly(lessonAnswers)
-              ..addColumns([n])
-              ..where(lessonAnswers.kind.equalsValue(LessonAnswerKind.trip)))
-            .getSingle())
-        .read(n)!;
-  }
-
-  /// The answer-log counts badges read (pindoro_core `BadgeStats`): pins
-  /// dropped in rounds and lessons, how many were Perfect, whether any answer
-  /// or lesson ended before [BadgeRules.lateBefore] local time (placement
-  /// isn't play), and the streets cleared from the Pit stop.
-  Future<({int pins, int perfects, bool lateAnswer, int pitStopCleared})>
+  /// The answer-log counts badges read (pindoro_learning `BadgeStats`): pins
+  /// dropped in Explore rounds and in sessions and placement (Explore's own
+  /// log rows aside), the Explore Perfects, whether any answer came before
+  /// [LearningConfig.nightOwlBefore] local time, and the days that counted.
+  Future<({int pins, int perfects, bool lateAnswer, int goalDays})>
   badgeCounts() async {
     // Dates are ISO-8601 text with their offset; SQLite converts to local.
     String hour(String column) =>
@@ -398,26 +175,24 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     final row = await customSelect(
       'SELECT '
       '(SELECT COUNT(*) FROM answer) + '
-      "(SELECT COUNT(*) FROM lesson_answer WHERE kind = 'pin') AS pins, "
-      "(SELECT COUNT(*) FROM answer WHERE tier = 'perfect') + "
-      '(SELECT COUNT(*) FROM lesson_answer '
-      "WHERE kind = 'pin' AND tier = 'perfect') AS perfects, "
+      '(SELECT COUNT(*) FROM review_log '
+      "WHERE distance_m IS NOT NULL AND source <> 'explore') AS pins, "
+      "(SELECT COUNT(*) FROM answer WHERE tier = 'perfect') AS perfects, "
       'EXISTS (SELECT 1 FROM answer WHERE ${hour('created_at')} < ?1) OR '
-      'EXISTS (SELECT 1 FROM lesson_result '
-      "WHERE kind != 'placed' AND ${hour('finished_at')} < ?1) AS late, "
-      '(SELECT COUNT(*) FROM review_cleared) AS cleared',
-      variables: [Variable(BadgeRules.lateBefore)],
-      readsFrom: {answers, lessonAnswers, lessonResults, reviewClearings},
+      'EXISTS (SELECT 1 FROM review_log WHERE ${hour('ts')} < ?1) AS late, '
+      '(SELECT COUNT(*) FROM goal_day) AS days',
+      variables: [Variable(LearningConfig.nightOwlBefore)],
+      readsFrom: {answers, reviewLogs, goalDays},
     ).getSingle();
     return (
       pins: row.read<int>('pins'),
       perfects: row.read<int>('perfects'),
       lateAnswer: row.read<bool>('late'),
-      pitStopCleared: row.read<int>('cleared'),
+      goalDays: row.read<int>('days'),
     );
   }
 
-  Future<Map<BadgeId, BadgeRow>> earnedBadges() async => {
+  Future<Map<String, BadgeRow>> earnedBadges() async => {
     for (final b in await select(badges).get()) b.id: b,
   };
 
@@ -426,9 +201,9 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
 
   /// Saves [ids] as earned [now]; returns those that weren't saved yet, in
   /// [ids]' order (two awards at once never both get one).
-  Future<List<BadgeId>> earn(List<BadgeId> ids, DateTime now) =>
+  Future<List<String>> earn(List<String> ids, DateTime now) =>
       transaction(() async {
-        final earned = <BadgeId>[];
+        final earned = <String>[];
         for (final id in ids) {
           final row = await into(badges).insertReturningOrNull(
             BadgesCompanion.insert(id: id, earnedAt: now),
@@ -440,13 +215,14 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
       });
 
   /// Marks [ids] seen [now] (a reward sheet closed, or Me showed them).
-  Future<void> seeBadges(Iterable<BadgeId> ids, DateTime now) =>
-      (update(badges)..where((b) => b.id.isInValues(ids) & b.seenAt.isNull()))
-          .write(BadgesCompanion(seenAt: Value(now)));
+  Future<void> seeBadges(Iterable<String> ids, DateTime now) =>
+      (update(badges)..where((b) => b.id.isIn(ids) & b.seenAt.isNull())).write(
+        BadgesCompanion(seenAt: Value(now)),
+      );
 
   /// The earned badges not seen yet, marked seen [now]: Me's New ones for a
   /// visit.
-  Future<Set<BadgeId>> takeUnseenBadges(DateTime now) => transaction(() async {
+  Future<Set<String>> takeUnseenBadges(DateTime now) => transaction(() async {
     final ids = {
       for (final b in await (select(
         badges,
@@ -456,100 +232,6 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     await seeBadges(ids, now);
     return ids;
   });
-
-  /// The XP earned in [unitId] of [cityId] and its road trips, for Unit
-  /// complete.
-  Future<({int xp, int trips})> unitSummary(
-    String cityId,
-    String unitId,
-  ) async {
-    final row = await customSelect(
-      'SELECT (SELECT COALESCE(SUM(xp), 0) FROM lesson_result '
-      'WHERE city_id = ?1 AND unit_id = ?2) AS xp, '
-      '(SELECT COUNT(*) FROM lesson_answer a '
-      'JOIN lesson_result r ON r.id = a.result_id '
-      "WHERE r.city_id = ?1 AND r.unit_id = ?2 AND a.kind = 'trip') AS trips",
-      variables: [Variable(cityId), Variable(unitId)],
-      readsFrom: {lessonResults, lessonAnswers},
-    ).getSingle();
-    return (xp: row.read<int>('xp'), trips: row.read<int>('trips'));
-  }
-
-  Future<String?> courseStart(String cityId) =>
-      (select(courses)..where((c) => c.cityId.equals(cityId)))
-          .map((c) => c.startDistrictId)
-          .getSingleOrNull();
-
-  Future<void> saveCourseStart(String cityId, String districtId) =>
-      into(courses).insertOnConflictUpdate(
-        CoursesCompanion.insert(cityId: cityId, startDistrictId: districtId),
-      );
-
-  /// Saves the lesson in play (one row), replacing the last save.
-  Future<void> saveLesson({
-    required String cityId,
-    required String unitId,
-    required LessonKind kind,
-    required int? lesson,
-    required Difficulty difficulty,
-    required String packVersion,
-    required int seed,
-    required DateTime startedAt,
-    required String progress,
-    DateTime? savedAt,
-  }) => into(savedLessons).insertOnConflictUpdate(
-    SavedLessonsCompanion.insert(
-      id: const Value(1),
-      cityId: cityId,
-      unitId: unitId,
-      kind: kind,
-      lesson: Value(lesson),
-      difficulty: difficulty,
-      packVersion: packVersion,
-      seed: seed,
-      startedAt: startedAt,
-      savedAt: savedAt ?? DateTime.now(),
-      progress: progress,
-    ),
-  );
-
-  /// The lesson in play when the app was killed, saved within
-  /// [LessonRules.resumeFor] of [now]; an older one is dropped.
-  Future<SavedLesson?> savedLesson(DateTime now) async {
-    final saved = await select(savedLessons).getSingleOrNull();
-    if (saved == null ||
-        now.difference(saved.savedAt) <= LessonRules.resumeFor) {
-      return saved;
-    }
-    await dropSavedLesson();
-    return null;
-  }
-
-  Future<void> dropSavedLesson() => delete(savedLessons).go();
-
-  /// Whether any city's course has started (its start raion is saved).
-  Future<bool> hasCourse() async =>
-      await (select(courses)..limit(1)).getSingleOrNull() != null;
-
-  /// Marks [lessons] (unit id, lesson number) of [cityId] done by placement:
-  /// 0 XP and no answers, so nothing else counts them.
-  Future<void> place(String cityId, List<(String, int)> lessons) => batch(
-    (b) => b.insertAll(lessonResults, [
-      for (final (unitId, n) in lessons)
-        LessonResultsCompanion.insert(
-          cityId: cityId,
-          unitId: unitId,
-          kind: LessonKind.placed,
-          lesson: Value(n),
-          difficulty: Difficulty.medium,
-          xp: 0,
-          perfect: false,
-          rightFirst: 0,
-          tests: 0,
-          durationMs: 0,
-        ),
-    ]),
-  );
 
   /// The area of [cityId]'s most recent round; null before one.
   Future<Area?> lastRoundArea(String cityId) async => parseArea(
@@ -561,58 +243,8 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
         .getSingleOrNull(),
   );
 
-  /// [cityId]'s lesson results, oldest first.
-  Future<List<LessonResult>> lessonResultsIn(String cityId) =>
-      (select(lessonResults)
-            ..where((r) => r.cityId.equals(cityId))
-            ..orderBy([(r) => OrderingTerm.asc(r.finishedAt)]))
-          .get();
-
-  Future<LessonResult> lessonResult(String id) =>
-      (select(lessonResults)..where((r) => r.id.equals(id))).getSingle();
-
-  Future<List<LessonAnswer>> lessonAnswersOf(String resultId) =>
-      (select(lessonAnswers)
-            ..where((a) => a.resultId.equals(resultId))
-            ..orderBy([(a) => OrderingTerm.asc(a.position)]))
-          .get();
-
-  /// [cityId]'s first-try mistakes in [unitId]'s lessons up to
-  /// [throughLesson], in the order they happened, each street once: what the
-  /// unit's Pit stop tunes up.
-  Future<List<String>> unitMistakes(
-    String cityId,
-    String unitId, {
-    required int throughLesson,
-  }) async {
-    final query =
-        select(lessonAnswers).join([
-            innerJoin(
-              lessonResults,
-              lessonResults.id.equalsExp(lessonAnswers.resultId),
-            ),
-          ])
-          ..where(
-            lessonResults.cityId.equals(cityId) &
-                lessonResults.unitId.equals(unitId) &
-                lessonResults.kind.equalsValue(LessonKind.lesson) &
-                lessonResults.lesson.isSmallerOrEqualValue(throughLesson) &
-                lessonAnswers.fix.equals(false) &
-                lessonAnswers.kind.equalsValue(LessonAnswerKind.trip).not() &
-                lessonAnswers.tier.isInValues([Tier.close, Tier.miss]),
-          )
-          ..orderBy([
-            OrderingTerm.asc(lessonResults.finishedAt),
-            OrderingTerm.asc(lessonAnswers.position),
-          ]);
-    return {
-      for (final row in await query.get())
-        row.readTable(lessonAnswers).streetId,
-    }.toList();
-  }
-
-  /// The last pin distance of each of [streetIds] in [cityId], from Free play
-  /// (except the round [exceptRoundId]) and lessons.
+  /// The last pin distance of each of [streetIds] in [cityId], from Explore
+  /// (except the round [exceptRoundId]).
   Future<Map<String, double>> lastDistances(
     String cityId,
     Iterable<String> streetIds, {
@@ -631,113 +263,29 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
                     : answers.roundId.equals(exceptRoundId).not()),
           )
           ..orderBy([OrderingTerm.asc(answers.createdAt)]);
-    final lessons =
-        select(lessonAnswers).join([
-            innerJoin(
-              lessonResults,
-              lessonResults.id.equalsExp(lessonAnswers.resultId),
-            ),
-          ])
-          ..where(
-            lessonResults.cityId.equals(cityId) &
-                lessonAnswers.streetId.isIn(ids) &
-                lessonAnswers.distanceM.isNotNull(),
-          )
-          ..orderBy([
-            OrderingTerm.asc(lessonResults.finishedAt),
-            OrderingTerm.asc(lessonAnswers.position),
-          ]);
-    final played = <({DateTime at, String id, double m})>[
+    return {
       for (final row in await freePlay.get())
-        if (row.readTable(answers) case final a)
-          (at: a.createdAt, id: a.streetId, m: a.distanceM),
-      for (final row in await lessons.get())
-        if (row.readTable(lessonAnswers) case final a)
-          (
-            at: row.readTable(lessonResults).finishedAt,
-            id: a.streetId,
-            m: a.distanceM!,
-          ),
-    ];
-    // Both lists are in time order; merge them, keeping that order on ties.
-    final order = List.generate(played.length, (i) => i)
-      ..sort((i, j) {
-        final byTime = played[i].at.compareTo(played[j].at);
-        return byTime != 0 ? byTime : i.compareTo(j);
-      });
-    return {for (final i in order) played[i].id: played[i].m};
+        if (row.readTable(answers) case final a) a.streetId: a.distanceM,
+    };
   }
 
-  /// Lessons done (not practice), in every city.
-  Future<int> lessonsDone() async {
-    final row = await customSelect(
-      'SELECT COUNT(*) AS n FROM (SELECT DISTINCT city_id, unit_id, lesson '
-      "FROM lesson_result WHERE kind = 'lesson')",
-      readsFrom: {lessonResults},
-    ).getSingle();
-    return row.read<int>('n');
-  }
-
-  /// The Pit stop of [cityId], most overdue first.
-  Future<List<ReviewItem>> pitStop(String cityId) =>
-      (select(reviewItems)
-            ..where((r) => r.cityId.equals(cityId))
-            ..orderBy([
-              (r) => OrderingTerm.asc(r.dueOn),
-              (r) => OrderingTerm.asc(r.lastAt),
-            ]))
-          .get();
-
-  /// Marks the day of [now] once its XP reaches the daily goal; the round
-  /// that got there first keeps the mark.
-  Future<void> markGoalIfMet(DateTime now, {String? roundId}) async {
-    final day = calendarDay(now);
-    if (await xpOn(day) < await _dailyGoal()) return;
-    await into(goalDays).insert(
-      GoalDaysCompanion.insert(date: dayKey(day), roundId: Value(roundId)),
-      mode: InsertMode.insertOrIgnore,
-    );
-  }
-
-  Future<int> _dailyGoal() async =>
-      (await (select(
-        userSettings,
-      )..where((s) => s.id.equals(1))).getSingleOrNull())?.dailyGoal ??
-      StreakRules.defaultGoal;
-
-  /// XP earned on the local calendar [day] (a pindoro_core `calendarDay`):
-  /// answers given and lessons finished that day.
-  Future<int> xpOn(DateTime day) => xpBetween(
-    DateTime(day.year, day.month, day.day),
-    DateTime(day.year, day.month, day.day + 1),
-  );
-
-  /// XP from answers given and lessons finished in [[start], [end]).
-  Future<int> xpBetween(DateTime start, DateTime end) async {
-    final answered = answers.xp.sum();
-    final learned = lessonResults.xp.sum();
-    final fromAnswers = selectOnly(answers)
-      ..addColumns([answered])
-      ..where(
-        answers.createdAt.isBiggerOrEqualValue(start) &
-            answers.createdAt.isSmallerThanValue(end),
-      );
-    final fromLessons = selectOnly(lessonResults)
-      ..addColumns([learned])
-      ..where(
-        lessonResults.finishedAt.isBiggerOrEqualValue(start) &
-            lessonResults.finishedAt.isSmallerThanValue(end),
-      );
-    return ((await fromAnswers.getSingle()).read(answered) ?? 0) +
-        ((await fromLessons.getSingle()).read(learned) ?? 0);
-  }
-
-  /// Every goal-met day with the round that reached the goal (null when
-  /// lowering the goal did).
+  /// Every day that counted towards the streak, with the Explore round whose
+  /// answer made it count (null for a session).
   Future<Map<DateTime, String?>> goalDayRounds() async => {
     for (final g in await select(goalDays).get())
       parseDayKey(g.date): g.roundId,
   };
+
+  /// Marks the day of [now] as counted (SPEC §8); the first answer to get
+  /// there keeps the mark.
+  Future<void> markDay(DateTime now, {String? roundId}) =>
+      into(goalDays).insert(
+        GoalDaysCompanion.insert(
+          date: dayKey(calendarDay(now)),
+          roundId: Value(roundId),
+        ),
+        mode: InsertMode.insertOrIgnore,
+      );
 
   /// A saved round expires this long after its last answer (or its start).
   static const Duration savedRoundLifetime = Duration(days: 7);
@@ -762,8 +310,7 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
   }
 
   /// [resumableRound] when it was played in the chosen [cityId] (any city
-  /// before one is chosen) and [area]; a Pit stop round in any area, since
-  /// its area is wherever its streets were.
+  /// before one is chosen) and [area].
   Future<Round?> savedRound(
     DateTime now, {
     required String? cityId,
@@ -772,7 +319,7 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     final round = await resumableRound(now);
     if (round == null) return null;
     final sameCity = cityId == null || cityId == round.cityId;
-    final sameArea = round.pitStop || parseArea(round.areaJson) == area;
+    final sameArea = parseArea(round.areaJson) == area;
     return sameCity && sameArea ? round : null;
   }
 
@@ -801,26 +348,9 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
             ..orderBy([(_) => OrderingTerm.asc(_rowid)]))
           .get();
 
-  /// The answers of [cityId]'s most recent finished Pit stop round; empty
-  /// before the first one.
-  Future<List<Answer>> lastPitStopAnswers(String cityId) async {
-    final round =
-        await (select(rounds)
-              ..where(
-                (r) =>
-                    r.cityId.equals(cityId) &
-                    r.pitStop.equals(true) &
-                    r.finishedAt.isNotNull(),
-              )
-              ..orderBy([(r) => OrderingTerm.desc(r.finishedAt)])
-              ..limit(1))
-            .getSingleOrNull();
-    return round == null ? const [] : answersForRound(round.id);
-  }
-
   /// How far the pin was the last time each of [roundId]'s streets was
   /// answered outside that round, in its city (the plate's "you were 1.2 km
-  /// away" in retry and Pit stop rounds).
+  /// away" in retry rounds).
   Future<Map<String, double>> previousDistances(String roundId) async {
     final progress = await roundProgress(roundId);
     return lastDistances(
@@ -830,10 +360,9 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
-  /// Best tier per answered part id in [cityId], from answers (and lessons
-  /// finished) before [before] when given. A lesson's right name counts only
-  /// the first time: a right name fix comes after the answer was shown. Road
-  /// trips don't count: they test the route, not their destination street.
+  /// Best tier per answered part id in [cityId], from Explore answers before
+  /// [before] when given, with the old game's lesson knowledge (kept as
+  /// [LegacyKnown]) as Great.
   // ponytail: reads the city's answer log; aggregate in SQL past ~100k answers.
   Future<Map<String, Tier>> bestTierByPart(
     String cityId, {
@@ -842,28 +371,18 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     final query = select(answers).join([
       innerJoin(rounds, rounds.id.equalsExp(answers.roundId)),
     ])..where(rounds.cityId.equals(cityId));
-    final learned =
-        select(lessonAnswers).join([
-          innerJoin(
-            lessonResults,
-            lessonResults.id.equalsExp(lessonAnswers.resultId),
-          ),
-        ])..where(
-          lessonResults.cityId.equals(cityId) &
-              lessonAnswers.kind.equalsValue(LessonAnswerKind.trip).not(),
-        );
     if (before != null) {
       query.where(answers.createdAt.isSmallerThanValue(before));
-      learned.where(lessonResults.finishedAt.isSmallerThanValue(before));
     }
-    bool rightNameFix(LessonAnswer a) =>
-        a.kind == LessonAnswerKind.name && a.fix && isKnownTier(a.tier);
+    final legacy = before != null
+        ? const <LegacyKnownRow>[]
+        : await (select(
+            legacyKnown,
+          )..where((k) => k.cityId.equals(cityId))).get();
     return bestTiers([
       for (final row in await query.get())
         if (row.readTable(answers) case final a) (a.streetId, a.tier),
-      for (final row in await learned.get())
-        if (row.readTable(lessonAnswers) case final a when !rightNameFix(a))
-          (a.streetId, a.tier),
+      for (final k in legacy) (k.streetId, Tier.great),
     ]);
   }
 
@@ -904,8 +423,9 @@ final progressDaoProvider = Provider<ProgressDao>(
   (ref) => ProgressDao(ref.watch(databaseProvider)),
 );
 
-/// Ticks whenever a round, answer, goal day, course, lesson or badge is written, so screens showing
-/// progress reload even when they stayed in the navigator during the round.
+/// Ticks whenever a round, answer, learning answer, counted day or badge is
+/// written, so screens showing progress reload even when they stayed in the
+/// navigator during play.
 final progressChangesProvider = StreamProvider<Set<TableUpdate>>((ref) {
   final db = ref.watch(databaseProvider);
   return db.tableUpdates(
@@ -913,15 +433,8 @@ final progressChangesProvider = StreamProvider<Set<TableUpdate>>((ref) {
       db.rounds,
       db.answers,
       db.goalDays,
-      db.courses,
-      db.lessonResults,
+      db.reviewLogs,
       db.badges,
     ]),
   );
-});
-
-/// The player's total XP, kept current with progress.
-final totalXpProvider = FutureProvider.autoDispose<int>((ref) {
-  ref.watch(progressChangesProvider);
-  return ref.watch(progressDaoProvider).totalXp();
 });
