@@ -402,6 +402,22 @@ class Confusions extends Table {
   Set<Column<Object>> get primaryKey => {streetA, streetB};
 }
 
+/// Per city: when placement ended (or the player chose to start from zero)
+/// and the home and work neighbourhoods new streets start in (SPEC §6.2, §6.3).
+@DataClassName('LearnCityRow')
+class LearnCities extends Table {
+  @override
+  String get tableName => 'learn_city';
+
+  TextColumn get cityId => text()();
+  DateTimeColumn get placedAt => dateTime().nullable()();
+  TextColumn get homeId => text().nullable()();
+  TextColumn get workId => text().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {cityId};
+}
+
 @DriftDatabase(
   tables: [
     UserSettings,
@@ -420,6 +436,7 @@ class Confusions extends Table {
     CardStates,
     ReviewLogs,
     Confusions,
+    LearnCities,
   ],
   include: {'answer_immutable.drift', 'review_log_immutable.drift'},
 )
@@ -427,7 +444,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 15;
+  static const int version = 16;
 
   @override
   int get schemaVersion => version;
@@ -498,6 +515,7 @@ class AppDatabase extends _$AppDatabase {
           schema.userSettings.minutesPerDay,
         );
       },
+      from15To16: (m, schema) => m.createTable(schema.learnCity),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

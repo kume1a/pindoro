@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
@@ -16,9 +17,8 @@ import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/account/ui/account_group.dart';
 import 'package:pindoro/features/learning/data/review_log_export.dart';
 import 'package:pindoro/features/pack/data/app_update.dart';
-import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/progress/ui/daily_goal.dart';
-import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro/features/settings/ui/widgets/settings_rows.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -46,7 +46,7 @@ class SettingsScreen extends ConsumerWidget {
       title: l10n.settingsTitle,
       children: [
         SectionTitle(l10n.settingsLanguage),
-        _Labelled(
+        LabelledField(
           label: l10n.settingsAppLanguage,
           child: SegmentedControl(
             segments: const {
@@ -57,18 +57,21 @@ class SettingsScreen extends ConsumerWidget {
             onChanged: (v) => save(() => dao.setLanguage(v)),
           ),
         ),
-        _Labelled(
-          label: l10n.settingsStreetNames,
+        StreetNamesField(
+          settings: settings,
           help: l10n.settingsStreetNamesHelp,
-          child: SegmentedControl(
-            segments: {
-              StreetNameMode.local: l10n.settingsStreetNamesLocal,
-              StreetNameMode.english: l10n.settingsStreetNamesEnglish,
-            },
-            selected: settings.streetNames,
-            onChanged: (v) => save(() => dao.setStreetNames(v)),
-          ),
         ),
+        if (AppConfig.v3)
+          ListGroup(
+            children: [
+              ListRow(
+                title: l10n.learnSettingsTitle,
+                leading: const RowTile(PindoroGlyph.road),
+                trailing: const PindoroIcon(PindoroGlyph.chevronRight),
+                onTap: () => context.push(Routes.learnSettings),
+              ),
+            ],
+          ),
         SectionTitle(l10n.settingsDailyGoal),
         ListGroup(
           children: [
@@ -81,24 +84,11 @@ class SettingsScreen extends ConsumerWidget {
               trailing: const PindoroIcon(PindoroGlyph.chevronRight),
               onTap: () => showDailyGoalSheet(context, ref),
             ),
-            _ToggleRow(
-              title: l10n.settingsReminder,
-              subtitle: l10n.settingsReminderSubtitle(
-                MaterialLocalizations.of(context).formatTimeOfDay(
-                  const TimeOfDay(hour: StreakRules.reminderHour, minute: 0),
-                  alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(
-                    context,
-                  ),
-                ),
-              ),
-              glyph: PindoroGlyph.bell,
-              value: settings.reminder,
-              onChanged: (on) => _setReminder(context, ref, on: on),
-            ),
+            ReminderRow(settings: settings),
           ],
         ),
         SectionTitle(l10n.settingsDisplay),
-        _Labelled(
+        LabelledField(
           label: l10n.settingsTheme,
           child: SegmentedControl(
             segments: {
@@ -112,7 +102,7 @@ class SettingsScreen extends ConsumerWidget {
         ),
         ListGroup(
           children: [
-            _ToggleRow(
+            ToggleRow(
               title: l10n.settingsSound,
               subtitle: l10n.settingsSoundSubtitle,
               glyph: settings.sound
@@ -125,7 +115,7 @@ class SettingsScreen extends ConsumerWidget {
                 save(() => dao.setSound(on: v));
               },
             ),
-            _ToggleRow(
+            ToggleRow(
               title: l10n.settingsHaptics,
               subtitle: l10n.settingsHapticsSubtitle,
               glyph: PindoroGlyph.haptics,
@@ -142,7 +132,7 @@ class SettingsScreen extends ConsumerWidget {
         SectionTitle(l10n.settingsAccessibility),
         ListGroup(
           children: [
-            _ToggleRow(
+            ToggleRow(
               title: l10n.settingsTurnList,
               subtitle: l10n.settingsTurnListSubtitle,
               glyph: PindoroGlyph.route,
@@ -186,80 +176,6 @@ Future<void> _exportLog(BuildContext context, WidgetRef ref) async {
       showToast(context, context.l10n.settingsExportLogFailed);
     }
   }
-}
-
-/// On asks for notification permission first; without it the switch stays
-/// off and a toast says where to allow it. Off cancels the scheduled one.
-Future<void> _setReminder(
-  BuildContext context,
-  WidgetRef ref, {
-  required bool on,
-}) async {
-  final dao = ref.read(settingsDaoProvider);
-  final reminders = ref.read(remindersProvider);
-  ref.read(feedbackProvider).tap();
-  if (!on) {
-    await dao.setReminder(on: false);
-    await reminders.cancel();
-  } else if (await reminders.requestPermission()) {
-    await dao.setReminder(on: true);
-  } else if (context.mounted) {
-    showToast(context, context.l10n.settingsReminderDenied);
-  }
-}
-
-class _Labelled extends StatelessWidget {
-  const _Labelled({required this.label, required this.child, this.help});
-
-  final String label;
-  final String? help;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final c = PindoroTheme.of(context).colors;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      spacing: PindoroSpace.s2,
-      children: [
-        Text(label, style: PindoroType.labelLg.copyWith(color: c.textPrimary)),
-        child,
-        if (help != null)
-          Text(
-            help!,
-            style: PindoroType.bodySm.copyWith(color: c.textSecondary),
-          ),
-      ],
-    );
-  }
-}
-
-class _ToggleRow extends StatelessWidget {
-  const _ToggleRow({
-    required this.title,
-    required this.subtitle,
-    required this.glyph,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String title;
-  final String subtitle;
-  final PindoroGlyph glyph;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) => ListRow(
-    title: title,
-    subtitle: subtitle,
-    leading: RowTile(glyph),
-    trailing: ExcludeSemantics(
-      child: PindoroToggle(value: value, onChanged: onChanged),
-    ),
-    toggled: value,
-    onTap: () => onChanged(!value),
-  );
 }
 
 /// Map data credits: OpenStreetMap (ODbL), Protomaps tiles, FiraGO (OFL) and

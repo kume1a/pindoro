@@ -26,6 +26,7 @@ const _layers = <Set<String>>[
     'features/lesson',
     'features/session',
     'features/today',
+    'features/memory',
   },
   {'app'},
   {'main.dart'},

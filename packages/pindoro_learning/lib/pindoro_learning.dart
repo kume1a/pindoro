@@ -7,5 +7,6 @@ export 'src/curriculum.dart';
 export 'src/export.dart';
 export 'src/fsrs.dart';
 export 'src/grader.dart';
+export 'src/placement.dart';
 export 'src/planner.dart';
 export 'src/stats.dart';

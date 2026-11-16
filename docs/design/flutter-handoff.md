@@ -1,6 +1,6 @@
 # Flutter handoff
 
-How the tokens become a Material 3 theme. Two layers: the standard `ThemeData` (ColorScheme, TextTheme, component themes) carries everything Material already has a slot for; one `ThemeExtension`, `PindoroTheme`, carries the game-specific parts (feedback tiers, XP, streak, path, map overlays, the 3D button, motion).
+How the tokens become a Material 3 theme. Two layers: the standard `ThemeData` (ColorScheme, TextTheme, component themes) carries everything Material already has a slot for; one `ThemeExtension`, `PindoroTheme`, carries the game-specific parts (feedback tiers, memory and charts, streak, map overlays, the 3D button, motion).
 
 ## 1. Tokens → Dart
 
@@ -34,7 +34,7 @@ flutter:
 - Set `fontFamily: 'FiraGO'` and `fontFamilyFallback: ['Noto Sans']` on the `TextTheme`.
 - Add `Locale('en')` (the template and default) and every translated locale to `supportedLocales` with `flutter_localizations`.
 - **Never call `toUpperCase()`** on UI strings (some scripts' capital forms aren't in FiraGO). Lint for it.
-- Numeric text: use `PindoroType.numeric*` (tabular figures) for scores, distances, XP, timers.
+- Numeric text: use `PindoroType.numeric*` (tabular figures) for counts, distances, City memory, timers.
 - Test text scaling with `MediaQuery(data: …copyWith(textScaler: TextScaler.linear(2.0)))`; don't clamp below 2.0.
 
 ## 3. ColorScheme
@@ -116,7 +116,7 @@ TextTheme pindoroText(Color ink) => const TextTheme(
 | Segmented control | `SegmentedButtonThemeData` | sunken track, raised selected segment, `color.primary.text` |
 | Switch | `SwitchThemeData` | track `color.toggle.on/off`, thumb `color.toggle.thumb` |
 | Slider | `SliderThemeData` | track height 10, thumb radius 16, `color.slider.*`, value indicator `color.surface.inverse` |
-| Progress | `ProgressIndicatorThemeData` | `color.xp.fill` on `color.xp.track`, `linearMinHeight: 18` |
+| Progress | `ProgressIndicatorThemeData` | `color.progress.done` on `color.progress.track`, `linearMinHeight: 18` |
 | Cards | `CardThemeData` | `elevation: 0`, `radius.xl`, side 2 dp `color.line.base`; lip drawn by a wrapper |
 | List rows | `ListTileThemeData` | min height 64, `title.md`, `body.sm` subtitle |
 | Bottom sheet | `BottomSheetThemeData` | `color.surface.overlay`, top `radius.2xl`, drag handle 36 × 5 `color.line.strong`, `elevation: 0` |
@@ -132,12 +132,12 @@ TextTheme pindoroText(Color ink) => const TextTheme(
 Everything Material has no slot for:
 
 - **Feedback tiers:** `TierColors perfect, great, close, miss` (each `fill, lip, on, bg, ink`) + icon per tier.
-- **XP and level:** `xpFill, xpLip, xpTrack, levelBg, levelRim, levelText`.
+- **Progress, locked and roads:** `progressTrack` (empty tracks and bars), `lockedFill, lockedLip, lockedIcon` (locked badges, the not-yet-today streak flame), `roadBase, roadLane` (illustrations and the cover).
 - **Streak:** `streakFlame, streakCore, streakText, streakDayDone, streakDayEmpty, streakFreezeFill, streakFreezeInk`.
-- **League:** `gold, silver, bronze, promote, demote`.
-- **Lesson path:** `road, edge, lane`, node colours (locked, review), street plate (`bg, lip, rule, text, subtext`).
-- **Map overlays:** `answerLine, answerCasing, playerPin, playerPinLip, playerHalo, playerRoute, measureLine, measureLabel, measureLabelText, areaFill, areaStroke`, district `locked/progress/mastered` fill + stroke, `routeArrow`; v1 adds `mapAreaCenter, mapAreaLabelBg, mapAreaLabelLip, mapAreaLabelText, mapReticle, mapAttributionBg, mapAttributionText` and, for district presets on the area picker, `mapRegionOutline, mapRegionLabelBg, mapRegionLabelText`.
+- **Street plate:** `bg, lip, rule, text, subtext`.
+- **Map overlays:** `answerLine, answerCasing, playerPin, playerPinLip, playerHalo, playerRoute, measureLine, measureLabel, measureLabelText, areaFill, areaStroke`, district `progress/mastered` fill + stroke (the `locked` pair has no v3 use), `routeArrow`; v1 adds `mapAreaCenter, mapAreaLabelBg, mapAreaLabelLip, mapAreaLabelText, mapReticle, mapAttributionBg, mapAttributionText` and, for district presets on the area picker, `mapRegionOutline, mapRegionLabelBg, mapRegionLabelText`.
 - **v1 components:** `inputBg, inputBorder, inputBorderFocus, inputText, inputPlaceholder, inputIcon`, `coachBg, coachText, coachLip`, and `PindoroSize.plateNameMin` (20) for the street-plate fit. Per-screen notes and the release plan: the MVP screens section.
+- **v3 memory and charts:** `memoryMastered, memorySolid, memoryKnown, memorySeen` (the rest of the bar is `progressTrack`), `chartLine, chartArea, chartBar, chartBarToday`.
 - **3D button:** lip heights (`PindoroElevation.e2` default, `e3` hero), radius, press `Duration` + `Curve`, release `SpringDescription`.
 - **Motion:** celebration durations (`celebrateSmall/Medium/Big`), `pinDrop`, `countUp`, springs.
 
@@ -233,7 +233,7 @@ Tier buttons pass `face/lip/ink` from `tier(t)`; secondary buttons use a 2 dp bo
 ## 8. Motion in Flutter
 
 - Durations and curves: `PindoroMotion.durationBase` + `PindoroMotion.easeDecelerate` for entering, `durationFast` + `easeAccelerate` for leaving, `easeOvershoot` for pops.
-- Springs: drive an `AnimationController` with `SpringSimulation(PindoroMotion.springBouncy, 0, 1, velocity)` for the pin drop, badge pop and stop unlock; `springSnappy` for button release and toggles; `springGentle` for drag-follow and map recentre.
+- Springs: drive an `AnimationController` with `SpringSimulation(PindoroMotion.springBouncy, 0, 1, velocity)` for the pin drop, badge pop and next-review chip; `springSnappy` for button release and toggles; `springGentle` for drag-follow and map recentre.
 - Pin drop: lift (−24 dp, 0.9 scale) → fall → squash (`Transform.scale(scaleX: 1.08, scaleY: 0.86, alignment: Alignment.bottomCenter)`) → spring back; ground shadow scales 0.4 → 1.
 - Celebrations: build confetti with a lightweight particle painter (lane dashes and stars) or a Rive file; Pindo's expressions as one Rive state machine (`happy`, `cheering`, `thinking`, `encouraging`, `sleepy`, `proud`).
 - Reduce motion: `final calm = MediaQuery.of(context).disableAnimations;` swap every animation for a 150 ms fade or an instant change; skip confetti entirely.
@@ -243,18 +243,21 @@ Tier buttons pass `face/lip/ink` from `tier(t)`; secondary buttons use a 2 dp bo
 | Event | Call |
 | --- | --- |
 | Tap, step, segment change, slider step | `HapticFeedback.selectionClick()` |
-| Pin drop, Close, stop unlock | `HapticFeedback.lightImpact()` |
+| Pin drop, Close | `HapticFeedback.lightImpact()` |
 | Confirm, Great, streak +1, badge unlock | `HapticFeedback.mediumImpact()` |
 | Perfect, streak milestone | `heavyImpact()`, then `mediumImpact()` after 90 ms |
-| Level up | `heavyImpact()`, `mediumImpact()` +120 ms, `lightImpact()` +240 ms |
 | Miss | `selectionClick()` twice, 60 ms apart |
-| District mastered | `HapticFeedback.heavyImpact()` |
+| District Mastered | `HapticFeedback.heavyImpact()` |
+| Speech token resolved (v3) | `selectionClick()`, no sound |
+| Drive start / end (v3) | `mediumImpact()` |
+| Session done (v3) | `heavyImpact()`, then `mediumImpact()` after 90 ms |
+| Mix-up (v3) | as Miss: `selectionClick()` twice, 60 ms apart |
 
 Wrap calls in a `Haptics` service that checks the in-app Haptics toggle; do the same with a `Sfx` service for the Sound toggle (preload all sounds at launch, ambient audio session on iOS).
 
 ## 10. Map
 
-Use `flutter_map` with CARTO `light_nolabels` / `dark_nolabels` raster tiles (follow CARTO's attribution and usage terms). Draw overlays as `PolylineLayer` (answer: 12 dp casing + 8 dp yellow; player route dashed), `MarkerLayer` (pins as widgets so they share `PindoroButton`-style lips and animate), `CircleLayer` (radius) and `PolygonLayer` (districts; hatch via a custom painter). Take every colour from `PindoroTheme.colors.map*`.
+Use `flutter_map` with CARTO `light_nolabels` / `dark_nolabels` raster tiles (follow CARTO's attribution and usage terms). Draw overlays as `PolylineLayer` (answer: 12 dp casing + 8 dp yellow; player route dashed), `MarkerLayer` (pins as widgets so they share `PindoroButton`-style lips and animate), `CircleLayer` (radius) and `PolygonLayer` (districts). Take every colour from `PindoroTheme.colors.map*`.
 
 ## 11. App icon and splash
 
@@ -275,14 +278,14 @@ Widgets added for v3 (Learn the whole city). Colours come from `PindoroTheme.col
 ### RevealSheet (v3 changes)
 
 - **Inputs:** `RevealResult result` (`tier`, `distanceMeters`, `int? nextReviewDays`, `MixUp? mixUp`, `List<String> chips`), `String? hint`, `VoidCallback onNext`. `MixUp` holds `placedStreetName`, `contrastLine` and `pairLabel` ("4th ↔ 5th"). `Grader.grade(pin, street, rtMs)` returns `{tier, rating, snapStreetId}`; a confusable `snapStreetId` makes the result a Mix-up.
-- **Changes:** `NextReviewChip` replaces the XP chip in the header row (`Wrap`, so it drops under the title when narrow). Mix-up uses `tier(Tier.miss)` colours, the `reroute` icon, the title "Mix-up" and **Got it**; chip row "Pair saved: {pairLabel}".
+- **Changes:** `NextReviewChip` sits at the end of the header row (`Wrap`, so it drops under the title when narrow). Mix-up uses `tier(Tier.miss)` colours, the `reroute` icon, the title "Mix-up" and **Got it**; chip row "Pair saved: {pairLabel}".
 - **Map on Mix-up:** hit street as a player route (`PolylineLayer`: 9 dp `mapPlayerHalo` under 5 dp `mapPlayerRoute`, dash 8 / 7) with a cobalt name chip; true street as answer paint (12 dp `mapAnswerCasing` + 8 dp `mapAnswerLine`). Animate the hit street's paint first, then the true street, `PindoroMotion.durationBase` each; Miss sound and Miss haptic as the badge lands.
 - **Tokens:** `feedback.miss.*`, `map.player.halo`, `map.player.route`, `map.answer.line`, `map.answer.casing`, `map.area.label.bg` / `.text` / `.lip` (cobalt chip), `motion.duration.base`.
 
 ### IntroSheet
 
 - **Inputs:** `StreetIntro intro` (`name`, `otherScriptName`, `String? district` when the name is shared, `where`, `facts`, `String? etymology`, `Family? family`), `int index`, `int count` ("New street · 3 of 10"), `bool canSpeak`, `VoidCallback onHear`, `VoidCallback onGotIt`. `Family` holds `parentName`, `laneCount`, `deadEndCount`.
-- **Build:** extends the Release 4 lesson intro: `StreetPlate` (ask row with `signpost`, up to two sub-lines) over the map, then a non-dismissible sheet: title "Where it is" (`PindoroType.titleMd`), sentence (`bodyMd`, `textSecondary`), facts (`labelMd`, `textSecondary`, tabular figures), optional etymology (`bodySm`), optional family `StatChip` with the `road` icon (wraps to two lines when narrow), then a `Row` of a 56 dp secondary icon button (`sound-on`) and an expanded primary `PindoroButton` "Got it". Hide the speak button when `canSpeak` is false.
+- **Build:** `StreetPlate` (ask row with `signpost`, up to two sub-lines) over the map, then a non-dismissible sheet: title "Where it is" (`PindoroType.titleMd`), sentence (`bodyMd`, `textSecondary`), facts (`labelMd`, `textSecondary`, tabular figures), optional etymology (`bodySm`), optional family `StatChip` with the `road` icon (wraps to two lines when narrow), then a `Row` of a 56 dp secondary icon button (`sound-on`) and an expanded primary `PindoroButton` "Got it". Hide the speak button when `canSpeak` is false.
 - **Text-to-speech:** `flutter_tts` with the street's language tag; `canSpeak` comes from the installed voices for that tag.
 - **Motion:** camera flies to the street (`durationSlow`, `easeStandard`), paint draws (`durationBase`), sheet rises (`durationBase`, `easeDecelerate`).
 - **Tokens:** `surfaceOverlay`, `textPrimary`, `textSecondary`, `streetCard*`, `button.secondary.*`, `button.primary.*`, `radius.2xl`, `space.1` – `space.5`, `size.button.lg`, `size.plate.name-min`.
@@ -298,3 +301,100 @@ Widgets added for v3 (Learn the whole city). Colours come from `PindoroTheme.col
 - **Inputs:** `int plannedItems`, `int answeredItems`, `Set<int> forgottenBlocks` (0–11), `Duration timeLeft`, `VoidCallback onLeave`.
 - **Build:** `Row`: 48 dp icon button (`close`, "Leave session"), `SessionBar` (12 equal blocks, 14 dp tall, `space.1` gaps; block i covers one twelfth of `plannedItems`; current `progressCurrent`; finished `progressDone` with a 3 dp `progressDoneLip`, or `feedbackMissFill` with `feedbackMissLip` when the block is in `forgottenBlocks`; upcoming `progressTodo` with a 2 dp `progressTodoBorder`), then the time-left pill (`timer` icon in `primaryText`, "{minutes} min", tabular figures, floating shadow). Semantics: "Today’s session, 5 of 12" and "About 14 minutes left".
 - **Tokens:** `progress.*`, `feedback.miss.fill`, `feedback.miss.lip`, `primary.text`, `surface.raised`, `line.base`, `shadow.float`, `radius.xs`, `radius.full`, `space.1`, `motion.duration.fast`.
+
+### MemoryBar
+
+- **Inputs:** `int mastered, solid, known, seen, total`, `MemoryBarSize size` (`card` 14 dp, `compact` 6 dp), `bool showLegend` (card only), `String semanticsPrefix` ("City memory", or the district or neighbourhood name), `bool animate`.
+- **Build:** a `ClipRRect` (`PindoroRadius.xs`) around a `Row` on `progressTrack`; each non-empty state is an `Expanded(flex: count)` box in its colour with 2 dp (`PindoroStroke.base`) gaps; the remainder `Expanded(flex: total − sum)` stays empty so the track shows. One `Semantics(label: "City memory: 412 mastered, 630 solid, 220 known, 90 seen of 3 282", image: true)` around the bar. Legend: an `ExcludeSemantics` `Wrap` (spacing 12, run spacing 8) of 12 dp round swatches + `labelMd` name + bold tabular count. Grow: an `AnimationController` over `PindoroMotion.durationSlow` with `easeStandard` scaling each segment's width from 0 (`Align(widthFactor: t)`), only on a card's first show; skip when `disableAnimations`.
+- **Tokens:** `color.memory.mastered`, `.solid`, `.known`, `.seen`, `color.progress.track`, `radius.xs`, `stroke.base`, `space.1` – `space.3`, `label.md`, `motion.duration.slow`, `motion.ease.standard`.
+
+### MemoryChart
+
+- **Inputs:** `List<int> weekly` (up to 11 values, oldest first), `String startLabel` ("Sep 8"), `String endLabel` ("Today"), `String semanticsLabel`, `bool animate`.
+- **Build:** a `CustomPainter`, card content width × 132 dp, following the painter spec in the Memory chart component: plot 2 dp … `width − 5` × 0 … 110 dp; `top = ceil(max × 1.05 / step) × step` with `step = 10^(floor(log10(max)) − 1)` (minimum 10); `y = 110 × (1 − v / top)`; baseline 2 dp `lineBase`, area `chartArea`, line 3 dp `chartLine` (round caps and joins), 5 dp dot, labels in `labelMd` / `textSecondary` at baseline 128. Draw-in: animate the line with `PathMetric.extractPath(0, length × t)` over 2 × `durationSlow`, then fade the area (`durationBase`) and pop the dot (`springBouncy`). `Semantics(image: true, label: semanticsLabel)`.
+- **Tokens:** `color.chart.line`, `color.chart.area`, `color.line.base`, `color.text.secondary`, `label.md`, `motion.duration.slow`, `motion.duration.base`, `motion.spring.bouncy`.
+
+### ForecastBars
+
+- **Inputs:** `List<int> dueByDay` (14 values, today first), `String endDateLabel` ("Nov 29"), `bool animate`.
+- **Build:** header `Row` (`titleSm` "Reviews, next 14 days" + `labelMd` / `textSecondary` "about {round(sum / 14)} a day"), 8 dp gap, a `CustomPainter` 56 dp tall (painter spec in the Forecast bars component): bar width `(width − 52) / 14`, 4 dp gaps, height `56 × count / busiest`, `RRect` with `PindoroRadius.xs` (clamped to half the width); bar 0 in `chartBarToday`, the rest in `chartBar`; then 8 dp and a label `Row` ("Today" left, the end date right, `labelMd`, `textSecondary`). Grow: each bar scales up from the bottom over `durationBase` with `easeDecelerate`, bar i delayed `i × stagger`. The card is one `Semantics` group: "Reviews, next 14 days, about 27 a day. Today 34."
+- **Tokens:** `color.chart.bar`, `color.chart.bar-today`, `color.text.secondary`, `radius.xs`, `space.1`, `space.2`, `title.sm`, `label.md`, `motion.duration.base`, `motion.ease.decelerate`, `motion.stagger`.
+
+### CityMemoryCard (pattern)
+
+- **Inputs:** `double cityMemory` (Σ recall, shown rounded), `int total` (core streets), `int? changeSinceYesterday`, `MemoryCounts counts`, `CityMemoryLayout layout` (`today`, `progress`, `sessionDone`), `List<int>? weekly` (progress), `int? sessionStartValue` (session done).
+- **Build:** no new widget: a `Card` from the card theme (section 5) with its lip wrapper, padding 16 and 12 between rows. Today: label (`labelMd`, `textSecondary`), the number in `headlineLg` with tabular figures and "of {total} streets" (`bodySm`) on one baseline, the change on the right (`labelMd`, `successText`; a `Wrap` so it drops under the number when long), `MemoryBar(size: card, showLegend: true)`, optional explanation (`bodySm`). Progress: label "City memory · streets you’d place today", "of {total} · {percent} %", `MemoryChart`, `MemoryBar(showLegend: true)`. Session done: padding 12 × 16, "City memory" (`titleSm`) and "{start} → {now}" (`numericSm`) counting up over `PindoroMotion.countUp`, then `MemoryBar(size: card)`.
+- **Tokens:** `surface.raised`, `line.base`, `text.primary`, `text.secondary`, `success.text`, `headline.lg`, `title.sm`, `numeric.sm`, `body.sm`, `label.md`, `radius.xl`, `space.2` – `space.4`, `motion.count-up`.
+
+### BearingDial
+
+- **Inputs:** `double playerBearing` (degrees clockwise from north), `double? trueBearing` (null before Check), `ValueChanged<double> onChanged`, `bool enabled` (false after Check), `String caption`.
+- **Build:** a `CustomPainter` at 280 dp (scaled by `size.shortestSide / 280`) inside a `GestureDetector` for pan and `Semantics(slider: true)` with ±30° increase and decrease; the layer-by-layer painter spec is in the Bearing dial component. Caption below in `labelMd`, `textSecondary`. After Check the feedback bar (`.pd-feedback`, tier colours) carries the angle and the sound and haptic.
+- **Tokens:** `color.surface.raised`, `color.line.base`, `color.text.secondary`, `color.text.primary`, `color.map.answer.line`, `color.map.answer.casing`, `color.map.player.route`, `color.map.measure.line`, `color.map.player.pin`, `title.sm`, `label.md`, `motion.duration.base`.
+
+### ExitButton
+
+- **Inputs:** `ExitDirection direction` (`left`, `straight`, `right`; `uTurn` comes with the drive icons), `bool selected`, `VoidCallback onTap`, `String semanticsLabel` ("Turn right").
+- **Build:** a 56 dp circular `PindoroButton` variant (`radius.full`) with the secondary face, 2 dp border and 4 dp lip; selected swaps to `primaryBase` / `primaryLip` / `primaryOn`. 24 dp icon (`turn-left`, `straight`, `turn-right`) in `textSecondary` (unselected). `Positioned` on its arm about 112 dp from the junction centre. `Semantics(button: true, toggled: selected)`; tap haptic `selectionClick()`.
+- **Tokens:** `color.button.secondary.*`, `color.primary.base`, `.lip`, `.on`, `color.text.secondary`, `size.button.lg`, `radius.full`, `elevation.2`, `motion.duration.instant`, `motion.ease.press`, `motion.spring.snappy`.
+
+### LandmarkBadge
+
+- **Inputs:** `String name`, `LandmarkKind kind` (icon; `fuel` → `fuel-station`), `bool personal`, `String semanticsLabel` ("Your landmark: Connect fuel station, south-east corner").
+- **Build:** a 40 dp `DecoratedBox` (`surfaceRaised`, `PindoroRadius.md`, 2 dp `lineStrong` lip) with the 24 dp icon in `textPrimary`; the name chip (as MapLabels, white) centred 40 dp below. One `Semantics(image: true)` around both; exclude the chip's text from semantics.
+- **Tokens:** `color.surface.raised`, `color.line.strong`, `color.text.primary`, `color.map.region.label.bg`, `.text`, `radius.md`, `radius.full`, `elevation.1`, `label.md`, `shadow.float`.
+
+### JunctionMap
+
+- **Inputs:** `JunctionGeometry geometry` (arms with polylines and road classes, buildings, parks, landmark footprint, approach edge, from the pack), `JunctionState state` (`choosing`, `right`, `wrong`), `ExitDirection? chosen`, `List<Offset>? correctExit`.
+- **Build:** a heading-up `CustomPainter` (layer-by-layer spec in the Junction map component) under a `Stack` with `ExitButton`s (only while choosing), the `LandmarkBadge` and the car marker (32 dp `mapRouteArrow` disc, 20 dp `car` icon in `mapRouteLine`, 2 dp `mapPlayerHalo` ring). After Confirm: wrong choice then correct exit, `PindoroMotion.durationBase` each; the reveal sheet carries the tier sound and haptic.
+- **Tokens:** `color.map.basemap.land`, `.building`, `.park`, `.casing`, `.road`, `color.map.route.line`, `.casing`, `.arrow`, `color.map.player.route`, `.halo`, `motion.duration.base`.
+
+### TranscriptChips
+
+- **Inputs:** `List<RecitalToken> tokens` (each `street`, `turn` or `landmark`, with `label`, `fullName`, `LandmarkKind?`, `bool isNew`), `String transcript`, `ValueChanged<RecitalToken> onFix`.
+- **Build:** a card (padding 12 × 16, 12 between rows) with the label (`labelMd`, `textSecondary`), a `Wrap` (spacing 8, run spacing 8) of tokens, then the transcript (`bodySm`, `textSecondary`). Streets and landmarks: 32 dp selected chips (`chipSelectedBg`, `.Border`, `.Text`, `StadiumBorder`, 2 dp lip; landmark adds a 20 dp kind icon) inside a 48 dp tap target. Turn words: `labelMd` in `textSecondary` on `surfaceSunken`, padding 4 × 8, `StadiumBorder`. New tokens slide 16 dp up and fade in (`PindoroMotion.durationBase`, `easeDecelerate`, `stagger` between tokens resolved together) and call `HapticFeedback.selectionClick()`. Announce each new token with `SemanticsService.announce` (polite).
+- **Tokens:** `color.chip.selected.*`, `color.surface.sunken`, `color.text.secondary`, `label.md`, `body.sm`, `radius.full`, `space.1` – `space.4`, `size.icon.sm`, `motion.duration.base`, `motion.ease.decelerate`, `motion.stagger`.
+
+### SceneCard
+
+- **Inputs:** `ImageProvider photo` (Mapillary or the player's own; `cached_network_image` with the offline pack), `String altText`, `String caption`, `String attribution` ("© Mapillary · CC BY-SA · {photographer}"), `Uri lookAround` (Google Maps at the photo's place).
+- **Build:** a `ClipRRect` (`PindoroRadius.xl`) card on `surfaceRaised` with a 4 dp `lineBase` lip; the photo `Image` at full width × 260 dp with `BoxFit.cover` and `Semantics(image: true, label: altText)`; while loading, a shimmer box of the same size on `surfaceSunken`; then caption and attribution in `labelSm`, `textSecondary`, padding 8 × 12. Below the answer controls: a full-width tertiary button with the `external` icon, "Look around in Google Maps", opening `lookAround` with `url_launcher` (`LaunchMode.externalApplication`).
+- **Tokens:** `color.surface.raised`, `color.surface.sunken`, `color.line.base`, `color.text.secondary`, `color.button.tertiary.text`, `radius.xl`, `elevation.2`, `label.sm`, `space.2`, `space.3`.
+
+### Progress rows (ListRow variants)
+
+- **Inputs:** `RowStatus status` (`district`, `done`, `now`, `next`), `String title`, `String subtitle` ("23 of 61 seen · learning now"), `MemoryCounts? counts` (shows the compact bar), `VoidCallback onTap`.
+- **Build:** the list row (64 dp min, 40 dp `PindoroRadius.md` tile, `titleMd`, `bodySm` subtitle, chevron) with the tile by status: `district` / `now` the default tile (`primarySoft` + `primaryText`, icons `district` / `play`); `done` `primaryBase` + `primaryOn` with `check-circle`; `next` `surfaceSunken` + `textSecondary` with `lock`. With `counts`, a `MemoryBar(size: compact)` 4 dp under the subtitle, the full width of the text column. Merge semantics: "Bagebi, learning now. 0 mastered, 4 solid, 7 known, 12 seen of 61."
+- **Tokens:** `color.primary.base`, `.on`, `.soft`, `.text`, `color.surface.sunken`, `color.text.secondary`, `color.memory.*`, `color.progress.track`, `radius.md`, `space.1`, `title.md`, `body.sm`.
+
+### Home and work rows and picker
+
+- **Rows:** list rows with the default tile and `home` or `briefcase`, title "Home" / "Work", subtitle "{neighbourhood} · learning starts here" / "· comes next", chevron. Today's first run uses one row: `home`, "Home and work", "Set them to start learning near you".
+- **Picker:** the area selector (`AreaSelector`) in districts mode with `level: neighbourhood`, `singleSelect: true` and the mode switch hidden. Inputs: `Anchor anchor` (`home`, `work`), `List<Region> neighbourhoods`, `RegionId? selected`, `ValueChanged<RegionId> onSelect`, `VoidCallback onConfirm`. Sheet title "Home: {name}", single-choice chips (`Semantics(inMutuallyExclusiveGroup: true)`), "More" with search, **Set as home** / **Set as work** (disabled until a pick). Saves the anchor; the curriculum starts new streets in the home neighbourhood.
+- **Tokens:** `color.map.area.fill`, `.stroke`, `color.map.area.label.*`, `color.map.region.outline`, `color.map.region.label.*`, `color.chip.*`, `color.primary.soft`, `.text`.
+
+### Placement (pattern)
+
+- **Question:** the normal session pin question with `PlacementController`; the plate's ask is "Placement · {n} of 88"; under **Confirm**, a full-width tertiary button "I don’t know this one" (`onSkip`: leave the street unseen, no penalty, load the next).
+- **Result:** Pindo `proud` 120 dp, `headlineMd` "You know {n} streets already", `bodyMd` / `textSecondary` line, a 2-column `GridView` of 4 stat tiles (`road` Main roads, `district` Districts, `check-circle` In review, `home` Start in), **Start learning** pinned at the bottom. Tiles stagger in (`stagger`, `durationBase`).
+- **Tokens:** `button.tertiary.text`, `button.primary.*`, `headline.md`, `body.md`, `text.secondary`, `surface.raised`, `line.base`, `radius.lg`, `motion.stagger`, `motion.duration.base`.
+
+### Bottom nav
+
+- **Build:** `StatefulShellRoute.indexedStack` with four branches and a Material 3 `NavigationBar` (theme in section 5). Destinations in this order: `road` Today, `map` Explore, `chart` Progress, `user` Me. Full-screen routes (session, placement, an Explore round, recital, drive) sit outside the shell, so the bar hides there.
+- **Tokens:** `color.surface.raised`, `color.line.base`, `color.tab.active.bg`, `color.tab.active.icon`, `color.tab.inactive.icon`, `label.md`, `radius.md`, `size.tap.min`.
+
+### Today card (pattern)
+
+- **State:** from `TodayController` (`SchedulerService.dueCount(now)`, `planSession(budgetMin)`, `MemoryStats.cityMemory()`): **ready**, **catching up** when `dueCount × 12 s` exceeds the day's minutes (new streets 0, most overdue first), or **done** once today's session is finished.
+- **Build:** a `Card` (card theme) with padding 16 and 12 between rows: a `Row` of Pindo (56 dp) and a `Column` with the title (`titleLg`) and subtitle (`bodySm`, `textSecondary`); a 3-column grid of `StatTile`s with 8 dp gaps; a full-width primary `PindoroButton` with the `play` icon ("Start" / "Catch up"). Ready and catching up draw the primary ring: a 3 dp (`PindoroStroke.thick`) inner border in `primaryBase` and the `elevation.2` lip in `primaryLip`. Done: no ring, no tiles; two secondary `PindoroButton`s, "Learn 5 more" and "Free play", as `Expanded` children of a `Row` (8 dp), switching to a `Column` when either label would overflow.
+- **Info card** (catching up, under the City memory card): a `Card` with padding 12 × 16 and a top-aligned `Row`: the 40 dp list-row tile (`primarySoft`, `info` in `primaryText`) and `bodySm` in `textPrimary`.
+- **Actions:** Start and Catch up push the session route; Learn 5 more starts a session of 5 new streets beyond the daily number; Free play switches to the Explore branch.
+- **Tokens:** `color.surface.raised`, `color.line.base`, `color.primary.base`, `.lip`, `.soft`, `.text`, `color.text.primary`, `.secondary`, `stroke.thick`, `elevation.2`, `radius.xl`, `title.lg`, `body.sm`, `space.2` – `space.4`.
+
+### Badge (v3)
+
+- **Inputs:** `BadgeId id`, `BadgeState state` (`earned`, `locked`, `retired`), `bool isNew`, `int? progress`, `int? goal` ("1 292 of 1 500").
+- **Build:** the shield (`CustomPainter`: rim `yellow400`, field per badge as tabled in Badge), the glyph as a white `PindoroIcon`. Locked: field `lockedFill`, rim `lockedLip`, `lock` glyph in `lockedIcon`, and a 6 dp bar on `progressTrack` filled `progressDone` when `goal` is set. Retired: the earned look plus a "Retired" pill on `surfaceSunken` with `textSecondary`. Filter out retired badges the player never earned before building the list.
+- **Tokens:** `color.yellow.400`, the field primitives, `color.locked.*`, `color.progress.track`, `color.progress.done`, `color.surface.sunken`, `color.text.secondary`, `color.accent.*` (New pill), `label.sm`.

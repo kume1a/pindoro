@@ -50,6 +50,8 @@ class PinDropView extends ConsumerWidget {
     this.mixUp,
     this.headerChip,
     this.guess,
+    this.prompt,
+    this.skip,
   });
 
   final AreaShape area;
@@ -86,6 +88,13 @@ class PinDropView extends ConsumerWidget {
 
   /// Guess first: the plate's sub-line and the note above Confirm guess.
   final ({String subline, String note})? guess;
+
+  /// The plate's ask row instead of "Drop a pin on".
+  final String? prompt;
+
+  /// A tertiary button under Confirm that moves on without an answer
+  /// ("I don't know this one").
+  final ({String label, VoidCallback onSkip})? skip;
 
   /// Space the Confirm button takes at the bottom of the map.
   static double confirmInset(BuildContext context) =>
@@ -130,7 +139,10 @@ class PinDropView extends ConsumerWidget {
                   : null,
               topInset: topInset,
               bottomInset: reveal == null
-                  ? confirmInset(context)
+                  ? confirmInset(context) +
+                        (skip == null
+                            ? 0
+                            : PindoroSize.buttonLg + PindoroSpace.s1)
                   : _sheetInset(context),
               showControls: reveal == null,
               frame: reveal == null ? frame : null,
@@ -168,6 +180,7 @@ class PinDropView extends ConsumerWidget {
                       compact: reveal != null,
                       retryDistance: retryDistance,
                       guess: guess?.subline,
+                      prompt: prompt,
                     ),
                   ),
                 ],
@@ -181,7 +194,7 @@ class PinDropView extends ConsumerWidget {
               bottom: bottomActionGap(context),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                spacing: PindoroSpace.s3,
+                spacing: skip == null ? PindoroSpace.s3 : PindoroSpace.s1,
                 children: [
                   if (guess case (:final note, subline: _))
                     Text(
@@ -200,6 +213,12 @@ class PinDropView extends ConsumerWidget {
                       onPressed: pin == null ? null : onConfirm,
                     ),
                   ),
+                  if (skip case (:final label, :final onSkip))
+                    PindoroButton(
+                      label: label,
+                      variant: PindoroButtonVariant.tertiary,
+                      onPressed: onSkip,
+                    ),
                 ],
               ),
             )

@@ -319,6 +319,51 @@ void main() {
     expect(sweep, hasLength(3));
   });
 
+  group('a placement run', () {
+    final streets = [
+      _street('a1', tier: StreetTier.a, length: 900),
+      _street('a2', tier: StreetTier.a, length: 800),
+      for (var i = 0; i < 8; i++)
+        _street('r1b$i', tier: StreetTier.b, chunk: 'c1'),
+      for (var i = 0; i < 6; i++)
+        _street('r2b$i', tier: StreetTier.b, chunk: 'c3'),
+    ];
+    final curriculum = _curriculum(streets);
+
+    test('skips carded streets; a raion sample that passes sweeps the '
+        'rest of its grid right after it', () {
+      final run = Placement(curriculum, seed: 3, carded: {'a2'});
+      expect(run.streets.take(1), ['a1']);
+      expect(run.streets, isNot(contains('a2')));
+      expect(run.streets, hasLength(11));
+      expect(run.answer('a1', Rating.good), isEmpty);
+      final r1 = run.streets.where((id) => id.startsWith('r1')).toList();
+      expect(run.answer(r1[0], Rating.good), isEmpty);
+      expect(run.answer(r1[1], null), isEmpty);
+      expect(run.answer(r1[2], Rating.good), isEmpty);
+      expect(run.answer(r1[3], Rating.good), isEmpty);
+      final sweep = run.answer(r1[4], Rating.good);
+      expect(sweep, hasLength(3));
+      expect({...sweep, ...r1}, {for (var i = 0; i < 8; i++) 'r1b$i'});
+      expect(run.streets.indexOf(sweep.first), run.streets.indexOf(r1[4]) + 1);
+      expect(run.answer(sweep.first, Rating.good), isEmpty);
+      expect(run.mainRoads, (passed: 1, of: 1));
+      expect(run.raions, 2);
+      expect(run.passed, 6);
+    });
+
+    test('a sample with two misses sweeps nothing; Hard is not a pass', () {
+      final run = Placement(curriculum, seed: 3);
+      final r2 = run.streets.where((id) => id.startsWith('r2')).toList();
+      final ratings = [Rating.good, Rating.hard, Rating.again, Rating.good];
+      for (var i = 0; i < 4; i++) {
+        expect(run.answer(r2[i], ratings[i]), isEmpty);
+      }
+      expect(run.answer(r2[4], Rating.good), isEmpty);
+      expect(run.passed, 3);
+    });
+  });
+
   test('a pack without curriculum columns teaches longest first', () {
     final curriculum = _curriculum([
       _street('x', tier: null, chunk: null, length: 200),

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pindoro/features/setup/ui/outline_labels.dart';
+import 'package:pindoro/features/map/ui/outline_labels.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
 void main() {

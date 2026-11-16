@@ -138,9 +138,19 @@
   - Known-street chips use the full name, not the short form ("Chavchavadze Ave", "1st").
   - The Mix-up reveal paints both streets at once (no cobalt-then-yellow paint), and Session done
     plays no results sound and doesn't count City memory up.
-  - Today is minimal (ready and done): no City memory card, Turns tile, backlog state or Learn 5
-    more (M2, M3). It opens from Free play only in `V3=true` builds.
+  - Today's ready and done cards are still the M1 ones (no Pindo head row, primary ring, Turns
+    tile, backlog state or Learn 5 more: M3, Turns M5). It opens from Free play only in `V3=true`
+    builds; Progress opens from its City memory card, learning settings from its gear.
   - `StatChip`, `NextReviewChip` and `IntroSheet` have widget tests but no goldens yet.
+- v3 progress and settings (M2), left out on purpose until the milestone named:
+  - Progress district: no Gateways solid or Landmarks tiles (M5); neighbourhood rows open no
+    detail. Mastered ignores name and ends cards until they exist (M4), and its definition line
+    says only "3 months or more".
+  - Learning settings: no Turns and routes, Street photos or Speak your answers toggles (M5–M7);
+    the reminder keeps its old rule and copy until the streak changes (M3).
+  - The home and work picker shows the map and the nearest neighbourhoods as chips, without the
+    "More" list and search of the design's area selector.
+  - Today has no "Drive this run today" card (M6) or "Now learning" and gateway rows (M5).
   - The carry-over of old-game streets (`carryOverProvider`) reads the `answer` and lesson tables
     each time a pack opens. M3 may drop those tables only once every city with a pack has been
     carried over (keep a per-city flag, or keep the tables read-only).

@@ -1257,6 +1257,98 @@ void main() {
         );
       });
     }
+
+    for (final brightness in Brightness.values) {
+      testWidgets('memory ${brightness.name}', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(400, 560));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        const counts = (
+          mastered: 412,
+          solid: 630,
+          known: 220,
+          seen: 90,
+          total: 3282,
+        );
+        await tester.pumpWidget(
+          _host(
+            brightness: brightness,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 12,
+              children: [
+                const MemoryChart(
+                  values: [
+                    120,
+                    180,
+                    260,
+                    400,
+                    520,
+                    610,
+                    700,
+                    860,
+                    990,
+                    1180,
+                    1284,
+                  ],
+                  startLabel: 'Sep 8',
+                  endLabel: 'Today',
+                  semanticsLabel: '',
+                ),
+                const MemoryBar(counts: counts, semanticsLabel: ''),
+                const MemoryLegend(
+                  counts: counts,
+                  names: (
+                    mastered: 'Mastered',
+                    solid: 'Solid',
+                    known: 'Known',
+                    seen: 'Seen',
+                  ),
+                ),
+                const MemoryBar(
+                  counts: (
+                    mastered: 0,
+                    solid: 4,
+                    known: 7,
+                    seen: 12,
+                    total: 61,
+                  ),
+                  semanticsLabel: '',
+                  compact: true,
+                ),
+                ForecastBars(
+                  counts: const [
+                    34,
+                    22,
+                    18,
+                    30,
+                    25,
+                    12,
+                    9,
+                    28,
+                    31,
+                    20,
+                    15,
+                    26,
+                    40,
+                    19,
+                  ],
+                  title: 'Reviews, next 14 days',
+                  average: 'about 27 a day',
+                  startLabel: 'Today',
+                  endLabel: 'Nov 29',
+                  semanticsLabel: '',
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await expectLater(
+          find.byType(Scaffold),
+          matchesGoldenFile('goldens/memory_${brightness.name}.png'),
+        );
+      });
+    }
   });
 }
 

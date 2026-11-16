@@ -8,18 +8,23 @@ import 'package:pindoro/features/course/ui/path_screen.dart';
 import 'package:pindoro/features/course/ui/unit_guide_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
 import 'package:pindoro/features/league/ui/league_screen.dart';
+import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/lesson/ui/drive_screen.dart';
 import 'package:pindoro/features/lesson/ui/lesson_controller.dart';
 import 'package:pindoro/features/lesson/ui/lesson_done_screen.dart';
 import 'package:pindoro/features/lesson/ui/lesson_screen.dart';
 import 'package:pindoro/features/lesson/ui/unit_done_screen.dart';
 import 'package:pindoro/features/me/ui/me_screen.dart';
+import 'package:pindoro/features/memory/ui/district_progress_screen.dart';
+import 'package:pindoro/features/memory/ui/progress_screen.dart';
 import 'package:pindoro/features/pitstop/ui/pit_stop_screen.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/quiz/ui/quiz_screen.dart';
 import 'package:pindoro/features/results/ui/result_street_screen.dart';
 import 'package:pindoro/features/results/ui/results_screen.dart';
 import 'package:pindoro/features/session/ui/session_screen.dart';
+import 'package:pindoro/features/settings/ui/anchor_screen.dart';
+import 'package:pindoro/features/settings/ui/learn_settings_screen.dart';
 import 'package:pindoro/features/settings/ui/settings_screen.dart';
 import 'package:pindoro/features/setup/ui/area_screen.dart';
 import 'package:pindoro/features/setup/ui/city_screen.dart';
@@ -217,7 +222,30 @@ GoRouter buildRouter(String initialLocation) {
       GoRoute(path: Routes.settings, builder: (_, _) => const SettingsScreen()),
       GoRoute(path: Routes.credits, builder: (_, _) => const CreditsScreen()),
       GoRoute(path: Routes.today, builder: (_, _) => const TodayScreen()),
-      GoRoute(path: Routes.session, builder: (_, _) => const SessionScreen()),
+      GoRoute(
+        path: Routes.session,
+        builder: (_, state) => SessionScreen(
+          placement: state.uri.queryParameters.containsKey('placement'),
+        ),
+      ),
+      GoRoute(path: Routes.progress, builder: (_, _) => const ProgressScreen()),
+      GoRoute(
+        path: Routes.progressDistrict,
+        builder: (_, state) =>
+            DistrictProgressScreen(id: state.uri.queryParameters['id'] ?? ''),
+      ),
+      GoRoute(
+        path: Routes.learnSettings,
+        builder: (_, _) => const LearnSettingsScreen(),
+      ),
+      GoRoute(
+        path: Routes.anchor,
+        builder: (_, state) => AnchorScreen(
+          anchor: state.uri.queryParameters['which'] == 'work'
+              ? Anchor.work
+              : Anchor.home,
+        ),
+      ),
     ],
   );
 }

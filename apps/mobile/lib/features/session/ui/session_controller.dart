@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -137,6 +138,22 @@ final class SessionDone extends SessionState {
   final SessionSummary summary;
 }
 
+/// What placement found (the placement result).
+typedef PlacementSummary = ({
+  int passed,
+  ({int passed, int of}) mainRoads,
+  int raions,
+
+  /// The neighbourhood new streets start in.
+  District? startIn,
+});
+
+final class SessionPlaced extends SessionState {
+  const SessionPlaced(this.summary);
+
+  final PlacementSummary summary;
+}
+
 /// Plays today's session (docs/learning/SPEC.md §6.4, §7, §16.2): intros,
 /// pins graded by pindoro_learning, each answer saved as it comes, relearns
 /// slotted in after Again. Leaving keeps everything answered so far.
@@ -150,6 +167,10 @@ class SessionController extends Notifier<SessionState> {
   late Map<String, int> _successes;
   late double _memoryBefore;
   late int _seed;
+
+  /// Set while placing (SPEC §6.2): the run decides which streets come next.
+  Placement? _placement;
+  late List<String> _anchors;
   final String _sessionId = const Uuid().v7();
   final List<({SessionStep step, PinGrade grade, String streetId})> _answers =
       [];
@@ -165,20 +186,41 @@ class SessionController extends Notifier<SessionState> {
   LearningDao get _dao => ref.read(learningDaoProvider);
   DateTime _now() => ref.read(clockProvider)();
 
-  Future<void> start() async {
+  /// Today's session, or with [placement] the city's placement.
+  Future<void> start({bool placement = false}) async {
     final dao = _dao;
     // The plan disposes when unwatched: hold it while it loads.
-    final planSub = ref.listen(todayPlanProvider.future, (_, _) {});
-    final plan = await planSub.read();
-    planSub.close();
+    final planSub = placement
+        ? null
+        : ref.listen(todayPlanProvider.future, (_, _) {});
+    final plan = await planSub?.read();
+    planSub?.close();
     final streets = await ref.read(cityStreetsProvider.future);
     final pack = await ref.read(packRepositoryProvider.future);
     final curriculum = await ref.read(curriculumProvider.future);
     final cards = await dao.cards();
     final confusions = await dao.confusionPairs();
     final log = await dao.log();
+    final learnCity = await dao.learnCity(pack.city().id);
     if (!ref.mounted) return;
-    if (plan.steps.isEmpty) {
+    final now = _now();
+    if (placement) {
+      _placement = Placement(
+        curriculum,
+        seed: now.microsecondsSinceEpoch,
+        carded: {
+          for (final c in cards)
+            if (c.type == CardType.p) ?streets[itemKey(c.itemId)]?.id,
+        },
+      );
+    }
+    final steps =
+        plan?.steps ??
+        [
+          for (final id in _placement!.streets)
+            (kind: StepKind.placement, itemId: CardType.p.item(id)),
+        ];
+    if (steps.isEmpty && !placement) {
       state = const SessionEmpty();
       return;
     }
@@ -194,10 +236,10 @@ class SessionController extends Notifier<SessionState> {
         _successes.update(e.itemId, (n) => n + 1, ifAbsent: () => 1);
       }
     }
-    final now = _now();
+    _anchors = [?learnCity?.homeId, ?learnCity?.workId];
     _seed = now.microsecondsSinceEpoch;
     _memoryBefore = _memory(now);
-    _show(plan.steps, 0, const {});
+    _show(steps, 0, const {});
   }
 
   /// The intro was read: the street becomes a learning card.
@@ -247,6 +289,10 @@ class SessionController extends Notifier<SessionState> {
       await _saveGuess(step.itemId, grade, now, rtMs);
       if (!ref.mounted) return;
       _show(p.steps, p.index, p.forgotten, guessed: true);
+      return;
+    }
+    if (step.kind == StepKind.placement) {
+      await _place(p, grade, pin, now, rtMs);
       return;
     }
     final result = applyReview(
@@ -303,6 +349,74 @@ class SessionController extends Notifier<SessionState> {
     );
   }
 
+  /// A placement pin (SPEC §6.2): Good or Easy at first sight makes a review
+  /// card known from before; anything else is logged and the street stays
+  /// unseen. No relearn, no confused pair.
+  Future<void> _place(
+    SessionPlaying p,
+    PinGrade grade,
+    LatLng pin,
+    DateTime now,
+    int rtMs,
+  ) async {
+    final step = p.step;
+    final placed = Placement.passes(grade.rating);
+    final result = applyReview(
+      null,
+      itemId: step.itemId,
+      rating: grade.rating,
+      now: now,
+      format: ReviewFormat.placement,
+      source: ReviewSource.placement,
+      sessionId: _sessionId,
+      distanceM: grade.distanceM,
+      snapId: grade.snapStreetId,
+      rtMs: rtMs,
+      priorKnown: true,
+    );
+    await _dao.saveAnswer(card: placed ? result.card : null, log: result.log);
+    if (!ref.mounted) return;
+    if (placed) _cards[step.itemId] = result.card;
+    _times.add(now);
+    state = p.copyWith(
+      steps: _withSweep(p, grade.rating),
+      forgotten: grade.rating == Rating.again
+          ? {...p.forgotten, p.index}
+          : p.forgotten,
+      reveal: (
+        grade: grade,
+        pin: pin,
+        nearest: p.street.nearest(pin).nearestPoint,
+        nextReviewDays: placed
+            ? result.card.dueAt!.difference(now).inDays
+            : null,
+        hit: null,
+      ),
+    );
+  }
+
+  /// "I don't know this one": the street stays unseen, nothing is logged.
+  void skip() {
+    final p = state;
+    if (p is! SessionPlaying ||
+        p.reveal != null ||
+        p.step.kind != StepKind.placement) {
+      return;
+    }
+    _show(_withSweep(p, null), p.index + 1, p.forgotten);
+  }
+
+  /// [p]'s steps with the sweep its answer earned right after it.
+  List<SessionStep> _withSweep(SessionPlaying p, Rating? rating) {
+    final sweep = _placement!.answer(p.street.id, rating);
+    return [
+      ...p.steps.take(p.index + 1),
+      for (final id in sweep)
+        (kind: StepKind.placement, itemId: CardType.p.item(id)),
+      ...p.steps.skip(p.index + 1),
+    ];
+  }
+
   /// A guess is logged as a pretest: no card, no confused pair.
   Future<void> _saveGuess(
     String itemId,
@@ -346,7 +460,11 @@ class SessionController extends Notifier<SessionState> {
       i++;
     }
     if (i >= steps.length) {
-      state = SessionDone(_summary());
+      if (_placement case final run?) {
+        unawaited(_placed(run));
+      } else {
+        state = SessionDone(_summary());
+      }
       return;
     }
     final step = steps[i];
@@ -445,6 +563,23 @@ class SessionController extends Notifier<SessionState> {
         (_streets[itemKey(id)]?.lengthM ?? 0) >= LearningConfig.coreMinLengthM,
   );
 
+  Future<void> _placed(Placement run) async {
+    final city = _pack.city();
+    await _dao.markPlaced(city.id, _now());
+    if (!ref.mounted) return;
+    final cards = {
+      for (final c in _cards.values)
+        if (c.type == CardType.p) ?_streets[itemKey(c.itemId)]?.id: c,
+    };
+    final start = _curriculum.chunkSequence(cards, _anchors).firstOrNull;
+    state = SessionPlaced((
+      passed: run.passed,
+      mainRoads: run.mainRoads,
+      raions: run.raions,
+      startIn: _pack.districts().where((d) => d.id == start).firstOrNull,
+    ));
+  }
+
   SessionSummary _summary() {
     final now = _now();
     final graded = _answers.length;
@@ -479,5 +614,6 @@ ReviewFormat _formatOf(StepKind kind) => switch (kind) {
   StepKind.retrieval1 => ReviewFormat.retrieval1,
   StepKind.retrieval2 => ReviewFormat.retrieval2,
   StepKind.relearn => ReviewFormat.relearn,
+  StepKind.placement => ReviewFormat.placement,
   StepKind.review || StepKind.intro => ReviewFormat.review,
 };

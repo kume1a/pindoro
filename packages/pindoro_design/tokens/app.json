@@ -403,5 +403,201 @@
       }
     ],
     "note": "Opacities the design system uses in its component CSS but has no token for."
+  },
+  "legacy": {
+    "note": "The old game layer (XP, levels, leagues, the lesson path, the Pit stop), dropped from the design system for v3. They leave with those widgets in M3.",
+    "tokens": [
+      {
+        "name": "color.league.bronze",
+        "value": {
+          "light": "{color.orange.400}",
+          "dark": "{color.orange.400}"
+        },
+        "usage": "3rd place medal and bronze league."
+      },
+      {
+        "name": "color.league.demote",
+        "value": {
+          "light": "{color.red.700}",
+          "dark": "{color.red.300}"
+        },
+        "usage": "Demotion zone marker text and arrow on surface.raised."
+      },
+      {
+        "name": "color.league.gold",
+        "value": {
+          "light": "{color.yellow.400}",
+          "dark": "{color.yellow.400}"
+        },
+        "usage": "1st place medal and gold league."
+      },
+      {
+        "name": "color.league.promote",
+        "value": {
+          "light": "{color.aqua.800}",
+          "dark": "{color.aqua.300}"
+        },
+        "usage": "Promotion zone marker text and arrow on surface.raised."
+      },
+      {
+        "name": "color.league.silver",
+        "value": {
+          "light": "{color.asphalt.300}",
+          "dark": "{color.asphalt.300}"
+        },
+        "usage": "2nd place medal and silver league."
+      },
+      {
+        "name": "color.level.bg",
+        "value": {
+          "light": "{color.cobalt.500}",
+          "dark": "{color.cobalt.500}"
+        },
+        "usage": "Level badge shield."
+      },
+      {
+        "name": "color.level.rim",
+        "value": {
+          "light": "{color.yellow.400}",
+          "dark": "{color.yellow.400}"
+        },
+        "usage": "Level badge rim."
+      },
+      {
+        "name": "color.level.text",
+        "value": {
+          "light": "{color.asphalt.0}",
+          "dark": "{color.asphalt.0}"
+        },
+        "usage": "Level number on level.bg."
+      },
+      {
+        "name": "color.path.edge",
+        "value": {
+          "light": "{color.asphalt.800}",
+          "dark": "{color.asphalt.600}"
+        },
+        "usage": "Lesson path kerb (3 dp each side)."
+      },
+      {
+        "name": "color.path.lane",
+        "value": {
+          "light": "{color.asphalt.0}",
+          "dark": "{color.asphalt.400}"
+        },
+        "usage": "Dashed centre line on the lesson path."
+      },
+      {
+        "name": "color.path.lane-ahead",
+        "value": {
+          "light": "{color.asphalt.50}",
+          "dark": "{color.asphalt.700}"
+        },
+        "usage": "Dashed centre line on the road ahead."
+      },
+      {
+        "name": "color.path.node.locked.fill",
+        "value": {
+          "light": "{color.asphalt.200}",
+          "dark": "{color.asphalt.800}"
+        },
+        "usage": "Locked stop pin."
+      },
+      {
+        "name": "color.path.node.locked.icon",
+        "value": {
+          "light": "{color.asphalt.600}",
+          "dark": "{color.asphalt.500}"
+        },
+        "usage": "Lock glyph on a locked stop."
+      },
+      {
+        "name": "color.path.node.locked.lip",
+        "value": {
+          "light": "{color.asphalt.300}",
+          "dark": "{color.asphalt.850}"
+        },
+        "usage": "Locked stop pin lip."
+      },
+      {
+        "name": "color.path.node.review.fill",
+        "value": {
+          "light": "{color.asphalt.0}",
+          "dark": "{color.asphalt.900}"
+        },
+        "usage": "Pit-stop (review) pin."
+      },
+      {
+        "name": "color.path.node.review.icon",
+        "value": {
+          "light": "{color.primary.text}",
+          "dark": "{color.primary.text}"
+        },
+        "usage": "Wrench glyph on a pit stop."
+      },
+      {
+        "name": "color.path.node.review.lip",
+        "value": {
+          "light": "{color.asphalt.200}",
+          "dark": "{color.asphalt.975}"
+        },
+        "usage": "Pit-stop pin lip."
+      },
+      {
+        "name": "color.path.road",
+        "value": {
+          "light": "{color.asphalt.700}",
+          "dark": "{color.asphalt.700}"
+        },
+        "usage": "Lesson path asphalt."
+      },
+      {
+        "name": "color.path.road-ahead",
+        "value": {
+          "light": "{color.asphalt.200}",
+          "dark": "{color.asphalt.800}"
+        },
+        "usage": "The part of the lesson path not driven yet, after the current stop (no kerb, softer)."
+      },
+      {
+        "name": "color.xp.fill",
+        "value": {
+          "light": "{color.yellow.400}",
+          "dark": "{color.yellow.400}"
+        },
+        "usage": "XP bar fill and XP diamond."
+      },
+      {
+        "name": "color.xp.lip",
+        "value": {
+          "light": "{color.yellow.600}",
+          "dark": "{color.yellow.600}"
+        },
+        "usage": "Inner lower edge of the XP bar fill."
+      },
+      {
+        "name": "color.xp.track",
+        "value": {
+          "light": "{color.asphalt.100}",
+          "dark": "{color.asphalt.800}"
+        },
+        "usage": "XP bar and daily-goal ring track."
+      },
+      {
+        "name": "size.node.current",
+        "value": "72px",
+        "usage": "Current stop and Final drive diameter; the progress ring adds space.3 each side."
+      },
+      {
+        "name": "size.node.stop",
+        "value": "56px",
+        "usage": "Lesson path stop: round 3D button diameter."
+      },
+      {
+        "name": "size.road",
+        "value": "24px",
+        "usage": "Lesson path road width (driven part and road ahead); the kerb adds 2 dp each side."
+      }
+    ]
   }
 }

@@ -62,8 +62,9 @@ implicit_evidence(id INT PK, item_id TEXT, ts INT, source TEXT, outcome INT)    
 -- user_settings table, not a separate key-value table (§16)
 ```
 
-Added by later milestones: `card_state.note TEXT` (leech mnemonic, M4), `turn_override` (local "report
-this turn" fixes, M5), `run` (route-book runs, M6). See §16.
+Added by later milestones: `learn_city` (per city: placement done, home and work, M2),
+`card_state.note TEXT` (leech mnemonic, M4), `turn_override` (local "report this turn" fixes, M5),
+`run` (route-book runs, M6). See §16.
 
 `source` in the log: `session`, `placement`, `explore`, `recital`, `drive`. Never delete log rows;
 the optimiser needs them. Street ids are already stable across pack versions: the pipeline matches
@@ -386,6 +387,7 @@ pindoro_core `ScoringConfig`, not copied):
 | `retrieval1GapMin`, `retrieval1GapMax`, `retrieval1GapFloor`        | 3, 6, 2 items                       |
 | `learnMoreCount`                                                    | 5                                   |
 | `placementSamplePerDistrict`, `placementPassMin`                    | 5, 4                                |
+| `placementPinS` (time estimate per placement pin)                   | 4 s                                 |
 | `familySweepMinChildren`, `familySweepWindowDays`                   | 3, 2                                |
 | `crossingsPerDay`, `bearingsPerSessionMin`, `bearingsPerSessionMax` | 1, 1, 3                             |
 | `bearingUnlockGridSolid`                                            | 0.50                                |
@@ -577,3 +579,18 @@ board, and per-type FSRS parameter presets.
     the player knows ("You know 26 May Street and 4 of its side streets"); the map stays blank, as
     on every question map (§16.6), although the board labels the family there. The guess is
     logged as `pretest` and saves no confused pair.
+44. **Placement runs** (§6.2) skip streets that already have a P card. A pass is Good or Easy: it
+    creates the card (`prior_known = 1`, format and source `placement`); Hard and Again are logged
+    with no card; "I don't know this one" logs nothing. A raion's sweep follows when its sample's
+    passes reach `placementPassMin` / `placementSamplePerDistrict` of the sample (a sample shrunk
+    by carded streets keeps the ratio), and is asked right after the sample. Placement has no
+    relearns.
+45. **Placement state** is per city, in table `learn_city` with the home and work neighbourhoods:
+    `placed_at` is set when a placement ends or the player starts from zero; Today shows
+    `firstRun` until then. Leaving a placement keeps its answers, so starting again asks only the
+    streets still unseen.
+46. **Progress**: a district's number is City memory over its core streets (through their
+    chunks); a neighbourhood is Mastered when all its core streets are, `now` is the first chunk of
+    the teaching order, then begun ones, then the rest in teaching order ("Starts after" names the
+    chunk before it). Districts sort by their share remembered. The replay of §16.20 skips
+    `pretest` rows and placement rows that made no card.

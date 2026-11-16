@@ -23,6 +23,9 @@ class Curriculum {
   }) : _centre = centre,
        _neighbours = chunkNeighbours {
     final all = streets.toSet().toList()..sort(_longestFirst);
+    for (final s in all) {
+      _byId[s.id] = s;
+    }
     final byPart = {
       for (final s in all)
         for (final p in s.parts) p.id: s,
@@ -72,6 +75,7 @@ class Curriculum {
 
   final LatLng _centre;
   final Map<String, Set<String>> _neighbours;
+  final _byId = <String, NamedStreet>{};
   final _parentOf = <String, String>{};
   final _n = <String, int>{};
   final _kind = <String, FamilyKind>{};
@@ -96,6 +100,20 @@ class Curriculum {
       s.lengthM >= LearningConfig.coreMinLengthM;
 
   bool _isChild(NamedStreet s) => _parentOf.containsKey(s.id);
+
+  StreetTier? tierOf(String id) => switch (_byId[id]) {
+    final s? => _tier(s),
+    null => null,
+  };
+
+  /// The raion of [id]'s chunk; null for a street without one.
+  String? raionOf(String id) => switch (_byId[id]) {
+    final s? => _raionOf[chunkOf(s)],
+    null => null,
+  };
+
+  /// Every street of [chunk], any tier.
+  List<NamedStreet> streetsIn(String chunk) => _chunkStreets[chunk] ?? const [];
 
   /// The street [childId] is a numbered lane, dead end or passage of; null for the rest and for
   /// orphans, which are taught as single streets.
@@ -241,7 +259,7 @@ class Curriculum {
 
     final trunkOpen = _trunk.any((s) => isCore(s) && !cards.containsKey(s.id));
     final trunk = _trunk.iterator;
-    final local = _chunkSequence(cards, anchors).expand((c) => _chunkOrder[c]!);
+    final local = chunkSequence(cards, anchors).expand((c) => _chunkOrder[c]!);
     final chunks = local.iterator;
     NamedStreet? draw(Iterator<NamedStreet> from) {
       while (from.moveNext()) {
@@ -278,7 +296,7 @@ class Curriculum {
   /// Chunks with tier C streets left to teach, in teaching order: the anchors and the centre's
   /// chunk, then chunks already started, then the chunk bordering the most finished chunks
   /// (ties: nearer the centre).
-  List<String> _chunkSequence(
+  List<String> chunkSequence(
     Map<String, CardState> cards,
     List<String> anchors,
   ) {

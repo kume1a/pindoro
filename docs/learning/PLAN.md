@@ -58,7 +58,7 @@ tomorrow's due count matches FSRS; the CSV opens with every column of SPEC §2.2
 
 ## M2 · Curriculum, placement, progress
 
-Status: steps 1, 2, 4 and 7 done (2026-11-16).
+Status: done (2026-11-16).
 
 Spec §2.1 (ring, bank, tier, chunk, family), §6, §8. Boards V3-10, V3-11, V3-20 (`introFamily`, `pretest`), V3-60.
 
