@@ -81,6 +81,10 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
   Future<void> setMinutesPerDay(int minutes) =>
       _update(UserSettingsCompanion(minutesPerDay: Value(minutes)));
 
+  /// Fitted FSRS weights as JSON, or null for SPEC §4's.
+  Future<void> setFsrsWeights(String? json) =>
+      _update(UserSettingsCompanion(fsrsWeights: Value(json)));
+
   Future<void> markHomeCoachSeen() =>
       _update(const UserSettingsCompanion(homeCoachSeen: Value(true)));
 

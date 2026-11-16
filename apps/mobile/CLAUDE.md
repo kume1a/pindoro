@@ -34,7 +34,8 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                sign-in screen and Settings group), badges (stats, awards, the
                                shelf tile, the reward sheet and BadgeMoments), home (Explore),
                                setup (welcome, city, area, difficulty), quiz (Explore round),
-                               results (results, street), settings (+ learning settings, the
+                               results (results, street), settings (+ learning settings, the Memory model
+                               screen: calibration, fitted FSRS weights, tier C relief; the
                                home/work picker and your landmarks: list, add on the map
                                snapped to a junction), streak, me, session (SessionController plays
                                today's plan, Learn 5 more or the city's placement; each step's
@@ -81,7 +82,8 @@ test/drift/                    generated schema helpers + migration test
   `/difficulty`, `/round` (`?round=` resumes, `?retry=` retries), `/results`, `/streak`,
   `/settings`, `/settings/credits`, `/session` (`?placement=1` places, `?more=1` learns 5 more),
   `/progress/district?id=`, `/settings/learning`, `/settings/learning/anchor?which=`,
-  `/settings/learning/landmarks`, `/settings/learning/landmarks/add` and `/drive`.
+  `/settings/learning/landmarks`, `/settings/learning/landmarks/add`, `/settings/learning/memory`
+  and `/drive`.
   `startLocation`: a saved Explore round reopens Explore; a player who finished a round or placed
   a city (`learn_city`) opens Today; anyone else gets Welcome, whose Choose a city leads to Today
   and its placement. Footers end 12 dp above the bar on a tab (`bottomActionGap`).

@@ -28,7 +28,6 @@ abstract final class LearningConfig {
     0.1542,
   ];
   static const double retentionDefault = 0.90;
-  static const double retentionScene = 0.85;
   static const double retentionTierCRelief = 0.85;
   static const double tierCReliefFactor = 1.2;
   static const int maxIntervalDays = 365;
@@ -169,10 +168,6 @@ abstract final class LearningConfig {
   /// signals, junctions stand in for them (§16.15).
   static const double hesitationJunctionM = 30;
 
-  // Imagery (§10)
-  static const double sceneApproachMinM = 25;
-  static const double sceneApproachMaxM = 40;
-
   // Recital runs in the plan (§3 R, §16.15)
   /// What a recital takes in the day's minutes (report 2: about 3 minutes a day).
   static const int tRecitalS = 180;
@@ -190,6 +185,21 @@ abstract final class LearningConfig {
 
   /// A drive that ends this close to its destination arrived there.
   static const double driveArriveM = 200;
+
+  // Tuning (§12, §16.17)
+  /// Calibration bins over predicted recall 0–1, each this wide a share.
+  static const int calibrationBins = 10;
+
+  /// A bin is healthy when its recall is within this of the prediction (±5 points).
+  static const double calibrationTolerance = 0.05;
+  static const int calibrationMinReviews = 20;
+
+  /// Reviews that moved a card before fitted weights are worth it (§12: about 1 000).
+  static const int fitMinReviews = 1000;
+
+  /// Tier C relief looks at the days played in this many days, replayed over the longer span.
+  static const int tierCReliefDays = 7;
+  static const int tierCReliefReplayDays = 28;
 
   // Motivation and maps (§8, §16.6)
   static const int cityMemoryMilestone = 500;

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'constants.dart';
@@ -36,16 +37,57 @@ class Scheduled {
   DateTime get due => memory.lastReview.add(Duration(days: intervalDays));
 }
 
+/// The weights every `Fsrs()` uses (SPEC §12, §16.9): §4's defaults until the app loads a set
+/// fitted to the player's own log at launch.
+// ponytail: one process-wide memory model, set before anything is scheduled; pass an Fsrs
+// through instead if two models ever have to run side by side.
+abstract final class FsrsWeights {
+  static List<double> active = LearningConfig.fsrsWeights;
+
+  /// Fitted weights from [json]: a list of 21 numbers, or an object holding one as `weights`
+  /// (what `just fsrs-fit` prints). Null unless the initial stabilities are positive and the
+  /// decay lies in (0, 1].
+  static List<double>? parse(String json) {
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(json);
+    } on FormatException {
+      return null;
+    }
+    final list = switch (decoded) {
+      {'weights': final List<Object?> w} => w,
+      final List<Object?> w => w,
+      _ => null,
+    };
+    if (list == null || list.length != LearningConfig.fsrsWeights.length) {
+      return null;
+    }
+    final weights = [
+      for (final w in list)
+        if (w is num && w.isFinite) w.toDouble(),
+    ];
+    final plausible =
+        weights.length == list.length &&
+        weights.take(4).every((s) => s > 0) &&
+        weights[20] > 0 &&
+        weights[20] <= 1;
+    return plausible ? List.unmodifiable(weights) : null;
+  }
+}
+
 /// FSRS-6 as py-fsrs 6.3.2 runs it with no learning steps (SPEC §4). Pure: the caller passes the
 /// time and, for fuzz, a seeded [Random].
 class Fsrs {
   const Fsrs({
-    this.weights = LearningConfig.fsrsWeights,
+    List<double>? weights,
     this.maxIntervalDays = LearningConfig.maxIntervalDays,
-  });
+  }) : _weights = weights;
 
-  final List<double> weights;
+  final List<double>? _weights;
   final int maxIntervalDays;
+
+  /// The given weights, else [FsrsWeights.active].
+  List<double> get weights => _weights ?? FsrsWeights.active;
 
   static const double _minStability = 0.001;
 

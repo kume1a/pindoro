@@ -17,6 +17,7 @@ import 'package:pindoro/core/sounds.dart';
 import 'package:pindoro/features/map/data/city_tiles.dart';
 import 'package:pindoro/features/pack/data/pack_store.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -70,7 +71,15 @@ Future<void> _boot({required bool coldStart}) async {
     unawaited(container.read(soundsProvider).load());
     // A pack installed in the background is used right away; a round in play
     // keeps the streets it already loaded.
-    final city = (await SettingsDao(db).read()).cityId;
+    final settings = await SettingsDao(db).read();
+    // Fitted weights apply to the whole run, from before anything schedules.
+    FsrsWeights.active =
+        switch (settings.fsrsWeights) {
+          final json? => FsrsWeights.parse(json),
+          null => null,
+        } ??
+        LearningConfig.fsrsWeights;
+    final city = settings.cityId;
     unawaited(
       refreshQuietly(store, city).then((installed) {
         if (installed && !disposed) {

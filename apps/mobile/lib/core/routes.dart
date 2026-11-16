@@ -54,6 +54,9 @@ abstract final class Routes {
   static const String landmarks = '/settings/learning/landmarks';
   static const String landmarkAdd = '/settings/learning/landmarks/add';
 
+  /// Calibration, fitted FSRS weights and tier C relief (SPEC §12).
+  static const String memoryModel = '/settings/learning/memory';
+
   /// A GPS-free drive: setup, recording and review (DriveScreen).
   static const String drive = '/drive';
 

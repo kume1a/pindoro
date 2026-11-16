@@ -3,6 +3,7 @@ import 'dart:math';
 import 'constants.dart';
 import 'fsrs.dart';
 import 'grader.dart';
+import 'tuning.dart';
 
 /// Card types; an item id is `<TYPE>:<key>` (SPEC §3).
 enum CardType {
@@ -14,9 +15,6 @@ enum CardType {
   b,
   c,
   l,
-  s1,
-  s2,
-  s3,
   r;
 
   String item(String key) => '${name.toUpperCase()}:$key';
@@ -212,7 +210,7 @@ CardState carriedOver(
   String? snapId,
   int? rtMs,
   bool priorKnown = false,
-  double retention = LearningConfig.retentionDefault,
+  double? retention,
   Fsrs fsrs = const Fsrs(),
 }) {
   final before = card?.memory;
@@ -220,7 +218,7 @@ CardState carriedOver(
     before,
     rating,
     now,
-    retention: retention,
+    retention: retention ?? retentionOf(CardType.ofItem(itemId)),
     fuzz: fuzzFor(itemId, now),
   );
   final lapsed = rating == Rating.again && card?.phase == CardPhase.review;

@@ -6,6 +6,8 @@ Each board mounts a reusable screen part with a `state`. Copies of all files are
 canvas; dark comes from `PindoroTheme.dark` as before. All visuals use existing tokens and components
 from the Pindoro design system unless listed under "New".
 
+Street photos were dropped (SPEC §16.16) and taken off the canvas: no V3-31 board, no scene states.
+
 ## Boards
 
 | Board | Shows | Screen part · states |
@@ -19,8 +21,7 @@ from the Pindoro design system unless listed under "New".
 | V3-22 Recall name and ends | Name it, extent | SessionScreen · `nameHidden`, `nameShown`, `extent` |
 | V3-23 Families, crossings, bearing | Drills | SessionScreen · `family`, `crossings`, `orientation` |
 | V3-24 Session done | Summary, Today after | SessionScreen · `done`; TodayScreen · `done` |
-| V3-30 Junction decisions | J cards and scene → turn | RouteItemScreen · `junction`, `junctionRight`, `junctionWrong`, `sceneAction` |
-| V3-31 Scenes and names | Photo → name | RouteItemScreen · `sceneName`, `sceneResult` |
+| V3-30 Junction decisions | J cards | RouteItemScreen · `junction`, `junctionRight`, `junctionWrong` |
 | V3-32 Gateways, bridges, landmarks | G, B, personal landmarks, L cards | RouteItemScreen · `gateway`, `bridge`, `landmarkAdd`, `landmarkQuiz` |
 | V3-40 Recital | Speak / type / draw, grading | RecitalScreen · `ask`, `listening`, `typing`, `result`, `resultIllegal` |
 | V3-50 GPS-free drive | Setup, recording, review | DriveScreen · `setup`, `recording`, `review` |
@@ -72,10 +73,6 @@ from the Pindoro design system unless listed under "New".
   (turn-left / straight / turn-right; selected = primary colours); optional "Then you're on" field; Confirm.
 - `junctionRight`: correct exit painted with the route style (yellow), tier sheet Great with "Next in 9 days".
 - `junctionWrong`: chosen exit cobalt dashed, correct exit yellow, Miss sheet naming the sibling junction.
-- `sceneAction`: photo card (radius xl) with caption and "© Mapillary · CC BY-SA"; question; three tall
-  direction buttons; "Look around in Google Maps" (tertiary, external icon) opens the Google Maps app.
-- `sceneName` / `sceneResult`: typed recall field; result sheet with both scripts, view direction, a card for
-  "The view from the other end", Next, Look around.
 - `gateway`: neighbourhood polygon (`pd-map-area`) with area label; pin; Confirm.
 - `bridge`: numbered bridge tips on the map (selected = primary), A pin at the start, field for the bridge name.
 - `landmarkAdd`: long-press ring; bottom sheet: name field, kind chips (Fuel, Metro, Church, Shop, Other),
@@ -107,7 +104,7 @@ from the Pindoro design system unless listed under "New".
   counts), StatTiles (Recall 30 days, Whole city by), 14-day forecast bars (cobalt 300), district rows.
 - `district`: number, stacked bar, StatTiles (Gateways solid, Landmarks), neighbourhood rows (done = cobalt check,
   now = play, next = lock), definition line for Mastered.
-- `learning`: Time a day (15 / 20 / 30), explanation line, home / work rows, toggles (Turns and routes, Street photos,
+- `learning`: Time a day (15 / 20 / 30), explanation line, home / work rows, toggles (Turns and routes,
   Speak your answers), plate script segmented control, Reminder toggle.
 
 ## New design-system items (add to the system before building the screens that use them)
@@ -115,8 +112,7 @@ from the Pindoro design system unless listed under "New".
 - Icons (same grid and stroke rules): `chart` (Progress tab), `mic`, `keyboard`, `photo`, `fuel-station`, `straight`,
   `turn-left`, `turn-right`, `external`, `locate-off`, `stop`, `eye`, `u-turn`, `home`, `briefcase`.
 - Components: NextReviewChip (StatChip variant), MemoryBar (stacked bar + legend), IntroSheet (extends lesson intro),
-  BearingDial, ExitButton (map-placed round icon button with selected state), LandmarkBadge, SceneCard (photo +
-  caption + attribution), TranscriptChips, JunctionMap painter.
+  BearingDial, ExitButton (map-placed round icon button with selected state), LandmarkBadge, TranscriptChips, JunctionMap painter.
 - Copy rules unchanged: sentence case, no uppercase transforms, buttons are verbs, tabular figures for numbers.
 
 ## Motion, sound and haptics (new events)

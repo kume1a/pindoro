@@ -76,7 +76,7 @@
 - v3 progress and settings (M2), left out on purpose until the milestone named:
   - Progress district: no Gateways solid or Landmarks tiles (M5); neighbourhood rows open no
     detail. Its Mastered definition line says only "3 months or more".
-  - Learning settings: no Turns and routes, Street photos or Speak your answers toggles (M5–M7).
+  - Learning settings: no Turns and routes or Speak your answers toggles (M5, M6).
   - The home and work picker shows the map and the nearest neighbourhoods as chips, without the
     "More" list and search of the design's area selector.
   - Today has no "Now learning" and gateway rows (M5).
@@ -111,6 +111,13 @@
   - A drive's track is drawn as the dashed player route, not solid cobalt with a halo, and its
     U-turn is a map chip, not the u-turn marker. The track is kept in memory only.
   - Hesitations are counted in the drive review's sentence but not marked on the map.
+
+- v3 tuning (M8), waiting for real reviews:
+  - Fit weights once the log has about 1 000 reviews that moved a card (`just fsrs-fit`, then
+    Learning settings → Memory model), check the calibration bins, and revisit SPEC §13.
+  - Tier C relief applies to session answers only; Explore answers keep 90 %.
+  - The Memory model's bars show the share recalled per bin without the predicted line beside
+    them (the design system's bars have none); the rows give both numbers.
 
 ## Gaps found 2026-11-11 (design vs code)
 
