@@ -399,7 +399,7 @@ pindoro_core `ScoringConfig`, not copied):
 | `answerGapCapS`                                                      | 60                                  |
 | `timeEstimateMinSamples`                                             | 50                                  |
 | `migrationDueMinDays`, `migrationDueMaxDays`                         | 1, 7                                |
-| `streetLabelMax`, `streetLabelOffsetM`, `placeLabelMax` (§16.18)    | 12, 60, 15                          |
+| `streetLabelMax`, `streetLabelOffsetM`, `placeLabelMax` (§16.18)     | 12, 60, 15                          |
 | `landmarkNewPerDay`, `relearnMaxPerSession` (§16.18)                 | 3, 2                                |
 | `tRecitalS`, `recitalNewPerDay`                                      | 180 s, 1                            |
 | `runLeadM`, `runMinItems`                                            | 800, 2                              |
