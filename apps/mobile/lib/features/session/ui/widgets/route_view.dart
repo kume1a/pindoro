@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/google_maps.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/ui/junction_name.dart';
@@ -31,10 +32,17 @@ class RouteView extends ConsumerStatefulWidget {
     required this.onPin,
     required this.onAnswer,
     required this.onNext,
+    this.labels = const [],
+    this.places = const [],
     this.chip,
   });
 
   final SessionPlaying play;
+
+  /// A place card's street labels (a known one traced) and the places
+  /// in view: while asking, only the known streets but the place's own.
+  final List<MapLabel> labels;
+  final List<MapPlace> places;
   final Widget topBar;
   final ValueChanged<Object> onChoose;
   final ValueChanged<LatLng> onPin;
@@ -90,10 +98,15 @@ class _RouteViewState extends ConsumerState<RouteView> {
     );
     Widget confirm(String label, {required bool ready}) =>
         PindoroButton(label: label, onPressed: ready ? _answer : null);
-    TaskResult result(String sentence, {String? label}) => TaskResult(
+    TaskResult result(
+      String sentence, {
+      String? label,
+      StreetViewSpot? streetView,
+    }) => TaskResult(
       resultKey: play.index,
       tier: tier!,
       label: label,
+      streetView: streetView,
       chip: widget.chip,
       sentence: sentence,
       onNext: widget.onNext,
@@ -296,14 +309,36 @@ class _RouteViewState extends ConsumerState<RouteView> {
         final subline = landmark.personal
             ? l10n.routeLandmarkMine
             : landmarkKindName(l10n, landmark.kind);
+        final pin = play.pin;
+        final revealed = tier != null;
+        final inName = q.ambiguous ? name(q.street) : null;
+        final junction = junctionAt(q.junction ?? -1);
         return TaskScaffold(
           topBar: widget.topBar,
           map: q.n == 1
               ? (insets) => map(
                   PindoroMap(
                     area: play.area,
-                    pin: play.pin,
-                    onTap: tier == null ? widget.onPin : null,
+                    pin: pin,
+                    onTap: revealed ? null : widget.onPin,
+                    truthPoint: revealed ? landmark.at : null,
+                    measure: revealed && pin != null
+                        ? (
+                            from: pin,
+                            to: landmark.at,
+                            label: formatDistance(
+                              distanceBetween(pin, landmark.at),
+                              l10n,
+                            ),
+                          )
+                        : null,
+                    labels: revealed
+                        ? widget.labels
+                        : [
+                            for (final l in widget.labels)
+                              if (l.geometry.isNotEmpty && l.label != inName) l,
+                          ],
+                    places: revealed ? widget.places : const [],
                     topInset: insets.top,
                     bottomInset: insets.bottom,
                   ),
@@ -357,7 +392,10 @@ class _RouteViewState extends ConsumerState<RouteView> {
           result: tier == null
               ? null
               : result(
-                  l10n.routeLandmarkResult(shown, junctionAt(q.junction ?? -1)),
+                  junction.isEmpty
+                      ? l10n.routeLandmarkResultOn(shown, name(play.street))
+                      : l10n.routeLandmarkResult(shown, junction),
+                  streetView: placeSpot(play.street, landmark.at),
                 ),
         );
     }

@@ -649,6 +649,26 @@ void main() {
       expect((await dao.card(q.itemId))!.phase, CardPhase.learning);
       expect(find.text('Where is it?'), findsOneWidget);
       expect(maps.last.truthPoint, isNull, reason: 'asking shows nothing');
+      expect(maps.last.places, isEmpty);
+      expect(
+        maps.last.labels.map((l) => l.label),
+        isNot(contains(q.street!.name)),
+        reason: 'the street in its name stays unnamed while asking',
+      );
+
+      final far = LatLng(q.landmark.at.lat + 0.01, q.landmark.at.lon);
+      maps.last.onTap!(far);
+      await settle(tester);
+      await tapThrough(tester, find.text('Confirm'));
+      expect(maps.last.truthPoint, q.landmark.at);
+      expect(
+        (maps.last.measure?.from, maps.last.measure?.to),
+        (far, q.landmark.at),
+      );
+      expect(maps.last.places, isNotEmpty);
+      expect(find.bySemanticsLabel('Street View'), findsOneWidget);
+      final row = (await dao.log()).single;
+      expect((row.format, row.rating), (ReviewFormat.landmark, Rating.again));
     });
   });
 

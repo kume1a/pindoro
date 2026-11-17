@@ -556,6 +556,7 @@
   "routeLandmarkJunction": "რომელ გზაჯვარედინთანაა {landmark}?",
   "routeLandmarkName": "{junction}: რა არის კუთხეში?",
   "routeLandmarkResult": "{landmark} არის {junction}-თან.",
+  "routeLandmarkResultOn": "{landmark} არის {street}-ზე.",
   "placeOnStreet": "{place}, {street}",
   "sessionNewPlace": "ახალი ადგილი · {number} / {total}",
   "placeIntroRegion": "ამ ადგილის შესახებ",

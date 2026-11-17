@@ -2006,6 +2006,17 @@
       }
     }
   },
+  "routeLandmarkResultOn": "{landmark} is on {street}.",
+  "@routeLandmarkResultOn": {
+    "placeholders": {
+      "landmark": {
+        "type": "String"
+      },
+      "street": {
+        "type": "String"
+      }
+    }
+  },
   "routeLandmarkResult": "{landmark} is at {junction}.",
   "@routeLandmarkResult": {
     "placeholders": {

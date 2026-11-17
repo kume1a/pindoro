@@ -145,6 +145,8 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
         ),
         RouteTask(:final nextReviewDays) => RouteView(
           play: p,
+          labels: _streetLabels(p, settings),
+          places: places,
           topBar: _topBar(p, controller),
           onChoose: controller.choose,
           onPin: controller.dropPin,
