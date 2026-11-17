@@ -483,8 +483,11 @@ rest of the spec. Numbers named here are in §13.
    Cards left in `learning` get retrieval 1 first and still count towards today's new streets.
    Leaving never asks for confirmation.
 8. **Several sessions a day.** `nNew = newPerDay[minutes] − introducedToday` and
-   `budget = minutes × 60 − spentTodayS`. When both are used up, Today shows `done`. `Planner.plan`
-   takes `introducedToday`, `spentTodayS`, `tReviewS` and `tNewS` as inputs.
+   `budget = minutes × 60 − spentTodayS`. When both are used up, Today shows `done`, even with
+   reviews still due. A backlog takes the most at-risk reviews that fit in `budget × backlogCapFactor`,
+   skipping one that doesn't fit (a recital), and at least one while any budget is left. So a plan
+   is empty only once the day counts. `Planner.plan` takes `introducedToday`, `spentTodayS`,
+   `tReviewS` and `tNewS` as inputs.
 9. **Time spent** comes from `review_log`: within a session, the gaps between consecutive answers,
    each capped at `answerGapCapS`. The session timer is an estimate and never ends a session.
    `tReviewS` / `tNewS` become the log medians once there are `timeEstimateMinSamples` samples (M3).

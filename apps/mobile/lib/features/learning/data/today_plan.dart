@@ -89,25 +89,36 @@ final newCandidatesProvider = FutureProvider.autoDispose
       return [for (final id in picks) CardType.p.item(id)];
     });
 
-/// The open city's cards. A street card whose street left the pack is
-/// skipped, and a route card the pack doesn't ask or a recital whose run it
-/// lacks; one keyed by another part of a street still counts as that
-/// street's card.
+typedef AsksCard = bool Function(CardState card);
+
+/// Whether the open pack asks a card. Not a street card whose street left
+/// the pack, a route card the pack doesn't ask (a hidden or dropped place) or
+/// a recital whose run it lacks: those are never due. A card keyed by another
+/// part of a street still counts as that street's card. Saved runs, not
+/// [runsProvider], which makes runs as it builds: day marking reads this
+/// after every answer.
+final asksCardProvider = FutureProvider.autoDispose<AsksCard>((ref) async {
+  final dao = ref.watch(learningDaoProvider);
+  final pack = await ref.watch(packRepositoryProvider.future);
+  final streets = await ref.watch(cityStreetsProvider.future);
+  final routes = await ref.watch(routeBookProvider.future);
+  final runs = {
+    for (final r in await savedRuns(dao, pack.junctionNodes())) r.id,
+  };
+  return (CardState card) =>
+      streets.containsKey(itemKey(card.itemId)) ||
+      routes.questions.containsKey(card.itemId) ||
+      (card.type == CardType.r && runs.contains(itemKey(card.itemId)));
+});
+
+/// The open city's cards that its pack asks ([asksCardProvider]).
 final cityCardsProvider = FutureProvider.autoDispose<List<CardState>>((
   ref,
 ) async {
   final dao = ref.watch(learningDaoProvider);
-  final streets = await ref.watch(cityStreetsProvider.future);
-  final routes = await ref.watch(routeBookProvider.future);
-  final runs = {for (final r in await ref.watch(runsProvider.future)) r.id};
+  final asks = await ref.watch(asksCardProvider.future);
   await ref.watch(carryOverProvider.future);
-  return [
-    for (final card in await dao.cards())
-      if (streets.containsKey(itemKey(card.itemId)) ||
-          routes.questions.containsKey(card.itemId) ||
-          (card.type == CardType.r && runs.contains(itemKey(card.itemId))))
-        card,
-  ];
+  return (await dao.cards()).where(asks).toList();
 });
 
 /// Reviews due by the end of tomorrow (Today's done state).

@@ -6,12 +6,17 @@ import 'package:test/test.dart';
 final now = DateTime.utc(2026, 3, 2, 9);
 
 /// A reviewed card [overdueDays] past its due date (negative: due later), with stability [s].
-CardState due(String id, {double overdueDays = 0, double s = 5}) {
+CardState due(
+  String id, {
+  double overdueDays = 0,
+  double s = 5,
+  CardType type = CardType.p,
+}) {
   final dueAt = now.subtract(
     Duration(minutes: (overdueDays * 24 * 60).round()),
   );
   return CardState(
-    itemId: CardType.p.item(id),
+    itemId: type.item(id),
     phase: CardPhase.review,
     memory: Memory(
       stability: s,
@@ -155,6 +160,31 @@ void main() {
         );
       },
     );
+
+    test(
+      'skips a review that doesn’t fit, like a recital, for ones that do',
+      () {
+        final recital = due('n1:n2', type: CardType.r, overdueDays: 10, s: 1);
+        final p = plan(cards: [recital, ...dueCards(10)], spentTodayS: 1140);
+        expect(p.backlog, isTrue);
+        expect(
+          ofKind(p, StepKind.review),
+          hasLength(
+            (60 * LearningConfig.backlogCapFactor) ~/ LearningConfig.tReviewS,
+          ),
+        );
+        expect(ofKind(p, StepKind.review), isNot(contains(recital.itemId)));
+      },
+    );
+
+    test('plans the most at-risk review while any of the minutes are left, '
+        'none once they are spent', () {
+      final cards = [...dueCards(10), due('risky', overdueDays: 10, s: 1)];
+      expect(ofKind(plan(cards: cards, spentTodayS: 1195), StepKind.review), [
+        'P:risky',
+      ]);
+      expect(plan(cards: dueCards(10), spentTodayS: 1200).steps, isEmpty);
+    });
   });
 
   group('what counts as due', () {
