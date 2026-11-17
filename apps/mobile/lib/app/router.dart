@@ -40,15 +40,15 @@ Page<void> _fadePage(GoRouterState state, Widget child) =>
           FadeTransition(opacity: animation, child: child),
     );
 
-/// A saved Explore round reopens Explore, which offers to continue it; a
-/// player who placed a city (or finished a round) opens Today; anyone else
+/// A player who placed a city, finished a round or left one saved opens
+/// Today (Explore still offers to continue the saved round); anyone else
 /// starts at Welcome.
 Future<String> startLocation(AppDatabase db) async {
   final progress = ProgressDao(db);
-  if (await progress.resumableRound(DateTime.now()) != null) {
-    return Routes.home;
-  }
-  return await progress.hasPlayed() ? Routes.today : Routes.welcome;
+  final played =
+      await progress.hasPlayed() ||
+      await progress.resumableRound(DateTime.now()) != null;
+  return played ? Routes.today : Routes.welcome;
 }
 
 /// The tabs (Today, Explore, Progress, Me) share a [TabShell]; every other

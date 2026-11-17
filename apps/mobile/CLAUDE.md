@@ -84,9 +84,10 @@ test/drift/                    generated schema helpers + migration test
   `/progress/district?id=`, `/settings/learning`, `/settings/learning/anchor?which=`,
   `/settings/learning/landmarks`, `/settings/learning/landmarks/add`, `/settings/learning/memory`
   and `/drive`.
-  `startLocation`: a saved Explore round reopens Explore; a player who finished a round or placed
-  a city (`learn_city`) opens Today; anyone else gets Welcome, whose Choose a city leads to Today
-  and its placement. Footers end 12 dp above the bar on a tab (`bottomActionGap`).
+  `startLocation`: a player who placed a city (`learn_city`), finished a round or left one saved
+  opens Today (Explore offers to continue the saved round); anyone else gets Welcome, whose Choose
+  a city leads to Today and its placement. The app is portrait only (Android manifest, iOS
+  Info.plist). Footers end 12 dp above the bar on a tab (`bottomActionGap`).
 - **Learning (v3, docs/learning/SPEC.md):** pindoro_learning decides everything; the app stores
   (`LearningDao`) and shows. Today plans with `todayPlanProvider` (curriculum candidates from
   `newCandidatesProvider(count)`, anchors from `learn_city`, log-median time estimates); placement
