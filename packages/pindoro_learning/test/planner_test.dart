@@ -434,6 +434,18 @@ void main() {
     expect(remainingSeconds(const []), 0);
   });
 
+  test('secondsLeft counts down through the current step, never below the '
+      'steps after it', () {
+    final steps = [
+      (kind: StepKind.review, itemId: 'P:a'),
+      (kind: StepKind.intro, itemId: 'P:b'),
+    ];
+    expect(secondsLeft(steps, 0, spentS: 0), 12 + 15);
+    expect(secondsLeft(steps, 0, spentS: 5), 7 + 15);
+    expect(secondsLeft(steps, 0, spentS: 40), 15, reason: 'a slow answer');
+    expect(secondsLeft(steps, 1, spentS: 15), 0);
+  });
+
   group('name and ends cards, leeches, drills (SPEC §16.13)', () {
     final sides = [for (var i = 0; i < 8; i++) 'N:s$i'];
 

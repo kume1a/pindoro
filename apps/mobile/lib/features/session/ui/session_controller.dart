@@ -65,6 +65,7 @@ final class SessionPlaying extends SessionState {
     required this.street,
     required this.area,
     required this.knownNames,
+    required this.startedAt,
     required this.newIndex,
     required this.newTotal,
     this.task = const PinTask(),
@@ -95,6 +96,9 @@ final class SessionPlaying extends SessionState {
   /// Names of the streets the player knows: a place question names them
   /// (SPEC §16.18).
   final Set<String> knownNames;
+
+  /// When the step showed: the session clock counts down from it.
+  final DateTime startedAt;
 
   /// "New street · [newIndex] of [newTotal]".
   final int newIndex;
@@ -148,6 +152,7 @@ final class SessionPlaying extends SessionState {
     street: street,
     area: area,
     knownNames: knownNames,
+    startedAt: startedAt,
     newIndex: newIndex,
     newTotal: newTotal,
     task: task ?? this.task,
@@ -902,6 +907,7 @@ class SessionController extends Notifier<SessionState> {
       street: street,
       area: (bbox: city.bbox, boundary: city.boundary),
       knownNames: {for (final s in known) s.name},
+      startedAt: now,
       newIndex: intros.indexOf(step) + 1,
       newTotal: intros.length,
       task: task,

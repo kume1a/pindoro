@@ -265,6 +265,7 @@ void main() {
   testWidgets('places are named while asking but streets only on the '
       'reveal', (tester) async {
     await pump(tester, [(kind: StepKind.retrieval1, itemId: item(a))]);
+    expect(find.text('0:15'), findsOneWidget, reason: 'the clock in m:ss');
     expect(
       maps.last.names,
       MapNames(places: true, placesNot: nameStems(a)),

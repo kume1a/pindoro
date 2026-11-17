@@ -208,6 +208,7 @@ and the specs after R5. Fix them in roughly this order.
     sheet 12–16 dp padding. Map screens keep 8 dp above and below the plate and end their footer
     12 dp over the safe area.
   - Settings → Map with Zoom buttons (off by default).
+  - The session bar's time pill counts down by the second ("5:26") instead of "6 min".
   - The place intro (a learning screen the canvas lacks): yellow place dot, "New place · 1 of 3",
     the Intro sheet with Street View; the place reveal's dot and measure; street and place
     names as map text (along the roads, under the icons) on intros, reveals and questions, with

@@ -502,6 +502,17 @@ int remainingSeconds(
       },
 );
 
+/// The session's countdown [spentS] seconds into step [index]: the steps after it, plus what is
+/// left of the current one's own share (a slow answer stops the clock there, never below).
+int secondsLeft(
+  List<SessionStep> steps,
+  int index, {
+  required int spentS,
+  Drills drills = Drills.none,
+}) =>
+    remainingSeconds(steps.skip(index + 1), drills: drills) +
+    max(0, remainingSeconds([steps[index]], drills: drills) - spentS);
+
 /// What reviewing [itemId] takes: [LearningConfig.tRecitalS] for a recital, else [tReviewS].
 int secondsFor(String itemId, int tReviewS) =>
     CardType.ofItem(itemId) == CardType.r ? LearningConfig.tRecitalS : tReviewS;
