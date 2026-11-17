@@ -734,19 +734,20 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
               right: PindoroSpace.s4,
               bottom: widget.bottomInset + PindoroSpace.s4,
               child: Column(
-                spacing: PindoroSpace.s2,
                 children: [
                   MapControl(
                     glyph: PindoroGlyph.locate,
                     semanticLabel: l10n.a11yGoToMyLocation,
                     onPressed: _goToMyLocation,
                   ),
+                  const SizedBox(height: PindoroSpace.s2),
                   MapControl(
                     glyph: PindoroGlyph.compass,
                     semanticLabel: l10n.a11yRecentre,
                     onPressed: _fitArea,
                   ),
                   MapZoomControls(
+                    top: PindoroSpace.s2,
                     onCamera: (update) {
                       _framed = false;
                       unawaited(_controller?.animateCamera(update));

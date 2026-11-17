@@ -381,6 +381,9 @@
   "settingsSoundSubtitle": "Chimes, taps and celebrations",
   "settingsHaptics": "Haptics",
   "settingsHapticsSubtitle": "Buzz on pin drop and answers",
+  "settingsMap": "Map",
+  "settingsZoomButtons": "Zoom buttons",
+  "settingsZoomButtonsSubtitle": "Plus and minus on the maps; pinching always zooms",
   "settingsAbout": "About",
   "settingsVersion": "Version {version}",
   "@settingsVersion": {

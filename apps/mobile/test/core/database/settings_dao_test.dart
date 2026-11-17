@@ -71,4 +71,10 @@ void main() {
     final now = await settings.read();
     expect((now.reminder, now.minutesPerDay), (false, 20));
   });
+
+  test('zoom buttons start off and turn on', () async {
+    expect((await settings.read()).zoomButtons, isFalse);
+    await settings.setZoomButtons(on: true);
+    expect((await settings.read()).zoomButtons, isTrue);
+  });
 }

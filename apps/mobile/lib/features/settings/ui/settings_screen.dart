@@ -112,6 +112,18 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ],
         ),
+        SectionTitle(l10n.settingsMap),
+        ListGroup(
+          children: [
+            ToggleRow(
+              title: l10n.settingsZoomButtons,
+              subtitle: l10n.settingsZoomButtonsSubtitle,
+              glyph: PindoroGlyph.zoomIn,
+              value: settings.zoomButtons,
+              onChanged: (v) => save(() => dao.setZoomButtons(on: v)),
+            ),
+          ],
+        ),
         SectionTitle(l10n.settingsAccount),
         const AccountGroup(),
         SectionTitle(l10n.settingsAbout),
