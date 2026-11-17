@@ -148,10 +148,10 @@ void main() {
         estimatedS: 0,
       ),
     );
-    expect(find.text('Done for today'), findsOneWidget);
+    expect(find.text('Today’s goal done'), findsOneWidget);
     expect(find.text('22 reviews due tomorrow'), findsOneWidget);
     expect(find.text('Start'), findsNothing);
-    expect(find.text('Learn 5 more'), findsOneWidget);
+    expect(find.text('Learn 10 more'), findsOneWidget);
     expect(find.text('Free play'), findsOneWidget);
     expect(find.text('Last 7 days'), findsOneWidget);
     expect(find.text('tomorrow 0'), findsOneWidget);
@@ -171,10 +171,10 @@ void main() {
         estimatedS: 0,
       ),
     );
-    expect(find.text('Done for today'), findsOneWidget);
+    expect(find.text('Today’s goal done'), findsOneWidget);
     expect(find.text('Catch up'), findsNothing);
     expect(find.textContaining('Most overdue first'), findsNothing);
-    expect(find.text('Learn 5 more'), findsOneWidget);
+    expect(find.text('Learn 10 more'), findsOneWidget);
     expect(find.textContaining('caught up by'), findsNothing);
   });
 

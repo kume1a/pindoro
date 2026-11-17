@@ -153,7 +153,7 @@ const writeFixturePack = async (
 
 const writeFullPack = async (sql: Sql, pack: PackOptions, out: string): Promise<void> => {
   const file = join(out, `${pack.city.id}-${pack.version}.sqlite`);
-  const bbox = await writePack(sql, file, pack);
+  await writePack(sql, file, pack);
   const manifest = finalisePack(file, builtManifestFile(pack.city.id), {
     city: pack.city.id,
     name_ka: pack.city.name_ka,
@@ -161,7 +161,6 @@ const writeFullPack = async (sql: Sql, pack: PackOptions, out: string): Promise<
     version: pack.version,
     osm_timestamp: pack.osmTimestamp,
     generated_at: pack.generatedAt,
-    bbox,
   });
   console.log(`pack: ${join(out, manifest.file)} (${(manifest.size / 1e6).toFixed(2)} MB)`);
 };

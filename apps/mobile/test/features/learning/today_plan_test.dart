@@ -149,7 +149,7 @@ void main() {
     );
   });
 
-  test('Learn 5 more plans new streets past the daily number', () async {
+  test('Learn 10 more plans new streets past the daily number', () async {
     container.listen(learnMorePlanProvider, (_, _) {});
     final p = await container.read(learnMorePlanProvider.future);
     expect(p.newCount, 2);

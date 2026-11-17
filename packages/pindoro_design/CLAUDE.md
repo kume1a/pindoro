@@ -12,7 +12,7 @@ loading `Skeleton`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` inc
 `LandmarkBadge`, `MapLabelChip`, `CarMarker`, `MapTip`), v3
 progress (`MemoryBar`, `MemoryLegend`, `MemoryChart`, `ForecastBars`, `WeekBars`, `MemoryRow`), the streak (`StreakPill`, `StreakCalendar`, `StreakWeek`,
 `StreakFreezeCard`), badges (`BadgeShield`, `BadgeTile`; fields `color.badge.*` in `app.json`),
-setup components (`SearchField`, `CitySwitcher`, `PindoroChip`, `DifficultyCard`, the painted `DistrictMap` and `AreaMiniMap`), `MiniTally`
+setup components (`SearchField`, `PindoroChip`, `DifficultyCard`, the painted `DistrictMap` and `AreaMiniMap`), `MiniTally`
 and motion (`PindoroPageTransitions`, `CountUp`, `PopIn`, `RiseIn`, `Celebration`, `Wiggle`,
 `Shake`, `FadeIndexedStack`; all calm down under reduce motion). Widgets take their text as
 parameters; strings live in the app.

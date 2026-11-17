@@ -73,7 +73,13 @@ abstract final class LearningConfig {
   static const double coreMinLengthM = 150;
 
   // Session planner (§7, §16.2)
-  static const Map<int, int> newPerDay = {15: 7, 20: 10, 30: 14};
+  static const Map<int, int> newPerDay = {
+    15: 7,
+    20: 10,
+    30: 14,
+    45: 21,
+    60: 28,
+  };
   static const int tReviewS = 12;
   static const int tNewS = 45;
   static const int timeEstimateMinSamples = 50;
@@ -84,7 +90,7 @@ abstract final class LearningConfig {
   static const int retrieval1GapMin = 3;
   static const int retrieval1GapMax = 6;
   static const int retrieval1GapFloor = 2;
-  static const int learnMoreCount = 5;
+  static const int learnMoreCount = 10;
   static const double nearDueFraction = 0.5;
 
   /// Name and ends cards started a day, outside a backlog and within the minutes (§16.13).

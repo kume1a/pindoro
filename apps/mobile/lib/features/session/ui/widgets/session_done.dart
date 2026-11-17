@@ -22,7 +22,7 @@ class SessionDoneView extends ConsumerStatefulWidget {
   final SessionSummary summary;
   final VoidCallback onDone;
 
-  /// "Learn 5 more", under Done.
+  /// "Learn 10 more", above Done when offered.
   final VoidCallback? onLearnMore;
 
   @override
@@ -75,13 +75,18 @@ class _SessionDoneViewState extends ConsumerState<SessionDoneView>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             spacing: PindoroSpace.s1,
             children: [
-              PindoroButton(label: l10n.commonDone, onPressed: onDone),
               if (onLearnMore case final learnMore?)
                 PindoroButton(
                   label: l10n.todayLearnMore(LearningConfig.learnMoreCount),
-                  variant: PindoroButtonVariant.tertiary,
                   onPressed: learnMore,
                 ),
+              PindoroButton(
+                label: l10n.commonDone,
+                variant: onLearnMore == null
+                    ? PindoroButtonVariant.primary
+                    : PindoroButtonVariant.secondary,
+                onPressed: onDone,
+              ),
             ],
           ),
           children: [

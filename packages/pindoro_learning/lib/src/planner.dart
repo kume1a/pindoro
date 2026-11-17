@@ -64,7 +64,7 @@ abstract final class Planner {
   /// [LearningConfig.routePauseFactor] of the minutes (SPEC §7); [openRecitals] (`openRecitals`)
   /// last, [LearningConfig.recitalNewPerDay] a day less [recitalsStartedToday], paused alike. A
   /// recital takes [LearningConfig.tRecitalS]. [drills] go mid-session; a backlog keeps only the
-  /// family sweep, whose children leave the reviews. [extraNew] is "Learn 5 more": that many new streets past the daily
+  /// family sweep, whose children leave the reviews. [extraNew] is "Learn 10 more": that many new streets past the daily
   /// number and the minutes, with no name and ends cards. Same inputs and [seed], same session.
   static SessionPlan plan({
     required List<CardState> cards,
@@ -290,7 +290,44 @@ abstract final class Planner {
         ? remaining.length
         : min(gap, remaining.length);
     final relearn = (kind: StepKind.relearn, itemId: itemId);
-    return [...remaining]..insert(ownR2 >= 0 ? min(at, ownR2) : at, relearn);
+    return unstacked(
+      [...remaining]..insert(ownR2 >= 0 ? min(at, ownR2) : at, relearn),
+      after: itemId,
+    );
+  }
+
+  /// [steps] with no street asked twice in a row while another step can go between (SPEC
+  /// §16.18): the nearest later step about another street moves up between the two, else the
+  /// nearest earlier one moves down. Steps of one street keep their order. [after] is the item
+  /// asked just before [steps].
+  static List<SessionStep> unstacked(List<SessionStep> steps, {String? after}) {
+    final out = [...steps];
+    String? before(int i) => i == 0 ? after : out[i - 1].itemId;
+    // A street's pin, name and ends cards and its drills all share its key.
+    bool same(String? a, String b) => a != null && itemKey(a) == itemKey(b);
+    bool mayCross(int from, int to, String id) =>
+        !out.sublist(from, to).any((s) => same(s.itemId, id));
+    for (var i = 0; i < out.length; i++) {
+      final id = out[i].itemId;
+      if (!same(before(i), id)) continue;
+      final up = [
+        for (var j = i + 1; j < out.length; j++)
+          if (!same(id, out[j].itemId) && mayCross(i, j, out[j].itemId)) j,
+      ].firstOrNull;
+      final down = [
+        for (var k = i - 2; k >= 0; k--)
+          if (!same(id, out[k].itemId) &&
+              mayCross(k + 1, i, out[k].itemId) &&
+              !same(before(k), out[k + 1].itemId))
+            k,
+      ].firstOrNull;
+      if (up != null) {
+        out.insert(i, out.removeAt(up));
+      } else if (down != null) {
+        out.insert(i - 1, out.removeAt(down));
+      }
+    }
+    return out;
   }
 
   // Groups of new streets, each followed by a block of reviews; the drills half-way; every
@@ -371,7 +408,7 @@ abstract final class Planner {
         emit((kind: StepKind.retrieval1, itemId: waiting.removeAt(0).itemId));
       }
     }
-    return out;
+    return unstacked(out);
   }
 
   static int _ready(List<({String itemId, int target, int since})> waiting) =>

@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/page_scaffold.dart';
-import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/pack/data/pack_store.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -292,8 +291,8 @@ class _Download extends StatelessWidget {
 }
 
 /// Why the city didn't download and the ways on: Try again (unless only an
-/// app update helps) and, offline in Tbilisi, the bundled Vake pack, else
-/// another city. [shake] jolts Try again for a repeated failure.
+/// app update helps) and, offline in Tbilisi, the bundled Vake pack. [shake]
+/// jolts Try again for a repeated failure.
 class _Failure extends ConsumerWidget {
   const _Failure({required this.error, required this.shake});
 
@@ -329,13 +328,12 @@ class _Failure extends ConsumerWidget {
       },
       extra: vake ? l10n.packVakeOffline : null,
       footer: [
-        PindoroButton(
-          label: vake ? l10n.packPlayVake : l10n.packChooseCity,
-          variant: PindoroButtonVariant.secondary,
-          onPressed: vake
-              ? () => ref.read(offlineVakeProvider.notifier).set(true)
-              : () => context.go(Routes.city),
-        ),
+        if (vake)
+          PindoroButton(
+            label: l10n.packPlayVake,
+            variant: PindoroButtonVariant.secondary,
+            onPressed: () => ref.read(offlineVakeProvider.notifier).set(true),
+          ),
         // Trying again can't help until the app is updated.
         if (reason != PackFailure.needsUpdate)
           shake ? Shake(child: retry) : retry,

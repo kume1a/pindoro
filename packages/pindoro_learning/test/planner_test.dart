@@ -80,6 +80,16 @@ SessionPlan plan({
 Iterable<String> ofKind(SessionPlan p, StepKind kind) =>
     p.steps.where((s) => s.kind == kind).map((s) => s.itemId);
 
+void expectNoRepeats(List<SessionStep> steps, String why) {
+  for (var i = 1; i < steps.length; i++) {
+    expect(
+      itemKey(steps[i].itemId),
+      isNot(itemKey(steps[i - 1].itemId)),
+      reason: 'step $i, $why',
+    );
+  }
+}
+
 void main() {
   group('normal mode (SPEC §7)', () {
     test('takes every due review and up to nBase new streets', () {
@@ -95,10 +105,12 @@ void main() {
       expect(p.estimatedS, 10 * 12 + 10 * 45);
     });
 
-    test('nBase follows the minutes: 7 / 10 / 14', () {
+    test('nBase follows the minutes: 7 / 10 / 14 / 21 / 28', () {
       expect(plan(minutes: 15).newCount, 7);
       expect(plan(minutes: 20).newCount, 10);
       expect(plan(minutes: 30).newCount, 14);
+      expect(plan(minutes: 45).newCount, 21);
+      expect(plan(minutes: 60, fresh: candidates(40)).newCount, 28);
     });
 
     test('new streets shrink to the time left after reviews', () {
@@ -117,7 +129,7 @@ void main() {
     );
   });
 
-  test('Learn 5 more: five new streets past the daily number and the '
+  test('Learn 10 more: new streets past the daily number and the '
       'minutes', () {
     final p = plan(introducedToday: 10, spentTodayS: 1200, extraNew: 5);
     expect(p.newCount, 5);
@@ -260,10 +272,25 @@ void main() {
               ofKind(p, StepKind.retrieval2).toSet(),
               ofKind(p, StepKind.intro).toSet(),
             );
+            expectNoRepeats(steps, why);
           }
         }
       },
     );
+
+    test('never the same street twice in a row', () {
+      for (final fresh in [2, 3, 5, 10]) {
+        for (var seed = 0; seed < 40; seed++) {
+          final p = plan(
+            fresh: candidates(fresh),
+            cards: [due('n1', overdueDays: 1, type: CardType.n)],
+            openSides: const ['E:s1', 'N:s1', 'E:s2', 'N:s2'],
+            seed: seed,
+          );
+          expectNoRepeats(p.steps, '$fresh new, seed $seed');
+        }
+      }
+    });
 
     test('reviews sit between groups of new streets', () {
       final steps = plan(cards: dueCards(25)).steps;
@@ -346,8 +373,22 @@ void main() {
         final next = Planner.withRelearn(withR2, 'P:x', Random(seed));
         final relearn = next.indexOf((kind: StepKind.relearn, itemId: 'P:x'));
         final r2 = next.indexOf((kind: StepKind.retrieval2, itemId: 'P:x'));
-        expect(relearn, lessThan(r2));
+        expect(relearn, lessThan(r2 - 1));
       }
+    });
+
+    test('never right after the miss or right before its retrieval 2', () {
+      final next = Planner.withRelearn(
+        [(kind: StepKind.retrieval2, itemId: 'P:x'), ...rest.take(3)],
+        'P:x',
+        Random(1),
+      );
+      expect(next.first.itemId, isNot('P:x'));
+      expectNoRepeats(next, 'relearn');
+      expect(
+        next.indexOf((kind: StepKind.relearn, itemId: 'P:x')),
+        lessThan(next.indexOf((kind: StepKind.retrieval2, itemId: 'P:x'))),
+      );
     });
   });
 
@@ -491,7 +532,7 @@ void main() {
       expect(
         ofKind(plan(openSides: sides, extraNew: 5), StepKind.review),
         isEmpty,
-        reason: 'Learn 5 more starts none',
+        reason: 'Learn 10 more starts none',
       );
       expect(
         ofKind(plan(cards: dueCards(150), openSides: sides), StepKind.review),
@@ -629,7 +670,7 @@ void main() {
       expect(plan(cards: cards).newCount, 10);
     });
 
-    test('none in a backlog or Learn 5 more', () {
+    test('none in a backlog or Learn 10 more', () {
       expect(plan(cards: dueCards(150), openPlaces: places).routeCount, 0);
       expect(plan(extraNew: 5, openPlaces: places).routeCount, 0);
     });

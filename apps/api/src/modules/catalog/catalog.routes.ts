@@ -59,7 +59,6 @@ export const catalogRoutes: FastifyPluginAsyncTypebox<{
           id: m.city,
           name_ka: m.name_ka,
           name_en: m.name_en,
-          bbox: m.bbox,
           pack: {
             format_version: m.format_version,
             version: m.version,

@@ -13,9 +13,9 @@ import 'package:pindoro/features/pack/data/cities.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// First run until a city is placed or a round is finished: Pindo, the
-/// wordmark and the way in (choose a city to learn, or play the saved
-/// Free play settings).
+/// First run until the city is placed or a round is finished: Pindo, the
+/// wordmark and the way in (start learning, or play the saved Free play
+/// settings).
 class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
 
@@ -98,34 +98,7 @@ class WelcomeScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   spacing: PindoroSpace.s3,
                   children: [
-                    if (recents.isEmpty)
-                      LipBox(
-                        padding: const EdgeInsets.all(PindoroSpace.s4),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              l10n.welcomeEmptyTitle,
-                              style: PindoroType.titleMd.copyWith(
-                                color: c.textPrimary,
-                              ),
-                            ),
-                            Text(
-                              l10n.welcomeEmptyBody,
-                              style: PindoroType.bodySm.copyWith(
-                                color: c.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else if (resumes != null) ...[
-                      PindoroButton(
-                        label: l10n.welcomeFindCity,
-                        icon: PindoroGlyph.search,
-                        variant: PindoroButtonVariant.tertiary,
-                        onPressed: () => context.push(Routes.city),
-                      ),
+                    if (resumes != null)
                       Text(
                         resumes,
                         textAlign: TextAlign.center,
@@ -133,17 +106,16 @@ class WelcomeScreen extends ConsumerWidget {
                           color: c.textSecondary,
                         ),
                       ),
-                    ],
                     Semantics(
                       label: resumes == null ? null : l10n.a11yPlay(resumes),
                       child: PindoroButton(
                         label: resumes == null
-                            ? l10n.commonChooseCity
+                            ? l10n.welcomeStart
                             : l10n.commonPlay,
                         icon: resumes == null ? null : PindoroGlyph.play,
                         hero: true,
                         onPressed: () => resumes == null
-                            ? context.push(Routes.cityToLearn)
+                            ? context.go(Routes.today)
                             : context.push(Routes.round),
                       ),
                     ),

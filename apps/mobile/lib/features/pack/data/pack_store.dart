@@ -6,7 +6,6 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import 'package:pindoro_core/pindoro_core.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 /// Overridden in main() with the app documents directory.
@@ -14,9 +13,8 @@ final packStoreProvider = Provider<PackStore>(
   (ref) => throw UnimplementedError('packStoreProvider must be overridden'),
 );
 
-/// A city the server has a pack for; [bbox] is null for packs published
-/// before manifests carried it.
-typedef CatalogCity = ({String id, String nameKa, String nameEn, Bbox? bbox});
+/// A city the server has a pack for.
+typedef CatalogCity = ({String id, String nameKa, String nameEn});
 
 /// A pack download under way: bytes received of the .gz's size.
 typedef PackProgress = ({CatalogCity city, int received, int total});
@@ -160,16 +158,10 @@ class PackStore {
 
   Directory _cityDir(String city) => Directory(_join(root.path, city));
 
-  /// Every city the server has a pack for.
-  Future<List<CatalogCity>> cities() async => [
-    for (final entry in await _catalogCities()) _city(entry),
-  ];
-
   static CatalogCity _city(Map<String, Object?> entry) => (
     id: entry['id']! as String,
     nameKa: entry['name_ka']! as String,
     nameEn: entry['name_en']! as String,
-    bbox: Bbox.tryParse(entry['bbox']),
   );
 
   /// The newest sideload build the catalog lists, if any.

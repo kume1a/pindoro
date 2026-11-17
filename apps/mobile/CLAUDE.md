@@ -24,7 +24,7 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                the recital's Draw mode), learning (LearningDao: the v3 cards, review log,
                                mix-up pairs, learn_city and the player's landmarks
                                (`landmark_personal`, `personalLandmarksProvider`, the kind glyphs); pindoro_learning decides, it only
-                               stores; today's and Learn 5 more plans, carry-over, Progress data,
+                               stores; today's and Learn 10 more plans, carry-over, Progress data,
                                day marking and the reminder, Explore answers into cards, the route
                                book (`routeBookProvider`: the pack's J/G/B/C/L items and your
                                landmarks' L cards), recital runs (`runsProvider` makes route-book runs and weekly
@@ -33,12 +33,12 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                drives grade on it), the evidence and runs tables; ui/: the City memory card, junction names), account (AccountApi, AccountDao, BackupSync, the
                                sign-in screen and Settings group), badges (stats, awards, the
                                shelf tile, the reward sheet and BadgeMoments), home (Explore),
-                               setup (welcome, city, area, difficulty), quiz (Explore round),
+                               setup (welcome, area, difficulty), quiz (Explore round),
                                results (results, street), settings (+ learning settings, the Memory model
                                screen: calibration, fitted FSRS weights, tier C relief; the
                                home/work picker and your landmarks: list, add on the map
                                snapped to a junction), streak, me, session (SessionController plays
-                               today's plan, Learn 5 more or the city's placement; each step's
+                               today's plan, Learn 10 more or the city's placement; each step's
                                SessionTask: a pin, Name it, both ends, the family sweep, the
                                crossings drill, a bearing, a route card (RouteView: the
                                turn on the heading-up map, gateway, bridge, connection, landmark) or a
@@ -78,20 +78,20 @@ test/drift/                    generated schema helpers + migration test
   Progress, `/me` Me (design system Bottom nav); `go` to one of them switches tab, back on another
   tab goes to Today first, and each tab page gets its own `PrimaryScrollController` (a tap on the
   open tab scrolls it up). Every other route sits on the root navigator, over the bar:
-  `/welcome`, `/city` (`?learn=1` goes on to Today instead of the area picker), `/area`,
+  `/welcome`, `/area`,
   `/difficulty`, `/round` (`?round=` resumes, `?retry=` retries), `/results`, `/streak`,
-  `/settings`, `/settings/credits`, `/session` (`?placement=1` places, `?more=1` learns 5 more),
+  `/settings`, `/settings/credits`, `/session` (`?placement=1` places, `?more=1` learns 10 more),
   `/progress/district?id=`, `/settings/learning`, `/settings/learning/anchor?which=`,
   `/settings/learning/landmarks`, `/settings/learning/landmarks/add`, `/settings/learning/memory`
   and `/drive`.
   `startLocation`: a player who placed a city (`learn_city`), finished a round or left one saved
-  opens Today (Explore offers to continue the saved round); anyone else gets Welcome, whose Choose
-  a city leads to Today and its placement. The app is portrait only (Android manifest, iOS
+  opens Today (Explore offers to continue the saved round); anyone else gets Welcome, whose Start
+  learning leads to Today and its placement. The app is portrait only (Android manifest, iOS
   Info.plist). Footers end 12 dp above the bar on a tab (`bottomActionGap`).
 - **Learning (v3, docs/learning/SPEC.md):** pindoro_learning decides everything; the app stores
   (`LearningDao`) and shows. Today plans with `todayPlanProvider` (curriculum candidates from
   `newCandidatesProvider(count)`, anchors from `learn_city`, log-median time estimates); placement
-  and Learn 5 more are `SessionController.start` modes. Every learning answer (session, placement,
+  and Learn 10 more are `SessionController.start` modes. Every learning answer (session, placement,
   Explore) calls `markDayIfCounts`, which writes `goal_day` once the day counts (SPEC §8).
   Explore pins go through `learnFromExplore` (§16.16). `carryOverProvider` turns the old game's
   knowledge (Explore answers and `legacy_known`, kept from the dropped lesson tables) into cards

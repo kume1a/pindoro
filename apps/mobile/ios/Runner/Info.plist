@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Pindoro uses your location to find your town, to centre the map on you and to record a GPS-free drive.</string>
+	<string>Pindoro uses your location to centre the map on you and to record a GPS-free drive.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>location</string>

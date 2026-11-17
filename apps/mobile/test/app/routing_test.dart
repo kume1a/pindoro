@@ -116,15 +116,13 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('first run: welcome -> city -> Today, which offers placement', (
+  testWidgets('first run: welcome -> Today, which offers placement', (
     tester,
   ) async {
     calm(tester);
     await pumpApp(tester, Routes.welcome);
-    expect(find.text('No recent cities yet'), findsOneWidget);
 
-    await tapAndSettle(tester, 'Choose a city');
-    await tapAndSettle(tester, 'Tbilisi');
+    await tapAndSettle(tester, 'Start learning');
     for (var i = 0; i < 3; i++) {
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 100)),
@@ -146,9 +144,8 @@ void main() {
     expect(await tester.runAsync(() => startLocation(db)), Routes.today);
   });
 
-  testWidgets('Explore: city -> area -> difficulty -> round', (tester) async {
-    await pumpApp(tester, Routes.city);
-    await tapAndSettle(tester, 'Tbilisi');
+  testWidgets('Explore: area -> difficulty -> round', (tester) async {
+    await pumpApp(tester, Routes.area);
     expect(find.text('Pick an area first'), findsOneWidget);
 
     // Zoomed in, the chips are Vake's quarters and neighbourhoods.

@@ -22,7 +22,6 @@ import 'package:pindoro/features/settings/ui/learn_settings_screen.dart';
 import 'package:pindoro/features/settings/ui/memory_model_screen.dart';
 import 'package:pindoro/features/settings/ui/settings_screen.dart';
 import 'package:pindoro/features/setup/ui/area_screen.dart';
-import 'package:pindoro/features/setup/ui/city_screen.dart';
 import 'package:pindoro/features/setup/ui/difficulty_screen.dart';
 import 'package:pindoro/features/setup/ui/welcome_screen.dart';
 import 'package:pindoro/features/streak/ui/streak_screen.dart';
@@ -96,11 +95,6 @@ GoRouter buildRouter(String initialLocation) {
         ],
       ),
       GoRoute(path: Routes.welcome, builder: (_, _) => const WelcomeScreen()),
-      GoRoute(
-        path: Routes.city,
-        builder: (_, state) =>
-            CityScreen(learn: state.uri.queryParameters.containsKey('learn')),
-      ),
       GoRoute(
         path: Routes.area,
         builder: (_, state) =>

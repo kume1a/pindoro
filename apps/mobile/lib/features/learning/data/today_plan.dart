@@ -134,7 +134,7 @@ final todayPlanProvider = FutureProvider.autoDispose<SessionPlan>(
   (ref) => _plan(ref),
 );
 
-/// "Learn 5 more" (SPEC §7): [LearningConfig.learnMoreCount] new streets past
+/// "Learn 10 more" (SPEC §7): [LearningConfig.learnMoreCount] new streets past
 /// the daily number.
 final learnMorePlanProvider = FutureProvider.autoDispose<SessionPlan>(
   (ref) => _plan(ref, extraNew: LearningConfig.learnMoreCount),

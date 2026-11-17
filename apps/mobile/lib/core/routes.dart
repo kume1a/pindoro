@@ -3,11 +3,6 @@ abstract final class Routes {
   /// Explore, the second tab: Free play on any area.
   static const String home = '/';
   static const String welcome = '/welcome';
-  static const String city = '/city';
-
-  /// The city picker of a new player: a city leads on to Today (placement)
-  /// instead of the area picker.
-  static const String cityToLearn = '$city?learn=1';
   static const String area = '/area';
   static const String difficulty = '/difficulty';
 
@@ -30,11 +25,11 @@ abstract final class Routes {
   static const String today = '/today';
 
   /// Today's learning session (SessionScreen); `?placement=1` places,
-  /// `?more=1` learns 5 more.
+  /// `?more=1` learns 10 more.
   static const String session = '/session';
   static const String placement = '$session?placement=1';
 
-  /// "Learn 5 more": five new streets past the daily number.
+  /// "Learn 10 more": ten new streets past the daily number.
   static const String learnMore = '$session?more=1';
   static const String credits = '/settings/credits';
 

@@ -36,7 +36,7 @@ class SessionScreen extends ConsumerStatefulWidget {
   /// The city's placement instead of today's session (SPEC §6.2).
   final bool placement;
 
-  /// "Learn 5 more" instead of today's session.
+  /// "Learn 10 more" instead of today's session.
   final bool more;
 
   @override

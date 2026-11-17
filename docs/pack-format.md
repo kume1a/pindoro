@@ -49,13 +49,12 @@ format it supports; v1 packs already on a phone still open.
   "sha256": "<hex sha256 of the .gz file>",
   "size": 1234567,
   "osm_timestamp": "2026-11-04T20:21:42Z",
-  "generated_at": "2026-11-05T22:17:00Z",
-  "bbox": { "min_lat": 41.57, "min_lon": 44.59, "max_lat": 41.84, "max_lon": 45.02 }
+  "generated_at": "2026-11-05T22:17:00Z"
 }
 ```
 
 `sha256` and `size` describe the `.gz` file the client downloads; the client verifies them before
-decompressing. `bbox` is the city's bounding box, so the app can find the city the player is in.
+decompressing.
 
 The API's `/v1/catalog` lists every city's manifest with absolute pack URLs; the app reads only
 that.

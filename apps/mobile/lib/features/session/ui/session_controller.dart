@@ -264,7 +264,7 @@ class SessionController extends Notifier<SessionState> {
   /// The plan's drills, for the screen's estimates.
   Drills get drills => _drills;
 
-  /// Today's session, with [more] "Learn 5 more", or with [placement] the
+  /// Today's session, with [more] "Learn 10 more", or with [placement] the
   /// city's placement.
   Future<void> start({bool placement = false, bool more = false}) async {
     final dao = _dao;
