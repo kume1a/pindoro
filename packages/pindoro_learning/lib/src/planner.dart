@@ -356,8 +356,13 @@ int introducedToday(Iterable<CardState> cards, DateTime now) {
 /// session counted with [activeSeconds].
 int spentTodayS(Iterable<LogEntry> log, DateTime now) {
   final today = _day(now, 0);
+  return spentS(log.where((e) => !e.ts.isBefore(today)));
+}
+
+/// Seconds spent on [entries], each session counted with [activeSeconds].
+int spentS(Iterable<LogEntry> entries) {
   final bySession = <String?, List<DateTime>>{};
-  for (final entry in log.where((e) => !e.ts.isBefore(today))) {
+  for (final entry in entries) {
     bySession.putIfAbsent(entry.sessionId, () => []).add(entry.ts);
   }
   return bySession.values.fold(0, (sum, times) => sum + activeSeconds(times));

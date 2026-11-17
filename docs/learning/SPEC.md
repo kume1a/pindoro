@@ -801,19 +801,22 @@ board, and per-type FSRS parameter presets.
 
 84. **Fitted weights**: `just fsrs-fit <csv>` runs py-fsrs's optimizer (Docker, CPU PyTorch) on the
     exported log's rows that moved a card (`changesSchedule`), all card types together (per-type
-    presets stay parked, §16.10), and prints `{"weights": […], "reviews", "cards"}`. Learning
-    settings → Memory model takes it pasted (§16.9 item 34): 21 finite numbers, the four initial
-    stabilities positive, the decay in (0, 1]. They are kept in `user_settings.fsrs_weights`
-    (schema 21, so the account backup carries them) and loaded at launch into
-    `FsrsWeights.active`, which every `Fsrs()` uses: scheduling, recall, labels and City memory
-    all run on one model for the whole run, so new weights apply from the next start.
+    presets stay parked, §16.10), with a carried-over card's first Good (no row of its own) put
+    back before its first review, and prints `{"weights": […], "reviews", "cards"}`. Learning
+    settings → Memory model takes it pasted (§16.9 item 34): 21 numbers, each within py-fsrs's
+    own parameter bounds (its scheduler refuses anything else). They are kept in
+    `user_settings.fsrs_weights` (schema 21, so the account backup carries them) and loaded at
+    launch into `FsrsWeights.active`, which every `Fsrs()` uses: scheduling, recall, labels and
+    City memory all run on one model for the whole run, so new weights apply from the next start.
 85. **Calibration** (§12): reviews at least a day after the card's last review that moved it, with
-    a predicted recall, in `calibrationBins` bins of predicted recall; a bin is healthy when its
+    a predicted recall, in `calibrationBins` bins of predicted recall. Implicit evidence from
+    recitals and drives stays out, since only its failures are logged. A bin is healthy when its
     share recalled (Hard or better) is within `calibrationTolerance` of its mean prediction, and
     judged only from `calibrationMinReviews` reviews. The Memory model screen shows it as bars and
     rows; it isn't hidden behind a debug flag, since the app ships as release builds.
-86. **Tier C relief** (§4): the mean time of the days played among the last `tierCReliefDays`
-    (days without play don't count), against today's minutes a day. It turns on above
+86. **Tier C relief** (§4): a day is judged by the mean time of the days played among the
+    `tierCReliefDays` before it (days without play don't count; the day itself doesn't either, so
+    its state holds all day), against today's minutes a day. It turns on above
     `tierCReliefFactor` × the minutes and off below the minutes, replayed day by day over
     `tierCReliefReplayDays` from off. While on, a session answer on a tier C street's P card is
     scheduled for `retentionTierCRelief`; Explore answers and other cards keep their retention.

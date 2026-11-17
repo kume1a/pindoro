@@ -3,7 +3,6 @@ import 'dart:math';
 import 'constants.dart';
 import 'fsrs.dart';
 import 'grader.dart';
-import 'tuning.dart';
 
 /// Card types; an item id is `<TYPE>:<key>` (SPEC §3).
 enum CardType {
@@ -70,7 +69,16 @@ enum ReviewFormat {
 }
 
 /// `review_log.source` (SPEC §2.2).
-enum ReviewSource { session, placement, explore, recital, drive }
+enum ReviewSource {
+  session,
+  placement,
+  explore,
+  recital,
+  drive;
+
+  /// Implicit evidence (SPEC §4, `implicitReview`): only a failed decision is logged.
+  bool get implicit => this == recital || this == drive;
+}
 
 /// One `card_state` row (SPEC §2.2).
 class CardState {
@@ -210,7 +218,7 @@ CardState carriedOver(
   String? snapId,
   int? rtMs,
   bool priorKnown = false,
-  double? retention,
+  double retention = LearningConfig.retentionDefault,
   Fsrs fsrs = const Fsrs(),
 }) {
   final before = card?.memory;
@@ -218,7 +226,7 @@ CardState carriedOver(
     before,
     rating,
     now,
-    retention: retention ?? retentionOf(CardType.ofItem(itemId)),
+    retention: retention,
     fuzz: fuzzFor(itemId, now),
   );
   final lapsed = rating == Rating.again && card?.phase == CardPhase.review;

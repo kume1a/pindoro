@@ -284,7 +284,7 @@ class LearningDao extends DatabaseAccessor<AppDatabase>
   static Rating? _rating(int? grade) =>
       grade == null ? null : Rating.values[grade - 1];
 
-  /// SPEC §2.2 writes types upper case: `P`, `S1`, …
+  /// SPEC §2.2 writes types upper case: `P`, `J`, …
   static String _typeKey(CardType type) => type.name.toUpperCase();
 }
 

@@ -631,7 +631,7 @@
   "memoryCalibrationEmpty": "ჯერ არ არის ერთ დღეზე მეტი ინტერვალით გამეორებები.",
   "memoryCalibrationChart": "გახსენებული, ნაწინასწარმეტყველების მიხედვით",
   "memoryCalibrationHealthy": "ნორმაა ±5 ქულის ფარგლებში",
-  "memoryBinShort": "{from} %",
+  "memoryBinOff": "5 ქულაზე მეტით ცდება",
   "memoryBin": "ნაწინასწარმეტყველები {from}–{to} %",
   "memoryBinRecalled": "გახსენებული {recalled} % · {count, plural, other{{count} გამეორება}}",
   "memoryWeights": "FSRS-ის წონები",

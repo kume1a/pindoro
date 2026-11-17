@@ -2319,14 +2319,7 @@
   "memoryCalibrationEmpty": "No reviews a day or more apart yet.",
   "memoryCalibrationChart": "Recalled, by predicted recall",
   "memoryCalibrationHealthy": "Healthy within ±5 points",
-  "memoryBinShort": "{from} %",
-  "@memoryBinShort": {
-    "placeholders": {
-      "from": {
-        "type": "String"
-      }
-    }
-  },
+  "memoryBinOff": "More than 5 points off",
   "memoryBin": "{from}–{to} % predicted",
   "@memoryBin": {
     "placeholders": {
