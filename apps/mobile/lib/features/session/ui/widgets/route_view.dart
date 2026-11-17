@@ -14,6 +14,7 @@ import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
+import 'package:pindoro/features/session/ui/widgets/place_intro.dart';
 import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -32,6 +33,7 @@ class RouteView extends ConsumerStatefulWidget {
     required this.onPin,
     required this.onAnswer,
     required this.onNext,
+    required this.onHidePlace,
     this.chip,
   });
 
@@ -42,6 +44,9 @@ class RouteView extends ConsumerStatefulWidget {
   final ValueChanged<LatLng> onPin;
   final ValueChanged<String> onAnswer;
   final Future<void> Function() onNext;
+
+  /// "Can't find it?" on a pack place's result.
+  final VoidCallback onHidePlace;
 
   /// The result's next-review chip.
   final Widget? chip;
@@ -96,11 +101,13 @@ class _RouteViewState extends ConsumerState<RouteView> {
       String sentence, {
       String? label,
       StreetViewSpot? streetView,
+      List<Widget> chips = const [],
     }) => TaskResult(
       resultKey: play.index,
       tier: tier!,
       label: label,
       streetView: streetView,
+      chips: chips,
       chip: widget.chip,
       sentence: sentence,
       onNext: widget.onNext,
@@ -429,6 +436,10 @@ class _RouteViewState extends ConsumerState<RouteView> {
                       ? l10n.routeLandmarkResultOn(shown, name(play.street))
                       : l10n.routeLandmarkResult(shown, junction),
                   streetView: placeSpot(play.street, landmark.at),
+                  chips: [
+                    if (!landmark.personal)
+                      CantFindItChip(name: shown, onHide: widget.onHidePlace),
+                  ],
                 ),
         );
     }

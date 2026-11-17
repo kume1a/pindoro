@@ -62,7 +62,7 @@ implicit_evidence(id INT PK, item_id TEXT, ts INT, source TEXT, outcome INT)    
 ```
 
 Added by later milestones: `learn_city` (per city: placement done, home and work, M2),
-`card_state.note TEXT` (leech mnemonic, M4), `turn_override` (local "report this turn" fixes, M5),
+`card_state.note TEXT` (leech mnemonic, M4), `turn_override` (local "report this turn" fixes, M5, and hidden places, §16.18 item 94),
 `run` (route-book runs, M6). See §16.
 
 `source` in the log: `session`, `placement`, `explore`, `recital`, `drive`. Never delete log rows;
@@ -300,7 +300,7 @@ Motivation rules:
 OSM tags and base type score: metro (`station=subway`, `railway=station|subway_entrance`) 1.0 · named bridge 1.0 ·
 `place=square`, named `junction=roundabout` 0.9 · `amenity=fuel` 0.9 · `amenity=place_of_worship` 0.8 · `shop=mall`,
 `supermarket`, `department_store` 0.8 · `amenity=bus_station`, `public_transport=station` 0.8 · `amenity=hospital|university` 0.7 ·
-`historic=monument|memorial`, `tourism=attraction`, `man_made=tower` 0.7 · `leisure=stadium|park` 0.6 ·
+`historic=monument`, `historic=memorial` seen from a car (§16.18 item 93), `tourism=attraction`, `man_made=tower` 0.7 · `leisure=stadium|park` 0.6 ·
 `amenity=bank|pharmacy|fast_food` with brand 0.4 · `highway=traffic_signals` 0.3.
 
 ```
@@ -858,3 +858,12 @@ blank maps after every answer.
 92. **Street View** (§10, a Google Maps link): on every street intro and pin reveal, at the
     street's point nearest the answer looking along it; on every place intro and L1 reveal, from its
     street looking at it.
+93. **Only landmarks you can see from a car.** A memorial counts (as `monument`, §9) only when
+    `memorial=statue|sculpture|obelisk|column|war_memorial`; plaques, busts and stones are left out.
+    In Vake 38 of the 41 monuments were plaques and busts nobody can spot from the road
+    (found 2026-11-17, a bust asked by name that the player could not find on Street View).
+94. **"Can't find it?"** on a pack place's intro and on every reveal of its cards: after a confirm
+    ("Hide {place}?"), the place is hidden on this phone (`turn_override` row
+    `place:<landmark id>`, no schema change): its L1–L3 cards leave the session and the route book,
+    and its turns ask "at the next junction" instead. Its review log stays. The player's own
+    landmarks are deleted in Settings instead.

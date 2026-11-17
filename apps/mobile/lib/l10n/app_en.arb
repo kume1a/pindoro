@@ -2051,6 +2051,17 @@
     }
   },
   "placeIntroRegion": "About this place",
+  "placeCantFind": "Can't find it?",
+  "placeHideTitle": "Hide {place}?",
+  "@placeHideTitle": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "placeHideBody": "If it isn't there any more, you won't be asked about it again on this phone.",
+  "placeHideConfirm": "Hide it",
   "placeAtJunction": "At {junction}.",
   "@placeAtJunction": {
     "placeholders": {

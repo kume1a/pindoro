@@ -1175,6 +1175,32 @@ class SessionController extends Notifier<SessionState> {
     }
   }
 
+  /// "Can't find it?" (SPEC §16.18 item 94): the shown pack place is hidden
+  /// on this phone, and its cards leave the session.
+  // ponytail: a turn card later this session may still name it; the next
+  // session's route book doesn't.
+  Future<void> hidePlace() async {
+    final p = state;
+    if (p is! SessionPlaying) return;
+    if (p.task case RouteTask(
+      question: LandmarkQuestion(:final landmark),
+    ) when !landmark.personal) {
+      await _dao.hidePlace(landmark.id, _now());
+      ref.invalidate(routeBookProvider);
+      if (!ref.mounted) return;
+      _routes = (
+        candidates: _routes.candidates,
+        questions: Map.of(_routes.questions)
+          ..removeWhere(
+            (_, q) => q is LandmarkQuestion && q.landmark.id == landmark.id,
+          ),
+      );
+      if (state case final SessionPlaying now) {
+        _show(now.steps, now.index + 1, now.forgotten);
+      }
+    }
+  }
+
   NamedStreet? _nearest(LatLng at) => _all.fold<NamedStreet?>(
     null,
     (best, s) =>

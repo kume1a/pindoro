@@ -222,6 +222,9 @@ and the specs after R5. Fix them in roughly this order.
     Hard · 31 known"; the same line on the difficulty screen.
   - Explore's first-question coach mark is gone, so `color.map.reticle` and `quizCoach*` copy are
     unused in the app.
+  - "Can't find it?" (flag chip) on the place intro and place reveals, confirmed by "Hide
+    <place>?" (Keep it / Hide it); plaques and busts are no longer landmarks (SPEC §16.18 items
+    93–94).
 - Left out of the field-feedback pass, on purpose:
   - No hard stop at the day's minutes: the relearn cap keeps sessions short instead.
   - Name it, both ends, drills and the other route cards keep their maps as they were (no place
