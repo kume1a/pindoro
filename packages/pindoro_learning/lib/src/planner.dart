@@ -58,8 +58,8 @@ abstract final class Planner {
   /// [placesIntroducedToday], at a new street's time and paused like the route items (§16.18).
   /// [introducedToday] and
   /// [spentTodayS] come from today's earlier sessions. [openSides] (`Curriculum.openSides`) start
-  /// after the reviews, [LearningConfig.sideNewPerDay] a day less [sidesStartedToday], in the
-  /// minutes left; [openRoutes] (`openRoutes`) after them, [LearningConfig.routeNewPerDayMax] a
+  /// after the reviews, as many a day as new streets less [sidesStartedToday], in the minutes
+  /// left; [openRoutes] (`openRoutes`) after them, [LearningConfig.routeNewPerDayMax] a
   /// day less [routesStartedToday], paused while the due reviews take more than
   /// [LearningConfig.routePauseFactor] of the minutes (SPEC §7); [openRecitals] (`openRecitals`)
   /// last, [LearningConfig.recitalNewPerDay] a day less [recitalsStartedToday], paused alike. A
@@ -169,7 +169,7 @@ abstract final class Planner {
     final sideSlots = backlog || extraNew != null
         ? 0
         : min(
-            LearningConfig.sideNewPerDay - sidesStartedToday,
+            newPerDay - sidesStartedToday,
             (budget - dueS - introS) ~/ tReviewS,
           );
     final sides = openSides.take(max(0, sideSlots)).toList();

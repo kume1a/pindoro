@@ -19,19 +19,16 @@ final class PinTask extends SessionTask {
   Tier? get result => null;
 }
 
-/// Name it (card N): the painted street, then its name and a self-grade; on
-/// a checked review, [choices] to pick from instead.
+/// Name it (card N): the painted street and [choices] of names to pick from.
 final class NameTask extends SessionTask {
   const NameTask({
-    this.choices,
-    this.shown = false,
+    required this.choices,
     this.picked,
     this.right,
     this.nextReviewDays,
   });
 
-  final List<NamedStreet>? choices;
-  final bool shown;
+  final List<NamedStreet> choices;
   final NamedStreet? picked;
 
   /// Whether the checked pick was the street; null until picked.
@@ -45,18 +42,13 @@ final class NameTask extends SessionTask {
     false => Tier.miss,
   };
 
-  NameTask copyWith({
-    bool? shown,
-    NamedStreet? picked,
-    bool? right,
-    int? nextReviewDays,
-  }) => NameTask(
-    choices: choices,
-    shown: shown ?? this.shown,
-    picked: picked ?? this.picked,
-    right: right ?? this.right,
-    nextReviewDays: nextReviewDays ?? this.nextReviewDays,
-  );
+  NameTask copyWith({NamedStreet? picked, bool? right, int? nextReviewDays}) =>
+      NameTask(
+        choices: choices,
+        picked: picked ?? this.picked,
+        right: right ?? this.right,
+        nextReviewDays: nextReviewDays ?? this.nextReviewDays,
+      );
 }
 
 /// Both ends (card E): up to two pins, then the grade.

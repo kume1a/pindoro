@@ -120,13 +120,7 @@ abstract final class Grader {
     Tier.miss => Rating.again,
   };
 
-  /// Whether the next name review is the checked one (SPEC §5.2): every
-  /// [LearningConfig.nameCheckEvery]th of all name reviews, [nameReviews] done so far.
-  static bool isNameCheck(int nameReviews) =>
-      (nameReviews + 1) % LearningConfig.nameCheckEvery == 0;
-
-  /// A self-graded name (SPEC §5.2): Knew it Good, Forgot Again; a checked one Again when the
-  /// pick was wrong.
+  /// A name pick (SPEC §5.2, §16.13): the street Good, another Again.
   static Rating gradeName({required bool knew}) =>
       knew ? Rating.good : Rating.again;
 

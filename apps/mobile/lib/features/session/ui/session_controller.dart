@@ -235,9 +235,6 @@ class SessionController extends Notifier<SessionState> {
   Map<int, int> _nodes = const {};
   final Map<String, RecitalTask?> _recitals = {};
 
-  /// Name reviews so far, for the every-10th check.
-  int _nameReviews = 0;
-
   /// Tier C pin cards aim lower while the days run long (SPEC §4).
   bool _tierCRelief = false;
 
@@ -331,7 +328,6 @@ class SessionController extends Notifier<SessionState> {
       if (e.type == CardType.p && e.rating.isSuccess && !e.format.logsOnly) {
         _successes.update(e.itemId, (n) => n + 1, ifAbsent: () => 1);
       }
-      if (e.type == CardType.n) _nameReviews++;
     }
     _anchors = [?learnCity?.homeId, ?learnCity?.workId];
     _tierCRelief = tierCRelief(
@@ -467,37 +463,11 @@ class SessionController extends Notifier<SessionState> {
   }
 
   /// Name it: Show name.
-  void showName() {
-    final p = state;
-    if (p is! SessionPlaying) return;
-    if (p.task case final NameTask t when !t.shown) {
-      state = p.copyWith(task: t.copyWith(shown: true));
-    }
-  }
-
-  /// Name it: Knew it or Forgot (SPEC §5.2); on to the next step.
-  Future<void> rateName({required bool knew}) async {
-    final p = state;
-    if (p is! SessionPlaying || p.task is! NameTask) return;
-    final card = await _review(
-      p.step,
-      Grader.gradeName(knew: knew),
-      tier: knew ? Tier.great : Tier.miss,
-      format: ReviewFormat.name,
-    );
-    if (card == null) return;
-    _nameReviews++;
-    final next = _answered(p, [
-      if (card.phase == CardPhase.relearning) p.step.itemId,
-    ]);
-    _show(next.steps, p.index + 1, next.forgotten);
-  }
-
-  /// Name it, checked: the pick among the six names (SPEC §5.2).
+  /// Name it: the pick among the six names (SPEC §5.2, §16.13).
   Future<void> pickName(NamedStreet picked) async {
     final p = state;
     if (p is! SessionPlaying || p.answered) return;
-    if (p.task case final NameTask t when t.choices != null) {
+    if (p.task case final NameTask t) {
       final right = picked == p.street;
       final card = await _review(
         p.step,
@@ -507,7 +477,6 @@ class SessionController extends Notifier<SessionState> {
         mixUp: right ? null : picked,
       );
       if (card == null) return;
-      _nameReviews++;
       state =
           _answered(p, [
             if (card.phase == CardPhase.relearning) p.step.itemId,
@@ -966,14 +935,12 @@ class SessionController extends Notifier<SessionState> {
         ),
         _ => switch (CardType.ofItem(step.itemId)) {
           CardType.n => NameTask(
-            choices: Grader.isNameCheck(_nameReviews)
-                ? nameChoices(
-                    target: street,
-                    streets: _all,
-                    confusable: _confusable(street),
-                    random: Random(_seed + step.hashCode),
-                  )
-                : null,
+            choices: nameChoices(
+              target: street,
+              streets: _all,
+              confusable: _confusable(street),
+              random: Random(_seed + step.hashCode),
+            ),
           ),
           CardType.e => const ExtentTask(),
           _ => const PinTask(),

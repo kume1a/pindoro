@@ -235,6 +235,8 @@ and the specs after R5. Fix them in roughly this order.
   - Today's `done` card reads "Today's goal done" with Learn 10 more as its primary button;
     Session done puts Learn 10 more above a secondary Done when it offers it. Time a day adds
     45 and 60 min (21 and 28 new streets).
+  - Name it (SessionScreen `nameHidden` / `nameShown`) always offers six names: no Show name,
+    Forgot or Knew it, and the "What's this street called?" ask is gone (SPEC §16.18 item 98).
 - Left out of the field-feedback pass, on purpose:
   - No hard stop at the day's minutes: the relearn cap keeps sessions short instead.
   - Name it, both ends, drills and the other route cards keep their maps as they were (no place

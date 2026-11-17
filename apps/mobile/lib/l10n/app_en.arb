@@ -1559,12 +1559,7 @@
       }
     }
   },
-  "sessionNameAsk": "What’s this street called?",
-  "sessionNameAskNote": "Say it in your head first",
-  "sessionNameShow": "Show name",
   "sessionNameDidYouKnow": "Did you know it?",
-  "sessionNameForgot": "Forgot",
-  "sessionNameKnew": "Knew it",
   "sessionNameCheckAsk": "Which name is it?",
   "sessionNameCheckNote": "Pick the painted street’s name",
   "sessionNameRight": "It’s {name}.",

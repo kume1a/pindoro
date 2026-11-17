@@ -41,8 +41,10 @@ enum ReviewFormat {
   /// An Explore answer that schedules nothing (SPEC §16.16).
   exploreLog,
 
-  /// A name card, self-graded or (every [LearningConfig.nameCheckEvery]th) checked with a choice.
+  /// A self-graded name card: only in logs from before every name review became a choice.
   name,
+
+  /// A name card: the street's name picked among [LearningConfig.nameCheckOptions].
   nameCheck,
   extent,
 

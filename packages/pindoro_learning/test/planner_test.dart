@@ -518,15 +518,16 @@ void main() {
   });
 
   group('name and ends cards, leeches, drills (SPEC §16.13)', () {
-    final sides = [for (var i = 0; i < 8; i++) 'N:s$i'];
+    final sides = [for (var i = 0; i < 14; i++) 'N:s$i'];
 
-    test('open side cards start after the reviews, 5 a day', () {
+    test('open side cards start after the reviews, as many a day as new '
+        'streets', () {
       final p = plan(cards: dueCards(4), openSides: sides);
       final reviews = ofKind(p, StepKind.review).toList();
-      expect(reviews, hasLength(4 + LearningConfig.sideNewPerDay));
-      expect(reviews.skip(4), sides.take(LearningConfig.sideNewPerDay));
+      expect(reviews, hasLength(4 + 10));
+      expect(reviews.skip(4), sides.take(10));
       expect(
-        ofKind(plan(openSides: sides, sidesStartedToday: 4), StepKind.review),
+        ofKind(plan(openSides: sides, sidesStartedToday: 9), StepKind.review),
         ['N:s0'],
       );
       expect(

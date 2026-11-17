@@ -83,7 +83,7 @@ The pack's own `junction.id` is pack-local and never goes into an item id.
 | Card            | Cue → answer                                                               | Who gets it                                      | Unlocks when                                                                   |
 | --------------- | -------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------ |
 | P pin           | name → place on the blank map                                              | every street in scope                            | introduced                                                                     |
-| N name it       | painted street → name (self-graded)                                        | tiers A and B + every family parent (~800)       | P stability ≥ 7 d                                                              |
+| N name it       | painted street → its name among 6                                          | tiers A and B + every family parent (~800)       | P card past its retrieval 2, or known before                                   |
 | E extent        | name → both ends                                                           | streets > 1.2 km                                 | P stability ≥ 7 d                                                              |
 | B bridge access | street + bank → bridge and the turns onto it                               | ~48 (12 bridges × 2 banks × ~2 approaches)       | tier A streets introduced                                                      |
 | J junction      | street + heading + target + landmark → exit (+ street turned onto)         | ~450 skeleton decisions, then district junctions | skeleton: month 1; others: district grid ≥ 80 % Solid                          |
@@ -173,8 +173,8 @@ Display tiers keep their colours, icons, sounds and haptics; the XP chip becomes
 
 ### 5.2 Other cards
 
-- **N name it**: self-graded "Forgot" = Again, "Knew it" = Good. Every 10th N review is verified with a
-  6-name choice that includes confusables (wrong = Again).
+- **N name it**: every N review is a 6-name choice that includes confusables: right = Good, wrong = Again
+  (§16.13 item 55).
 - **E extent**: each end counts if within `max(150 m, 10 % of length)`. Both = Good, one = Hard, none = Again.
 - **J / B decisions**: exit correct and (if typed) street correct = Good; exit correct, street wrong
   or missing when asked = Hard; wrong exit = Again (re-asked this session; show where the chosen exit leads
@@ -350,7 +350,7 @@ recitals must work without speech.
 | `rtHardMs`, `rtEasyMs`, `easyMinSuccesses`                   | 20000, 6000, 2                          |
 | `extentEndMinM`, `extentEndFraction`                         | 150, 0.10                               |
 | `extentMinLengthM`                                           | 1200                                    |
-| `unlockNameDays`, `unlockExtentDays`                         | 7, 7                                    |
+| `unlockNameReps`, `unlockExtentDays`                         | 2, 7 days                               |
 | `childParentMinDays`, `maxSiblingsPerDay`                    | 3, 4                                    |
 | `knownMinR`, `solidDays`, `masteredDays`, `masteredSideDays` | 0.80, 21, 90, 21                        |
 | `newPerDay`                                                  | {15: 7, 20: 10, 30: 14, 45: 21, 60: 28} |
@@ -383,9 +383,8 @@ pindoro_core `ScoringConfig`, not copied):
 | `familySweepMinChildren`, `familySweepWindowDays`                    | 3, 2                                |
 | `crossingsPerDay`, `bearingsPerSessionMin`, `bearingsPerSessionMax`  | 1, 1, 3                             |
 | `familySweepMax`, `crossingsMax`, `crossingsTries`                   | 6, 5, 8                             |
-| `sideNewPerDay` (name and ends cards started a day)                  | 5                                   |
 | `bearingUnlockGridSolid`                                             | 0.50                                |
-| `nameCheckEvery`, `nameCheckOptions`                                 | 10, 6                               |
+| `nameCheckOptions`                                                   | 6                                   |
 | `familyOrphanM`, `familyNearM`                                       | 1500, 500                           |
 | `chunkNeighbourM`                                                    | 50                                  |
 | `nearDueFraction`                                                    | 0.5 (implicit evidence and Explore) |
@@ -647,18 +646,20 @@ board, and per-type FSRS parameter presets.
 
 ### 16.13 More street cards and drills (M4)
 
-54. **Name and ends cards open** when the street's P card reaches `unlockNameDays` /
+54. **Name and ends cards open**, a name card once the street's P card has had `unlockNameReps`
+    answers (its retrieval 1 and 2) or was known before, an ends card once it reaches
     `unlockExtentDays` of stability: a name card for tiers A and B and every family parent, an ends
     card past `extentMinLengthM`. An open card without a row starts as a first review (no intro)
-    after the due reviews, the most stable streets first, at most `sideNewPerDay` a day, in the
-    minutes left after the new streets; a backlog and Learn 10 more start none.
-55. **The name check** is every `nameCheckEvery`th name review over all name cards. It replaces Show
-    name with `nameCheckOptions` names: the street, its confusables nearest first, then the nearest
-    streets, one per name. Right is Good; wrong is Again and saves the mixed-up pair. A self-graded
-    review (Forgot / Knew it) goes straight on, with no sheet.
+    after the due reviews, the most stable streets first, at most as many a day as the day's new
+    streets (`newPerDay[minutes]`), in the minutes left after the new streets; a backlog and Learn
+    10 more start none.
+55. **The name check** is every name review: `nameCheckOptions` names, the street, its confusables
+    nearest first, then the nearest streets, one per name. Right is Good; wrong is Again and saves
+    the mixed-up pair. (Until 2026-11-17 nine in ten were self-graded Forgot / Knew it, logged as
+    `name`.)
 56. **A street's ends** are its two line ends farthest apart; the pins count either way round. Both
     ends show Great, one Close, none Miss.
-57. **Name and ends answers** log as `name`, `nameCheck` and `extent` whatever their step (first
+57. **Name and ends answers** log as `nameCheck` and `extent` whatever their step (first
     review, review, relearn). Again relearns them in the session like a pin. Recall rate stays on P
     reviews; City memory counts only P cards.
 58. **Mastered** needs each name and ends card that applies at `masteredSideDays`; one not started
@@ -891,3 +892,7 @@ blank maps after every answer.
     one street's steps keep their order. It caught a new street's retrieval 1 and 2 at the end of a
     session, a relearn just before its own retrieval 2, and a street's name and ends cards side by
     side.
+98. **Name it right after learning a street.** A street's name card opens once its pin card has had
+    its two same-day retrievals (a street known before at once), not after 7 days of stability, and
+    every name review picks among six names: a self-grade proved nothing. So the names keep pace,
+    as many name and ends cards start a day as new streets, instead of 5.

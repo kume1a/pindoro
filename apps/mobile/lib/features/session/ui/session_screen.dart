@@ -97,8 +97,6 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
         NameTask() => NameItView(
           play: p,
           topBar: _topBar(p, controller),
-          onShow: controller.showName,
-          onRate: (knew) => unawaited(controller.rateName(knew: knew)),
           onPick: (s) => unawaited(controller.pickName(s)),
           onNext: () async => controller.next(),
           chip: _nextReviewChip(p, (p.task as NameTask).nextReviewDays),
