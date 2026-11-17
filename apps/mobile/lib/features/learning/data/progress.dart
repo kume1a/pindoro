@@ -215,6 +215,7 @@ double _since(
 /// providers read with futures, so writers invalidate them.
 void refreshLearning(WidgetRef ref) => ref
   ..invalidate(learnCityProvider)
+  ..invalidate(asksCardProvider)
   ..invalidate(cityCardsProvider)
   ..invalidate(todayPlanProvider)
   ..invalidate(cityMemoryProvider)

@@ -213,6 +213,9 @@ class SessionController extends Notifier<SessionState> {
   late PackRepository _pack;
   late Curriculum _curriculum;
   late Map<String, CardState> _cards;
+
+  /// Whether the pack asks a card: one it doesn't is never due.
+  late AsksCard _asks;
   late List<(String, String)> _confusions;
   late Map<String, int> _successes;
   late double _memoryBefore;
@@ -276,6 +279,7 @@ class SessionController extends Notifier<SessionState> {
     final routes = await ref.read(routeBookProvider.future);
     final runs = await ref.hold(runsProvider.future);
     final graph = await ref.hold(drivingGraphProvider.future);
+    final asks = await ref.hold(asksCardProvider.future);
     final cards = await dao.cards();
     final confusions = await dao.confusionPairs();
     final log = await dao.log();
@@ -320,6 +324,7 @@ class SessionController extends Notifier<SessionState> {
     _byNode = {for (final e in _nodes.entries) e.value: e.key};
     _contrasts.addAll(contrasts);
     _cards = {for (final c in cards) c.itemId: c};
+    _asks = asks;
     _confusions = [...confusions];
     _successes = {};
     for (final e in log) {
@@ -671,7 +676,7 @@ class SessionController extends Notifier<SessionState> {
       mixUp: mixUp?.id,
     ));
     _times.add(now);
-    await markDayIfCounts(ref);
+    await markDayIfCounts(ref, asks: _asks);
     return ref.mounted ? result.card : null;
   }
 
@@ -698,7 +703,7 @@ class SessionController extends Notifier<SessionState> {
     );
     if (mixUp != null) _confusions.add((mixUp.$1.id, mixUp.$2.id));
     _shownAt = now;
-    await markDayIfCounts(ref);
+    await markDayIfCounts(ref, asks: _asks);
   }
 
   /// [p] with a relearn for each of [forgotten] 5–10 items on, and its
@@ -771,7 +776,7 @@ class SessionController extends Notifier<SessionState> {
       priorKnown: true,
     );
     await _dao.saveAnswer(card: placed ? result.card : null, log: result.log);
-    await markDayIfCounts(ref);
+    await markDayIfCounts(ref, asks: _asks);
     if (!ref.mounted) return;
     if (placed) _cards[step.itemId] = result.card;
     _times.add(now);
@@ -1135,7 +1140,7 @@ class SessionController extends Notifier<SessionState> {
         mixUp: null,
       ));
       _times.add(now);
-      await markDayIfCounts(ref);
+      await markDayIfCounts(ref, asks: _asks);
       if (!ref.mounted) return;
       final practice = {
         for (final e in evidence)
@@ -1417,7 +1422,7 @@ class SessionController extends Notifier<SessionState> {
           if (value >= 2) _streets[key]!,
       ],
       minutes: (activeSeconds(_times) / 60).ceil(),
-      cleared: !_cards.values.any((c) => isDueBefore(c, midnight)),
+      cleared: !_cards.values.where(_asks).any((c) => isDueBefore(c, midnight)),
     );
   }
 }

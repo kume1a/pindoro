@@ -5,8 +5,10 @@ import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/hold.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
+import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/progress/data/streak.dart';
@@ -15,14 +17,16 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
 /// Marks today on the streak once it counts (SPEC §8): something answered,
-/// then nothing due before midnight or the day's minutes spent. Called after
-/// every learning answer; [roundId] names an Explore round.
-Future<void> markDayIfCounts(Ref ref, {String? roundId}) async {
+/// then nothing the pack asks due before midnight or the day's minutes
+/// spent. Called after every learning answer; [roundId] names an Explore
+/// round, [asks] is a session's [asksCardProvider] filter, read once for it.
+Future<void> markDayIfCounts(Ref ref, {String? roundId, AsksCard? asks}) async {
   final now = ref.read(clockProvider)();
   final learning = ref.read(learningDaoProvider);
   final settings = await ref.read(settingsDaoProvider).read();
+  final asked = asks ?? await ref.hold<AsksCard>(asksCardProvider.future);
   final counts = dayCounts(
-    cards: await learning.cards(),
+    cards: (await learning.cards()).where(asked),
     today: await learning.log(since: startOfDay(now)),
     minutesPerDay: settings.minutesPerDay,
     now: now,
@@ -62,7 +66,8 @@ final reminderProvider = FutureProvider<ReminderNotice?>((ref) async {
   final settings = await ref.watch(settingsProvider.future);
   if (!settings.reminder) return null;
   final streak = await ref.watch(streakProvider.future);
-  final cards = await ref.read(learningDaoProvider).cards();
+  final asks = await ref.watch(asksCardProvider.future);
+  final cards = (await ref.read(learningDaoProvider).cards()).where(asks);
   final plan = nextReminder(
     streak.metDays,
     ref.read(clockProvider)(),

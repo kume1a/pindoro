@@ -5,11 +5,13 @@ import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/features/learning/data/carry_over.dart';
+import 'package:pindoro/features/learning/data/day.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/route_book.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
+import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
@@ -39,6 +41,11 @@ void main() {
   final a = NamedStreet([_part('a1', 300), _part('a2', 120)]);
   final b = NamedStreet([_part('b1', 200)]);
   final c = NamedStreet([_part('c1', 180)]);
+  final fixturePack = packRepositoryProvider.overrideWith((ref) async {
+    final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
+    ref.onDispose(repo.close);
+    return repo;
+  });
 
   setUp(() async {
     db = AppDatabase(NativeDatabase.memory());
@@ -61,6 +68,7 @@ void main() {
       overrides: [
         databaseProvider.overrideWithValue(db),
         clockProvider.overrideWithValue(() => now),
+        fixturePack,
         cityStreetsProvider.overrideWith(
           (ref) async => {
             for (final s in [a, b, c])
@@ -111,6 +119,28 @@ void main() {
     },
   );
 
+  test('a card the pack no longer asks is never due: clearing the rest '
+      'counts the day', () async {
+    await LearningDao(db).saveAnswer(
+      card: CardState(
+        itemId: 'P:a2',
+        phase: CardPhase.review,
+        memory: Memory(stability: 5, difficulty: 5, lastReview: now),
+        dueAt: now.add(const Duration(days: 5)),
+      ),
+      log: LogEntry(
+        ts: now,
+        itemId: 'P:a2',
+        format: ReviewFormat.review,
+        rating: Rating.good,
+        source: ReviewSource.session,
+      ),
+    );
+    final markDay = FutureProvider<void>(markDayIfCounts);
+    await container.read(markDay.future);
+    expect((await ProgressDao(db).goalDayRounds()).keys, [calendarDay(now)]);
+  });
+
   test('a street carded under another of its parts is not new again', () async {
     final p = await plan();
     expect(
@@ -137,11 +167,7 @@ void main() {
       overrides: [
         databaseProvider.overrideWithValue(db),
         clockProvider.overrideWithValue(() => now),
-        packRepositoryProvider.overrideWith((ref) async {
-          final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
-          ref.onDispose(repo.close);
-          return repo;
-        }),
+        fixturePack,
       ],
     );
     addTearDown(pack.dispose);

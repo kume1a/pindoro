@@ -35,11 +35,7 @@ final runsProvider = FutureProvider.autoDispose<List<Run>>((ref) async {
   final graph = pack.roadGraph();
   if (graph == null || book.questions.isEmpty) return const [];
   final nodes = pack.junctionNodes();
-  final inPack = nodes.values.toSet();
-  final runs = [
-    for (final r in await dao.recitalRuns())
-      if (inPack.contains(r.fromNode) && inPack.contains(r.toNode)) r,
-  ];
+  final runs = await savedRuns(dao, nodes);
   final cards = {for (final c in await dao.cards()) c.itemId: c};
   final bookRunOpen = openRecitals(
     runs.where((r) => !r.random),
@@ -76,6 +72,18 @@ final runsProvider = FutureProvider.autoDispose<List<Run>>((ref) async {
   }
   return [...runs, ...made];
 });
+
+/// The saved runs whose ends the pack's [junctionNodes] have, oldest first.
+Future<List<Run>> savedRuns(
+  LearningDao dao,
+  Map<int, int> junctionNodes,
+) async {
+  final inPack = junctionNodes.values.toSet();
+  return [
+    for (final r in await dao.recitalRuns())
+      if (inPack.contains(r.fromNode) && inPack.contains(r.toNode)) r,
+  ];
+}
 
 /// Pack junction ids by OSM node, for a run's ends.
 final junctionsByNodeProvider = FutureProvider.autoDispose<Map<int, int>>((

@@ -157,6 +157,27 @@ void main() {
     expect(find.text('tomorrow 0'), findsOneWidget);
   });
 
+  testWidgets('the day’s minutes spent with reviews still due: done, never '
+      'Catch up into an empty session', (tester) async {
+    await placed();
+    await pump(
+      tester,
+      const SessionPlan(
+        steps: [],
+        dueCount: 2,
+        backlog: true,
+        reviewCount: 0,
+        newCount: 0,
+        estimatedS: 0,
+      ),
+    );
+    expect(find.text('Done for today'), findsOneWidget);
+    expect(find.text('Catch up'), findsNothing);
+    expect(find.textContaining('Most overdue first'), findsNothing);
+    expect(find.text('Learn 5 more'), findsOneWidget);
+    expect(find.textContaining('caught up by'), findsNothing);
+  });
+
   testWidgets('catching up: the reviews waiting, no new streets, Catch up and '
       'the week’s change', (tester) async {
     await placed();

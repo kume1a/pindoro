@@ -44,33 +44,36 @@ class TodayScreen extends ConsumerWidget {
         _FirstRun(onOpen: open),
       ],
       (AsyncData(), AsyncData(value: final plan)) => () {
-        final done = !plan.backlog && plan.steps.isEmpty;
-        final run = plan.backlog ? null : ref.watch(todayRunProvider).value;
+        // The day's minutes spent with reviews still due is a backlog with
+        // nothing to start: done (SPEC §16.2).
+        final done = plan.steps.isEmpty;
+        final catchingUp = plan.backlog && !done;
+        final run = catchingUp ? null : ref.watch(todayRunProvider).value;
         final learning = ref.watch(nowLearningProvider).value;
         final gateways = switch (learning) {
-          final l? when !plan.backlog && !done =>
+          final l? when !catchingUp && !done =>
             ref.watch(gatewaysProvider(l.raion.id)).value,
           _ => null,
         };
-        final mixUps = plan.backlog
+        final mixUps = catchingUp
             ? const <(NamedStreet, NamedStreet)>[]
             : ref.watch(mixUpsYesterdayProvider).value ?? const [];
         return [
-          if (plan.backlog)
-            _CatchingUp(plan: plan, onStart: () => open(Routes.session))
-          else if (done)
+          if (done)
             _DoneForToday(
               tomorrow: ref.watch(dueTomorrowProvider).value ?? 0,
               onLearnMore: () => open(Routes.learnMore),
             )
+          else if (catchingUp)
+            _CatchingUp(plan: plan, onStart: () => open(Routes.session))
           else
             _TodaysDrive(plan: plan, onStart: () => open(Routes.session)),
-          if (plan.backlog) const _MostOverdueFirst(),
+          if (catchingUp) const _MostOverdueFirst(),
           if (done) const _LastWeek(),
           if (memory != null)
             CityMemoryRow(
               memory: memory.city,
-              change: plan.backlog
+              change: catchingUp
                   ? (
                       value: memory.sinceWeek,
                       label: memoryChange(l10n, memory.sinceWeek, week: true),
@@ -91,7 +94,7 @@ class TodayScreen extends ConsumerWidget {
           if (learning != null)
             _NowLearningCard(
               learning: learning,
-              paused: plan.backlog,
+              paused: catchingUp,
               onTap: () => open(Routes.progressOf(learning.raion.id)),
             ),
           if (gateways != null && gateways.started)
@@ -583,15 +586,15 @@ class _NextWeek extends ConsumerWidget {
         days: catchUpDays(dueCount: plan.dueCount, minutesPerDay: minutes),
       ),
     );
-    final meta = plan.backlog
+    final meta = done
+        ? l10n.todayWeekTomorrow(formatNumber(counts[1]))
+        : plan.backlog
         ? l10n.todayWeekCaughtUp(
             (caughtUp.difference(now).inDays < _days
                     ? DateFormat.EEEE(locale)
                     : DateFormat.MMMd(locale))
                 .format(caughtUp),
           )
-        : done
-        ? l10n.todayWeekTomorrow(formatNumber(counts[1]))
         : average >= _perDayFrom
         ? l10n.todayWeekPerDay(formatNumber(average))
         : l10n.todayWeekTotal(total);

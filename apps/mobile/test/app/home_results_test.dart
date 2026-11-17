@@ -437,7 +437,7 @@ void main() {
       await tester.runAsync(
         () => LearningDao(db).putCard(
           CardState(
-            itemId: 'P:x',
+            itemId: CardType.p.item(streets.first.id),
             phase: CardPhase.review,
             memory: Memory(
               stability: 3,

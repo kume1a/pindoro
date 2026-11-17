@@ -123,10 +123,8 @@ abstract final class Planner {
     );
     final backlog = dueS > budget;
     final swept = {...?drills.sweep?.children};
-    var room = budget * LearningConfig.backlogCapFactor;
     final dueReviews = [
-      for (final id
-          in backlog ? due.takeWhile((id) => (room -= cost(id)) >= 0) : due)
+      for (final id in backlog ? _backlogReviews(due, cost, budget) : due)
         if (!swept.contains(id)) id,
     ];
     final newSlots =
@@ -226,6 +224,25 @@ abstract final class Planner {
               )
               .length,
     );
+  }
+
+  /// A backlog's reviews: the most at-risk of [due] that fit in [budget] ×
+  /// [LearningConfig.backlogCapFactor], skipping one that doesn't (a recital), and the first
+  /// while any of the budget is left. So a plan empties only once nothing is due or the day's
+  /// minutes are spent, when the day counts (SPEC §16.2).
+  static List<String> _backlogReviews(
+    List<String> due,
+    int Function(String id) cost,
+    int budget,
+  ) {
+    var room = budget * LearningConfig.backlogCapFactor;
+    final fit = <String>[];
+    for (final id in due) {
+      if (cost(id) > room) continue;
+      room -= cost(id);
+      fit.add(id);
+    }
+    return fit.isEmpty && budget > 0 ? due.take(1).toList() : fit;
   }
 
   /// [drills] as session steps: the sweep, the crossings drill, then each bearing.
