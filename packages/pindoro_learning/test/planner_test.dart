@@ -321,6 +321,20 @@ void main() {
     });
   });
 
+  test('a missed card relearns at most twice a session', () {
+    const id = 'L:n1:1';
+    final once = [
+      (kind: StepKind.intro, itemId: id),
+      (kind: StepKind.relearn, itemId: id),
+    ];
+    expect(Planner.mayRelearn(once, id), isTrue);
+    expect(
+      Planner.mayRelearn([...once, (kind: StepKind.relearn, itemId: id)], id),
+      isFalse,
+    );
+    expect(Planner.mayRelearn(once, 'P:other'), isTrue);
+  });
+
   test('nextMidnight is the start of the next calendar day', () {
     expect(
       nextMidnight(DateTime.utc(2026, 3, 2, 23, 59)),

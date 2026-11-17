@@ -35,6 +35,9 @@ abstract final class LearningConfig {
   static const int fuzzMinDays = 3;
   static const int relearnGapMin = 5;
   static const int relearnGapMax = 10;
+
+  /// Relearns of one card in one session (§16.18); after them it waits for its due time.
+  static const int relearnMaxPerSession = 2;
   static const int leechLapses = 6;
 
   // Pin grading (§5.1)

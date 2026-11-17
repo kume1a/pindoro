@@ -429,7 +429,7 @@ class SessionController extends Notifier<SessionState> {
             grade: grade,
             pin: pin,
             nearest: target.nearest(pin).nearestPoint,
-            nextReviewDays: _nextReviewDays(card, now),
+            nextReviewDays: _nextReviewDays(card, now, p.steps),
             hit: hit,
           ),
         );
@@ -456,7 +456,7 @@ class SessionController extends Notifier<SessionState> {
           task: ExtentTask(
             pins: task.pins,
             grade: grade,
-            nextReviewDays: _nextReviewDays(card, _now()),
+            nextReviewDays: _nextReviewDays(card, _now(), p.steps),
           ),
         );
   }
@@ -510,7 +510,7 @@ class SessionController extends Notifier<SessionState> {
             task: t.copyWith(
               picked: picked,
               right: right,
-              nextReviewDays: _nextReviewDays(card, _now()),
+              nextReviewDays: _nextReviewDays(card, _now(), p.steps),
             ),
           );
     }
@@ -706,6 +706,7 @@ class SessionController extends Notifier<SessionState> {
   SessionPlaying _answered(SessionPlaying p, List<String> forgotten) {
     var rest = p.steps.sublist(p.index + 1);
     for (final (i, id) in forgotten.indexed) {
+      if (!Planner.mayRelearn(p.steps, id)) continue;
       rest = Planner.withRelearn(rest, id, Random(_seed + p.index + i));
     }
     final missed =
@@ -717,9 +718,16 @@ class SessionController extends Notifier<SessionState> {
     );
   }
 
-  /// Days to [card]'s next review; null when it comes back this session.
-  static int? _nextReviewDays(CardState card, DateTime now) =>
-      card.phase == CardPhase.review
+  /// Days to [card]'s next review; null when it comes back in this session of
+  /// [steps] (a miss that has had its relearns waits for its due time).
+  static int? _nextReviewDays(
+    CardState card,
+    DateTime now,
+    List<SessionStep> steps,
+  ) =>
+      card.phase == CardPhase.review ||
+          (card.phase == CardPhase.relearning &&
+              !Planner.mayRelearn(steps, card.itemId))
       ? card.dueAt!.difference(now).inDays
       : null;
 
@@ -1144,7 +1152,7 @@ class SessionController extends Notifier<SessionState> {
         task: t.copyWith(
           graded: graded,
           practice: practice,
-          nextReviewDays: _nextReviewDays(answer.card, now),
+          nextReviewDays: _nextReviewDays(answer.card, now, p.steps),
         ),
       );
     }
@@ -1271,7 +1279,7 @@ class SessionController extends Notifier<SessionState> {
           ]).copyWith(
             task: t.copyWith(
               rating: rating,
-              nextReviewDays: _nextReviewDays(card, _now()),
+              nextReviewDays: _nextReviewDays(card, _now(), p.steps),
             ),
           );
     }

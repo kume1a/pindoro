@@ -575,6 +575,26 @@ void main() {
       ]);
     });
 
+    testWidgets('a card missed again and again comes back twice, then waits '
+        'for another day', (tester) async {
+      final q = first<TurnQuestion>();
+      final wrong = q.exits.keys.firstWhere((t) => t != q.correct);
+      await pump(tester, [(kind: StepKind.review, itemId: q.itemId)]);
+      for (final chip in [
+        'Back in this session',
+        'Back in this session',
+        'Next review in 1 day',
+      ]) {
+        controller(tester).choose(wrong);
+        await settle(tester);
+        await tapThrough(tester, find.text('Confirm'));
+        expect(find.text(chip), findsOneWidget);
+        await tapThrough(tester, find.text('Next'));
+      }
+      expect(find.text('Session done'), findsOneWidget);
+      expect((await dao.log()).length, 3);
+    });
+
     testWidgets('a gateway: the pin at the junction and the street typed', (
       tester,
     ) async {

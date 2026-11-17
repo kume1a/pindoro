@@ -245,6 +245,14 @@ abstract final class Planner {
           (drills.crossings?.crossings.length ?? 0) +
           drills.bearings.length);
 
+  /// Whether a missed [itemId] comes back again in a session of [steps]: not once it has had
+  /// [LearningConfig.relearnMaxPerSession] relearns (SPEC §16.18). It stays due, for the next.
+  static bool mayRelearn(List<SessionStep> steps, String itemId) =>
+      steps
+          .where((s) => s.kind == StepKind.relearn && s.itemId == itemId)
+          .length <
+      LearningConfig.relearnMaxPerSession;
+
   /// [remaining] with a relearn of [itemId] after 5–10 other items (SPEC §4): at the end when
   /// fewer are left, and never after the street's own retrieval 2.
   static List<SessionStep> withRelearn(
