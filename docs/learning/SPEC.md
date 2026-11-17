@@ -298,10 +298,11 @@ Motivation rules:
 ## 9. Landmarks
 
 OSM tags and base type score: metro (`station=subway`, `railway=station|subway_entrance`) 1.0 · named bridge 1.0 ·
-`place=square`, named `junction=roundabout` 0.9 · `amenity=fuel` 0.9 · `amenity=place_of_worship` 0.8 · `shop=mall`,
+`place=square`, named `junction=roundabout` (§16.18 item 96) 0.9 · `amenity=fuel` 0.9 · `amenity=place_of_worship` 0.8 · `shop=mall`,
 `supermarket`, `department_store` 0.8 · `amenity=bus_station`, `public_transport=station` 0.8 · `amenity=hospital|university` 0.7 ·
 `historic=monument`, `historic=memorial` seen from a car (§16.18 item 93), `tourism=attraction`, `man_made=tower` 0.7 · `leisure=stadium|park` 0.6 ·
-`amenity=bank|pharmacy|fast_food` with brand 0.4 · `highway=traffic_signals` 0.3.
+`amenity=fast_food` with a brand of fewer than 25 branches in the city 0.4 · `highway=traffic_signals` 0.3.
+No pharmacies or banks (§16.18 item 96).
 
 ```
 salience = 0.30*type + 0.15*brandOrName + 0.15*size + 0.10*wiki + 0.15*uniqueness + 0.15*structural   // (tunable)
@@ -867,3 +868,16 @@ blank maps after every answer.
     `place:<landmark id>`, no schema change): its L1–L3 cards leave the session and the route book,
     and its turns ask "at the next junction" instead. Its review log stays. The player's own
     landmarks are deleted in Settings instead.
+95. **Area places are graded against their outline.** A park, mall, university or any other place
+    mapped as an area keeps its outline in the pack (`landmark.outline`, format 6). An L1 pin inside
+    it is 0 m away, one outside is measured to its nearest edge; the reveal draws the outline in
+    yellow with the point. Parks reach 1.4 km² in Tbilisi, so the point alone failed a right pin
+    300 m from the middle.
+96. **Which places are asked** (the whole city's 581 places of 2026-11-17 became 339):
+    - Pharmacies and banks are not landmarks: five pharmacy chains had 70–181 branches each and
+      Bank of Georgia 100; they were 35 % of the places asked, small shopfronts on every corner.
+    - Fast food only for a brand with fewer than 25 branches in the city (McDonald's, KFC, Subway
+      stay; Dunkin' and Tempo go).
+    - A named roundabout is one place however many ways OSM splits it into (they were asked up
+      to 5 times), and none when its name is a road's (a street through it, a square's address,
+      "… Street") or a `place=square`'s, which is asked as itself.

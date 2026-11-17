@@ -355,6 +355,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
             : landmarkKindName(l10n, landmark.kind);
         final pin = play.pin;
         final revealed = tier != null;
+        final miss = pin == null ? null : q.distanceFrom(pin);
         final junction = junctionAt(q.junction ?? -1);
         return TaskScaffold(
           topBar: widget.topBar,
@@ -365,16 +366,15 @@ class _RouteViewState extends ConsumerState<RouteView> {
                     pin: pin,
                     onTap: revealed ? null : widget.onPin,
                     truthPoint: revealed ? landmark.at : null,
-                    measure: revealed && pin != null
-                        ? (
-                            from: pin,
-                            to: landmark.at,
-                            label: formatDistance(
-                              distanceBetween(pin, landmark.at),
-                              l10n,
-                            ),
-                          )
-                        : null,
+                    truth: revealed ? q.outlineLines : null,
+                    measure: switch (miss) {
+                      final m? when revealed && m.distanceM > 0 => (
+                        from: pin!,
+                        to: m.to,
+                        label: formatDistance(m.distanceM, l10n),
+                      ),
+                      _ => null,
+                    },
                     // Asking: known streets only, never the place's own.
                     names: revealed
                         ? MapNames.all

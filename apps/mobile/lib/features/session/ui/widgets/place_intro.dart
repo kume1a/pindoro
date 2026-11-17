@@ -57,6 +57,7 @@ class PlaceIntro extends ConsumerWidget {
           PindoroMap(
             area: play.area,
             truthPoint: landmark.at,
+            truth: question.outlineLines,
             names: MapNames.all,
             topInset: insets.top,
             bottomInset: insets.bottom,

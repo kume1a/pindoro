@@ -441,11 +441,19 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
     expect(rows.map((r) => r.id)).toContain("osm:w2104");
     expect(rows.find((r) => r.id === "osm:n911")).toMatchObject({ kind: "monument" });
     expect(rows.map((r) => r.id)).not.toContain("osm:n912");
+    expect(rows.map((r) => r.id)).not.toContain("osm:n913");
+    const outlines = await sql`
+      SELECT id, ST_GeometryType(outline) AS outline FROM pipeline.landmark
+      WHERE id IN ('osm:w2110', 'osm:n910') ORDER BY id`;
+    expect(outlines).toEqual([
+      { id: "osm:n910", outline: null },
+      { id: "osm:w2110", outline: "ST_MultiPolygon" },
+    ]);
   });
 
-  it("exports the directed graph and the route tables (pack format 5)", async () => {
+  it("exports the directed graph and the route tables (pack format 6)", async () => {
     const db = await exportPack();
-    expect(db.pragma("user_version", { simple: true })).toBe(5);
+    expect(db.pragma("user_version", { simple: true })).toBe(6);
     expect(
       db.prepare("SELECT count(*) FROM road_edge WHERE street_id IS NULL").pluck().get(),
     ).toBeGreaterThan(0);

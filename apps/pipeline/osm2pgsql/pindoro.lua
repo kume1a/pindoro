@@ -108,8 +108,6 @@ local pois = osm2pgsql.define_table({
 
 local area_places = { quarter = true, neighbourhood = true }
 
-local branded = { bank = true, pharmacy = true, fast_food = true }
-
 -- Memorials big enough to see from a car; plaques, busts and stones are not.
 local seen_memorials = { statue = true, sculpture = true, obelisk = true, column = true, war_memorial = true }
 
@@ -132,7 +130,8 @@ local function poi_kind(tags)
     if tags.tourism == 'attraction' then return 'attraction' end
     if tags.man_made == 'tower' then return 'tower' end
     if tags.leisure == 'stadium' or tags.leisure == 'park' then return tags.leisure end
-    if branded[amenity] and tags.brand then return amenity end
+    -- Pharmacies and banks are left out: every chain has a branch on every other corner.
+    if amenity == 'fast_food' and tags.brand then return 'fast_food' end
     return nil
 end
 

@@ -1,12 +1,15 @@
-# City pack format (v5)
+# City pack format (v6)
 
 A city pack is a read-only SQLite database built by `pipeline` from OpenStreetMap data and
 downloaded by the app. Packs are immutable: a new build gets a new `version` and a new file name.
 
+v6 (2026-11) adds `landmark.outline`: an area place's outline (multipolygon6), so a pin anywhere in
+a park counts; NULL for a point. The app installs v3 to v6; route items need v5.
+
 v5 (2026-11) adds the v3 route items: the road graph becomes directed (`road_edge.oneway`), takes
 unnamed ways and `*_link` roads as connector edges (`street_id` NULL) and gains `turn_restriction`;
 junctions carry their OSM node id (`junction.node_id`, the stable part of route item ids); and the
-pack adds `bridge`, `landmark` and `junction_item`. The app installs v3 to v5; route items need v5.
+pack adds `bridge`, `landmark` and `junction_item`.
 
 v4 (2026-11) adds the v3 learning system's curriculum data: each street's `tier`, `ring`, `bank`,
 `chunk_id` and `etymology`, each smaller area's raion (`district.parent_id`), and the `family` and
@@ -37,7 +40,7 @@ format it supports; v1 packs already on a phone still open.
 
 ```json
 {
-  "format_version": 5,
+  "format_version": 6,
   "city": "tbilisi",
   "name_ka": "თბილისი",
   "name_en": "Tbilisi",
@@ -70,7 +73,7 @@ zone. Street geometry is simplified to 3 m.
 
 ## Schema
 
-`PRAGMA user_version = 5` equals `format_version`.
+`PRAGMA user_version = 6` equals `format_version`.
 
 ```sql
 CREATE TABLE meta (
@@ -186,7 +189,8 @@ CREATE TABLE landmark (
   brand    TEXT,
   salience REAL NOT NULL,                -- SPEC §9 without the turn-dependent structural part
   lat      REAL NOT NULL,
-  lon      REAL NOT NULL
+  lon      REAL NOT NULL,
+  outline  TEXT                          -- multipolygon6 of an area (a park, a mall); NULL for a point
 );
 
 CREATE TABLE junction_item (
@@ -248,9 +252,12 @@ CREATE TABLE chunk_neighbour (
   that `except` cars; one row per pair of edges of those ways meeting at the via junction.
 - Bridges: named `bridge=*` ways (not `no`) crossing the city's `river`, with the same-name bridge
   ways within 200 m of them, grouped by name (`bridge:name`, else the name of the street carried).
-- Landmarks (SPEC §9): named or branded OSM points of interest of the §9 kinds, named roundabouts
-  and named bridges; `salience` = 0.30 type + 0.15 brand or name + 0.15 size + 0.10 wiki + 0.15
-  uniqueness (one over the same kind within 300 m).
+- Landmarks (SPEC §9, §16.18 items 93–96): named or branded OSM points of interest of the §9 kinds
+  (memorials only when seen from a car, fast food only for brands under 25 branches, no pharmacies
+  or banks), named roundabouts (their ways merged per name within 50 m, none named like a road or
+  a square) and named bridges; `salience` = 0.30 type + 0.15 brand or name + 0.15 size + 0.10
+  wiki + 0.15 uniqueness (one over the same kind within 300 m); an area's `outline` simplified to
+  3 m.
 - Junction items (`src/routes.ts`, SPEC §6.6): 20 000 origin–destination pairs drawn by street
   length (seeded), each driven by the shortest legal route; every turn with another legal way on
   is a decision `(junction, approach, exit)`. The most driven decisions are taken until they cover

@@ -1271,8 +1271,8 @@ class SessionController extends Notifier<SessionState> {
           names(q.to) ? Rating.good : Rating.again,
           ReviewFormat.connection,
         ),
-        LandmarkQuestion(n: 1, :final landmark) when pin != null => (
-          RouteGrader.point(distanceBetween(pin, landmark.at)).rating,
+        final LandmarkQuestion q when q.n == 1 && pin != null => (
+          RouteGrader.point(q.distanceFrom(pin).distanceM).rating,
           ReviewFormat.landmark,
         ),
         final LandmarkQuestion q when q.n > 1 => (

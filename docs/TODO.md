@@ -225,6 +225,8 @@ and the specs after R5. Fix them in roughly this order.
   - "Can't find it?" (flag chip) on the place intro and place reveals, confirmed by "Hide
     <place>?" (Keep it / Hide it); plaques and busts are no longer landmarks (SPEC §16.18 items
     93–94).
+  - An area place's intro and reveal draw its outline in yellow, and the reveal measures to its
+    nearest edge (SPEC §16.18 item 95).
 - Left out of the field-feedback pass, on purpose:
   - No hard stop at the day's minutes: the relearn cap keeps sessions short instead.
   - Name it, both ends, drills and the other route cards keep their maps as they were (no place

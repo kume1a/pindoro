@@ -9,9 +9,9 @@ void main() {
   setUpAll(() => pack = SqlitePackRepository.open(AppConfig.fixturePackAsset));
   tearDownAll(() => pack.close());
 
-  test('meta describes a v5 fixture pack with attribution', () {
+  test('meta describes a v6 fixture pack with attribution', () {
     final meta = pack.meta();
-    expect(meta['format_version'], '5');
+    expect(meta['format_version'], '6');
     expect(meta['scope'], 'fixture');
     expect(meta['version'], isNotEmpty);
     expect(meta['attribution'], contains('OpenStreetMap'));
@@ -34,6 +34,14 @@ void main() {
           .every((i) => landmarks.contains(i.landmarkId)),
       isTrue,
     );
+  });
+
+  test('format 6 gives area places their outline, around their point', () {
+    final areas = pack.landmarks().where((l) => l.outline != null).toList();
+    expect(areas, isNotEmpty);
+    for (final l in areas) {
+      expect(boundaryContains(l.outline!, l.at), isTrue, reason: l.id);
+    }
   });
 
   test('the fixture holds Vake and the quarters and neighbourhoods in it', () {

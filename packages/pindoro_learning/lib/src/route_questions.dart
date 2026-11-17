@@ -117,6 +117,7 @@ final class LandmarkQuestion extends RouteQuestion {
     this.nameEn,
     this.street,
     this.ambiguous = false,
+    this.outline,
   });
 
   final int n;
@@ -136,6 +137,28 @@ final class LandmarkQuestion extends RouteQuestion {
 
   /// A chain or a repeated name: the question names [street] with it (SPEC §16.18).
   final bool ambiguous;
+
+  /// The pack's outline of an area place (a park, a mall); null for a point.
+  final List<List<Polyline>>? outline;
+
+  /// The [outline]'s rings as lines to draw, null for a point.
+  MultiPolyline? get outlineLines => switch (outline) {
+    final o? => [for (final polygon in o) ...polygon],
+    null => null,
+  };
+
+  /// How far [pin] is from the place, and the spot that is measured to: 0
+  /// anywhere inside its [outline], else to the outline's nearest edge; a
+  /// point place to its point (SPEC §16.18 item 95).
+  ({double distanceM, LatLng to}) distanceFrom(LatLng pin) {
+    final o = outline;
+    if (o == null) {
+      return (distanceM: distanceBetween(pin, landmark.at), to: landmark.at);
+    }
+    if (boundaryContains(o, pin)) return (distanceM: 0, to: pin);
+    final edge = pointToPolylineDistance(pin, outlineLines!);
+    return (distanceM: edge.distanceMeters, to: edge.nearestPoint);
+  }
 }
 
 /// The city's route items: what opens each (for the planner) and what each asks.
@@ -422,6 +445,7 @@ RouteBook buildRouteBook({
               : const [],
           approachStreet: turn?.approachStreet,
           nameEn: pack?.nameEn,
+          outline: pack?.outline,
           street: street,
           ambiguous:
               pack != null &&

@@ -8,7 +8,7 @@ import type { Sql } from "postgres";
 import type { CityConfig } from "./config.ts";
 import { isoSeconds, replaceAtomically, writeJson } from "./io.ts";
 
-export const PACK_FORMAT_VERSION = 5;
+export const PACK_FORMAT_VERSION = 6;
 
 // Mirrors docs/pack-format.md exactly; `validate` diffs packs against it.
 export const PACK_DDL = `
@@ -123,7 +123,8 @@ CREATE TABLE landmark (
   brand    TEXT,
   salience REAL NOT NULL,
   lat      REAL NOT NULL,
-  lon      REAL NOT NULL
+  lon      REAL NOT NULL,
+  outline  TEXT
 );
 
 CREATE TABLE junction_item (
@@ -374,7 +375,7 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
   );
   const landmarks = await sql.unsafe(
     `SELECT l.id, l.kind, l.name_ka, l.name_en, l.brand, l.base AS salience,
-            ST_Y(l.geom) AS lat, ST_X(l.geom) AS lon
+            ST_Y(l.geom) AS lat, ST_X(l.geom) AS lon, ST_AsGeoJSON(l.outline, 7) AS outline
      FROM pipeline.landmark l WHERE l.id = ANY($1::text[]) ORDER BY l.id`,
     [[...new Set(items.map((i) => i.landmark_id).filter((id) => id !== null))]],
   );
@@ -473,9 +474,11 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
       }
       const landmark = db.prepare(
         `INSERT INTO landmark VALUES (@id, @kind, @name_ka, @name_en, @brand, @salience, @lat,
-          @lon)`,
+          @lon, @outline)`,
       );
-      for (const l of landmarks) landmark.run(l);
+      for (const { outline, ...l } of landmarks) {
+        landmark.run({ ...l, outline: outline === null ? null : multipolygon6(outline) });
+      }
       const item = db.prepare(
         `INSERT INTO junction_item VALUES (@junction_id, @approach_edge, @exit_edge, @layer, @rank,
           @chunk_id, @dest_chunk_id, @landmark_id, @landmark_side, @bridge_id)`,

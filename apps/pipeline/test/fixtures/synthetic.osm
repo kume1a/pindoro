@@ -23,7 +23,8 @@
     904-902-905; r3001 no_left_turn from w2101 via 902 onto w2106; a restriction whose ways pass
     through the via node (r3002) is left out; w2103 unnamed 903-906-907
     (a connector); w2104 bridge "Test Bridge" 907-908 over the river; n910 fuel "Test Fuel" at 902;
-    n911 a statue (a landmark) and n912 a plaque (too small to see from a car) off any junction
+    n911 a statue (a landmark), n912 a plaque (too small to see from a car), n913 a chain pharmacy
+    (no landmark) and w2110 "Test Park" (an area, with its outline) off any junction
   Lane families (w2015-w2022), "ტყის ..." (Forest ...):
     w2015 ტყის ქუჩა north-west, w2021 a second ტყის ქუჩა 6 km south-east
     w2016 ტყის I შესახვევი and w2017 ტყის II ჩიხი beside w2015, w2019 ტყის I შესახვევის I ჩიხი on w2016
@@ -130,6 +131,14 @@
     <tag k="memorial" v="plaque"/>
     <tag k="name" v="Test Plaque"/>
   </node>
+  <node id="913" version="1" lat="41.7217" lon="44.7687">
+    <tag k="amenity" v="pharmacy"/>
+    <tag k="brand" v="TP"/>
+  </node>
+  <node id="930" version="1" lat="41.7212" lon="44.7680"/>
+  <node id="931" version="1" lat="41.7212" lon="44.7690"/>
+  <node id="932" version="1" lat="41.7218" lon="44.7690"/>
+  <node id="933" version="1" lat="41.7218" lon="44.7680"/>
 
   <way id="101" version="1">
     <nd ref="1"/><nd ref="5"/><nd ref="2"/><nd ref="3"/><nd ref="6"/><nd ref="4"/><nd ref="1"/>
@@ -323,6 +332,11 @@
     <tag k="oneway" v="yes"/>
   </way>
 
+  <way id="2110" version="1">
+    <nd ref="930"/><nd ref="931"/><nd ref="932"/><nd ref="933"/><nd ref="930"/>
+    <tag k="leisure" v="park"/>
+    <tag k="name" v="Test Park"/>
+  </way>
   <relation id="1000" version="1">
     <member type="way" ref="101" role="outer"/>
     <member type="relation" ref="1001" role="subarea"/>
