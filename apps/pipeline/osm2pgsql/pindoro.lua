@@ -110,6 +110,9 @@ local area_places = { quarter = true, neighbourhood = true }
 
 local branded = { bank = true, pharmacy = true, fast_food = true }
 
+-- Memorials big enough to see from a car; plaques, busts and stones are not.
+local seen_memorials = { statue = true, sculpture = true, obelisk = true, column = true, war_memorial = true }
+
 -- The landmark kind of an object's tags (SPEC §9), or nil.
 local function poi_kind(tags)
     if tags.station == 'subway' or tags.railway == 'station' or tags.railway == 'subway_entrance' then
@@ -123,7 +126,9 @@ local function poi_kind(tags)
     if tags.shop == 'supermarket' then return 'supermarket' end
     if amenity == 'bus_station' or tags.public_transport == 'station' then return 'station' end
     if amenity == 'hospital' or amenity == 'university' then return amenity end
-    if tags.historic == 'monument' or tags.historic == 'memorial' then return 'monument' end
+    if tags.historic == 'monument' or (tags.historic == 'memorial' and seen_memorials[tags.memorial]) then
+        return 'monument'
+    end
     if tags.tourism == 'attraction' then return 'attraction' end
     if tags.man_made == 'tower' then return 'tower' end
     if tags.leisure == 'stadium' or tags.leisure == 'park' then return tags.leisure end

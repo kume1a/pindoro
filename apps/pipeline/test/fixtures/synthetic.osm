@@ -22,7 +22,8 @@
     w2101 + w2105 "East Street" (secondary) 901-902-903; w2102 + w2106 "Turn Street" one-way north
     904-902-905; r3001 no_left_turn from w2101 via 902 onto w2106; a restriction whose ways pass
     through the via node (r3002) is left out; w2103 unnamed 903-906-907
-    (a connector); w2104 bridge "Test Bridge" 907-908 over the river; n910 fuel "Test Fuel" at 902
+    (a connector); w2104 bridge "Test Bridge" 907-908 over the river; n910 fuel "Test Fuel" at 902;
+    n911 a statue (a landmark) and n912 a plaque (too small to see from a car) off any junction
   Lane families (w2015-w2022), "ტყის ..." (Forest ...):
     w2015 ტყის ქუჩა north-west, w2021 a second ტყის ქუჩა 6 km south-east
     w2016 ტყის I შესახვევი and w2017 ტყის II ჩიხი beside w2015, w2019 ტყის I შესახვევის I ჩიხი on w2016
@@ -118,6 +119,16 @@
     <tag k="amenity" v="fuel"/>
     <tag k="name" v="Test Fuel"/>
     <tag k="brand" v="TF"/>
+  </node>
+  <node id="911" version="1" lat="41.7215" lon="44.7685">
+    <tag k="historic" v="memorial"/>
+    <tag k="memorial" v="statue"/>
+    <tag k="name" v="Test Statue"/>
+  </node>
+  <node id="912" version="1" lat="41.7216" lon="44.7686">
+    <tag k="historic" v="memorial"/>
+    <tag k="memorial" v="plaque"/>
+    <tag k="name" v="Test Plaque"/>
   </node>
 
   <way id="101" version="1">

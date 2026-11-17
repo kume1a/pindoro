@@ -439,6 +439,8 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
     // 0.30 × 0.9 type + 0.15 named + 0.15 unique (no size, no wiki).
     expect(fuel?.base).toBeCloseTo(0.27 + 0.15 + 0.15, 6);
     expect(rows.map((r) => r.id)).toContain("osm:w2104");
+    expect(rows.find((r) => r.id === "osm:n911")).toMatchObject({ kind: "monument" });
+    expect(rows.map((r) => r.id)).not.toContain("osm:n912");
   });
 
   it("exports the directed graph and the route tables (pack format 5)", async () => {

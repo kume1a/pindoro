@@ -199,16 +199,14 @@ class SqlitePackRepository implements PackRepository {
 Future<File> copyFixture(Directory root) async {
   final file = File('${root.path}/tbilisi_vake_fixture.sqlite');
   final data = await rootBundle.load(AppConfig.fixturePackAsset);
-  // ponytail: size stands in for a checksum; the fixture changes rarely.
-  if (file.existsSync() && file.lengthSync() == data.lengthInBytes) {
+  final bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+  // SQLite files grow by whole pages, so a new fixture often has the old size.
+  if (file.existsSync() && listEquals(file.readAsBytesSync(), bytes)) {
     return file;
   }
   final tmp = File('${file.path}.tmp');
   await tmp.create(recursive: true);
-  await tmp.writeAsBytes(
-    data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
-    flush: true,
-  );
+  await tmp.writeAsBytes(bytes, flush: true);
   return tmp.rename(file.path);
 }
 
