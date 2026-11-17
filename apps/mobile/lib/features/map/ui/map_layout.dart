@@ -6,11 +6,11 @@ import 'package:pindoro_design/pindoro_design.dart';
 typedef MapInsets = ({double top, double bottom});
 
 /// A full-screen map under its overlays. [top] (in the top safe area, 16 dp
-/// in) and [bottom] (on the bottom edge) are measured and [map] is built with
-/// their heights, so its framing, controls and attribution clear them however
-/// tall their text makes them. [behind] sits between the map and them (draw
-/// layers, the coach reticle), [front] over everything (celebrations); both
-/// are Stack children.
+/// in at the sides, 8 dp above and below) and [bottom] (on the bottom edge)
+/// are measured and [map] is built with their heights, so its framing,
+/// controls and attribution clear them however tall their text makes them.
+/// [behind] sits between the map and them (draw layers), [front] over
+/// everything (celebrations); both are Stack children.
 class MapLayout extends StatefulWidget {
   const MapLayout({
     super.key,
@@ -64,7 +64,10 @@ class _MapLayoutState extends State<MapLayout> {
                 child: SafeArea(
                   bottom: false,
                   child: Padding(
-                    padding: const EdgeInsets.all(PindoroSpace.s4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: PindoroSpace.s4,
+                      vertical: PindoroSpace.s2,
+                    ),
                     child: top,
                   ),
                 ),

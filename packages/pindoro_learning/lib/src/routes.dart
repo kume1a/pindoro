@@ -38,12 +38,21 @@ abstract final class RouteIds {
   /// L1 (landmark → pin), L2 (landmark → junction) or L3 (junction and turn → landmark).
   static String landmark(String landmarkId, int n) =>
       CardType.l.item('$landmarkId:$n');
+
+  /// The L1 item of the landmark card [itemId] is one of.
+  static String firstLandmarkCard(String itemId) =>
+      '${itemId.substring(0, itemId.lastIndexOf(':'))}:1';
 }
 
 /// The route layers in teaching order (SPEC §6.5): bridges right after the skeleton streets,
 /// skeleton turns, gateways with each chunk, then district turns; connections and landmarks
 /// once their streets are Known.
 enum RouteLayer { bridge, skeleton, gateway, district, connection, landmark }
+
+/// A new OSM landmark's L1 card: taught as an intro before it is asked (SPEC §16.18). The
+/// player's own landmarks start as a first review.
+bool isPlaceIntro(RouteCandidate c) =>
+    c.layer == RouteLayer.landmark && !c.personal && c.rank == 1;
 
 /// A route item the pack offers, with what opens it (SPEC §3, §16.14).
 typedef RouteCandidate = ({
@@ -71,22 +80,30 @@ typedef RouteCandidate = ({
 });
 
 extension RouteUnlocks on Curriculum {
-  /// Route items open for their first review (SPEC §3, §16.14), in teaching order, then rank:
-  /// bridges once every core tier A street is introduced; skeleton turns, connections and OSM
-  /// landmarks once their streets are Known; district turns also need their raion's grid
-  /// Solid; gateways their chunk's main streets Known, and phase 2 for the way in; personal
-  /// landmarks at once. [cards] are P cards by street id; [carded] holds every carded item id.
+  /// Route items open for their first review (SPEC §3, §16.14, §16.18), in teaching order, then
+  /// rank: bridges once every core tier A street is introduced; skeleton turns, connections and
+  /// OSM landmarks once their streets (at least one) are Known, an OSM landmark's L2 and L3 once
+  /// its L1 is Known too; district turns also need their raion's grid Solid; gateways their
+  /// chunk's main streets Known, and phase 2 for the way in; personal landmarks at once.
+  /// [cards] are P cards by street id, [items] any cards by item id; [carded] holds every
+  /// carded item id.
   List<String> openRoutes(
     List<RouteCandidate> candidates, {
     required Map<String, CardState> cards,
     required Set<String> carded,
     required DateTime now,
+    Map<String, CardState> items = const {},
     bool phase2Open = false,
   }) {
     bool known(String street) => switch (cards[street]) {
       final c? => isKnown(c, now),
       null => false,
     };
+    bool placeKnown(String itemId) =>
+        switch (items[RouteIds.firstLandmarkCard(itemId)]) {
+          final c? => isKnown(c, now),
+          null => false,
+        };
     final skeletonIntroduced = streetsWhere(
       (s) => tierOf(s.id) == StreetTier.a && Curriculum.isCore(s),
     ).every((s) => cards.containsKey(s.id));
@@ -124,7 +141,10 @@ extension RouteUnlocks on Curriculum {
                     (!c.phase2 || phase2Open) &&
                         c.chunk != null &&
                         chunkReady(c.chunk!),
-                  _ => true,
+                  RouteLayer.landmark =>
+                    c.known.isNotEmpty && (c.rank == 1 || placeKnown(c.itemId)),
+                  RouteLayer.skeleton ||
+                  RouteLayer.connection => c.known.isNotEmpty,
                 }));
     return [
       for (final c

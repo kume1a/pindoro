@@ -28,7 +28,7 @@ void main() {
   group('StreetPlate', () {
     testWidgets('short names use the largest size', (tester) async {
       await tester.pumpWidget(_host(const StreetPlate(_shortName)));
-      expect(_fontSizeOf(tester, _shortName), PindoroType.headlineSm.fontSize);
+      expect(_fontSizeOf(tester, _shortName), PindoroType.titleLg.fontSize);
     });
 
     testWidgets('long names shrink but never below the floor or truncate', (
@@ -38,11 +38,19 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(_host(const StreetPlate(_longName)));
       final size = _fontSizeOf(tester, _longName);
-      expect(size, lessThan(PindoroType.headlineSm.fontSize!));
-      expect(size, greaterThanOrEqualTo(PindoroSize.plateNameMin));
+      expect(size, lessThan(PindoroType.titleLg.fontSize!));
+      expect(size, greaterThanOrEqualTo(PindoroSize.plateNameFloor));
       final text = tester.widget<Text>(find.text(_longName));
       expect(text.maxLines, isNull);
       expect(text.overflow, isNot(TextOverflow.ellipsis));
+    });
+
+    testWidgets('the sub-line keeps to two lines', (tester) async {
+      await tester.pumpWidget(
+        _host(const StreetPlate(_shortName, subline: _longName)),
+      );
+      final sub = tester.widget<Text>(find.text(_longName));
+      expect((sub.maxLines, sub.overflow), (2, TextOverflow.ellipsis));
     });
 
     test('plateFontSize steps down in 2 dp steps', () {
@@ -53,7 +61,7 @@ void main() {
       expect(plateFontSize('x', style, maxWidth: 300), style.fontSize);
       expect(
         plateFontSize(_longName * 4, style, maxWidth: 100),
-        PindoroSize.plateNameMin,
+        PindoroSize.plateNameFloor,
       );
     });
   });

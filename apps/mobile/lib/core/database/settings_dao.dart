@@ -24,6 +24,7 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
     homeCoachSeen: false,
     reminder: false,
     minutesPerDay: 20,
+    zoomButtons: false,
   );
 
   SimpleSelectStatement<$UserSettingsTable, Settings> get _row =>
@@ -73,6 +74,9 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> setHaptics({required bool on}) =>
       _update(UserSettingsCompanion(haptics: Value(on)));
+
+  Future<void> setZoomButtons({required bool on}) =>
+      _update(UserSettingsCompanion(zoomButtons: Value(on)));
 
   Future<void> setReminder({required bool on}) =>
       _update(UserSettingsCompanion(reminder: Value(on)));

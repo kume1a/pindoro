@@ -92,10 +92,6 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
             ..limit(1))
           .getSingleOrNull();
 
-  /// Whether the player has ever answered (the first-question hint shows once).
-  Future<bool> hasAnswered() async =>
-      await (select(answers)..limit(1)).getSingleOrNull() != null;
-
   /// Welcome shows until the player finished a round or placed a city (or
   /// started one from zero).
   Future<bool> hasPlayed() async =>

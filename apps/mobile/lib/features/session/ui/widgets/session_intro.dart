@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/google_maps.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/speech.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
@@ -16,28 +18,26 @@ import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// A new street (SessionScreen `intro`): the map paints it and names the
-/// streets the player knows, the plate says "New street · 1 of 10" and the
-/// Intro sheet says where it is. A leech comes back the same way, beside the
+/// A new street (SessionScreen `intro`): the map paints it with every street
+/// and place named, the plate says "New street · 1 of 10" and the Intro sheet
+/// says where it is. A leech comes back the same way, beside the
 /// street it is mixed up with ([contrast], cobalt) and with a note field
 /// (SPEC §4).
 class SessionIntro extends ConsumerStatefulWidget {
   const SessionIntro({
     super.key,
     required this.play,
-    required this.known,
     required this.topBar,
     required this.onGotIt,
     this.contrast,
   });
 
   final SessionPlaying play;
-  final List<MapLabel> known;
   final Widget topBar;
 
   /// Got it, with a leech's note as typed.
   final ValueChanged<String?> onGotIt;
-  final MapLabel? contrast;
+  final NamedStreet? contrast;
 
   @override
   ConsumerState<SessionIntro> createState() => _SessionIntroState();
@@ -55,7 +55,6 @@ class _SessionIntroState extends ConsumerState<SessionIntro> {
   @override
   Widget build(BuildContext context) {
     final play = widget.play;
-    final known = widget.known;
     final topBar = widget.topBar;
     final contrast = widget.contrast;
     final l10n = context.l10n;
@@ -82,14 +81,14 @@ class _SessionIntroState extends ConsumerState<SessionIntro> {
           PindoroMap(
             area: play.area,
             truth: street.geometry,
-            known: known,
-            hit: contrast,
+            names: MapNames.all,
+            hit: contrast?.geometry,
             topInset: insets.top,
             bottomInset: insets.bottom,
           ),
         ),
         top: Column(
-          spacing: PindoroSpace.s4,
+          spacing: PindoroSpace.s2,
           children: [
             topBar,
             RiseSwitcher(
@@ -128,10 +127,18 @@ class _SessionIntroState extends ConsumerState<SessionIntro> {
                       unawaited(ref.read(speechProvider).speak(name, language));
                     }
                   : null,
+              streetViewLabel: l10n.streetView,
+              onStreetView: () {
+                ref.read(feedbackProvider).tap();
+                final spot = streetSpot(street, street.parts.first.midpoint);
+                unawaited(GoogleMaps.open(GoogleMaps.streetView(spot)));
+              },
               extra: [
                 if (contrast != null)
                   StatChip(
-                    label: l10n.sessionLeechContrast(contrast.label),
+                    label: l10n.sessionLeechContrast(
+                      streetName(contrast, settings),
+                    ),
                     glyph: PindoroGlyph.reroute,
                   ),
                 if (play.leech)

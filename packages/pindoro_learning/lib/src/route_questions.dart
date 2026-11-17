@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:pindoro_core/pindoro_core.dart';
 
 import 'curriculum.dart';
+import 'grader.dart';
 import 'routes.dart';
 
 /// A landmark a route card can ask about: one from the pack, or the player's own (SPEC §9).
@@ -113,6 +114,9 @@ final class LandmarkQuestion extends RouteQuestion {
     this.junctions = const [],
     this.names = const [],
     this.approachStreet,
+    this.nameEn,
+    this.street,
+    this.ambiguous = false,
   });
 
   final int n;
@@ -125,6 +129,13 @@ final class LandmarkQuestion extends RouteQuestion {
   /// L3's choices, the right one among them.
   final List<String> names;
   final NamedStreet? approachStreet;
+  final String? nameEn;
+
+  /// The street the landmark stands on: the one of its junction's nearest it.
+  final NamedStreet? street;
+
+  /// A chain or a repeated name: the question names [street] with it (SPEC §16.18).
+  final bool ambiguous;
 }
 
 /// The city's route items: what opens each (for the planner) and what each asks.
@@ -352,9 +363,18 @@ RouteBook buildRouteBook({
     for (final q in questions.values)
       if (q is TurnQuestion) q.junction: q,
   };
+  final sameName = <String, int>{};
+  for (final l in landmarks) {
+    sameName.update(normaliseName(l.nameKa), (n) => n + 1, ifAbsent: () => 1);
+  }
   for (final landmark in [...onTurns.values, ...personal]) {
     final at = landmark.junction;
     final turn = turnJunctions[at];
+    final pack = byLandmark[landmark.id];
+    final street = _nearestTo(landmark.at, [
+      ?turn?.approachStreet,
+      ?turn?.exitStreet,
+    ]);
     final nearJunctions =
         (turnJunctions.keys.where((j) => j != at).toList()..sort(
               (a, b) => distanceBetween(
@@ -401,12 +421,25 @@ RouteBook buildRouteBook({
               ? ([landmark.name, ...nearNames]..shuffle(random))
               : const [],
           approachStreet: turn?.approachStreet,
+          nameEn: pack?.nameEn,
+          street: street,
+          ambiguous:
+              pack != null &&
+              (pack.brand != null ||
+                  (sameName[normaliseName(pack.nameKa)] ?? 0) > 1),
         ),
       );
     }
   }
   return (candidates: candidates, questions: questions);
 }
+
+/// Of [streets], the one nearest [at].
+NamedStreet? _nearestTo(LatLng at, List<NamedStreet> streets) => streets.isEmpty
+    ? null
+    : streets.reduce(
+        (a, b) => a.nearest(at).distanceM <= b.nearest(at).distanceM ? a : b,
+      );
 
 /// The pack junction with OSM node [node] (a personal landmark's), or null.
 int? junctionOfNode(Map<int, int> junctionNodes, int node) => junctionNodes

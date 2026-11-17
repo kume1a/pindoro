@@ -9,9 +9,10 @@ import 'surfaces.dart';
 const double _fontStep = 2;
 
 /// Cobalt road-sign plate with a white inner rule, floating over the map.
-/// The name starts at headline.sm and shrinks until it fits two lines, down
-/// to [PindoroSize.plateNameMin]; at the floor it wraps and never truncates.
-/// [compact] (the reveal) is one line and may ellipsize.
+/// The name starts at title.lg and shrinks until it fits two lines, down to
+/// [PindoroSize.plateNameFloor]; at the floor it wraps and never truncates.
+/// The sub-line keeps to two lines. [compact] (the reveal) is one line and
+/// may ellipsize.
 class StreetPlate extends StatelessWidget {
   const StreetPlate(
     this.name, {
@@ -39,7 +40,7 @@ class StreetPlate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
-    final style = PindoroType.headlineSm.copyWith(color: c.streetCardText);
+    final style = PindoroType.titleLg.copyWith(color: c.streetCardText);
     final sub = PindoroType.bodySm.copyWith(color: c.streetCardSubtext);
     return Semantics(
       header: true,
@@ -113,7 +114,13 @@ class StreetPlate extends StatelessWidget {
                       },
                     ),
                     if (subline != null)
-                      Text(subline!, textAlign: TextAlign.center, style: sub),
+                      Text(
+                        subline!,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: sub,
+                      ),
                   ],
                 ),
         ),
@@ -132,7 +139,7 @@ double plateFontSize(
 }) {
   final start = style.fontSize!;
   if (!maxWidth.isFinite) return start;
-  for (var size = start; size > PindoroSize.plateNameMin; size -= _fontStep) {
+  for (var size = start; size > PindoroSize.plateNameFloor; size -= _fontStep) {
     final painter = TextPainter(
       text: TextSpan(
         text: text,
@@ -147,5 +154,5 @@ double plateFontSize(
     painter.dispose();
     if (fits) return size;
   }
-  return PindoroSize.plateNameMin;
+  return PindoroSize.plateNameFloor;
 }

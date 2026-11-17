@@ -46,4 +46,17 @@ void main() {
     );
     expect(l2.junctions, contains(l2.junction));
   });
+
+  test('a chain or a repeated name is told apart by its street', () {
+    final places = book.questions.values.whereType<LandmarkQuestion>().where(
+      (q) => q.n == 1,
+    );
+    final chain = places.firstWhere((q) => q.ambiguous);
+    expect(chain.street, isNotNull);
+    final names = [for (final q in places) q.landmark.name];
+    final unique = places.where(
+      (q) => names.where((n) => n == q.landmark.name).length == 1,
+    );
+    expect(unique.where((q) => !q.ambiguous), isNotEmpty);
+  });
 }

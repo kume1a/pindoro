@@ -399,7 +399,7 @@ pindoro_core `ScoringConfig`, not copied):
 | `answerGapCapS`                                                      | 60                                  |
 | `timeEstimateMinSamples`                                             | 50                                  |
 | `migrationDueMinDays`, `migrationDueMaxDays`                         | 1, 7                                |
-| `knownLabelMax`                                                      | 12                                  |
+| `landmarkNewPerDay`, `relearnMaxPerSession` (§16.18)                 | 3, 2                                |
 | `tRecitalS`, `recitalNewPerDay`                                      | 180 s, 1                            |
 | `runLeadM`, `runMinItems`                                            | 800, 2                              |
 | `randomRunEveryDays`, `randomRunTries`                               | 7, 50                               |
@@ -535,9 +535,9 @@ rest of the spec. Numbers named here are in §13.
 
 ### 16.6 Maps
 
-25. **Labels** appear only on the intro and on reveals, never on a question map (board `pin` is
-    blank), never for the target street, and only for Known streets: at most `knownLabelMax` of the
-    nearest, drawn as `MapChip` images at street midpoints because the map style has no glyphs.
+25. **Labels** (changed 2026-11-17, §16.18): street names appear on intros and reveals, never on a
+    street question, never for the target street. See §16.18 for which streets and the place names.
+    The basemap draws them as map text (FiraGO glyphs served by Martin).
 
 ### 16.7 Routes (M5, M6)
 
@@ -725,7 +725,7 @@ board, and per-type FSRS parameter presets.
     at most `routeNewPerDayMax` a day, none while the due reviews take more than `routePauseFactor`
     of the minutes, none in Learn 5 more; in layer order (bridges, skeleton turns, gateways,
     district turns, connections, landmarks), then coverage rank. Today's Turns tile counts the
-    plan's route items.
+    plan's route items. New OSM places are taught first instead (§16.18 item 87).
 71. **The other route cards**: a gateway asks "Way out of {chunk}" (or into), graded by a pin within
     `landmarkRadiusM` of the junction and the main street typed (optional). A bridge question offers
     the four nearest bridges as numbered tips. A connection asks "{street} runs from {one end}
@@ -824,3 +824,37 @@ board, and per-type FSRS parameter presets.
     `tierCReliefFactor` × the minutes and off below the minutes, replayed day by day over
     `tierCReliefReplayDays` from off. While on, a session answer on a tier C street's P card is
     scheduled for `retentionTierCRelief`; Explore answers and other cards keep their retention.
+
+### 16.18 Field feedback (2026-11-17)
+
+From the first "Start from zero" run on a phone: places asked without ever being shown, a chain
+("Dunkin'", 20 branches) asked by name alone, the same unknown places asked again and again, and
+blank maps after every answer.
+
+87. **New places are taught first.** A new OSM landmark's L1 card starts with an intro, like a new
+    street (§6.4): the place in yellow among the streets around it, where it is ("At A × B", or "On
+    A" where only connectors meet), its kind and a Street View link; then retrieval 1 and 2 in the
+    same session. At most `landmarkNewPerDay` a day, after the new streets, at `tNewS` each, paused
+    like the route items and none in Learn 5 more; they count in Today's Turns, not its new
+    streets. The player's own landmarks still start as a first review.
+88. **A place's L2 and L3** open only once its L1 is Known; a turn, connection or OSM place needs
+    at least one named street to be Known (one met only by connectors stays shut).
+89. **Chains and repeated names** (a brand, or a `name_ka` shared by another landmark in the pack)
+    are asked with their street, the one of the junction's streets nearest the place: "Dunkin',
+    Dolidze Street".
+90. **Relearns** after Again stop at `relearnMaxPerSession` per card per session; the card then
+    waits for its due time (at least a day out), and the reveal says when.
+91. **Maps** (replaces §16.6 item 25):
+    - Names are the basemap's own map text from OpenStreetMap, never badges: street names along
+      their roads, place names under their icons, as the map has room for them (changed
+      2026-11-17 after the first field run).
+    - Intros and reveals name every street and place, Known or not.
+    - Street questions name places but no streets; a place sharing a word stem with the street's
+      name is left out (a metro named after its avenue). The player's own landmarks are not in
+      the map data and stay unnamed.
+    - A place question names no places and only Known streets, never the street in the place's
+      own name; its reveal marks the place in yellow, the dotted ink line from the pin and the
+      distance, and names everything.
+92. **Street View** (§10, a Google Maps link): on every street intro and pin reveal, at the
+    street's point nearest the answer looking along it; on every place intro and L1 reveal, from its
+    street looking at it.

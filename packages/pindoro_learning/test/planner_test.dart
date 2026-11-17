@@ -42,6 +42,8 @@ SessionPlan plan({
   List<String> openSides = const [],
   int sidesStartedToday = 0,
   List<String> openRoutes = const [],
+  List<String> openPlaces = const [],
+  int placesIntroducedToday = 0,
   int routesStartedToday = 0,
   List<String> openRecitals = const [],
   int recitalsStartedToday = 0,
@@ -60,6 +62,8 @@ SessionPlan plan({
   openSides: openSides,
   sidesStartedToday: sidesStartedToday,
   openRoutes: openRoutes,
+  openPlaces: openPlaces,
+  placesIntroducedToday: placesIntroducedToday,
   routesStartedToday: routesStartedToday,
   openRecitals: openRecitals,
   recitalsStartedToday: recitalsStartedToday,
@@ -317,6 +321,20 @@ void main() {
     });
   });
 
+  test('a missed card relearns at most twice a session', () {
+    const id = 'L:n1:1';
+    final once = [
+      (kind: StepKind.intro, itemId: id),
+      (kind: StepKind.relearn, itemId: id),
+    ];
+    expect(Planner.mayRelearn(once, id), isTrue);
+    expect(
+      Planner.mayRelearn([...once, (kind: StepKind.relearn, itemId: id)], id),
+      isFalse,
+    );
+    expect(Planner.mayRelearn(once, 'P:other'), isTrue);
+  });
+
   test('nextMidnight is the start of the next calendar day', () {
     expect(
       nextMidnight(DateTime.utc(2026, 3, 2, 23, 59)),
@@ -414,6 +432,18 @@ void main() {
     ];
     expect(remainingSeconds(steps), 15 + 12 + 15 + 12 + 15);
     expect(remainingSeconds(const []), 0);
+  });
+
+  test('secondsLeft counts down through the current step, never below the '
+      'steps after it', () {
+    final steps = [
+      (kind: StepKind.review, itemId: 'P:a'),
+      (kind: StepKind.intro, itemId: 'P:b'),
+    ];
+    expect(secondsLeft(steps, 0, spentS: 0), 12 + 15);
+    expect(secondsLeft(steps, 0, spentS: 5), 7 + 15);
+    expect(secondsLeft(steps, 0, spentS: 40), 15, reason: 'a slow answer');
+    expect(secondsLeft(steps, 1, spentS: 15), 0);
   });
 
   group('name and ends cards, leeches, drills (SPEC §16.13)', () {
@@ -537,6 +567,42 @@ void main() {
       2,
     );
     expect(plan(cards: dueCards(150), openRoutes: routes).routeCount, 0);
+  });
+
+  group('new places (SPEC §16.18)', () {
+    final places = [for (var i = 0; i < 6; i++) 'L:n$i:1'];
+
+    test('3 a day, taught as intros after the new streets, then retrieved', () {
+      final p = plan(fresh: candidates(2), openPlaces: places);
+      expect(ofKind(p, StepKind.intro), [...candidates(2), ...places.take(3)]);
+      expect(ofKind(p, StepKind.retrieval1), containsAll(places.take(3)));
+      expect(ofKind(p, StepKind.retrieval2), containsAll(places.take(3)));
+      expect(ofKind(p, StepKind.review), isEmpty);
+      expect(p.newCount, 2, reason: 'new streets only');
+      expect(p.routeCount, 3);
+      expect(
+        p.estimatedS,
+        5 * LearningConfig.tNewS,
+        reason: 'a place takes a new street\'s time',
+      );
+    });
+
+    test('places taught today come off the 3; streets keep their own '
+        'number', () {
+      expect(plan(openPlaces: places, placesIntroducedToday: 2).routeCount, 1);
+      final cards = [
+        introduce(CardType.l.item('n9:1'), now),
+        introduce(CardType.l.item('n8:1'), now),
+      ];
+      expect(introducedToday(cards, now), 0);
+      expect(introducedToday(cards, now, types: {CardType.l}), 2);
+      expect(plan(cards: cards).newCount, 10);
+    });
+
+    test('none in a backlog or Learn 5 more', () {
+      expect(plan(cards: dueCards(150), openPlaces: places).routeCount, 0);
+      expect(plan(extraNew: 5, openPlaces: places).routeCount, 0);
+    });
   });
 
   test('recitals: one new a day after the route items, 3 minutes each, paused '

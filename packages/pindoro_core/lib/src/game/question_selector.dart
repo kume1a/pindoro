@@ -46,14 +46,7 @@ class QuestionSelector {
     Set<String> recentStreets = const {},
   }) {
     const count = roundSize;
-    final longestByName = <String, NamedStreet>{};
-    for (final s in groupByName(inArea)) {
-      if (s.lengthM < minTotalLengthM) continue;
-      if (s.lengthM > (longestByName[s.name]?.lengthM ?? 0)) {
-        longestByName[s.name] = s;
-      }
-    }
-    final candidates = longestByName.values.toList();
+    final candidates = QuestionSelector.candidates(inArea);
     if (candidates.length < count) return NotEnoughStreets(candidates.length);
 
     final cells = <int, List<({NamedStreet street, List<num> rank})>>{};
@@ -84,6 +77,19 @@ class QuestionSelector {
       }
     }
     return SelectedQuestions(picked);
+  }
+
+  /// The streets a round in [inArea] can ask: one per name, its longest
+  /// in-area street, those at least [minTotalLengthM] long.
+  static List<NamedStreet> candidates(List<Street> inArea) {
+    final longestByName = <String, NamedStreet>{};
+    for (final s in groupByName(inArea)) {
+      if (s.lengthM < minTotalLengthM) continue;
+      if (s.lengthM > (longestByName[s.name]?.lengthM ?? 0)) {
+        longestByName[s.name] = s;
+      }
+    }
+    return longestByName.values.toList();
   }
 
   static int _cellOf(LatLng p, Bbox b) {

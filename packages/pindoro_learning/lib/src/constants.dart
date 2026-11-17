@@ -35,6 +35,9 @@ abstract final class LearningConfig {
   static const int fuzzMinDays = 3;
   static const int relearnGapMin = 5;
   static const int relearnGapMax = 10;
+
+  /// Relearns of one card in one session (§16.18); after them it waits for its due time.
+  static const int relearnMaxPerSession = 2;
   static const int leechLapses = 6;
 
   // Pin grading (§5.1)
@@ -115,6 +118,9 @@ abstract final class LearningConfig {
   // Route items (§6.5, §6.6, §7, §9)
   static const int routeNewPerDayMax = 10;
   static const double routePauseFactor = 1.2;
+
+  /// New places a day (§16.18), each taught as an intro like a new street.
+  static const int landmarkNewPerDay = 3;
   static const int phase2StableDays = 14;
 
   /// A turn within this of the approach heading is straight on; past [turnUTurnDeg] a U-turn.
@@ -211,5 +217,4 @@ abstract final class LearningConfig {
 
   /// Night owl: an answer from midnight until this local hour.
   static const int nightOwlBefore = 4;
-  static const int knownLabelMax = 12;
 }

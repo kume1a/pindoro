@@ -77,6 +77,9 @@ class UserSettings extends Table {
   /// null runs SPEC §4's. Read at launch.
   TextColumn get fsrsWeights => text().nullable()();
 
+  /// The maps' zoom in and out buttons (pinch zooms either way).
+  BoolColumn get zoomButtons => boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -399,7 +402,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 21;
+  static const int version = 22;
 
   @override
   int get schemaVersion => version;
@@ -507,6 +510,8 @@ class AppDatabase extends _$AppDatabase {
       },
       from20To21: (m, schema) =>
           m.addColumn(schema.userSettings, schema.userSettings.fsrsWeights),
+      from21To22: (m, schema) =>
+          m.addColumn(schema.userSettings, schema.userSettings.zoomButtons),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

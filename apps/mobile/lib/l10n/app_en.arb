@@ -260,8 +260,6 @@
       }
     }
   },
-  "quizCoachTitle": "Drop a pin where you think this street is",
-  "quizCoachBody": "You can drag it before you confirm.",
   "quizLeaveTitle": "Leave for now?",
   "quizLeaveBody": "Your round is saved at question {question} of {total}. Pick it up from Explore.",
   "@quizLeaveBody": {
@@ -383,6 +381,9 @@
   "settingsSoundSubtitle": "Chimes, taps and celebrations",
   "settingsHaptics": "Haptics",
   "settingsHapticsSubtitle": "Buzz on pin drop and answers",
+  "settingsMap": "Map",
+  "settingsZoomButtons": "Zoom buttons",
+  "settingsZoomButtonsSubtitle": "Plus and minus on the maps; pinching always zooms",
   "settingsAbout": "About",
   "settingsVersion": "Version {version}",
   "@settingsVersion": {
@@ -896,6 +897,7 @@
     }
   },
   "lessonHearName": "Hear the name",
+  "streetView": "Street View",
   "settingsAccount": "Account",
   "accountBackUp": "Back up your progress",
   "accountBackUpSubtitle": "Get it back on a new phone",
@@ -1782,6 +1784,22 @@
   "landmarkKindWorship": "Church",
   "landmarkKindShop": "Shop",
   "landmarkKindOther": "Other",
+  "landmarkKindSquare": "Square",
+  "landmarkKindMall": "Mall",
+  "landmarkKindSupermarket": "Supermarket",
+  "landmarkKindStation": "Station",
+  "landmarkKindHospital": "Hospital",
+  "landmarkKindUniversity": "University",
+  "landmarkKindMonument": "Monument",
+  "landmarkKindSight": "Sight",
+  "landmarkKindTower": "Tower",
+  "landmarkKindStadium": "Stadium",
+  "landmarkKindPark": "Park",
+  "landmarkKindBank": "Bank",
+  "landmarkKindPharmacy": "Pharmacy",
+  "landmarkKindFastFood": "Fast food",
+  "landmarkKindBridge": "Bridge",
+  "landmarkKindRoundabout": "Roundabout",
   "learnLandmarks": "Your landmarks",
   "learnLandmarksSubtitle": "{count, plural, =0{Add the places you steer by} =1{1 landmark} other{{count} landmarks}}",
   "@learnLandmarksSubtitle": {
@@ -1843,8 +1861,8 @@
   "landmarkMove": "Change spot",
   "todayTurns": "Turns",
   "routeCityCentre": "the city centre",
-  "routeTurnOn": "On",
-  "routeHeadingTo": "heading to {place}",
+  "routeTurnOn": "Driving on",
+  "routeHeadingTo": "Heading to {place}",
   "@routeHeadingTo": {
     "placeholders": {
       "place": {
@@ -1852,7 +1870,7 @@
       }
     }
   },
-  "routeTurnAtLandmark": "At {landmark}: which way?",
+  "routeTurnAtLandmark": "Which way at {landmark}?",
   "@routeTurnAtLandmark": {
     "placeholders": {
       "landmark": {
@@ -1860,7 +1878,8 @@
       }
     }
   },
-  "routeTurnAtJunction": "At the next junction: which way?",
+  "routeTurnAtJunction": "Which way at the next junction?",
+  "routeThenOn": "Then you're on… (optional)",
   "routeExitLeft": "Turn left",
   "routeExitStraight": "Straight on",
   "routeExitRight": "Turn right",
@@ -1889,7 +1908,6 @@
       }
     }
   },
-  "a11yJunctionMap": "Junction map. You come in from the bottom.",
   "a11yJunctionYou": "You",
   "a11yLandmark": "Landmark: {name}",
   "@a11yLandmark": {
@@ -1988,6 +2006,17 @@
       }
     }
   },
+  "routeLandmarkResultOn": "{landmark} is on {street}.",
+  "@routeLandmarkResultOn": {
+    "placeholders": {
+      "landmark": {
+        "type": "String"
+      },
+      "street": {
+        "type": "String"
+      }
+    }
+  },
   "routeLandmarkResult": "{landmark} is at {junction}.",
   "@routeLandmarkResult": {
     "placeholders": {
@@ -1995,6 +2024,45 @@
         "type": "String"
       },
       "junction": {
+        "type": "String"
+      }
+    }
+  },
+  "placeOnStreet": "{place}, {street}",
+  "@placeOnStreet": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      },
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionNewPlace": "New place · {number} of {total}",
+  "@sessionNewPlace": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "placeIntroRegion": "About this place",
+  "placeAtJunction": "At {junction}.",
+  "@placeAtJunction": {
+    "placeholders": {
+      "junction": {
+        "type": "String"
+      }
+    }
+  },
+  "placeOnStreetSentence": "On {street}.",
+  "@placeOnStreetSentence": {
+    "placeholders": {
+      "street": {
         "type": "String"
       }
     }
@@ -2452,6 +2520,23 @@
         "type": "String"
       },
       "total": {
+        "type": "String"
+      }
+    }
+  },
+  "explorePool": "{count, plural, =1{1 street} other{{total} streets}} at {difficulty} · {known} known",
+  "@explorePool": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "String"
+      },
+      "difficulty": {
+        "type": "String"
+      },
+      "known": {
         "type": "String"
       }
     }

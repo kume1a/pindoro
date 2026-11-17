@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/google_maps.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
-import 'package:pindoro/features/map/ui/widgets/reticle.dart';
 import 'package:pindoro/features/map/ui/widgets/tier_reveal.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
 
 /// A confirmed pin: its tier and distance, where it was and the nearest
 /// point of the street (the measure line), the sheet's [chips] and the
@@ -43,10 +45,8 @@ class PinDropView extends ConsumerWidget {
     required this.onConfirm,
     required this.onNext,
     this.retryDistance,
-    this.coach = false,
     this.celebration,
     this.frame,
-    this.known = const [],
     this.mixUp,
     this.headerChip,
     this.guess,
@@ -69,19 +69,14 @@ class PinDropView extends ConsumerWidget {
   /// The "Try again" plate's last distance.
   final double? retryDistance;
 
-  /// The first question ever: the reticle and the coach bubble.
-  final bool coach;
   final CelebrationSize? celebration;
 
   /// What the camera frames while asking, instead of the whole area (a v3
   /// retrieval 1 frames the street's district).
   final List<LatLng>? frame;
 
-  /// Known streets named on the reveal (v3).
-  final List<MapLabel> known;
-
   /// The reveal is a Mix-up: the pin hit this confusable street (v3).
-  final MapLabel? mixUp;
+  final NamedStreet? mixUp;
 
   /// The reveal's header chip instead of XP: the next-review chip (v3).
   final Widget? headerChip;
@@ -98,7 +93,7 @@ class PinDropView extends ConsumerWidget {
 
   /// Space the Confirm button takes at the bottom of the map (for toasts).
   static double confirmInset(BuildContext context) =>
-      PindoroButton.height + PindoroElevation.e2 + bottomActionGap(context);
+      PindoroButton.height + PindoroElevation.e2 + mapActionGap(context);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -137,29 +132,15 @@ class PinDropView extends ConsumerWidget {
             bottomInset: insets.bottom,
             showControls: reveal == null,
             frame: reveal == null ? frame : null,
-            known: reveal == null ? const [] : known,
-            hit: reveal == null ? null : mixUp,
+            // Asking: places, but none named after the street.
+            names: reveal == null
+                ? MapNames(places: true, placesNot: nameStems(street))
+                : MapNames.all,
+            hit: reveal == null ? null : mixUp?.geometry,
           ),
         ),
-        behind: [
-          if (coach) ...[
-            const Center(child: Reticle()),
-            Align(
-              alignment: const Alignment(0, -0.25),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: PindoroSpace.s4,
-                ),
-                child: CoachBubble(
-                  title: l10n.quizCoachTitle,
-                  body: l10n.quizCoachBody,
-                ),
-              ),
-            ),
-          ],
-        ],
         top: Column(
-          spacing: PindoroSpace.s4,
+          spacing: PindoroSpace.s2,
           children: [
             topBar,
             RiseSwitcher(
@@ -181,7 +162,7 @@ class PinDropView extends ConsumerWidget {
                   PindoroSpace.s4,
                   0,
                   PindoroSpace.s4,
-                  bottomActionGap(context),
+                  mapActionGap(context),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -218,8 +199,12 @@ class PinDropView extends ConsumerWidget {
                 sheet: PinRevealSheet(
                   reveal: reveal,
                   onNext: onNext,
-                  mixUp: mixUp,
+                  mixUp: switch (mixUp) {
+                    final m? => streetName(m, settings),
+                    null => null,
+                  },
                   headerChip: headerChip,
+                  streetView: streetSpot(street, reveal.nearest),
                 ),
               ),
         front: [
@@ -231,22 +216,25 @@ class PinDropView extends ConsumerWidget {
   }
 }
 
-/// The reveal sheet: the tier, the XP counting up, the distance sentence
-/// (a Miss says which way the street lies), the chips and the action.
+/// The reveal sheet: the tier, the distance sentence (a Miss says which way
+/// the street lies), the chips, Street View at the answer and the action.
 class PinRevealSheet extends StatelessWidget {
   const PinRevealSheet({
     super.key,
     required this.reveal,
     required this.onNext,
+    required this.streetView,
     this.mixUp,
     this.headerChip,
   });
 
   final PinReveal reveal;
   final Future<void> Function() onNext;
+  final StreetViewSpot streetView;
 
-  /// A Mix-up: Miss colours, "Mix-up" and the street the pin hit.
-  final MapLabel? mixUp;
+  /// A Mix-up: Miss colours, "Mix-up" and the name of the street the pin
+  /// hit.
+  final String? mixUp;
   final Widget? headerChip;
 
   @override
@@ -258,7 +246,7 @@ class PinRevealSheet extends StatelessWidget {
     );
     final mixUp = this.mixUp;
     final sentence = switch (reveal.tier) {
-      _ when mixUp != null => l10n.revealMixUpSentence(mixUp.label, direction),
+      _ when mixUp != null => l10n.revealMixUpSentence(mixUp, direction),
       Tier.perfect => l10n.tierPerfectSentence,
       Tier.great => l10n.tierGreatSentence(distance),
       Tier.close => l10n.tierCloseSentence(distance),
@@ -272,6 +260,7 @@ class PinRevealSheet extends StatelessWidget {
       chips: reveal.chips,
       action: reveal.action,
       onNext: onNext,
+      streetView: streetView,
     );
   }
 }

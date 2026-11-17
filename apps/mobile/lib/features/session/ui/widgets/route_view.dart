@@ -1,10 +1,14 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/google_maps.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/ui/junction_name.dart';
 import 'package:pindoro/features/learning/ui/landmark_glyph.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
@@ -15,9 +19,6 @@ import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
-
-/// Metres of each road the junction map draws out from the junction.
-const double _armM = 160;
 
 /// A route card (RouteItemScreen `junction`, `gateway`, `bridge`,
 /// `landmarkQuiz`, and the typed connection): its question, the answer
@@ -35,6 +36,7 @@ class RouteView extends ConsumerStatefulWidget {
   });
 
   final SessionPlaying play;
+
   final Widget topBar;
   final ValueChanged<Object> onChoose;
   final ValueChanged<LatLng> onPin;
@@ -68,7 +70,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
     final play = widget.play;
     final task = play.task as RouteTask;
     final graph = pack?.roadGraph();
-    String placeName(String? chunk) =>
+    String chunkName(String? chunk) =>
         switch (pack?.districts().where((d) => d.id == chunk).firstOrNull) {
           final d? => districtName(d, settings),
           null => l10n.routeCityCentre,
@@ -90,10 +92,15 @@ class _RouteViewState extends ConsumerState<RouteView> {
     );
     Widget confirm(String label, {required bool ready}) =>
         PindoroButton(label: label, onPressed: ready ? _answer : null);
-    TaskResult result(String sentence, {String? label}) => TaskResult(
+    TaskResult result(
+      String sentence, {
+      String? label,
+      StreetViewSpot? streetView,
+    }) => TaskResult(
       resultKey: play.index,
       tier: tier!,
       label: label,
+      streetView: streetView,
       chip: widget.chip,
       sentence: sentence,
       onNext: widget.onNext,
@@ -102,10 +109,11 @@ class _RouteViewState extends ConsumerState<RouteView> {
 
     switch (task.question) {
       case final TurnQuestion q:
-        final graphOk = graph != null;
         final chosen = task.choice as Turn?;
         final right = tier == null ? null : chosen == q.correct;
         final exitWord = _turnWord(l10n, q.correct);
+        final scene = graph == null ? null : _turnScene(graph, q);
+        final landmark = q.landmark;
         return TaskScaffold(
           topBar: widget.topBar,
           header: StreetPlate(
@@ -116,50 +124,92 @@ class _RouteViewState extends ConsumerState<RouteView> {
             compact: tier != null,
             subline: [
               if (q.destChunk != null)
-                l10n.routeHeadingTo(placeName(q.destChunk)),
-              switch (q.landmark) {
+                l10n.routeHeadingTo(chunkName(q.destChunk)),
+              switch (landmark) {
                 final l? => l10n.routeTurnAtLandmark(l.name),
                 null => l10n.routeTurnAtJunction,
               },
-            ].join(' · '),
+            ].join('\n'),
           ),
-          body: !graphOk
+          map: scene == null
               ? null
-              : Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 140),
-                    child: JunctionMap(
-                      geometry: junctionGeometry(graph, q, ref),
-                      state: switch (right) {
-                        null => JunctionState.choosing,
-                        true => JunctionState.right,
-                        false => JunctionState.wrong,
-                      },
-                      chosen: chosen == null ? null : _direction(chosen),
-                      correct: tier == null ? null : _direction(q.correct),
-                      onChoose: (d) =>
-                          widget.onChoose(Turn.values.byName(d.name)),
-                      exitLabel: (d) =>
-                          _turnWord(l10n, Turn.values.byName(d.name)),
-                      semanticsLabel: l10n.a11yJunctionMap,
-                      carLabel: l10n.a11yJunctionYou,
-                      animate: !MediaQuery.disableAnimationsOf(context),
-                      landmark: switch (q.landmark) {
-                        final l? => LandmarkBadge(
-                          name: l.name,
-                          glyph: landmarkGlyph(l.kind),
-                          semanticsLabel: l10n.a11yLandmark(l.name),
-                        ),
-                        null => null,
-                      },
-                    ),
+              : (insets) => map(
+                  PindoroMap(
+                    area: play.area,
+                    bearing: scene.bearing,
+                    frame: scene.frame,
+                    truth: tier == null
+                        ? null
+                        : [scene.approach, scene.exits[q.correct]!],
+                    hit: switch ((tier, chosen)) {
+                      (null, _) => [scene.approach],
+                      (_, final c?) when c != q.correct => [scene.exits[c]!],
+                      _ => null,
+                    },
+                    // Asking: places, but none named after the way on.
+                    names: tier == null
+                        ? MapNames(
+                            places: true,
+                            placesNot: switch (q.exitStreet) {
+                              final s? => nameStems(s),
+                              null => const {},
+                            },
+                          )
+                        : MapNames.all,
+                    showControls: false,
+                    onCamera: (p) => setState(() => _projection = p),
+                    topInset: insets.top,
+                    bottomInset: insets.bottom,
                   ),
                 ),
+          overlays: [
+            if (scene != null)
+              Positioned.fill(
+                child: GeoAnchors(
+                  projection: _projection,
+                  anchors: [
+                    (
+                      scene.car,
+                      CarMarker(semanticsLabel: l10n.a11yJunctionYou),
+                    ),
+                    if (landmark != null)
+                      (
+                        landmark.at,
+                        LandmarkBadge(
+                          name: landmark.name,
+                          glyph: landmarkGlyph(landmark.kind),
+                          semanticsLabel: l10n.a11yLandmark(landmark.name),
+                        ),
+                      ),
+                    if (tier == null)
+                      for (final MapEntry(key: turn, value: at)
+                          in scene.buttons.entries)
+                        (
+                          at,
+                          ExitButton(
+                            direction: _direction(turn),
+                            selected: chosen == turn,
+                            onTap: () => widget.onChoose(turn),
+                            semanticsLabel: _turnWord(l10n, turn),
+                          ),
+                        ),
+                  ],
+                ),
+              ),
+          ],
           controls: Column(
             mainAxisSize: MainAxisSize.min,
             spacing: PindoroSpace.s2,
             children: [
-              field,
+              SearchField(
+                controller: _field,
+                placeholder: l10n.routeThenOn,
+                clearLabel: l10n.commonClear,
+                glyph: PindoroGlyph.signpost,
+                autocorrect: false,
+                textInputAction: TextInputAction.done,
+                onChanged: (_) => setState(() {}),
+              ),
               confirm(l10n.commonConfirm, ready: chosen != null),
             ],
           ),
@@ -174,7 +224,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
         );
 
       case final GatewayQuestion q:
-        final chunk = placeName(q.chunk);
+        final chunk = chunkName(q.chunk);
         return TaskScaffold(
           topBar: widget.topBar,
           map: (insets) => map(
@@ -257,7 +307,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
             prompt: l10n.routeBridgeFrom,
             promptGlyph: PindoroGlyph.route,
             compact: tier != null,
-            subline: l10n.routeBridgeAsk(placeName(q.destChunk)),
+            subline: l10n.routeBridgeAsk(chunkName(q.destChunk)),
           ),
           controls: PindoroButton(
             label: chosen == null
@@ -292,17 +342,36 @@ class _RouteViewState extends ConsumerState<RouteView> {
 
       case final LandmarkQuestion q:
         final landmark = q.landmark;
+        final shown = placeName(l10n, q, settings);
         final subline = landmark.personal
             ? l10n.routeLandmarkMine
             : landmarkKindName(l10n, landmark.kind);
+        final pin = play.pin;
+        final revealed = tier != null;
+        final junction = junctionAt(q.junction ?? -1);
         return TaskScaffold(
           topBar: widget.topBar,
           map: q.n == 1
               ? (insets) => map(
                   PindoroMap(
                     area: play.area,
-                    pin: play.pin,
-                    onTap: tier == null ? widget.onPin : null,
+                    pin: pin,
+                    onTap: revealed ? null : widget.onPin,
+                    truthPoint: revealed ? landmark.at : null,
+                    measure: revealed && pin != null
+                        ? (
+                            from: pin,
+                            to: landmark.at,
+                            label: formatDistance(
+                              distanceBetween(pin, landmark.at),
+                              l10n,
+                            ),
+                          )
+                        : null,
+                    // Asking: known streets only, never the place's own.
+                    names: revealed
+                        ? MapNames.all
+                        : MapNames(streets: play.knownNames),
                     topInset: insets.top,
                     bottomInset: insets.bottom,
                   ),
@@ -310,7 +379,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
               : null,
           header: q.n == 1
               ? StreetPlate(
-                  landmark.name,
+                  shown,
                   key: ValueKey((play.index, 'landmark')),
                   prompt: l10n.routeLandmarkWhere,
                   promptGlyph: landmarkGlyph(landmark.kind),
@@ -319,7 +388,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
                 )
               : AskCard(
                   title: q.n == 2
-                      ? l10n.routeLandmarkJunction(landmark.name)
+                      ? l10n.routeLandmarkJunction(shown)
                       : l10n.routeLandmarkName(junctionAt(q.junction ?? -1)),
                   note: subline,
                 ),
@@ -356,10 +425,10 @@ class _RouteViewState extends ConsumerState<RouteView> {
           result: tier == null
               ? null
               : result(
-                  l10n.routeLandmarkResult(
-                    landmark.name,
-                    junctionAt(q.junction ?? -1),
-                  ),
+                  junction.isEmpty
+                      ? l10n.routeLandmarkResultOn(shown, name(play.street))
+                      : l10n.routeLandmarkResult(shown, junction),
+                  streetView: placeSpot(play.street, landmark.at),
                 ),
         );
     }
@@ -375,53 +444,47 @@ String _turnWord(AppLocalizations l10n, Turn turn) => switch (turn) {
   Turn.uTurn => l10n.routeExitUTurn,
 };
 
-/// The junction map's drawing (Junction map): every road at the junction
-/// out to [_armM], the approach and the legal exits, in metres east and north
-/// of the junction.
-JunctionGeometry junctionGeometry(
-  RoadGraph graph,
-  TurnQuestion q,
-  WidgetRef ref,
-) {
+/// A turn card on the real map, driving up the screen: the [approach] into
+/// the junction and each exit's road out of it (ends at the junction), where
+/// each exit's button and the car sit, and what the camera frames.
+typedef _TurnScene = ({
+  double bearing,
+  List<LatLng> approach,
+  Map<Turn, List<LatLng>> exits,
+  Map<Turn, LatLng> buttons,
+  LatLng car,
+  List<LatLng> frame,
+});
+
+/// Metres of road drawn from the junction; buttons and the car sit
+/// [_markM] out along each road's first stretch (a short edge still puts
+/// its button clear of the junction).
+const double _roadM = 90;
+const double _markM = 50;
+
+/// How far along a road its heading is read.
+const double _headingM = 20;
+
+_TurnScene _turnScene(RoadGraph graph, TurnQuestion q) {
   final at = graph.at(q.junction);
   final local = LocalProjection(at);
-  List<Offset> out(RoadEdge e) {
-    final points = <Offset>[];
-    var walked = 0.0;
-    LatLng? last;
-    for (final p in e.lineFrom(q.junction)) {
-      if (last != null) walked += distanceBetween(last, p);
-      final (x, y) = local.project(p);
-      points.add(Offset(x, y));
-      if (walked >= _armM) break;
-      last = p;
-    }
-    return points;
+  List<LatLng> road(RoadEdge e, double metres) =>
+      clipToCircle([e.lineFrom(q.junction)], at, metres).first;
+  LatLng out(RoadEdge e) {
+    final (x, y) = local.project(road(e, _headingM).last);
+    final length = math.max(math.sqrt(x * x + y * y), 1);
+    return local.unproject((x / length * _markM, y / length * _markM));
   }
 
-  final streets = ref.read(cityStreetsProvider).value ?? const {};
-  JunctionRoadClass classOf(RoadEdge e) =>
-      switch (streets[e.streetId]?.parts.first.roadClass) {
-        'motorway' || 'trunk' || 'primary' => JunctionRoadClass.main,
-        'secondary' || 'tertiary' => JunctionRoadClass.secondary,
-        null => JunctionRoadClass.local,
-        _ => JunctionRoadClass.minor,
-      };
-  final landmark = q.landmark;
-  return JunctionGeometry(
-    roads: [
-      for (final e in graph.edgesAt(q.junction))
-        (line: out(e), roadClass: classOf(e)),
-    ],
-    approach: out(q.approach).reversed.toList(),
-    exits: {
-      for (final MapEntry(key: turn, value: e) in q.exits.entries)
-        _direction(turn): out(e),
-    },
-    landmarkAt: landmark == null
-        ? null
-        : switch (local.project(landmark.at)) {
-            (final x, final y) => Offset(x, y),
-          },
+  final car = out(q.approach);
+  final buttons = {for (final e in q.exits.entries) e.key: out(e.value)};
+  return (
+    // The way the driver faces: from the approach towards the junction.
+    bearing: bearingDegrees(road(q.approach, _headingM).last, at),
+    approach: road(q.approach, _roadM).reversed.toList(),
+    exits: {for (final e in q.exits.entries) e.key: road(e.value, _roadM)},
+    buttons: buttons,
+    car: car,
+    frame: [at, car, ...buttons.values],
   );
 }

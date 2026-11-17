@@ -1,13 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
-/// Leave · the 12-block session bar · the minutes left (design system
-/// Progress, Session bar).
-class SessionTopBar extends StatelessWidget {
+/// Leave · the 12-block session bar · the time left, counting down by the
+/// second (design system Progress, Session bar).
+class SessionTopBar extends ConsumerStatefulWidget {
   const SessionTopBar(
     this.play, {
     super.key,
@@ -22,18 +26,41 @@ class SessionTopBar extends StatelessWidget {
   final Drills drills;
 
   @override
+  ConsumerState<SessionTopBar> createState() => _SessionTopBarState();
+}
+
+class _SessionTopBarState extends ConsumerState<SessionTopBar> {
+  late final Timer _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _tick.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
+    final play = widget.play;
     final answered = play.index + (play.answered ? 1 : 0);
     final blocks = finishedBlocks(
       total: play.steps.length,
       answered: answered,
       forgotten: play.forgotten,
     );
-    final minutes =
-        (remainingSeconds(play.steps.skip(answered), drills: drills) / 60)
-            .ceil();
+    final left = secondsLeft(
+      play.steps,
+      play.index,
+      spentS: ref.read(clockProvider)().difference(play.startedAt).inSeconds,
+      drills: widget.drills,
+    );
     return Row(
       spacing: PindoroSpace.s3,
       children: [
@@ -42,7 +69,7 @@ class SessionTopBar extends StatelessWidget {
           semanticLabel: play.step.kind == StepKind.placement
               ? l10n.placementLeave
               : l10n.sessionLeave,
-          onPressed: onLeave,
+          onPressed: widget.onLeave,
         ),
         Expanded(
           child: QuestionBar(
@@ -55,11 +82,11 @@ class SessionTopBar extends StatelessWidget {
           ),
         ),
         Pill(
-          label: l10n.sessionMinutes(minutes),
+          label: formatCountdown(left),
           icon: PindoroGlyph.timer,
           iconColor: c.primaryText,
           floating: true,
-          semanticLabel: l10n.sessionMinutesLeft(minutes),
+          semanticLabel: l10n.sessionMinutesLeft((left / 60).ceil()),
         ),
       ],
     );

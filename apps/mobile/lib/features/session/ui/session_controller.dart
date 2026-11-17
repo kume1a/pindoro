@@ -64,7 +64,8 @@ final class SessionPlaying extends SessionState {
     required this.forgotten,
     required this.street,
     required this.area,
-    required this.known,
+    required this.knownNames,
+    required this.startedAt,
     required this.newIndex,
     required this.newTotal,
     this.task = const PinTask(),
@@ -92,8 +93,12 @@ final class SessionPlaying extends SessionState {
   /// The city: the pin can go anywhere in it.
   final AreaShape area;
 
-  /// Known streets near this one, named on the intro and the reveal.
-  final List<NamedStreet> known;
+  /// Names of the streets the player knows: a place question names them
+  /// (SPEC §16.18).
+  final Set<String> knownNames;
+
+  /// When the step showed: the session clock counts down from it.
+  final DateTime startedAt;
 
   /// "New street · [newIndex] of [newTotal]".
   final int newIndex;
@@ -146,7 +151,8 @@ final class SessionPlaying extends SessionState {
     forgotten: forgotten ?? this.forgotten,
     street: street,
     area: area,
-    known: known,
+    knownNames: knownNames,
+    startedAt: startedAt,
     newIndex: newIndex,
     newTotal: newTotal,
     task: task ?? this.task,
@@ -345,7 +351,7 @@ class SessionController extends Notifier<SessionState> {
         : reintroduce(leech, now, note: _noteOf(note));
     _cards[card.itemId] = card;
     _times.add(now);
-    _introsDone++;
+    if (card.type == CardType.p) _introsDone++;
     final dao = _dao;
     await dao.putCard(card);
     if (!ref.mounted) return;
@@ -423,7 +429,7 @@ class SessionController extends Notifier<SessionState> {
             grade: grade,
             pin: pin,
             nearest: target.nearest(pin).nearestPoint,
-            nextReviewDays: _nextReviewDays(card, now),
+            nextReviewDays: _nextReviewDays(card, now, p.steps),
             hit: hit,
           ),
         );
@@ -450,7 +456,7 @@ class SessionController extends Notifier<SessionState> {
           task: ExtentTask(
             pins: task.pins,
             grade: grade,
-            nextReviewDays: _nextReviewDays(card, _now()),
+            nextReviewDays: _nextReviewDays(card, _now(), p.steps),
           ),
         );
   }
@@ -504,7 +510,7 @@ class SessionController extends Notifier<SessionState> {
             task: t.copyWith(
               picked: picked,
               right: right,
-              nextReviewDays: _nextReviewDays(card, _now()),
+              nextReviewDays: _nextReviewDays(card, _now(), p.steps),
             ),
           );
     }
@@ -700,6 +706,7 @@ class SessionController extends Notifier<SessionState> {
   SessionPlaying _answered(SessionPlaying p, List<String> forgotten) {
     var rest = p.steps.sublist(p.index + 1);
     for (final (i, id) in forgotten.indexed) {
+      if (!Planner.mayRelearn(p.steps, id)) continue;
       rest = Planner.withRelearn(rest, id, Random(_seed + p.index + i));
     }
     final missed =
@@ -711,9 +718,16 @@ class SessionController extends Notifier<SessionState> {
     );
   }
 
-  /// Days to [card]'s next review; null when it comes back this session.
-  static int? _nextReviewDays(CardState card, DateTime now) =>
-      card.phase == CardPhase.review
+  /// Days to [card]'s next review; null when it comes back in this session of
+  /// [steps] (a miss that has had its relearns waits for its due time).
+  static int? _nextReviewDays(
+    CardState card,
+    DateTime now,
+    List<SessionStep> steps,
+  ) =>
+      card.phase == CardPhase.review ||
+          (card.phase == CardPhase.relearning &&
+              !Planner.mayRelearn(steps, card.itemId))
       ? card.dueAt!.difference(now).inDays
       : null;
 
@@ -861,7 +875,9 @@ class SessionController extends Notifier<SessionState> {
     _shownAt = now;
     final intros = [
       for (final s in steps)
-        if (s.kind == StepKind.intro) s,
+        if (s.kind == StepKind.intro &&
+            CardType.ofItem(s.itemId) == CardType.ofItem(step.itemId))
+          s,
     ];
     final city = _pack.city();
     final known = {
@@ -890,7 +906,8 @@ class SessionController extends Notifier<SessionState> {
       forgotten: forgotten,
       street: street,
       area: (bbox: city.bbox, boundary: city.boundary),
-      known: _nearestFirst(street, known, family),
+      knownNames: {for (final s in known) s.name},
+      startedAt: now,
       newIndex: intros.indexOf(step) + 1,
       newTotal: intros.length,
       task: task,
@@ -934,7 +951,8 @@ class SessionController extends Notifier<SessionState> {
             street.parts.first.midpoint,
           ),
         ),
-        _ when step.kind == StepKind.intro => const PinTask(),
+        _ when step.kind == StepKind.intro && !isRouteItem(step.itemId) =>
+          const PinTask(),
         _ when CardType.ofItem(step.itemId) == CardType.r => _recitalTask(
           step.itemId,
         ),
@@ -965,7 +983,8 @@ class SessionController extends Notifier<SessionState> {
         final GatewayQuestion q => q.exitStreet ?? _nearest(q.at),
         final BridgeQuestion q => q.approachStreet ?? _nearest(q.at),
         final ConnectionQuestion q => q.street,
-        final LandmarkQuestion q => q.approachStreet ?? _nearest(q.landmark.at),
+        final LandmarkQuestion q =>
+          q.street ?? q.approachStreet ?? _nearest(q.landmark.at),
         null => _recitalTask(step.itemId)?.fromStreet,
       };
 
@@ -1126,7 +1145,7 @@ class SessionController extends Notifier<SessionState> {
         task: t.copyWith(
           graded: graded,
           practice: practice,
-          nextReviewDays: _nextReviewDays(answer.card, now),
+          nextReviewDays: _nextReviewDays(answer.card, now, p.steps),
         ),
       );
     }
@@ -1253,7 +1272,7 @@ class SessionController extends Notifier<SessionState> {
           ]).copyWith(
             task: t.copyWith(
               rating: rating,
-              nextReviewDays: _nextReviewDays(card, _now()),
+              nextReviewDays: _nextReviewDays(card, _now(), p.steps),
             ),
           );
     }
@@ -1290,22 +1309,6 @@ class SessionController extends Notifier<SessionState> {
     return chip == null || parent == null
         ? null
         : (parent: parent, children: chip.children);
-  }
-
-  /// Up to [LearningConfig.knownLabelMax] of the [known] streets: [street]'s
-  /// [family] first, then the nearest.
-  List<NamedStreet> _nearestFirst(
-    NamedStreet street,
-    Set<NamedStreet> known,
-    Set<String> family,
-  ) {
-    final at = street.parts.first.midpoint;
-    double away(NamedStreet s) => family.contains(s.id)
-        ? -1
-        : distanceBetween(at, s.parts.first.midpoint);
-    return (known.toList()..sort((a, b) => away(a).compareTo(away(b))))
-        .take(LearningConfig.knownLabelMax)
-        .toList();
   }
 
   /// The bounds of the raion holding most of [street]'s length.

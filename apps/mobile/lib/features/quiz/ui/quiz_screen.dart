@@ -14,7 +14,6 @@ import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/map/ui/pin_drop_view.dart';
-import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/quiz/ui/round_controller.dart';
 import 'package:pindoro/features/quiz/ui/setup_states.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -113,11 +112,6 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
   }
 }
 
-/// Whether this is the very first question the player sees (coach mark).
-final _firstQuestionEverProvider = FutureProvider.autoDispose<bool>(
-  (ref) async => !await ref.watch(progressDaoProvider).hasAnswered(),
-);
-
 class _RoundView extends ConsumerWidget {
   const _RoundView(this.play);
 
@@ -133,11 +127,6 @@ class _RoundView extends ConsumerWidget {
       final RoundRevealed r => r,
       RoundAsking() => null,
     };
-    final coach =
-        revealed == null &&
-        play.pin == null &&
-        round.index == 0 &&
-        (ref.watch(_firstQuestionEverProvider).value ?? false);
     final answer = revealed?.answer;
 
     return PopScope(
@@ -151,7 +140,6 @@ class _RoundView extends ConsumerWidget {
         street: round.current,
         retryDistance: round.previousDistanceM[round.currentId],
         pin: play.pin,
-        coach: coach,
         topBar: _TopBar(round, onLeave: () => _leave(context, ref)),
         reveal: revealed == null || answer == null
             ? null

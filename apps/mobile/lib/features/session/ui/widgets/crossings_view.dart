@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
@@ -100,19 +101,16 @@ class _CrossingsViewState extends ConsumerState<CrossingsView> {
         PindoroMap(
           area: play.area,
           frame: play.frame,
-          hit: (
-            geometry: street.geometry,
-            at: street.parts.first.midpoint,
-            label: streetName(street, settings),
-          ),
-          known: [
-            for (final c in task.crossings.take(at))
-              (
-                geometry: c.street.geometry,
-                at: c.at,
-                label: streetName(c.street, settings),
-              ),
+          hit: street.geometry,
+          traces: [
+            for (final c in task.crossings.take(at)) ...c.street.geometry,
           ],
+          names: MapNames(
+            streets: {
+              street.name,
+              for (final c in task.crossings.take(at)) c.street.name,
+            },
+          ),
           onCamera: (p) => setState(() => _projection = p),
           topInset: insets.top,
           bottomInset: insets.bottom,

@@ -8,12 +8,14 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/learning/data/progress.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// Four difficulty cards in a 2 × 2 radio group, how close counts at the
-/// selected level, and Start.
+/// Four difficulty cards in a 2 × 2 radio group, how many streets a round of
+/// the area can ask at the selected level and how many are known, how close
+/// counts there, and Start.
 class DifficultyScreen extends ConsumerStatefulWidget {
   const DifficultyScreen({super.key});
 
@@ -32,6 +34,10 @@ class _DifficultyScreenState extends ConsumerState<DifficultyScreen> {
         _picked ??
         ref.watch(settingsProvider).value?.difficulty ??
         Difficulty.medium;
+    final area = ref.watch(settingsProvider).value?.area;
+    final pool = area == null
+        ? null
+        : ref.watch(roundPoolProvider((area, selected))).value;
     final f = ScoringConfig.difficultyFactor(selected);
     final great = formatDistance(ScoringConfig.greatMaxM * f, l10n);
     final close = formatDistance(ScoringConfig.closeMaxM * f, l10n);
@@ -70,6 +76,16 @@ class _DifficultyScreenState extends ConsumerState<DifficultyScreen> {
                   ),
               ],
             ),
+          ),
+        if (pool != null)
+          Text(
+            l10n.explorePool(
+              pool.total,
+              formatNumber(pool.total),
+              difficultyName(l10n, selected),
+              formatNumber(knownOf(pool)),
+            ),
+            style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
           ),
         LipBox(
           border: c.lineBase,

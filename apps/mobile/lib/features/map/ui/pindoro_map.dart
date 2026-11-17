@@ -8,8 +8,10 @@ import 'package:flutter/gestures.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
+import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/location.dart';
+import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/map/data/geojson.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
@@ -29,25 +31,23 @@ abstract final class _MapSources {
   static const String areaMask = 'area-mask';
   static const String youPin = 'you-pin';
   static const String truthStreet = 'truth-street';
+  static const String truthPoint = 'truth-point';
   static const String measure = 'measure';
   static const String measureEnd = 'measure-end';
   static const String measureLabel = 'measure-label';
-  static const String knownTrace = 'known-trace';
-  static const String knownLabel = 'known-label';
+  static const String trace = 'trace';
   static const String hitStreet = 'hit-street';
-  static const String hitLabel = 'hit-label';
 }
 
 /// The dotted line from the pin to the nearest point of the street, with its
 /// distance chip hanging under its middle (never under the pin).
 typedef Measure = ({LatLng from, LatLng to, String label});
 
-/// A street drawn with its name: a known street's grey trace and white chip,
-/// or a Mix-up's hit street (Map overlays, v3).
-typedef MapLabel = ({MultiPolyline geometry, LatLng at, String label});
+/// A drill's street trace (`opacity.street-trace` over `color.map.region.outline`).
+const double _traceWidth = 6;
 
-/// A known street's trace (`opacity.street-trace` over `color.map.region.outline`).
-const double _knownTraceWidth = 6;
+/// How far around a place its map frames, so its crossings show.
+const double _placeFrameM = 200;
 
 const String _pinImage = 'player-pin';
 
@@ -57,12 +57,12 @@ final pindoroMapBuilderProvider = Provider<Widget Function(PindoroMap map)>(
       (map) => map,
 );
 
-/// Unlabelled self-hosted basemap: the round's area (outside dimmed) plus the
-/// pin, truth street and measure line passed in by the caller, or a road
-/// [route]. [bottomInset] is the height of whatever covers the bottom of the
-/// map (button, sheet): controls and attribution sit above it and the camera
-/// frames above it; until the player moves the map, it frames again whenever
-/// an inset changes. [frame] replaces the area as what the camera fits (and
+/// Self-hosted basemap, unlabelled but for the [names] it is given: the
+/// round's area (outside dimmed) plus the pin, truth street and measure line
+/// passed in by the caller, or a road [route]. [bottomInset] is the height of
+/// whatever covers the bottom of the map (button, sheet): controls and
+/// attribution sit above it and the camera frames above it; until the player
+/// moves the map, it frames again whenever an inset changes. [frame] replaces the area as what the camera fits (and
 /// fits again whenever it changes); [onCamera] hears every camera move.
 class PindoroMap extends ConsumerStatefulWidget {
   const PindoroMap({
@@ -70,6 +70,7 @@ class PindoroMap extends ConsumerStatefulWidget {
     required this.area,
     this.pin,
     this.truth,
+    this.truthPoint,
     this.measure,
     this.onTap,
     this.bottomInset = 0,
@@ -79,14 +80,20 @@ class PindoroMap extends ConsumerStatefulWidget {
     this.frame,
     this.onCamera,
     this.ownsGestures = false,
-    this.known = const [],
+    this.names = const MapNames(),
+    this.traces = const [],
     this.hit,
     this.morePins = const [],
+    this.bearing = 0,
   });
 
   final AreaShape area;
   final LatLng? pin;
   final MultiPolyline? truth;
+
+  /// A place as the answer: a yellow dot over an ink ring, framed with what
+  /// is around it and the pin.
+  final LatLng? truthPoint;
   final Measure? measure;
   final ValueChanged<LatLng>? onTap;
   final double bottomInset;
@@ -102,15 +109,21 @@ class PindoroMap extends ConsumerStatefulWidget {
   /// the page.
   final bool ownsGestures;
 
-  /// Streets the player knows, traced and named (intro and reveal only;
-  /// never the answer street); one with an empty label is traced only.
-  final List<MapLabel> known;
+  /// The street and place names the basemap draws (none by default).
+  final MapNames names;
 
-  /// A Mix-up's hit street: dashed cobalt with a cobalt chip.
-  final MapLabel? hit;
+  /// A drill's streets, traced grey.
+  final MultiPolyline traces;
+
+  /// A Mix-up's hit street, dashed cobalt.
+  final MultiPolyline? hit;
 
   /// The player's other pins (a street's second end).
   final List<LatLng> morePins;
+
+  /// Where the top of the screen faces, degrees clockwise from north: a
+  /// turn card drives up the screen.
+  final double bearing;
 
   @override
   ConsumerState<PindoroMap> createState() => _PindoroMapState();
@@ -147,6 +160,9 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   )..addListener(_popTick);
   Brightness? _brightness;
   Future<String>? _style;
+
+  /// The style's own filters of its name layers, which [MapNames] narrows.
+  Map<String, Object?> _baseFilters = const {};
   bool _overlaysReady = false;
   final Set<String> _measureImages = {};
 
@@ -162,7 +178,12 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     if (brightness != _brightness) {
       _brightness = brightness;
       _overlaysReady = false;
-      _style = loadMapStyle(brightness);
+      _style = loadMapStyle(
+        brightness,
+        english:
+            ref.read(settingsProvider).value?.streetNames ==
+            StreetNameMode.english,
+      );
     }
   }
 
@@ -203,6 +224,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       target: camera.target.toCore,
       zoom: camera.zoom,
       size: size,
+      bearing: camera.bearing,
     );
   }
 
@@ -276,16 +298,19 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     if (widget.pin != oldWidget.pin ||
         !listEquals(widget.morePins, oldWidget.morePins) ||
         widget.truth != oldWidget.truth ||
+        widget.truthPoint != oldWidget.truthPoint ||
         widget.measure != oldWidget.measure ||
-        widget.known != oldWidget.known ||
+        !listEquals(widget.traces, oldWidget.traces) ||
         widget.hit != oldWidget.hit) {
       runMapWork(_syncOverlays);
     }
+    if (widget.names != oldWidget.names) runMapWork(_syncNames);
     final frame = widget.frame;
     final insetsMoved =
         widget.topInset != oldWidget.topInset ||
         widget.bottomInset != oldWidget.bottomInset;
     if (widget.truth != oldWidget.truth ||
+        widget.truthPoint != oldWidget.truthPoint ||
         (frame != null && !listEquals(frame, oldWidget.frame)) ||
         (insetsMoved && _framed)) {
       unawaited(_fit(_framePoints));
@@ -307,16 +332,26 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     return [LatLng(b.minLat, b.minLon), LatLng(b.maxLat, b.maxLon)];
   }
 
-  /// What the camera frames: the street and the pin once revealed, else
-  /// [_areaFrame].
-  List<LatLng> get _framePoints => switch (widget.truth) {
-    final truth? => [
+  /// What the camera frames: the street (or the place and the streets
+  /// around it) and the pin once revealed, else [_areaFrame].
+  List<LatLng> get _framePoints => switch ((widget.truth, widget.truthPoint)) {
+    (final truth?, _) => [
       ...truth.expand((l) => l),
       ?widget.pin,
       ...widget.morePins,
     ],
-    null => _areaFrame,
+    (null, final place?) => [..._around(place), ?widget.pin],
+    _ => _areaFrame,
   };
+
+  /// A square [_placeFrameM] out from [at] each way.
+  static List<LatLng> _around(LatLng at) {
+    final local = LocalProjection(at);
+    return [
+      local.unproject((-_placeFrameM, -_placeFrameM)),
+      local.unproject((_placeFrameM, _placeFrameM)),
+    ];
+  }
 
   Future<void> _fitArea() => _fit(_areaFrame);
 
@@ -330,6 +365,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   ) => MapProjection.fit(
     points,
     size: size,
+    bearing: widget.bearing,
     padding: EdgeInsets.fromLTRB(
       PindoroCamera.fitPaddingX,
       widget.topInset + PindoroSpace.s6,
@@ -349,7 +385,13 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     _framed = true;
     final camera = _cameraFor(points, size);
     await _controller?.animateCamera(
-      ml.CameraUpdate.newLatLngZoom(camera.target.toMapLibre, camera.zoom),
+      ml.CameraUpdate.newCameraPosition(
+        ml.CameraPosition(
+          target: camera.target.toMapLibre,
+          zoom: camera.zoom,
+          bearing: widget.bearing,
+        ),
+      ),
     );
   }
 
@@ -367,6 +409,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     await c.addImage(_pinImage, await pin.toPng(pixelRatio));
     // Overlays must stay non-interactive: maplibre_gl reports taps on interactive
     // layers as feature taps instead of map clicks, which would block pin drops.
+    // Lines go under the basemap's names, points over them.
     await c.addGeoJsonSource(
       _MapSources.areaMask,
       areaMaskGeoJson(widget.area.boundary),
@@ -378,20 +421,22 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
         fillColor: hexColor(colors.mapMask),
         fillOpacity: PindoroOpacity.mask,
       ),
+      belowLayerId: NameLayers.roads,
       enableInteraction: false,
     );
     if (widget.route != null) await addRouteLayers(c, colors, pixelRatio);
-    await c.addGeoJsonSource(_MapSources.knownTrace, linesGeoJson(const []));
+    await c.addGeoJsonSource(_MapSources.trace, linesGeoJson(const []));
     await c.addLineLayer(
-      _MapSources.knownTrace,
-      '${_MapSources.knownTrace}-line',
+      _MapSources.trace,
+      '${_MapSources.trace}-line',
       ml.LineLayerProperties(
         lineColor: hexColor(colors.mapRegionOutline),
-        lineWidth: _knownTraceWidth,
+        lineWidth: _traceWidth,
         lineOpacity: PindoroOpacity.streetTrace,
         lineCap: 'round',
         lineJoin: 'round',
       ),
+      belowLayerId: NameLayers.roads,
       enableInteraction: false,
     );
     await c.addGeoJsonSource(_MapSources.truthStreet, linesGeoJson(const []));
@@ -413,6 +458,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
           lineCap: 'round',
           lineJoin: 'round',
         ),
+        belowLayerId: NameLayers.roads,
         enableInteraction: false,
       );
     }
@@ -436,6 +482,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
           lineCap: dash == null ? 'round' : null,
           lineDasharray: dash,
         ),
+        belowLayerId: NameLayers.roads,
         enableInteraction: false,
       );
     }
@@ -450,6 +497,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
         // Dots: zero-length dashes with round caps; dash units are line widths.
         lineDasharray: [0, PindoroSize.mapMeasureGap / PindoroStroke.thick],
       ),
+      belowLayerId: NameLayers.roads,
       enableInteraction: false,
     );
     await c.addGeoJsonSource(_MapSources.measureEnd, pointsGeoJson(const []));
@@ -494,18 +542,18 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       ),
       enableInteraction: false,
     );
-    for (final source in [_MapSources.knownLabel, _MapSources.hitLabel]) {
-      await c.addGeoJsonSource(source, pointsGeoJson(const []));
-      await c.addSymbolLayer(
-        source,
-        '$source-chip',
-        const ml.SymbolLayerProperties(
-          iconImage: ['get', 'icon'],
-          iconAllowOverlap: false,
-        ),
-        enableInteraction: false,
-      );
-    }
+    await c.addGeoJsonSource(_MapSources.truthPoint, pointsGeoJson(const []));
+    await c.addCircleLayer(
+      _MapSources.truthPoint,
+      '${_MapSources.truthPoint}-dot',
+      ml.CircleLayerProperties(
+        circleColor: hexColor(colors.mapAnswerLine),
+        circleRadius: PindoroStroke.answer,
+        circleStrokeColor: hexColor(colors.mapAnswerCasing),
+        circleStrokeWidth: PindoroStroke.base * 2,
+      ),
+      enableInteraction: false,
+    );
     _measureImages.clear();
     _sentRoute = null;
     await c.addGeoJsonSource(_MapSources.youPin, pointsGeoJson(const []));
@@ -519,7 +567,28 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     await _syncOverlays();
     await _fit(_framePoints);
     _cameraMoved();
+    if (await _style case final style?) {
+      _baseFilters = {
+        for (final id in [NameLayers.roads, NameLayers.pois])
+          id: styleFilter(style, id),
+      };
+    }
+    await _syncNames();
     await addPoiImages(c, colors, pixelRatio);
+  }
+
+  /// Shows [PindoroMap.names] through the style's name layers.
+  Future<void> _syncNames() async {
+    final c = _controller;
+    if (!_overlaysReady || c == null) return;
+    final names = widget.names;
+    for (final (id, filter) in [
+      (NameLayers.roads, names.roadFilter(_baseFilters[NameLayers.roads])),
+      (NameLayers.pois, names.placeFilter(_baseFilters[NameLayers.pois])),
+    ]) {
+      if (filter != null) await c.setFilter(id, filter);
+      await c.setLayerVisibility(id, filter != null);
+    }
   }
 
   Future<void> _syncOverlays() async {
@@ -535,6 +604,10 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       linesGeoJson(_paintedTruth),
     );
     await c.setGeoJsonSource(
+      _MapSources.truthPoint,
+      pointsGeoJson([?widget.truthPoint]),
+    );
+    await c.setGeoJsonSource(
       _MapSources.measure,
       linesGeoJson([
         if (measure != null) [measure.from, measure.to],
@@ -548,35 +621,10 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       _MapSources.measureLabel,
       measure == null ? pointsGeoJson(const []) : await _measureChip(measure),
     );
-    await c.setGeoJsonSource(
-      _MapSources.knownTrace,
-      linesGeoJson([for (final k in widget.known) ...k.geometry]),
-    );
-    await c.setGeoJsonSource(
-      _MapSources.knownLabel,
-      labelledPointsGeoJson([
-        for (final k in widget.known)
-          if (k.label.isNotEmpty)
-            (
-              k.at,
-              {'icon': await _labelImage('known', k.label, MapChip.region)},
-            ),
-      ]),
-    );
-    final hit = widget.hit;
+    await c.setGeoJsonSource(_MapSources.trace, linesGeoJson(widget.traces));
     await c.setGeoJsonSource(
       _MapSources.hitStreet,
-      linesGeoJson(hit?.geometry ?? const []),
-    );
-    await c.setGeoJsonSource(
-      _MapSources.hitLabel,
-      labelledPointsGeoJson([
-        if (hit != null)
-          (
-            hit.at,
-            {'icon': await _labelImage('hit', hit.label, MapChip.picked)},
-          ),
-      ]),
+      linesGeoJson(widget.hit ?? const []),
     );
     if (widget.route != null) await _sendRoute();
   }
@@ -624,23 +672,6 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     if (_measureImages.add(icon)) {
       final chip = MapChip.distance(label, PindoroTheme.of(context).colors);
       await _controller!.addImage(icon, await chip.toPng(_pixelRatio));
-    }
-    return icon;
-  }
-
-  /// A street name chip's image ([chip] style), added once per label.
-  Future<String> _labelImage(
-    String kind,
-    String label,
-    MapChip Function(String, PindoroColors) chip,
-  ) async {
-    final icon = '$kind:$label';
-    if (_measureImages.add(icon)) {
-      final png = await chip(
-        label,
-        PindoroTheme.of(context).colors,
-      ).toPng(_pixelRatio);
-      await _controller!.addImage(icon, png);
     }
     return icon;
   }
@@ -706,6 +737,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
                     initialCameraPosition: ml.CameraPosition(
                       target: start.target.toMapLibre,
                       zoom: start.zoom,
+                      bearing: widget.bearing,
                     ),
                     gestureRecognizers: widget.ownsGestures
                         ? {
@@ -734,19 +766,20 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
               right: PindoroSpace.s4,
               bottom: widget.bottomInset + PindoroSpace.s4,
               child: Column(
-                spacing: PindoroSpace.s2,
                 children: [
                   MapControl(
                     glyph: PindoroGlyph.locate,
                     semanticLabel: l10n.a11yGoToMyLocation,
                     onPressed: _goToMyLocation,
                   ),
+                  const SizedBox(height: PindoroSpace.s2),
                   MapControl(
                     glyph: PindoroGlyph.compass,
                     semanticLabel: l10n.a11yRecentre,
                     onPressed: _fitArea,
                   ),
                   MapZoomControls(
+                    top: PindoroSpace.s2,
                     onCamera: (update) {
                       _framed = false;
                       unawaited(_controller?.animateCamera(update));

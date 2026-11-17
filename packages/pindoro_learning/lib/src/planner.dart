@@ -53,7 +53,10 @@ class SessionPlan {
 
 abstract final class Planner {
   /// Plans today's session (SPEC §7, §16.2, §16.13). [newCandidates] are item ids in curriculum
-  /// order; leeches suspended before today come back first, as intros. [introducedToday] and
+  /// order; leeches suspended before today come back first, as intros. [openPlaces] (new OSM
+  /// landmarks' L1 items) follow them as intros, [LearningConfig.landmarkNewPerDay] a day less
+  /// [placesIntroducedToday], at a new street's time and paused like the route items (§16.18).
+  /// [introducedToday] and
   /// [spentTodayS] come from today's earlier sessions. [openSides] (`Curriculum.openSides`) start
   /// after the reviews, [LearningConfig.sideNewPerDay] a day less [sidesStartedToday], in the
   /// minutes left; [openRoutes] (`openRoutes`) after them, [LearningConfig.routeNewPerDayMax] a
@@ -76,6 +79,8 @@ abstract final class Planner {
     int sidesStartedToday = 0,
     List<String> openRoutes = const [],
     int routesStartedToday = 0,
+    List<String> openPlaces = const [],
+    int placesIntroducedToday = 0,
     List<String> openRecitals = const [],
     int recitalsStartedToday = 0,
     Drills drills = Drills.none,
@@ -93,8 +98,8 @@ abstract final class Planner {
       for (final c in cards)
         if (c.phase == CardPhase.learning && c.memory == null) c,
     ]..sort((a, b) => a.introAt!.compareTo(b.introAt!));
-    final pendingEarlier = pending
-        .where((c) => c.introAt!.isBefore(today))
+    int pendingEarlier(CardType type) => pending
+        .where((c) => c.type == type && c.introAt!.isBefore(today))
         .length;
     final retrievability = {
       for (final c in cards)
@@ -129,7 +134,10 @@ abstract final class Planner {
         (backlog
             ? 0
             : min(
-                max(0, newPerDay - introducedToday - pendingEarlier),
+                max(
+                  0,
+                  newPerDay - introducedToday - pendingEarlier(CardType.p),
+                ),
                 (budget - dueS) ~/ tNewS,
               ));
     final leeches = [
@@ -143,21 +151,35 @@ abstract final class Planner {
       ...leeches,
       ...newCandidates.where((id) => !carded.contains(id)),
     ].take(newSlots).toList();
+    final routesPaused =
+        backlog ||
+        extraNew != null ||
+        dueS > LearningConfig.routePauseFactor * budget;
+    final placeSlots = routesPaused
+        ? 0
+        : min(
+            LearningConfig.landmarkNewPerDay -
+                placesIntroducedToday -
+                pendingEarlier(CardType.l),
+            (budget - dueS - fresh.length * tNewS) ~/ tNewS,
+          );
+    final places = [
+      for (final id in openPlaces)
+        if (!carded.contains(id)) id,
+    ].take(max(0, placeSlots)).toList();
+    final introS = (fresh.length + places.length) * tNewS;
     final sideSlots = backlog || extraNew != null
         ? 0
         : min(
             LearningConfig.sideNewPerDay - sidesStartedToday,
-            (budget - dueS - fresh.length * tNewS) ~/ tReviewS,
+            (budget - dueS - introS) ~/ tReviewS,
           );
     final sides = openSides.take(max(0, sideSlots)).toList();
-    final routesPaused =
-        extraNew != null || dueS > LearningConfig.routePauseFactor * budget;
     final routeSlots = routesPaused
         ? 0
         : min(
             LearningConfig.routeNewPerDayMax - routesStartedToday,
-            (budget - dueS - sides.length * tReviewS - fresh.length * tNewS) ~/
-                tReviewS,
+            (budget - dueS - sides.length * tReviewS - introS) ~/ tReviewS,
           );
     final routes = openRoutes.take(max(0, routeSlots)).toList();
     final recitalSlots = routesPaused
@@ -167,7 +189,7 @@ abstract final class Planner {
             (budget -
                     dueS -
                     (sides.length + routes.length) * tReviewS -
-                    fresh.length * tNewS) ~/
+                    introS) ~/
                 LearningConfig.tRecitalS,
           );
     final reviews = [
@@ -180,7 +202,7 @@ abstract final class Planner {
 
     final steps = _interleave(
       pending: [for (final c in pending) c.itemId],
-      fresh: fresh,
+      fresh: [...fresh, ...places],
       reviews: reviews,
       drills: drillSteps(kept),
       random: Random(seed),
@@ -193,12 +215,16 @@ abstract final class Planner {
       newCount: fresh.length,
       estimatedS:
           reviews.fold(0, (sum, id) => sum + cost(id)) +
-          (fresh.length + pending.length) * tNewS +
+          (fresh.length + places.length + pending.length) * tNewS +
           drillSeconds(kept, tReviewS),
       drills: kept,
-      routeCount: reviews
-          .where((id) => isRouteItem(id) || CardType.ofItem(id) == CardType.r)
-          .length,
+      routeCount:
+          places.length +
+          reviews
+              .where(
+                (id) => isRouteItem(id) || CardType.ofItem(id) == CardType.r,
+              )
+              .length,
     );
   }
 
@@ -218,6 +244,14 @@ abstract final class Planner {
       ((drills.sweep?.children.length ?? 0) +
           (drills.crossings?.crossings.length ?? 0) +
           drills.bearings.length);
+
+  /// Whether a missed [itemId] comes back again in a session of [steps]: not once it has had
+  /// [LearningConfig.relearnMaxPerSession] relearns (SPEC §16.18). It stays due, for the next.
+  static bool mayRelearn(List<SessionStep> steps, String itemId) =>
+      steps
+          .where((s) => s.kind == StepKind.relearn && s.itemId == itemId)
+          .length <
+      LearningConfig.relearnMaxPerSession;
 
   /// [remaining] with a relearn of [itemId] after 5–10 other items (SPEC §4): at the end when
   /// fewer are left, and never after the street's own retrieval 2.
@@ -344,11 +378,21 @@ DateTime _day(DateTime now, int offset) => now.isUtc
     ? DateTime.utc(now.year, now.month, now.day + offset)
     : DateTime(now.year, now.month, now.day + offset);
 
-/// Streets introduced since the start of [now]'s day: they come off today's new number.
-int introducedToday(Iterable<CardState> cards, DateTime now) {
+/// Cards of [types] introduced since the start of [now]'s day: streets come off today's new
+/// number, places off today's places.
+int introducedToday(
+  Iterable<CardState> cards,
+  DateTime now, {
+  Set<CardType> types = const {CardType.p},
+}) {
   final today = _day(now, 0);
   return cards
-      .where((c) => c.introAt != null && !c.introAt!.isBefore(today))
+      .where(
+        (c) =>
+            types.contains(c.type) &&
+            c.introAt != null &&
+            !c.introAt!.isBefore(today),
+      )
       .length;
 }
 
@@ -457,6 +501,17 @@ int remainingSeconds(
         ),
       },
 );
+
+/// The session's countdown [spentS] seconds into step [index]: the steps after it, plus what is
+/// left of the current one's own share (a slow answer stops the clock there, never below).
+int secondsLeft(
+  List<SessionStep> steps,
+  int index, {
+  required int spentS,
+  Drills drills = Drills.none,
+}) =>
+    remainingSeconds(steps.skip(index + 1), drills: drills) +
+    max(0, remainingSeconds([steps[index]], drills: drills) - spentS);
 
 /// What reviewing [itemId] takes: [LearningConfig.tRecitalS] for a recital, else [tReviewS].
 int secondsFor(String itemId, int tReviewS) =>

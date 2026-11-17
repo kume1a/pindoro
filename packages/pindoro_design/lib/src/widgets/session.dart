@@ -78,10 +78,10 @@ class NextReviewChip extends StatelessWidget {
   }
 }
 
-/// The new street's sheet (Intro sheet): where it is, the facts, the
-/// optional etymology and family chip, then Hear the name (only with
-/// [onHear]) and Got it. Not dismissible; it scrolls when text is large and
-/// keeps the actions pinned.
+/// The new street's or place's sheet (Intro sheet): where it is, the facts,
+/// the optional etymology and family chip, then Hear the name (only with
+/// [onHear]), Street View (only with [onStreetView]) and Got it. Not
+/// dismissible; it scrolls when text is large and keeps the actions pinned.
 class IntroSheet extends StatelessWidget {
   const IntroSheet({
     super.key,
@@ -95,6 +95,8 @@ class IntroSheet extends StatelessWidget {
     this.family,
     this.hearLabel,
     this.onHear,
+    this.streetViewLabel,
+    this.onStreetView,
     this.extra = const [],
   });
 
@@ -118,6 +120,10 @@ class IntroSheet extends StatelessWidget {
   final String? hearLabel;
   final VoidCallback? onHear;
 
+  /// "Street View"; the button shows only with [onStreetView].
+  final String? streetViewLabel;
+  final VoidCallback? onStreetView;
+
   /// More under the facts, 12 dp apart (a leech's contrast and note).
   final List<Widget> extra;
 
@@ -126,6 +132,7 @@ class IntroSheet extends StatelessWidget {
     final c = PindoroTheme.of(context).colors;
     final secondary = c.textSecondary;
     final onHear = this.onHear;
+    final onStreetView = this.onStreetView;
     return Semantics(
       container: true,
       label: regionLabel,
@@ -138,10 +145,10 @@ class IntroSheet extends StatelessWidget {
           ),
         ),
         padding: EdgeInsets.fromLTRB(
-          PindoroSpace.s5,
           PindoroSpace.s4,
-          PindoroSpace.s5,
-          PindoroSpace.s5 + MediaQuery.paddingOf(context).bottom,
+          PindoroSpace.s3,
+          PindoroSpace.s4,
+          PindoroSpace.s3 + MediaQuery.paddingOf(context).bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -185,7 +192,7 @@ class IntroSheet extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: PindoroSpace.s4),
+            const SizedBox(height: PindoroSpace.s3),
             Row(
               spacing: PindoroSpace.s3,
               children: [
@@ -194,6 +201,12 @@ class IntroSheet extends StatelessWidget {
                     glyph: PindoroGlyph.soundOn,
                     semanticLabel: hearLabel ?? '',
                     onPressed: onHear,
+                  ),
+                if (onStreetView != null)
+                  PindoroIconButton(
+                    glyph: PindoroGlyph.eye,
+                    semanticLabel: streetViewLabel ?? '',
+                    onPressed: onStreetView,
                   ),
                 Expanded(
                   child: PindoroButton(label: gotItLabel, onPressed: onGotIt),

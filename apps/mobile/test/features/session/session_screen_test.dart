@@ -11,6 +11,7 @@ import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/speech.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/explore_map.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -18,7 +19,6 @@ import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro/features/session/ui/session_screen.dart';
 import 'package:pindoro_core/pindoro_core.dart';
-import 'package:pindoro_design/pindoro_design.dart' show JunctionMap;
 import 'package:pindoro_learning/pindoro_learning.dart';
 
 import '../../support/settle.dart';
@@ -31,6 +31,8 @@ void main() {
   late NamedStreet a;
   late NamedStreet b;
   late NamedStreet c;
+
+  /// A street crossing [a].
   late NamedStreet parent;
   late NamedStreet child;
 
@@ -252,35 +254,24 @@ void main() {
     expect(find.text('Mix-up'), findsOneWidget);
     expect(find.textContaining('Pair saved:'), findsOneWidget);
     expect(find.text('Back in this session'), findsOneWidget);
-    expect(maps.last.hit?.geometry, b.geometry);
+    expect(maps.last.hit, b.geometry);
     expect(maps.last.measure, isNull);
     final pair = await db.select(db.confusions).getSingle();
     expect(pair.count, 2);
     expect((await dao.log()).single.snapId, b.id);
   });
 
-  testWidgets('known streets are named on the reveal, never while asking', (
-    tester,
-  ) async {
-    await dao.putCard(
-      CardState(
-        itemId: item(c),
-        phase: CardPhase.review,
-        memory: Memory(
-          stability: 30,
-          difficulty: 5,
-          lastReview: now.subtract(const Duration(days: 3)),
-        ),
-        dueAt: now.add(const Duration(days: 20)),
-        lastRating: Rating.good,
-        priorKnown: true,
-      ),
-    );
+  testWidgets('places are named while asking but streets only on the '
+      'reveal', (tester) async {
     await pump(tester, [(kind: StepKind.retrieval1, itemId: item(a))]);
-    expect(maps.last.known, isEmpty);
+    expect(find.text('0:15'), findsOneWidget, reason: 'the clock in m:ss');
+    expect(
+      maps.last.names,
+      MapNames(places: true, placesNot: nameStems(a)),
+      reason: 'no street, no place named after the street',
+    );
     await answer(tester, onStreet(a));
-    expect(maps.last.known.map((k) => k.geometry), [c.geometry]);
-    expect(maps.last.known.map((k) => k.geometry), isNot(contains(a.geometry)));
+    expect(maps.last.names, MapNames.all);
   });
   testWidgets('a child of a known street is guessed first, then introduced '
       'with its family', (tester) async {
@@ -301,7 +292,7 @@ void main() {
     await pump(tester, [(kind: StepKind.intro, itemId: item(child))]);
     expect(find.text('Guess first'), findsOneWidget);
     expect(find.textContaining('You know ${parent.name}'), findsOneWidget);
-    expect(maps.last.known, isEmpty);
+    expect(maps.last.names.streets, isEmpty);
     maps.last.onTap!(onStreet(child));
     await settle(tester);
     await tapThrough(tester, find.text('Confirm guess'));
@@ -309,7 +300,7 @@ void main() {
     expect((await dao.log()).single.format, ReviewFormat.pretest);
     expect(await dao.card(item(child)), isNull);
     expect(find.textContaining('Family: ${parent.name}'), findsOneWidget);
-    expect(maps.last.known.map((k) => k.label), contains(parent.name));
+    expect(maps.last.names, MapNames.all);
     await tapThrough(tester, find.text('Got it'));
     expect((await dao.card(item(child)))!.phase, CardPhase.learning);
   });
@@ -439,7 +430,7 @@ void main() {
       expect(find.text('Back for a closer look'), findsOneWidget);
       expect(find.text('Not to be confused with ${b.name}'), findsOneWidget);
       expect(find.text('Guess first'), findsNothing);
-      expect(maps.last.hit?.geometry, b.geometry);
+      expect(maps.last.hit, b.geometry);
       await tester.enterText(find.byType(TextField), ' by the bakery ');
       await tapThrough(tester, find.text('Got it'));
       final card = (await dao.card(item(a)))!;
@@ -544,11 +535,14 @@ void main() {
       final q = first<TurnQuestion>();
       final wrong = q.exits.keys.firstWhere((t) => t != q.correct);
       await pump(tester, [(kind: StepKind.review, itemId: q.itemId)]);
-      expect(find.byType(JunctionMap), findsOneWidget);
+      expect(maps.last.hit, hasLength(1), reason: 'the approach, cobalt');
+      expect(maps.last.names.streets, isEmpty, reason: 'no street named');
+      expect(find.textContaining('Which way at'), findsOneWidget);
       controller(tester).choose(wrong);
       await settle(tester);
       await tapThrough(tester, find.text('Confirm'));
       expect(find.text('Not this one'), findsOneWidget);
+      expect(maps.last.truth, hasLength(2), reason: 'approach and right exit');
       expect(find.text('Back in this session'), findsOneWidget);
       await tapThrough(tester, find.text('Next'));
       controller(tester).choose(q.correct);
@@ -560,6 +554,26 @@ void main() {
         (ReviewFormat.junction, Rating.again),
         (ReviewFormat.junction, Rating.good),
       ]);
+    });
+
+    testWidgets('a card missed again and again comes back twice, then waits '
+        'for another day', (tester) async {
+      final q = first<TurnQuestion>();
+      final wrong = q.exits.keys.firstWhere((t) => t != q.correct);
+      await pump(tester, [(kind: StepKind.review, itemId: q.itemId)]);
+      for (final chip in [
+        'Back in this session',
+        'Back in this session',
+        'Next review in 1 day',
+      ]) {
+        controller(tester).choose(wrong);
+        await settle(tester);
+        await tapThrough(tester, find.text('Confirm'));
+        expect(find.text(chip), findsOneWidget);
+        await tapThrough(tester, find.text('Next'));
+      }
+      expect(find.text('Session done'), findsOneWidget);
+      expect((await dao.log()).length, 3);
     });
 
     testWidgets('a gateway: the pin at the junction and the street typed', (
@@ -598,6 +612,44 @@ void main() {
       final row = (await dao.log()).single;
       expect((row.format, row.rating), (ReviewFormat.landmark, Rating.good));
       expect((await dao.card(q.itemId))!.phase, CardPhase.review);
+    });
+
+    testWidgets('a new place is shown first, named with its street when a '
+        'chain, then asked', (tester) async {
+      final q = first<LandmarkQuestion>((q) => q.n == 1 && q.ambiguous);
+      await pump(tester, [
+        (kind: StepKind.intro, itemId: q.itemId),
+        (kind: StepKind.retrieval1, itemId: q.itemId),
+      ]);
+      expect(find.text('New place · 1 of 1'), findsOneWidget);
+      expect(find.textContaining('${q.landmark.name}, '), findsWidgets);
+      expect(maps.last.truthPoint, q.landmark.at);
+      expect(maps.last.names, MapNames.all);
+      expect(find.bySemanticsLabel('Street View'), findsOneWidget);
+      await tapThrough(tester, find.text('Got it'));
+      expect((await dao.card(q.itemId))!.phase, CardPhase.learning);
+      expect(find.text('Where is it?'), findsOneWidget);
+      expect(maps.last.truthPoint, isNull, reason: 'asking shows nothing');
+      expect(maps.last.names.places, isFalse);
+      expect(
+        maps.last.names.streets,
+        isNot(contains(q.street!.name)),
+        reason: 'the street in its name stays unnamed while asking',
+      );
+
+      final far = LatLng(q.landmark.at.lat + 0.01, q.landmark.at.lon);
+      maps.last.onTap!(far);
+      await settle(tester);
+      await tapThrough(tester, find.text('Confirm'));
+      expect(maps.last.truthPoint, q.landmark.at);
+      expect(
+        (maps.last.measure?.from, maps.last.measure?.to),
+        (far, q.landmark.at),
+      );
+      expect(maps.last.names, MapNames.all);
+      expect(find.bySemanticsLabel('Street View'), findsOneWidget);
+      final row = (await dao.log()).single;
+      expect((row.format, row.rating), (ReviewFormat.landmark, Rating.again));
     });
   });
 

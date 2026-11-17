@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/google_maps.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/features/map/ui/map_layout.dart';
@@ -46,7 +47,7 @@ class TaskScaffold extends StatelessWidget {
               PindoroSpace.s4,
               0,
               PindoroSpace.s4,
-              bottomActionGap(context),
+              mapActionGap(context),
             ),
             child: c,
           ),
@@ -58,7 +59,7 @@ class TaskScaffold extends StatelessWidget {
         RevealCelebration(revealKey: r.resultKey, size: size),
     ];
     final top = Column(
-      spacing: PindoroSpace.s4,
+      spacing: PindoroSpace.s2,
       children: [topBar, header, ?body],
     );
     if (map != null) {
@@ -104,6 +105,7 @@ class TaskResult extends StatelessWidget {
     this.label,
     this.chip,
     this.chips = const [],
+    this.streetView,
   });
 
   final Object resultKey;
@@ -113,6 +115,9 @@ class TaskResult extends StatelessWidget {
   final String? label;
   final Widget? chip;
   final List<Widget> chips;
+
+  /// Street View beside Next, when the answer is a spot to see.
+  final StreetViewSpot? streetView;
 
   @override
   Widget build(BuildContext context) {
@@ -127,6 +132,7 @@ class TaskResult extends StatelessWidget {
         chips: chips,
         action: l10n.commonNext,
         onNext: onNext,
+        streetView: streetView,
       ),
     );
   }

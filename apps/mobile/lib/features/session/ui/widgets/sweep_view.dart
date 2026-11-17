@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
@@ -69,19 +70,17 @@ class _SweepViewState extends ConsumerState<SweepView> {
         PindoroMap(
           area: play.area,
           frame: play.frame,
-          known: [
-            (
-              geometry: parent.geometry,
-              at: parent.parts.first.midpoint,
-              label: streetName(parent, settings),
-            ),
-            for (final lane in task.lanes)
-              (
-                geometry: lane.geometry,
-                at: lane.parts.first.midpoint,
-                label: tier == null ? '' : names[lane.id]!,
-              ),
+          traces: [
+            for (final s in [parent, ...task.lanes]) ...s.geometry,
           ],
+          // The lanes are named once checked.
+          names: MapNames(
+            streets: {
+              parent.name,
+              if (tier != null)
+                for (final lane in task.lanes) lane.name,
+            },
+          ),
           onCamera: (p) => setState(() => _projection = p),
           topInset: insets.top,
           bottomInset: insets.bottom,

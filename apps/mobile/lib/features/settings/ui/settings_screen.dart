@@ -21,7 +21,7 @@ import 'package:pindoro_design/pindoro_design.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Language, street names, the way to the learning settings, theme, sound,
-/// haptics, the account; changes apply at once.
+/// haptics, the maps' zoom buttons, the account; changes apply at once.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -109,6 +109,18 @@ class SettingsScreen extends ConsumerWidget {
                 if (v) unawaited(HapticFeedback.selectionClick());
                 unawaited(dao.setHaptics(on: v));
               },
+            ),
+          ],
+        ),
+        SectionTitle(l10n.settingsMap),
+        ListGroup(
+          children: [
+            ToggleRow(
+              title: l10n.settingsZoomButtons,
+              subtitle: l10n.settingsZoomButtonsSubtitle,
+              glyph: PindoroGlyph.zoomIn,
+              value: settings.zoomButtons,
+              onChanged: (v) => save(() => dao.setZoomButtons(on: v)),
             ),
           ],
         ),

@@ -64,6 +64,33 @@ void main() {
     );
   });
 
+  test(
+    'a turned camera: east up when facing east; fit and round-trip hold',
+    () {
+      const size = Size(400, 800);
+      const padding = EdgeInsets.fromLTRB(32, 280, 32, 180);
+      const a = LatLng(41.7203, 44.7699), b = LatLng(41.7101, 44.7902);
+      final camera = MapProjection.fit(
+        [a, b],
+        size: size,
+        padding: padding,
+        bearing: 90,
+      );
+      final p = MapProjection(
+        target: camera.target,
+        zoom: camera.zoom,
+        size: size,
+        bearing: 90,
+      );
+      final inner = padding.deflateRect(Offset.zero & size).inflate(0.5);
+      expect(inner.contains(p.toScreen(a)), isTrue);
+      expect(inner.contains(p.toScreen(b)), isTrue);
+      // b lies east of a: facing east, it is higher up the screen.
+      expect(p.toScreen(b).dy, lessThan(p.toScreen(a).dy));
+      expect(distanceBetween(p.toLatLng(p.toScreen(a)), a), lessThan(0.01));
+    },
+  );
+
   test('the distance chip grows inwards near an edge', () {
     expect(chipAnchor(20, 390), 'bottom-left');
     expect(chipAnchor(195, 390), 'bottom');

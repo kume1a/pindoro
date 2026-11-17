@@ -26,7 +26,8 @@ app icon, splash) come from the design system's asset store; see `packages/pindo
   vector basemap has a Yandex-like palette: warm land, blue water, green parks, a peach road hierarchy
   (never yellow: yellow is the answer). Its colours are app-only tokens (`color.map.vector.*`), and
   so are the landmark icons (`color.map.poi.*`, Maki icons in `pindoro_design/assets/map_icons`). The
-  icons are discs without names; the basemap never shows text.
+  icons are discs; the basemap draws no text but street and place names on intros and reveals
+  (`color.map.vector.label`, SPEC §16.18).
 - **App-only tokens** live in `packages/pindoro_design/tokens/app.json`: the skeleton shimmer's
   duration and opacity (`motion.shimmer`, `opacity.shimmer`), which the design system's component
   CSS (`.pd-skel`) uses without a token, and the badge fields (`color.badge.*`). Drop them there

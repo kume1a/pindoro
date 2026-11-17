@@ -12,7 +12,7 @@ one-off `pipeline` runs can reach the internet.
 
 ```
 internet ─▶ Cloudflare (TLS, DNS) ─▶ host tunnel ─▶ host:HTTP_PORT ─▶ caddy:80   (PUBLIC_HOST)
-                                                    ├─ /tiles/* ─▶ martin:3000  (PMTiles vector tiles)
+                                                    ├─ /tiles/* ─▶ martin:3000  (PMTiles vector tiles, FiraGO map glyphs)
                                                     ├─ /packs/* ─▶ file_server  (city packs, manifests)
                                                     └─ /*       ─▶ api:3000     (Fastify + PostGIS)
 ```

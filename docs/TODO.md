@@ -14,9 +14,9 @@
 - **Left out of that pass, on purpose:**
   - Download progress in the City row: tapping a city opens the Area picker at once, so the row is
     gone before a bar could show. The wait shows in the Area picker's panel instead.
-  - Chips that step aside instead of hiding: MapLibre only shifts text labels
-    (`text-variable-anchor`), and the map style has no fonts, so chips are images. It would need
-    FiraGO map glyphs generated and served, and every chip redrawn as map text.
+  - Area chips that step aside instead of hiding: MapLibre only shifts text labels
+    (`text-variable-anchor`). Martin now serves FiraGO glyphs (street and place names are map
+    text), so the area picker's chips could be redrawn as map text too.
   - A city outline on the empty map while the pack downloads: the catalog has only a bbox, so it
     would need the boundary in the manifest, the API and the app, for a wait of 1–2 s.
   - A "Free up space" button and a free-space check before downloading: native code (Android
@@ -26,8 +26,8 @@
     done moment is the city scene's (Pindo cheers, the star lands), not a check on the bar.
   - A minimum time on screen for a Try again that fails at once, and an exit transition from the
     city scene into the screen behind it (the screens swap as soon as the pack opens).
-- Map labels (area names, the distance chip) are images drawn by `MapChip`, because the self-hosted
-  map style has no glyphs.
+- Area names and the distance chip are images drawn by `MapChip`; street and place names are the
+  basemap's own text (FiraGO glyphs from Martin).
 
 ## Gameplay
 
@@ -201,6 +201,32 @@ and the specs after R5. Fix them in roughly this order.
     (`size.button.md`) instead of 56, and the street plate's name starts at `headline.sm` (22)
     instead of `headline.md`. On claude.ai: `size.button.lg` usage, the StreetCard fit rule,
     v1-screens § Frames, accessibility.md and signpost.md "56 dp".
+- Changed in the app from field feedback (2026-11-17, SPEC §16.18), to carry back to claude.ai:
+  - The street plate starts at `title.lg` (20) down to `size.plate.name-floor` (16, in
+    `app.json`), its sub-line on one line; the Reveal sheet has a 32 dp badge, a `title.lg`
+    label, 12 dp padding, a 56 dp Pindo and an optional icon button beside its action; the Intro
+    sheet 12–16 dp padding. Map screens keep 8 dp above and below the plate and end their footer
+    12 dp over the safe area.
+  - Settings → Map with Zoom buttons (off by default).
+  - The session bar's time pill counts down by the second ("5:26") instead of "6 min".
+  - The turn card (J) on the real map, turned so the driver goes up the screen: the approach
+    cobalt dashed with the car, exit buttons on the roads, the landmark badge, place names; the
+    plate reads "Driving on <street>" / "Heading to <place>" / "Which way at <landmark>?" and
+    the field "Then you're on… (optional)". The painted `JunctionMap` is gone; monuments use the
+    star glyph, not the flag.
+  - The place intro (a learning screen the canvas lacks): yellow place dot, "New place · 1 of 3",
+    the Intro sheet with Street View; the place reveal's dot and measure; street and place
+    names as map text (along the roads, under the icons) on intros, reveals and questions, with
+    the `color.map.vector.label` token; the Street View (eye) button.
+  - Explore: areas inside a district drawn and picked zoomed in; the play card's "48 streets at
+    Hard · 31 known"; the same line on the difficulty screen.
+  - Explore's first-question coach mark is gone, so `color.map.reticle` and `quizCoach*` copy are
+    unused in the app.
+- Left out of the field-feedback pass, on purpose:
+  - No hard stop at the day's minutes: the relearn cap keeps sessions short instead.
+  - Name it, both ends, drills and the other route cards keep their maps as they were (no place
+    names, no Street View).
+  - The player's own landmarks are not in the map data, so the map never names them.
 
 ## Designed, not scheduled
 

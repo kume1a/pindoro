@@ -24,12 +24,12 @@ void main() {
 
     await tester.pumpWidget(layout(100));
     await tester.pump();
-    expect(insets, (top: 24 + PindoroSpace.s4 * 2 + 100, bottom: 200));
+    expect(insets, (top: 24 + PindoroSpace.s2 * 2 + 100, bottom: 200));
 
     // A plate that wraps to two lines moves the top inset with it.
     await tester.pumpWidget(layout(140));
     await tester.pump();
-    expect(insets?.top, 24 + PindoroSpace.s4 * 2 + 140);
+    expect(insets?.top, 24 + PindoroSpace.s2 * 2 + 140);
   });
 
   testWidgets('without a top overlay the map clears the status bar', (

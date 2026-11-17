@@ -8,7 +8,7 @@ lib/main.dart                  open AppDatabase (openDatabase), pick the initial
 lib/app/                       shell: PindoroApp, router (the only place that imports screens),
                                TabShell (bottom navigation)
 lib/core/                      shared by every feature: routes (paths + RoundSummary), config, format,
-                               labels, settings, location (+ the drive's background track), online, toast,
+                               labels, settings, google_maps (Maps and Street View links), location (+ the drive's background track), online, toast,
                                page scaffold, launch overlay, clock (clockProvider), hold (`ref.hold` keeps an
                                auto-dispose provider alive while a controller awaits it),
                                api_client (ApiClient + apiClientProvider, ApiException), restart, database/ (Drift tables,
@@ -41,7 +41,7 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                today's plan, Learn 5 more or the city's placement; each step's
                                SessionTask: a pin, Name it, both ends, the family sweep, the
                                crossings drill, a bearing, a route card (RouteView: the
-                               JunctionMap turn, gateway, bridge, connection, landmark) or a
+                               turn on the heading-up map, gateway, bridge, connection, landmark) or a
                                recital (RecitalView: typed or drawn A → B, graded with the turns'
                                evidence and "Report this turn"), with their views over TaskScaffold;
                                intro (a leech's with its mix-up and note), reveal, Session done,
@@ -137,7 +137,7 @@ test/drift/                    generated schema helpers + migration test
   Numbers through `formatNumber` (narrow no-break space groups), distances through
   `formatDistance`. Never uppercase.
 - **Settings** (`user_settings`, watched by `settingsProvider`): language (null = device),
-  street names, theme, sound, haptics, minutes a day, reminder, the account (plus the first
+  street names, theme, sound, haptics, zoom buttons (Map), minutes a day, reminder, the account (plus the first
   Home's coach-mark flag); they apply immediately. Learning settings (`/settings/learning`) hold
   the minutes, home and work, street names and the reminder. `feedbackProvider` plays haptics and sounds per game
   event behind the Haptics and Sound toggles. The kit is `assets/sounds/*.wav`
@@ -184,15 +184,25 @@ test/drift/                    generated schema helpers + migration test
 
 - Flutter widgets that sit on map points (the sweep's sockets, the crossings' rings, "End 1") go
   in a `GeoAnchors` over the map, fed by `PindoroMap.onCamera`'s projection.
-- `PindoroMap` loads the bundled style, injects `{TILES_BASE_URL}` (Martin source `georgia`), and
-  always shows "© OpenStreetMap contributors, Protomaps". Never point it at public OSM tile servers.
-- The basemap never shows text. Its landmark icons (the style's `pois` layer) are `poi-<kind>` images
-  that `addPoiImages` (`features/map/ui/poi_icons.dart`) adds after the overlays, in `PindoroMap` and
-  the area picker. A kind added to the pipeline's `POI_KINDS` needs an entry in `poiIcons`.
+- `PindoroMap` loads the bundled style, injects `{TILES_BASE_URL}` (Martin source `georgia` and its
+  FiraGO glyphs) and `{NAME_KEY}` (`name`, or `name:en` with English street names), and always
+  shows "© OpenStreetMap contributors, Protomaps". Never point it at public OSM tile servers.
+- The basemap draws no text but its two name layers, `road-names` and `poi-names` (pipeline
+  `tiles.ts`), hidden until `PindoroMap.names` (`MapNames`, `map_style.dart`) shows them: every
+  name on intros and reveals, places on street questions (`placesNot` stems hide one named after
+  the street), Known streets on a place question, a drill's own streets. Its landmark icons (the
+  style's `pois` layer) are `poi-<kind>` images that `addPoiImages`
+  (`features/map/ui/poi_icons.dart`) adds after the overlays, in `PindoroMap` and the area picker.
+  A kind added to the pipeline's `POI_KINDS` needs an entry in `poiIcons`.
 - GeoJSON source names: `you-pin` (a symbol of the `PinMark` rendered to PNG, anchored at its tip),
-  `truth-street` (8 dp yellow over a 12 dp ink casing), `measure` (dotted ink) + `measure-end`
-  (ring), `area-mask` (dims outside the round's area). The map owns its controls (my location,
-  recentre, zoom) and the attribution chip, placed above `bottomInset`.
+  `truth-street` (8 dp yellow over a 12 dp ink casing), `truth-point` (a place as the answer:
+  yellow dot, ink ring), `measure` (dotted ink) + `measure-end` (ring), `area-mask` (dims outside
+  the round's area), `trace` (a drill's streets, grey), `hit-street` (a Mix-up's, dashed cobalt).
+  Lines go under the basemap's names, points over them. The map owns its controls (my location,
+  recentre, and zoom only with Settings → Map → Zoom buttons) and the attribution chip, placed
+  above `bottomInset`.
+- Street View is a link only (`core/google_maps.dart`: `GoogleMaps.streetView`, `streetSpot`,
+  `placeSpot`; `StreetViewButton`), on intros and reveals.
 - **Round screens** (`features/quiz`, `features/results`): `/round` is one Explore route for setup
   states, question and reveal; Results (`results_data.dart` gathers everything) and the per-answer
   street view.

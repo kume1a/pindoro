@@ -139,7 +139,15 @@
           "light": "#f3f1ed",
           "dark": "#24272d"
         },
-        "usage": "Vector basemap land and background; also the rim of POI icons and the halo of map text drawn by the app."
+        "usage": "Vector basemap land and background; also the rim of POI icons and the halo of map text."
+      },
+      {
+        "name": "color.map.vector.label",
+        "value": {
+          "light": "{color.text.secondary}",
+          "dark": "{color.text.secondary}"
+        },
+        "usage": "Street and place names the basemap draws along roads and beside POI icons (intros, reveals, place names on questions), over a color.map.vector.land halo."
       },
       {
         "name": "color.map.vector.urban",
@@ -400,5 +408,15 @@
       }
     ],
     "note": "Opacities the design system uses in its component CSS but has no token for."
+  },
+  "size": {
+    "tokens": [
+      {
+        "name": "size.plate.name-floor",
+        "value": "16px",
+        "usage": "Smallest street-name size on the street plate in the app: the name starts at title.lg (20) and steps down 2 dp at a time until it fits on two lines, so long Georgian names leave the map its room (2026-11-17). Replaces size.plate.name-min (20) until the design system catches up."
+      }
+    ],
+    "note": "Sizes the app changed from the design system's, to carry back."
   }
 }
