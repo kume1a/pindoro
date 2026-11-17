@@ -10,6 +10,7 @@ import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/speech.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
+import 'package:pindoro/features/learning/data/route_book.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/explore_map.dart';
@@ -648,8 +649,37 @@ void main() {
       );
       expect(maps.last.names, MapNames.all);
       expect(find.bySemanticsLabel('Street View'), findsOneWidget);
+      expect(find.text("Can't find it?"), findsOneWidget);
       final row = (await dao.log()).single;
       expect((row.format, row.rating), (ReviewFormat.landmark, Rating.again));
+    });
+
+    testWidgets("a place the player can't find is hidden on the phone, its "
+        'cards gone from the session', (tester) async {
+      final q = first<LandmarkQuestion>(
+        (q) => q.n == 1 && !q.landmark.personal,
+      );
+      await pump(tester, [
+        (kind: StepKind.intro, itemId: q.itemId),
+        (kind: StepKind.retrieval1, itemId: q.itemId),
+      ]);
+      await tapThrough(tester, find.text("Can't find it?"));
+      await tapThrough(tester, find.text('Keep it'));
+      expect(await dao.hiddenPlaces(), isEmpty, reason: 'kept');
+      await tapThrough(tester, find.text("Can't find it?"));
+      await tapThrough(tester, find.text('Hide it'));
+      expect(await dao.hiddenPlaces(), {q.landmark.id});
+      expect(await dao.card(q.itemId), isNull);
+      expect(controller(tester).state, isA<SessionDone>());
+      final book = await ProviderScope.containerOf(
+        tester.element(find.byType(SessionScreen)),
+      ).read(routeBookProvider.future);
+      expect(
+        book.questions.values.whereType<LandmarkQuestion>().where(
+          (l) => l.landmark.id == q.landmark.id,
+        ),
+        isEmpty,
+      );
     });
   });
 

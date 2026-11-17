@@ -245,6 +245,7 @@ class Landmark {
     required this.brand,
     required this.salience,
     required this.at,
+    this.outline,
   });
 
   factory Landmark.fromRow(PackRow r) => Landmark(
@@ -255,6 +256,10 @@ class Landmark {
     brand: r['brand'] as String?,
     salience: _d(r['salience']),
     at: LatLng(_d(r['lat']), _d(r['lon'])),
+    outline: switch (r['outline']) {
+      final String json => decodeMultipolygon6(json),
+      _ => null,
+    },
   );
 
   final String id;
@@ -264,6 +269,9 @@ class Landmark {
   final String? brand;
   final double salience;
   final LatLng at;
+
+  /// An area's outline (a park, a mall), null for a point (format 6).
+  final List<List<Polyline>>? outline;
 }
 
 /// Where a junction item sits in the route layers (SPEC §6.5).

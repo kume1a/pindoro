@@ -69,6 +69,52 @@ RouteCandidate _candidate(
 );
 
 void main() {
+  test('a pin anywhere in a park is on it; outside, it is measured to the '
+      'edge (SPEC §16.18 item 95)', () {
+    const at = LatLng(41.7, 44.8);
+    const ring = [
+      LatLng(41.699, 44.799),
+      LatLng(41.699, 44.801),
+      LatLng(41.701, 44.801),
+      LatLng(41.701, 44.799),
+      LatLng(41.699, 44.799),
+    ];
+    LandmarkQuestion place({List<List<Polyline>>? outline}) => LandmarkQuestion(
+      'L:p:1',
+      n: 1,
+      landmark: (
+        id: 'p',
+        name: 'Park',
+        kind: 'park',
+        at: at,
+        personal: false,
+        junction: null,
+        onLeft: false,
+      ),
+      outline: outline,
+    );
+    const corner = LatLng(41.7009, 44.8009);
+    expect(
+      place(
+        outline: const [
+          [ring],
+        ],
+      ).distanceFrom(corner).distanceM,
+      0,
+    );
+    const east = LatLng(41.7, 44.802);
+    final out = place(
+      outline: const [
+        [ring],
+      ],
+    ).distanceFrom(east);
+    expect(
+      out.distanceM,
+      closeTo(distanceBetween(east, const LatLng(41.7, 44.801)), 0.5),
+    );
+    expect(place().distanceFrom(corner).distanceM, greaterThan(100));
+  });
+
   test(
     'turns: within 30° straight, past 150° a U-turn, else left or right',
     () {

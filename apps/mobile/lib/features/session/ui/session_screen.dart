@@ -83,6 +83,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           question: q,
           topBar: _topBar(p, controller),
           onGotIt: () => unawaited(controller.introDone()),
+          onHide: () => unawaited(controller.hidePlace()),
         ),
       final SessionPlaying p
           when p.step.kind == StepKind.intro && p.guess == null =>
@@ -137,6 +138,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           onPin: controller.dropPin,
           onAnswer: (typed) => unawaited(controller.answerRoute(typed: typed)),
           onNext: () async => controller.next(),
+          onHidePlace: () => unawaited(controller.hidePlace()),
           chip: _nextReviewChip(p, nextReviewDays),
         ),
         RecitalTask(:final nextReviewDays) => RecitalView(

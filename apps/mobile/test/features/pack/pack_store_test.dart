@@ -303,6 +303,14 @@ void main() {
     expect(files(), ['tbilisi_vake_fixture.sqlite']);
   });
 
+  test('an app update replaces the Vake copy, even at the same size', () async {
+    final bundled = File(AppConfig.fixturePackAsset).readAsBytesSync();
+    final copy = File('${root.path}/tbilisi_vake_fixture.sqlite')
+      ..writeAsBytesSync(List.filled(bundled.length, 0));
+    await copyFixture(root);
+    expect(copy.readAsBytesSync(), bundled);
+  });
+
   test(
     'leaving Vake reads as leaving while it loads and when it fails',
     () async {

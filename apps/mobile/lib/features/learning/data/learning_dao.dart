@@ -218,14 +218,26 @@ class LearningDao extends DatabaseAccessor<AppDatabase>
     ),
   );
 
+  static const _place = 'place:';
+
   /// The moves the player reported as legal (`oneway:…`, `turn:…`).
   Future<Set<String>> reportedMoves() async => {
-    for (final r in await select(turnOverrides).get()) r.id,
+    for (final r in await select(turnOverrides).get())
+      if (!r.id.startsWith(_place)) r.id,
   };
 
   Future<void> reportMove(String id, DateTime at) => into(
     turnOverrides,
   ).insertOnConflictUpdate(TurnOverrideRow(id: id, createdAt: at));
+
+  /// The pack places the player could not find, by landmark id.
+  Future<Set<String>> hiddenPlaces() async => {
+    for (final r in await select(turnOverrides).get())
+      if (r.id.startsWith(_place)) r.id.substring(_place.length),
+  };
+
+  Future<void> hidePlace(String landmarkId, DateTime at) =>
+      reportMove('$_place$landmarkId', at);
 
   static CardState _card(CardStateRow r) => CardState(
     itemId: r.itemId,

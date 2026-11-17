@@ -67,9 +67,30 @@ CROSS JOIN LATERAL (
 
 -- Landmark candidates (SPEC §9) with a name or brand: OSM points of interest, named roundabouts and
 -- the bridges. `base` is the salience without its turn-dependent `structural` part:
--- 0.30 type + 0.15 brand or name + 0.15 size + 0.10 wiki + 0.15 uniqueness.
+-- 0.30 type + 0.15 brand or name + 0.15 size + 0.10 wiki + 0.15 uniqueness. An area keeps its
+-- `outline`, so a pin anywhere in a park counts (SPEC §16.18 item 95).
 CREATE TABLE pipeline.landmark AS
 WITH params AS (SELECT utm_srid FROM pipeline.params),
+roundabout AS (
+  SELECT r.way_id, coalesce(nullif(btrim(r.name_ka), ''), btrim(r.name)) AS name_ka,
+         nullif(btrim(r.name_en), '') AS name_en, ST_Transform(r.geom, params.utm_srid) AS geom
+  FROM osm.roads r, params
+  WHERE r.junction = 'roundabout' AND coalesce(nullif(btrim(r.name_ka), ''), nullif(btrim(r.name), '')) IS NOT NULL
+),
+-- One place however many ways OSM splits a roundabout into. A roundabout named like a road (a
+-- street through it, a square's address) or like a `place=square` is not a place of its own.
+roundabout_part AS (
+  SELECT r.*, ST_ClusterDBSCAN(r.geom, 50, 1) OVER (PARTITION BY r.name_ka) AS part
+  FROM roundabout r
+  WHERE r.name_ka !~ ' (ქუჩა|გამზირი)$'
+    AND NOT EXISTS (
+      SELECT 1 FROM osm.roads o
+      WHERE o.junction IS DISTINCT FROM 'roundabout'
+        AND coalesce(nullif(btrim(o.name_ka), ''), btrim(o.name)) = r.name_ka)
+    AND NOT EXISTS (
+      SELECT 1 FROM osm.pois p
+      WHERE p.kind = 'square' AND coalesce(nullif(btrim(p.name_ka), ''), btrim(p.name)) = r.name_ka)
+),
 raw AS (
   SELECT 'osm:' || lower(p.osm_type) || p.osm_id AS id, p.kind,
          coalesce(nullif(btrim(p.name_ka), ''), nullif(btrim(p.name), '')) AS name_ka,
@@ -80,10 +101,10 @@ raw AS (
          CASE WHEN p.levels ~ '^[0-9]+(\.[0-9]+)?$' THEN p.levels::float8 END AS levels
   FROM osm.pois p, params
   UNION ALL
-  SELECT 'osm:w' || r.way_id, 'roundabout', coalesce(nullif(btrim(r.name_ka), ''), btrim(r.name)),
-         nullif(btrim(r.name_en), ''), NULL, false, ST_Transform(r.geom, params.utm_srid), NULL
-  FROM osm.roads r, params
-  WHERE r.junction = 'roundabout' AND coalesce(nullif(btrim(r.name_ka), ''), nullif(btrim(r.name), '')) IS NOT NULL
+  SELECT 'osm:w' || min(r.way_id), 'roundabout', r.name_ka, max(r.name_en), NULL, false,
+         ST_Centroid(ST_Collect(r.geom)), NULL
+  FROM roundabout_part r
+  GROUP BY r.name_ka, r.part
   UNION ALL
   SELECT 'osm:' || b.id, 'bridge', b.name_ka, b.name_en, NULL, false, ST_Transform(b.geom, params.utm_srid), NULL
   FROM pipeline.bridge b, params
@@ -91,12 +112,15 @@ raw AS (
 placed AS (
   SELECT r.*, ST_PointOnSurface(r.geom) AS at,
          CASE WHEN ST_Dimension(r.geom) = 2 THEN ST_Area(r.geom)
-              WHEN r.levels IS NOT NULL THEN r.levels * 100 END AS footprint
+              WHEN r.levels IS NOT NULL THEN r.levels * 100 END AS footprint,
+         count(*) OVER (PARTITION BY r.kind, r.brand) AS branches
   FROM raw r
   WHERE (r.name_ka IS NOT NULL OR r.brand IS NOT NULL)
 )
 SELECT p.id, p.kind, coalesce(p.name_ka, p.brand) AS name_ka, p.name_en, p.brand,
        ST_Transform(p.at, 4326) AS geom,
+       CASE WHEN ST_Dimension(p.geom) = 2
+            THEN ST_Multi(ST_Transform(ST_SimplifyPreserveTopology(p.geom, 3), 4326)) END AS outline,
        0.30 * CASE p.kind
                 WHEN 'metro' THEN 1.0 WHEN 'bridge' THEN 1.0
                 WHEN 'square' THEN 0.9 WHEN 'roundabout' THEN 0.9 WHEN 'fuel' THEN 0.9
@@ -111,7 +135,9 @@ SELECT p.id, p.kind, coalesce(p.name_ka, p.brand) AS name_ka, p.name_en, p.brand
        + 0.10 * CASE WHEN p.wiki THEN 1 ELSE 0 END
        + 0.15 / (SELECT count(*) FROM placed o WHERE o.kind = p.kind AND ST_DWithin(o.at, p.at, 300))
          AS base
-FROM placed p;
+FROM placed p
+-- A fast-food brand with 25 or more branches in the city is everywhere, so no landmark.
+WHERE NOT (p.kind = 'fast_food' AND p.branches >= 25);
 
 CREATE INDEX ON pipeline.landmark USING gist (geom);
 

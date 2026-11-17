@@ -19,7 +19,7 @@ import 'package:pindoro_learning/pindoro_learning.dart';
 /// A new place (SPEC §16.18), before it is ever asked: the map marks it in
 /// yellow with every street and place named, the plate says
 /// "New place · 1 of 3", and the Intro sheet says where it is, with Street
-/// View to see what it looks like.
+/// View to see what it looks like, and "Can't find it?" when it isn't there.
 class PlaceIntro extends ConsumerWidget {
   const PlaceIntro({
     super.key,
@@ -27,12 +27,14 @@ class PlaceIntro extends ConsumerWidget {
     required this.question,
     required this.topBar,
     required this.onGotIt,
+    required this.onHide,
   });
 
   final SessionPlaying play;
   final LandmarkQuestion question;
   final Widget topBar;
   final VoidCallback onGotIt;
+  final VoidCallback onHide;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -55,6 +57,7 @@ class PlaceIntro extends ConsumerWidget {
           PindoroMap(
             area: play.area,
             truthPoint: landmark.at,
+            truth: question.outlineLines,
             names: MapNames.all,
             topInset: insets.top,
             bottomInset: insets.bottom,
@@ -86,6 +89,7 @@ class PlaceIntro extends ConsumerWidget {
                   ? l10n.placeOnStreetSentence(streetName(street, settings))
                   : l10n.placeAtJunction(junction),
               facts: landmarkKindName(l10n, landmark.kind),
+              extra: [CantFindItChip(name: name, onHide: onHide)],
               regionLabel: l10n.placeIntroRegion,
               streetViewLabel: l10n.streetView,
               onStreetView: () {
@@ -102,6 +106,39 @@ class PlaceIntro extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// "Can't find it?" on a pack place (SPEC §16.18 item 94): once confirmed,
+/// [onHide] hides the place on this phone.
+class CantFindItChip extends StatelessWidget {
+  const CantFindItChip({super.key, required this.name, required this.onHide});
+
+  final String name;
+  final VoidCallback onHide;
+
+  Future<void> _ask(BuildContext context) async {
+    final l10n = context.l10n;
+    final hide = await showDialog<bool>(
+      context: context,
+      builder: (_) => PindoroDialog(
+        title: l10n.placeHideTitle(name),
+        body: l10n.placeHideBody,
+        primary: l10n.landmarksKeep,
+        secondary: l10n.placeHideConfirm,
+      ),
+    );
+    if (hide == true) onHide();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final label = context.l10n.placeCantFind;
+    return Tappable(
+      onTap: () => unawaited(_ask(context)),
+      label: label,
+      child: StatChip(label: label, glyph: PindoroGlyph.flag),
     );
   }
 }

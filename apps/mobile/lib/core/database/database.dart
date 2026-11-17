@@ -362,9 +362,10 @@ class Runs extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-/// Moves the player reported as legal ("Wrong? Report this turn", SPEC §15): a one-way driven
-/// the other way (`oneway:n<from>:n<to>`) or a restricted turn (`turn:n<from>:n<via>:n<to>`),
-/// by OSM node ids.
+/// What the player reported wrong in the pack on this phone: moves that are legal ("Wrong? Report
+/// this turn", SPEC §15), a one-way driven the other way (`oneway:n<from>:n<to>`) or a restricted
+/// turn (`turn:n<from>:n<via>:n<to>`) by OSM node ids, and places that are not there
+/// (`place:<landmark id>`, "Can't find it?", SPEC §16.18 item 94).
 @DataClassName('TurnOverrideRow')
 class TurnOverrides extends Table {
   @override
