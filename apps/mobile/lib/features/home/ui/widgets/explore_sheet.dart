@@ -13,16 +13,15 @@ import 'package:pindoro/features/home/ui/widgets/home_coach.dart';
 import 'package:pindoro/features/learning/data/progress.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/learning/ui/city_memory_card.dart';
-import 'package:pindoro/features/learning/ui/city_tab_page.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// When the City memory figure starts counting up after a round.
 const Duration _introDelay = Duration(milliseconds: 950);
 
-/// Explore's sheet under the map (canvas V31-20): City memory and the
-/// district legend, the quick starts, the last round, the areas played, every
-/// area, and the next badge.
+/// Explore's sheet under its play card: City memory, the quick starts as a
+/// sideways row of cards, the last round, the areas played, every area, and
+/// the next badge.
 List<Widget> exploreSheet({
   required BuildContext context,
   required HomeData home,
@@ -44,17 +43,10 @@ List<Widget> exploreSheet({
     formatNumber(m?.total ?? 0),
   );
   return [
-    Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      spacing: PindoroSpace.s2,
-      children: [
-        _InMemoryHeader(
-          home: home,
-          showCoach: !(settings?.homeCoachSeen ?? true),
-          onCoachClosed: onCoachClosed,
-        ),
-        const DistrictLegend(),
-      ],
+    _InMemoryHeader(
+      home: home,
+      showCoach: !(settings?.homeCoachSeen ?? true),
+      onCoachClosed: onCoachClosed,
     ),
     if (!played)
       Text(
@@ -66,10 +58,10 @@ List<Widget> exploreSheet({
       spacing: PindoroSpace.s2,
       children: [
         SectionTitle(l10n.exploreQuickStarts),
-        ListGroup(
+        _Sideways(
           children: [
             if (last != null && last.missed > 0)
-              _QuickRow(
+              _QuickCard(
                 glyph: PindoroGlyph.retry,
                 title: l10n.resultsRetryMissed(last.missed),
                 subtitle: l10n.exploreFromLastRound(
@@ -80,14 +72,14 @@ List<Widget> exploreSheet({
                 onTap: () => onOpen(Routes.retry(last.round.id)),
               ),
             if (home.recent.firstOrNull case final area?)
-              _QuickRow(
+              _QuickCard(
                 glyph: PindoroGlyph.pin,
                 title: l10n.exploreAgain(districtName(area, settings)),
                 subtitle: inMemory(areas[area.id]),
                 onTap: () => onPlay(DistrictsArea({area.id})),
               ),
             if (raions.isNotEmpty)
-              _QuickRow(
+              _QuickCard(
                 glyph: PindoroGlyph.compass,
                 title: l10n.exploreRandomDistrict,
                 subtitle: l10n.exploreRoundSize(
@@ -222,13 +214,38 @@ class _InMemoryHeader extends ConsumerWidget {
   }
 }
 
-class _QuickRow extends StatelessWidget {
-  const _QuickRow({
+/// Cards side by side, as tall as the tallest, scrolling sideways when they
+/// don't fit.
+class _Sideways extends StatelessWidget {
+  const _Sideways({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    clipBehavior: Clip.none,
+    child: IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: PindoroSpace.s2,
+        children: children,
+      ),
+    ),
+  );
+}
+
+/// A quick start: its glyph beside what it plays and a detail line.
+class _QuickCard extends StatelessWidget {
+  const _QuickCard({
     required this.glyph,
     required this.title,
     required this.subtitle,
     required this.onTap,
   });
+
+  /// One and a half cards on a phone, so the row reads as scrollable.
+  static const double _width = 236;
 
   final PindoroGlyph glyph;
   final String title;
@@ -236,13 +253,44 @@ class _QuickRow extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => ListRow(
-    leading: RowTile(glyph),
-    title: title,
-    subtitle: subtitle,
-    trailing: const PindoroIcon(PindoroGlyph.chevronRight),
-    onTap: onTap,
-  );
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    return Tappable(
+      label: '$title. $subtitle',
+      onTap: onTap,
+      child: SizedBox(
+        width: _width,
+        child: LipBox(
+          border: c.lineBase,
+          padding: const EdgeInsets.all(PindoroSpace.s3),
+          child: Row(
+            spacing: PindoroSpace.s3,
+            children: [
+              RowTile(glyph),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      title,
+                      style: PindoroType.titleSm.copyWith(color: c.textPrimary),
+                    ),
+                    Text(
+                      subtitle,
+                      style: PindoroType.bodySm.copyWith(
+                        color: c.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// Before any play: start where you live, or set home first.
@@ -264,7 +312,7 @@ class _NearHome extends ConsumerWidget {
     final l10n = context.l10n;
     final homeId = ref.watch(learnCityProvider).value?.homeId;
     final home = pack.districts().where((d) => d.id == homeId).firstOrNull;
-    return _QuickRow(
+    return _QuickCard(
       glyph: PindoroGlyph.home,
       title: l10n.exploreNearHome,
       subtitle: home == null

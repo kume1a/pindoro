@@ -9,10 +9,18 @@ Future<void> settle(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Scrolls the last scrollable on screen (a tab's list, Explore's sheet)
-/// until [target] is built and visible.
-Future<void> scrollTo(WidgetTester tester, Finder target) => tester
-    .scrollUntilVisible(target, 200, scrollable: find.byType(Scrollable).last);
+/// Scrolls the last vertical scrollable on screen (a tab's list, Explore's
+/// sheet) until [target] is built and visible.
+Future<void> scrollTo(WidgetTester tester, Finder target) =>
+    tester.scrollUntilVisible(
+      target,
+      200,
+      scrollable: find
+          .byWidgetPredicate(
+            (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+          )
+          .last,
+    );
 
 /// Taps [target] outside the fake clock so its async handler runs, then
 /// settles.

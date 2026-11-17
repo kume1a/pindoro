@@ -113,6 +113,11 @@
     meta) and `color.map.district.started.fill` (in `app.json`) still need the design system run
     on claude.ai; the canvas's Part 2 boards (the app as built) are only the tab bar, Me and the
     app tokens so far.
+  - Explore was redrawn in the app (2026-11-17) and differs from V31-20: the basemap under a
+    color.surface.base veil (opacity.veil, in pp.json), the fills' key over the map, a tap
+    on a district picks it (the old tap opened the area picker), a pinned play card in the sheet
+    replaces the Play footer and the saved-round card, and the quick starts are a sideways row of
+    cards. Carry it back to the canvas with the design system run.
 
 - v3 recitals and drives (M6), left out on purpose:
   - Speech (SPEC §11): no Speak mode, transcript chips, Vosk model download or self-grade

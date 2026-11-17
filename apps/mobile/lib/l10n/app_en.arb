@@ -2583,7 +2583,25 @@
       }
     }
   },
-  "a11yExploreMap": "Map of {city}’s districts, filled by how much of each is in memory. Tap one to play it.",
+  "explorePickTitle": "Where to play?",
+  "explorePickHint": "Tap a district on the map, or choose any area from the list.",
+  "a11yPlayArea": "Play area: {area}. Change area.",
+  "@a11yPlayArea": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yDifficulty": "Difficulty: {difficulty}. Change difficulty.",
+  "@a11yDifficulty": {
+    "placeholders": {
+      "difficulty": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yExploreMap": "Map of {city}’s districts, filled by how much of each is in memory. Tap one to pick it for your next round.",
   "@a11yExploreMap": {
     "placeholders": {
       "city": {

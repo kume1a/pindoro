@@ -392,6 +392,11 @@
         "name": "opacity.shimmer",
         "value": "0.7",
         "usage": "The skeleton shimmer's peak over color.surface.sunken (.pd-skel::after)."
+      },
+      {
+        "name": "opacity.veil",
+        "value": "0.55",
+        "usage": "Explore's city map: color.surface.base over the basemap, so the district fills and the picked area read first."
       }
     ],
     "note": "Opacities the design system uses in its component CSS but has no token for."

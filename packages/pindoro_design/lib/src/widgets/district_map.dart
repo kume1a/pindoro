@@ -381,14 +381,22 @@ class Minibar extends StatelessWidget {
   }
 }
 
-/// A [DistrictMiniMap] colour square: with [label] in the legend, alone
-/// (and larger) before a district's row.
+/// A [DistrictMap] colour square: with [label] in the legend, alone (and
+/// larger) before a district's row. A [dense] legend sets its label in
+/// `label.sm`, for a key over a map.
 class Swatch extends StatelessWidget {
-  const Swatch({super.key, required this.progress, this.label, this.size = 12});
+  const Swatch({
+    super.key,
+    required this.progress,
+    this.label,
+    this.size = 12,
+    this.dense = false,
+  });
 
   final DistrictProgress progress;
   final String? label;
   final double size;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -418,7 +426,9 @@ class Swatch extends StatelessWidget {
         Flexible(
           child: Text(
             label,
-            style: PindoroType.labelMd.copyWith(color: c.textSecondary),
+            style: (dense ? PindoroType.labelSm : PindoroType.labelMd).copyWith(
+              color: c.textSecondary,
+            ),
           ),
         ),
       ],

@@ -22,10 +22,10 @@ typedef ExploreDistrict = ({
   String name,
 });
 
-/// Explore's city map (canvas V31-20): the basemap with the districts in
-/// their fill steps and name chips, the play area as the dashed cobalt
-/// outline, the attribution above [bottomInset] (what the sheet covers;
-/// the camera frames the city above it). Taps report where they land.
+/// Explore's city map: the basemap under a veil so the districts' fill steps
+/// read first, their name chips, the play area as the dashed cobalt outline,
+/// and [legend] over the attribution above [bottomInset] (what the sheet
+/// covers; the camera frames the city above it). Taps report where they land.
 class ExploreMap extends StatefulWidget {
   const ExploreMap({
     super.key,
@@ -34,6 +34,7 @@ class ExploreMap extends StatefulWidget {
     required this.bounds,
     required this.onTap,
     this.bottomInset = 0,
+    this.legend,
   });
 
   final List<ExploreDistrict> districts;
@@ -43,6 +44,7 @@ class ExploreMap extends StatefulWidget {
   final Bbox bounds;
   final ValueChanged<LatLng> onTap;
   final double bottomInset;
+  final Widget? legend;
 
   @override
   State<ExploreMap> createState() => _ExploreMapState();
@@ -54,6 +56,7 @@ final exploreMapBuilderProvider = Provider<Widget Function(ExploreMap map)>(
       (map) => map,
 );
 
+const String _veil = 'explore-veil';
 const String _districts = 'explore-districts';
 const String _play = 'explore-play';
 const String _labels = 'explore-labels';
@@ -115,7 +118,7 @@ class _ExploreMapState extends State<ExploreMap> {
       'opacity': fill == null ? 0.0 : fill.a,
       'stroke': hexColor(stroke),
       'width': d.progress == DistrictProgress.notStarted
-          ? 1.5
+          ? PindoroStroke.hairline
           : PindoroStroke.base,
     };
   }
@@ -134,6 +137,16 @@ class _ExploreMapState extends State<ExploreMap> {
           );
         }(),
     ]);
+    await c.addGeoJsonSource(_veil, areaMaskGeoJson(const []));
+    await c.addFillLayer(
+      _veil,
+      '$_veil-fill',
+      ml.FillLayerProperties(
+        fillColor: hexColor(colors.surfaceBase),
+        fillOpacity: PindoroOpacity.veil,
+      ),
+      enableInteraction: false,
+    );
     await c.addGeoJsonSource(_districts, _districtFeatures(colors));
     await c.addFillLayer(
       _districts,
@@ -158,7 +171,10 @@ class _ExploreMapState extends State<ExploreMap> {
     await c.addFillLayer(
       _play,
       '$_play-fill',
-      ml.FillLayerProperties(fillColor: hexColor(colors.mapAreaFill)),
+      ml.FillLayerProperties(
+        fillColor: hexColor(colors.mapAreaFill),
+        fillOpacity: colors.mapAreaFill.a,
+      ),
       enableInteraction: false,
     );
     await c.addLineLayer(
@@ -254,8 +270,13 @@ class _ExploreMapState extends State<ExploreMap> {
                 ),
               Positioned(
                 left: PindoroSpace.s4,
+                right: PindoroSpace.s4,
                 bottom: widget.bottomInset + MapAttribution.gap,
-                child: const MapAttribution(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: PindoroSpace.s2,
+                  children: [?widget.legend, const MapAttribution()],
+                ),
               ),
             ],
           );

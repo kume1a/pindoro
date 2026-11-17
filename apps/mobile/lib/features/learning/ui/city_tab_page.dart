@@ -47,17 +47,19 @@ class CityTabPage extends ConsumerWidget {
 
 /// The district fills' legend (District fills): not started, under a
 /// quarter, a quarter or more, Mastered. Hidden from screen readers: the map
-/// says the same.
+/// says the same. [dense] is the key over Explore's map.
 class DistrictLegend extends StatelessWidget {
-  const DistrictLegend({super.key});
+  const DistrictLegend({super.key, this.dense = false});
+
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     return ExcludeSemantics(
       child: Wrap(
-        spacing: PindoroSpace.s3,
-        runSpacing: PindoroSpace.s2,
+        spacing: dense ? PindoroSpace.s2 : PindoroSpace.s3,
+        runSpacing: dense ? PindoroSpace.s1 : PindoroSpace.s2,
         children: [
           for (final (progress, label) in [
             (DistrictProgress.notStarted, l10n.legendNotStarted),
@@ -65,7 +67,12 @@ class DistrictLegend extends StatelessWidget {
             (DistrictProgress.inProgress, l10n.legendInProgress),
             (DistrictProgress.complete, l10n.memoryMastered),
           ])
-            Swatch(progress: progress, label: label, size: 16),
+            Swatch(
+              progress: progress,
+              label: label,
+              size: dense ? 12 : 16,
+              dense: dense,
+            ),
         ],
       ),
     );

@@ -28,6 +28,10 @@ void main() {
   late AppDatabase db;
   late _FakeReminders reminders;
   late List<Street> streets;
+  late District raion;
+
+  /// The map Explore last built (tests draw none).
+  ExploreMap? exploreMap;
 
   /// What the server answers; offline unless a test says otherwise.
   late http.Response Function(http.Request) serverReply;
@@ -35,6 +39,7 @@ void main() {
   setUpAll(() {
     final pack = SqlitePackRepository.open(AppConfig.fixturePackAsset);
     streets = pack.streets(districtId: AppConfig.fixtureDistrictId);
+    raion = pack.districts().firstWhere((d) => d.isRaion);
     pack.close();
   });
 
@@ -65,9 +70,10 @@ void main() {
         ref.onDispose(repo.close);
         return repo;
       }),
-      exploreMapBuilderProvider.overrideWithValue(
-        (_) => const SizedBox.expand(),
-      ),
+      exploreMapBuilderProvider.overrideWithValue((map) {
+        exploreMap = map;
+        return const SizedBox.expand();
+      }),
     ],
     child: PindoroApp(initialLocation: location, coldStart: coldStart),
   );
@@ -134,8 +140,25 @@ void main() {
 
   testWidgets('home without an area asks for one', (tester) async {
     await pumpApp(tester, Routes.home);
+    expect(find.text('Where to play?'), findsOneWidget);
     expect(find.text('Choose an area'), findsOneWidget);
     expect(find.text('Tbilisi in memory'), findsOneWidget);
+  });
+
+  testWidgets('a tap on a district picks it for Play; a tap off clears it', (
+    tester,
+  ) async {
+    await pumpApp(tester, Routes.home);
+    exploreMap!.onTap(raion.center);
+    await tester.pumpAndSettle();
+    expect(find.text('Where to play?'), findsNothing);
+    expect(find.bySemanticsLabel(RegExp('^Play area: ')), findsOneWidget);
+    expect(find.text('Play'), findsOneWidget);
+    expect(exploreMap!.playArea, isNotEmpty, reason: 'outlined on the map');
+
+    exploreMap!.onTap(const LatLng(0, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Where to play?'), findsOneWidget);
   });
 
   testWidgets('on the Vake stand-in, Home offers the whole city', (
@@ -280,9 +303,10 @@ void main() {
 
   testWidgets('before any play, Explore explains itself and offers to start '
       'near home', (tester) async {
+    await tester.runAsync(SettingsDao(db).markHomeCoachSeen);
     await pumpApp(tester, Routes.home);
     expect(find.textContaining('Play a round anywhere'), findsOneWidget);
-    expect(find.text('Near home'), findsOneWidget);
+    await scrollTo(tester, find.text('Near home'));
     expect(find.text('Last round'), findsNothing);
   });
 
