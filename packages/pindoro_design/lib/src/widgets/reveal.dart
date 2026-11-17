@@ -8,9 +8,11 @@ import 'motion.dart';
 import 'round_hud.dart';
 import 'surfaces.dart';
 
-/// The answer-reveal sheet in tier colours: badge, label, an optional header
-/// chip, the distance sentence, optional chips, and the tier-coloured action
-/// pinned at the bottom. Its content scrolls when text is large.
+/// The answer-reveal sheet in tier colours, kept short so the map keeps its
+/// room: badge, label, an optional header chip, the distance sentence,
+/// optional chips, and the tier-coloured action pinned at the bottom with an
+/// optional [secondary] icon button beside it. Its content scrolls when text
+/// is large.
 class RevealSheet extends StatelessWidget {
   const RevealSheet({
     super.key,
@@ -21,6 +23,7 @@ class RevealSheet extends StatelessWidget {
     this.headerChip,
     this.chips = const [],
     this.mascot,
+    this.secondary,
   });
 
   final Tier tier;
@@ -37,7 +40,13 @@ class RevealSheet extends StatelessWidget {
 
   /// The tier-coloured Next / Got it button.
   final Widget action;
+
+  /// Left of [action]: an icon button such as Street View.
+  final Widget? secondary;
   final Widget? mascot;
+
+  /// How far [mascot] stands up out of the sheet.
+  static const double mascotRise = 40;
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +57,6 @@ class RevealSheet extends StatelessWidget {
       children: [
         TierSheetFrame(
           tier: tier,
-          top: PindoroSpace.s5,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -62,18 +70,18 @@ class RevealSheet extends StatelessWidget {
                     children: [
                       Wrap(
                         crossAxisAlignment: WrapCrossAlignment.center,
-                        spacing: PindoroSpace.s3,
+                        spacing: PindoroSpace.s2,
                         runSpacing: PindoroSpace.s2,
                         children: [
                           PopIn(
                             delay: const Duration(milliseconds: 80),
                             child: tier == Tier.close
-                                ? Wiggle(child: TierBadge(tier, size: 44))
-                                : TierBadge(tier, size: 44),
+                                ? Wiggle(child: TierBadge(tier, size: 32))
+                                : TierBadge(tier, size: 32),
                           ),
                           Text(
                             label,
-                            style: PindoroType.headlineMd.copyWith(
+                            style: PindoroType.titleLg.copyWith(
                               color: style.ink,
                             ),
                           ),
@@ -96,30 +104,28 @@ class RevealSheet extends StatelessWidget {
                   ),
                 ),
               ),
-              action,
+              Row(
+                spacing: PindoroSpace.s3,
+                children: [?secondary, Expanded(child: action)],
+              ),
             ],
           ),
         ),
         if (mascot != null)
-          Positioned(right: PindoroSpace.s4, top: -56, child: mascot!),
+          Positioned(right: PindoroSpace.s4, top: -mascotRise, child: mascot!),
       ],
     );
   }
 }
 
-/// The bottom sheet of [RevealSheet] in [tier] colours: full
-/// width on the tier background, its top rounded with a tier-fill edge, and
-/// [top] padding over [child], which stays clear of the system bottom inset.
+/// The bottom sheet of [RevealSheet] in [tier] colours: full width on the
+/// tier background, its top rounded with a tier-fill edge, padded
+/// [PindoroSpace.s3] around [child], which stays clear of the system bottom
+/// inset.
 class TierSheetFrame extends StatelessWidget {
-  const TierSheetFrame({
-    super.key,
-    required this.tier,
-    this.top = PindoroSpace.s4,
-    required this.child,
-  });
+  const TierSheetFrame({super.key, required this.tier, required this.child});
 
   final Tier tier;
-  final double top;
   final Widget child;
 
   @override
@@ -138,9 +144,9 @@ class TierSheetFrame extends StatelessWidget {
       ),
       padding: EdgeInsets.fromLTRB(
         PindoroSpace.s4,
-        top,
+        PindoroSpace.s3,
         PindoroSpace.s4,
-        PindoroSpace.s4 + MediaQuery.paddingOf(context).bottom,
+        PindoroSpace.s3 + MediaQuery.paddingOf(context).bottom,
       ),
       child: child,
     );

@@ -181,3 +181,8 @@ double bottomActionGap(BuildContext context) =>
     StatefulNavigationShell.maybeOf(context) == null
     ? MediaQuery.paddingOf(context).bottom + 26
     : PindoroSpace.s3;
+
+/// Map screens' actions end 12 dp above the bottom safe area, so the map
+/// keeps the room.
+double mapActionGap(BuildContext context) =>
+    MediaQuery.paddingOf(context).bottom + PindoroSpace.s3;

@@ -47,8 +47,10 @@ parameters; strings live in the app.
   carries tabular figures.
 - Tier → colour + icon: perfect yellow star, great aqua check-circle, close orange target,
   miss red reroute. Map roles: yellow = truth, cobalt = you, ink = measurement.
-- `StreetPlate`: starts at `headline.sm`, shrinks 2 dp steps until it fits two lines, floor
-  `size.plate.name-min` (20), then wraps — never truncates.
+- `StreetPlate`: starts at `title.lg`, shrinks 2 dp steps until it fits two lines, floor
+  `size.plate.name-floor` (16, app.json), then wraps — never truncates; its sub-line keeps to
+  one line. `RevealSheet` and `IntroSheet` are kept short (32 dp badge, `title.lg` label, 12 dp
+  padding) so the map keeps its room (2026-11-17, see `docs/TODO.md`).
 - `PindoroButton` and `SearchField` are 48 dp (`size.button.md`), not the design's 56: the app
   felt too big (2026-11-16, see `docs/TODO.md`).
 

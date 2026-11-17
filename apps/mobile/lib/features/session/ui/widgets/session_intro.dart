@@ -89,7 +89,7 @@ class _SessionIntroState extends ConsumerState<SessionIntro> {
           ),
         ),
         top: Column(
-          spacing: PindoroSpace.s4,
+          spacing: PindoroSpace.s2,
           children: [
             topBar,
             RiseSwitcher(

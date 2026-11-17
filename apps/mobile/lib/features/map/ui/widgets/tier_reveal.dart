@@ -38,7 +38,7 @@ class TierRevealSheet extends StatelessWidget {
       Tier.perfect || Tier.great => PindoExpression.cheering,
       Tier.close => PindoExpression.happy,
       Tier.miss => PindoExpression.encouraging,
-    }, height: 80),
+    }, height: 56),
     action: PindoroButton(
       tier: tier,
       label: action,

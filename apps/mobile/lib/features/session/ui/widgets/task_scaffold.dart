@@ -46,7 +46,7 @@ class TaskScaffold extends StatelessWidget {
               PindoroSpace.s4,
               0,
               PindoroSpace.s4,
-              bottomActionGap(context),
+              mapActionGap(context),
             ),
             child: c,
           ),
@@ -58,7 +58,7 @@ class TaskScaffold extends StatelessWidget {
         RevealCelebration(revealKey: r.resultKey, size: size),
     ];
     final top = Column(
-      spacing: PindoroSpace.s4,
+      spacing: PindoroSpace.s2,
       children: [topBar, header, ?body],
     );
     if (map != null) {
