@@ -201,6 +201,26 @@ and the specs after R5. Fix them in roughly this order.
     (`size.button.md`) instead of 56, and the street plate's name starts at `headline.sm` (22)
     instead of `headline.md`. On claude.ai: `size.button.lg` usage, the StreetCard fit rule,
     v1-screens § Frames, accessibility.md and signpost.md "56 dp".
+- Changed in the app from field feedback (2026-11-17, SPEC §16.18), to carry back to claude.ai:
+  - The street plate starts at `title.lg` (20) down to `size.plate.name-floor` (16, in
+    `app.json`), its sub-line on one line; the Reveal sheet has a 32 dp badge, a `title.lg`
+    label, 12 dp padding, a 56 dp Pindo and an optional icon button beside its action; the Intro
+    sheet 12–16 dp padding. Map screens keep 8 dp above and below the plate and end their footer
+    12 dp over the safe area.
+  - Settings → Map with Zoom buttons (off by default).
+  - The place intro (a learning screen the canvas lacks): yellow place dot, "New place · 1 of 3",
+    the Intro sheet with Street View; the place reveal's dot and measure; `MapChip.place` and
+    the crossing street chips on intros and reveals; the Street View (eye) button.
+  - Explore: areas inside a district drawn and picked zoomed in; the play card's "48 streets at
+    Hard · 31 known"; the same line on the difficulty screen.
+  - Explore's first-question coach mark is gone, so `color.map.reticle` and `quizCoach*` copy are
+    unused in the app.
+- Left out of the field-feedback pass, on purpose:
+  - No hard stop at the day's minutes: the relearn cap keeps sessions short instead.
+  - Name it, both ends, drills and the other route cards keep their maps as they were (no place
+    names, no Street View).
+  - Place chips are drawn by the app, so a long name can hide a nearby one; MapLibre text labels
+    would need FiraGO glyphs served (see the Placeholders section).
 
 ## Designed, not scheduled
 

@@ -21,7 +21,7 @@ import 'package:pindoro_design/pindoro_design.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Language, street names, the way to the learning settings, theme, sound,
-/// haptics, the account; changes apply at once.
+/// haptics, the maps' zoom buttons, the account; changes apply at once.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 

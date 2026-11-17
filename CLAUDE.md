@@ -119,8 +119,9 @@ On Windows `just` works from PowerShell or Git Bash: recipes run in Git for Wind
 - Write tests first for scheduler, grader, planner, curriculum and recital grading. FSRS must match
   `shared/fixtures/fsrs_vectors.json` to 1e-4 (`just fsrs-vectors` regenerates it).
 - `review_log` is append-only. Never delete or rewrite rows; migrations add columns only.
-- Map colours: yellow = the truth, cobalt = you, ink = measurement. Labels on learning maps show only
-  streets the player already knows. Never show the answer street before Confirm.
+- Map colours: yellow = the truth, cobalt = you, ink = measurement. Street names show on intros
+  and reveals only, place names also on street questions, never a name that gives the answer away
+  (SPEC §16.18). Never show the answer street before Confirm.
 - No XP, levels or leagues in new code. Tier visuals (Perfect, Great, Close, Miss) stay as feedback.
 - Google Street View: deep link to the Google Maps app only. No Maps API keys, no cached Google
   imagery.
