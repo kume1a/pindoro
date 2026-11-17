@@ -30,6 +30,7 @@ abstract final class _MapSources {
   static const String areaMask = 'area-mask';
   static const String youPin = 'you-pin';
   static const String truthStreet = 'truth-street';
+  static const String truthPoint = 'truth-point';
   static const String measure = 'measure';
   static const String measureEnd = 'measure-end';
   static const String measureLabel = 'measure-label';
@@ -55,6 +56,9 @@ typedef MapPlace = ({String id, LatLng at, String label, double salience});
 /// A known street's trace (`opacity.street-trace` over `color.map.region.outline`).
 const double _labelTraceWidth = 6;
 
+/// How far around a place its map frames, so its crossings show.
+const double _placeFrameM = 200;
+
 const String _pinImage = 'player-pin';
 
 /// Builds the game map; widget tests override it so no platform view is made.
@@ -76,6 +80,7 @@ class PindoroMap extends ConsumerStatefulWidget {
     required this.area,
     this.pin,
     this.truth,
+    this.truthPoint,
     this.measure,
     this.onTap,
     this.bottomInset = 0,
@@ -94,6 +99,10 @@ class PindoroMap extends ConsumerStatefulWidget {
   final AreaShape area;
   final LatLng? pin;
   final MultiPolyline? truth;
+
+  /// A place as the answer: a yellow dot over an ink ring, framed with what
+  /// is around it and the pin.
+  final LatLng? truthPoint;
   final Measure? measure;
   final ValueChanged<LatLng>? onTap;
   final double bottomInset;
@@ -287,6 +296,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     if (widget.pin != oldWidget.pin ||
         !listEquals(widget.morePins, oldWidget.morePins) ||
         widget.truth != oldWidget.truth ||
+        widget.truthPoint != oldWidget.truthPoint ||
         widget.measure != oldWidget.measure ||
         widget.labels != oldWidget.labels ||
         widget.hit != oldWidget.hit) {
@@ -300,6 +310,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
         widget.topInset != oldWidget.topInset ||
         widget.bottomInset != oldWidget.bottomInset;
     if (widget.truth != oldWidget.truth ||
+        widget.truthPoint != oldWidget.truthPoint ||
         (frame != null && !listEquals(frame, oldWidget.frame)) ||
         (insetsMoved && _framed)) {
       unawaited(_fit(_framePoints));
@@ -321,16 +332,26 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     return [LatLng(b.minLat, b.minLon), LatLng(b.maxLat, b.maxLon)];
   }
 
-  /// What the camera frames: the street and the pin once revealed, else
-  /// [_areaFrame].
-  List<LatLng> get _framePoints => switch (widget.truth) {
-    final truth? => [
+  /// What the camera frames: the street (or the place and the streets
+  /// around it) and the pin once revealed, else [_areaFrame].
+  List<LatLng> get _framePoints => switch ((widget.truth, widget.truthPoint)) {
+    (final truth?, _) => [
       ...truth.expand((l) => l),
       ?widget.pin,
       ...widget.morePins,
     ],
-    null => _areaFrame,
+    (null, final place?) => [..._around(place), ?widget.pin],
+    _ => _areaFrame,
   };
+
+  /// A square [_placeFrameM] out from [at] each way.
+  static List<LatLng> _around(LatLng at) {
+    final local = LocalProjection(at);
+    return [
+      local.unproject((-_placeFrameM, -_placeFrameM)),
+      local.unproject((_placeFrameM, _placeFrameM)),
+    ];
+  }
 
   Future<void> _fitArea() => _fit(_areaFrame);
 
@@ -430,6 +451,18 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
         enableInteraction: false,
       );
     }
+    await c.addGeoJsonSource(_MapSources.truthPoint, pointsGeoJson(const []));
+    await c.addCircleLayer(
+      _MapSources.truthPoint,
+      '${_MapSources.truthPoint}-dot',
+      ml.CircleLayerProperties(
+        circleColor: hexColor(colors.mapAnswerLine),
+        circleRadius: PindoroStroke.answer,
+        circleStrokeColor: hexColor(colors.mapAnswerCasing),
+        circleStrokeWidth: PindoroStroke.base * 2,
+      ),
+      enableInteraction: false,
+    );
     await c.addGeoJsonSource(_MapSources.hitStreet, linesGeoJson(const []));
     for (final (id, color, width, dash) in [
       ('halo', colors.mapPlayerHalo, drawnHalo, null),
@@ -584,6 +617,10 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     await c.setGeoJsonSource(
       _MapSources.truthStreet,
       linesGeoJson(_paintedTruth),
+    );
+    await c.setGeoJsonSource(
+      _MapSources.truthPoint,
+      pointsGeoJson([?widget.truthPoint]),
     );
     await c.setGeoJsonSource(
       _MapSources.measure,

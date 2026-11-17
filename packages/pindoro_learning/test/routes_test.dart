@@ -159,6 +159,50 @@ void main() {
       expect(open(cards, [out, into], phase2Open: true), ['G:in', 'G:out']);
     });
 
+    test('a turn or place with no named street to know stays shut', () {
+      expect(
+        open(
+          {'a1': _card('a1')},
+          [
+            _candidate('J:s', RouteLayer.skeleton),
+            _candidate('L:n1:1', RouteLayer.landmark),
+          ],
+        ),
+        isEmpty,
+      );
+    });
+
+    test('a place\'s L2 and L3 wait for its L1 to be Known', () {
+      final place = [
+        for (final n in [1, 2, 3])
+          _candidate('L:n1:$n', RouteLayer.landmark, known: {'a1'}, rank: n),
+      ];
+      final streets = {'a1': _card('a1')};
+      expect(open(streets, place), ['L:n1:1']);
+      final l1 = CardState(
+        itemId: 'L:n1:1',
+        phase: CardPhase.review,
+        memory: Memory(
+          stability: 10,
+          difficulty: 5,
+          lastReview: _now.subtract(const Duration(days: 2)),
+        ),
+        dueAt: _now.add(const Duration(days: 8)),
+        lastRating: Rating.good,
+        priorKnown: true,
+      );
+      expect(
+        curriculum.openRoutes(
+          place,
+          cards: streets,
+          carded: {'L:n1:1'},
+          items: {'L:n1:1': l1},
+          now: _now,
+        ),
+        ['L:n1:2', 'L:n1:3'],
+      );
+    });
+
     test('a personal landmark opens at once', () {
       expect(
         open(const {}, [

@@ -612,6 +612,24 @@ void main() {
       expect((row.format, row.rating), (ReviewFormat.landmark, Rating.good));
       expect((await dao.card(q.itemId))!.phase, CardPhase.review);
     });
+
+    testWidgets('a new place is shown first, named with its street when a '
+        'chain, then asked', (tester) async {
+      final q = first<LandmarkQuestion>((q) => q.n == 1 && q.ambiguous);
+      await pump(tester, [
+        (kind: StepKind.intro, itemId: q.itemId),
+        (kind: StepKind.retrieval1, itemId: q.itemId),
+      ]);
+      expect(find.text('New place · 1 of 1'), findsOneWidget);
+      expect(find.textContaining('${q.landmark.name}, '), findsWidgets);
+      expect(maps.last.truthPoint, q.landmark.at);
+      expect(maps.last.labels.first.label, q.street!.name);
+      expect(find.bySemanticsLabel('Street View'), findsOneWidget);
+      await tapThrough(tester, find.text('Got it'));
+      expect((await dao.card(q.itemId))!.phase, CardPhase.learning);
+      expect(find.text('Where is it?'), findsOneWidget);
+      expect(maps.last.truthPoint, isNull, reason: 'asking shows nothing');
+    });
   });
 
   group('M6 recitals', () {

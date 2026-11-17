@@ -42,6 +42,8 @@ SessionPlan plan({
   List<String> openSides = const [],
   int sidesStartedToday = 0,
   List<String> openRoutes = const [],
+  List<String> openPlaces = const [],
+  int placesIntroducedToday = 0,
   int routesStartedToday = 0,
   List<String> openRecitals = const [],
   int recitalsStartedToday = 0,
@@ -60,6 +62,8 @@ SessionPlan plan({
   openSides: openSides,
   sidesStartedToday: sidesStartedToday,
   openRoutes: openRoutes,
+  openPlaces: openPlaces,
+  placesIntroducedToday: placesIntroducedToday,
   routesStartedToday: routesStartedToday,
   openRecitals: openRecitals,
   recitalsStartedToday: recitalsStartedToday,
@@ -537,6 +541,42 @@ void main() {
       2,
     );
     expect(plan(cards: dueCards(150), openRoutes: routes).routeCount, 0);
+  });
+
+  group('new places (SPEC §16.18)', () {
+    final places = [for (var i = 0; i < 6; i++) 'L:n$i:1'];
+
+    test('3 a day, taught as intros after the new streets, then retrieved', () {
+      final p = plan(fresh: candidates(2), openPlaces: places);
+      expect(ofKind(p, StepKind.intro), [...candidates(2), ...places.take(3)]);
+      expect(ofKind(p, StepKind.retrieval1), containsAll(places.take(3)));
+      expect(ofKind(p, StepKind.retrieval2), containsAll(places.take(3)));
+      expect(ofKind(p, StepKind.review), isEmpty);
+      expect(p.newCount, 2, reason: 'new streets only');
+      expect(p.routeCount, 3);
+      expect(
+        p.estimatedS,
+        5 * LearningConfig.tNewS,
+        reason: 'a place takes a new street\'s time',
+      );
+    });
+
+    test('places taught today come off the 3; streets keep their own '
+        'number', () {
+      expect(plan(openPlaces: places, placesIntroducedToday: 2).routeCount, 1);
+      final cards = [
+        introduce(CardType.l.item('n9:1'), now),
+        introduce(CardType.l.item('n8:1'), now),
+      ];
+      expect(introducedToday(cards, now), 0);
+      expect(introducedToday(cards, now, types: {CardType.l}), 2);
+      expect(plan(cards: cards).newCount, 10);
+    });
+
+    test('none in a backlog or Learn 5 more', () {
+      expect(plan(cards: dueCards(150), openPlaces: places).routeCount, 0);
+      expect(plan(extraNew: 5, openPlaces: places).routeCount, 0);
+    });
   });
 
   test('recitals: one new a day after the route items, 3 minutes each, paused '

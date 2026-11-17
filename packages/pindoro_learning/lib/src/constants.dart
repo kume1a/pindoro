@@ -115,6 +115,9 @@ abstract final class LearningConfig {
   // Route items (§6.5, §6.6, §7, §9)
   static const int routeNewPerDayMax = 10;
   static const double routePauseFactor = 1.2;
+
+  /// New places a day (§16.18), each taught as an intro like a new street.
+  static const int landmarkNewPerDay = 3;
   static const int phase2StableDays = 14;
 
   /// A turn within this of the approach heading is straight on; past [turnUTurnDeg] a U-turn.

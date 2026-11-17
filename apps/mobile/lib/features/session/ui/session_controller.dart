@@ -351,7 +351,7 @@ class SessionController extends Notifier<SessionState> {
         : reintroduce(leech, now, note: _noteOf(note));
     _cards[card.itemId] = card;
     _times.add(now);
-    _introsDone++;
+    if (card.type == CardType.p) _introsDone++;
     final dao = _dao;
     await dao.putCard(card);
     if (!ref.mounted) return;
@@ -867,7 +867,9 @@ class SessionController extends Notifier<SessionState> {
     _shownAt = now;
     final intros = [
       for (final s in steps)
-        if (s.kind == StepKind.intro) s,
+        if (s.kind == StepKind.intro &&
+            CardType.ofItem(s.itemId) == CardType.ofItem(step.itemId))
+          s,
     ];
     final city = _pack.city();
     final known = {
@@ -896,9 +898,14 @@ class SessionController extends Notifier<SessionState> {
       forgotten: forgotten,
       street: street,
       area: (bbox: city.bbox, boundary: city.boundary),
-      labels: task is PinTask
-          ? labelStreets(street, _all, family: family)
-          : const [],
+      labels: switch (task) {
+        PinTask() => labelStreets(street, _all, family: family),
+        RouteTask(question: LandmarkQuestion(n: 1, :final landmark)) => [
+          (street: street, at: street.nearest(landmark.at).nearestPoint),
+          ...labelStreets(street, _all).take(LearningConfig.streetLabelMax - 1),
+        ],
+        _ => const [],
+      },
       known: {for (final s in known) s.id},
       newIndex: intros.indexOf(step) + 1,
       newTotal: intros.length,
@@ -943,7 +950,8 @@ class SessionController extends Notifier<SessionState> {
             street.parts.first.midpoint,
           ),
         ),
-        _ when step.kind == StepKind.intro => const PinTask(),
+        _ when step.kind == StepKind.intro && !isRouteItem(step.itemId) =>
+          const PinTask(),
         _ when CardType.ofItem(step.itemId) == CardType.r => _recitalTask(
           step.itemId,
         ),
@@ -974,7 +982,8 @@ class SessionController extends Notifier<SessionState> {
         final GatewayQuestion q => q.exitStreet ?? _nearest(q.at),
         final BridgeQuestion q => q.approachStreet ?? _nearest(q.at),
         final ConnectionQuestion q => q.street,
-        final LandmarkQuestion q => q.approachStreet ?? _nearest(q.landmark.at),
+        final LandmarkQuestion q =>
+          q.street ?? q.approachStreet ?? _nearest(q.landmark.at),
         null => _recitalTask(step.itemId)?.fromStreet,
       };
 

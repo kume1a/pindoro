@@ -68,7 +68,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
     final play = widget.play;
     final task = play.task as RouteTask;
     final graph = pack?.roadGraph();
-    String placeName(String? chunk) =>
+    String chunkName(String? chunk) =>
         switch (pack?.districts().where((d) => d.id == chunk).firstOrNull) {
           final d? => districtName(d, settings),
           null => l10n.routeCityCentre,
@@ -116,7 +116,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
             compact: tier != null,
             subline: [
               if (q.destChunk != null)
-                l10n.routeHeadingTo(placeName(q.destChunk)),
+                l10n.routeHeadingTo(chunkName(q.destChunk)),
               switch (q.landmark) {
                 final l? => l10n.routeTurnAtLandmark(l.name),
                 null => l10n.routeTurnAtJunction,
@@ -174,7 +174,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
         );
 
       case final GatewayQuestion q:
-        final chunk = placeName(q.chunk);
+        final chunk = chunkName(q.chunk);
         return TaskScaffold(
           topBar: widget.topBar,
           map: (insets) => map(
@@ -257,7 +257,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
             prompt: l10n.routeBridgeFrom,
             promptGlyph: PindoroGlyph.route,
             compact: tier != null,
-            subline: l10n.routeBridgeAsk(placeName(q.destChunk)),
+            subline: l10n.routeBridgeAsk(chunkName(q.destChunk)),
           ),
           controls: PindoroButton(
             label: chosen == null
@@ -292,6 +292,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
 
       case final LandmarkQuestion q:
         final landmark = q.landmark;
+        final shown = placeName(l10n, q, settings);
         final subline = landmark.personal
             ? l10n.routeLandmarkMine
             : landmarkKindName(l10n, landmark.kind);
@@ -310,7 +311,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
               : null,
           header: q.n == 1
               ? StreetPlate(
-                  landmark.name,
+                  shown,
                   key: ValueKey((play.index, 'landmark')),
                   prompt: l10n.routeLandmarkWhere,
                   promptGlyph: landmarkGlyph(landmark.kind),
@@ -319,7 +320,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
                 )
               : AskCard(
                   title: q.n == 2
-                      ? l10n.routeLandmarkJunction(landmark.name)
+                      ? l10n.routeLandmarkJunction(shown)
                       : l10n.routeLandmarkName(junctionAt(q.junction ?? -1)),
                   note: subline,
                 ),
@@ -356,10 +357,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
           result: tier == null
               ? null
               : result(
-                  l10n.routeLandmarkResult(
-                    landmark.name,
-                    junctionAt(q.junction ?? -1),
-                  ),
+                  l10n.routeLandmarkResult(shown, junctionAt(q.junction ?? -1)),
                 ),
         );
     }

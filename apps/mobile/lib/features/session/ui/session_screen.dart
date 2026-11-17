@@ -17,6 +17,7 @@ import 'package:pindoro/features/session/ui/widgets/bearing_view.dart';
 import 'package:pindoro/features/session/ui/widgets/crossings_view.dart';
 import 'package:pindoro/features/session/ui/widgets/ends_view.dart';
 import 'package:pindoro/features/session/ui/widgets/name_it_view.dart';
+import 'package:pindoro/features/session/ui/widgets/place_intro.dart';
 import 'package:pindoro/features/session/ui/widgets/placement_done.dart';
 import 'package:pindoro/features/session/ui/widgets/recital_view.dart';
 import 'package:pindoro/features/session/ui/widgets/route_view.dart';
@@ -78,6 +79,19 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
         title: context.l10n.todayDoneTitle,
         children: const [],
       ),
+      final SessionPlaying p &&
+              SessionPlaying(
+                task: RouteTask(question: final LandmarkQuestion q),
+              )
+          when p.step.kind == StepKind.intro =>
+        PlaceIntro(
+          play: p,
+          question: q,
+          labels: _streetLabels(p, settings),
+          places: places,
+          topBar: _topBar(p, controller),
+          onGotIt: () => unawaited(controller.introDone()),
+        ),
       final SessionPlaying p
           when p.step.kind == StepKind.intro && p.guess == null =>
         SessionIntro(

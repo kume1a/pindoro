@@ -1784,6 +1784,22 @@
   "landmarkKindWorship": "Church",
   "landmarkKindShop": "Shop",
   "landmarkKindOther": "Other",
+  "landmarkKindSquare": "Square",
+  "landmarkKindMall": "Mall",
+  "landmarkKindSupermarket": "Supermarket",
+  "landmarkKindStation": "Station",
+  "landmarkKindHospital": "Hospital",
+  "landmarkKindUniversity": "University",
+  "landmarkKindMonument": "Monument",
+  "landmarkKindSight": "Sight",
+  "landmarkKindTower": "Tower",
+  "landmarkKindStadium": "Stadium",
+  "landmarkKindPark": "Park",
+  "landmarkKindBank": "Bank",
+  "landmarkKindPharmacy": "Pharmacy",
+  "landmarkKindFastFood": "Fast food",
+  "landmarkKindBridge": "Bridge",
+  "landmarkKindRoundabout": "Roundabout",
   "learnLandmarks": "Your landmarks",
   "learnLandmarksSubtitle": "{count, plural, =0{Add the places you steer by} =1{1 landmark} other{{count} landmarks}}",
   "@learnLandmarksSubtitle": {
@@ -1997,6 +2013,45 @@
         "type": "String"
       },
       "junction": {
+        "type": "String"
+      }
+    }
+  },
+  "placeOnStreet": "{place}, {street}",
+  "@placeOnStreet": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      },
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionNewPlace": "New place · {number} of {total}",
+  "@sessionNewPlace": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "placeIntroRegion": "About this place",
+  "placeAtJunction": "At {junction}.",
+  "@placeAtJunction": {
+    "placeholders": {
+      "junction": {
+        "type": "String"
+      }
+    }
+  },
+  "placeOnStreetSentence": "On {street}.",
+  "@placeOnStreetSentence": {
+    "placeholders": {
+      "street": {
         "type": "String"
       }
     }

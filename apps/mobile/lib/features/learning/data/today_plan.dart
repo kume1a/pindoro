@@ -162,6 +162,23 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
   final times = timeEstimates(log);
   final seed = now.year * 10000 + now.month * 100 + now.day;
   final learnMore = extraNew != null;
+  final book = await routesFuture;
+  final open = learnMore
+      ? const <String>[]
+      : curriculum.openRoutes(
+          book.candidates,
+          cards: await streetCardsFuture,
+          carded: {for (final c in cards) c.itemId},
+          items: byItem,
+          now: now,
+          phase2Open:
+              (await streakFuture).summary.days >=
+              LearningConfig.phase2StableDays,
+        );
+  final places = {
+    for (final c in book.candidates)
+      if (isPlaceIntro(c)) c.itemId,
+  };
   return Planner.plan(
     cards: cards,
     newCandidates: candidates,
@@ -173,18 +190,16 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
     extraNew: extraNew,
     openSides: learnMore ? const [] : curriculum.openSides(byItem),
     sidesStartedToday: startedToday(today, now, sideTypes),
-    openRoutes: learnMore
-        ? const []
-        : curriculum.openRoutes(
-            (await routesFuture).candidates,
-            cards: await streetCardsFuture,
-            carded: {for (final c in cards) c.itemId},
-            now: now,
-            phase2Open:
-                (await streakFuture).summary.days >=
-                LearningConfig.phase2StableDays,
-          ),
+    openRoutes: [
+      for (final id in open)
+        if (!places.contains(id)) id,
+    ],
     routesStartedToday: startedToday(today, now, routeTypes),
+    openPlaces: [
+      for (final id in open)
+        if (places.contains(id)) id,
+    ],
+    placesIntroducedToday: introducedToday(cards, now, types: {CardType.l}),
     openRecitals: learnMore
         ? const []
         : openRecitals(await runsFuture, cards: byItem, now: now),
