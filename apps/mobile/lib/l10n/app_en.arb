@@ -1160,6 +1160,14 @@
       }
     }
   },
+  "placementDoneStartBand": "{band, select, main{New streets start with the main roads.} secondary{New streets start with the secondary roads.} tertiary{New streets start with the tertiary roads.} other{New streets start with the minor roads.}}",
+  "@placementDoneStartBand": {
+    "placeholders": {
+      "band": {
+        "type": "String"
+      }
+    }
+  },
   "placementMainRoads": "Main roads",
   "placementDistricts": "Districts",
   "placementSampled": "{count} sampled",
@@ -2611,6 +2619,23 @@
         "type": "String"
       },
       "count": {
+        "type": "String"
+      }
+    }
+  },
+  "exploreYourStreets": "Your streets",
+  "exploreLearnedCount": "{count} streets learned",
+  "@exploreLearnedCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "roadBand": "{band, select, main{Main roads} secondary{Secondary roads} tertiary{Tertiary roads} other{Minor roads}}",
+  "@roadBand": {
+    "placeholders": {
+      "band": {
         "type": "String"
       }
     }

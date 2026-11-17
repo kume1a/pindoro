@@ -237,6 +237,17 @@ and the specs after R5. Fix them in roughly this order.
     45 and 60 min (21 and 28 new streets).
   - Name it (SessionScreen `nameHidden` / `nameShown`) always offers six names: no Show name,
     Forgot or Knew it, and the "What's this street called?" ask is gone (SPEC §16.18 item 98).
+- Changed in the app (2026-11-18, SPEC §16.19), to carry back to claude.ai:
+  - Today's Now learning card names a road class ("Main roads", "Next: Secondary roads") over the
+    city's districts until the neighbourhoods start; Progress's What's coming lists the classes
+    first (play / lock tiles, no chevron); placement's result says "New streets start with the
+    main roads." with a road glyph.
+  - Explore's quick starts open with "Your streets" (book glyph, "{n} streets learned") once 10
+    streets are learned.
+- Left out of the road-class pass, on purpose:
+  - Streets learned before it (residential ones included) stay in the reviews; nothing parks them.
+  - A "Your streets" round left half-way is not offered as Continue on Explore (Continue matches
+    the chosen area).
 - Left out of the field-feedback pass, on purpose:
   - No hard stop at the day's minutes: the relearn cap keeps sessions short instead.
   - Name it, both ends, drills and the other route cards keep their maps as they were (no place

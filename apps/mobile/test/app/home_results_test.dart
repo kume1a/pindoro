@@ -18,6 +18,7 @@ import 'package:pindoro/features/map/ui/explore_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
+import 'package:pindoro/features/quiz/ui/quiz_screen.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
@@ -332,7 +333,41 @@ void main() {
     expect(find.text('Retry 10 missed'), findsOneWidget);
     expect(find.textContaining('again'), findsOneWidget);
     expect(find.text('A random district'), findsOneWidget);
+    expect(find.text('Your streets'), findsNothing);
     await scrollTo(tester, find.text('Areas you played'));
+  });
+
+  testWidgets('with a round’s worth of learned streets, Explore offers them '
+      'as Your streets', (tester) async {
+    await tester.runAsync(() async {
+      await SettingsDao(db).markHomeCoachSeen();
+      final dao = LearningDao(db);
+      final named = {for (final s in streets) s.nameKa: s}.values;
+      for (final s in named.take(QuestionSelector.roundSize)) {
+        final placed = applyReview(
+          null,
+          itemId: CardType.p.item(s.id),
+          rating: Rating.good,
+          now: DateTime.now().subtract(const Duration(days: 3)),
+          format: ReviewFormat.placement,
+          source: ReviewSource.placement,
+          priorKnown: true,
+        );
+        await dao.saveAnswer(card: placed.card, log: placed.log);
+      }
+    });
+    await pumpApp(tester, Routes.home);
+    final card = find.text('Your streets');
+    await scrollTo(tester, card);
+    expect(find.text('10 streets learned'), findsOneWidget);
+    // The pinned play card covers the row on this screen size: call its tap.
+    tester
+        .widget<Tappable>(
+          find.ancestor(of: card, matching: find.byType(Tappable)),
+        )
+        .onTap!();
+    await settle(tester);
+    expect(find.byType(QuizScreen), findsOneWidget);
   });
 
   testWidgets('before any play, Explore explains itself and offers to start '

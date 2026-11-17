@@ -94,7 +94,6 @@ abstract final class LearningConfig {
   static const double nearDueFraction = 0.5;
 
   // Curriculum (§6)
-  static const double tierBShare = 0.60;
   static const int childParentMinDays = 3;
   static const int maxSiblingsPerDay = 4;
   static const int placementSamplePerDistrict = 5;

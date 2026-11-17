@@ -234,8 +234,25 @@ void main() {
       expect(near.log.source, ReviewSource.explore);
     });
 
+    test('a miss always lapses a reviewed card, however far from due', () {
+      final card = rate(
+        null,
+        Rating.good,
+        t0,
+        format: ReviewFormat.retrieval1,
+      ).card;
+      final at = t0.add(card.dueAt!.difference(t0) * 0.2);
+      final missed = explore(card, Rating.again, at);
+      expect(missed.card!.phase, CardPhase.relearning);
+      expect(missed.card!.lapses, card.lapses + 1);
+      expect(missed.log.format, ReviewFormat.explore);
+      final again = explore(missed.card, Rating.again, at);
+      expect(again.card, isNull, reason: 'relearning is left to the session');
+    });
+
     test('a card still waiting for retrieval 1 is left to the session', () {
       expect(explore(introduce(itemId, t0), Rating.good, t0).card, isNull);
+      expect(explore(introduce(itemId, t0), Rating.again, t0).card, isNull);
     });
   });
 

@@ -109,6 +109,7 @@ GoRouter buildRouter(String initialLocation) {
         builder: (_, state) => QuizScreen(
           roundId: state.uri.queryParameters['round'],
           retryOf: state.uri.queryParameters['retry'],
+          learned: state.uri.queryParameters.containsKey('learned'),
         ),
       ),
       GoRoute(

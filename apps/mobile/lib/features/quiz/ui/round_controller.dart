@@ -1,10 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/hold.dart';
 import 'package:pindoro/features/learning/data/explore.dart';
+import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
 
 /// Overridden in tests with a seeded Random.
 final questionSelectorProvider = Provider<QuestionSelector>(
@@ -163,7 +166,13 @@ class RoundController extends Notifier<RoundState> {
   // state again, so a round left while loading starts nothing.
   ProgressDao get _progress => ref.read(progressDaoProvider);
 
-  Future<void> start(Area? area, Difficulty difficulty) async {
+  /// A round in [area] at [difficulty]; with [learned] (knowledge by street
+  /// id), a round of only those streets, at every difficulty.
+  Future<void> start(
+    Area? area,
+    Difficulty difficulty, {
+    Map<String, StreetKnowledge>? learned,
+  }) async {
     state = const RoundLoading();
     final dao = _progress;
     final pack = await ref.read(packRepositoryProvider.future);
@@ -175,19 +184,33 @@ class RoundController extends Notifier<RoundState> {
     }
     final cityId = pack.city().id;
     final streets = await ref.read(cityStreetsProvider.future);
-    final best = bestTierPerStreet(await dao.bestTierByPart(cityId), streets);
+    final knowledge =
+        learned ??
+        {
+          for (final MapEntry(key: id, value: tier) in bestTierPerStreet(
+            await dao.bestTierByPart(cityId),
+            streets,
+          ).entries)
+            id: knowledgeFrom(tier),
+        };
     final recent = await dao.askedInLastRounds(cityId);
     if (!ref.mounted) return;
+    final inArea = area.streetsIn(
+      pack,
+      learned == null ? difficulty.pool : Difficulty.expert.pool,
+    );
     final selection = ref
         .read(questionSelectorProvider)
         .select(
-          area.streetsIn(pack, difficulty.pool),
+          learned == null
+              ? inArea
+              : [
+                  for (final s in inArea)
+                    if (learned.containsKey(streets[s.id]?.id)) s,
+                ],
           bounds: shape.bbox,
           cityStreets: streets,
-          knowledge: {
-            for (final MapEntry(key: id, value: tier) in best.entries)
-              id: knowledgeFrom(tier),
-          },
+          knowledge: knowledge,
           recentStreets: {for (final id in recent) ?streets[id]?.id},
         );
     switch (selection) {
@@ -208,6 +231,28 @@ class RoundController extends Notifier<RoundState> {
           ]),
         );
     }
+  }
+
+  /// "Your streets": a round of the streets the player has learned (P cards)
+  /// in the districts holding them, the ones not Known now first, scored at
+  /// [difficulty]. Its area isn't the saved one, so Explore won't offer to
+  /// continue it once left.
+  Future<void> startLearned(Difficulty difficulty) async {
+    state = const RoundLoading();
+    final cards = await ref.hold(streetCardsProvider.future);
+    final curriculum = await ref.read(curriculumProvider.future);
+    if (!ref.mounted) return;
+    final now = _now();
+    await start(
+      DistrictsArea({for (final id in cards.keys) ?curriculum.raionOf(id)}),
+      difficulty,
+      learned: {
+        for (final MapEntry(key: id, value: card) in cards.entries)
+          id: isKnown(card, now)
+              ? StreetKnowledge.known
+              : StreetKnowledge.missed,
+      },
+    );
   }
 
   /// Saves a new round of [questions] and asks the first.

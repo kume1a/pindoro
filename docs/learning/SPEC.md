@@ -223,14 +223,15 @@ sweep the rest of that district's tier B the same way. "I don't know this one" l
 
 ### 6.3 Order
 
-1. Tier B, city-wide: sort by `ring`, alternate `bank` within a ring, then length descending.
-2. Tier C by chunk: start with the chunks holding the centre and the home / work anchors; then always the
-   unfinished chunk that borders the most completed chunks (ties: distance to centre).
+1. Road classes, one after another, city-wide: main roads (motorway, trunk, primary), then secondary,
+   tertiary, unclassified (§16.19). Within a class: sort by `ring`, alternate `bank` within a ring, then
+   length descending.
+2. Then the rest (residential, living streets) by chunk: start with the chunks holding the centre and the
+   home / work anchors; then always the unfinished chunk that borders the most completed chunks (ties:
+   distance to centre).
 3. Within a chunk: parents by length descending → non-family streets by length → each family's children in
    numeric order.
-4. New-slot split: while tier B is unfinished, 60 % of new slots go to B and 40 % to C (home first); then
-   100 % C. **(tunable)**
-5. Families: a child never before its parent reaches S ≥ 3 d; at most 4 new siblings of one family a day.
+4. Families: a child never before its parent reaches S ≥ 3 d; at most 4 new siblings of one family a day.
 
 ### 6.4 First exposure
 
@@ -356,7 +357,6 @@ recitals must work without speech.
 | `newPerDay`                                                  | {15: 7, 20: 10, 30: 14, 45: 21, 60: 28} |
 | `tReviewS`, `tNewS`                                          | 12, 45                                  |
 | `backlogCapFactor`                                           | 1.5                                     |
-| `tierBShare`                                                 | 0.60                                    |
 | `routeNewPerDayMax`, `routePauseFactor`                      | 10, 1.2                                 |
 | `fuzzyNameMax`                                               | 0.25                                    |
 | `stretchPerfect`, `stretchGreat`, `stretchClose`             | 1.03, 1.25, 1.60                        |
@@ -509,8 +509,9 @@ rest of the spec. Numbers named here are in §13.
     The set is same-name streets, logged confusions and the street's family: its parent and
     siblings, and its own children (an orphan has no family).
 16. **Explore answers** update a card only when it is due or near due (due within `nearDueFraction`
-    of its interval, the implicit-evidence window); otherwise they are logged only. A first-sight
-    Good/Easy creates the card like placement; a failure on an unseen street is logged only.
+    of its interval, the implicit-evidence window), or when they miss (Again) a card in review,
+    however far from due (§16.19); otherwise they are logged only. A first-sight Good/Easy creates
+    the card like placement; a failure on an unseen street is logged only.
 
 ### 16.4 Progress
 
@@ -581,17 +582,17 @@ board, and per-type FSRS parameter presets.
 ### 16.11 Curriculum (M2)
 
 35. **The skeleton is taught with the grid.** Tier A streets that placement leaves unseen are taught
-    before tier B, in the same order (ring, bank, length). The 60/40 split of §6.3 holds while any
-    core tier A or B street is unseen.
+    before tier B, in the same order (ring, bank, length). Since §16.19 every road class is taught
+    in turn, with no split between lanes.
 36. **Banks alternate** within a ring, starting with the bank of the ring's longest street.
 37. **Chunk order**: home, then work, then the chunk holding the centre; then a chunk already
     started; then the chunk bordering the most finished chunks (ties: its centre nearer the city
-    centre). A chunk is finished when none of its core tier C streets is unseen. The order is set
-    once per plan.
+    centre). A chunk is finished when none of its core streets taught by chunk (§16.19) is unseen.
+    The order is set once per plan.
 38. **Within a chunk**, children are grouped by parent and ordered by number. A street that is both
     a child and a parent (a lane with its own dead ends) is taught as a child.
-39. **Groups**: new slots fill in groups of `groupSize`, each group from one lane (skeleton and grid,
-    or chunks). A lane with nothing left gives its slots to the other.
+39. **Groups**: new streets are taken in teaching order (§6.3) and introduced in groups of
+    `groupSize` (§6.4). Until §16.19 the skeleton and grid shared the slots 60/40 with the chunks.
 40. **Placement samples** a street's raion through its chunk (`district.parent_id`), with the plan
     seed.
 41. **Streets without a chunk** (packs before format 4, and the bundled Vake pack's streets whose
@@ -896,3 +897,24 @@ blank maps after every answer.
     its two same-day retrievals (a street known before at once), not after 7 days of stability, and
     every name review picks among six names: a self-grade proved nothing. So the names keep pace,
     as many name and ends cards start a day as new streets, instead of 5.
+
+### 16.19 Road classes first and Your streets (2026-11-18)
+
+After about 70 streets the player found half of them were residential side streets they didn't care
+about: the 60/40 split sent side streets from day one.
+
+99. **Road classes in turn.** New streets follow the road class of a street's longest part, one
+    class after another, city-wide: main roads (motorway, trunk, primary), then secondary,
+    tertiary and unclassified, each by ring, bank and length. Residential and living streets come
+    after every class, chunk by chunk (§6.3, §16.11). Tiers keep placement, name cards and tier C
+    relief; the class sets the order. Tbilisi has about 74, 111, 282 and 130 core streets in those
+    classes, so the neighbourhoods start after about 600 streets.
+100. **Today shows the class.** While a class is taught, Today's Now learning card names it ("Main
+     roads · 30 of 74 streets seen") over the city's districts with the ones the player knows,
+     and "Next" is the next class or the first neighbourhood. Progress's What's coming lists the
+     classes left, then the neighbourhoods (`comingCount` in all), and no neighbourhood is learnt
+     now until the classes are done. Placement's result names the class new streets start with.
+101. **Your streets.** Once the player has learned a round's worth of streets (P cards), Explore's
+     quick starts offer a round of them: 10 from the learned streets in the districts holding them,
+     at every difficulty, scored at the player's, the ones not Known now first. Its answers follow
+     item 16: a pass reviews only a near-due card, a miss always counts.

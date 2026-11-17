@@ -25,9 +25,10 @@ class PlacementDoneView extends ConsumerWidget {
     final c = PindoroTheme.of(context).colors;
     final settings = ref.watch(settingsProvider).value;
     final s = summary;
-    final startIn = switch (s.startIn) {
-      final d? => districtName(d, settings),
-      null => null,
+    final startIn = switch ((s.startBand, s.startIn)) {
+      (final band?, _) => l10n.roadBand(band.name),
+      (_, final d?) => districtName(d, settings),
+      _ => null,
     };
     final tiles = [
       (
@@ -48,7 +49,12 @@ class PlacementDoneView extends ConsumerWidget {
         l10n.placementInReview,
         formatNumber(s.passed),
       ),
-      if (startIn != null) (PindoroGlyph.home, l10n.placementStartIn, startIn),
+      if (startIn != null)
+        (
+          s.startBand == null ? PindoroGlyph.home : PindoroGlyph.road,
+          l10n.placementStartIn,
+          startIn,
+        ),
     ];
     return PageScaffold(
       showBack: false,
@@ -70,7 +76,10 @@ class PlacementDoneView extends ConsumerWidget {
         Text(
           [
             if (s.passed > 0) l10n.placementDoneReview,
-            if (startIn != null) l10n.placementDoneStart(startIn),
+            if (s.startBand case final band?)
+              l10n.placementDoneStartBand(band.name)
+            else if (startIn != null)
+              l10n.placementDoneStart(startIn),
           ].join(' '),
           textAlign: TextAlign.center,
           style: PindoroType.bodyMd.copyWith(color: c.textSecondary),

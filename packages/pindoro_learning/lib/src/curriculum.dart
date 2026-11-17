@@ -7,12 +7,16 @@ import 'constants.dart';
 import 'planner.dart';
 import 'stats.dart';
 
-/// The order new streets are taught in (SPEC §6, §16.5): placement first, then the skeleton and
-/// the grid city-wide by ring and bank, and the rest chunk by chunk. Built once per pack; [next]
-/// is pure over the cards.
+/// The road classes taught city-wide, one after another, before the neighbourhoods (SPEC §6.3).
+enum RoadBand { main, secondary, tertiary, minor }
+
+/// The order new streets are taught in (SPEC §6, §16.5): placement first, then each [RoadBand]
+/// city-wide by ring and bank, and the rest chunk by chunk. Built once per pack; [next] is pure
+/// over the cards.
 ///
-/// Streets are [NamedStreet]s and take their longest part's tier, ring, bank and chunk. A pack
-/// older than format 4 has none of these: every street is then tier C in one chunk.
+/// Streets are [NamedStreet]s and take their longest part's road class, tier, ring, bank and
+/// chunk. A pack older than format 4 has no tier, ring, bank or chunk: every street is then tier
+/// C in one chunk.
 class Curriculum {
   Curriculum({
     required Iterable<NamedStreet> streets,
@@ -54,17 +58,15 @@ class Curriculum {
         .map((c) => c.id)
         .firstOrNull;
 
-    final trunk = [
-      ...ringOrder(all.where((s) => _tier(s) == StreetTier.a)),
-      ...ringOrder(all.where((s) => _tier(s) == StreetTier.b)),
-    ];
-    _trunk.addAll(trunk);
+    for (final band in RoadBand.values) {
+      _bands[band] = ringOrder(all.where((s) => bandOf(s) == band));
+    }
     for (final s in all) {
       _chunkStreets.putIfAbsent(chunkOf(s), () => []).add(s);
     }
     final parents = _parentOf.values.toSet();
     for (final MapEntry(:key, :value) in _chunkStreets.entries) {
-      final local = value.where((s) => _tier(s) == StreetTier.c);
+      final local = value.where((s) => bandOf(s) == null);
       _chunkOrder[key] = [
         ...local.where((s) => parents.contains(s.id) && !_isChild(s)),
         ...local.where((s) => !parents.contains(s.id) && !_isChild(s)),
@@ -86,9 +88,12 @@ class Curriculum {
   final _chunkCentre = <String, LatLng>{};
   final _raionOf = <String, String>{};
   late final String? _centreChunk;
-  final _trunk = <NamedStreet>[];
 
-  /// Every street of a chunk, any tier; [_chunkOrder] holds its tier C streets in teaching order.
+  /// Each band's streets in teaching order.
+  final _bands = <RoadBand, List<NamedStreet>>{};
+
+  /// Every street of a chunk, any class; [_chunkOrder] holds its streets of no [RoadBand] in
+  /// teaching order.
   final _chunkStreets = <String, List<NamedStreet>>{};
   final _chunkOrder = <String, List<NamedStreet>>{};
 
@@ -101,6 +106,26 @@ class Curriculum {
 
   static bool isCore(NamedStreet s) =>
       s.lengthM >= LearningConfig.coreMinLengthM;
+
+  /// The band [s] is taught in by its road class; null for residential and living streets, taught
+  /// chunk by chunk after every band.
+  static RoadBand? bandOf(NamedStreet s) => switch (s.parts.first.roadClass) {
+    'motorway' || 'trunk' || 'primary' => RoadBand.main,
+    'secondary' => RoadBand.secondary,
+    'tertiary' => RoadBand.tertiary,
+    'unclassified' => RoadBand.minor,
+    _ => null,
+  };
+
+  /// [band]'s streets in teaching order, short ones included.
+  List<NamedStreet> bandStreets(RoadBand band) => _bands[band]!;
+
+  /// The bands with a core street still unseen in [cards] (P cards by street id), in teaching
+  /// order: the first is the one being taught.
+  List<RoadBand> bandsLeft(Map<String, CardState> cards) => [
+    for (final MapEntry(key: band, value: streets) in _bands.entries)
+      if (streets.any((s) => isCore(s) && !cards.containsKey(s.id))) band,
+  ];
 
   bool _isChild(NamedStreet s) => _parentOf.containsKey(s.id);
 
@@ -239,8 +264,8 @@ class Curriculum {
     final random = Random(seed);
     final tierB = _coreTierBByRaion();
     return [
-      for (final s in _trunk)
-        if (_tier(s) == StreetTier.a && isCore(s)) s.id,
+      for (final s in ringOrder(streetsWhere((s) => _tier(s) == StreetTier.a)))
+        if (isCore(s)) s.id,
       for (final raion in tierB.keys.toList()..sort())
         ...(tierB[raion]!..shuffle(random))
             .take(LearningConfig.placementSamplePerDistrict)
@@ -259,7 +284,7 @@ class Curriculum {
 
   Map<String, List<NamedStreet>> _coreTierBByRaion() {
     final byRaion = <String, List<NamedStreet>>{};
-    for (final s in _trunk) {
+    for (final s in _byId.values) {
       final raion = _raionOf[chunkOf(s)];
       if (_tier(s) == StreetTier.b && isCore(s) && raion != null) {
         byRaion.putIfAbsent(raion, () => []).add(s);
@@ -272,10 +297,8 @@ class Curriculum {
   }
 
   /// Up to [count] street ids to introduce next (SPEC §6.3), given each street's P card by street
-  /// id. Groups of [LearningConfig.groupSize] alternate between the skeleton and grid (while
-  /// any core street of theirs is unseen, [LearningConfig.tierBShare] of the slots) and the
-  /// chunks. A child waits for its parent's stability to reach
-  /// [LearningConfig.childParentMinDays], and one parent gets at most
+  /// id: each [RoadBand] in turn, then the chunks. A child waits for its parent's stability to
+  /// reach [LearningConfig.childParentMinDays], and one parent gets at most
   /// [LearningConfig.maxSiblingsPerDay] new children a day. Short streets wait for their chunk's
   /// phase 2. [anchors] (home, then work) are taught before the centre's chunk.
   List<String> next({
@@ -310,43 +333,23 @@ class Curriculum {
           (siblingsToday[parent] ?? 0) < LearningConfig.maxSiblingsPerDay;
     }
 
-    final trunkOpen = _trunk.any((s) => isCore(s) && !cards.containsKey(s.id));
-    final trunk = _trunk.iterator;
-    final local = chunkSequence(cards, anchors).expand((c) => _chunkOrder[c]!);
-    final chunks = local.iterator;
-    NamedStreet? draw(Iterator<NamedStreet> from) {
-      while (from.moveNext()) {
-        if (available(from.current)) return from.current;
+    final order = _bands.values
+        .expand((band) => band)
+        .followedBy(
+          chunkSequence(cards, anchors).expand((c) => _chunkOrder[c]!),
+        );
+    for (final s in order.where(available)) {
+      if (picked.length >= count) break;
+      picked.add(s.id);
+      pickedSet.add(s.id);
+      if (_parentOf[s.id] case final parent?) {
+        siblingsToday[parent] = (siblingsToday[parent] ?? 0) + 1;
       }
-      return null;
-    }
-
-    var trunkTaken = 0;
-    while (picked.length < count) {
-      final wantTrunk =
-          trunkOpen &&
-          (picked.isEmpty ||
-              trunkTaken / picked.length < LearningConfig.tierBShare);
-      final group = <NamedStreet>[];
-      while (group.length < LearningConfig.groupSize &&
-          picked.length + group.length < count) {
-        final fromTrunk = wantTrunk ? draw(trunk) : null;
-        final s = fromTrunk ?? draw(chunks) ?? (wantTrunk ? null : draw(trunk));
-        if (s == null) break;
-        if (_tier(s) != StreetTier.c) trunkTaken++;
-        group.add(s);
-        pickedSet.add(s.id);
-        if (_parentOf[s.id] case final parent?) {
-          siblingsToday[parent] = (siblingsToday[parent] ?? 0) + 1;
-        }
-      }
-      if (group.isEmpty) break;
-      picked.addAll(group.map((s) => s.id));
     }
     return picked;
   }
 
-  /// Chunks with tier C streets left to teach, in teaching order: the anchors and the centre's
+  /// Chunks with streets of no band left to teach, in teaching order: the anchors and the centre's
   /// chunk, then chunks already started, then the chunk bordering the most finished chunks
   /// (ties: nearer the centre).
   List<String> chunkSequence(

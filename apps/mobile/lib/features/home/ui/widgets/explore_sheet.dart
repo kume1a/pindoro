@@ -60,6 +60,13 @@ List<Widget> exploreSheet({
         SectionTitle(l10n.exploreQuickStarts),
         _Sideways(
           children: [
+            if (home.learned >= QuestionSelector.roundSize)
+              _QuickCard(
+                glyph: PindoroGlyph.book,
+                title: l10n.exploreYourStreets,
+                subtitle: l10n.exploreLearnedCount(formatNumber(home.learned)),
+                onTap: () => onOpen(Routes.yourStreets),
+              ),
             if (last != null && last.missed > 0)
               _QuickCard(
                 glyph: PindoroGlyph.retry,

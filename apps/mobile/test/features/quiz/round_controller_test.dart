@@ -104,6 +104,48 @@ void main() {
     ]);
   });
 
+  test(
+    'Your streets asks only learned streets, whatever the difficulty',
+    () async {
+      final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
+      final byPart = streetsByPartId(repo.streets());
+      final learned =
+          ({
+                for (final s in vake.streetsIn(repo, Difficulty.expert.pool))
+                  byPart[s.id]!,
+              }.toList()..sort((a, b) => b.lengthM.compareTo(a.lengthM)))
+              .take(15)
+              .map((s) => s.id)
+              .toSet();
+      repo.close();
+      final dao = LearningDao(db);
+      for (final id in learned) {
+        final placed = applyReview(
+          null,
+          itemId: CardType.p.item(id),
+          rating: Rating.good,
+          now: DateTime.now().subtract(const Duration(days: 3)),
+          format: ReviewFormat.placement,
+          source: ReviewSource.placement,
+          priorKnown: true,
+        );
+        await dao.saveAnswer(card: placed.card, log: placed.log);
+      }
+
+      final c = container();
+      await c
+          .read(roundControllerProvider.notifier)
+          .startLearned(Difficulty.easy);
+      final state = c.read(roundControllerProvider) as RoundAsking;
+      expect(state.round.difficulty, Difficulty.easy);
+      expect(state.round.questions, hasLength(QuestionSelector.roundSize));
+      expect(
+        state.round.questions.map((q) => q.street.id),
+        everyElement(isIn(learned)),
+      );
+    },
+  );
+
   test('a new controller resumes at the next unanswered street', () async {
     final first = container();
     final controller = first.read(roundControllerProvider.notifier);

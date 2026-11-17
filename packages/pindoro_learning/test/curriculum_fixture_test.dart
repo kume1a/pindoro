@@ -24,6 +24,11 @@ void main() {
     '120 days of Vake at 10 new streets a day keep the curriculum rules',
     () {
       final curriculum = Vake.load().curriculum;
+      final bandOf = {
+        for (final s in curriculum.streetsWhere((_) => true))
+          s.id: Curriculum.bandOf(s),
+      };
+      const order = [...RoadBand.values, null];
       final introduced = <String, DateTime>{};
       var days = 0;
       for (var day = 0; day < 120; day++) {
@@ -38,6 +43,16 @@ void main() {
         expect(curriculum.next(cards: cards, now: now, count: 10), picks);
         expect(picks.toSet(), hasLength(picks.length));
         expect(picks.where(introduced.containsKey), isEmpty);
+        final seen = {...cards};
+        for (final id in picks) {
+          final first = curriculum.bandsLeft(seen).firstOrNull;
+          expect(
+            order.indexOf(bandOf[id]),
+            lessThanOrEqualTo(order.indexOf(first)),
+            reason: '$id (${bandOf[id]}) while $first streets are unseen',
+          );
+          seen[id] = _card(id, now, now);
+        }
         final siblings = <String, int>{};
         for (final id in picks) {
           final parent = curriculum.parentOf(id);
