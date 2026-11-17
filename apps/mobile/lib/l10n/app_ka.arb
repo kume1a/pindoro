@@ -97,8 +97,6 @@
   "quizPrompt": "მონიშნე რუკაზე:",
   "quizRetryPrompt": "კიდევ სცადე, მონიშნე:",
   "quizRetryPreviousDistance": "წინა ჯერზე: {distance}",
-  "quizCoachTitle": "მონიშნე, სად გგონია, რომ ეს ქუჩაა",
-  "quizCoachBody": "დადასტურებამდე შეგიძლია გადაიტანო.",
   "quizLeaveTitle": "ახლა გადიხარ?",
   "quizLeaveBody": "რაუნდი შენახულია (კითხვა {question} / {total}). გააგრძელე აღმოჩენიდან.",
   "quizLeaveKeepPlaying": "თამაშის გაგრძელება",

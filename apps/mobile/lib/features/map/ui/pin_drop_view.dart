@@ -8,7 +8,6 @@ import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
-import 'package:pindoro/features/map/ui/widgets/reticle.dart';
 import 'package:pindoro/features/map/ui/widgets/tier_reveal.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -43,7 +42,6 @@ class PinDropView extends ConsumerWidget {
     required this.onConfirm,
     required this.onNext,
     this.retryDistance,
-    this.coach = false,
     this.celebration,
     this.frame,
     this.known = const [],
@@ -69,8 +67,6 @@ class PinDropView extends ConsumerWidget {
   /// The "Try again" plate's last distance.
   final double? retryDistance;
 
-  /// The first question ever: the reticle and the coach bubble.
-  final bool coach;
   final CelebrationSize? celebration;
 
   /// What the camera frames while asking, instead of the whole area (a v3
@@ -141,23 +137,6 @@ class PinDropView extends ConsumerWidget {
             hit: reveal == null ? null : mixUp,
           ),
         ),
-        behind: [
-          if (coach) ...[
-            const Center(child: Reticle()),
-            Align(
-              alignment: const Alignment(0, -0.25),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: PindoroSpace.s4,
-                ),
-                child: CoachBubble(
-                  title: l10n.quizCoachTitle,
-                  body: l10n.quizCoachBody,
-                ),
-              ),
-            ),
-          ],
-        ],
         top: Column(
           spacing: PindoroSpace.s4,
           children: [

@@ -102,7 +102,6 @@ void main() {
     final logged = await answer(id, 'a', Tier.great);
     expect((logged.pinLat, logged.pinLon), (41.7, 44.75));
     expect(logged.tier, Tier.great);
-    expect(await progress.hasAnswered(), isTrue);
   });
 
   group('saved round', () {

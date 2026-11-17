@@ -260,8 +260,6 @@
       }
     }
   },
-  "quizCoachTitle": "Drop a pin where you think this street is",
-  "quizCoachBody": "You can drag it before you confirm.",
   "quizLeaveTitle": "Leave for now?",
   "quizLeaveBody": "Your round is saved at question {question} of {total}. Pick it up from Explore.",
   "@quizLeaveBody": {
