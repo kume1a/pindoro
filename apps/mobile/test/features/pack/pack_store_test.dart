@@ -12,10 +12,8 @@ import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/settings.dart';
-import 'package:pindoro/features/pack/data/cities.dart';
 import 'package:pindoro/features/pack/data/pack_store.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
-import 'package:pindoro_core/pindoro_core.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
@@ -39,12 +37,6 @@ void main() {
           'id': 'tbilisi',
           'name_ka': 'თბილისი',
           'name_en': 'Tbilisi',
-          'bbox': {
-            'min_lat': 41.6,
-            'min_lon': 44.6,
-            'max_lat': 41.8,
-            'max_lon': 45,
-          },
           'pack': {
             'format_version': format,
             'version': version,
@@ -123,13 +115,6 @@ void main() {
     });
     return c;
   }
-
-  test('the catalog lists cities with their bounds', () async {
-    final cities = await store('20261105T000000Z').cities();
-    expect(cities.single.bbox?.maxLat, 41.8);
-    expect(cityAt(cities, const LatLng(41.7, 44.8))?.id, 'tbilisi');
-    expect(cityAt(cities, const LatLng(42.2, 42.7)), isNull);
-  });
 
   test('nothing is installed at first', () {
     expect(store('20261106T000000Z').newest('tbilisi'), isNull);

@@ -51,14 +51,14 @@ abstract final class LearningConfig {
   static const double extentEndMinM = 150;
   static const double extentEndFraction = 0.10;
   static const double extentMinLengthM = 1200;
-  static const int nameCheckEvery = 10;
   static const int nameCheckOptions = 6;
   static const double fuzzyNameMax = 0.25;
   static const double bearingGreatDeg = 20;
   static const double bearingCloseDeg = 45;
 
   // Unlocks (§3)
-  static const int unlockNameDays = 7;
+  /// Answers a street's pin card needs (its two same-day retrievals) before its name card opens.
+  static const int unlockNameReps = 2;
   static const int unlockExtentDays = 7;
   static const double gatewayUnlockKnown = 0.70;
   static const double districtJunctionUnlockSolid = 0.80;
@@ -73,7 +73,13 @@ abstract final class LearningConfig {
   static const double coreMinLengthM = 150;
 
   // Session planner (§7, §16.2)
-  static const Map<int, int> newPerDay = {15: 7, 20: 10, 30: 14};
+  static const Map<int, int> newPerDay = {
+    15: 7,
+    20: 10,
+    30: 14,
+    45: 21,
+    60: 28,
+  };
   static const int tReviewS = 12;
   static const int tNewS = 45;
   static const int timeEstimateMinSamples = 50;
@@ -84,11 +90,8 @@ abstract final class LearningConfig {
   static const int retrieval1GapMin = 3;
   static const int retrieval1GapMax = 6;
   static const int retrieval1GapFloor = 2;
-  static const int learnMoreCount = 5;
+  static const int learnMoreCount = 10;
   static const double nearDueFraction = 0.5;
-
-  /// Name and ends cards started a day, outside a backlog and within the minutes (§16.13).
-  static const int sideNewPerDay = 5;
 
   // Curriculum (§6)
   static const double tierBShare = 0.60;

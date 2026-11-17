@@ -747,7 +747,6 @@ class _DoneForToday extends ConsumerWidget {
         children: [
           PindoroButton(
             label: l10n.todayLearnMore(LearningConfig.learnMoreCount),
-            variant: PindoroButtonVariant.secondary,
             onPressed: () => onLearnMore(),
           ),
           PindoroButton(

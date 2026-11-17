@@ -210,16 +210,6 @@ Future<File> copyFixture(Directory root) async {
   return tmp.rename(file.path);
 }
 
-/// The bundled Vake pack's city (the whole Tbilisi row).
-Future<City> fixtureCity(Directory root) async {
-  final pack = SqlitePackRepository.open((await copyFixture(root)).path);
-  try {
-    return pack.city();
-  } finally {
-    pack.close();
-  }
-}
-
 /// Why a city's pack couldn't download.
 enum PackFailure {
   /// The catalog never answered: offline, or the API is down.

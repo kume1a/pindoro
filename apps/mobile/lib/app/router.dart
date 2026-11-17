@@ -22,7 +22,6 @@ import 'package:pindoro/features/settings/ui/learn_settings_screen.dart';
 import 'package:pindoro/features/settings/ui/memory_model_screen.dart';
 import 'package:pindoro/features/settings/ui/settings_screen.dart';
 import 'package:pindoro/features/setup/ui/area_screen.dart';
-import 'package:pindoro/features/setup/ui/city_screen.dart';
 import 'package:pindoro/features/setup/ui/difficulty_screen.dart';
 import 'package:pindoro/features/setup/ui/welcome_screen.dart';
 import 'package:pindoro/features/streak/ui/streak_screen.dart';
@@ -40,15 +39,15 @@ Page<void> _fadePage(GoRouterState state, Widget child) =>
           FadeTransition(opacity: animation, child: child),
     );
 
-/// A saved Explore round reopens Explore, which offers to continue it; a
-/// player who placed a city (or finished a round) opens Today; anyone else
+/// A player who placed a city, finished a round or left one saved opens
+/// Today (Explore still offers to continue the saved round); anyone else
 /// starts at Welcome.
 Future<String> startLocation(AppDatabase db) async {
   final progress = ProgressDao(db);
-  if (await progress.resumableRound(DateTime.now()) != null) {
-    return Routes.home;
-  }
-  return await progress.hasPlayed() ? Routes.today : Routes.welcome;
+  final played =
+      await progress.hasPlayed() ||
+      await progress.resumableRound(DateTime.now()) != null;
+  return played ? Routes.today : Routes.welcome;
 }
 
 /// The tabs (Today, Explore, Progress, Me) share a [TabShell]; every other
@@ -96,11 +95,6 @@ GoRouter buildRouter(String initialLocation) {
         ],
       ),
       GoRoute(path: Routes.welcome, builder: (_, _) => const WelcomeScreen()),
-      GoRoute(
-        path: Routes.city,
-        builder: (_, state) =>
-            CityScreen(learn: state.uri.queryParameters.containsKey('learn')),
-      ),
       GoRoute(
         path: Routes.area,
         builder: (_, state) =>

@@ -58,14 +58,14 @@ void main() {
     expect(await progress.firstPlayedAt(), first);
   });
 
-  test('welcome until a round is finished or a city placed; a saved round '
-      'opens Explore, the rest Today', () async {
+  test('welcome until a round is saved or finished or a city placed, then '
+      'Today', () async {
     expect(await startLocation(db), Routes.welcome);
     final id = await round(['a']);
     expect(
       await startLocation(db),
-      Routes.home,
-      reason: 'Explore offers to continue the saved first round',
+      Routes.today,
+      reason: 'Explore offers to continue the saved round once opened',
     );
     await progress.finishRound(id);
     expect(await startLocation(db), Routes.today);

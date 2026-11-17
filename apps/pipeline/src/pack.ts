@@ -186,8 +186,6 @@ export interface Manifest {
   size: number;
   osm_timestamp: string;
   generated_at: string;
-  /** The city's bounding box, so clients can tell which city a position is in. */
-  bbox: Bbox;
 }
 
 export const readManifest = (file: string): Manifest =>
@@ -277,8 +275,8 @@ const buildSqlite = (file: string, fill: (db: Database.Database) => void): void 
     }
   });
 
-/** Writes a pack per docs/pack-format.md from the `pipeline` schema; returns the city's bbox. */
-export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise<Bbox> => {
+/** Writes a pack per docs/pack-format.md from the `pipeline` schema. */
+export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise<void> => {
   const scope = [o.fixture?.districtId ?? null, o.fixture?.liveStreetKeys ?? null];
   const [city] = await sql.unsafe(
     `SELECT ${AREA_COLUMNS} FROM pipeline.pack_area a WHERE a.id = 'city'`,
@@ -494,8 +492,6 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
     })();
     db.exec("VACUUM");
   });
-  const { min_lat, min_lon, max_lat, max_lon } = cityArea;
-  return { min_lat, min_lon, max_lat, max_lon };
 };
 
 /** Gzips a pack next to itself and writes manifest.json describing the .gz file. */

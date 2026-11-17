@@ -69,14 +69,22 @@ final _chunks = [
 ];
 
 /// A card introduced [daysAgo] days ago at [stability] days.
-CardState _card(String street, {double stability = 5, int daysAgo = 2}) {
+CardState _card(
+  String street, {
+  double stability = 5,
+  int daysAgo = 2,
+  int reps = 0,
+  bool priorKnown = false,
+}) {
   final at = _now.subtract(Duration(days: daysAgo));
   return CardState(
     itemId: CardType.p.item(street),
     phase: CardPhase.review,
     memory: Memory(stability: stability, difficulty: 5, lastReview: at),
     dueAt: _now.add(const Duration(days: 1)),
+    reps: reps,
     lastRating: Rating.good,
+    priorKnown: priorKnown,
     introAt: at,
   );
 }
@@ -443,19 +451,22 @@ void main() {
       expect(curriculum.sideTypesOf('long'), [CardType.e]);
     });
 
-    test('they open once the pin card reaches 7 days, most stable first', () {
+    test('a name opens after the pin card'
+        's two retrievals or when known '
+        'before, ends at 7 days; most stable first', () {
       Map<String, CardState> byItem(List<CardState> cards) => {
         for (final c in cards) c.itemId: c,
       };
       expect(
         curriculum.openSides(
           byItem([
-            _card('a', stability: 6.9),
-            _card('b', stability: 7),
-            _card('long', stability: 30),
+            _card('a', stability: 6.9, reps: 1),
+            _card('b', stability: 2, reps: 2),
+            _card('p', stability: 3, reps: 1, priorKnown: true),
+            _card('long', stability: 7, reps: 4),
           ]),
         ),
-        ['E:long', 'N:b'],
+        ['E:long', 'N:p', 'N:b'],
       );
       final named = CardState(itemId: 'N:b', phase: CardPhase.review);
       expect(

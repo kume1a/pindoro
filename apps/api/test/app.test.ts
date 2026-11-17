@@ -21,6 +21,7 @@ const manifest = {
   size: 1234,
   osm_timestamp: "2026-11-04T20:21:42Z",
   generated_at: "2026-11-05T22:17:00Z",
+  // Older manifests still carry a bbox; the catalog leaves it out.
   bbox: { min_lat: 41.57, min_lon: 44.59, max_lat: 41.84, max_lon: 45.02 },
 };
 
@@ -83,7 +84,6 @@ describe("api", () => {
           id: "tbilisi",
           name_ka: "თბილისი",
           name_en: "Tbilisi",
-          bbox: manifest.bbox,
           pack: {
             format_version: 1,
             version: manifest.version,

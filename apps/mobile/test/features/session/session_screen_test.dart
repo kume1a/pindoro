@@ -348,40 +348,18 @@ void main() {
   );
 
   group('M4 cards and drills', () {
-    testWidgets('a name card: Show name, then Knew it saves a name review', (
+    testWidgets('a name card picks among six names, then saves the check', (
       tester,
     ) async {
       await pump(tester, [(kind: StepKind.review, itemId: 'N:${a.id}')]);
-      expect(find.text('What’s this street called?'), findsOneWidget);
-      expect(maps.last.truth, a.geometry, reason: 'the street is the cue');
-      await tapThrough(tester, find.text('Show name'));
-      expect(find.text('Did you know it?'), findsOneWidget);
-      await tapThrough(tester, find.text('Knew it'));
-      expect(find.text('Session done'), findsOneWidget);
-      final row = (await dao.log()).single;
-      expect((row.format, row.rating), (ReviewFormat.name, Rating.good));
-      expect((await dao.card('N:${a.id}'))!.phase, CardPhase.review);
-    });
-
-    testWidgets('every 10th name review picks among six names', (tester) async {
-      for (var i = 0; i < 9; i++) {
-        await dao.saveAnswer(
-          log: LogEntry(
-            ts: now.subtract(Duration(days: 30 - i)),
-            itemId: 'N:other$i',
-            format: ReviewFormat.name,
-            rating: Rating.good,
-            source: ReviewSource.session,
-          ),
-        );
-      }
-      await pump(tester, [(kind: StepKind.review, itemId: 'N:${a.id}')]);
       expect(find.text('Which name is it?'), findsOneWidget);
-      expect(find.text('Show name'), findsNothing);
+      expect(maps.last.truth, a.geometry, reason: 'the street is the cue');
       await tapThrough(tester, find.text(a.name).last);
       expect(find.text('It’s ${a.name}.'), findsOneWidget);
       expect(find.textContaining('Next review in'), findsOneWidget);
-      expect((await dao.log()).last.format, ReviewFormat.nameCheck);
+      final row = (await dao.log()).single;
+      expect((row.format, row.rating), (ReviewFormat.nameCheck, Rating.good));
+      expect((await dao.card('N:${a.id}'))!.phase, CardPhase.review);
     });
 
     testWidgets('both ends: two pins, Confirm, then how many were right', (

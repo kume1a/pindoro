@@ -9,7 +9,7 @@
   "commonCancel": "Cancel",
   "commonTryAgain": "Try again",
   "commonAttribution": "© OpenStreetMap contributors, Protomaps",
-  "commonChooseCity": "Choose a city",
+  "welcomeStart": "Start learning",
   "commonQuestionProgress": "Question {question} of {total}",
   "@commonQuestionProgress": {
     "placeholders": {
@@ -23,9 +23,6 @@
   },
   "commonChangeSettings": "Change settings",
   "welcomeTagline": "Learn any town, street by street.",
-  "welcomeFindCity": "Find another city",
-  "welcomeEmptyTitle": "No recent cities yet",
-  "welcomeEmptyBody": "Cities you play will show up here, ready to resume.",
   "homeCoachTitle": "Your city fills in here",
   "homeCoachBody": "Every street you place well goes into your City memory. Tap anywhere to close.",
   "homeAllDistricts": "{count, plural, =1{{count} area} other{All {count} areas}}",
@@ -58,29 +55,7 @@
   },
   "homeContinueRound": "Continue round",
   "homeNewRound": "Start a new round instead",
-  "citySearchHint": "Search cities",
-  "cityUseLocation": "Use my location",
-  "cityUseLocationSubtitle": "Play the streets around you",
-  "cityLocationLocating": "Finding where you are…",
   "cityLocationDenied": "Location is off. Turn it on in Settings.",
-  "cityRecent": "Recent",
-  "cityResultCount": "{count, plural, =1{{count} place} other{{count} places}}",
-  "@cityResultCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "cityNoResultsTitle": "No places called “{query}”",
-  "@cityNoResultsTitle": {
-    "placeholders": {
-      "query": {
-        "type": "String"
-      }
-    }
-  },
-  "cityNoResultsBody": "Check the spelling. Pindoro has these cities so far.",
   "areaModeAreas": "Areas",
   "areaModeCircle": "Circle",
   "areaModeRectangle": "Rectangle",
@@ -213,7 +188,6 @@
   "packFailedBody": "Check your connection and try again.",
   "packVakeOffline": "Available without internet: Vake.",
   "packPlayVake": "Play Vake",
-  "packChooseCity": "Choose another city",
   "packNoSpaceTitle": "Not enough space",
   "packNoSpaceBody": "Free up a little space on your phone and try again.",
   "packUpdateTitle": "This city needs a newer Pindoro",
@@ -539,21 +513,9 @@
       }
     }
   },
-  "cityNoneNearby": "No city near you yet. Pick one from the list.",
-  "@cityNoneNearby": {},
   "locationUnavailable": "Couldn't find where you are. Try again, or pick a city from the list.",
-  "cityAll": "All cities",
-  "@cityAll": {},
   "cityClearSearch": "Clear search",
   "@cityClearSearch": {},
-  "a11yCitySwitcher": "City: {city}. Change city.",
-  "@a11yCitySwitcher": {
-    "placeholders": {
-      "city": {
-        "type": "String"
-      }
-    }
-  },
   "a11yPlay": "Play {what}",
   "@a11yPlay": {
     "placeholders": {
@@ -1156,7 +1118,7 @@
     }
   },
   "todayStart": "Start",
-  "todayDoneTitle": "Done for today",
+  "todayDoneTitle": "Today’s goal done",
   "todayDueTomorrow": "{count, plural, =0{Nothing due tomorrow} =1{1 review due tomorrow} other{{count} reviews due tomorrow}}",
   "@todayDueTomorrow": {
     "placeholders": {
@@ -1597,12 +1559,7 @@
       }
     }
   },
-  "sessionNameAsk": "What’s this street called?",
-  "sessionNameAskNote": "Say it in your head first",
-  "sessionNameShow": "Show name",
   "sessionNameDidYouKnow": "Did you know it?",
-  "sessionNameForgot": "Forgot",
-  "sessionNameKnew": "Knew it",
   "sessionNameCheckAsk": "Which name is it?",
   "sessionNameCheckNote": "Pick the painted street’s name",
   "sessionNameRight": "It’s {name}.",

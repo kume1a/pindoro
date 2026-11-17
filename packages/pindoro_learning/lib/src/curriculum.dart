@@ -145,10 +145,10 @@ class Curriculum {
     for (final t in sideTypesOf(streetId)) byItem[t.item(streetId)],
   ];
 
-  /// Name and ends cards open for their first review (SPEC §3): their street's P card reached
-  /// [LearningConfig.unlockNameDays] or [LearningConfig.unlockExtentDays] of stability and they
-  /// have no card yet; the most stable streets first. [byItem] holds every card by item id, keyed
-  /// by street id.
+  /// Name and ends cards open for their first review (SPEC §3, §16.13): a name once its street's
+  /// P card had [LearningConfig.unlockNameReps] answers or was known before, an ends card once it
+  /// reached [LearningConfig.unlockExtentDays] of stability, and no card yet; the most stable
+  /// streets first. [byItem] holds every card by item id, keyed by street id.
   List<String> openSides(Map<String, CardState> byItem) {
     final open = <(double, String)>[];
     for (final s in _byId.values) {
@@ -157,10 +157,10 @@ class Curriculum {
       final stability = p.memory?.stability ?? 0;
       for (final type in sideTypesOf(s.id)) {
         final item = type.item(s.id);
-        final days = type == CardType.n
-            ? LearningConfig.unlockNameDays
-            : LearningConfig.unlockExtentDays;
-        if (stability >= days && !byItem.containsKey(item)) {
+        final opens = type == CardType.n
+            ? p.reps >= LearningConfig.unlockNameReps || p.priorKnown
+            : stability >= LearningConfig.unlockExtentDays;
+        if (opens && !byItem.containsKey(item)) {
           open.add((stability, item));
         }
       }

@@ -227,6 +227,16 @@ and the specs after R5. Fix them in roughly this order.
     93–94).
   - An area place's intro and reveal draw its outline in yellow, and the reveal measures to its
     nearest edge (SPEC §16.18 item 95).
+- Changed in the app (2026-11-17), to carry back to claude.ai:
+  - No city picker while Tbilisi is the only city: the City screen and the CitySwitcher are gone,
+    the top bar shows the city's name without the chevron, Welcome's hero is "Start learning"
+    straight to Today (no "No recent cities yet" box, no "Find another city"), and a failed pack
+    download offers only Try again and, offline, Vake. A second city needs a picker again.
+  - Today's `done` card reads "Today's goal done" with Learn 10 more as its primary button;
+    Session done puts Learn 10 more above a secondary Done when it offers it. Time a day adds
+    45 and 60 min (21 and 28 new streets).
+  - Name it (SessionScreen `nameHidden` / `nameShown`) always offers six names: no Show name,
+    Forgot or Knew it, and the "What's this street called?" ask is gone (SPEC §16.18 item 98).
 - Left out of the field-feedback pass, on purpose:
   - No hard stop at the day's minutes: the relearn cap keeps sessions short instead.
   - Name it, both ends, drills and the other route cards keep their maps as they were (no place

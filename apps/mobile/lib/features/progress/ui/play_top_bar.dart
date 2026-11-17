@@ -9,9 +9,8 @@ import 'package:pindoro/features/progress/ui/streak_pill.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// A tab's top row: the city switcher (opens the city picker), then
-/// [trailing] (the streak pill). [floating] over a map, the switcher sits in
-/// a raised capsule.
+/// A tab's top row: the city's name, then [trailing] (the streak pill).
+/// [floating] over a map, the name sits in a raised capsule.
 class PlayTopBar extends StatelessWidget {
   const PlayTopBar({
     super.key,
@@ -26,12 +25,30 @@ class PlayTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final cityName = context.localName(ka: city.nameKa, en: city.nameEn);
-    final switcher = CitySwitcher(
-      city: cityName,
-      semanticLabel: l10n.a11yCitySwitcher(cityName),
-      onPressed: () => context.push(Routes.city),
+    final c = PindoroTheme.of(context).colors;
+    final name = SizedBox(
+      height: PindoroSize.tapMin,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: PindoroSpace.s1),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          spacing: PindoroSpace.s1,
+          children: [
+            PindoroIcon(PindoroGlyph.pin, size: 22, color: c.primaryText),
+            Flexible(
+              child: Text(
+                context.localName(ka: city.nameKa, en: city.nameEn),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: PindoroType.titleMd.copyWith(
+                  color: c.textPrimary,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
     return ContentColumn(
       child: Padding(
@@ -55,9 +72,9 @@ class PlayTopBar extends StatelessWidget {
                           left: PindoroSpace.s1,
                           right: PindoroSpace.s2,
                         ),
-                        child: switcher,
+                        child: name,
                       )
-                    : switcher,
+                    : name,
               ),
             ),
             trailing,

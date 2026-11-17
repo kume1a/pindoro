@@ -83,7 +83,7 @@ The pack's own `junction.id` is pack-local and never goes into an item id.
 | Card            | Cue → answer                                                               | Who gets it                                      | Unlocks when                                                                   |
 | --------------- | -------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------ |
 | P pin           | name → place on the blank map                                              | every street in scope                            | introduced                                                                     |
-| N name it       | painted street → name (self-graded)                                        | tiers A and B + every family parent (~800)       | P stability ≥ 7 d                                                              |
+| N name it       | painted street → its name among 6                                          | tiers A and B + every family parent (~800)       | P card past its retrieval 2, or known before                                   |
 | E extent        | name → both ends                                                           | streets > 1.2 km                                 | P stability ≥ 7 d                                                              |
 | B bridge access | street + bank → bridge and the turns onto it                               | ~48 (12 bridges × 2 banks × ~2 approaches)       | tier A streets introduced                                                      |
 | J junction      | street + heading + target + landmark → exit (+ street turned onto)         | ~450 skeleton decisions, then district junctions | skeleton: month 1; others: district grid ≥ 80 % Solid                          |
@@ -173,8 +173,8 @@ Display tiers keep their colours, icons, sounds and haptics; the XP chip becomes
 
 ### 5.2 Other cards
 
-- **N name it**: self-graded "Forgot" = Again, "Knew it" = Good. Every 10th N review is verified with a
-  6-name choice that includes confusables (wrong = Again).
+- **N name it**: every N review is a 6-name choice that includes confusables: right = Good, wrong = Again
+  (§16.13 item 55).
 - **E extent**: each end counts if within `max(150 m, 10 % of length)`. Both = Good, one = Hard, none = Again.
 - **J / B decisions**: exit correct and (if typed) street correct = Good; exit correct, street wrong
   or missing when asked = Hard; wrong exit = Again (re-asked this session; show where the chosen exit leads
@@ -254,8 +254,8 @@ the approach-side corner before the turn.
 ## 7. Session planner
 
 ```
-budget   = minutesPerDay * 60                      // 15 | 20 | 30
-nBase    = {15: 7, 20: 10, 30: 14}[minutesPerDay]  // (tunable)
+budget   = minutesPerDay * 60                      // 15 | 20 | 30 | 45 | 60
+nBase    = {15: 7, 20: 10, 30: 14, 45: 21, 60: 28}[minutesPerDay]  // (tunable)
 tReview  = 12 s, tNew = 45 s                       // re-estimated weekly from review_log medians
 due      = cards with due_at <= now, sorted by R ascending (most at risk first)
 if due.length * tReview > budget:
@@ -271,7 +271,7 @@ session = interleave([3 intros], [5 reviews], [retrieval 1 of those 3], ... ,
   when due > 120 % of budget.
 - Drills: at most 1 family sweep per session (when ≥ 3 children due within 2 days), 1 crossings drill a day
   (on a Solid parent or grid street), 1–3 bearings per session (once the district's grid is ≥ 50 % Solid).
-- "Learn 5 more" after a session adds 5 new streets; it is the only way past `nBase`.
+- "Learn 10 more" after a session adds `learnMoreCount` new streets; it is the only way past `nBase`.
 - Sessions save after every answer; leaving keeps progress (no "lose progress" dialog).
 
 ## 8. Progress and motivation
@@ -338,35 +338,35 @@ recitals must work without speech.
 
 ## 13. Constants (one file: `pindoro_learning/lib/src/constants.dart`)
 
-| Name                                                         | Value                   |
-| ------------------------------------------------------------ | ----------------------- |
-| `fsrsWeights`                                                | §4 list                 |
-| `retentionDefault` / `retentionTierCRelief`                  | 0.90 / 0.85             |
-| `maxIntervalDays`                                            | 365                     |
-| `fuzzFraction`, `fuzzMinDays`                                | 0.05, 3                 |
-| `relearnGapMin`, `relearnGapMax`                             | 5, 10 items             |
-| `leechLapses`                                                | 6                       |
-| `pinGoodMaxM`, `snapSearchM`                                 | 100, 150                |
-| `rtHardMs`, `rtEasyMs`, `easyMinSuccesses`                   | 20000, 6000, 2          |
-| `extentEndMinM`, `extentEndFraction`                         | 150, 0.10               |
-| `extentMinLengthM`                                           | 1200                    |
-| `unlockNameDays`, `unlockExtentDays`                         | 7, 7                    |
-| `childParentMinDays`, `maxSiblingsPerDay`                    | 3, 4                    |
-| `knownMinR`, `solidDays`, `masteredDays`, `masteredSideDays` | 0.80, 21, 90, 21        |
-| `newPerDay`                                                  | {15: 7, 20: 10, 30: 14} |
-| `tReviewS`, `tNewS`                                          | 12, 45                  |
-| `backlogCapFactor`                                           | 1.5                     |
-| `tierBShare`                                                 | 0.60                    |
-| `routeNewPerDayMax`, `routePauseFactor`                      | 10, 1.2                 |
-| `fuzzyNameMax`                                               | 0.25                    |
-| `stretchPerfect`, `stretchGreat`, `stretchClose`             | 1.03, 1.25, 1.60        |
-| `connectorMaxM`, `connectorMax`                              | 150, 2                  |
-| `gatewayUnlockKnown`, `districtJunctionUnlockSolid`          | 0.70, 0.80              |
-| `phase2ChunkSolid`                                           | 0.80                    |
-| `bearingGreatDeg`, `bearingCloseDeg`                         | 20, 45                  |
-| `junctionCoverage`, `odSamples`                              | 0.90, 20000             |
-| `landmarkRadiusM`                                            | 60                      |
-| `hesitationKmh`, `hesitationS`                               | 5, 10                   |
+| Name                                                         | Value                                   |
+| ------------------------------------------------------------ | --------------------------------------- |
+| `fsrsWeights`                                                | §4 list                                 |
+| `retentionDefault` / `retentionTierCRelief`                  | 0.90 / 0.85                             |
+| `maxIntervalDays`                                            | 365                                     |
+| `fuzzFraction`, `fuzzMinDays`                                | 0.05, 3                                 |
+| `relearnGapMin`, `relearnGapMax`                             | 5, 10 items                             |
+| `leechLapses`                                                | 6                                       |
+| `pinGoodMaxM`, `snapSearchM`                                 | 100, 150                                |
+| `rtHardMs`, `rtEasyMs`, `easyMinSuccesses`                   | 20000, 6000, 2                          |
+| `extentEndMinM`, `extentEndFraction`                         | 150, 0.10                               |
+| `extentMinLengthM`                                           | 1200                                    |
+| `unlockNameReps`, `unlockExtentDays`                         | 2, 7 days                               |
+| `childParentMinDays`, `maxSiblingsPerDay`                    | 3, 4                                    |
+| `knownMinR`, `solidDays`, `masteredDays`, `masteredSideDays` | 0.80, 21, 90, 21                        |
+| `newPerDay`                                                  | {15: 7, 20: 10, 30: 14, 45: 21, 60: 28} |
+| `tReviewS`, `tNewS`                                          | 12, 45                                  |
+| `backlogCapFactor`                                           | 1.5                                     |
+| `tierBShare`                                                 | 0.60                                    |
+| `routeNewPerDayMax`, `routePauseFactor`                      | 10, 1.2                                 |
+| `fuzzyNameMax`                                               | 0.25                                    |
+| `stretchPerfect`, `stretchGreat`, `stretchClose`             | 1.03, 1.25, 1.60                        |
+| `connectorMaxM`, `connectorMax`                              | 150, 2                                  |
+| `gatewayUnlockKnown`, `districtJunctionUnlockSolid`          | 0.70, 0.80                              |
+| `phase2ChunkSolid`                                           | 0.80                                    |
+| `bearingGreatDeg`, `bearingCloseDeg`                         | 20, 45                                  |
+| `junctionCoverage`, `odSamples`                              | 0.90, 20000                             |
+| `landmarkRadiusM`                                            | 60                                      |
+| `hesitationKmh`, `hesitationS`                               | 5, 10                                   |
 
 Added with §16 (also in `constants.dart`; distances shared with the display tiers are referenced from
 pindoro_core `ScoringConfig`, not copied):
@@ -376,16 +376,15 @@ pindoro_core `ScoringConfig`, not copied):
 | `coreMinLengthM`                                                     | 150                                 |
 | `groupSize`, `reviewsPerBlock`                                       | 3, 5                                |
 | `retrieval1GapMin`, `retrieval1GapMax`, `retrieval1GapFloor`         | 3, 6, 2 items                       |
-| `learnMoreCount`                                                     | 5                                   |
+| `learnMoreCount`                                                     | 10                                  |
 | `placementSamplePerDistrict`, `placementPassMin`                     | 5, 4                                |
 | `placementPinS` (time estimate per placement pin)                    | 4 s                                 |
 | `nightOwlBefore` (Night owl badge: an answer before this local hour) | 4                                   |
 | `familySweepMinChildren`, `familySweepWindowDays`                    | 3, 2                                |
 | `crossingsPerDay`, `bearingsPerSessionMin`, `bearingsPerSessionMax`  | 1, 1, 3                             |
 | `familySweepMax`, `crossingsMax`, `crossingsTries`                   | 6, 5, 8                             |
-| `sideNewPerDay` (name and ends cards started a day)                  | 5                                   |
 | `bearingUnlockGridSolid`                                             | 0.50                                |
-| `nameCheckEvery`, `nameCheckOptions`                                 | 10, 6                               |
+| `nameCheckOptions`                                                   | 6                                   |
 | `familyOrphanM`, `familyNearM`                                       | 1500, 500                           |
 | `chunkNeighbourM`                                                    | 50                                  |
 | `nearDueFraction`                                                    | 0.5 (implicit evidence and Explore) |
@@ -640,25 +639,27 @@ board, and per-type FSRS parameter presets.
     `lesson_result`, `lesson_answer`, `saved_lesson`, and the XP, Pit stop, daily goal and turn
     list columns). Streets the lessons knew are kept in `legacy_known` first, so carry-over still
     finds them for cities not opened yet.
-52. **Learn 5 more** plans `learnMoreCount` new streets past the daily number and the minutes. Today
+52. **Learn 10 more** plans `learnMoreCount` new streets past the daily number and the minutes. Today
     offers it when done; Session done offers it when nothing is left due.
 53. **Catching up** shows the days the due reviews take at the day's minutes (`due × tReviewS ÷
     budget`, rounded up) and City memory's change over the week.
 
 ### 16.13 More street cards and drills (M4)
 
-54. **Name and ends cards open** when the street's P card reaches `unlockNameDays` /
+54. **Name and ends cards open**, a name card once the street's P card has had `unlockNameReps`
+    answers (its retrieval 1 and 2) or was known before, an ends card once it reaches
     `unlockExtentDays` of stability: a name card for tiers A and B and every family parent, an ends
     card past `extentMinLengthM`. An open card without a row starts as a first review (no intro)
-    after the due reviews, the most stable streets first, at most `sideNewPerDay` a day, in the
-    minutes left after the new streets; a backlog and Learn 5 more start none.
-55. **The name check** is every `nameCheckEvery`th name review over all name cards. It replaces Show
-    name with `nameCheckOptions` names: the street, its confusables nearest first, then the nearest
-    streets, one per name. Right is Good; wrong is Again and saves the mixed-up pair. A self-graded
-    review (Forgot / Knew it) goes straight on, with no sheet.
+    after the due reviews, the most stable streets first, at most as many a day as the day's new
+    streets (`newPerDay[minutes]`), in the minutes left after the new streets; a backlog and Learn
+    10 more start none.
+55. **The name check** is every name review: `nameCheckOptions` names, the street, its confusables
+    nearest first, then the nearest streets, one per name. Right is Good; wrong is Again and saves
+    the mixed-up pair. (Until 2026-11-17 nine in ten were self-graded Forgot / Knew it, logged as
+    `name`.)
 56. **A street's ends** are its two line ends farthest apart; the pins count either way round. Both
     ends show Great, one Close, none Miss.
-57. **Name and ends answers** log as `name`, `nameCheck` and `extent` whatever their step (first
+57. **Name and ends answers** log as `nameCheck` and `extent` whatever their step (first
     review, review, relearn). Again relearns them in the session like a pin. Recall rate stays on P
     reviews; City memory counts only P cards.
 58. **Mastered** needs each name and ends card that applies at `masteredSideDays`; one not started
@@ -727,7 +728,7 @@ board, and per-type FSRS parameter presets.
     landmarks at once.
 70. **New route items** start like name cards (§16.13 item 54): after the reviews and side cards,
     at most `routeNewPerDayMax` a day, none while the due reviews take more than `routePauseFactor`
-    of the minutes, none in Learn 5 more; in layer order (bridges, skeleton turns, gateways,
+    of the minutes, none in Learn 10 more; in layer order (bridges, skeleton turns, gateways,
     district turns, connections, landmarks), then coverage rank. Today's Turns tile counts the
     plan's route items. New OSM places are taught first instead (§16.18 item 87).
 71. **The other route cards**: a gateway asks "Way out of {chunk}" (or into), graded by a pin within
@@ -839,7 +840,7 @@ blank maps after every answer.
     street (§6.4): the place in yellow among the streets around it, where it is ("At A × B", or "On
     A" where only connectors meet), its kind and a Street View link; then retrieval 1 and 2 in the
     same session. At most `landmarkNewPerDay` a day, after the new streets, at `tNewS` each, paused
-    like the route items and none in Learn 5 more; they count in Today's Turns, not its new
+    like the route items and none in Learn 10 more; they count in Today's Turns, not its new
     streets. The player's own landmarks still start as a first review.
 88. **A place's L2 and L3** open only once its L1 is Known; a turn, connection or OSM place needs
     at least one named street to be Known (one met only by connectors stays shut).
@@ -884,3 +885,14 @@ blank maps after every answer.
     - A named roundabout is one place however many ways OSM splits it into (they were asked up
       to 5 times), and none when its name is a road's (a street through it, a square's address,
       "… Street") or a `place=square`'s, which is asked as itself.
+97. **Never one street twice in a row.** A session never asks about the same street (or place,
+    turn, recital: one item key) in two steps running while another step can go between: the
+    planned session, and again each time a relearn goes in (`Planner.unstacked`). A repeat takes
+    the nearest later step about something else between the two, else the nearest earlier one;
+    one street's steps keep their order. It caught a new street's retrieval 1 and 2 at the end of a
+    session, a relearn just before its own retrieval 2, and a street's name and ends cards side by
+    side.
+98. **Name it right after learning a street.** A street's name card opens once its pin card has had
+    its two same-day retrievals (a street known before at once), not after 7 days of stability, and
+    every name review picks among six names: a self-grade proved nothing. So the names keep pace,
+    as many name and ends cards start a day as new streets, instead of 5.

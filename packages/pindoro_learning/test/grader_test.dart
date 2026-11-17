@@ -258,11 +258,8 @@ void main() {
       expect(Grader.ratingOfTier(Tier.close), Rating.hard);
     });
 
-    test('every 10th name review is the checked one', () {
-      expect([for (var n = 0; n < 20; n++) n].where(Grader.isNameCheck), [
-        9,
-        19,
-      ]);
+    test('a name pick: the street is Good, another Again', () {
+      expect(Grader.gradeName(knew: true), Rating.good);
       expect(Grader.gradeName(knew: false), Rating.again);
     });
 
