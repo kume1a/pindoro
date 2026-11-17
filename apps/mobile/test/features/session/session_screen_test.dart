@@ -31,6 +31,9 @@ void main() {
   late NamedStreet a;
   late NamedStreet b;
   late NamedStreet c;
+
+  /// A street crossing [a].
+  late NamedStreet aCrossing;
   late NamedStreet parent;
   late NamedStreet child;
 
@@ -82,6 +85,7 @@ void main() {
     repo.close();
     LatLng mid(NamedStreet s) => s.parts.first.midpoint;
     a = streets.first;
+    aCrossing = crossingsAlong(a, streets).first.street;
     b = streets.firstWhere((s) => distanceBetween(mid(s), mid(a)) > 800);
     c = streets.firstWhere(
       (s) =>
@@ -259,12 +263,11 @@ void main() {
     expect((await dao.log()).single.snapId, b.id);
   });
 
-  testWidgets('known streets are named on the reveal, never while asking', (
-    tester,
-  ) async {
+  testWidgets('streets are named on the reveal, never while asking; known ones '
+      'are traced', (tester) async {
     await dao.putCard(
       CardState(
-        itemId: item(c),
+        itemId: item(aCrossing),
         phase: CardPhase.review,
         memory: Memory(
           stability: 30,
@@ -277,10 +280,20 @@ void main() {
       ),
     );
     await pump(tester, [(kind: StepKind.retrieval1, itemId: item(a))]);
-    expect(maps.last.known, isEmpty);
+    expect(maps.last.labels, isEmpty);
+    expect(maps.last.places, isNotEmpty, reason: 'places are named asking');
+    expect(maps.last.places.where((p) => namesStreet(p.label, a)), isEmpty);
     await answer(tester, onStreet(a));
-    expect(maps.last.known.map((k) => k.geometry), [c.geometry]);
-    expect(maps.last.known.map((k) => k.geometry), isNot(contains(a.geometry)));
+    final labels = maps.last.labels;
+    expect(labels.first.label, aCrossing.name);
+    expect(labels.map((k) => k.label), isNot(contains(a.name)));
+    expect(
+      [
+        for (final k in labels)
+          if (k.geometry.isNotEmpty) k.label,
+      ],
+      [aCrossing.name],
+    );
   });
   testWidgets('a child of a known street is guessed first, then introduced '
       'with its family', (tester) async {
@@ -301,7 +314,7 @@ void main() {
     await pump(tester, [(kind: StepKind.intro, itemId: item(child))]);
     expect(find.text('Guess first'), findsOneWidget);
     expect(find.textContaining('You know ${parent.name}'), findsOneWidget);
-    expect(maps.last.known, isEmpty);
+    expect(maps.last.labels, isEmpty);
     maps.last.onTap!(onStreet(child));
     await settle(tester);
     await tapThrough(tester, find.text('Confirm guess'));
@@ -309,7 +322,7 @@ void main() {
     expect((await dao.log()).single.format, ReviewFormat.pretest);
     expect(await dao.card(item(child)), isNull);
     expect(find.textContaining('Family: ${parent.name}'), findsOneWidget);
-    expect(maps.last.known.map((k) => k.label), contains(parent.name));
+    expect(maps.last.labels.map((k) => k.label), contains(parent.name));
     await tapThrough(tester, find.text('Got it'));
     expect((await dao.card(item(child)))!.phase, CardPhase.learning);
   });

@@ -13,11 +13,14 @@ import 'package:pindoro/core/play_bar.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
+import 'package:pindoro/features/learning/data/map_places.dart';
 import 'package:pindoro/features/map/ui/pin_drop_view.dart';
+import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/quiz/ui/round_controller.dart';
 import 'package:pindoro/features/quiz/ui/setup_states.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
 
 /// Plays an Explore round: resumes [roundId], retries [retryOf]'s missed
 /// streets, or starts one from the saved area and difficulty.
@@ -128,6 +131,8 @@ class _RoundView extends ConsumerWidget {
       RoundAsking() => null,
     };
     final answer = revealed?.answer;
+    final settings = ref.watch(settingsProvider).value;
+    final streets = ref.watch(cityStreetsProvider).value?.values;
 
     return PopScope(
       canPop: false,
@@ -140,6 +145,17 @@ class _RoundView extends ConsumerWidget {
         street: round.current,
         retryDistance: round.previousDistanceM[round.currentId],
         pin: play.pin,
+        labels: revealed == null || streets == null
+            ? const []
+            : [
+                for (final l in labelStreets(round.current, streets))
+                  (
+                    geometry: const [],
+                    at: l.at,
+                    label: streetName(l.street, settings),
+                  ),
+              ],
+        places: ref.watch(mapPlacesProvider).value ?? const [],
         topBar: _TopBar(round, onLeave: () => _leave(context, ref)),
         reveal: revealed == null || answer == null
             ? null

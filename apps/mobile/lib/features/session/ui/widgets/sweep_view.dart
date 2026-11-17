@@ -69,7 +69,7 @@ class _SweepViewState extends ConsumerState<SweepView> {
         PindoroMap(
           area: play.area,
           frame: play.frame,
-          known: [
+          labels: [
             (
               geometry: parent.geometry,
               at: parent.parts.first.midpoint,

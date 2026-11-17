@@ -211,5 +211,10 @@ abstract final class LearningConfig {
 
   /// Night owl: an answer from midnight until this local hour.
   static const int nightOwlBefore = 4;
-  static const int knownLabelMax = 12;
+
+  /// Maps (§16.18): streets named on an intro or a reveal, a crossing's name this far from
+  /// its junction, and places named in view.
+  static const int streetLabelMax = 12;
+  static const double streetLabelOffsetM = 60;
+  static const int placeLabelMax = 15;
 }

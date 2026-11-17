@@ -12,6 +12,7 @@ import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/map/ui/widgets/tier_reveal.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
 
 /// A confirmed pin: its tier and distance, where it was and the nearest
 /// point of the street (the measure line), the sheet's [chips] and the
@@ -45,7 +46,8 @@ class PinDropView extends ConsumerWidget {
     this.retryDistance,
     this.celebration,
     this.frame,
-    this.known = const [],
+    this.labels = const [],
+    this.places = const [],
     this.mixUp,
     this.headerChip,
     this.guess,
@@ -74,8 +76,12 @@ class PinDropView extends ConsumerWidget {
   /// retrieval 1 frames the street's district).
   final List<LatLng>? frame;
 
-  /// Known streets named on the reveal (v3).
-  final List<MapLabel> known;
+  /// Streets named on the reveal (v3).
+  final List<MapLabel> labels;
+
+  /// Places the map may name; while asking, none whose name gives the
+  /// street away.
+  final List<MapPlace> places;
 
   /// The reveal is a Mix-up: the pin hit this confusable street (v3).
   final MapLabel? mixUp;
@@ -134,7 +140,13 @@ class PinDropView extends ConsumerWidget {
             bottomInset: insets.bottom,
             showControls: reveal == null,
             frame: reveal == null ? frame : null,
-            known: reveal == null ? const [] : known,
+            labels: reveal == null ? const [] : labels,
+            places: reveal == null
+                ? [
+                    for (final p in places)
+                      if (!namesStreet(p.label, street)) p,
+                  ]
+                : places,
             hit: reveal == null ? null : mixUp,
           ),
         ),

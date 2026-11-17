@@ -18,7 +18,8 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// A new street (SessionScreen `intro`): the map paints it and names the
-/// streets the player knows, the plate says "New street · 1 of 10" and the
+/// streets around it and the places in view, the plate says "New street · 1
+/// of 10" and the
 /// Intro sheet says where it is. A leech comes back the same way, beside the
 /// street it is mixed up with ([contrast], cobalt) and with a note field
 /// (SPEC §4).
@@ -26,14 +27,16 @@ class SessionIntro extends ConsumerStatefulWidget {
   const SessionIntro({
     super.key,
     required this.play,
-    required this.known,
+    required this.labels,
+    required this.places,
     required this.topBar,
     required this.onGotIt,
     this.contrast,
   });
 
   final SessionPlaying play;
-  final List<MapLabel> known;
+  final List<MapLabel> labels;
+  final List<MapPlace> places;
   final Widget topBar;
 
   /// Got it, with a leech's note as typed.
@@ -56,7 +59,6 @@ class _SessionIntroState extends ConsumerState<SessionIntro> {
   @override
   Widget build(BuildContext context) {
     final play = widget.play;
-    final known = widget.known;
     final topBar = widget.topBar;
     final contrast = widget.contrast;
     final l10n = context.l10n;
@@ -83,7 +85,8 @@ class _SessionIntroState extends ConsumerState<SessionIntro> {
           PindoroMap(
             area: play.area,
             truth: street.geometry,
-            known: known,
+            labels: widget.labels,
+            places: widget.places,
             hit: contrast,
             topInset: insets.top,
             bottomInset: insets.bottom,

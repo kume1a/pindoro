@@ -105,7 +105,7 @@ class _CrossingsViewState extends ConsumerState<CrossingsView> {
             at: street.parts.first.midpoint,
             label: streetName(street, settings),
           ),
-          known: [
+          labels: [
             for (final c in task.crossings.take(at))
               (
                 geometry: c.street.geometry,

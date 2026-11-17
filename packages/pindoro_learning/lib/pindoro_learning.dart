@@ -10,6 +10,7 @@ export 'src/drive.dart';
 export 'src/export.dart';
 export 'src/fsrs.dart';
 export 'src/grader.dart';
+export 'src/map_labels.dart';
 export 'src/names.dart';
 export 'src/placement.dart';
 export 'src/planner.dart';

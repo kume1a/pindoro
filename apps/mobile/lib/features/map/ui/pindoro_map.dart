@@ -23,6 +23,7 @@ import 'package:pindoro/features/map/ui/widgets/map_taps.dart';
 import 'package:pindoro/features/map/ui/widgets/map_zoom_controls.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
 
 /// GeoJSON source ids.
 abstract final class _MapSources {
@@ -32,8 +33,9 @@ abstract final class _MapSources {
   static const String measure = 'measure';
   static const String measureEnd = 'measure-end';
   static const String measureLabel = 'measure-label';
-  static const String knownTrace = 'known-trace';
-  static const String knownLabel = 'known-label';
+  static const String labelTrace = 'label-trace';
+  static const String labelChip = 'label-chip';
+  static const String placeChip = 'place-chip';
   static const String hitStreet = 'hit-street';
   static const String hitLabel = 'hit-label';
 }
@@ -42,12 +44,16 @@ abstract final class _MapSources {
 /// distance chip hanging under its middle (never under the pin).
 typedef Measure = ({LatLng from, LatLng to, String label});
 
-/// A street drawn with its name: a known street's grey trace and white chip,
-/// or a Mix-up's hit street (Map overlays, v3).
+/// A street drawn with its name: a white chip at [at] over its grey trace
+/// (empty [geometry]: the chip only), or a Mix-up's hit street (Map overlays,
+/// v3).
 typedef MapLabel = ({MultiPolyline geometry, LatLng at, String label});
 
+/// A place the map can name (a landmark), the most salient first.
+typedef MapPlace = ({String id, LatLng at, String label, double salience});
+
 /// A known street's trace (`opacity.street-trace` over `color.map.region.outline`).
-const double _knownTraceWidth = 6;
+const double _labelTraceWidth = 6;
 
 const String _pinImage = 'player-pin';
 
@@ -79,7 +85,8 @@ class PindoroMap extends ConsumerStatefulWidget {
     this.frame,
     this.onCamera,
     this.ownsGestures = false,
-    this.known = const [],
+    this.labels = const [],
+    this.places = const [],
     this.hit,
     this.morePins = const [],
   });
@@ -102,9 +109,13 @@ class PindoroMap extends ConsumerStatefulWidget {
   /// the page.
   final bool ownsGestures;
 
-  /// Streets the player knows, traced and named (intro and reveal only;
-  /// never the answer street); one with an empty label is traced only.
-  final List<MapLabel> known;
+  /// Streets named on the map (an intro, a reveal, a drill's own streets;
+  /// never a question's answer); one with an empty label is traced only.
+  final List<MapLabel> labels;
+
+  /// Places the map may name: the most salient
+  /// [LearningConfig.placeLabelMax] in view, as the camera settles.
+  final List<MapPlace> places;
 
   /// A Mix-up's hit street: dashed cobalt with a cobalt chip.
   final MapLabel? hit;
@@ -277,9 +288,12 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
         !listEquals(widget.morePins, oldWidget.morePins) ||
         widget.truth != oldWidget.truth ||
         widget.measure != oldWidget.measure ||
-        widget.known != oldWidget.known ||
+        widget.labels != oldWidget.labels ||
         widget.hit != oldWidget.hit) {
       runMapWork(_syncOverlays);
+    }
+    if (!listEquals(widget.places, oldWidget.places)) {
+      runMapWork(_syncPlaces);
     }
     final frame = widget.frame;
     final insetsMoved =
@@ -381,13 +395,13 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       enableInteraction: false,
     );
     if (widget.route != null) await addRouteLayers(c, colors, pixelRatio);
-    await c.addGeoJsonSource(_MapSources.knownTrace, linesGeoJson(const []));
+    await c.addGeoJsonSource(_MapSources.labelTrace, linesGeoJson(const []));
     await c.addLineLayer(
-      _MapSources.knownTrace,
-      '${_MapSources.knownTrace}-line',
+      _MapSources.labelTrace,
+      '${_MapSources.labelTrace}-line',
       ml.LineLayerProperties(
         lineColor: hexColor(colors.mapRegionOutline),
-        lineWidth: _knownTraceWidth,
+        lineWidth: _labelTraceWidth,
         lineOpacity: PindoroOpacity.streetTrace,
         lineCap: 'round',
         lineJoin: 'round',
@@ -494,7 +508,21 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       ),
       enableInteraction: false,
     );
-    for (final source in [_MapSources.knownLabel, _MapSources.hitLabel]) {
+    // Added first, so placed last: street names win where chips collide.
+    await c.addGeoJsonSource(_MapSources.placeChip, pointsGeoJson(const []));
+    await c.addSymbolLayer(
+      _MapSources.placeChip,
+      _MapSources.placeChip,
+      ml.SymbolLayerProperties(
+        iconImage: ['get', 'icon'],
+        iconAnchor: 'bottom',
+        // Above the basemap's landmark icon at the same point.
+        iconOffset: [0, -PindoroSpace.s3 * pixelRatio],
+        iconAllowOverlap: false,
+      ),
+      enableInteraction: false,
+    );
+    for (final source in [_MapSources.labelChip, _MapSources.hitLabel]) {
       await c.addGeoJsonSource(source, pointsGeoJson(const []));
       await c.addSymbolLayer(
         source,
@@ -519,7 +547,30 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     await _syncOverlays();
     await _fit(_framePoints);
     _cameraMoved();
+    await _syncPlaces();
     await addPoiImages(c, colors, pixelRatio);
+  }
+
+  /// Names the most salient [PindoroMap.places] in view.
+  Future<void> _syncPlaces() async {
+    final c = _controller;
+    final projection = _projection;
+    if (!_overlaysReady || c == null || projection == null) return;
+    final view = Bbox.of([
+      projection.toLatLng(Offset.zero),
+      projection.toLatLng(projection.size.bottomRight(Offset.zero)),
+    ]);
+    final inView = [
+      for (final p in widget.places)
+        if (view.contains(p.at)) p,
+    ]..sort((a, b) => b.salience.compareTo(a.salience));
+    await c.setGeoJsonSource(
+      _MapSources.placeChip,
+      labelledPointsGeoJson([
+        for (final p in inView.take(LearningConfig.placeLabelMax))
+          (p.at, {'icon': await _labelImage('place', p.label, MapChip.place)}),
+      ]),
+    );
   }
 
   Future<void> _syncOverlays() async {
@@ -549,17 +600,17 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       measure == null ? pointsGeoJson(const []) : await _measureChip(measure),
     );
     await c.setGeoJsonSource(
-      _MapSources.knownTrace,
-      linesGeoJson([for (final k in widget.known) ...k.geometry]),
+      _MapSources.labelTrace,
+      linesGeoJson([for (final k in widget.labels) ...k.geometry]),
     );
     await c.setGeoJsonSource(
-      _MapSources.knownLabel,
+      _MapSources.labelChip,
       labelledPointsGeoJson([
-        for (final k in widget.known)
+        for (final k in widget.labels)
           if (k.label.isNotEmpty)
             (
               k.at,
-              {'icon': await _labelImage('known', k.label, MapChip.region)},
+              {'icon': await _labelImage('street', k.label, MapChip.region)},
             ),
       ]),
     );
@@ -716,7 +767,11 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
                         : null,
                     onMapCreated: (c) =>
                         _controller = c..addListener(_cameraMoved),
-                    trackCameraPosition: widget.onCamera != null || taps,
+                    trackCameraPosition:
+                        widget.onCamera != null ||
+                        taps ||
+                        widget.places.isNotEmpty,
+                    onCameraIdle: () => runMapWork(_syncPlaces),
                     onStyleLoadedCallback: () => runMapWork(_addOverlays),
                     // A tap drops the pin at once, so a second can't zoom.
                     doubleClickZoomEnabled: taps ? false : null,

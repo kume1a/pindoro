@@ -64,6 +64,7 @@ final class SessionPlaying extends SessionState {
     required this.forgotten,
     required this.street,
     required this.area,
+    required this.labels,
     required this.known,
     required this.newIndex,
     required this.newTotal,
@@ -92,8 +93,12 @@ final class SessionPlaying extends SessionState {
   /// The city: the pin can go anywhere in it.
   final AreaShape area;
 
-  /// Known streets near this one, named on the intro and the reveal.
-  final List<NamedStreet> known;
+  /// Streets around this one, named on the intro and the reveal (SPEC
+  /// §16.18).
+  final List<StreetLabel> labels;
+
+  /// Ids of the streets the player knows: their labels are traced too.
+  final Set<String> known;
 
   /// "New street · [newIndex] of [newTotal]".
   final int newIndex;
@@ -146,6 +151,7 @@ final class SessionPlaying extends SessionState {
     forgotten: forgotten ?? this.forgotten,
     street: street,
     area: area,
+    labels: labels,
     known: known,
     newIndex: newIndex,
     newTotal: newTotal,
@@ -890,7 +896,10 @@ class SessionController extends Notifier<SessionState> {
       forgotten: forgotten,
       street: street,
       area: (bbox: city.bbox, boundary: city.boundary),
-      known: _nearestFirst(street, known, family),
+      labels: task is PinTask
+          ? labelStreets(street, _all, family: family)
+          : const [],
+      known: {for (final s in known) s.id},
       newIndex: intros.indexOf(step) + 1,
       newTotal: intros.length,
       task: task,
@@ -1290,22 +1299,6 @@ class SessionController extends Notifier<SessionState> {
     return chip == null || parent == null
         ? null
         : (parent: parent, children: chip.children);
-  }
-
-  /// Up to [LearningConfig.knownLabelMax] of the [known] streets: [street]'s
-  /// [family] first, then the nearest.
-  List<NamedStreet> _nearestFirst(
-    NamedStreet street,
-    Set<NamedStreet> known,
-    Set<String> family,
-  ) {
-    final at = street.parts.first.midpoint;
-    double away(NamedStreet s) => family.contains(s.id)
-        ? -1
-        : distanceBetween(at, s.parts.first.midpoint);
-    return (known.toList()..sort((a, b) => away(a).compareTo(away(b))))
-        .take(LearningConfig.knownLabelMax)
-        .toList();
   }
 
   /// The bounds of the raion holding most of [street]'s length.
