@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>V31-11 Today at 360 dp and 200 % text</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pindoro-tokens.css">
+<link rel="stylesheet" href="ds/pindoro/components/bundle.css">
+<link rel="stylesheet" href="pindoro-canvas.css">
+<link rel="stylesheet" href="pindoro-v31.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="cv-flow" style="width: 2120px; height: 1000px">
+<div class="cv-col cv-col--360"><div class="cv-steprow"><span class="cv-step">1</span><span class="cv-steptx">Ready at 360 dp</span></div><dc-import name="TodayScreen" theme="light" state="v31-ready-run" device="360" text="100" hint-size="360px,800px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">2</span><span class="cv-steptx">Ready at 200 % text</span></div><dc-import name="TodayScreen" theme="light" state="v31-ready-run" device="390" text="200" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col cv-col--360"><div class="cv-steprow"><span class="cv-step">3</span><span class="cv-steptx">Ready at 360 dp and 200 % text</span></div><dc-import name="TodayScreen" theme="light" state="v31-ready" device="360" text="200" hint-size="360px,800px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">4</span><span class="cv-steptx">Done at 200 % text: the two buttons stack</span></div><dc-import name="TodayScreen" theme="light" state="v31-done" device="390" text="200" hint-size="390px,844px"></dc-import></div>
+<div class="cv-notes cv-notes--wide">
+<div class="cv-caprow"><span class="cv-tag cv-tag--new">New in v3.1</span></div>
+<h3>Today holds at 360 dp and at 200 % text</h3>
+<ul>
+<li>Nothing truncates: names wrap, figures keep tabular digits.</li>
+<li>At 200 % the plan tiles drop to one column and the neighbourhood card puts its map above the text.</li>
+<li>The City memory row wraps the change under the figure.</li>
+<li>Buttons keep a 48 dp minimum and grow with their label. Done’s two buttons stack.</li>
+<li>The week strip keeps 7 columns; only its labels grow.</li>
+<li>At 360 dp the side margins stay 16 dp and the hero loses nothing; the status-bar inset is 28 dp.</li>
+<li>The frames show the top of the tab; the rest scrolls under the fixed tab bar.</li>
+</ul>
+<p>Flutter: MediaQuery.textScalerOf(context). The tiles use a LayoutBuilder breakpoint (one column from a text scale of 1.6), the City memory row is a Wrap, and the neighbourhood card switches Row → Column at the same breakpoint.</p>
+<h4>New data</h4>
+<ul><li>None.</li></ul>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 2120, "height": 1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

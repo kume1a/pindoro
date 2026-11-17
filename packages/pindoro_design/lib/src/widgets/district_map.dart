@@ -7,119 +7,325 @@ import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'motion.dart';
 
+/// How much of a district is in memory (District fills): outline only, a
+/// yellow wash under [progressShare], the progress fill from it, cobalt once
+/// Mastered.
 enum DistrictProgress {
   notStarted,
+  started,
   inProgress,
   complete;
 
-  /// Fill (none before any street is known) and outline in [c].
+  /// The share of a district's streets in memory from which it takes the
+  /// progress fill.
+  static const double progressShare = 0.25;
+
+  /// The step for [share] of a district's streets in memory.
+  static DistrictProgress of(double share, {required bool mastered}) => mastered
+      ? complete
+      : share <= 0
+      ? notStarted
+      : share < progressShare
+      ? started
+      : inProgress;
+
+  /// Fill (none before any street is in memory) and outline in [c].
   (Color? fill, Color stroke) colorsIn(PindoroColors c) => switch (this) {
     notStarted => (null, c.mapRegionOutline),
+    started => (c.mapDistrictStartedFill, c.mapDistrictProgressStroke),
     inProgress => (c.mapDistrictProgressFill, c.mapDistrictProgressStroke),
     complete => (c.mapDistrictMasteredFill, c.mapDistrictMasteredStroke),
   };
 }
 
-typedef MiniMapDistrict = ({
+/// A district on [DistrictMap]: its outline, fill step and name.
+typedef MapDistrict = ({
   List<List<Polyline>> boundary,
   DistrictProgress progress,
+  String name,
+  LatLng labelAt,
 });
 
-/// The city's districts filling in as streets become known: grey when not
-/// started, yellow in progress, cobalt complete. Decorative; rows beside it
-/// carry the same data.
-class DistrictMiniMap extends StatelessWidget {
-  const DistrictMiniMap({super.key, required this.districts});
-
-  final List<MiniMapDistrict> districts;
-
-  @override
-  Widget build(BuildContext context) => ExcludeSemantics(
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(PindoroRadius.lg),
-      child: SizedBox(
-        height: 120,
-        width: double.infinity,
-        child: CustomPaint(
-          painter: _DistrictPainter(
-            colors: PindoroTheme.of(context).colors,
-            districts: districts,
-          ),
-        ),
-      ),
-    ),
+/// Equirectangular with the latitude's cosine, fitting [points] centred in
+/// [size] at [fill] of the room.
+Offset Function(LatLng) _fit(List<LatLng> points, Size size, double fill) {
+  final box = Bbox.of(points);
+  final kx = math.cos(box.center.lat * math.pi / 180);
+  final w = math.max((box.maxLon - box.minLon) * kx, 1e-9);
+  final h = math.max(box.maxLat - box.minLat, 1e-9);
+  final scale = fill * math.min(size.width / w, size.height / h);
+  final dx = (size.width - w * scale) / 2, dy = (size.height - h * scale) / 2;
+  return (p) => Offset(
+    dx + (p.lon - box.minLon) * kx * scale,
+    dy + (box.maxLat - p.lat) * scale,
   );
 }
 
+Path _polygonPath(List<Polyline> polygon, Offset Function(LatLng) at) {
+  final path = Path()..fillType = PathFillType.evenOdd;
+  for (final ring in polygon) {
+    path.addPolygon([for (final p in ring) at(p)], true);
+  }
+  return path;
+}
+
+Paint _line(Color color, double width) => Paint()
+  ..color = color
+  ..style = PaintingStyle.stroke
+  ..strokeWidth = width
+  ..strokeJoin = StrokeJoin.round
+  ..strokeCap = StrokeCap.round;
+
+/// The city's districts in their fill steps on the land colour, each named
+/// at its label point (District map, Progress). A tap on a district calls
+/// [onTap] with its index. One screen-reader node, [semanticsLabel]; rows
+/// beside it carry the same data. [overlay] sits over the map (attribution).
+class DistrictMap extends StatelessWidget {
+  const DistrictMap({
+    super.key,
+    required this.districts,
+    required this.semanticsLabel,
+    this.height = 220,
+    this.onTap,
+    this.overlay,
+  });
+
+  final List<MapDistrict> districts;
+  final String semanticsLabel;
+  final double height;
+  final ValueChanged<int>? onTap;
+  final Widget? overlay;
+
+  static const double _fill = 0.92;
+
+  List<(int, Path)> _paths(Size size) {
+    final at = _fit(
+      [
+        for (final d in districts)
+          for (final polygon in d.boundary)
+            for (final ring in polygon) ...ring,
+      ],
+      size,
+      _fill,
+    );
+    return [
+      for (final (i, d) in districts.indexed)
+        for (final polygon in d.boundary) (i, _polygonPath(polygon, at)),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    final overlay = this.overlay;
+    return Semantics(
+      image: true,
+      label: semanticsLabel,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(PindoroRadius.lg),
+        child: SizedBox(
+          height: height,
+          width: double.infinity,
+          child: LayoutBuilder(
+            builder: (context, box) {
+              final size = box.biggest;
+              final empty = districts.every((d) => d.boundary.isEmpty);
+              return Stack(
+                children: [
+                  Positioned.fill(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTapUp: onTap == null || empty
+                          ? null
+                          : (details) {
+                              for (final (i, path) in _paths(size)) {
+                                if (path.contains(details.localPosition)) {
+                                  onTap!(i);
+                                  return;
+                                }
+                              }
+                            },
+                      child: CustomPaint(
+                        painter: _DistrictPainter(
+                          colors: c,
+                          districts: districts,
+                          paths: empty ? const [] : _paths(size),
+                          label: PindoroType.labelSm,
+                        ),
+                      ),
+                    ),
+                  ),
+                  ?overlay,
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _DistrictPainter extends CustomPainter {
-  _DistrictPainter({required this.colors, required this.districts});
+  _DistrictPainter({
+    required this.colors,
+    required this.districts,
+    required this.paths,
+    required this.label,
+  });
 
   final PindoroColors colors;
-  final List<MiniMapDistrict> districts;
+  final List<MapDistrict> districts;
+  final List<(int, Path)> paths;
+  final TextStyle label;
 
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = colors.mapVectorLand);
-    final points = [
-      for (final d in districts)
-        for (final polygon in d.boundary)
-          for (final ring in polygon) ...ring,
-    ];
-    if (points.isEmpty) return;
-    final box = Bbox.of(points);
-    // Equirectangular with the latitude's cosine, fitted and centred.
-    final kx = math.cos(box.center.lat * math.pi / 180);
-    final w = (box.maxLon - box.minLon) * kx, h = box.maxLat - box.minLat;
-    final scale =
-        0.92 *
-        (size.width / w < size.height / h ? size.width / w : size.height / h);
-    final dx = (size.width - w * scale) / 2, dy = (size.height - h * scale) / 2;
-    Offset at(LatLng p) => Offset(
-      dx + (p.lon - box.minLon) * kx * scale,
-      dy + (box.maxLat - p.lat) * scale,
-    );
-    Path pathOf(List<Polyline> polygon) {
-      final path = Path()..fillType = PathFillType.evenOdd;
-      for (final ring in polygon) {
-        path.addPolygon([for (final p in ring) at(p)], true);
-      }
-      return path;
-    }
-
-    Paint line(Color color, double width) => Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = width
-      ..strokeJoin = StrokeJoin.round;
-
-    final paths = [
-      for (final d in districts)
-        for (final polygon in d.boundary) (d.progress, pathOf(polygon)),
-    ];
+    if (paths.isEmpty) return;
     // Each district is a tile: its fill, a coloured edge kept inside it, then
     // a land-coloured gap along every border, so no neighbour draws over it.
-    for (final (progress, path) in paths) {
-      final (fill, stroke) = progress.colorsIn(colors);
+    for (final (i, path) in paths) {
+      final (fill, stroke) = districts[i].progress.colorsIn(colors);
       canvas.drawPath(
         path,
         Paint()..color = fill ?? colors.mapDistrictLockedFill,
       );
-      if (progress != DistrictProgress.notStarted) {
+      if (districts[i].progress != DistrictProgress.notStarted) {
         canvas
           ..save()
           ..clipPath(path)
-          ..drawPath(path, line(stroke, 5))
+          ..drawPath(path, _line(stroke, 5))
           ..restore();
       }
     }
     for (final (_, path) in paths) {
-      canvas.drawPath(path, line(colors.mapVectorLand, 1.5));
+      canvas.drawPath(path, _line(colors.mapVectorLand, 1.5));
+    }
+    final at = _fit(
+      [
+        for (final d in districts)
+          for (final polygon in d.boundary)
+            for (final ring in polygon) ...ring,
+      ],
+      size,
+      DistrictMap._fill,
+    );
+    for (final (i, d) in districts.indexed) {
+      final room = paths
+          .where((p) => p.$1 == i)
+          .map((p) => p.$2.getBounds())
+          .fold(Rect.zero, (a, b) => a.isEmpty ? b : a.expandToInclude(b));
+      final halo = TextPainter(
+        text: TextSpan(
+          text: d.name,
+          style: label.copyWith(foreground: _line(colors.mapVectorLand, 3)),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final text = TextPainter(
+        text: TextSpan(
+          text: d.name,
+          style: label.copyWith(color: colors.textPrimary),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      // A name wider than its district would sit on its neighbours.
+      if (text.width > room.width) continue;
+      final centre = at(d.labelAt) - Offset(text.width / 2, text.height / 2);
+      halo.paint(canvas, centre);
+      text.paint(canvas, centre);
     }
   }
 
   @override
   bool shouldRepaint(_DistrictPainter old) =>
       old.colors != colors || old.districts != districts;
+}
+
+/// A neighbourhood at card size (Neighbourhood card's mini map): the land
+/// colour, the [streets] the player knows traced in `color.map.region.outline`
+/// at `opacity.street-trace`, and the [area] as the dashed cobalt play-area
+/// outline over its fill. No names. Decorative.
+class AreaMiniMap extends StatelessWidget {
+  const AreaMiniMap({
+    super.key,
+    required this.area,
+    this.streets = const [],
+    this.size = 104,
+  });
+
+  final List<List<Polyline>> area;
+  final List<Polyline> streets;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(PindoroRadius.md),
+      child: CustomPaint(
+        size: Size.square(size),
+        painter: _AreaPainter(
+          colors: PindoroTheme.of(context).colors,
+          area: area,
+          streets: streets,
+        ),
+      ),
+    ),
+  );
+}
+
+class _AreaPainter extends CustomPainter {
+  _AreaPainter({
+    required this.colors,
+    required this.area,
+    required this.streets,
+  });
+
+  final PindoroColors colors;
+  final List<List<Polyline>> area;
+  final List<Polyline> streets;
+
+  static const double _fill = 0.8;
+  static const double _street = 4;
+  static const double _dash = 8;
+  static const double _gap = 6;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawRect(Offset.zero & size, Paint()..color = colors.mapVectorLand);
+    final outline = [
+      for (final polygon in area)
+        for (final ring in polygon) ...ring,
+    ];
+    if (outline.isEmpty) return;
+    final at = _fit(outline, size, _fill);
+    final trace = _line(
+      colors.mapRegionOutline.withValues(alpha: PindoroOpacity.streetTrace),
+      _street,
+    );
+    for (final street in streets) {
+      if (street.length < 2) continue;
+      canvas.drawPath(
+        Path()..addPolygon([for (final p in street) at(p)], false),
+        trace,
+      );
+    }
+    final stroke = _line(colors.mapAreaStroke, PindoroStroke.thick);
+    for (final polygon in area) {
+      final path = _polygonPath(polygon, at);
+      canvas.drawPath(path, Paint()..color = colors.mapAreaFill);
+      for (final metric in path.computeMetrics()) {
+        for (var d = 0.0; d < metric.length; d += _dash + _gap) {
+          canvas.drawPath(metric.extractPath(d, d + _dash), stroke);
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_AreaPainter old) =>
+      old.colors != colors || old.area != area || old.streets != streets;
 }
 
 /// A 6 dp bar of a district's known streets.

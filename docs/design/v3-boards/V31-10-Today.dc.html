@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>V31-10 Today: what to do now, then what comes next</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pindoro-tokens.css">
+<link rel="stylesheet" href="ds/pindoro/components/bundle.css">
+<link rel="stylesheet" href="pindoro-canvas.css">
+<link rel="stylesheet" href="pindoro-v31.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="cv-flow" style="width: 3040px; height: 1060px">
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">1</span><span class="cv-steptx">firstRun: placement before anything else (kept as in v3)</span></div><dc-import name="TodayScreen" theme="light" state="firstRun" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">2</span><span class="cv-steptx">Day 1, right after placement: nothing due yet, so the plan is turns and drills</span></div><dc-import name="TodayScreen" theme="light" state="v31-day1" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">3</span><span class="cv-steptx">Ready, with a run: four kinds, so the tiles go 2 × 2</span></div><dc-import name="TodayScreen" theme="light" state="v31-ready-run" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">4</span><span class="cv-steptx">Ready, no run: three kinds in one row</span></div><dc-import name="TodayScreen" theme="light" state="v31-ready" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">5</span><span class="cv-steptx">Backlog: reviews first, new streets paused</span></div><dc-import name="TodayScreen" theme="light" state="v31-backlog" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">6</span><span class="cv-steptx">Done: streak kept, and tomorrow is already visible</span></div><dc-import name="TodayScreen" theme="light" state="v31-done" hint-size="390px,844px"></dc-import></div>
+<div class="cv-notes cv-notes--wide">
+<div class="cv-caprow"><span class="cv-tag cv-tag--new">New in v3.1</span><span class="cv-tag cv-tag--changed">Changes V3-10</span></div>
+<h3>Today: what to do now, then what comes next</h3>
+<ul>
+<li>The hero card holds the one thing to do now: one session, one Start. Everything under “Coming up” is what follows: the run to drive, the neighbourhood being learnt, the next 7 days and any mix-up to watch.</li>
+<li><b>Decision 1, nothing to do:</b> the plan tiles show only the kinds today holds. Day 1 has no reviews and no new streets yet, so it shows Turns 10 and Drills 2. One to three tiles sit in a row, four go 2 × 2. A zero shows only when it explains something (New 0 · paused in a backlog).</li>
+<li><b>Decision 4:</b> City memory is a row here (figure, change, thin bar) that opens Progress. The card, chart and legend live on Progress only.</li>
+<li><b>Decision 3:</b> the same header as Explore and Progress: city switcher and streak pill. No gear.</li>
+<li>A drop in City memory is set in secondary text, never red. It is a measurement, not a mistake.</li>
+<li>Done keeps the neighbourhood and the week on screen, so the tab is never empty. Both extra buttons stay secondary.</li>
+<li>Every mini map carries the attribution on a line under it (it is too small to hold it).</li>
+</ul>
+<p>Flutter: todayPlanProvider (hero, tiles, Start), cityMemoryProvider (row), streakProvider (pill, last 7 days), todayRunProvider (run card), learnMorePlanProvider (neighbourhood card), progressProvider (the 14-day forecast, first 7 days reused for “Next 7 days”), dueTomorrowProvider (Done’s line).</p>
+<h4>New data</h4>
+<ul>
+<li>Drills in today’s plan: count and kinds (sweep, crossings). todayPlanProvider has Reviews, New and Turns only.</li>
+<li>City memory a day and a week ago, for the change. Comes from the daily history (V31-99).</li>
+<li>Gateways solid per district (“14 of 38”).</li>
+<li>Yesterday’s mixed-up pairs, for “Watch out for”.</li>
+</ul>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 3040, "height": 1060}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -26,12 +26,8 @@
   "welcomeFindCity": "Find another city",
   "welcomeEmptyTitle": "No recent cities yet",
   "welcomeEmptyBody": "Cities you play will show up here, ready to resume.",
-  "homeKnownTitle": "Streets you know",
   "homeCoachTitle": "Your city fills in here",
-  "homeCoachBody": "Every Great or Perfect adds a street you know. Tap anywhere to close.",
-  "homeLegendInProgress": "In progress",
-  "homeLegendComplete": "Complete",
-  "homeLegendNotStarted": "Not started",
+  "homeCoachBody": "Every street you place well goes into your City memory. Tap anywhere to close.",
   "homeAllDistricts": "{count, plural, =1{{count} area} other{All {count} areas}}",
   "@homeAllDistricts": {
     "placeholders": {
@@ -40,7 +36,6 @@
       }
     }
   },
-  "homeEmptyCity": "No streets known yet. Play a round and the map starts filling in.",
   "homeChooseArea": "Choose an area",
   "homeSavedTitle": "Round in progress",
   "homeOfflineTitle": "Only Vake is on your phone",
@@ -568,17 +563,6 @@
   },
   "a11ySettings": "Settings",
   "@a11ySettings": {},
-  "homeKnownOf": "{known} / {total}",
-  "@homeKnownOf": {
-    "placeholders": {
-      "known": {
-        "type": "String"
-      },
-      "total": {
-        "type": "String"
-      }
-    }
-  },
   "unitMinutes": "{count} min",
   "@unitMinutes": {
     "placeholders": {
@@ -749,34 +733,6 @@
   },
   "reminderNoStreak": "Reviews are waiting. Today’s session starts your streak.",
   "reminderChannel": "Daily reminder",
-  "a11yDistrictRow": "{name}, {known} of {total} streets known",
-  "@a11yDistrictRow": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      },
-      "known": {
-        "type": "String"
-      },
-      "total": {
-        "type": "String"
-      }
-    }
-  },
-  "a11yDistrictRowComplete": "{name}, {known} of {total} streets known, complete",
-  "@a11yDistrictRowComplete": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      },
-      "known": {
-        "type": "String"
-      },
-      "total": {
-        "type": "String"
-      }
-    }
-  },
   "meTitle": "Me",
   "meBadges": "Badges · {earned} of {total}",
   "@meBadges": {
@@ -850,7 +806,6 @@
     }
   },
   "meCities": "Cities",
-  "meStreetsKnown": "Streets known",
   "meBestStreak": "Best streak",
   "meDays": "{count, plural, =1{1 day} other{{count} days}}",
   "@meDays": {
@@ -1292,14 +1247,6 @@
   "todayHomeWorkSubtitle": "Set them to start learning near you",
   "todayStartPlacement": "Start placement",
   "todayStartFromZero": "Start from zero",
-  "memoryOfStreets": "of {total} streets",
-  "@memoryOfStreets": {
-    "placeholders": {
-      "total": {
-        "type": "String"
-      }
-    }
-  },
   "memorySinceYesterday": "{change} since yesterday",
   "@memorySinceYesterday": {
     "placeholders": {
@@ -1364,7 +1311,7 @@
     }
   },
   "progressToday": "Today",
-  "a11yMemoryChart": "City memory over the last 10 weeks, from {from} to {to} streets.",
+  "a11yMemoryChart": "City memory over time, from {from} to {to} streets.",
   "@a11yMemoryChart": {
     "placeholders": {
       "from": {
@@ -1394,14 +1341,6 @@
         "type": "String"
       },
       "today": {
-        "type": "String"
-      }
-    }
-  },
-  "progressMasteredCount": "{count} mastered",
-  "@progressMasteredCount": {
-    "placeholders": {
-      "count": {
         "type": "String"
       }
     }
@@ -1573,20 +1512,6 @@
     "placeholders": {
       "change": {
         "type": "String"
-      }
-    }
-  },
-  "a11yTodayReady": "Today’s session: {reviews} reviews and {newCount} new streets, about {minutes} minutes.",
-  "@a11yTodayReady": {
-    "placeholders": {
-      "reviews": {
-        "type": "int"
-      },
-      "newCount": {
-        "type": "int"
-      },
-      "minutes": {
-        "type": "int"
       }
     }
   },
@@ -2382,5 +2307,289 @@
         "type": "String"
       }
     }
-  }
+  },
+  "memoryOf": "of {total}",
+  "@memoryOf": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryToday": "{change} today",
+  "@memoryToday": {
+    "placeholders": {
+      "change": {
+        "type": "String"
+      }
+    }
+  },
+  "todayDrills": "Drills",
+  "todayDrillSweep": "sweep",
+  "todayDrillCrossings": "crossings",
+  "todayDrillBearings": "bearings",
+  "todayNewPaused": "paused",
+  "todayComingUp": "Coming up",
+  "todayNowLearning": "Now learning",
+  "todayLearningSeen": "{district} · {seen} of {total} streets seen",
+  "@todayLearningSeen": {
+    "placeholders": {
+      "district": {
+        "type": "String"
+      },
+      "seen": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "todayLearningPaused": "{district} · {seen} of {total} seen · paused",
+  "@todayLearningPaused": {
+    "placeholders": {
+      "district": {
+        "type": "String"
+      },
+      "seen": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "todayLearningNext": "Next: {next}, after {now}",
+  "@todayLearningNext": {
+    "placeholders": {
+      "next": {
+        "type": "String"
+      },
+      "now": {
+        "type": "String"
+      }
+    }
+  },
+  "todayGateways": "Gateways: {solid} of {total} solid",
+  "@todayGateways": {
+    "placeholders": {
+      "solid": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "todayGatewaysSubtitle": "How each neighbourhood joins the main roads",
+  "todayNextWeek": "Next 7 days",
+  "todayWeekPerDay": "about {count} reviews a day",
+  "@todayWeekPerDay": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "todayWeekTotal": "{count, plural, =0{nothing due} =1{1 review this week} other{{count} reviews this week}}",
+  "@todayWeekTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todayWeekCaughtUp": "caught up by {day}",
+  "@todayWeekCaughtUp": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "todayWeekTomorrow": "tomorrow {count}",
+  "@todayWeekTomorrow": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "todayMixedUpYesterday": "Mixed up yesterday",
+  "todayLastWeek": "Last 7 days",
+  "todayLastWeekCounted": "{count} of 7 counted",
+  "@todayLastWeekCounted": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yNextWeek": "Reviews due, next 7 days: {days}.",
+  "@a11yNextWeek": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yLastWeek": "Last 7 days: {count} of 7 counted.",
+  "@a11yLastWeek": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yTodayDrills": "Today’s session: {kinds}, about {minutes} minutes.",
+  "@a11yTodayDrills": {
+    "placeholders": {
+      "kinds": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "memoryInMemory": "{known} of {total} in memory",
+  "@memoryInMemory": {
+    "placeholders": {
+      "known": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "memoryChartFirstDay": "Your line starts today. A point a day for two weeks, then one a week.",
+  "memoryChartDaily": "A point a day for your first two weeks, then one a week.",
+  "memoryChartWeekly": "A point a week since you started. From week 10 the chart shows the last 10 weeks.",
+  "memoryChartLastWeeks": "Last 10 weeks, a point a week.",
+  "progressRecallWaiting": "Shows after your first reviews",
+  "progressWholeCityPace": "At {count} new streets a day",
+  "@progressWholeCityPace": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "progressComing": "What’s coming",
+  "progressLearningNow": "Learning now · {seen} of {total} streets seen",
+  "@progressLearningNow": {
+    "placeholders": {
+      "seen": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "progressWhereItGrows": "Where it grows",
+  "progressDistrictsStarted": "{started} of {total} districts started",
+  "@progressDistrictsStarted": {
+    "placeholders": {
+      "started": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "progressAllStarted": "all {total} started",
+  "@progressAllStarted": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "progressDistrictsMastered": "{count} Mastered",
+  "@progressDistrictsMastered": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "legendNotStarted": "Not started",
+  "legendStarted": "Under 25 %",
+  "legendInProgress": "25 % or more",
+  "a11yDistrictMap": "{city}’s districts: {started} started, {mastered} Mastered.",
+  "@a11yDistrictMap": {
+    "placeholders": {
+      "city": {
+        "type": "String"
+      },
+      "started": {
+        "type": "String"
+      },
+      "mastered": {
+        "type": "String"
+      }
+    }
+  },
+  "exploreInMemory": "{city} in memory",
+  "@exploreInMemory": {
+    "placeholders": {
+      "city": {
+        "type": "String"
+      }
+    }
+  },
+  "exploreIntro": "Play a round anywhere on the map. Every street you place goes into your City memory, the same one Today trains.",
+  "exploreQuickStarts": "Quick starts",
+  "exploreFromLastRound": "From your last round · {area}",
+  "@exploreFromLastRound": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      }
+    }
+  },
+  "exploreAgain": "{area} again",
+  "@exploreAgain": {
+    "placeholders": {
+      "area": {
+        "type": "String"
+      }
+    }
+  },
+  "exploreRandomDistrict": "A random district",
+  "exploreRoundSize": "{difficulty} · {count} questions",
+  "@exploreRoundSize": {
+    "placeholders": {
+      "difficulty": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "exploreNearHome": "Near home",
+  "exploreNearHomeUnset": "Set home and start where you live",
+  "exploreLastRound": "Last round",
+  "exploreAreasPlayed": "Areas you played",
+  "exploreNextBadge": "Next badge: {name}",
+  "@exploreNextBadge": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yExploreMap": "Map of {city}’s districts, filled by how much of each is in memory. Tap one to play it.",
+  "@a11yExploreMap": {
+    "placeholders": {
+      "city": {
+        "type": "String"
+      }
+    }
+  },
+  "meStreetsInMemory": "Streets in memory"
 }

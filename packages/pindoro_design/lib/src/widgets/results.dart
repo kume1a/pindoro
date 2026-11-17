@@ -59,6 +59,53 @@ class ResultRow extends StatelessWidget {
   }
 }
 
+/// The tier tally in one line (Mini tally, Explore's last round): each tier's
+/// 24 dp [TierBadge] and its count in `numeric.sm`. Reads as [semanticLabel].
+class MiniTally extends StatelessWidget {
+  const MiniTally({
+    super.key,
+    required this.counts,
+    required this.semanticLabel,
+    this.format = _plain,
+  });
+
+  final Map<Tier, int> counts;
+  final String semanticLabel;
+  final String Function(int count) format;
+
+  static const double _badge = 24;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    return Semantics(
+      container: true,
+      label: semanticLabel,
+      excludeSemantics: true,
+      child: Wrap(
+        spacing: PindoroSpace.s3,
+        runSpacing: PindoroSpace.s2,
+        children: [
+          for (final tier in Tier.values)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              spacing: 6,
+              children: [
+                TierBadge(tier, size: _badge),
+                Text(
+                  format(counts[tier] ?? 0),
+                  style: PindoroType.numericSm.copyWith(color: c.textPrimary),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+String _plain(int n) => '$n';
+
 /// Four tiles counting the round's answers by tier.
 class TierTally extends StatelessWidget {
   const TierTally({

@@ -51,11 +51,13 @@ class MeScreen extends ConsumerWidget {
           l10n.mePlayingSince(_month(context, since)),
           style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
         ),
-      _TileGrid([
+      TileGrid([
         StatTile(
           glyph: PindoroGlyph.checkCircle,
-          label: l10n.meStreetsKnown,
-          value: formatNumber(me.knownStreets),
+          label: l10n.meStreetsInMemory,
+          value: formatNumber(
+            me.cities.fold(0, (sum, city) => sum + city.count.known),
+          ),
         ),
         StatTile(
           glyph: PindoroGlyph.pin,
@@ -79,7 +81,7 @@ class MeScreen extends ConsumerWidget {
         SectionTitle(
           l10n.meBadges(badges.where((b) => b.earned).length, badges.length),
         ),
-        _TileGrid(columns: 3, [
+        TileGrid(columns: 3, [
           for (final b in badges)
             BadgeShelfTile(b, isNew: fresh.contains(b.id)),
         ]),
@@ -97,35 +99,6 @@ String _month(BuildContext context, DateTime day) {
       ? DateFormat.LLLL(locale)
       : DateFormat.yMMMM(locale);
   return format.format(day);
-}
-
-/// [columns] tiles a row, 8 dp apart, each row as tall as its tallest tile;
-/// a short last row keeps the columns' width.
-class _TileGrid extends StatelessWidget {
-  const _TileGrid(this.tiles, {this.columns = 2});
-
-  final List<Widget> tiles;
-  final int columns;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    spacing: PindoroSpace.s2,
-    children: [
-      for (var i = 0; i < tiles.length; i += columns)
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            spacing: PindoroSpace.s2,
-            children: [
-              for (final tile in tiles.skip(i).take(columns))
-                Expanded(child: tile),
-              for (var j = tiles.length - i; j < columns; j++)
-                const Expanded(child: SizedBox()),
-            ],
-          ),
-        ),
-    ],
-  );
 }
 
 /// A city with its City memory; a tap makes it the city and opens Today.

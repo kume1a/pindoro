@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Me</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pindoro-tokens.css">
+<link rel="stylesheet" href="ds/pindoro/components/bundle.css">
+<link rel="stylesheet" href="pindoro-canvas.css">
+<link rel="stylesheet" href="pindoro-v31.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="cv-phone {{rootCls}}" data-theme="{{theme}}" style="width: 390px; height: 844px; font-family: var(--font-sans); color: var(--pd-text)">
+<sc-if value="{{v31}}" hint-placeholder-val="{{false}}">
+<div class="cv-stack" style="position: absolute; left: 16px; right: 16px; top: {{ctop}}px; gap: 16px">
+<p class="type-body-md cv-2nd cv-m0">Playing since November</p>
+<div class="pd-today-tiles pd-today-tiles--2"><sc-for list="{{tiles}}" as="t" hint-placeholder-count="4"><div class="pd-stattile" role="img" aria-label="{{t.l}}, {{t.n}}"><span class="pd-stattile-l"><span class="{{t.c}}" style="display: flex"><dc-import name="Ic" n="{{t.ic}}" hint-size="24px,24px"></dc-import></span>{{t.l}}</span><span class="pd-stattile-n">{{t.n}}</span></div></sc-for></div>
+<h2 class="pd-sec-t">Badges · 4 of 10</h2>
+<div class="pd-shelf"><sc-for list="{{badges}}" as="b" hint-placeholder-count="10"><div class="pd-bt {{b.cls}}" role="img" aria-label="{{b.a11y}}"><dc-import name="BadgeShield" b="{{b.k}}" locked="{{b.locked}}" hint-size="56px,63px"></dc-import><span class="pd-bt-t">{{b.t}}</span><span class="pd-bt-s">{{b.s}}</span><sc-if value="{{b.hasBar}}" hint-placeholder-val="{{false}}"><span class="pd-membar pd-membar--sm" aria-hidden="true"><i style="flex-basis: {{b.p}}%; background: var(--color\.progress\.done)"></i></span></sc-if></div></sc-for></div>
+<h2 class="pd-sec-t">Cities</h2>
+<div class="pd-list"><button class="pd-li" aria-label="Tbilisi, playing now, 20 of 3 216 streets in memory. Opens Today for Tbilisi."><span class="pd-li-ic"><dc-import name="Ic" n="pin" hint-size="24px,24px"></dc-import></span><span class="pd-li-tx cv-li-tx-block"><span class="pd-li-t">Tbilisi</span><span class="pd-li-s">20 of 3 216 streets in memory</span><span class="pd-membar pd-membar--sm pd-li-bar" aria-hidden="true"><i class="pd-mem-known" style="flex-basis: 0.7%"></i><i class="pd-mem-seen" style="flex-basis: 0.7%"></i></span></span><span class="pd-li-end"><dc-import name="Ic" n="chevron-right" hint-size="24px,24px"></dc-import></span></button></div>
+<div style="height: 120px; flex: none"></div>
+</div>
+<sc-if value="{{scrolled}}" hint-placeholder-val="{{false}}"><div class="pd-tabhead" style="height: 111px"></div></sc-if>
+<div class="cv-bar" style="top: 47px; z-index: 6"><h1 class="type-headline-sm cv-m0" style="flex: 1">Me</h1><button class="pd-btn pd-btn--icon" aria-label="Settings" style="margin-bottom: 0"><dc-import name="Ic" n="settings" hint-size="24px,24px"></dc-import></button></div>
+<nav class="pd-nav" aria-label="Main"><button><span><dc-import name="Ic" n="road" hint-size="24px,24px"></dc-import></span>Today</button><button><span><dc-import name="Ic" n="map" hint-size="24px,24px"></dc-import></span>Explore</button><button><span><dc-import name="Ic" n="chart" hint-size="24px,24px"></dc-import></span>Progress</button><button class="on" aria-current="page"><span><dc-import name="Ic" n="user" hint-size="24px,24px"></dc-import></span>Me</button></nav>
+</sc-if>
+<sc-if value="{{old}}" hint-placeholder-val="{{true}}">
+  <div class="cv-stack" style="position: absolute; left: 16px; right: 16px; top: 47px; gap: 16px">
+    <div class="cv-row" style="height: 48px; gap: 12px"><h1 class="type-headline-sm cv-m0" style="flex: 1">Me</h1><button class="pd-btn pd-btn--icon" aria-label="Settings" style="margin-bottom: 0"><svg class="pd-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M10.3 2.6h3.4l.6 2.6 1.6.9 2.5-.8 1.7 2.9-1.9 1.8v1.9l1.9 1.8-1.7 2.9-2.5-.8-1.6.9-.6 2.6h-3.4l-.6-2.6-1.6-.9-2.5.8-1.7-2.9L5.8 13v-1.9L3.9 9.3l1.7-2.9 2.5.8 1.6-.9zM12 15.2a3.2 3.2 0 100-6.4 3.2 3.2 0 000 6.4z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path></svg></button></div>
+    <div class="pd-card" style="padding: 16px; display: flex; flex-direction: column; gap: 12px">
+      <div class="cv-row" style="gap: 12px">
+        <svg width="48" height="54" viewBox="0 0 64 72" role="img" aria-label="Level 4"><path class="pd-level-shield" d="M32 3l26 10v20c0 18-11 30-26 36C17 63 6 51 6 33V13z" stroke-width="4"></path><text class="pd-level-num" x="32" y="43" text-anchor="middle">4</text></svg>
+        <span class="cv-stack" style="flex: 1"><span class="type-title-lg">Level 4</span><span class="type-body-sm cv-2nd">4 062 XP in total · playing since November</span></span>
+      </div>
+      <div class="pd-xpbar" role="progressbar" aria-label="Level 4, 312 of 1 750 XP" aria-valuemin="0" aria-valuemax="1750" aria-valuenow="312"><i style="width: 18%"></i></div>
+      <div class="cv-row" style="justify-content: space-between"><span class="type-label-md cv-2nd">1 438 XP to level 5</span><span class="type-numeric-sm">312 / 1 750</span></div>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+      <div class="pd-stattile" role="img" aria-label="Streets known, 180"><span class="pd-stattile-l"><span class="pd-c-primary" style="display: flex"><svg class="pd-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M12 22.2s-7.4-7.6-7.4-12.8a7.4 7.4 0 0114.8 0c0 5.2-7.4 12.8-7.4 12.8zm0-9.9a2.9 2.9 0 100-5.8 2.9 2.9 0 000 5.8z" fill="currentColor"></path></svg></span>Streets known</span><span class="pd-stattile-n">180</span></div>
+      <div class="pd-stattile" role="img" aria-label="Lessons, 14"><span class="pd-stattile-l"><span class="pd-c-primary" style="display: flex"><svg class="pd-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8.6 3L4.2 21M15.4 3l4.4 18" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none"></path><path d="M12 4v3M12 10.5v3M12 17v3" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></span>Lessons</span><span class="pd-stattile-n">14</span></div>
+      <div class="pd-stattile" role="img" aria-label="Road trips, 9"><span class="pd-stattile-l"><span class="pd-c-primary" style="display: flex"><svg class="pd-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 12.2l1.7-4.6A2.5 2.5 0 018 6h8a2.5 2.5 0 012.3 1.6l1.7 4.6a2.5 2.5 0 011.2 2.1V18H2.8v-3.7A2.5 2.5 0 014 12.2z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path><path d="M6.6 11.6l1-2.8h8.8l1 2.8z" style="fill: var(--pd-ic-cut,#fff)" opacity=".85"></path><rect x="4" y="17" width="3.6" height="3.4" rx="1.2" fill="currentColor"></rect><rect x="16.4" y="17" width="3.6" height="3.4" rx="1.2" fill="currentColor"></rect></svg></span>Road trips</span><span class="pd-stattile-n">9</span></div>
+      <div class="pd-stattile" role="img" aria-label="Best streak, 21 days"><span class="pd-stattile-l"><span class="pd-c-flame" style="display: flex"><svg class="pd-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2.4c.7 3.4 6.2 5.8 6.2 11.6A6.2 6.2 0 015.8 14c0-2.7 1.3-4.4 2.8-5.6.1 1.8.9 3.1 2.2 3.8C10.2 8.6 10.9 5 12 2.4z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path><path class="pd-ic-t2" d="M12 11.4c.3 1.6 2.9 2.7 2.9 5.3a2.9 2.9 0 01-5.8 0c0-1.3.6-2.1 1.3-2.7.1.9.5 1.5 1 1.8-.3-1.5 0-3.2.6-4.4z" style="fill: var(--pd-ic-t2,#FFD662)"></path></svg></span>Best streak</span><span class="pd-stattile-n">21 days</span></div>
+    </div>
+    <h2 class="type-title-md cv-m0">Cities</h2>
+    <div class="pd-list">
+      <button class="pd-li"><span class="pd-li-ic"><svg class="pd-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M12 22.2s-7.4-7.6-7.4-12.8a7.4 7.4 0 0114.8 0c0 5.2-7.4 12.8-7.4 12.8zm0-9.9a2.9 2.9 0 100-5.8 2.9 2.9 0 000 5.8z" fill="currentColor"></path></svg></span><span class="pd-li-tx cv-li-tx-block"><span class="pd-li-t">Tbilisi</span><span class="pd-li-s">Unit 2 · Vake · 180 / 1 240 streets</span><span class="pd-minibar" style="margin-top: 6px" aria-hidden="true"><i style="width: 15%"></i></span></span><span class="pd-li-end"><svg class="pd-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9.5 5.5L16 12l-6.5 6.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></span></button>
+      <button class="pd-li"><span class="pd-li-ic"><svg class="pd-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M12 22.2s-7.4-7.6-7.4-12.8a7.4 7.4 0 0114.8 0c0 5.2-7.4 12.8-7.4 12.8zm0-9.9a2.9 2.9 0 100-5.8 2.9 2.9 0 000 5.8z" fill="currentColor"></path></svg></span><span class="pd-li-tx cv-li-tx-block"><span class="pd-li-t">Lisbon</span><span class="pd-li-s">Unit 1 · Baixa · 0 / 860 streets</span><span class="pd-minibar" style="margin-top: 6px" aria-hidden="true"><i style="width: 0%"></i></span></span><span class="pd-li-end"><svg class="pd-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9.5 5.5L16 12l-6.5 6.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></span></button>
+    </div>
+  </div>
+  <nav class="pd-nav" aria-label="Main">
+    <button><span><svg class="pd-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M8.6 3L4.2 21M15.4 3l4.4 18" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none"></path><path d="M12 4v3M12 10.5v3M12 17v3" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></span>Path</button>
+    <button><span><svg class="pd-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6.2l5.5-2.4 7 2.4L21 3.8v14l-5.5 2.4-7-2.4L3 20.2z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path><path d="M8.5 3.8v14M15.5 6.2v14" style="stroke: var(--pd-raised)" stroke-width="1.6" opacity=".7"></path></svg></span>Free play</button>
+    <button><span><svg class="pd-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.6 3.4a5 5 0 00-5.5 6.7l-5.5 5.5a2.2 2.2 0 003.1 3.1l5.5-5.5a5 5 0 006.7-5.5l-3 3-2.9-.6-.6-2.9z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path></svg></span>Pit stop</button>
+    <button class="on" aria-current="page"><span><svg class="pd-ic" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="8" r="4.3" fill="currentColor"></circle><path d="M3.8 20.6c0-4.3 3.7-6.8 8.2-6.8s8.2 2.5 8.2 6.8z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path></svg></span>Me</button>
+  </nav>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"state":{"editor":"enum","options":["r3","built","v31"],"default":"r3"},"scroll":{"editor":"enum","options":["top","badges"],"default":"top"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'light';
+    const st = this.props.state ?? 'r3';
+    const v31 = st === 'v31' || st === 'built';
+    const scrolled = v31 && (this.props.scroll ?? 'top') === 'badges';
+    const tiles = [
+      st === 'built' ? { ic: 'check-circle', c: 'pd-c-primary', l: 'Streets known', n: '9' } : { ic: 'check-circle', c: 'pd-c-primary', l: 'Streets in memory', n: '20' },
+      { ic: 'pin', c: 'pd-c-primary', l: 'Pins dropped', n: '59' },
+      { ic: 'calendar', c: 'pd-c-primary', l: 'Days counted', n: '1' },
+      { ic: 'flame', c: 'pd-c-flame', l: 'Best streak', n: '1 day' }
+    ];
+    const bd = (k, t, s, locked, p, of) => ({ k, t, s, locked: locked ? 'true' : 'false', cls: locked ? 'is-locked' : '', hasBar: !!of, p: of ? Math.max(1.5, Math.round(p / of * 1000) / 10) : 0,
+      a11y: t + ', ' + s + (locked ? ', locked' + (of ? ', ' + p + ' of ' + of : '') : ', earned') });
+    const badges = [
+      bd('first-pin', 'First pin', 'Drop your first pin'), bd('bullseye', 'Bullseye', '10 Perfect answers'), bd('on-fire', 'On fire', '7-day streak', true, 1, 7),
+      bd('navigator', 'Navigator', 'Master a district', true), bd('local', 'Local', 'Master a neighbourhood', true), bd('keeper', 'Keeper', 'Keep up your reviews on 100 days', true, 1, 100),
+      bd('clear-road', 'Clear road', 'Clear every leech', true), bd('night-owl', 'Night owl', 'Play after midnight'), bd('explorer', 'Explorer', 'Know streets in 5 districts'),
+      bd('city-memory', 'City memory 500', 'City memory reaches 500 streets', true, 20, 500)
+    ];
+    return { theme, v31, old: !v31, scrolled, tiles, badges, ctop: scrolled ? 111 - 560 : 111, rootCls: v31 ? 'cv-v31' : '' };
+  }
+}
+</script>
+</body>
+</html>

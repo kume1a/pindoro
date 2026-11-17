@@ -5,6 +5,7 @@ import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
 import 'round_hud.dart';
+import 'surfaces.dart';
 import 'tappable.dart';
 
 /// The streak in the Home top bar: flame and days in the look of [state]
@@ -173,6 +174,88 @@ class StreakCalendar extends StatelessWidget {
         style: PindoroType.labelMd.copyWith(
           color: isToday ? c.textPrimary : text,
         ),
+      ),
+    );
+  }
+}
+
+/// The last seven days of the streak (Last 7 days, Today when done): a
+/// [TitledCard] of seven 28 dp discs over their [labels], oldest first and
+/// today last (ringed in `color.primary.base`), coloured as in
+/// [StreakCalendar]. One screen-reader node, [semanticsLabel].
+class StreakWeek extends StatelessWidget {
+  const StreakWeek({
+    super.key,
+    required this.days,
+    required this.labels,
+    required this.title,
+    required this.meta,
+    required this.semanticsLabel,
+  });
+
+  final List<StreakDay> days;
+  final List<String> labels;
+  final String title;
+  final String meta;
+  final String semanticsLabel;
+
+  static const double _disc = 28;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    return TitledCard(
+      title: title,
+      meta: meta,
+      semanticsLabel: semanticsLabel,
+      child: Row(
+        spacing: PindoroSpace.s1,
+        children: [
+          for (final (i, day) in days.indexed)
+            Expanded(
+              child: Column(
+                spacing: PindoroSpace.s1,
+                children: [
+                  Container(
+                    width: _disc,
+                    height: _disc,
+                    decoration: BoxDecoration(
+                      color: switch (day) {
+                        StreakDay.met => c.streakDayDone,
+                        StreakDay.frozen => c.streakFreezeFill,
+                        StreakDay.missed || StreakDay.plain => c.streakDayEmpty,
+                      },
+                      shape: BoxShape.circle,
+                      border: i == days.length - 1
+                          ? Border.all(
+                              color: c.primaryBase,
+                              width: PindoroStroke.thick,
+                              strokeAlign: BorderSide.strokeAlignOutside,
+                            )
+                          : null,
+                    ),
+                    child: day == StreakDay.frozen
+                        ? Center(
+                            child: PindoroIcon(
+                              PindoroGlyph.freeze,
+                              size: PindoroSize.iconSm,
+                              color: c.streakFreezeInk,
+                              cut: c.streakFreezeFill,
+                            ),
+                          )
+                        : null,
+                  ),
+                  Text(
+                    labels[i],
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.visible,
+                    style: PindoroType.labelSm.copyWith(color: c.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }

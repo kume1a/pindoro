@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>V31-90 New in the system</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pindoro-tokens.css">
+<link rel="stylesheet" href="ds/pindoro/components/bundle.css">
+<link rel="stylesheet" href="pindoro-canvas.css">
+<link rel="stylesheet" href="pindoro-v31.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.v90 .cv-cards { display: block; column-count: 4; column-gap: 16px; }
+.v90 .cv-card { break-inside: avoid; margin: 0 0 16px; }
+.v90 .cv-specdemo .pd-card { margin: 0; }
+</style>
+</helmet>
+<div class="cv-doc v90" style="width: 2400px; height: 2700px">
+<div class="cv-caprow"><span class="cv-tag cv-tag--new">New in v3.1</span></div>
+<h2>New in the system: v3.1 parts, with anatomy, states and tokens</h2>
+<p>Everything the v3.1 boards add or change. Styles live in <code>pindoro-v31.css</code> on this canvas until the design-system run adds them. One new token; everything else reuses the design system or the app tokens (7-app-tokens.json).</p>
+<div class="cv-cards">
+
+<div class="cv-card"><div class="cv-caprow"><span class="cv-tag cv-tag--changed">Changes TodayCard</span></div><h3>Plan tiles</h3>
+<div class="cv-specdemo" data-theme="light"><div class="pd-today-tiles pd-today-tiles--2"><div class="pd-stattile"><span class="pd-stattile-l"><span class="pd-c-primary" style="display: flex"><dc-import name="Ic" n="turn-right" hint-size="24px,24px"></dc-import></span>Turns</span><span class="pd-stattile-n">10</span></div><div class="pd-stattile"><span class="pd-stattile-l"><span class="pd-c-primary" style="display: flex"><dc-import name="Ic" n="bolt" hint-size="24px,24px"></dc-import></span>Drills</span><span class="pd-stattile-n">2</span><span class="pd-stattile-s">sweep, crossings</span></div></div></div>
+<h4>Anatomy</h4><ul><li>StatTile: icon 24 dp, label, figure (tabular), optional caption.</li><li>Kinds: Reviews (retry), New (plus), Turns (turn-right), Drills (bolt, new kind).</li></ul>
+<h4>States</h4><ul><li>A kind shows only when today holds some. One exception: New 0 with the caption “paused” in a backlog.</li><li>1–3 tiles in one row; 4 tiles 2 × 2; 200 % text: one column.</li></ul>
+<h4>Tokens</h4><p>StatTile’s own; caption 12/16 500 in <code>color.text.secondary</code>.</p></div>
+
+<div class="cv-card"><div class="cv-caprow"><span class="cv-tag cv-tag--new">New</span></div><h3>City memory row</h3>
+<div class="cv-specdemo" data-theme="light"><button class="pd-card pd-memrow"><span class="pd-memrow-top"><span class="pd-memrow-l">City memory</span><span class="pd-memrow-n">1 284</span><span class="pd-citymem-of">of 3 216</span><span class="pd-citymem-delta">+8 since yesterday</span><dc-import name="Ic" n="chevron-right" hint-size="20px,20px"></dc-import></span><span class="pd-membar pd-membar--sm" aria-hidden="true"><i class="pd-mem-mastered" style="flex-basis: 12.8%"></i><i class="pd-mem-solid" style="flex-basis: 19.6%"></i><i class="pd-mem-known" style="flex-basis: 6.8%"></i><i class="pd-mem-seen" style="flex-basis: 2.8%"></i></span></button></div>
+<h4>Anatomy</h4><ul><li>Card, padding 12 × 16. Title 16/22 800; figure 15/20 800 tabular; “of 3 216” 13/20 secondary; change 13/18 700; chevron.</li><li>MemoryBar, small (6 dp).</li></ul>
+<h4>States</h4><ul><li>Up: change in <code>color.success.text</code>. Down: in <code>color.text.secondary</code>, never red. No change: the change is left out.</li><li>Pressed and focus follow the card rules. 200 %: the change wraps under the figure.</li><li>Tap opens Progress. One label: “City memory 1 284 of 3 216 streets, +8 since yesterday. Opens Progress.”</li></ul>
+<h4>Tokens</h4><p><code>color.memory.*</code>, <code>color.progress.track</code>, <code>color.success.text</code>.</p></div>
+
+<div class="cv-card"><div class="cv-caprow"><span class="cv-tag cv-tag--new">New</span></div><h3>Tab section header</h3>
+<div class="cv-specdemo" data-theme="light"><div class="pd-sec"><h2 class="pd-sec-t">Where it grows</h2><span class="pd-sec-s">9 of 10 districts started</span></div></div>
+<h4>Anatomy</h4><ul><li>Title 18/24 800, <code>color.text.primary</code>; optional meta 13/18 700 secondary, tabular, right-aligned.</li><li>8 dp above, 4 dp tighter below, so it sits with what it heads.</li></ul>
+<h4>Used for</h4><p>Coming up (Today), What’s coming and Where it grows (Progress), Quick starts and Areas you played (Explore).</p></div>
+
+<div class="cv-card"><div class="cv-caprow"><span class="cv-tag cv-tag--new">New</span></div><h3>Next 7 days strip</h3>
+<div class="cv-specdemo" data-theme="light"><div class="pd-card" style="padding: 12px 16px; display: flex; flex-direction: column; gap: 8px"><div class="pd-forecast-h"><span class="pd-forecast-t">Next 7 days</span><span class="pd-forecast-s">about 26 reviews a day</span></div><div class="pd-week"><span class="pd-week-d is-today"><span class="pd-week-n">24</span><span class="pd-week-b"><i style="height: 69%"></i></span><span class="pd-week-x">Today</span></span><span class="pd-week-d"><span class="pd-week-n">31</span><span class="pd-week-b"><i style="height: 89%"></i></span><span class="pd-week-x">Tue</span></span><span class="pd-week-d"><span class="pd-week-n">27</span><span class="pd-week-b"><i style="height: 77%"></i></span><span class="pd-week-x">Wed</span></span><span class="pd-week-d"><span class="pd-week-n">22</span><span class="pd-week-b"><i style="height: 63%"></i></span><span class="pd-week-x">Thu</span></span><span class="pd-week-d"><span class="pd-week-n">35</span><span class="pd-week-b"><i style="height: 100%"></i></span><span class="pd-week-x">Fri</span></span><span class="pd-week-d"><span class="pd-week-n">18</span><span class="pd-week-b"><i style="height: 51%"></i></span><span class="pd-week-x">Sat</span></span><span class="pd-week-d"><span class="pd-week-n">26</span><span class="pd-week-b"><i style="height: 74%"></i></span><span class="pd-week-x">Sun</span></span></div></div></div>
+<h4>Anatomy</h4><ul><li>7 columns: count 13/18 800 tabular; bar 44 dp, height in proportion to the week’s largest day; day label 12/16.</li><li>Header: ForecastBars title and meta.</li></ul>
+<h4>States</h4><ul><li>Today’s bar in <code>color.chart.bar-today</code>, its label in primary text. A 0 day keeps its “0” and a 2 dp stub.</li><li>One label for the whole strip; the bars are hidden from screen readers.</li></ul>
+<h4>Tokens</h4><p><code>color.chart.bar</code>, <code>color.chart.bar-today</code>, <code>radius.xs</code>.</p></div>
+
+<div class="cv-card"><div class="cv-caprow"><span class="cv-tag cv-tag--new">New</span></div><h3>Neighbourhood card</h3>
+<h4>Anatomy</h4><ul><li>Mini map 104 × 104, <code>radius.md</code>: vector basemap, known streets traced in <code>color.map.region.outline</code> at <code>opacity.street-trace</code>, the neighbourhood as the dashed cobalt play-area outline. No names on it.</li><li>Kicker (“Now learning”) 13/18 secondary; name 18/24 800; “Vake · 23 of 61 streets seen” 13/20; MemoryBar small (solid, known, seen); next line (“Next: Lisi, after Bagebi”).</li><li>Attribution line under the map (see Attribution line).</li></ul>
+<h4>States</h4><ul><li>Learning; paused (backlog: “· paused” in the count line); 200 %: the map moves above the text.</li><li>Tap opens the district on Progress.</li></ul>
+<h4>Tokens</h4><p><code>color.map.vector.*</code> (app), <code>color.map.area.*</code>, <code>color.memory.*</code>, <code>opacity.street-trace</code> (app).</p></div>
+
+<div class="cv-card"><div class="cv-caprow"><span class="cv-tag cv-tag--new">New</span></div><h3>Last 7 days (streak week)</h3>
+<div class="cv-specdemo" data-theme="light"><div class="pd-streakweek"><span class="done"><i></i>Tue</span><span class="done"><i></i>Wed</span><span class="done"><i></i>Thu</span><span class="done"><i></i>Fri</span><span class="done"><i></i>Sat</span><span class="done"><i></i>Sun</span><span class="done today"><i></i>Today</span></div></div>
+<h4>Anatomy</h4><ul><li>7 discs, 28 dp, with a 12/16 day label. Shown on Today only when today is done.</li></ul>
+<h4>States</h4><ul><li>Counted: <code>color.streak.day.done</code>. Not counted: <code>color.streak.day.empty</code>. Today: a <code>stroke.thick</code> ring in <code>color.primary.base</code>. A freeze day uses the Streak screen’s freeze mark.</li></ul></div>
+
+<div class="cv-card"><div class="cv-caprow"><span class="cv-tag cv-tag--new">New</span></div><h3>Mini tally</h3>
+<div class="cv-specdemo" data-theme="light"><div class="pd-minitally"><span class="pd-tier--perfect"><i><dc-import name="Ic" n="star" hint-size="16px,16px"></dc-import></i>1</span><span class="pd-tier--great"><i><dc-import name="Ic" n="check-circle" hint-size="16px,16px"></dc-import></i>4</span><span class="pd-tier--close"><i><dc-import name="Ic" n="target" hint-size="16px,16px"></dc-import></i>2</span><span class="pd-tier--miss"><i><dc-import name="Ic" n="reroute" hint-size="16px,16px"></dc-import></i>3</span></div></div>
+<h4>Anatomy</h4><ul><li>TierTally in one line: a 24 dp chip in the tier fill with its 16 dp glyph, then the count 15/20 800 tabular. Tier visuals unchanged.</li><li>One label: “Last round: 1 Perfect, 4 Great, 2 Close, 3 Miss”.</li></ul>
+<h4>Tokens</h4><p><code>color.feedback.*.fill</code> and <code>.on</code> through the tier classes.</p></div>
+
+<div class="cv-card"><div class="cv-caprow"><span class="cv-tag cv-tag--new">New</span></div><h3>Explore layout: map, sheet, pinned Play</h3>
+<h4>Anatomy</h4><ul><li>Map 440 dp from the top, under the status bar. Floating city bar: CitySwitcher in a 48 dp raised capsule with <code>shadow.float</code>, streak pill opposite.</li><li>Sheet from 404 dp (peek) or 232 dp (open), <code>radius.2xl</code> top corners, handle, content scrolls.</li><li>Pinned footer above the tab bar: context line 13/18 secondary (city · area · difficulty) and Play, full width, 48 dp. A tertiary line button under it only for a saved round.</li></ul>
+<h4>States</h4><ul><li>Play label: “Play” · “Continue round” · “Choose an area” (nothing picked yet, opens the area picker).</li><li>Offline: an offline card leads the sheet and the map dims what can’t play.</li><li>200 %: footer and floating bar grow, the map keeps its height.</li></ul>
+<h4>Tokens</h4><p><code>color.surface.base</code>, <code>color.surface.raised</code>, <code>color.line.base</code>,<code>shadow.float</code>, <code>size.button.md</code>.</p></div>
+
+<div class="cv-card"><div class="cv-caprow"><span class="cv-tag cv-tag--new">New token</span></div><h3>District fills and map legend</h3>
+<div class="cv-specdemo" data-theme="light"><div class="pd-maplegend"><span><i class="pd-swatch is-new" style="width: 16px; height: 16px"></i>Not started</span><span><i class="pd-swatch is-started" style="width: 16px; height: 16px"></i>Under 25 %</span><span><i class="pd-swatch is-progress" style="width: 16px; height: 16px"></i>25 % or more</span><span><i class="pd-swatch is-mastered" style="width: 16px; height: 16px"></i>Mastered</span></div></div>
+<h4>Steps (share of the area’s streets in memory)</h4><ul><li>0: outline only (DistrictMap “new”).</li><li>Under 25 %: <b><code>color.map.district.started.fill</code></b> (new: yellow 400 at 12 % light, 14 % dark) with the progress stroke.</li><li>25 % or more: DistrictMap “progress”. Mastered: DistrictMap “mastered” (cobalt).</li><li>Offline, not on the device: <code>color.map.mask</code> at <code>opacity.mask</code>.</li><li>Play area: the dashed cobalt outline (<code>color.map.area.*</code>, dash 8 6). Never yellow.</li></ul>
+<h4>Legend</h4><p>16 dp Swatches with 13/18 labels; wraps; hidden from screen readers (the map has one label that says the same).</p></div>
+
+<div class="cv-card"><div class="cv-caprow"><span class="cv-tag cv-tag--changed">Changes MemoryChart</span></div><h3>City memory chart: windows</h3>
+<h4>Rule</h4><ul><li>Days 1–14: a fixed 14-day frame, a point a day, empty days ticked on the base line.</li><li>From day 15: a point a week from day 1. From week 10: the last 10 weeks.</li><li>The scale starts at 0 and never tops out under 100, so day 1’s 20 sits low instead of filling the chart.</li><li>Today is the larger dot, ringed in the surface colour. One gridline label per step (50 / 100, 250 / 500 …).</li><li>A caption under the chart says which window is showing.</li></ul>
+<h4>Tokens</h4><p><code>color.chart.line</code>, <code>color.chart.area</code>, <code>color.line.base</code> (grid), <code>color.line.strong</code> (base line).</p></div>
+
+<div class="cv-card"><div class="cv-caprow"><span class="cv-tag cv-tag--new">New</span></div><h3>District map (Progress)</h3>
+<h4>Anatomy</h4><ul><li>220 dp tall, full content width, <code>radius.lg</code>, inset border. Vector basemap without street names; the 10 districts in the fill steps; MapAttribution bottom left.</li><li>The legend sits under it; the district rows follow, the one being learnt first, then by share in memory.</li></ul>
+<h4>States</h4><ul><li>Tap a district: opens its District progress screen (as built).</li></ul></div>
+
+<div class="cv-card"><div class="cv-caprow"><span class="cv-tag cv-tag--new">New</span></div><h3>Attribution line</h3>
+<h4>Rule</h4><ul><li>A map under 160 dp on either side can’t hold MapAttribution legibly. It carries “© OpenStreetMap contributors, Protomaps” on a line directly under the map instead, 11/16 700, <code>color.text.secondary</code>, inside the same card.</li><li>Every other map keeps MapAttribution on the map.</li></ul></div>
+
+<div class="cv-card"><div class="cv-caprow"><span class="cv-tag cv-tag--mvp">As built</span></div><h3>BadgeTile, BadgeShield and the shelf</h3>
+<div class="cv-specdemo" data-theme="light"><div class="pd-shelf"><div class="pd-bt"><dc-import name="BadgeShield" b="first-pin" locked="false" hint-size="56px,63px"></dc-import><span class="pd-bt-t">First pin</span><span class="pd-bt-s">Drop your first pin</span></div><div class="pd-bt is-locked"><dc-import name="BadgeShield" b="on-fire" locked="true" hint-size="56px,63px"></dc-import><span class="pd-bt-t">On fire</span><span class="pd-bt-s">7-day streak</span><span class="pd-membar pd-membar--sm"><i style="flex-basis: 14.3%; background: var(--color\.progress\.done)"></i></span></div><div class="pd-bt"><dc-import name="BadgeShield" b="night-owl" locked="false" hint-size="56px,63px"></dc-import><span class="pd-bt-t">Night owl</span><span class="pd-bt-s">Play after midnight</span></div></div></div>
+<h4>Anatomy</h4><ul><li>BadgeShield 56 × 63 dp: rim <code>color.badge.rim</code>, field <code>color.badge.&lt;badge&gt;</code>, white glyph 26 dp. Locked: <code>color.locked.lip</code> rim, <code>color.locked.fill</code> field, lock glyph in <code>color.locked.icon</code>.</li><li>BadgeTile: raised card, shield, name 15/20 800, condition 13/18 secondary, MemoryBar small in <code>color.progress.done</code> when countable.</li><li>Shelf: 3 across, 8 dp gaps; 2 across at 200 %. Header “Badges · 4 of 10”.</li></ul>
+<h4>States</h4><ul><li>Earned · locked · locked with progress · New pill (accent) until viewed.</li></ul>
+<h4>Tokens</h4><p><code>color.badge.*</code> (app tokens), <code>color.locked.*</code>, <code>color.progress.*</code>.</p></div>
+
+<div class="cv-card"><div class="cv-caprow"><span class="cv-tag cv-tag--changed">Tokens</span></div><h3>Token changes</h3>
+<h4>New</h4><ul><li><code>color.map.district.started.fill</code>: light #FFC21A1F, dark #FFC21A24 (yellow 400 at 12 % / 14 %).</li></ul>
+<h4>App tokens used on these boards (7-app-tokens.json, app-only until the design-system run)</h4><ul><li><code>color.map.vector.*</code>: land, urban, water, park, wood, grass, building, road, road-casing, major, major-casing, highway, highway-casing, railway, boundary. They replace <code>color.map.basemap.*</code> on map boards.</li><li><code>color.map.poi.transit</code>, <code>color.map.poi.glyph</code>.</li><li><code>color.badge.*</code>, <code>color.illustration.block-alt</code>, <code>color.illustration.park</code>.</li><li><code>opacity.shimmer</code>, <code>motion.shimmer</code>.</li></ul>
+<h4>Canvas-only</h4><ul><li><code>opacity.street-trace</code> (0.55): known streets on mini maps. Proposed for the design system.</li></ul></div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 2400, "height": 2700}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

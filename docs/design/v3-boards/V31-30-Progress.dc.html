@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>V31-30 Progress: how memory grows, where, and what’s coming</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pindoro-tokens.css">
+<link rel="stylesheet" href="ds/pindoro/components/bundle.css">
+<link rel="stylesheet" href="pindoro-canvas.css">
+<link rel="stylesheet" href="pindoro-v31.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="cv-flow" style="width: 2610px; height: 1060px">
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">1</span><span class="cv-steptx">Day 1: one dot in a 14-day frame</span></div><dc-import name="ProgressScreen" theme="light" state="v31-day1" scroll="top" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">2</span><span class="cv-steptx">Day 1, scrolled: where it grows, the district being learnt first</span></div><dc-import name="ProgressScreen" theme="light" state="v31-day1" scroll="where" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">3</span><span class="cv-steptx">A month in: a point a week since day 1</span></div><dc-import name="ProgressScreen" theme="light" state="v31-month" scroll="top" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">4</span><span class="cv-steptx">Mid-city: the last 10 weeks</span></div><dc-import name="ProgressScreen" theme="light" state="v31-mid" scroll="top" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">5</span><span class="cv-steptx">Mid-city, scrolled: Mtatsminda Mastered</span></div><dc-import name="ProgressScreen" theme="light" state="v31-mid" scroll="where" hint-size="390px,844px"></dc-import></div>
+<div class="cv-notes cv-notes--wide">
+<div class="cv-caprow"><span class="cv-tag cv-tag--new">New in v3.1</span><span class="cv-tag cv-tag--changed">Changes V3-60</span></div>
+<h3>Progress: how memory grows, where, and what’s coming</h3>
+<ul>
+<li>Three parts, in that order: the City memory card (how it grows), What’s coming (the 14-day review forecast, then the neighbourhoods in learning order), Where it grows (the district map, then the districts with the one being learnt first).</li>
+<li><b>Decision 5, a thin day-1 chart:</b> the chart keeps a fixed 14-day frame with a point a day for the first two weeks, then a point a week, up to the last 10 weeks. Day 1 is one dot on a 0–100 scale with the 14 days ticked, not a line stretched across one day. The scale never goes below 100.</li>
+<li><b>Decision 4:</b> the full card (chart, bar, legend, note) lives here only; Today has the row.</li>
+<li><b>Decision 2:</b> district rows count streets in memory, out of the same 3 216. Mastered rows turn cobalt.</li>
+<li><b>Decision 3:</b> the shared header replaces the “Progress” title.</li>
+<li>Recall shows “–” with “Shows after 7 days of reviews” until it means something.</li>
+<li>Map colours as on Explore; the map carries the attribution.</li>
+</ul>
+<p>Flutter: cityMemoryProvider (figure, change, stages), progressProvider (districts, forecast, recall, whole-city date), learnMorePlanProvider (next neighbourhoods), ProgressDao (history for the chart), streakProvider (pill).</p>
+<h4>New data</h4>
+<ul>
+<li>Daily City memory history: one value a day, kept for 70 days (ProgressDao table).</li>
+</ul>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 2610, "height": 1060}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

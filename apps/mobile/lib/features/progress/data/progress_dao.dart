@@ -84,6 +84,14 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     return ids.toList();
   }
 
+  /// The latest finished round in [cityId]; null before any.
+  Future<Round?> lastFinishedRound(String cityId) =>
+      (select(rounds)
+            ..where((r) => r.cityId.equals(cityId) & r.finishedAt.isNotNull())
+            ..orderBy([(_) => OrderingTerm.desc(_rowid)])
+            ..limit(1))
+          .getSingleOrNull();
+
   /// Whether the player has ever answered (the first-question hint shows once).
   Future<bool> hasAnswered() async =>
       await (select(answers)..limit(1)).getSingleOrNull() != null;

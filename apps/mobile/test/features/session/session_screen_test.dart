@@ -11,6 +11,7 @@ import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/speech.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
+import 'package:pindoro/features/map/ui/explore_map.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
@@ -127,6 +128,9 @@ void main() {
           remindersProvider.overrideWithValue(_NoReminders()),
           speechProvider.overrideWithValue(_NoSpeech()),
           clockProvider.overrideWithValue(() => now),
+          exploreMapBuilderProvider.overrideWithValue(
+            (_) => const SizedBox.expand(),
+          ),
           pindoroMapBuilderProvider.overrideWithValue((map) {
             maps.add(map);
             return const SizedBox.expand();

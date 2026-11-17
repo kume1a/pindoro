@@ -3,19 +3,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:pindoro/core/clock.dart';
+import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
-import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/data/progress.dart';
 import 'package:pindoro/features/learning/ui/city_memory_card.dart';
+import 'package:pindoro/features/learning/ui/city_tab_page.dart';
+import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
+import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
+import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
-/// Progress, overview (board V3-60): City memory over 10 weeks, recall, the
-/// whole-city date, the 14-day forecast and the districts.
+/// Progress (canvas V31-30): how memory grows (the City memory card, recall
+/// and the whole-city date), what's coming (the 14-day forecast, the
+/// neighbourhoods in teaching order) and where it grows (the district map
+/// and the districts, the one being learnt first).
 class ProgressScreen extends ConsumerWidget {
   const ProgressScreen({super.key});
 
@@ -26,39 +32,51 @@ class ProgressScreen extends ConsumerWidget {
     final locale = Localizations.localeOf(context).toLanguageTag();
     final animate = !MediaQuery.disableAnimationsOf(context);
     final now = ref.watch(clockProvider)();
-    return PageScaffold(
-      title: l10n.progressTitle,
+    final scale = MediaQuery.textScalerOf(context).scale(1);
+    Future<void> open(String id) => context.push(Routes.progressOf(id));
+    return CityTabPage(
       children: switch (ref.watch(progressProvider)) {
-        AsyncData(:final value) => () {
-          final p = value;
+        AsyncData(value: final p) => () {
           final recall = p.recall;
           final by = p.wholeCityBy;
           final average = (p.forecast.fold(0, (a, b) => a + b) / 14).round();
+          final learningRaion = p.coming.firstOrNull?.chunk.parentId;
+          final districts = [
+            ...p.districts.where((d) => d.district.id == learningRaion),
+            ...p.districts.where((d) => d.district.id != learningRaion),
+          ];
           return [
-            CityMemoryCard(memory: p.city, history: p.history),
-            Row(
-              spacing: PindoroSpace.s2,
-              children: [
-                Expanded(
-                  child: StatTile(
-                    glyph: PindoroGlyph.checkCircle,
-                    label: l10n.progressRecall,
-                    value: recall == null
-                        ? l10n.progressNoValue
-                        : l10n.sessionPercent((100 * recall).round()),
-                  ),
-                ),
-                Expanded(
-                  child: StatTile(
-                    glyph: PindoroGlyph.flag,
-                    label: l10n.progressWholeCity,
-                    value: by == null
-                        ? l10n.progressNoValue
-                        : DateFormat.yMMM(locale).format(by),
-                  ),
-                ),
-              ],
+            CityMemoryCard(
+              memory: p.city,
+              history: p.history,
+              sinceYesterday: p.sinceYesterday,
             ),
+            TileGrid(columns: scale >= TileGrid.stackAt ? 1 : 2, [
+              StatTile(
+                glyph: PindoroGlyph.checkCircle,
+                label: l10n.progressRecall,
+                value: recall == null
+                    ? l10n.progressNoValue
+                    : l10n.sessionPercent((100 * recall).round()),
+                caption: recall == null ? l10n.progressRecallWaiting : null,
+              ),
+              StatTile(
+                glyph: PindoroGlyph.flag,
+                label: l10n.progressWholeCity,
+                value: by == null
+                    ? l10n.progressNoValue
+                    : DateFormat.yMMM(locale).format(by),
+                caption: by == null
+                    ? null
+                    : l10n.progressWholeCityPace(
+                        formatNumber(
+                          LearningConfig.newPerDay[settings?.minutesPerDay] ??
+                              0,
+                        ),
+                      ),
+              ),
+            ]),
+            SectionTitle(l10n.progressComing),
             ForecastBars(
               counts: p.forecast,
               title: l10n.progressForecastTitle,
@@ -73,22 +91,45 @@ class ProgressScreen extends ConsumerWidget {
               ),
               animate: animate,
             ),
-            ListGroup(
-              children: [
-                for (final d in p.districts)
-                  _DistrictRow(
-                    district: d,
-                    learning: p.learning?.parentId == d.district.id
-                        ? p.learning
-                        : null,
-                    name: districtName(d.district, settings),
-                    learningName: switch (p.learning) {
-                      final l? => districtName(l, settings),
-                      null => null,
-                    },
-                  ),
-              ],
-            ),
+            if (p.coming.isNotEmpty)
+              ListGroup(
+                children: [
+                  for (final chunk in p.coming)
+                    _ComingRow(
+                      chunk: chunk,
+                      settings: settings,
+                      onTap: switch (chunk.chunk.parentId) {
+                        final raion? => () => open(raion),
+                        null => null,
+                      },
+                    ),
+                ],
+              ),
+            if (districts.isNotEmpty) ...[
+              SectionTitle(
+                l10n.progressWhereItGrows,
+                meta: _whereMeta(l10n, districts),
+              ),
+              _DistrictMap(
+                districts: districts,
+                settings: settings,
+                onTap: open,
+              ),
+              const DistrictLegend(),
+              ListGroup(
+                children: [
+                  for (final d in districts)
+                    _DistrictRow(
+                      district: d,
+                      learning: d.district.id == learningRaion
+                          ? p.coming.first.chunk
+                          : null,
+                      settings: settings,
+                      onTap: () => open(d.district.id),
+                    ),
+                ],
+              ),
+            ],
           ];
         }(),
         _ => const [Center(child: LaneLoader())],
@@ -97,34 +138,152 @@ class ProgressScreen extends ConsumerWidget {
   }
 }
 
-class _DistrictRow extends StatelessWidget {
-  const _DistrictRow({
-    required this.district,
-    required this.learning,
-    required this.name,
-    required this.learningName,
+bool _mastered(MemorySummary m) =>
+    m.total > 0 && m.counts[MemoryState.mastered] == m.total;
+
+DistrictProgress _fill(MemorySummary m) => DistrictProgress.of(
+  m.total == 0 ? 0 : m.memory / m.total,
+  mastered: _mastered(m),
+);
+
+/// "1 Mastered", "all 10 started" or "9 of 10 districts started".
+String _whereMeta(AppLocalizations l10n, List<RaionProgress> districts) {
+  final mastered = districts.where((d) => _mastered(d.memory)).length;
+  final started = districts.where((d) => d.memory.memory.round() > 0).length;
+  final total = formatNumber(districts.length);
+  return mastered > 0
+      ? l10n.progressDistrictsMastered(formatNumber(mastered))
+      : started == districts.length
+      ? l10n.progressAllStarted(total)
+      : l10n.progressDistrictsStarted(formatNumber(started), total);
+}
+
+/// The districts in their fill steps, the attribution on the map.
+class _DistrictMap extends ConsumerWidget {
+  const _DistrictMap({
+    required this.districts,
+    required this.settings,
+    required this.onTap,
   });
 
-  final RaionProgress district;
-  final District? learning;
-  final String name;
-  final String? learningName;
+  final List<RaionProgress> districts;
+  final Settings? settings;
+  final void Function(String id) onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final city = ref.watch(packRepositoryProvider).value?.city();
+    final started = districts.where((d) => d.memory.memory.round() > 0);
+    return DistrictMap(
+      districts: [
+        for (final d in districts)
+          (
+            boundary: d.district.boundary,
+            progress: _fill(d.memory),
+            name: districtName(d.district, settings),
+            labelAt: d.district.center,
+          ),
+      ],
+      semanticsLabel: l10n.a11yDistrictMap(
+        city == null ? '' : context.localName(ka: city.nameKa, en: city.nameEn),
+        formatNumber(started.length),
+        formatNumber(districts.where((d) => _mastered(d.memory)).length),
+      ),
+      onTap: (i) => onTap(districts[i].district.id),
+      overlay: const Positioned(
+        left: PindoroSpace.s2,
+        bottom: PindoroSpace.s2,
+        child: MapAttribution(),
+      ),
+    );
+  }
+}
+
+/// A neighbourhood in teaching order: the one being learnt, then locked ones
+/// with the one they start after.
+class _ComingRow extends StatelessWidget {
+  const _ComingRow({
+    required this.chunk,
+    required this.settings,
+    required this.onTap,
+  });
+
+  final ChunkProgress chunk;
+  final Settings? settings;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final c = PindoroTheme.of(context).colors;
+    final total = formatNumber(chunk.memory.total);
+    final now = chunk.stage == ChunkStage.now;
+    final after = chunk.after;
+    return ListRow(
+      leading: now
+          ? RowTile(PindoroGlyph.play, face: c.primaryBase, ink: c.primaryOn)
+          : RowTile(
+              PindoroGlyph.lock,
+              face: c.surfaceSunken,
+              ink: c.textSecondary,
+            ),
+      title: districtName(chunk.chunk, settings),
+      subtitle: now
+          ? l10n.progressLearningNow(formatNumber(chunk.seen), total)
+          : after == null
+          ? l10n.commonXOfY(formatNumber(chunk.seen), total)
+          : l10n.progressChunkAfter(districtName(after, settings), total),
+      trailing: onTap == null
+          ? null
+          : const PindoroIcon(PindoroGlyph.chevronRight),
+      onTap: onTap,
+    );
+  }
+}
+
+class _DistrictRow extends StatelessWidget {
+  const _DistrictRow({
+    required this.district,
+    required this.learning,
+    required this.settings,
+    required this.onTap,
+  });
+
+  final RaionProgress district;
+
+  /// The neighbourhood being learnt, when it is in this district.
+  final District? learning;
+  final Settings? settings;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final c = PindoroTheme.of(context).colors;
     final m = district.memory;
-    final mastered = m.counts[MemoryState.mastered]!;
+    final name = districtName(district.district, settings);
+    final mastered = _mastered(m);
+    final learning = this.learning;
     final subtitle = [
-      l10n.commonXOfY(formatNumber(m.memory.round()), formatNumber(m.total)),
-      if (learning != null && learningName != null)
-        l10n.progressLearning(learningName!)
-      else if (mastered > 0)
-        l10n.progressMasteredCount(formatNumber(mastered)),
+      l10n.memoryInMemory(
+        formatNumber(m.memory.round()),
+        formatNumber(m.total),
+      ),
+      if (mastered)
+        l10n.memoryMastered
+      else if (learning != null)
+        l10n.progressLearning(districtName(learning, settings)),
     ].join(' · ');
     final bar = memoryBarLabel(l10n, name, m);
     return ListRow(
-      leading: const RowTile(PindoroGlyph.district),
+      leading: mastered
+          ? RowTile(
+              PindoroGlyph.checkCircle,
+              face: c.primaryBase,
+              ink: c.primaryOn,
+            )
+          : const RowTile(PindoroGlyph.district),
       title: name,
       subtitle: subtitle,
       below: MemoryBar(
@@ -134,7 +293,7 @@ class _DistrictRow extends StatelessWidget {
       ),
       trailing: const PindoroIcon(PindoroGlyph.chevronRight),
       semanticsLabel: '$name. $subtitle. $bar',
-      onTap: () => context.push(Routes.progressOf(district.district.id)),
+      onTap: onTap,
     );
   }
 }

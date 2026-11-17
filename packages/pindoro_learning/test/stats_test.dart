@@ -313,8 +313,7 @@ void main() {
       );
     });
 
-    test('cityMemoryHistory: 11 points from the first day played or 10 weeks '
-        'back, ending now', () {
+    group('cityMemoryHistory (SPEC §16.4)', () {
       final r1 = applyReview(
         introduce('P:a', intro),
         itemId: 'P:a',
@@ -323,26 +322,76 @@ void main() {
         format: ReviewFormat.retrieval1,
         source: ReviewSource.session,
       );
-      final history = cityMemoryHistory(
+      MemoryHistory at(DateTime t) => cityMemoryHistory(
         cards: [r1.card],
         log: [r1.log],
-        now: now,
+        now: t,
         isCore: (_) => true,
       );
-      expect(history.start, intro);
-      expect(history.values, hasLength(11));
-      expect(history.values.first, closeTo(1, 1e-9));
-      expect(
-        history.values.last,
-        closeTo(fsrs.retrievability(r1.card.memory!, now), 1e-9),
-      );
-      final empty = cityMemoryHistory(
-        cards: const [],
-        log: const [],
-        now: now,
-        isCore: (_) => true,
-      );
-      expect(empty.values, [0]);
+      double r(DateTime t) => fsrs.retrievability(r1.card.memory!, t);
+
+      test('first two weeks: a 14-day frame ending today, a point a day '
+          'since the first answer (each past day at its end)', () {
+        final history = at(now);
+        expect(history.window, MemoryWindow.daily);
+        expect(history.days, 14);
+        expect(history.start, DateTime.utc(2026, 2, 25));
+        // 1 to 10 March.
+        expect(history.points, hasLength(10));
+        expect(history.points.first.at, closeTo(4 / 13, 1e-9));
+        expect(
+          history.points.first.value,
+          closeTo(r(DateTime.utc(2026, 3, 2)), 1e-9),
+        );
+        expect(history.points.last.at, 1);
+        expect(history.points.last.value, closeTo(r(now), 1e-9));
+      });
+
+      test('the first day alone is one point at today', () {
+        final history = at(intro.add(const Duration(hours: 2)));
+        expect(history.points, hasLength(1));
+        expect(history.points.single.at, 1);
+      });
+
+      test('from day 15: a point a week from the first answer, then now', () {
+        final t = intro.add(const Duration(days: 30));
+        final history = at(t);
+        expect(history.window, MemoryWindow.weekly);
+        expect(history.days, 0);
+        expect(history.start, intro);
+        expect(
+          [for (final p in history.points) p.at],
+          [
+            0,
+            closeTo(7 / 30, 1e-9),
+            closeTo(14 / 30, 1e-9),
+            closeTo(21 / 30, 1e-9),
+            closeTo(28 / 30, 1e-9),
+            1,
+          ],
+        );
+        expect(history.points.first.value, closeTo(1, 1e-9));
+      });
+
+      test('from week 10: the last 10 weeks, 11 points', () {
+        final t = intro.add(const Duration(days: 100));
+        final history = at(t);
+        expect(history.window, MemoryWindow.lastWeeks);
+        expect(history.start, t.subtract(const Duration(days: 70)));
+        expect(history.points, hasLength(11));
+        expect(history.points.last.value, closeTo(r(t), 1e-9));
+      });
+
+      test('no play: one point of 0', () {
+        final empty = cityMemoryHistory(
+          cards: const [],
+          log: const [],
+          now: now,
+          isCore: (_) => true,
+        );
+        expect(empty.points, [(at: 1.0, value: 0.0)]);
+        expect(empty.window, MemoryWindow.daily);
+      });
     });
   });
 }

@@ -184,15 +184,42 @@ double Function(DateTime t) _replay(
       return m == null ? sum : sum + fsrs.retrievability(m, t);
     });
 
-/// City memory over time (the Progress chart): 11 points evenly from 10 weeks ago, or from the
-/// first answer when that is later, to [now]. One point with no play at all.
-({DateTime start, List<double> values}) cityMemoryHistory({
+/// Which window the City memory chart shows (SPEC §16.4).
+enum MemoryWindow {
+  /// The first [LearningConfig.chartDailyDays] days: a frame of that many days ending today,
+  /// a point a day since the first answer.
+  daily,
+
+  /// Then a point a week from the first answer, and one now.
+  weekly,
+
+  /// From [LearningConfig.chartWeeks] weeks on: the last that many weeks, a point a week.
+  lastWeeks,
+}
+
+/// City memory over time (the Progress chart): [points] from [start] (`at` 0) to now (`at` 1),
+/// the last one now. A past day's point is its end; [days] is the daily frame's length (its
+/// ticks), 0 otherwise.
+typedef MemoryHistory = ({
+  DateTime start,
+  List<({double at, double value})> points,
+  int days,
+  MemoryWindow window,
+});
+
+/// City memory over time (SPEC §16.4), replayed from [log]: [MemoryWindow.daily] for the first
+/// [LearningConfig.chartDailyDays] calendar days from the first answer, then
+/// [MemoryWindow.weekly], then [MemoryWindow.lastWeeks]. One point of 0 with no play at all.
+MemoryHistory cityMemoryHistory({
   required Iterable<CardState> cards,
   required Iterable<LogEntry> log,
   required DateTime now,
   required bool Function(String itemId) isCore,
   Fsrs fsrs = const Fsrs(),
 }) {
+  const daily = LearningConfig.chartDailyDays;
+  final today = startOfDay(now);
+  final frame = today.subtract(const Duration(days: daily - 1));
   final core = [
     for (final c in cards)
       if (c.type == CardType.p && isCore(c.itemId)) c,
@@ -201,20 +228,54 @@ double Function(DateTime t) _replay(
     for (final e in log) e.ts,
     for (final c in core) ?c.memory?.lastReview,
   ];
-  if (firsts.isEmpty) return (start: now, values: [0]);
+  if (firsts.isEmpty) {
+    return (
+      start: frame,
+      points: const [(at: 1.0, value: 0.0)],
+      days: daily,
+      window: MemoryWindow.daily,
+    );
+  }
   final first = firsts.reduce((a, b) => a.isBefore(b) ? a : b);
-  final tenWeeks = now.subtract(const Duration(days: 70));
-  final start = first.isAfter(tenWeeks) ? first : tenWeeks;
+  final value = _replay(core, _byItem(log), fsrs);
+  if (!startOfDay(first).isBefore(frame)) {
+    final skipped = _calendarDays(frame, startOfDay(first));
+    return (
+      start: frame,
+      points: [
+        for (var d = skipped; d < daily; d++)
+          (
+            at: d / (daily - 1),
+            value: value(
+              d == daily - 1
+                  ? now
+                  : startOfDay(frame.add(Duration(days: d + 1, hours: 12))),
+            ),
+          ),
+      ],
+      days: daily,
+      window: MemoryWindow.daily,
+    );
+  }
+  const week = Duration(days: 7);
+  final weeks = now.subtract(week * LearningConfig.chartWeeks);
+  final start = first.isAfter(weeks) ? first : weeks;
   final span = now.difference(start).inMicroseconds;
-  final at = _replay(core, _byItem(log), fsrs);
   return (
     start: start,
-    values: [
-      for (var i = 0; i <= 10; i++)
-        at(start.add(Duration(microseconds: span * i ~/ 10))),
+    points: [
+      for (var t = start; t.isBefore(now); t = t.add(week))
+        (at: t.difference(start).inMicroseconds / span, value: value(t)),
+      (at: 1.0, value: value(now)),
     ],
+    days: 0,
+    window: first.isAfter(weeks) ? MemoryWindow.weekly : MemoryWindow.lastWeeks,
   );
 }
+
+/// Calendar days from [from] to [to], both midnights (DST days count once).
+int _calendarDays(DateTime from, DateTime to) =>
+    (to.difference(from).inHours / 24).round();
 
 /// Raions and neighbourhoods whose every core street is Mastered (SPEC §8),
 /// and raions with a Known street, over [streets] and their chunks' raions

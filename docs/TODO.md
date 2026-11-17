@@ -71,7 +71,6 @@
   - Known-street chips use the full name, not the short form ("Chavchavadze Ave", "1st").
   - The Mix-up reveal paints both streets at once (no cobalt-then-yellow paint), and Session done
     shows City memory as a number, without the card-size memory bar.
-  - Today has no Turns tile (M5).
   - `StatChip`, `NextReviewChip` and `IntroSheet` have widget tests but no goldens yet.
 - v3 progress and settings (M2), left out on purpose until the milestone named:
   - Progress district: no Gateways solid or Landmarks tiles (M5); neighbourhood rows open no
@@ -79,10 +78,10 @@
   - Learning settings: no Turns and routes or Speak your answers toggles (M5, M6).
   - The home and work picker shows the map and the nearest neighbourhoods as chips, without the
     "More" list and search of the design's area selector.
-  - Today has no "Now learning" and gateway rows (M5).
 - v3 replacing the old game (M3), left out on purpose:
-  - Explore keeps its own known-street counts (best tier in Explore and the old lessons); the
-    rest of the app counts from the cards.
+  - Results' "+n streets known" pill and the Explorer and Navigator badges still count Explore's
+    own known streets (best tier in Explore and the old lessons); every tab counts City memory
+    (v3.1 decision 2; the Explorer rule is left as built on the canvas).
   - The Georgian draft of the new strings needs the native review like the rest.
 - v3 name, ends and drills (M4), left out on purpose:
   - The sweep's lanes are traced like known streets (grey, solid), not dashed, and its sockets
@@ -96,8 +95,24 @@
   - Way-via turn restrictions are left out of the pack.
   - The J card names no sibling junction it's confused with; the gateway, bridge and landmark
     cards use existing widgets (the design system has no components for them).
-  - Today has no "Now learning" and gateway rows; the full Tbilisi format 5 pack isn't published
-    (`just pack tbilisi` on the server).
+
+- v3.1 tabs, filled (canvas page "v3.1 · Tabs, filled"), left out on purpose:
+  - Only Explore's map is a live MapLibre map; Today's neighbourhood map and Progress's district
+    map are painted (no basemap), so a tab never holds more than one platform view. The district
+    map hides a name wider than its district.
+  - Explore offline doesn't dim the districts outside the pack: the bundled Vake pack has no
+    others. Tapping the open Explore tab doesn't scroll its sheet up. The screen keeps its
+    `HomeScreen` name (the canvas renames it ExploreScreen).
+  - After a round Explore counts City memory up with a "+n" pill; the district fills don't fade
+    in. The figure starts from City memory replayed to the round's start.
+  - "Watch out for" says "Mixed up yesterday" without the board's "back today side by side": the
+    planner doesn't pair mix-ups. Recall's empty state says "Shows after your first reviews",
+    not "after 7 days": the rate shows as soon as reviews exist.
+  - The new parts (`TitledCard`, `MemoryRow`, `WeekBars`, `StreakWeek`, `MiniTally`,
+    `DistrictMap`, `AreaMiniMap`, `SheetHandle`, `TileGrid`, StatTile's caption, SectionTitle's
+    meta) and `color.map.district.started.fill` (in `app.json`) still need the design system run
+    on claude.ai; the canvas's Part 2 boards (the app as built) are only the tab bar, Me and the
+    app tokens so far.
 
 - v3 recitals and drives (M6), left out on purpose:
   - Speech (SPEC §11): no Speak mode, transcript chips, Vosk model download or self-grade

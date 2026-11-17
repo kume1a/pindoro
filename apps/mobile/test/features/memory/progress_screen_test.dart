@@ -12,6 +12,7 @@ import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
 import '../../support/settle.dart';
@@ -85,9 +86,18 @@ void main() {
       find.text('City memory · streets you’d place today'),
       findsOneWidget,
     );
+    expect(
+      find.text('A point a day for your first two weeks, then one a week.'),
+      findsOneWidget,
+    );
     expect(find.text('Recall, 30 days'), findsOneWidget);
     expect(find.text('Reviews, next 14 days'), findsOneWidget);
+    expect(find.text('What’s coming'), findsOneWidget);
+    expect(find.textContaining('Learning now'), findsOneWidget);
+    expect(find.text('Where it grows'), findsOneWidget);
+    expect(find.byType(DistrictMap), findsOneWidget);
     final district = find.text(raion);
+    await scrollTo(tester, district);
     expect(district, findsOneWidget);
 
     await tapThrough(tester, district);

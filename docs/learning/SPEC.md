@@ -390,6 +390,7 @@ pindoro_core `ScoringConfig`, not copied):
 | `nearDueFraction`                                                    | 0.5 (implicit evidence and Explore) |
 | `tierCReliefFactor`                                                  | 1.2                                 |
 | `cityMemoryMilestone`, `maintenanceBadgeDays`                        | 500, 100                            |
+| `chartDailyDays`, `chartWeeks`                                       | 14, 10                              |
 | `uTurnPenaltyM` (pindoro_core `RoutingConfig`, referenced)           | 250                                 |
 | `turnStraightDeg`, `turnUTurnDeg` (a J card's exit directions)       | 30, 150                             |
 | `phase2StableDays`                                                   | 14                                  |
@@ -514,8 +515,11 @@ rest of the spec. Numbers named here are in §13.
     `prior_known` stands in for the "success on a later day" clause.
 18. **Recall rate** uses only `format = review` rows from the last 30 days; a pass is rating ≥ 2.
 19. **Whole-city date** = today + unseen core streets ÷ `newPerDay[minutes]`.
-20. **City memory history** (the 10-week chart, "since yesterday") is computed by replaying
-    `review_log` to the needed moments. No snapshot table.
+20. **City memory history** (the chart, "since yesterday") is computed by replaying
+    `review_log` to the needed moments. No snapshot table. The chart's window (v3.1, canvas
+    V31-99): for the first `chartDailyDays` (14) calendar days a 14-day frame ending today with a
+    point at the end of each day played; then a point a week from the first answer; from
+    `chartWeeks` (10) weeks on, the last 10 weeks. Its scale never tops out under 100.
 
 ### 16.5 Data and pack
 

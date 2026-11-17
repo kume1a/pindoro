@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>V31-99 Decisions</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pindoro-tokens.css">
+<link rel="stylesheet" href="ds/pindoro/components/bundle.css">
+<link rel="stylesheet" href="pindoro-canvas.css">
+<link rel="stylesheet" href="pindoro-v31.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.v99 .cv-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+</style>
+</helmet>
+<div class="cv-doc v99" style="width: 2400px; height: 1500px">
+<div class="cv-caprow"><span class="cv-tag cv-tag--new">v3.1</span></div>
+<h2>Closing note: one job per tab, one count, one header</h2>
+<p>Today says what to do now and what comes next. Explore is map-first free play with Play in the thumb zone. Progress shows how memory grows, where, and what’s coming. Me changes only where these decisions touch it.</p>
+<div class="cv-cards">
+<div class="cv-card"><h3>1 · Today’s drive could show nothing to do</h3><p>On day 1 the hero showed Reviews 0 and New 0 next to Turns 10, so it read as empty.</p><ul><li>Plan tiles show only the kinds today holds: Reviews, New, Turns and a new kind, Drills (with what they are: “sweep, crossings”).</li><li>One to three tiles in a row, four as 2 × 2.</li><li>A zero shows only when it explains something: “New 0 · paused” in a backlog.</li><li>If a plan were ever truly empty, the hero becomes the Done state; the tab never shows a Start with nothing behind it.</li></ul><p>Boards: V31-10, V31-11.</p></div>
+<div class="cv-card"><h3>2 · Three counts of what you know</h3><p>Today said City memory 20, Explore “Streets you know 9 / 4 320”, Me “Streets known 9”, and Explore’s areas used other totals (Vake 3 / 81).</p><ul><li>City memory is the only count: streets you’d place today, out of the city’s 3 216.</li><li>Today: the row. Progress: the card and the district rows. Explore: the map fills, the header figure and every area row (“4 of 264 in memory”). Me: “Streets in memory”, City memory summed over your cities.</li><li>Seen, Known, Solid and Mastered stay as the stages inside it, never as separate totals.</li></ul><p>Boards: V31-10, V31-20, V31-30, V31-40.</p></div>
+<div class="cv-card"><h3>3 · Headers and settings differ by tab</h3><ul><li>Today, Explore and Progress share one header: the city switcher on the left, the streak pill on the right. On Explore it floats on the map.</li><li>Me keeps its “Me” title and the gear. Settings opens from Me only; the gear leaves Explore.</li><li>A city row on Me also switches city and opens Today for it.</li></ul><p>Boards: all four.</p></div>
+<div class="cv-card"><h3>4 · The City memory card on two tabs</h3><ul><li>Today gets a one-line row (figure, change, thin bar) that opens Progress.</li><li>Progress owns the card: figure, change, chart, bar, legend and the one-sentence note.</li><li>A drop shows in secondary text on both, never red.</li></ul><p>Boards: V31-10, V31-30.</p></div>
+<div class="cv-card"><h3>5 · The chart is thin on day 1</h3><ul><li>A fixed 14-day frame with a point a day for the first two weeks, then a point a week, up to the last 10 weeks.</li><li>Day 1 is one dot on a 0–100 scale with the 14 days ticked; the scale never tops out under 100.</li><li>A caption names the window (“Your line starts today …”).</li></ul><p>Boards: V31-30. Needs the daily history below.</p></div>
+<div class="cv-card"><h3>New data, everything flagged</h3><ol><li>Daily City memory history: a value a day, kept 70 days (ProgressDao). Feeds the chart, “since yesterday” and “this week”.</li><li>City memory per area for all 104 areas. progressProvider has the 10 districts.</li><li>Drills in today’s plan: count and kinds.</li><li>Gateways solid per district.</li><li>Yesterday’s mixed-up pairs, for “Watch out for”.</li><li>Last round’s tier counts on Explore, if homeProvider doesn’t keep them.</li><li>Which cities and districts are on the device, for Explore offline.</li></ol></div>
+<div class="cv-card"><h3>Also settled</h3><ul><li>Explore replaces HomeScreen for v3 (ExploreScreen); the HomeScreen boards stay as the earlier record.</li><li>Map colours: district fills step from outline to yellow wash to progress fill to cobalt Mastered; the play area is the dashed cobalt outline; no street names on overview maps.</li><li>Small maps carry the attribution on a line under them.</li><li>Buttons are 48 dp on every v3.1 board.</li></ul></div>
+<div class="cv-card"><h3>Your calls</h3><ul><li>Explorer badge: “Know streets in 5 districts” would become “Streets in memory in 5 districts” under decision 2. That changes the rule, so it is left as built.</li><li>Drills as a fourth tile kind on Today: confirm it is wanted, since the plan doesn’t expose it yet.</li><li>The 70-day history length (10 weeks of chart) is a proposal.</li></ul></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 2400, "height": 1500}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

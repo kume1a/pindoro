@@ -126,6 +126,14 @@
         "usage": "Illustration park (.i-park in the Illustration preview)."
       },
       {
+        "name": "color.map.district.started.fill",
+        "value": {
+          "light": "#ffc21a1f",
+          "dark": "#ffc21a24"
+        },
+        "usage": "A district with under a quarter of its streets in memory: yellow 400 at 12 % (light) / 14 % (dark) under the progress stroke (canvas V31-90, District fills)."
+      },
+      {
         "name": "color.map.vector.land",
         "value": {
           "light": "#f3f1ed",

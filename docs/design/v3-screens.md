@@ -124,3 +124,21 @@ Street photos were dropped (SPEC §16.16) and taken off the canvas: no V3-31 boa
 | Speech token resolved | Chip slides in from the transcript | light tick |
 | Drive start / end | Timer fades in / out | medium impact |
 | Session done | Celebrate big; City memory counts up | results sound · success haptic |
+
+## v3.1 · Tabs, filled
+
+Canvas page **v3.1 · Tabs, filled** (boards V31-10 to V31-99, copies in `v3-boards/` with
+`pindoro-v31.css`). The tabs were stacks of one to three cards; each now has one job and a layout for
+every stage. Decisions (V31-99): one count everywhere (City memory, "in memory"); one header on
+Today, Explore and Progress (city switcher and streak pill; Settings from Me only); City memory is a
+row on Today and the full card on Progress; the chart's window grows with play (SPEC §16.4 item 20).
+
+| Board | Shows | Flutter |
+| --- | --- | --- |
+| V31-10, V31-11 Today | Plan tiles of the kinds today holds (Drills new; New 0 · paused in a backlog), City memory row, Coming up: run, the neighbourhood being learnt (mini map), gateways, next 7 days, yesterday's mix-ups; done adds the last 7 days | `TodayScreen`; `nowLearningProvider`, `gatewaysProvider`, `mixUpsYesterdayProvider` |
+| V31-20, V31-21 Explore | The city map first (district fills, play area dashed cobalt), a sheet: City memory, legend, quick starts, last round, areas played, all areas, next badge; Play pinned | `HomeScreen` + `ExploreMap` (MapLibre), `explore_sheet.dart`; `areaMemoryProvider`, `homeProvider` (last round, recent areas) |
+| V31-30 Progress | City memory card with the windowed chart and caption; recall and whole-city tiles with captions; What's coming (forecast, neighbourhoods in order); Where it grows (district map, legend, districts, the one being learnt first) | `ProgressScreen`; `progressProvider.coming` |
+| V31-40 Me | "Streets in memory": City memory summed over the cities | `MeScreen` |
+| V31-90 | New parts | `TileGrid`, StatTile `caption`, SectionTitle `meta`, `TitledCard`, `MemoryRow`, `WeekBars`, `StreakWeek`, `MiniTally`, `DistrictMap` (with `DistrictProgress.started`), `AreaMiniMap`, `SheetHandle`; token `color.map.district.started.fill` (app-only) |
+
+Where the app differs from these boards is listed in `docs/TODO.md` (v3.1 tabs, filled).

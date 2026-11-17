@@ -10,6 +10,7 @@ import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/routes.dart';
+import 'package:pindoro/features/map/ui/explore_map.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/quiz/ui/quiz_screen.dart';
@@ -59,6 +60,9 @@ void main() {
           }),
           questionSelectorProvider.overrideWithValue(
             QuestionSelector(random: Random(7)),
+          ),
+          exploreMapBuilderProvider.overrideWithValue(
+            (_) => const SizedBox.expand(),
           ),
           pindoroMapBuilderProvider.overrideWithValue((m) {
             map = m;

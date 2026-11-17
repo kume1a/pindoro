@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>V31-40 Me: only what the decisions change</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pindoro-tokens.css">
+<link rel="stylesheet" href="ds/pindoro/components/bundle.css">
+<link rel="stylesheet" href="pindoro-canvas.css">
+<link rel="stylesheet" href="pindoro-v31.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="cv-flow" style="width: 1750px; height: 1000px">
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">1</span><span class="cv-steptx">As built (Nov 2026): “Streets known 9”</span></div><dc-import name="MeScreen" theme="light" state="built" scroll="top" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">2</span><span class="cv-steptx">v3.1: “Streets in memory 20”, the same figure as the other tabs</span></div><dc-import name="MeScreen" theme="light" state="v31" scroll="top" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">3</span><span class="cv-steptx">v3.1, scrolled: the rest of the shelf and Cities</span></div><dc-import name="MeScreen" theme="light" state="v31" scroll="badges" hint-size="390px,844px"></dc-import></div>
+<div class="cv-notes cv-notes--wide">
+<div class="cv-caprow"><span class="cv-tag cv-tag--changed">Changed in v3.1</span></div>
+<h3>Me: only what the decisions change</h3>
+<ul>
+<li><b>Decision 2:</b> “Streets known 9” becomes “Streets in memory 20”: City memory summed over your cities, so Me, Today, Explore and Progress show one figure.</li>
+<li><b>Decision 3:</b> Me keeps its own title and the gear. Settings opens from here only.</li>
+<li><b>Decision 3:</b> a city row also switches city: it makes that city current and opens Today for it.</li>
+<li>The badge shelf is unchanged: three across, earned in colour, locked in grey with a lock, a bar when progress is countable. Spec on V31-90.</li>
+<li><b>Your call:</b> Explorer reads “Know streets in 5 districts”. With one count it would read “Streets in memory in 5 districts”, which changes the rule. Left as built.</li>
+</ul>
+<p>Flutter: meProvider (playing since, totals, cities), badgesProvider (shelf, progress bars), streakProvider (best streak), cityMemoryProvider (per city, summed for the tile).</p>
+<h4>New data</h4>
+<ul><li>None: the per-city figure is already on the Cities row.</li></ul>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1750, "height": 1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -107,40 +107,87 @@ void main() {
     }
   });
 
-  test('the chart top is the max plus 5 %, rounded up a decade below', () {
+  test('the chart top is the max plus 5 %, rounded up a decade below, and '
+      'never under 100', () {
     expect(chartTop(1284), 1400);
-    expect(chartTop(86), 91);
-    expect(chartTop(5), 10);
-    expect(chartTop(0), 10);
+    expect(chartTop(486), 520);
+    expect(chartTop(86), 100);
+    expect(chartTop(20), 100);
+    expect(chartTop(0), 100);
   });
 
-  testWidgets('the chart is one image, with any number of values', (
+  testWidgets('the chart is one image, with any number of points', (
     tester,
   ) async {
-    for (final values in <List<double>>[
-      [],
-      [12.0],
-      [120, 180, 240, 400, 520, 610, 700, 860, 990, 1180, 1284],
+    for (final (points, days) in <(List<ChartPoint>, int)>[
+      (const [], 14),
+      (const [(at: 1, value: 20)], 14),
+      ([for (var i = 0; i <= 10; i++) (at: i / 10, value: 120.0 * i)], 0),
     ]) {
       await tester.pumpWidget(
         _host(
           MemoryChart(
-            values: values,
+            points: points,
+            days: days,
             startLabel: 'Sep 8',
             endLabel: 'Today',
-            semanticsLabel: 'City memory over the last 10 weeks',
+            semanticsLabel: 'City memory over time',
             animate: true,
           ),
         ),
       );
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      expect(
-        find.bySemanticsLabel('City memory over the last 10 weeks'),
-        findsOneWidget,
-      );
+      expect(find.bySemanticsLabel('City memory over time'), findsOneWidget);
       expect(tester.getSize(find.byType(MemoryChart)).height, 132);
     }
+  });
+
+  testWidgets('the City memory row reads as one button and opens on a tap', (
+    tester,
+  ) async {
+    var opened = 0;
+    await tester.pumpWidget(
+      _host(
+        MemoryRow(
+          label: 'City memory',
+          value: '20',
+          of: 'of 3 216 streets',
+          change: '+20 today',
+          counts: const (
+            mastered: 0,
+            solid: 0,
+            known: 9,
+            seen: 15,
+            total: 3216,
+          ),
+          semanticsLabel: 'City memory: 20 of 3 216 streets',
+          onTap: () => opened++,
+        ),
+      ),
+    );
+    expect(find.text('+20 today'), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('City memory: 20 of 3 216 streets'));
+    expect(opened, 1);
+  });
+
+  testWidgets('the week strip keeps a zero day and reads as one node', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _host(
+        const WeekBars(
+          counts: [0, 9, 8, 0, 2, 0, 0],
+          labels: ['Today', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          title: 'Next 7 days',
+          meta: '19 reviews this week',
+          semanticsLabel: 'Reviews due, next 7 days',
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    expect(find.text('0'), findsNWidgets(4));
+    expect(find.bySemanticsLabel('Reviews due, next 7 days'), findsOneWidget);
   });
 
   test('the busiest day fills the bars; an empty day draws nothing', () {

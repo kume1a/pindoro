@@ -2,7 +2,7 @@
 
 Flutter design system: generated tokens, `buildPindoroTheme`, `PindoroTheme` extension and the
 Signpost widgets: `PindoroButton`, `StreetPlate`, surfaces (`LipBox`, `ListGroup`, `ListRow`,
-`RowTile`, `StatTile`), the bottom navigation (`PindoroNavBar`, no counts on tabs), controls
+`RowTile`, `StatTile`, `TileGrid`, `TitledCard`, `SheetHandle`), the bottom navigation (`PindoroNavBar`, no counts on tabs), controls
 (`SegmentedControl`, `PindoroToggle`, `PindoroIconButton`, `PindoroDialog`, `LaneLoader`, the
 loading `Skeleton`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` incl. the route's
 `PinMark.endpoint`, `CarMark`, `glyphPng` for map images), the round components (`QuestionBar`,
@@ -10,9 +10,9 @@ loading `Skeleton`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` inc
 `CoachBubble`), the v3 session (`StatChip`, `NextReviewChip`, `IntroSheet`, the drills'
 `BearingDial`; the session bar is `QuestionBar` with `height: 14`), v3 route items (`JunctionMap`
 with `JunctionGeometry`, `ExitButton`, `LandmarkBadge`, `MapLabelChip`, `CarMarker`, `MapTip`), v3
-progress (`MemoryBar`, `MemoryLegend`, `MemoryChart`, `ForecastBars`), the streak (`StreakPill`, `StreakCalendar`,
+progress (`MemoryBar`, `MemoryLegend`, `MemoryChart`, `ForecastBars`, `WeekBars`, `MemoryRow`), the streak (`StreakPill`, `StreakCalendar`, `StreakWeek`,
 `StreakFreezeCard`), badges (`BadgeShield`, `BadgeTile`; fields `color.badge.*` in `app.json`),
-setup components (`SearchField`, `CitySwitcher`, `PindoroChip`, `DifficultyCard`, `DistrictMiniMap`)
+setup components (`SearchField`, `CitySwitcher`, `PindoroChip`, `DifficultyCard`, the painted `DistrictMap` and `AreaMiniMap`), `MiniTally`
 and motion (`PindoroPageTransitions`, `CountUp`, `PopIn`, `RiseIn`, `Celebration`, `Wiggle`,
 `Shake`, `FadeIndexedStack`; all calm down under reduce motion). Widgets take their text as
 parameters; strings live in the app.
