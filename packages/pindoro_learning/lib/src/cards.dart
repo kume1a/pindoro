@@ -282,9 +282,10 @@ Random fuzzFor(String itemId, DateTime now) {
   return Random(hash);
 }
 
-/// An Explore answer (SPEC §16.16): it reviews [card] only when the card is due or near due (due
-/// within [LearningConfig.nearDueFraction] of its interval); a first-sight Good or Easy creates the
-/// card as known from before, like placement; anything else is only logged.
+/// An Explore answer (SPEC §16.3 item 16): it reviews [card] when the card is due or near due (due
+/// within [LearningConfig.nearDueFraction] of its interval), and a miss on a card in review however
+/// far from due; a first-sight Good or Easy creates the card as known from before, like placement;
+/// anything else is only logged.
 ({CardState? card, LogEntry log}) exploreAnswer(
   CardState? card, {
   required String itemId,
@@ -295,7 +296,8 @@ Random fuzzFor(String itemId, DateTime now) {
 }) {
   final reviews = card == null
       ? grade.rating == Rating.good || grade.rating == Rating.easy
-      : isNearDue(card, now);
+      : isNearDue(card, now) ||
+            (grade.rating == Rating.again && card.phase == CardPhase.review);
   final applied = applyReview(
     card,
     itemId: itemId,

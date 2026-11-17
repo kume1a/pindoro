@@ -40,7 +40,11 @@ class ProgressScreen extends ConsumerWidget {
           final recall = p.recall;
           final by = p.wholeCityBy;
           final average = (p.forecast.fold(0, (a, b) => a + b) / 14).round();
-          final learningRaion = p.coming.firstOrNull?.chunk.parentId;
+          final learning = p.coming
+              .where((c) => c.stage == ChunkStage.now)
+              .firstOrNull
+              ?.chunk;
+          final learningRaion = learning?.parentId;
           final districts = [
             ...p.districts.where((d) => d.district.id == learningRaion),
             ...p.districts.where((d) => d.district.id != learningRaion),
@@ -91,13 +95,32 @@ class ProgressScreen extends ConsumerWidget {
               ),
               animate: animate,
             ),
-            if (p.coming.isNotEmpty)
+            if (p.roads.isNotEmpty || p.coming.isNotEmpty)
               ListGroup(
                 children: [
+                  for (final (i, road) in p.roads.indexed)
+                    _ComingRow(
+                      title: l10n.roadBand(road.band.name),
+                      subtitle:
+                          (i == 0 ? l10n.progressLearningNow : l10n.commonXOfY)(
+                            formatNumber(road.seen),
+                            formatNumber(road.memory.total),
+                          ),
+                      now: i == 0,
+                    ),
                   for (final chunk in p.coming)
                     _ComingRow(
-                      chunk: chunk,
-                      settings: settings,
+                      title: districtName(chunk.chunk, settings),
+                      subtitle: _chunkSubtitle(
+                        l10n,
+                        chunk,
+                        after: switch ((chunk.after, p.roads.lastOrNull)) {
+                          (final d?, _) => districtName(d, settings),
+                          (null, final road?) => l10n.roadBand(road.band.name),
+                          _ => null,
+                        },
+                      ),
+                      now: chunk.stage == ChunkStage.now,
                       onTap: switch (chunk.chunk.parentId) {
                         final raion? => () => open(raion),
                         null => null,
@@ -122,7 +145,7 @@ class ProgressScreen extends ConsumerWidget {
                     _DistrictRow(
                       district: d,
                       learning: d.district.id == learningRaion
-                          ? p.coming.first.chunk
+                          ? learning
                           : null,
                       settings: settings,
                       onTap: () => open(d.district.id),
@@ -200,26 +223,39 @@ class _DistrictMap extends ConsumerWidget {
   }
 }
 
-/// A neighbourhood in teaching order: the one being learnt, then locked ones
-/// with the one they start after.
+/// A neighbourhood's line in "What's coming": being learnt, or locked and the
+/// step it starts [after].
+String _chunkSubtitle(
+  AppLocalizations l10n,
+  ChunkProgress chunk, {
+  required String? after,
+}) {
+  final total = formatNumber(chunk.memory.total);
+  return chunk.stage == ChunkStage.now
+      ? l10n.progressLearningNow(formatNumber(chunk.seen), total)
+      : after == null
+      ? l10n.commonXOfY(formatNumber(chunk.seen), total)
+      : l10n.progressChunkAfter(after, total);
+}
+
+/// A step in teaching order, a road class or a neighbourhood: the one being
+/// learnt ([now]), then locked ones.
 class _ComingRow extends StatelessWidget {
   const _ComingRow({
-    required this.chunk,
-    required this.settings,
-    required this.onTap,
+    required this.title,
+    required this.subtitle,
+    required this.now,
+    this.onTap,
   });
 
-  final ChunkProgress chunk;
-  final Settings? settings;
+  final String title;
+  final String subtitle;
+  final bool now;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
-    final total = formatNumber(chunk.memory.total);
-    final now = chunk.stage == ChunkStage.now;
-    final after = chunk.after;
     return ListRow(
       leading: now
           ? RowTile(PindoroGlyph.play, face: c.primaryBase, ink: c.primaryOn)
@@ -228,12 +264,8 @@ class _ComingRow extends StatelessWidget {
               face: c.surfaceSunken,
               ink: c.textSecondary,
             ),
-      title: districtName(chunk.chunk, settings),
-      subtitle: now
-          ? l10n.progressLearningNow(formatNumber(chunk.seen), total)
-          : after == null
-          ? l10n.commonXOfY(formatNumber(chunk.seen), total)
-          : l10n.progressChunkAfter(districtName(after, settings), total),
+      title: title,
+      subtitle: subtitle,
       trailing: onTap == null
           ? null
           : const PindoroIcon(PindoroGlyph.chevronRight),

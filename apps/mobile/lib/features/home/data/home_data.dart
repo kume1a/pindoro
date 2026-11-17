@@ -31,6 +31,9 @@ typedef HomeData = ({
   /// City memory when the round Explore was opened after began; null
   /// without one.
   double? before,
+
+  /// Streets the player has learned (a P card): what "Your streets" asks.
+  int learned,
 });
 
 const int recentAreaCount = 2;
@@ -66,6 +69,7 @@ final homeProvider = FutureProvider.autoDispose.family<HomeData, DateTime?>((
       for (final id in await dao.recentDistrictIds(city.id)) ?byId[id],
     ].take(recentAreaCount).toList(),
     before: introBefore == null ? null : await _memoryAt(ref, introBefore),
+    learned: (await ref.watch(streetCardsProvider.future)).length,
   );
 });
 

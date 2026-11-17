@@ -14,6 +14,7 @@ import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/learning/ui/city_memory_card.dart';
 import 'package:pindoro/features/learning/ui/city_tab_page.dart';
+import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/streak.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -50,11 +51,10 @@ class TodayScreen extends ConsumerWidget {
         final catchingUp = plan.backlog && !done;
         final run = catchingUp ? null : ref.watch(todayRunProvider).value;
         final learning = ref.watch(nowLearningProvider).value;
-        final gateways = switch (learning) {
-          final l? when !catchingUp && !done =>
-            ref.watch(gatewaysProvider(l.raion.id)).value,
-          _ => null,
-        };
+        final raion = learning?.raion;
+        final gateways = raion != null && !catchingUp && !done
+            ? ref.watch(gatewaysProvider(raion.id)).value
+            : null;
         final mixUps = catchingUp
             ? const <(NamedStreet, NamedStreet)>[]
             : ref.watch(mixUpsYesterdayProvider).value ?? const [];
@@ -95,12 +95,14 @@ class TodayScreen extends ConsumerWidget {
             _NowLearningCard(
               learning: learning,
               paused: catchingUp,
-              onTap: () => open(Routes.progressOf(learning.raion.id)),
+              onTap: raion == null
+                  ? () => context.go(Routes.progress)
+                  : () => open(Routes.progressOf(raion.id)),
             ),
-          if (gateways != null && gateways.started)
+          if (raion != null && gateways != null && gateways.started)
             _Gateways(
               gateways: gateways,
-              onTap: () => open(Routes.progressOf(learning!.raion.id)),
+              onTap: () => open(Routes.progressOf(raion.id)),
             ),
           _NextWeek(plan: plan, done: done),
           if (mixUps.isNotEmpty) ...[
@@ -439,9 +441,10 @@ class _DriveThisRun extends ConsumerWidget {
   }
 }
 
-/// The neighbourhood being learnt (Neighbourhood card): its mini map with the
-/// streets the player knows, its seen count and bar, and what comes next.
-/// [paused] while catching up. The map moves above the text at large text.
+/// The road class or neighbourhood being learnt (Neighbourhood card): its mini
+/// map with the streets the player knows, its seen count and bar, and what
+/// comes next. [paused] while catching up. The map moves above the text at
+/// large text.
 class _NowLearningCard extends ConsumerWidget {
   const _NowLearningCard({
     required this.learning,
@@ -458,17 +461,37 @@ class _NowLearningCard extends ConsumerWidget {
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
     final settings = ref.watch(settingsProvider).value;
-    final (:chunk, :raion, :next, :outline, :known) = learning;
-    final name = districtName(chunk.chunk, settings);
-    final seen = formatNumber(chunk.seen);
-    final total = formatNumber(chunk.memory.total);
-    final district = districtName(raion, settings);
+    final (
+      :band,
+      :chunk,
+      :raion,
+      :memory,
+      :seen,
+      :nextBand,
+      :next,
+      :outline,
+      :known,
+    ) = learning;
+    final city = ref.watch(packRepositoryProvider).value?.city();
+    String nameOf(RoadBand? band, District? chunk) => band != null
+        ? l10n.roadBand(band.name)
+        : chunk != null
+        ? districtName(chunk, settings)
+        : '';
+    final name = nameOf(band, chunk);
+    final total = formatNumber(memory.total);
+    final where = raion != null
+        ? districtName(raion, settings)
+        : city == null
+        ? ''
+        : context.localName(ka: city.nameKa, en: city.nameEn);
     final sub = paused
-        ? l10n.todayLearningPaused(district, seen, total)
-        : l10n.todayLearningSeen(district, seen, total);
-    final nextLine = next == null
+        ? l10n.todayLearningPaused(where, formatNumber(seen), total)
+        : l10n.todayLearningSeen(where, formatNumber(seen), total);
+    final nextName = nameOf(nextBand, next);
+    final nextLine = nextName.isEmpty
         ? null
-        : l10n.todayLearningNext(districtName(next.chunk, settings), name);
+        : l10n.todayLearningNext(nextName, name);
     final stack = MediaQuery.textScalerOf(context).scale(1) >= TileGrid.stackAt;
     final text = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -483,7 +506,7 @@ class _NowLearningCard extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.symmetric(vertical: PindoroSpace.s1),
           child: MemoryBar(
-            counts: memoryCountsOf(chunk.memory),
+            counts: memoryCountsOf(memory),
             semanticsLabel: '',
             compact: true,
           ),

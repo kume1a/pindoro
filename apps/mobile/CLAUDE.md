@@ -79,7 +79,8 @@ test/drift/                    generated schema helpers + migration test
   tab goes to Today first, and each tab page gets its own `PrimaryScrollController` (a tap on the
   open tab scrolls it up). Every other route sits on the root navigator, over the bar:
   `/welcome`, `/area`,
-  `/difficulty`, `/round` (`?round=` resumes, `?retry=` retries), `/results`, `/streak`,
+  `/difficulty`, `/round` (`?round=` resumes, `?retry=` retries, `?learned=1` plays "Your
+  streets": only streets with a P card), `/results`, `/streak`,
   `/settings`, `/settings/credits`, `/session` (`?placement=1` places, `?more=1` learns 10 more),
   `/progress/district?id=`, `/settings/learning`, `/settings/learning/anchor?which=`,
   `/settings/learning/landmarks`, `/settings/learning/landmarks/add`, `/settings/learning/memory`

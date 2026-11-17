@@ -193,7 +193,8 @@ typedef PlacementSummary = ({
   ({int passed, int of}) mainRoads,
   int raions,
 
-  /// The neighbourhood new streets start in.
+  /// The road class new streets start with, else the neighbourhood.
+  RoadBand? startBand,
   District? startIn,
 });
 
@@ -1347,12 +1348,16 @@ class SessionController extends Notifier<SessionState> {
       for (final c in _cards.values)
         if (c.type == CardType.p) ?_streets[itemKey(c.itemId)]?.id: c,
     };
+    final band = _curriculum.bandsLeft(cards).firstOrNull;
     final start = _curriculum.chunkSequence(cards, _anchors).firstOrNull;
     state = SessionPlaced((
       passed: run.passed,
       mainRoads: run.mainRoads,
       raions: run.raions,
-      startIn: _pack.districts().where((d) => d.id == start).firstOrNull,
+      startBand: band,
+      startIn: band != null
+          ? null
+          : _pack.districts().where((d) => d.id == start).firstOrNull,
     ));
   }
 

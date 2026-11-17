@@ -10,6 +10,7 @@ final _now = DateTime(2026, 3, 2, 9);
 NamedStreet _street(
   String id, {
   StreetTier? tier = StreetTier.c,
+  String? roadClass,
   int ring = 0,
   RiverBank bank = RiverBank.left,
   String? chunk = 'c1',
@@ -19,7 +20,13 @@ NamedStreet _street(
     id: id,
     nameKa: id,
     nameEn: null,
-    roadClass: 'residential',
+    roadClass:
+        roadClass ??
+        switch (tier) {
+          StreetTier.a => 'primary',
+          StreetTier.b => 'secondary',
+          _ => 'residential',
+        },
     difficulty: Difficulty.expert,
     lengthM: length,
     midpoint: _centre,
@@ -140,22 +147,37 @@ void main() {
     ]);
   });
 
-  test('60 % of the slots go to the skeleton and grid, in groups of 3, '
-      'while any of their core streets is unseen', () {
+  test('road classes one after another, city-wide: main roads, secondary, '
+      'tertiary, unclassified; then the neighbourhoods', () {
     final streets = [
-      for (var i = 0; i < 12; i++)
-        _street('t$i', tier: StreetTier.b, length: 1000.0 - i),
-      for (var i = 0; i < 12; i++) _street('c$i', length: 1000.0 - i),
+      _street('res', length: 2000),
+      _street('unc', roadClass: 'unclassified', length: 1500),
+      _street('ter', tier: StreetTier.b, roadClass: 'tertiary', length: 1200),
+      _street('sec', tier: StreetTier.b, length: 400),
+      _street('tru', tier: StreetTier.a, roadClass: 'trunk', ring: 1),
+      _street('pri', tier: StreetTier.a, length: 200),
+      _street('pri-short', tier: StreetTier.a, length: 90),
     ];
     final curriculum = _curriculum(streets);
+    expect(_next(curriculum), ['pri', 'tru', 'sec', 'ter', 'unc', 'res']);
+    expect(Curriculum.bandOf(streets.first), isNull);
+    expect(curriculum.bandStreets(RoadBand.main).map((s) => s.id), [
+      'pri',
+      'pri-short',
+      'tru',
+    ]);
+    expect(curriculum.bandsLeft(const {}), RoadBand.values);
+    final mainSeen = {'pri': _card('pri'), 'tru': _card('tru')};
+    expect(curriculum.bandsLeft(mainSeen), [
+      RoadBand.secondary,
+      RoadBand.tertiary,
+      RoadBand.minor,
+    ]);
     expect(
-      _next(curriculum, count: 10).map((id) => id[0]).join(),
-      'tttccctttc',
-    );
-    final trunkSeen = {for (var i = 0; i < 12; i++) 't$i': _card('t$i')};
-    expect(
-      _next(curriculum, cards: trunkSeen, count: 5).map((id) => id[0]).join(),
-      'ccccc',
+      curriculum.bandsLeft({
+        for (final id in ['pri', 'tru', 'sec', 'ter', 'unc']) id: _card(id),
+      }),
+      isEmpty,
     );
   });
 

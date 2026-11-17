@@ -9,6 +9,9 @@ abstract final class Routes {
   /// `?round=<id>` resumes, `?retry=<id>` plays that round's missed streets.
   static const String round = '/round';
 
+  /// "Your streets": a round of streets the player has learned.
+  static const String yourStreets = '$round?learned=1';
+
   /// `?round=<id>`; `/results/street/<index>?round=<id>` opens one answer.
   static const String results = '/results';
   static const String streak = '/streak';

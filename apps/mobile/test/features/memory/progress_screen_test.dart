@@ -67,19 +67,25 @@ void main() {
     await settle(tester);
   }
 
-  testWidgets('overview: City memory, recall, forecast and the district; '
-      'the district lists its neighbourhoods', (tester) async {
+  Future<void> place(Iterable<NamedStreet> placed) async {
     final dao = LearningDao(db);
-    final reviewed = applyReview(
-      null,
-      itemId: CardType.p.item(streets.first.id),
-      rating: Rating.good,
-      now: now.subtract(const Duration(days: 3)),
-      format: ReviewFormat.placement,
-      source: ReviewSource.placement,
-      priorKnown: true,
-    );
-    await dao.saveAnswer(card: reviewed.card, log: reviewed.log);
+    for (final s in placed) {
+      final reviewed = applyReview(
+        null,
+        itemId: CardType.p.item(s.id),
+        rating: Rating.good,
+        now: now.subtract(const Duration(days: 3)),
+        format: ReviewFormat.placement,
+        source: ReviewSource.placement,
+        priorKnown: true,
+      );
+      await dao.saveAnswer(card: reviewed.card, log: reviewed.log);
+    }
+  }
+
+  testWidgets('overview: City memory, recall, forecast and the district; '
+      'the road classes come before the neighbourhoods', (tester) async {
+    await place([streets.first]);
 
     await pump(tester);
     expect(
@@ -93,6 +99,7 @@ void main() {
     expect(find.text('Recall, 30 days'), findsOneWidget);
     expect(find.text('Reviews, next 14 days'), findsOneWidget);
     expect(find.text('What’s coming'), findsOneWidget);
+    expect(find.text('Main roads'), findsOneWidget);
     expect(find.textContaining('Learning now'), findsOneWidget);
     expect(find.text('Where it grows'), findsOneWidget);
     expect(find.byType(DistrictMap), findsOneWidget);
@@ -102,6 +109,19 @@ void main() {
 
     await tapThrough(tester, district);
     expect(find.text('Neighbourhoods'), findsOneWidget);
+    expect(find.textContaining('learning now'), findsNothing);
+  });
+
+  testWidgets('once every road class is seen, a neighbourhood is learnt now', (
+    tester,
+  ) async {
+    await place(streets.where((s) => Curriculum.bandOf(s) != null));
+
+    await pump(tester);
+    expect(find.text('Main roads'), findsNothing);
+    final learning = find.textContaining('Learning now');
+    expect(learning, findsOneWidget);
+    await tapThrough(tester, learning);
     expect(find.textContaining('learning now'), findsOneWidget);
   });
 }

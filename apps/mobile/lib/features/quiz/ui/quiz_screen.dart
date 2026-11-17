@@ -20,13 +20,20 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// Plays an Explore round: resumes [roundId], retries [retryOf]'s missed
-/// streets, or starts one from the saved area and difficulty.
+/// streets, plays the streets the player has [learned], or starts one from the
+/// saved area and difficulty.
 /// Setup states, the question and the reveal are one route.
 class QuizScreen extends ConsumerStatefulWidget {
-  const QuizScreen({super.key, this.roundId, this.retryOf});
+  const QuizScreen({
+    super.key,
+    this.roundId,
+    this.retryOf,
+    this.learned = false,
+  });
 
   final String? roundId;
   final String? retryOf;
+  final bool learned;
 
   @override
   ConsumerState<QuizScreen> createState() => _QuizScreenState();
@@ -74,6 +81,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     final retryOf = widget.retryOf;
     if (retryOf != null) return controller.startRetry(retryOf);
     final settings = await ref.read(settingsDaoProvider).read();
+    if (widget.learned) return controller.startLearned(settings.difficulty);
     await controller.start(settings.area, settings.difficulty);
   }
 

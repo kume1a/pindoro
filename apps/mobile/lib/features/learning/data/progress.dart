@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/settings.dart';
@@ -31,6 +33,10 @@ typedef ChunkProgress = ({
   District? after,
 });
 
+/// A road class taught city-wide (SPEC §6.3): its core streets' memory and
+/// how many of them were seen.
+typedef RoadProgress = ({RoadBand band, MemorySummary memory, int seen});
+
 typedef RaionProgress = ({
   District district,
   MemorySummary memory,
@@ -48,14 +54,18 @@ typedef ProgressOverview = ({
   List<int> forecast,
   DateTime? wholeCityBy,
 
-  /// The neighbourhood being learnt now, then the next [comingCount] - 1 in
-  /// teaching order; empty once nothing is left to teach.
+  /// The road classes still taught city-wide, the one being learnt first.
+  List<RoadProgress> roads,
+
+  /// The neighbourhoods after [roads] in teaching order, [comingCount] with
+  /// them; the first is being learnt once [roads] is empty. Empty once
+  /// nothing is left to teach.
   List<ChunkProgress> coming,
   List<RaionProgress> districts,
 });
 
-/// How many neighbourhoods "What's coming" lists, the one being learnt
-/// first.
+/// How many steps "What's coming" lists, road classes and neighbourhoods,
+/// the one being learnt first.
 const int comingCount = 3;
 
 /// The open city's City memory and its change since yesterday and over the
@@ -109,7 +119,17 @@ final progressProvider = FutureProvider.autoDispose<ProgressOverview>((
     for (final id in curriculum.chunkSequence(cards, anchors))
       if (districts.containsKey(id)) id,
   ];
-  final learning = districts[sequence.firstOrNull];
+  RoadProgress roadOf(RoadBand band) {
+    final core = curriculum.bandStreets(band).where(Curriculum.isCore);
+    return (
+      band: band,
+      memory: memorySummary(core, cards, now, sidesOf),
+      seen: core.where((s) => cards.containsKey(s.id)).length,
+    );
+  }
+
+  final roads = [for (final band in curriculum.bandsLeft(cards)) roadOf(band)];
+  final learning = roads.isEmpty ? districts[sequence.firstOrNull] : null;
 
   ChunkProgress chunkOf(String id) {
     final streets = curriculum.streetsIn(id).where(Curriculum.isCore);
@@ -175,7 +195,11 @@ final progressProvider = FutureProvider.autoDispose<ProgressOverview>((
       newPerDay: LearningConfig.newPerDay[settings.minutesPerDay] ?? 0,
       now: now,
     ),
-    coming: [for (final id in sequence.take(comingCount)) chunkOf(id)],
+    roads: roads,
+    coming: [
+      for (final id in sequence.take(max(0, comingCount - roads.length)))
+        chunkOf(id),
+    ],
     districts: raions,
   );
 });
@@ -326,13 +350,23 @@ final mixUpsYesterdayProvider =
       ];
     });
 
-/// The neighbourhood being learnt now on its mini map: its outline and the
-/// streets in it the player knows (Today's neighbourhood card); null once
-/// nothing is left to teach.
+/// What is being learnt now on its mini map (Today's Now learning card): a
+/// road class over the city's districts, or a neighbourhood in its outline,
+/// with the streets of it the player knows; null once nothing is left to
+/// teach.
 typedef NowLearning = ({
-  ChunkProgress chunk,
-  District raion,
-  ChunkProgress? next,
+  /// The road class being learnt city-wide; null once the neighbourhoods are.
+  RoadBand? band,
+
+  /// The neighbourhood being learnt when no [band] is, and its raion.
+  District? chunk,
+  District? raion,
+  MemorySummary memory,
+  int seen,
+
+  /// What comes next: a road class, else a neighbourhood.
+  RoadBand? nextBand,
+  District? next,
   List<List<Polyline>> outline,
   List<Polyline> known,
 });
@@ -342,22 +376,43 @@ final nowLearningProvider = FutureProvider.autoDispose<NowLearning?>((
 ) async {
   final now = ref.watch(clockProvider)();
   final progress = await ref.watch(progressProvider.future);
-  final chunk = progress.coming.firstOrNull;
-  if (chunk == null) return null;
   final pack = await ref.watch(packRepositoryProvider.future);
   final curriculum = await ref.watch(curriculumProvider.future);
   final cards = await ref.watch(streetCardsProvider.future);
+  List<Polyline> known(Iterable<NamedStreet> streets) => [
+    for (final s in streets)
+      if (cards[s.id] case final card? when isKnown(card, now)) ...s.geometry,
+  ];
+  if (progress.roads case [final road, ...final rest]) {
+    return (
+      band: road.band,
+      chunk: null,
+      raion: null,
+      memory: road.memory,
+      seen: road.seen,
+      nextBand: rest.firstOrNull?.band,
+      next: rest.isEmpty ? progress.coming.firstOrNull?.chunk : null,
+      outline: [
+        for (final d in pack.districts())
+          if (d.isRaion) ...d.boundary,
+      ],
+      known: known(curriculum.bandStreets(road.band)),
+    );
+  }
+  final chunk = progress.coming.firstOrNull;
+  if (chunk == null) return null;
   final raion = pack.districts().where((d) => d.id == chunk.chunk.parentId);
   if (raion.isEmpty) return null;
   return (
-    chunk: chunk,
+    band: null,
+    chunk: chunk.chunk,
     raion: raion.single,
-    next: progress.coming.skip(1).firstOrNull,
+    memory: chunk.memory,
+    seen: chunk.seen,
+    nextBand: null,
+    next: progress.coming.skip(1).firstOrNull?.chunk,
     outline: chunk.chunk.boundary,
-    known: [
-      for (final s in curriculum.streetsIn(chunk.chunk.id))
-        if (cards[s.id] case final card? when isKnown(card, now)) ...s.geometry,
-    ],
+    known: known(curriculum.streetsIn(chunk.chunk.id)),
   );
 });
 

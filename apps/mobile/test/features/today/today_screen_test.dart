@@ -109,6 +109,8 @@ void main() {
     expect(find.text('+8 since yesterday'), findsOneWidget);
     expect(find.text('Coming up'), findsOneWidget);
     expect(find.text('Now learning'), findsOneWidget);
+    expect(find.text('Main roads'), findsOneWidget);
+    expect(find.textContaining('Next: Secondary roads'), findsOneWidget);
     expect(find.text('Next 7 days'), findsOneWidget);
     expect(find.text('Last 7 days'), findsNothing);
     expect(find.textContaining('1\u202f284 of 3\u202f282'), findsOneWidget);
