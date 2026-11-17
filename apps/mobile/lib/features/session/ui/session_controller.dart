@@ -64,8 +64,7 @@ final class SessionPlaying extends SessionState {
     required this.forgotten,
     required this.street,
     required this.area,
-    required this.labels,
-    required this.known,
+    required this.knownNames,
     required this.newIndex,
     required this.newTotal,
     this.task = const PinTask(),
@@ -93,12 +92,9 @@ final class SessionPlaying extends SessionState {
   /// The city: the pin can go anywhere in it.
   final AreaShape area;
 
-  /// Streets around this one, named on the intro and the reveal (SPEC
-  /// §16.18).
-  final List<StreetLabel> labels;
-
-  /// Ids of the streets the player knows: their labels are traced too.
-  final Set<String> known;
+  /// Names of the streets the player knows: a place question names them
+  /// (SPEC §16.18).
+  final Set<String> knownNames;
 
   /// "New street · [newIndex] of [newTotal]".
   final int newIndex;
@@ -151,8 +147,7 @@ final class SessionPlaying extends SessionState {
     forgotten: forgotten ?? this.forgotten,
     street: street,
     area: area,
-    labels: labels,
-    known: known,
+    knownNames: knownNames,
     newIndex: newIndex,
     newTotal: newTotal,
     task: task ?? this.task,
@@ -906,15 +901,7 @@ class SessionController extends Notifier<SessionState> {
       forgotten: forgotten,
       street: street,
       area: (bbox: city.bbox, boundary: city.boundary),
-      labels: switch (task) {
-        PinTask() => labelStreets(street, _all, family: family),
-        RouteTask(question: LandmarkQuestion(n: 1, :final landmark)) => [
-          (street: street, at: street.nearest(landmark.at).nearestPoint),
-          ...labelStreets(street, _all).take(LearningConfig.streetLabelMax - 1),
-        ],
-        _ => const [],
-      },
-      known: {for (final s in known) s.id},
+      knownNames: {for (final s in known) s.name},
       newIndex: intros.indexOf(step) + 1,
       newTotal: intros.length,
       task: task,

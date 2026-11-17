@@ -6,6 +6,7 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
@@ -46,8 +47,6 @@ class PinDropView extends ConsumerWidget {
     this.retryDistance,
     this.celebration,
     this.frame,
-    this.labels = const [],
-    this.places = const [],
     this.mixUp,
     this.headerChip,
     this.guess,
@@ -76,15 +75,8 @@ class PinDropView extends ConsumerWidget {
   /// retrieval 1 frames the street's district).
   final List<LatLng>? frame;
 
-  /// Streets named on the reveal (v3).
-  final List<MapLabel> labels;
-
-  /// Places the map may name; while asking, none whose name gives the
-  /// street away.
-  final List<MapPlace> places;
-
   /// The reveal is a Mix-up: the pin hit this confusable street (v3).
-  final MapLabel? mixUp;
+  final NamedStreet? mixUp;
 
   /// The reveal's header chip instead of XP: the next-review chip (v3).
   final Widget? headerChip;
@@ -140,14 +132,11 @@ class PinDropView extends ConsumerWidget {
             bottomInset: insets.bottom,
             showControls: reveal == null,
             frame: reveal == null ? frame : null,
-            labels: reveal == null ? const [] : labels,
-            places: reveal == null
-                ? [
-                    for (final p in places)
-                      if (!namesStreet(p.label, street)) p,
-                  ]
-                : places,
-            hit: reveal == null ? null : mixUp,
+            // Asking: places, but none named after the street.
+            names: reveal == null
+                ? MapNames(places: true, placesNot: nameStems(street))
+                : MapNames.all,
+            hit: reveal == null ? null : mixUp?.geometry,
           ),
         ),
         top: Column(
@@ -210,7 +199,10 @@ class PinDropView extends ConsumerWidget {
                 sheet: PinRevealSheet(
                   reveal: reveal,
                   onNext: onNext,
-                  mixUp: mixUp,
+                  mixUp: switch (mixUp) {
+                    final m? => streetName(m, settings),
+                    null => null,
+                  },
                   headerChip: headerChip,
                   streetView: streetSpot(street, reveal.nearest),
                 ),
@@ -240,8 +232,9 @@ class PinRevealSheet extends StatelessWidget {
   final Future<void> Function() onNext;
   final StreetViewSpot streetView;
 
-  /// A Mix-up: Miss colours, "Mix-up" and the street the pin hit.
-  final MapLabel? mixUp;
+  /// A Mix-up: Miss colours, "Mix-up" and the name of the street the pin
+  /// hit.
+  final String? mixUp;
   final Widget? headerChip;
 
   @override
@@ -253,7 +246,7 @@ class PinRevealSheet extends StatelessWidget {
     );
     final mixUp = this.mixUp;
     final sentence = switch (reveal.tier) {
-      _ when mixUp != null => l10n.revealMixUpSentence(mixUp.label, direction),
+      _ when mixUp != null => l10n.revealMixUpSentence(mixUp, direction),
       Tier.perfect => l10n.tierPerfectSentence,
       Tier.great => l10n.tierGreatSentence(distance),
       Tier.close => l10n.tierCloseSentence(distance),

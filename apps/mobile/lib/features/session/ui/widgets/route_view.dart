@@ -6,6 +6,7 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/ui/junction_name.dart';
 import 'package:pindoro/features/learning/ui/landmark_glyph.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
@@ -32,17 +33,11 @@ class RouteView extends ConsumerStatefulWidget {
     required this.onPin,
     required this.onAnswer,
     required this.onNext,
-    this.labels = const [],
-    this.places = const [],
     this.chip,
   });
 
   final SessionPlaying play;
 
-  /// A place card's street labels (a known one traced) and the places
-  /// in view: while asking, only the known streets but the place's own.
-  final List<MapLabel> labels;
-  final List<MapPlace> places;
   final Widget topBar;
   final ValueChanged<Object> onChoose;
   final ValueChanged<LatLng> onPin;
@@ -311,7 +306,6 @@ class _RouteViewState extends ConsumerState<RouteView> {
             : landmarkKindName(l10n, landmark.kind);
         final pin = play.pin;
         final revealed = tier != null;
-        final inName = q.ambiguous ? name(q.street) : null;
         final junction = junctionAt(q.junction ?? -1);
         return TaskScaffold(
           topBar: widget.topBar,
@@ -332,13 +326,10 @@ class _RouteViewState extends ConsumerState<RouteView> {
                             ),
                           )
                         : null,
-                    labels: revealed
-                        ? widget.labels
-                        : [
-                            for (final l in widget.labels)
-                              if (l.geometry.isNotEmpty && l.label != inName) l,
-                          ],
-                    places: revealed ? widget.places : const [],
+                    // Asking: known streets only, never the place's own.
+                    names: revealed
+                        ? MapNames.all
+                        : MapNames(streets: play.knownNames),
                     topInset: insets.top,
                     bottomInset: insets.bottom,
                   ),

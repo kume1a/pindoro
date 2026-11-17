@@ -139,7 +139,15 @@
           "light": "#f3f1ed",
           "dark": "#24272d"
         },
-        "usage": "Vector basemap land and background; also the rim of POI icons and the halo of map text drawn by the app."
+        "usage": "Vector basemap land and background; also the rim of POI icons and the halo of map text."
+      },
+      {
+        "name": "color.map.vector.label",
+        "value": {
+          "light": "{color.text.secondary}",
+          "dark": "{color.text.secondary}"
+        },
+        "usage": "Street and place names the basemap draws along roads and beside POI icons (intros, reveals, place names on questions), over a color.map.vector.land halo."
       },
       {
         "name": "color.map.vector.urban",

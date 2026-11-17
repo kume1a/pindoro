@@ -54,9 +54,11 @@ services:
     image: ghcr.io/maplibre/martin:1.16.1
     restart: unless-stopped
     logging: *logging
-    command: ["/tiles"]
+    # FiraGO from the checkout serves the map glyphs (/font/{fontstack}/{range}).
+    command: ["--font", "/fonts", "/tiles"]
     volumes:
       - tiles:/tiles:ro
+      - ../packages/pindoro_design/fonts:/fonts:ro
 
   caddy:
     image: caddy:2.11.9

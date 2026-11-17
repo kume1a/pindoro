@@ -199,16 +199,6 @@ class MapChip {
     text: c.mapRegionLabelText,
   );
 
-  /// A place's name over its landmark icon: smaller than a street's, in
-  /// secondary ink.
-  factory MapChip.place(String label, PindoroColors c) => MapChip(
-    label: label,
-    style: PindoroType.labelSm,
-    face: c.mapRegionLabelBg,
-    lip: c.lineBase,
-    text: c.textSecondary,
-  );
-
   /// A picked area's name chip: cobalt, with a check.
   factory MapChip.picked(String label, PindoroColors c) => MapChip(
     label: label,

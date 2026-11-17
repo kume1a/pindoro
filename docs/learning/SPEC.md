@@ -399,7 +399,6 @@ pindoro_core `ScoringConfig`, not copied):
 | `answerGapCapS`                                                      | 60                                  |
 | `timeEstimateMinSamples`                                             | 50                                  |
 | `migrationDueMinDays`, `migrationDueMaxDays`                         | 1, 7                                |
-| `streetLabelMax`, `streetLabelOffsetM`, `placeLabelMax` (§16.18)     | 12, 60, 15                          |
 | `landmarkNewPerDay`, `relearnMaxPerSession` (§16.18)                 | 3, 2                                |
 | `tRecitalS`, `recitalNewPerDay`                                      | 180 s, 1                            |
 | `runLeadM`, `runMinItems`                                            | 800, 2                              |
@@ -538,7 +537,7 @@ rest of the spec. Numbers named here are in §13.
 
 25. **Labels** (changed 2026-11-17, §16.18): street names appear on intros and reveals, never on a
     street question, never for the target street. See §16.18 for which streets and the place names.
-    They are `MapChip` images because the map style has no glyphs.
+    The basemap draws them as map text (FiraGO glyphs served by Martin).
 
 ### 16.7 Routes (M5, M6)
 
@@ -846,13 +845,13 @@ blank maps after every answer.
 90. **Relearns** after Again stop at `relearnMaxPerSession` per card per session; the card then
     waits for its due time (at least a day out), and the reveal says when.
 91. **Maps** (replaces §16.6 item 25):
-    - Intros and reveals name the streets around the target, Known or not: its family, the streets
-      crossing it (each named `streetLabelOffsetM` along itself from the junction), then the
-      nearest others, at most `streetLabelMax`. Known ones are traced too.
-    - Places (pack landmarks and the player's own) are named on intros, reveals and street
-      questions: the `placeLabelMax` most salient in view as the camera settles. On a street
-      question a place sharing a word stem with the street's name is left out (a metro named after
-      its avenue).
+    - Names are the basemap's own map text from OpenStreetMap, never badges: street names along
+      their roads, place names under their icons, as the map has room for them (changed
+      2026-11-17 after the first field run).
+    - Intros and reveals name every street and place, Known or not.
+    - Street questions name places but no streets; a place sharing a word stem with the street's
+      name is left out (a metro named after its avenue). The player's own landmarks are not in
+      the map data and stay unnamed.
     - A place question names no places and only Known streets, never the street in the place's
       own name; its reveal marks the place in yellow, the dotted ink line from the pin and the
       distance, and names everything.

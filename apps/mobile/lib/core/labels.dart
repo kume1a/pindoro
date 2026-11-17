@@ -12,10 +12,6 @@ String districtName(District d, Settings? settings) =>
 String streetName(NamedStreet s, Settings? settings) =>
     _byNameSetting(s.name, s.nameEn, settings);
 
-/// A landmark's name per the street-name setting.
-String landmarkName(Landmark l, Settings? settings) =>
-    _byNameSetting(l.nameKa, l.nameEn, settings);
-
 String _byNameSetting(String local, String? english, Settings? settings) =>
     settings?.streetNames == StreetNameMode.english ? english ?? local : local;
 

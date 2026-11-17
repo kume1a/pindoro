@@ -11,6 +11,7 @@ import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/speech.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/explore_map.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -33,7 +34,6 @@ void main() {
   late NamedStreet c;
 
   /// A street crossing [a].
-  late NamedStreet aCrossing;
   late NamedStreet parent;
   late NamedStreet child;
 
@@ -85,7 +85,6 @@ void main() {
     repo.close();
     LatLng mid(NamedStreet s) => s.parts.first.midpoint;
     a = streets.first;
-    aCrossing = crossingsAlong(a, streets).first.street;
     b = streets.firstWhere((s) => distanceBetween(mid(s), mid(a)) > 800);
     c = streets.firstWhere(
       (s) =>
@@ -256,44 +255,23 @@ void main() {
     expect(find.text('Mix-up'), findsOneWidget);
     expect(find.textContaining('Pair saved:'), findsOneWidget);
     expect(find.text('Back in this session'), findsOneWidget);
-    expect(maps.last.hit?.geometry, b.geometry);
+    expect(maps.last.hit, b.geometry);
     expect(maps.last.measure, isNull);
     final pair = await db.select(db.confusions).getSingle();
     expect(pair.count, 2);
     expect((await dao.log()).single.snapId, b.id);
   });
 
-  testWidgets('streets are named on the reveal, never while asking; known ones '
-      'are traced', (tester) async {
-    await dao.putCard(
-      CardState(
-        itemId: item(aCrossing),
-        phase: CardPhase.review,
-        memory: Memory(
-          stability: 30,
-          difficulty: 5,
-          lastReview: now.subtract(const Duration(days: 3)),
-        ),
-        dueAt: now.add(const Duration(days: 20)),
-        lastRating: Rating.good,
-        priorKnown: true,
-      ),
-    );
+  testWidgets('places are named while asking but streets only on the '
+      'reveal', (tester) async {
     await pump(tester, [(kind: StepKind.retrieval1, itemId: item(a))]);
-    expect(maps.last.labels, isEmpty);
-    expect(maps.last.places, isNotEmpty, reason: 'places are named asking');
-    expect(maps.last.places.where((p) => namesStreet(p.label, a)), isEmpty);
-    await answer(tester, onStreet(a));
-    final labels = maps.last.labels;
-    expect(labels.first.label, aCrossing.name);
-    expect(labels.map((k) => k.label), isNot(contains(a.name)));
     expect(
-      [
-        for (final k in labels)
-          if (k.geometry.isNotEmpty) k.label,
-      ],
-      [aCrossing.name],
+      maps.last.names,
+      MapNames(places: true, placesNot: nameStems(a)),
+      reason: 'no street, no place named after the street',
     );
+    await answer(tester, onStreet(a));
+    expect(maps.last.names, MapNames.all);
   });
   testWidgets('a child of a known street is guessed first, then introduced '
       'with its family', (tester) async {
@@ -314,7 +292,7 @@ void main() {
     await pump(tester, [(kind: StepKind.intro, itemId: item(child))]);
     expect(find.text('Guess first'), findsOneWidget);
     expect(find.textContaining('You know ${parent.name}'), findsOneWidget);
-    expect(maps.last.labels, isEmpty);
+    expect(maps.last.names.streets, isEmpty);
     maps.last.onTap!(onStreet(child));
     await settle(tester);
     await tapThrough(tester, find.text('Confirm guess'));
@@ -322,7 +300,7 @@ void main() {
     expect((await dao.log()).single.format, ReviewFormat.pretest);
     expect(await dao.card(item(child)), isNull);
     expect(find.textContaining('Family: ${parent.name}'), findsOneWidget);
-    expect(maps.last.labels.map((k) => k.label), contains(parent.name));
+    expect(maps.last.names, MapNames.all);
     await tapThrough(tester, find.text('Got it'));
     expect((await dao.card(item(child)))!.phase, CardPhase.learning);
   });
@@ -452,7 +430,7 @@ void main() {
       expect(find.text('Back for a closer look'), findsOneWidget);
       expect(find.text('Not to be confused with ${b.name}'), findsOneWidget);
       expect(find.text('Guess first'), findsNothing);
-      expect(maps.last.hit?.geometry, b.geometry);
+      expect(maps.last.hit, b.geometry);
       await tester.enterText(find.byType(TextField), ' by the bakery ');
       await tapThrough(tester, find.text('Got it'));
       final card = (await dao.card(item(a)))!;
@@ -643,15 +621,15 @@ void main() {
       expect(find.text('New place · 1 of 1'), findsOneWidget);
       expect(find.textContaining('${q.landmark.name}, '), findsWidgets);
       expect(maps.last.truthPoint, q.landmark.at);
-      expect(maps.last.labels.first.label, q.street!.name);
+      expect(maps.last.names, MapNames.all);
       expect(find.bySemanticsLabel('Street View'), findsOneWidget);
       await tapThrough(tester, find.text('Got it'));
       expect((await dao.card(q.itemId))!.phase, CardPhase.learning);
       expect(find.text('Where is it?'), findsOneWidget);
       expect(maps.last.truthPoint, isNull, reason: 'asking shows nothing');
-      expect(maps.last.places, isEmpty);
+      expect(maps.last.names.places, isFalse);
       expect(
-        maps.last.labels.map((l) => l.label),
+        maps.last.names.streets,
         isNot(contains(q.street!.name)),
         reason: 'the street in its name stays unnamed while asking',
       );
@@ -665,7 +643,7 @@ void main() {
         (maps.last.measure?.from, maps.last.measure?.to),
         (far, q.landmark.at),
       );
-      expect(maps.last.places, isNotEmpty);
+      expect(maps.last.names, MapNames.all);
       expect(find.bySemanticsLabel('Street View'), findsOneWidget);
       final row = (await dao.log()).single;
       expect((row.format, row.rating), (ReviewFormat.landmark, Rating.again));

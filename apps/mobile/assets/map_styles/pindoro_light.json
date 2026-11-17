@@ -1,6 +1,7 @@
 {
   "version": 8,
   "name": "pindoro-light",
+  "glyphs": "{TILES_BASE_URL}/font/{fontstack}/{range}",
   "sources": {
     "protomaps": {
       "type": "vector",
@@ -2324,6 +2325,162 @@
           "get",
           "min_zoom"
         ]
+      }
+    },
+    {
+      "id": "road-names",
+      "type": "symbol",
+      "source": "protomaps",
+      "source-layer": "roads",
+      "filter": [
+        "has",
+        "name"
+      ],
+      "layout": {
+        "visibility": "none",
+        "symbol-placement": "line",
+        "symbol-sort-key": [
+          "get",
+          "min_zoom"
+        ],
+        "text-field": [
+          "coalesce",
+          [
+            "get",
+            "{NAME_KEY}"
+          ],
+          [
+            "get",
+            "name"
+          ]
+        ],
+        "text-font": [
+          "FiraGO Medium"
+        ],
+        "text-size": 12
+      },
+      "paint": {
+        "text-color": "#656d7f",
+        "text-halo-color": "#f3f1ed",
+        "text-halo-width": 1.5
+      }
+    },
+    {
+      "id": "poi-names",
+      "type": "symbol",
+      "source": "protomaps",
+      "source-layer": "pois",
+      "filter": [
+        "all",
+        [
+          "in",
+          [
+            "get",
+            "kind"
+          ],
+          [
+            "literal",
+            [
+              "station",
+              "bus_station",
+              "aerodrome",
+              "museum",
+              "theatre",
+              "cinema",
+              "gallery",
+              "attraction",
+              "monument",
+              "castle",
+              "place_of_worship",
+              "park",
+              "garden",
+              "zoo",
+              "peak",
+              "university",
+              "college",
+              "school",
+              "library",
+              "stadium",
+              "townhall",
+              "post_office",
+              "hotel",
+              "hospital",
+              "pharmacy",
+              "restaurant",
+              "cafe",
+              "bar",
+              "pub",
+              "fast_food",
+              "supermarket",
+              "mall",
+              "marketplace"
+            ]
+          ]
+        ],
+        [
+          ">=",
+          [
+            "zoom"
+          ],
+          [
+            "+",
+            [
+              "get",
+              "min_zoom"
+            ],
+            [
+              "match",
+              [
+                "get",
+                "kind"
+              ],
+              [
+                "restaurant",
+                "cafe",
+                "bar",
+                "pub",
+                "fast_food",
+                "pharmacy",
+                "hotel"
+              ],
+              1,
+              0
+            ]
+          ]
+        ]
+      ],
+      "layout": {
+        "visibility": "none",
+        "symbol-sort-key": [
+          "get",
+          "min_zoom"
+        ],
+        "text-field": [
+          "coalesce",
+          [
+            "get",
+            "{NAME_KEY}"
+          ],
+          [
+            "get",
+            "name"
+          ]
+        ],
+        "text-font": [
+          "FiraGO Regular"
+        ],
+        "text-size": 11,
+        "text-anchor": "top",
+        "text-offset": [
+          0,
+          1.1
+        ],
+        "text-max-width": 8
+      },
+      "paint": {
+        "text-color": "#656d7f",
+        "text-halo-color": "#f3f1ed",
+        "text-halo-width": 1.5
       }
     }
   ]

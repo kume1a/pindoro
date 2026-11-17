@@ -62,12 +62,14 @@ services:
 
   martin:
     image: ghcr.io/maplibre/martin:1.16.1
-    # Serves every *.pmtiles in the dir; georgia.pmtiles -> source id `georgia` (/georgia/{z}/{x}/{y}).
-    command: ["/tiles"]
+    # Serves every *.pmtiles in the dir; georgia.pmtiles -> source id `georgia` (/georgia/{z}/{x}/{y}),
+    # and FiraGO as map glyphs (/font/{fontstack}/{range}).
+    command: ["--font", "/fonts", "/tiles"]
     ports:
       - "3001:3000"
     volumes:
       - ${TILES_DIR:-./tiles}:/tiles:ro
+      - ../packages/pindoro_design/fonts:/fonts:ro
 
   packs:
     image: caddy:2.11.9

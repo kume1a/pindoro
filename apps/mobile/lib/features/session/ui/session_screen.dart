@@ -9,9 +9,7 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
-import 'package:pindoro/features/learning/data/map_places.dart';
 import 'package:pindoro/features/map/ui/pin_drop_view.dart';
-import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro/features/session/ui/widgets/bearing_view.dart';
 import 'package:pindoro/features/session/ui/widgets/crossings_view.dart';
@@ -46,9 +44,6 @@ class SessionScreen extends ConsumerStatefulWidget {
 }
 
 class _SessionScreenState extends ConsumerState<SessionScreen> {
-  /// One label list per street-label list, so the map syncs only on change.
-  final _labels = Expando<List<MapLabel>>();
-
   @override
   void initState() {
     super.initState();
@@ -72,7 +67,6 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
     });
     final settings = ref.watch(settingsProvider).value;
     final controller = ref.read(sessionControllerProvider.notifier);
-    final places = ref.watch(mapPlacesProvider).value ?? const <MapPlace>[];
     return switch (ref.watch(sessionControllerProvider)) {
       SessionLoading() => const Scaffold(body: Center(child: LaneLoader())),
       SessionEmpty() => PageScaffold(
@@ -87,8 +81,6 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
         PlaceIntro(
           play: p,
           question: q,
-          labels: _streetLabels(p, settings),
-          places: places,
           topBar: _topBar(p, controller),
           onGotIt: () => unawaited(controller.introDone()),
         ),
@@ -96,12 +88,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           when p.step.kind == StepKind.intro && p.guess == null =>
         SessionIntro(
           play: p,
-          labels: _streetLabels(p, settings),
-          places: places,
-          contrast: switch (p.contrast) {
-            final c? => _label(c, settings),
-            null => null,
-          },
+          contrast: p.contrast,
           topBar: _topBar(p, controller),
           onGotIt: (note) => unawaited(controller.introDone(note: note)),
         ),
@@ -145,8 +132,6 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
         ),
         RouteTask(:final nextReviewDays) => RouteView(
           play: p,
-          labels: _streetLabels(p, settings),
-          places: places,
           topBar: _topBar(p, controller),
           onChoose: controller.choose,
           onPin: controller.dropPin,
@@ -167,7 +152,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           onNext: () async => controller.next(),
           chip: _nextReviewChip(p, nextReviewDays),
         ),
-        PinTask() => _pin(p, settings, controller, places),
+        PinTask() => _pin(p, settings, controller),
       },
       SessionDone(:final summary) => SessionDoneView(
         summary: summary,
@@ -187,7 +172,6 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
     SessionPlaying p,
     Settings? settings,
     SessionController controller,
-    List<MapPlace> places,
   ) {
     final l10n = context.l10n;
     final r = p.reveal;
@@ -201,8 +185,6 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
       street: p.street,
       pin: p.pin,
       frame: p.frame,
-      labels: _streetLabels(p, settings),
-      places: places,
       topBar: _topBar(p, controller),
       prompt: placing
           ? l10n.placementPrompt(
@@ -216,7 +198,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
       onPin: controller.dropPin,
       onConfirm: () => unawaited(controller.confirm()),
       onNext: () async => controller.next(),
-      mixUp: hit == null ? null : _label(hit, settings),
+      mixUp: hit,
       guess: switch (p.guess) {
         final g? => (
           subline: g.knownSiblings == 0
@@ -280,23 +262,4 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
       animate: !MediaQuery.disableAnimationsOf(context),
     );
   }
-
-  /// The step's street labels: a known street traced, any other a chip only.
-  List<MapLabel> _streetLabels(SessionPlaying p, Settings? settings) =>
-      _labels[p.labels] ??= [
-        for (final l in p.labels)
-          (
-            geometry: p.known.contains(l.street.id)
-                ? l.street.geometry
-                : const [],
-            at: l.at,
-            label: streetName(l.street, settings),
-          ),
-      ];
-
-  MapLabel _label(NamedStreet street, Settings? settings) => (
-    geometry: street.geometry,
-    at: street.parts.first.midpoint,
-    label: streetName(street, settings),
-  );
 }

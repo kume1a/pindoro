@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mapStyle, resolveToken, type TokenValue } from "../src/tiles.ts";
+import { mapStyle, NAME_LAYERS, resolveToken, type TokenValue } from "../src/tiles.ts";
 
 describe("resolveToken", () => {
   const tokens = new Map<string, TokenValue>([
@@ -24,10 +24,15 @@ it("map styles take only resolved hex colours from the tokens", () => {
   }
 });
 
-it("map styles never draw text: no glyphs, no text-field", () => {
+it("map styles draw text only in the name layers, hidden, with glyphs from the tile server", () => {
   for (const mode of ["light", "dark"] as const) {
-    const style = mapStyle(mode) as { glyphs?: string; layers: { layout?: object }[] };
-    expect(style.glyphs).toBeUndefined();
-    expect(style.layers.filter((l) => l.layout && "text-field" in l.layout)).toEqual([]);
+    const style = mapStyle(mode) as {
+      glyphs?: string;
+      layers: { id: string; layout?: { "text-field"?: unknown; visibility?: string } }[];
+    };
+    expect(style.glyphs).toMatch(/^\{TILES_BASE_URL\}\/font\//);
+    const text = style.layers.filter((l) => l.layout?.["text-field"]);
+    expect(text.map((l) => l.id)).toEqual(Object.values(NAME_LAYERS));
+    expect(text.map((l) => l.layout?.visibility)).toEqual(["none", "none"]);
   }
 });

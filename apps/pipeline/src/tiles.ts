@@ -161,7 +161,7 @@ const flavorFor = (mode: Mode): Flavor => {
   };
 };
 
-/** Landmark icons, no names: the images are drawn by the app, so the style needs no sprite or glyphs. */
+/** Landmark icons: the images are drawn by the app, so the style needs no sprite. */
 const poiLayer = {
   id: "pois",
   type: "symbol",
@@ -179,10 +179,67 @@ const poiLayer = {
   },
 };
 
-/** Unlabelled basemap: Protomaps layers minus every symbol layer, recoloured from the tokens, plus POI icons. */
+/** Martin serves FiraGO's glyph ranges (`--font`); the app injects the tile server. */
+const GLYPHS = "{TILES_BASE_URL}/font/{fontstack}/{range}";
+
+/** The name in the app's street-name language: the app turns `{NAME_KEY}` into `name` or `name:en`. */
+const NAME = ["coalesce", ["get", "{NAME_KEY}"], ["get", "name"]];
+
+/** The name layers, hidden until the app shows them (SPEC §16.18). */
+export const NAME_LAYERS = { roads: "road-names", pois: "poi-names" } as const;
+
+/** Street names along the roads and place names under their icons. */
+const nameLayers = (mode: Mode): object[] => {
+  const tokens = loadTokens();
+  const paint = {
+    "text-color": resolveToken(tokens, "color.map.vector.label", mode),
+    "text-halo-color": resolveToken(tokens, "color.map.vector.land", mode),
+    "text-halo-width": 1.5,
+  };
+  return [
+    {
+      id: NAME_LAYERS.roads,
+      type: "symbol",
+      source: "protomaps",
+      "source-layer": "roads",
+      filter: ["has", "name"],
+      layout: {
+        visibility: "none",
+        "symbol-placement": "line",
+        "symbol-sort-key": ["get", "min_zoom"],
+        "text-field": NAME,
+        "text-font": ["FiraGO Medium"],
+        "text-size": 12,
+      },
+      paint,
+    },
+    {
+      id: NAME_LAYERS.pois,
+      type: "symbol",
+      source: "protomaps",
+      "source-layer": "pois",
+      filter: poiLayer.filter,
+      layout: {
+        visibility: "none",
+        "symbol-sort-key": ["get", "min_zoom"],
+        "text-field": NAME,
+        "text-font": ["FiraGO Regular"],
+        "text-size": 11,
+        // Under the icon drawn at the same point.
+        "text-anchor": "top",
+        "text-offset": [0, 1.1],
+        "text-max-width": 8,
+      },
+      paint,
+    },
+  ];
+};
+
+/** Protomaps layers minus every symbol layer, recoloured from the tokens, plus POI icons and the hidden name layers. */
 export const mapStyle = (mode: Mode): object => ({
   version: 8,
   name: `pindoro-${mode}`,
+  glyphs: GLYPHS,
   sources: {
     // Tile template rather than TileJSON: behind the tunnel Martin's TileJSON would advertise http:// URLs.
     protomaps: {
@@ -196,6 +253,7 @@ export const mapStyle = (mode: Mode): object => ({
   layers: [
     ...layers("protomaps", flavorFor(mode)).filter((layer) => layer.type !== "symbol"),
     poiLayer,
+    ...nameLayers(mode),
   ],
 });
 
