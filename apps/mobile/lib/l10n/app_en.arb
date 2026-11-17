@@ -1861,8 +1861,8 @@
   "landmarkMove": "Change spot",
   "todayTurns": "Turns",
   "routeCityCentre": "the city centre",
-  "routeTurnOn": "On",
-  "routeHeadingTo": "heading to {place}",
+  "routeTurnOn": "Driving on",
+  "routeHeadingTo": "Heading to {place}",
   "@routeHeadingTo": {
     "placeholders": {
       "place": {
@@ -1870,7 +1870,7 @@
       }
     }
   },
-  "routeTurnAtLandmark": "At {landmark}: which way?",
+  "routeTurnAtLandmark": "Which way at {landmark}?",
   "@routeTurnAtLandmark": {
     "placeholders": {
       "landmark": {
@@ -1878,7 +1878,8 @@
       }
     }
   },
-  "routeTurnAtJunction": "At the next junction: which way?",
+  "routeTurnAtJunction": "Which way at the next junction?",
+  "routeThenOn": "Then you're on… (optional)",
   "routeExitLeft": "Turn left",
   "routeExitStraight": "Straight on",
   "routeExitRight": "Turn right",
@@ -1907,7 +1908,6 @@
       }
     }
   },
-  "a11yJunctionMap": "Junction map. You come in from the bottom.",
   "a11yJunctionYou": "You",
   "a11yLandmark": "Landmark: {name}",
   "@a11yLandmark": {

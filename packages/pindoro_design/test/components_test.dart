@@ -1044,54 +1044,6 @@ void main() {
     }
 
     for (final brightness in Brightness.values) {
-      testWidgets('junction map ${brightness.name}', (tester) async {
-        await tester.binding.setSurfaceSize(const Size(1160, 640));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
-        Widget map(
-          JunctionState state, {
-          ExitDirection? chosen,
-          ExitDirection? correct,
-        }) => ClipRRect(
-          borderRadius: BorderRadius.circular(PindoroRadius.xl),
-          child: SizedBox(
-            width: 360,
-            height: 560,
-            child: JunctionMap(
-              geometry: sampleJunction,
-              state: state,
-              chosen: chosen,
-              correct: correct,
-              onChoose: (_) {},
-              exitLabel: exitLabel,
-              semanticsLabel: 'Unlabelled map of the junction ahead',
-              landmark: sampleLandmark,
-            ),
-          ),
-        );
-        await tester.pumpWidget(
-          _host(
-            brightness: brightness,
-            Row(
-              spacing: 16,
-              children: [
-                map(JunctionState.choosing, chosen: ExitDirection.right),
-                map(JunctionState.right, correct: ExitDirection.right),
-                map(
-                  JunctionState.wrong,
-                  chosen: ExitDirection.straight,
-                  correct: ExitDirection.right,
-                ),
-              ],
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        await expectLater(
-          find.byType(Scaffold),
-          matchesGoldenFile('goldens/junction_${brightness.name}.png'),
-        );
-      });
-
       testWidgets('route marks ${brightness.name}', (tester) async {
         await tester.binding.setSurfaceSize(const Size(560, 160));
         addTearDown(() => tester.binding.setSurfaceSize(null));

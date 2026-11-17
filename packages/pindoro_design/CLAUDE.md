@@ -8,8 +8,8 @@ loading `Skeleton`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` inc
 `PinMark.endpoint`, `CarMark`, `glyphPng` for map images), the round components (`QuestionBar`,
 `Pill`, `MapControl`, `RevealSheet` and its `TierSheetFrame`, `ResultRow`, `TierTally`,
 `CoachBubble`), the v3 session (`StatChip`, `NextReviewChip`, `IntroSheet`, the drills'
-`BearingDial`; the session bar is `QuestionBar` with `height: 14`), v3 route items (`JunctionMap`
-with `JunctionGeometry`, `ExitButton`, `LandmarkBadge`, `MapLabelChip`, `CarMarker`, `MapTip`), v3
+`BearingDial`; the session bar is `QuestionBar` with `height: 14`), v3 route items (`ExitButton`,
+`LandmarkBadge`, `MapLabelChip`, `CarMarker`, `MapTip`), v3
 progress (`MemoryBar`, `MemoryLegend`, `MemoryChart`, `ForecastBars`, `WeekBars`, `MemoryRow`), the streak (`StreakPill`, `StreakCalendar`, `StreakWeek`,
 `StreakFreezeCard`), badges (`BadgeShield`, `BadgeTile`; fields `color.badge.*` in `app.json`),
 setup components (`SearchField`, `CitySwitcher`, `PindoroChip`, `DifficultyCard`, the painted `DistrictMap` and `AreaMiniMap`), `MiniTally`
@@ -49,8 +49,11 @@ parameters; strings live in the app.
   miss red reroute. Map roles: yellow = truth, cobalt = you, ink = measurement.
 - `StreetPlate`: starts at `title.lg`, shrinks 2 dp steps until it fits two lines, floor
   `size.plate.name-floor` (16, app.json), then wraps — never truncates; its sub-line keeps to
-  one line. `RevealSheet` and `IntroSheet` are kept short (32 dp badge, `title.lg` label, 12 dp
-  padding) so the map keeps its room (2026-11-17, see `docs/TODO.md`).
+  two lines (a turn card: where to and the question). `RevealSheet` and `IntroSheet` are kept
+  short (32 dp badge, `title.lg` label, 12 dp padding) so the map keeps its room (2026-11-17, see
+  `docs/TODO.md`).
+- The turn card draws on the real map (the app's `PindoroMap`, heading-up), not a painted junction
+  map: `ExitButton`, `CarMarker` and `LandmarkBadge` sit on it (2026-11-17, see `docs/TODO.md`).
 - `PindoroButton` and `SearchField` are 48 dp (`size.button.md`), not the design's 56: the app
   felt too big (2026-11-16, see `docs/TODO.md`).
 

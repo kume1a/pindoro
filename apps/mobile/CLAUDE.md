@@ -41,7 +41,7 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                today's plan, Learn 5 more or the city's placement; each step's
                                SessionTask: a pin, Name it, both ends, the family sweep, the
                                crossings drill, a bearing, a route card (RouteView: the
-                               JunctionMap turn, gateway, bridge, connection, landmark) or a
+                               turn on the heading-up map, gateway, bridge, connection, landmark) or a
                                recital (RecitalView: typed or drawn A → B, graded with the turns'
                                evidence and "Report this turn"), with their views over TaskScaffold;
                                intro (a leech's with its mix-up and note), reveal, Session done,

@@ -209,6 +209,11 @@ and the specs after R5. Fix them in roughly this order.
     12 dp over the safe area.
   - Settings → Map with Zoom buttons (off by default).
   - The session bar's time pill counts down by the second ("5:26") instead of "6 min".
+  - The turn card (J) on the real map, turned so the driver goes up the screen: the approach
+    cobalt dashed with the car, exit buttons on the roads, the landmark badge, place names; the
+    plate reads "Driving on <street>" / "Heading to <place>" / "Which way at <landmark>?" and
+    the field "Then you're on… (optional)". The painted `JunctionMap` is gone; monuments use the
+    star glyph, not the flag.
   - The place intro (a learning screen the canvas lacks): yellow place dot, "New place · 1 of 3",
     the Intro sheet with Street View; the place reveal's dot and measure; street and place
     names as map text (along the roads, under the icons) on intros, reveals and questions, with

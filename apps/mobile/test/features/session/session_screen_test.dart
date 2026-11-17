@@ -19,7 +19,6 @@ import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro/features/session/ui/session_screen.dart';
 import 'package:pindoro_core/pindoro_core.dart';
-import 'package:pindoro_design/pindoro_design.dart' show JunctionMap;
 import 'package:pindoro_learning/pindoro_learning.dart';
 
 import '../../support/settle.dart';
@@ -536,11 +535,14 @@ void main() {
       final q = first<TurnQuestion>();
       final wrong = q.exits.keys.firstWhere((t) => t != q.correct);
       await pump(tester, [(kind: StepKind.review, itemId: q.itemId)]);
-      expect(find.byType(JunctionMap), findsOneWidget);
+      expect(maps.last.hit, hasLength(1), reason: 'the approach, cobalt');
+      expect(maps.last.names.streets, isEmpty, reason: 'no street named');
+      expect(find.textContaining('Which way at'), findsOneWidget);
       controller(tester).choose(wrong);
       await settle(tester);
       await tapThrough(tester, find.text('Confirm'));
       expect(find.text('Not this one'), findsOneWidget);
+      expect(maps.last.truth, hasLength(2), reason: 'approach and right exit');
       expect(find.text('Back in this session'), findsOneWidget);
       await tapThrough(tester, find.text('Next'));
       controller(tester).choose(q.correct);

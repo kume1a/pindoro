@@ -45,12 +45,12 @@ void main() {
       expect(text.overflow, isNot(TextOverflow.ellipsis));
     });
 
-    testWidgets('the sub-line keeps to one line', (tester) async {
+    testWidgets('the sub-line keeps to two lines', (tester) async {
       await tester.pumpWidget(
         _host(const StreetPlate(_shortName, subline: _longName)),
       );
       final sub = tester.widget<Text>(find.text(_longName));
-      expect((sub.maxLines, sub.overflow), (1, TextOverflow.ellipsis));
+      expect((sub.maxLines, sub.overflow), (2, TextOverflow.ellipsis));
     });
 
     test('plateFontSize steps down in 2 dp steps', () {

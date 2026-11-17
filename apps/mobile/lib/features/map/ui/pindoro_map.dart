@@ -84,6 +84,7 @@ class PindoroMap extends ConsumerStatefulWidget {
     this.traces = const [],
     this.hit,
     this.morePins = const [],
+    this.bearing = 0,
   });
 
   final AreaShape area;
@@ -119,6 +120,10 @@ class PindoroMap extends ConsumerStatefulWidget {
 
   /// The player's other pins (a street's second end).
   final List<LatLng> morePins;
+
+  /// Where the top of the screen faces, degrees clockwise from north: a
+  /// turn card drives up the screen.
+  final double bearing;
 
   @override
   ConsumerState<PindoroMap> createState() => _PindoroMapState();
@@ -219,6 +224,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       target: camera.target.toCore,
       zoom: camera.zoom,
       size: size,
+      bearing: camera.bearing,
     );
   }
 
@@ -359,6 +365,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   ) => MapProjection.fit(
     points,
     size: size,
+    bearing: widget.bearing,
     padding: EdgeInsets.fromLTRB(
       PindoroCamera.fitPaddingX,
       widget.topInset + PindoroSpace.s6,
@@ -378,7 +385,13 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     _framed = true;
     final camera = _cameraFor(points, size);
     await _controller?.animateCamera(
-      ml.CameraUpdate.newLatLngZoom(camera.target.toMapLibre, camera.zoom),
+      ml.CameraUpdate.newCameraPosition(
+        ml.CameraPosition(
+          target: camera.target.toMapLibre,
+          zoom: camera.zoom,
+          bearing: widget.bearing,
+        ),
+      ),
     );
   }
 
@@ -724,6 +737,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
                     initialCameraPosition: ml.CameraPosition(
                       target: start.target.toMapLibre,
                       zoom: start.zoom,
+                      bearing: widget.bearing,
                     ),
                     gestureRecognizers: widget.ownsGestures
                         ? {

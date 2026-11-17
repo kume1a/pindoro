@@ -11,7 +11,7 @@ const double _fontStep = 2;
 /// Cobalt road-sign plate with a white inner rule, floating over the map.
 /// The name starts at title.lg and shrinks until it fits two lines, down to
 /// [PindoroSize.plateNameFloor]; at the floor it wraps and never truncates.
-/// The sub-line keeps to one line. [compact] (the reveal) is one line and
+/// The sub-line keeps to two lines. [compact] (the reveal) is one line and
 /// may ellipsize.
 class StreetPlate extends StatelessWidget {
   const StreetPlate(
@@ -117,7 +117,7 @@ class StreetPlate extends StatelessWidget {
                       Text(
                         subline!,
                         textAlign: TextAlign.center,
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: sub,
                       ),
