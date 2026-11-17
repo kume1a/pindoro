@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/google_maps.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/location.dart';
 import 'package:pindoro/core/page_scaffold.dart';
@@ -21,7 +22,6 @@ import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// A GPS-free drive (DriveScreen `setup`, `recording`, `review`, board
 /// V3-50): no map and nothing to tap while moving; the track is graded
@@ -220,14 +220,7 @@ class _RecordingState extends ConsumerState<_Recording> {
     final at = graph?.at(widget.recording.target.junction);
     await ref.read(driveControllerProvider.notifier).abandon();
     if (at == null) return;
-    await launchUrl(
-      Uri.https('www.google.com', '/maps/dir/', {
-        'api': '1',
-        'destination': '${at.lat},${at.lon}',
-        'travelmode': 'driving',
-      }),
-      mode: LaunchMode.externalApplication,
-    );
+    await GoogleMaps.open(GoogleMaps.directions(at));
   }
 
   @override

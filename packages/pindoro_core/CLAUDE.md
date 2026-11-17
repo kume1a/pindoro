@@ -3,8 +3,8 @@
 Pure Dart game logic. **No Flutter imports** — it must run under plain `dart test`.
 
 ```
-lib/src/geo/        LatLng, LocalProjection, Bbox, pointToPolylineDistance, bearings and compass
-                    points, polyline6
+lib/src/geo/        LatLng, LocalProjection, Bbox, pointToPolylineDistance, bearings, compass
+                    points, headingAlong (Dart-only: Street View links), polyline6
 lib/src/scoring/    Difficulty, Tier, ScoringConfig (half-widths, fixed distances, difficulty
                     factors), TierThresholds, scoreAnswer (the tier of a pin)
 lib/src/progress/   account: the account's username, password and recovery-code rules;

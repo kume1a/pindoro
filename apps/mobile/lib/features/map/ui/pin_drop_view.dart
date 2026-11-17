@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/google_maps.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/settings.dart';
@@ -199,6 +200,7 @@ class PinDropView extends ConsumerWidget {
                   onNext: onNext,
                   mixUp: mixUp,
                   headerChip: headerChip,
+                  streetView: streetSpot(street, reveal.nearest),
                 ),
               ),
         front: [
@@ -210,19 +212,21 @@ class PinDropView extends ConsumerWidget {
   }
 }
 
-/// The reveal sheet: the tier, the XP counting up, the distance sentence
-/// (a Miss says which way the street lies), the chips and the action.
+/// The reveal sheet: the tier, the distance sentence (a Miss says which way
+/// the street lies), the chips, Street View at the answer and the action.
 class PinRevealSheet extends StatelessWidget {
   const PinRevealSheet({
     super.key,
     required this.reveal,
     required this.onNext,
+    required this.streetView,
     this.mixUp,
     this.headerChip,
   });
 
   final PinReveal reveal;
   final Future<void> Function() onNext;
+  final StreetViewSpot streetView;
 
   /// A Mix-up: Miss colours, "Mix-up" and the street the pin hit.
   final MapLabel? mixUp;
@@ -251,6 +255,7 @@ class PinRevealSheet extends StatelessWidget {
       chips: reveal.chips,
       action: reveal.action,
       onNext: onNext,
+      streetView: streetView,
     );
   }
 }

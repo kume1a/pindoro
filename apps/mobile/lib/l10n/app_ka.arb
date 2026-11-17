@@ -249,6 +249,7 @@
   "lessonPercent": "{value} %",
   "startIn": "დაიწყე: {district}",
   "lessonHearName": "სახელის მოსმენა",
+  "streetView": "ქუჩის ხედი (Street View)",
   "settingsAccount": "ანგარიში",
   "accountBackUp": "პროგრესის შენახვა",
   "accountBackUpSubtitle": "ახალ ტელეფონზე დაიბრუნებ",

@@ -1,12 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:pindoro/core/google_maps.dart';
+import 'package:pindoro/features/map/ui/widgets/street_view_button.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// A checked pin's sheet: the tier's [label], the [headerChip] (the next
 /// review), the [sentence], the [chips], Pindo and the [action] that calls
-/// [onNext].
+/// [onNext], with [streetView] beside it when the answer has a spot to see.
 class TierRevealSheet extends StatelessWidget {
   const TierRevealSheet({
     super.key,
@@ -17,6 +19,7 @@ class TierRevealSheet extends StatelessWidget {
     required this.action,
     required this.onNext,
     this.headerChip,
+    this.streetView,
   });
 
   final Tier tier;
@@ -26,6 +29,7 @@ class TierRevealSheet extends StatelessWidget {
   final List<Widget> chips;
   final String action;
   final Future<void> Function() onNext;
+  final StreetViewSpot? streetView;
 
   @override
   Widget build(BuildContext context) => RevealSheet(
@@ -34,6 +38,10 @@ class TierRevealSheet extends StatelessWidget {
     sentence: sentence,
     headerChip: headerChip,
     chips: chips,
+    secondary: switch (streetView) {
+      final spot? => StreetViewButton(spot),
+      null => null,
+    },
     mascot: Pindo(switch (tier) {
       Tier.perfect || Tier.great => PindoExpression.cheering,
       Tier.close => PindoExpression.happy,

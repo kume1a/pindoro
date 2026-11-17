@@ -106,7 +106,10 @@ class RevealSheet extends StatelessWidget {
               ),
               Row(
                 spacing: PindoroSpace.s3,
-                children: [?secondary, Expanded(child: action)],
+                children: [
+                  ?secondary,
+                  Expanded(child: action),
+                ],
               ),
             ],
           ),

@@ -205,6 +205,25 @@ double bearingDegrees(LatLng from, LatLng to) {
   return (math.atan2(x, y) * 180 / math.pi + 360) % 360;
 }
 
+/// Degrees clockwise from north along the segment of [lines] nearest [at], in
+/// the line's own direction.
+double headingAlong(MultiPolyline lines, LatLng at) {
+  var best = double.infinity;
+  var heading = 0.0;
+  for (final line in lines) {
+    for (var i = 0; i + 1 < line.length; i++) {
+      final d = pointToPolylineDistance(at, [
+        [line[i], line[i + 1]],
+      ]).distanceMeters;
+      if (d < best) {
+        best = d;
+        heading = bearingDegrees(line[i], line[i + 1]);
+      }
+    }
+  }
+  return heading;
+}
+
 /// The compass point nearest [degrees] clockwise from north.
 CompassPoint compassPointOf(double degrees) =>
     CompassPoint.values[((degrees % 360 + 22.5) ~/ 45) % 8];

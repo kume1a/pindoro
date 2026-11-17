@@ -39,4 +39,12 @@ void main() {
     expect(compassPointOf(200), CompassPoint.s);
     expect(compassPointOf(350), CompassPoint.n);
   });
+
+  test('the heading along a line follows its nearest segment', () {
+    const bend = [
+      [LatLng(41.7, 44.8), LatLng(41.71, 44.8), LatLng(41.71, 44.81)],
+    ];
+    expect(headingAlong(bend, const LatLng(41.705, 44.8001)), closeTo(0, 0.1));
+    expect(headingAlong(bend, const LatLng(41.7101, 44.806)), closeTo(90, 0.1));
+  });
 }

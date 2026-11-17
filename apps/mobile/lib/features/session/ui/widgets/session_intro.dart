@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/google_maps.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/speech.dart';
@@ -128,6 +129,12 @@ class _SessionIntroState extends ConsumerState<SessionIntro> {
                       unawaited(ref.read(speechProvider).speak(name, language));
                     }
                   : null,
+              streetViewLabel: l10n.streetView,
+              onStreetView: () {
+                ref.read(feedbackProvider).tap();
+                final spot = streetSpot(street, street.parts.first.midpoint);
+                unawaited(GoogleMaps.open(GoogleMaps.streetView(spot)));
+              },
               extra: [
                 if (contrast != null)
                   StatChip(
