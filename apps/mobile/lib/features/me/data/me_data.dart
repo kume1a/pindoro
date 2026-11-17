@@ -21,9 +21,6 @@ typedef MeData = ({
   /// When play began; null before any.
   DateTime? since,
   int bestStreak,
-
-  /// Streets Known now (SPEC §8), in every city.
-  int knownStreets,
   int pins,
 
   /// Days that counted towards the streak.
@@ -81,7 +78,6 @@ final meProvider = FutureProvider.autoDispose<MeData>((ref) async {
   return (
     since: await dao.firstPlayedAt(),
     bestStreak: streak.summary.best,
-    knownStreets: cards.values.where((c) => isKnown(c, now)).length,
     pins: counts.pins,
     countedDays: counts.goalDays,
     cities: cities,

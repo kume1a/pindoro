@@ -14,6 +14,7 @@ import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/badges/data/badge_data.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
+import 'package:pindoro/features/map/ui/explore_map.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/pack_store.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -159,6 +160,9 @@ void main() {
         ProviderScope(
           overrides: [
             databaseProvider.overrideWithValue(db),
+            exploreMapBuilderProvider.overrideWithValue(
+              (_) => const SizedBox.expand(),
+            ),
             pindoroMapBuilderProvider.overrideWithValue(
               (_) => const SizedBox(),
             ),

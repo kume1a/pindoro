@@ -686,7 +686,7 @@ void main() {
 
     for (final brightness in Brightness.values) {
       testWidgets('streak ${brightness.name}', (tester) async {
-        await tester.binding.setSurfaceSize(const Size(400, 640));
+        await tester.binding.setSurfaceSize(const Size(400, 760));
         addTearDown(() => tester.binding.setSurfaceSize(null));
         const met = {1, 2, 4, 5};
         await tester.pumpWidget(
@@ -725,6 +725,21 @@ void main() {
                   body:
                       'Miss a day and your streak stays put. You earn one '
                       'for every 7 days in a row.',
+                ),
+                const StreakWeek(
+                  days: [
+                    StreakDay.met,
+                    StreakDay.met,
+                    StreakDay.frozen,
+                    StreakDay.missed,
+                    StreakDay.met,
+                    StreakDay.met,
+                    StreakDay.met,
+                  ],
+                  labels: ['Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Today'],
+                  title: 'Last 7 days',
+                  meta: '5 of 7 counted',
+                  semanticsLabel: '',
                 ),
               ],
             ),
@@ -768,15 +783,23 @@ void main() {
     }
 
     for (final brightness in Brightness.values) {
-      testWidgets('memory ${brightness.name}', (tester) async {
-        await tester.binding.setSurfaceSize(const Size(400, 560));
+      testWidgets('tabs ${brightness.name}', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(400, 900));
         addTearDown(() => tester.binding.setSurfaceSize(null));
-        const counts = (
-          mastered: 412,
-          solid: 630,
-          known: 220,
-          seen: 90,
-          total: 3282,
+        Polyline square(double lat, double lon, double size) => [
+          LatLng(lat, lon),
+          LatLng(lat, lon + size),
+          LatLng(lat + size, lon + size),
+          LatLng(lat + size, lon),
+          LatLng(lat, lon),
+        ];
+        MapDistrict district(int i, DistrictProgress progress, String name) => (
+          boundary: [
+            [square(41.70, 44.70 + 0.05 * i, 0.05)],
+          ],
+          progress: progress,
+          name: name,
+          labelAt: LatLng(41.725, 44.725 + 0.05 * i),
         );
         await tester.pumpWidget(
           _host(
@@ -785,22 +808,143 @@ void main() {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               spacing: 12,
               children: [
-                const MemoryChart(
-                  values: [
-                    120,
-                    180,
-                    260,
-                    400,
-                    520,
-                    610,
-                    700,
-                    860,
-                    990,
-                    1180,
-                    1284,
+                const SectionTitle('Where it grows', meta: '9 of 10 started'),
+                TileGrid(columns: 2, const [
+                  StatTile(
+                    glyph: PindoroGlyph.turnRight,
+                    label: 'Turns',
+                    value: '10',
+                  ),
+                  StatTile(
+                    glyph: PindoroGlyph.bolt,
+                    label: 'Drills',
+                    value: '2',
+                    caption: 'sweep, crossings',
+                  ),
+                ]),
+                DistrictMap(
+                  height: 160,
+                  semanticsLabel: '',
+                  districts: [
+                    district(0, DistrictProgress.notStarted, 'Isani'),
+                    district(1, DistrictProgress.started, 'Vake'),
+                    district(2, DistrictProgress.inProgress, 'Didube'),
+                    district(3, DistrictProgress.complete, 'Sololaki'),
+                  ],
+                ),
+                Wrap(
+                  spacing: 12,
+                  children: [
+                    for (final p in DistrictProgress.values)
+                      Swatch(progress: p, label: p.name, size: 16),
+                  ],
+                ),
+                Row(
+                  spacing: 12,
+                  children: [
+                    AreaMiniMap(
+                      area: [
+                        [square(41.70, 44.70, 0.01)],
+                      ],
+                      streets: const [
+                        [LatLng(41.702, 44.701), LatLng(41.708, 44.709)],
+                        [LatLng(41.705, 44.700), LatLng(41.705, 44.710)],
+                      ],
+                    ),
+                    const Expanded(child: SheetHandle()),
+                  ],
+                ),
+                const TitledCard(
+                  title: 'Last round',
+                  meta: 'Pikris Gora · Medium',
+                  child: MiniTally(
+                    counts: {
+                      Tier.perfect: 1,
+                      Tier.great: 4,
+                      Tier.close: 2,
+                      Tier.miss: 3,
+                    },
+                    semanticLabel: '',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await expectLater(
+          find.byType(Scaffold),
+          matchesGoldenFile('goldens/tabs_${brightness.name}.png'),
+        );
+      });
+    }
+
+    for (final brightness in Brightness.values) {
+      testWidgets('memory ${brightness.name}', (tester) async {
+        await tester.binding.setSurfaceSize(const Size(400, 1080));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        const counts = (
+          mastered: 412,
+          solid: 630,
+          known: 220,
+          seen: 90,
+          total: 3282,
+        );
+        const weekly = [
+          120.0,
+          180.0,
+          260.0,
+          400.0,
+          520.0,
+          610.0,
+          700.0,
+          860.0,
+          990.0,
+          1180.0,
+          1284.0,
+        ];
+        await tester.pumpWidget(
+          _host(
+            brightness: brightness,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 12,
+              children: [
+                MemoryChart(
+                  points: [
+                    for (final (i, v) in weekly.indexed)
+                      (at: i / (weekly.length - 1), value: v),
                   ],
                   startLabel: 'Sep 8',
                   endLabel: 'Today',
+                  semanticsLabel: '',
+                ),
+                const MemoryChart(
+                  points: [
+                    (at: 10 / 13, value: 12),
+                    (at: 11 / 13, value: 14),
+                    (at: 12 / 13, value: 17),
+                    (at: 1, value: 20),
+                  ],
+                  days: 14,
+                  startLabel: 'Nov 3',
+                  endLabel: 'Today',
+                  semanticsLabel: '',
+                ),
+                MemoryRow(
+                  label: 'City memory',
+                  value: '1 284',
+                  of: 'of 3 216 streets',
+                  change: '+8 since yesterday',
+                  counts: counts,
+                  semanticsLabel: '',
+                  onTap: () {},
+                ),
+                const WeekBars(
+                  counts: [24, 31, 27, 22, 35, 0, 26],
+                  labels: ['Today', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                  title: 'Next 7 days',
+                  meta: 'about 26 reviews a day',
                   semanticsLabel: '',
                 ),
                 const MemoryBar(counts: counts, semanticsLabel: ''),

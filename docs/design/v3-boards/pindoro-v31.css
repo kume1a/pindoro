@@ -1,0 +1,281 @@
+/* v3 and v3.1 parts for this canvas. The canvas's copy of the design system (ds/pindoro) dates from 7 Nov 2026 and
+   still serves the retired R3–R5 boards, so it is not replaced. This file adds, from the design system's current
+   bundle.css, the v3 classes the v3.1 boards use (memory bar, City memory card, forecast, Today card, info card), the
+   tokens they need, the app-only tokens (7-app-tokens.json) and the parts that are new in v3.1. Every colour is a token
+   or an alias of a primitive. Load it after pindoro-canvas.css. */
+
+/* ---------- tokens the canvas copy lacks ---------- */
+:root {
+  --opacity\.street-trace: 0.55;
+  --opacity\.shimmer: 0.7;
+  --motion\.shimmer: 1400ms;
+  --color\.badge\.rim: #ffc21a;
+  --color\.badge\.first-pin: #2f54eb;
+  --color\.badge\.bullseye: #d78f01;
+  --color\.badge\.on-fire: #e8741a;
+  --color\.badge\.navigator: #0b8c8d;
+  --color\.badge\.road-trip: #233aaa;
+  --color\.badge\.night-owl: #b71727;
+  --color\.badge\.explorer: #02595a;
+  --color\.badge\.pit-crew: #a54b03;
+  --color\.badge\.local: #057273;
+  --color\.badge\.keeper: #a54b03;
+  --color\.badge\.clear-road: #2b46cd;
+  --color\.badge\.city-memory: #b16f0e;
+}
+:root, [data-theme="light"] {
+  --color\.memory\.mastered: #2b46cd; --color\.memory\.solid: #a2bcff; --color\.memory\.known: #ffc21a; --color\.memory\.seen: #c5cbd7;
+  --color\.chart\.line: #2b46cd; --color\.chart\.area: #e2eafe; --color\.chart\.bar: #a2bcff; --color\.chart\.bar-today: #2b46cd;
+  --color\.progress\.track: #e8ebf2;
+  --color\.locked\.fill: #dbe0e9; --color\.locked\.lip: #c5cbd7; --color\.locked\.icon: #656d7f;
+  --color\.illustration\.block-alt: #e2eafe; --color\.illustration\.park: #92f1f1;
+  /* new in v3.1: a district with under a quarter of its streets in memory (yellow 400 at 12 %) */
+  --color\.map\.district\.started\.fill: #ffc21a1f;
+  /* app-only basemap (7-app-tokens.json): the self-hosted vector style the app ships */
+  --color\.map\.vector\.land: #f3f1ed; --color\.map\.vector\.urban: #eeebe6; --color\.map\.vector\.water: #a8d4f5;
+  --color\.map\.vector\.park: #cdebb8; --color\.map\.vector\.wood: #b8dea2; --color\.map\.vector\.grass: #d9efc8;
+  --color\.map\.vector\.building: #d7cbbb; --color\.map\.vector\.road: #ffffff; --color\.map\.vector\.road-casing: #ddd6cb;
+  --color\.map\.vector\.major: #fde3c8; --color\.map\.vector\.major-casing: #e8c39e;
+  --color\.map\.vector\.highway: #f9c99b; --color\.map\.vector\.highway-casing: #dfa46e;
+  --color\.map\.vector\.railway: #b4ada3; --color\.map\.vector\.boundary: #b6aec4;
+  --color\.map\.poi\.transit: #14918f; --color\.map\.poi\.glyph: #ffffff;
+  --color\.map\.vector\.sand: #f2ead4; --color\.map\.vector\.pedestrian: #f8f6f1; --color\.map\.vector\.hospital: #f8dfe0;
+  --color\.map\.vector\.school: #efe7d8; --color\.map\.vector\.industrial: #e6e2ec; --color\.map\.vector\.path: #d6cdbf;
+  --color\.map\.poi\.food: #e8743b; --color\.map\.poi\.shop: #8e63c9; --color\.map\.poi\.culture: #d4508f; --color\.map\.poi\.worship: #8d6e4f;
+  --color\.map\.poi\.nature: #3d9a4f; --color\.map\.poi\.civic: #6b7c93; --color\.map\.poi\.health: #d9474f;
+}
+[data-theme="dark"] {
+  --color\.memory\.mastered: #c6d6ff; --color\.memory\.solid: #7194fe; --color\.memory\.known: #ffc21a; --color\.memory\.seen: #656d7f;
+  --color\.chart\.line: #a2bcff; --color\.chart\.area: #14225f; --color\.chart\.bar: #7194fe; --color\.chart\.bar-today: #c6d6ff;
+  --color\.progress\.track: #31394b;
+  --color\.locked\.fill: #31394b; --color\.locked\.lip: #242c3e; --color\.locked\.icon: #838b9b;
+  --color\.illustration\.block-alt: #14225f; --color\.illustration\.park: #004142;
+  --color\.map\.district\.started\.fill: #ffc21a24;
+  --color\.map\.vector\.land: #24272d; --color\.map\.vector\.urban: #282c33; --color\.map\.vector\.water: #1f3d5a;
+  --color\.map\.vector\.park: #263d2f; --color\.map\.vector\.wood: #22392a; --color\.map\.vector\.grass: #283a2e;
+  --color\.map\.vector\.building: #424751; --color\.map\.vector\.road: #454b55; --color\.map\.vector\.road-casing: #30343b;
+  --color\.map\.vector\.major: #6b5743; --color\.map\.vector\.major-casing: #3d362f;
+  --color\.map\.vector\.highway: #8a6a48; --color\.map\.vector\.highway-casing: #4a3c30;
+  --color\.map\.vector\.railway: #5a5f68; --color\.map\.vector\.boundary: #60656f;
+  --color\.map\.poi\.transit: #2fb0ad; --color\.map\.poi\.glyph: #ffffff;
+  --color\.map\.vector\.sand: #38352e; --color\.map\.vector\.pedestrian: #2b2f36; --color\.map\.vector\.hospital: #40303a;
+  --color\.map\.vector\.school: #3a362f; --color\.map\.vector\.industrial: #30303a; --color\.map\.vector\.path: #50555e;
+  --color\.map\.poi\.food: #f08a52; --color\.map\.poi\.shop: #a47fdc; --color\.map\.poi\.culture: #e070a6; --color\.map\.poi\.worship: #a88a6b;
+  --color\.map\.poi\.nature: #57b066; --color\.map\.poi\.civic: #8796ab; --color\.map\.poi\.health: #e8666d;
+}
+
+/* ---------- as shipped: buttons and search fields are 48 dp (size.button.md) ---------- */
+.cv-v31 .pd-btn:not(.pd-btn--icon) { height: var(--size\.button\.md); }
+.cv-v31.ts2 .pd-btn:not(.pd-btn--icon) { height: auto; min-height: var(--size\.button\.md); }
+
+/* ---------- from the design system (v3): memory bar, City memory card, forecast, Today card, info card ---------- */
+.pd-qbar--session { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.pd-membar { display: flex; gap: var(--stroke\.base); height: 14px; border-radius: var(--radius\.xs); overflow: hidden; background: var(--color\.progress\.track); }
+.pd-membar > i { display: block; flex: 0 0 auto; min-width: 0; }
+.pd-membar--sm { height: 6px; }
+.pd-mem-mastered { background: var(--color\.memory\.mastered); }
+.pd-mem-solid { background: var(--color\.memory\.solid); }
+.pd-mem-known { background: var(--color\.memory\.known); }
+.pd-mem-seen { background: var(--color\.memory\.seen); }
+.pd-memlegend { display: flex; flex-wrap: wrap; gap: var(--space\.2) var(--space\.3); margin: 0; padding: 0; list-style: none; }
+.pd-memlegend li { display: inline-flex; align-items: center; gap: var(--space\.1); font: 700 13px/18px var(--font-sans); color: var(--pd-text); }
+.pd-memlegend li > i { display: block; width: 12px; height: 12px; border-radius: var(--radius\.xs); flex: none; }
+.pd-memlegend b { font-weight: 900; font-variant-numeric: tabular-nums; }
+.pd-forecast-h { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space\.3); }
+.pd-forecast-t { font: 700 16px/22px var(--font-sans); color: var(--pd-text); }
+.pd-forecast-s { font: 700 13px/18px var(--font-sans); color: var(--pd-text-2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pd-forecast { display: flex; align-items: flex-end; gap: var(--space\.1); height: 56px; }
+.pd-forecast > i { display: block; flex: 1 1 0; border-radius: var(--radius\.xs); background: var(--color\.chart\.bar); }
+.pd-forecast > i.is-today { background: var(--color\.chart\.bar-today); }
+.pd-forecast-x { display: flex; justify-content: space-between; font: 700 13px/18px var(--font-sans); color: var(--pd-text-2); font-variant-numeric: tabular-nums; }
+.pd-citymem { display: flex; flex-direction: column; gap: var(--space\.3); }
+.pd-citymem-top { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0 var(--space\.3); }
+.pd-citymem-top > span:first-child { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pd-citymem-l { font: 700 13px/18px var(--font-sans); color: var(--pd-text-2); }
+.pd-citymem-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space\.2); }
+.pd-citymem-n { font: 900 32px/40px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--pd-text); }
+.pd-citymem-of { font: 500 13px/20px var(--font-sans); color: var(--pd-text-2); font-variant-numeric: tabular-nums; }
+.pd-citymem-delta { font: 700 13px/18px var(--font-sans); color: var(--color\.success\.text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pd-citymem-delta.is-down { color: var(--pd-text-2); }
+.pd-citymem-note { font: 500 13px/20px var(--font-sans); color: var(--pd-text-2); margin: 0; }
+.pd-li-bar { margin-top: var(--space\.1); }
+.pd-li-ic--done { background: var(--pd-primary); color: var(--pd-on-primary); --pd-ic-cut: var(--pd-primary); }
+.pd-li-ic--next { background: var(--pd-sunken); color: var(--pd-text-2); }
+.pd-today { display: flex; flex-direction: column; gap: var(--space\.3); }
+.pd-today--primary { box-shadow: 0 var(--pd-lip-2) 0 var(--pd-primary-lip), inset 0 0 0 var(--stroke\.thick) var(--pd-primary); }
+.pd-today-head { display: flex; align-items: center; gap: var(--space\.3); }
+.pd-today-head > :first-child { flex: none; display: flex; }
+.pd-today-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pd-today-t { font: 800 20px/26px var(--font-sans); color: var(--pd-text); overflow-wrap: break-word; }
+.pd-today-s { font: 500 13px/20px var(--font-sans); color: var(--pd-text-2); }
+.pd-today-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space\.2); }
+.pd-today-actions { display: flex; gap: var(--space\.2); }
+.pd-today-actions > .pd-btn { flex: 1; min-width: 0; margin-bottom: var(--pd-lip-2); }
+.pd-today-actions--stack { flex-direction: column; }
+.pd-today-actions--stack > .pd-btn { flex: none; width: 100%; }
+.pd-infocard { display: flex; align-items: flex-start; gap: var(--space\.3); padding: var(--space\.3) var(--space\.4); }
+.pd-infocard-tx { flex: 1; min-width: 0; font: 500 13px/20px var(--font-sans); color: var(--pd-text); }
+
+/* =====================================================================
+   New in v3.1 (Tabs, filled). Specs on board V31-90.
+   ===================================================================== */
+
+/* plan tiles: only the kinds today holds; 1–3 in a row, 4 as 2 × 2 */
+.pd-today-tiles--1 { grid-template-columns: minmax(0, 1fr); }
+.pd-today-tiles--2, .pd-today-tiles--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pd-stattile-s { font: 500 12px/16px var(--font-sans); color: var(--pd-text-2); }
+
+/* section header inside a tab */
+.pd-sec { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space\.3); margin: var(--space\.2) 0 calc(var(--space\.1) * -1); }
+.pd-sec-t { margin: 0; font: 800 18px/24px var(--font-sans); color: var(--pd-text); }
+.pd-sec-s { font: 700 13px/18px var(--font-sans); color: var(--pd-text-2); font-variant-numeric: tabular-nums; }
+
+/* City memory, row size (Today): one tappable row, the full card lives on Progress */
+.pd-memrow { display: flex; flex-direction: column; gap: var(--space\.2); width: 100%; padding: var(--space\.3) var(--space\.4); text-align: left; cursor: pointer; font: inherit; }
+.pd-memrow-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space\.2); }
+.pd-memrow-l { font: 700 16px/22px var(--font-sans); color: var(--pd-text); }
+.pd-memrow-n { font: 800 15px/20px var(--font-sans); color: var(--pd-text); font-variant-numeric: tabular-nums; }
+.pd-memrow-top .pd-citymem-delta { margin-left: auto; }
+.pd-memrow-top .pd-ic { width: 20px; height: 20px; color: var(--pd-text-2); flex: none; align-self: center; }
+
+/* next 7 days: what comes due, with the count over each bar */
+.pd-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space\.1); align-items: end; }
+.pd-week-d { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.pd-week-n { font: 800 13px/18px var(--font-sans); color: var(--pd-text); font-variant-numeric: tabular-nums; }
+.pd-week-b { width: 100%; height: 44px; display: flex; align-items: flex-end; }
+.pd-week-b > i { display: block; width: 100%; min-height: 2px; border-radius: var(--radius\.xs); background: var(--color\.chart\.bar); }
+.pd-week-x { font: 700 12px/16px var(--font-sans); color: var(--pd-text-2); }
+.pd-week-d.is-today .pd-week-b > i { background: var(--color\.chart\.bar-today); }
+.pd-week-d.is-today .pd-week-x { color: var(--pd-text); }
+
+/* the neighbourhood being learnt now, with its mini map */
+.pd-nbhd { display: flex; gap: var(--space\.3); align-items: stretch; padding: var(--space\.3); }
+.pd-nbhd-map { position: relative; flex: none; width: 104px; height: 104px; border-radius: var(--radius\.md); overflow: hidden; background: var(--color\.map\.vector\.land); }
+.pd-nbhd-map svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pd-nbhd-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pd-nbhd-k { font: 700 13px/18px var(--font-sans); color: var(--pd-text-2); }
+.pd-nbhd-t { font: 800 18px/24px var(--font-sans); color: var(--pd-text); }
+.pd-nbhd-s { font: 500 13px/20px var(--font-sans); color: var(--pd-text-2); font-variant-numeric: tabular-nums; }
+.pd-nbhd-next { margin-top: auto; padding-top: var(--space\.1); font: 700 13px/18px var(--font-sans); color: var(--pd-text-2); }
+.pd-nbhd { flex-wrap: wrap; row-gap: var(--space\.1); text-align: left; }
+/* a map too small to hold the attribution carries it on the line under it */
+.pd-attrib-line { flex-basis: 100%; display: block; font: 700 11px/16px var(--font-sans); color: var(--pd-text-2); }
+
+/* this week's streak: Mon–Sun discs, counted days filled */
+.pd-streakweek { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space\.1); }
+.pd-streakweek span { display: flex; flex-direction: column; align-items: center; gap: 4px; font: 700 12px/16px var(--font-sans); color: var(--pd-text-2); }
+.pd-streakweek i { display: block; width: 28px; height: 28px; border-radius: var(--radius\.full); background: var(--color\.streak\.day\.empty); }
+.pd-streakweek .done i { background: var(--color\.streak\.day\.done); }
+.pd-streakweek .today i { box-shadow: 0 0 0 var(--stroke\.thick) var(--pd-primary); }
+
+/* last round: four tier counts in one line */
+.pd-minitally { display: flex; gap: var(--space\.3); flex-wrap: wrap; }
+.pd-minitally span { display: inline-flex; align-items: center; gap: 6px; font: 800 15px/20px var(--font-sans); color: var(--pd-text); font-variant-numeric: tabular-nums; }
+.pd-minitally i { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: var(--radius\.sm); background: var(--t-fill); color: var(--t-on); --pd-ic-cut: var(--t-fill); }
+.pd-minitally i .pd-ic { width: 16px; height: 16px; }
+
+/* Explore: the city map leads the tab */
+.pd-xmap { position: absolute; left: 0; top: 0; width: 100%; height: 440px; overflow: hidden; background: var(--color\.map\.vector\.land); }
+.pd-xmap > svg { position: absolute; left: 50%; top: 0; width: 390px; height: 440px; margin-left: -195px; }
+.pd-xsheet { position: absolute; left: 0; right: 0; top: 404px; bottom: 0; padding: var(--space\.5) var(--space\.4) 0; display: flex; flex-direction: column; gap: 14px; background: var(--pd-bg); border-radius: var(--radius\.2xl) var(--radius\.2xl) 0 0; box-shadow: 0 calc(var(--stroke\.base) * -1) 0 var(--pd-line); z-index: 3; }
+.pd-xfoot { position: absolute; left: 0; right: 0; bottom: 84px; padding: var(--space\.3) var(--space\.4) var(--space\.3); background: var(--pd-bg); box-shadow: 0 calc(var(--stroke\.base) * -1) 0 var(--pd-line); z-index: 6; display: flex; flex-direction: column; gap: var(--space\.2); }
+.pd-xfoot-l { margin: 0; text-align: center; font: 700 13px/18px var(--font-sans); color: var(--pd-text-2); }
+.pd-floatbar { display: inline-flex; align-items: center; height: 48px; padding: 0 var(--space\.2) 0 var(--space\.1); border-radius: var(--radius\.full); background: var(--pd-raised); box-shadow: 0 var(--pd-lip-1) 0 var(--pd-line), var(--shadow\.float); }
+.pd-maplegend { display: flex; flex-wrap: wrap; gap: var(--space\.2) var(--space\.3); }
+.pd-maplegend span { display: inline-flex; align-items: center; gap: 6px; font: 700 13px/18px var(--font-sans); color: var(--pd-text); }
+.pd-swatch.is-started { background: var(--color\.map\.district\.started\.fill); box-shadow: inset 0 0 0 var(--stroke\.base) var(--color\.map\.district\.progress\.stroke); }
+.pd-map-district.is-started { fill: var(--color\.map\.district\.started\.fill); stroke: var(--color\.map\.district\.progress\.stroke); stroke-width: 2; }
+.pd-map-district.is-dimmed { fill: var(--color\.map\.mask); fill-opacity: var(--opacity\.mask); stroke: var(--color\.map\.region\.outline); stroke-width: 1.5; }
+.pd-map-pick { fill: var(--color\.map\.area\.fill); stroke: var(--color\.map\.area\.stroke); stroke-width: 3; stroke-dasharray: 8 6; stroke-linejoin: round; }
+
+/* the vector basemap, drawn for the boards */
+.pd-vmap-land { fill: var(--color\.map\.vector\.land); }
+.pd-vmap-urban { fill: var(--color\.map\.vector\.urban); }
+.pd-vmap-water { stroke: var(--color\.map\.vector\.water); fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.pd-vmap-park { fill: var(--color\.map\.vector\.park); }
+.pd-vmap-wood { fill: var(--color\.map\.vector\.wood); }
+.pd-vmap-casing { stroke: var(--color\.map\.vector\.road-casing); fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.pd-vmap-road { stroke: var(--color\.map\.vector\.road); fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.pd-vmap-major-casing { stroke: var(--color\.map\.vector\.major-casing); fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.pd-vmap-major { stroke: var(--color\.map\.vector\.major); fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.pd-vmap-rail { stroke: var(--color\.map\.vector\.railway); fill: none; stroke-dasharray: 6 4; }
+.pd-vmap-known { stroke: var(--color\.map\.region\.outline); opacity: var(--opacity\.street-trace); fill: none; stroke-linecap: round; }
+
+/* 200 % text for the v3.1 parts */
+.ts2 .pd-today-t { font-size: 40px; line-height: 52px; }
+.ts2 .pd-today-s, .ts2 .pd-citymem-of, .ts2 .pd-nbhd-s, .ts2 .pd-infocard-tx { font-size: 26px; line-height: 40px; }
+.ts2 .pd-stattile-l, .ts2 .pd-citymem-l, .ts2 .pd-nbhd-k, .ts2 .pd-nbhd-next, .ts2 .pd-maplegend span, .ts2 .pd-xfoot-l { font-size: 26px; line-height: 36px; }
+.ts2 .pd-stattile-n { font-size: 40px; line-height: 48px; }
+.ts2 .pd-memrow-l, .ts2 .pd-sec-t { font-size: 34px; line-height: 44px; }
+.ts2 .pd-memrow-n, .ts2 .pd-citymem-delta { font-size: 30px; line-height: 40px; }
+.ts2 .pd-nbhd-t { font-size: 36px; line-height: 48px; }
+.ts2 .pd-week-n, .ts2 .pd-week-x { font-size: 24px; line-height: 32px; }
+.ts2 .pd-today-tiles { grid-template-columns: minmax(0, 1fr); }
+.ts2 .pd-nbhd { flex-direction: column; }
+.ts2 .pd-cityswitch { font-size: 36px; line-height: 48px; }
+.ts2 .pd-attrib-line { font-size: 22px; line-height: 32px; }
+.ts2 .pd-forecast-t { font-size: 32px; line-height: 44px; }
+.ts2 .pd-forecast-s, .ts2 .pd-forecast-x, .ts2 .pd-memlegend li { font-size: 26px; line-height: 36px; }
+.ts2 .pd-forecast-h { flex-wrap: wrap; }
+.ts2 .pd-minitally span { font-size: 30px; line-height: 40px; }
+.ts2 .pd-floatbar { height: auto; min-height: 48px; }
+
+/* Progress: City memory over time. Fixed 14-day window, daily points for the first two weeks, then weekly up to 10 weeks */
+.pd-memchart { display: block; width: 100%; height: auto; overflow: visible; }
+.pd-memchart .grid { stroke: var(--pd-line); stroke-width: 1; }
+.pd-memchart .base { stroke: var(--pd-line-strong); stroke-width: 2; }
+.pd-memchart .area { fill: var(--color\.chart\.area); }
+.pd-memchart .line { stroke: var(--color\.chart\.line); stroke-width: 3; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.pd-memchart .pt { fill: var(--color\.chart\.line); }
+.pd-memchart .pt-now { fill: var(--color\.chart\.line); stroke: var(--pd-raised); stroke-width: 3; }
+.pd-memchart .tick { stroke: var(--color\.chart\.line); opacity: .35; stroke-width: 2.5; stroke-linecap: round; fill: none; }
+.pd-memchart text { font: 700 12px/1 var(--font-sans); fill: var(--pd-text-2); font-variant-numeric: tabular-nums; }
+.pd-memchart-cap { margin: 0; font: 500 13px/20px var(--font-sans); color: var(--pd-text-2); }
+.ts2 .pd-memchart text { font-size: 22px; }
+.ts2 .pd-memchart-cap { font-size: 26px; line-height: 40px; }
+
+/* Progress: districts on one small map above their rows */
+.pd-distmap { position: relative; height: 220px; border-radius: var(--radius\.lg); overflow: hidden; background: var(--color\.map\.vector\.land); box-shadow: inset 0 0 0 var(--stroke\.base) var(--pd-line); }
+.pd-distmap > svg { position: absolute; left: 50%; top: 0; width: 358px; height: 220px; margin-left: -179px; }
+.pd-distmap .pd-attrib { left: var(--space\.2); bottom: var(--space\.2); }
+.pd-distmap text { font: 700 11px var(--font-sans); fill: var(--pd-text); stroke: var(--color\.map\.vector\.land); stroke-width: 3; paint-order: stroke; stroke-linejoin: round; }
+
+/* sticky header behind the bar when a tab scrolls */
+.pd-tabhead { position: absolute; left: 0; right: 0; top: 0; z-index: 5; background: var(--pd-bg); box-shadow: 0 var(--stroke\.base) 0 var(--pd-line); }
+
+/* ---------- Badges on Me, as the app builds them (BadgeTile, BadgeShield, shelf) ---------- */
+.pd-shelf { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space\.2); }
+.pd-bt { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: var(--space\.3) var(--space\.2) var(--space\.3); border-radius: var(--radius\.lg); background: var(--pd-raised); box-shadow: 0 var(--pd-lip-1) 0 var(--pd-line), inset 0 0 0 var(--stroke\.base) var(--pd-line); text-align: center; }
+.pd-bt-t { margin-top: var(--space\.1); font: 800 15px/20px var(--font-sans); color: var(--pd-text); }
+.pd-bt-s { font: 500 13px/18px var(--font-sans); color: var(--pd-text-2); }
+.pd-bt.is-locked .pd-bt-t { color: var(--pd-text-2); }
+.pd-bt .pd-membar { align-self: stretch; margin: var(--space\.1) var(--space\.1) 0; }
+.pd-bt-pill { position: absolute; top: var(--space\.2); right: var(--space\.2); padding: 1px 7px; border-radius: var(--radius\.full); background: var(--color\.accent\.base); color: var(--color\.accent\.on); font: 800 11px/16px var(--font-sans); }
+.pd-bshield { position: relative; display: block; width: 56px; height: 63px; flex: none; }
+.pd-bshield > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pd-bshield > span { position: absolute; left: 0; right: 0; top: 15px; display: flex; justify-content: center; color: var(--color\.asphalt\.0); }
+.pd-bshield.is-locked > span { color: var(--color\.locked\.icon); }
+.pd-bshield .pd-ic { width: 26px; height: 26px; }
+.ts2 .pd-shelf { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ts2 .pd-bt-t { font-size: 30px; line-height: 40px; }
+.ts2 .pd-bt-s { font-size: 26px; line-height: 36px; }
+
+/* ---------- canvas helpers for the v3.1 boards ---------- */
+.cv-notes--wide { width: 420px; }
+.cv-sp { flex: none; width: 40px; }
+.cv-flow .cv-col.cv-col--360 { width: 360px; }
+.cv-notes h4 { margin: 4px 0 0; font: 800 14px/20px var(--font-sans); color: var(--color\.asphalt\.900); }
+.cv-notes code { font: 600 12px/18px ui-monospace, monospace; background: var(--color\.asphalt\.0); padding: 0 4px; border-radius: 4px; }
+.cv-tag--retired { background: var(--color\.asphalt\.700); color: var(--color\.asphalt\.0); }
+.cv-tag--data { background: var(--color\.warning\.soft); color: var(--color\.warning\.text); }
+.cv-doc { box-sizing: border-box; padding: 32px; background: var(--color\.asphalt\.200); font-family: var(--font-sans); color: var(--color\.asphalt\.900); display: grid; gap: 20px; align-content: start; }
+.cv-doc h2 { margin: 0; font: 900 28px/36px var(--font-sans); }
+.cv-doc > p { margin: 0; font: 500 15px/22px var(--font-sans); color: var(--color\.asphalt\.700); max-width: 900px; }
+.cv-cards { display: grid; gap: 16px; align-items: start; }
+.cv-card { background: var(--color\.asphalt\.0); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 2px 0 var(--color\.asphalt\.300); }
+.cv-card h3 { margin: 0; font: 800 18px/24px var(--font-sans); }
+.cv-card h4 { margin: 4px 0 0; font: 800 13px/18px var(--font-sans); text-transform: none; color: var(--color\.asphalt\.700); }
+.cv-card ul, .cv-card ol { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; font: 500 14px/20px var(--font-sans); }
+.cv-card p { margin: 0; font: 500 14px/20px var(--font-sans); }
+.cv-card code { font: 600 12px/18px ui-monospace, monospace; background: var(--color\.asphalt\.100); padding: 0 4px; border-radius: 4px; }
+.cv-specdemo { padding: 16px; border-radius: 12px; background: var(--pd-bg); display: flex; flex-direction: column; gap: 10px; }

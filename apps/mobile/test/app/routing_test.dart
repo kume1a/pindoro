@@ -11,9 +11,10 @@ import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/routes.dart';
-import 'package:pindoro/features/home/ui/home_screen.dart';
 import 'package:pindoro/features/map/ui/area_picker_map.dart';
+import 'package:pindoro/features/map/ui/explore_map.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/memory/ui/progress_screen.dart';
 import 'package:pindoro/features/pack/data/app_update.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/today/ui/today_screen.dart';
@@ -62,6 +63,9 @@ void main() {
             ),
             appUpdateProvider.overrideWith((ref) async => update),
           ],
+          exploreMapBuilderProvider.overrideWithValue(
+            (_) => const SizedBox.expand(),
+          ),
           pindoroMapBuilderProvider.overrideWithValue((map) {
             maps.add(map);
             return const SizedBox();
@@ -193,7 +197,7 @@ void main() {
 
     // Opened as the only page, back goes Home instead of failing.
     await tapLabelled(tester, 'Back');
-    expect(find.text('Streets you know'), findsOneWidget);
+    expect(find.text('Tbilisi in memory'), findsOneWidget);
   });
 
   testWidgets("a later pick takes the narrowing toast's Undo away", (
@@ -222,9 +226,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Finder freePlayList() => find
+  Finder progressList() => find
       .descendant(
-        of: find.byType(HomeScreen),
+        of: find.byType(ProgressScreen),
         matching: find.byType(Scrollable),
       )
       .first;
@@ -233,17 +237,16 @@ void main() {
     tester,
   ) async {
     calm(tester);
-    await tester.runAsync(() => SettingsDao(db).markHomeCoachSeen());
     tester.view
       ..physicalSize = const Size(1080, 1400)
       ..devicePixelRatio = 2.75;
     addTearDown(tester.view.reset);
-    await pumpApp(tester, Routes.home);
+    await pumpApp(tester, Routes.progress);
 
-    await tester.drag(freePlayList(), const Offset(0, -200));
+    await tester.drag(progressList(), const Offset(0, -200));
     await tester.pumpAndSettle();
     double offset() =>
-        tester.state<ScrollableState>(freePlayList()).position.pixels;
+        tester.state<ScrollableState>(progressList()).position.pixels;
     expect(offset(), greaterThan(0));
 
     await tapLabelled(tester, 'Me');
@@ -253,7 +256,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Pins dropped'), findsOneWidget);
-    expect(find.text('Streets you know'), findsNothing);
+    expect(find.text('Reviews, next 14 days'), findsNothing);
 
     await systemBack(tester);
     await tester.runAsync(
@@ -262,11 +265,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(TodayScreen).hitTestable(), findsOneWidget);
 
-    await tapLabelled(tester, 'Explore');
-    expect(find.text('Streets you know'), findsOneWidget);
+    await tapLabelled(tester, 'Progress');
     expect(offset(), greaterThan(0), reason: 'the tab kept its scroll');
 
-    await tapLabelled(tester, 'Explore');
+    await tapLabelled(tester, 'Progress');
     expect(offset(), 0, reason: 'tapping the open tab scrolls it up');
   });
 

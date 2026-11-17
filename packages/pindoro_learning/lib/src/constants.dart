@@ -202,6 +202,10 @@ abstract final class LearningConfig {
   static const int tierCReliefReplayDays = 28;
 
   // Motivation and maps (§8, §16.6)
+  /// The City memory chart (§16.4): a point a day in a frame of this many days at first, then
+  /// a point a week, showing at most the last [chartWeeks] weeks.
+  static const int chartDailyDays = 14;
+  static const int chartWeeks = 10;
   static const int cityMemoryMilestone = 500;
   static const int maintenanceBadgeDays = 100;
 

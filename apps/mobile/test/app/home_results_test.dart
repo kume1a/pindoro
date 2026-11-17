@@ -14,6 +14,7 @@ import 'package:pindoro/core/launch_overlay.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/ui/city_memory_card.dart';
+import 'package:pindoro/features/map/ui/explore_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
@@ -21,10 +22,16 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
+import '../support/settle.dart' show scrollTo;
+
 void main() {
   late AppDatabase db;
   late _FakeReminders reminders;
   late List<Street> streets;
+  late District raion;
+
+  /// The map Explore last built (tests draw none).
+  ExploreMap? exploreMap;
 
   /// What the server answers; offline unless a test says otherwise.
   late http.Response Function(http.Request) serverReply;
@@ -32,6 +39,7 @@ void main() {
   setUpAll(() {
     final pack = SqlitePackRepository.open(AppConfig.fixturePackAsset);
     streets = pack.streets(districtId: AppConfig.fixtureDistrictId);
+    raion = pack.districts().firstWhere((d) => d.isRaion);
     pack.close();
   });
 
@@ -61,6 +69,10 @@ void main() {
         final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
         ref.onDispose(repo.close);
         return repo;
+      }),
+      exploreMapBuilderProvider.overrideWithValue((map) {
+        exploreMap = map;
+        return const SizedBox.expand();
       }),
     ],
     child: PindoroApp(initialLocation: location, coldStart: coldStart),
@@ -119,10 +131,34 @@ void main() {
     return id;
   }
 
+  /// Finishes round [id]; Explore's coach mark has been seen by then, so it
+  /// doesn't cover the sheet.
+  Future<void> finished(String id) async {
+    await ProgressDao(db).finishRound(id);
+    await SettingsDao(db).markHomeCoachSeen();
+  }
+
   testWidgets('home without an area asks for one', (tester) async {
     await pumpApp(tester, Routes.home);
+    expect(find.text('Where to play?'), findsOneWidget);
     expect(find.text('Choose an area'), findsOneWidget);
-    expect(find.text('Streets you know'), findsOneWidget);
+    expect(find.text('Tbilisi in memory'), findsOneWidget);
+  });
+
+  testWidgets('a tap on a district picks it for Play; a tap off clears it', (
+    tester,
+  ) async {
+    await pumpApp(tester, Routes.home);
+    exploreMap!.onTap(raion.center);
+    await tester.pumpAndSettle();
+    expect(find.text('Where to play?'), findsNothing);
+    expect(find.bySemanticsLabel(RegExp('^Play area: ')), findsOneWidget);
+    expect(find.text('Play'), findsOneWidget);
+    expect(exploreMap!.playArea, isNotEmpty, reason: 'outlined on the map');
+
+    exploreMap!.onTap(const LatLng(0, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Where to play?'), findsOneWidget);
   });
 
   testWidgets('on the Vake stand-in, Home offers the whole city', (
@@ -162,7 +198,7 @@ void main() {
 
     await settle(tester);
     expect(launchPin, findsNothing);
-    expect(find.text('Streets you know'), findsOneWidget);
+    expect(find.text('Tbilisi in memory'), findsOneWidget);
   });
 
   testWidgets('the first home shows one coach mark; a tap closes it for good', (
@@ -215,6 +251,7 @@ void main() {
 
   testWidgets('done on results counts the round into home', (tester) async {
     final id = (await tester.runAsync(() => roundWithAnswers(2)))!;
+    await tester.runAsync(() => finished(id));
     await pumpApp(tester, '${Routes.results}?round=$id');
     await tester.tap(find.bySemanticsLabel('Done'));
     await tester.runAsync(
@@ -222,12 +259,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Streets you know'), findsOneWidget);
-    expect(find.text('+2'), findsOneWidget, reason: 'newly known streets');
+    expect(find.text('Tbilisi in memory'), findsOneWidget);
+    await scrollTo(tester, find.text('Last round'));
+    expect(
+      find.bySemanticsLabel('0 Perfect, 2 Great, 0 Close, 0 Miss'),
+      findsOneWidget,
+      reason: 'the round just played',
+    );
   });
 
   testWidgets('back on results goes home, as Done does', (tester) async {
     final id = (await tester.runAsync(() => roundWithAnswers(2)))!;
+    await tester.runAsync(() => finished(id));
     await pumpApp(tester, '${Routes.results}?round=$id');
     await tester.binding.handlePopRoute();
     await tester.runAsync(
@@ -235,8 +278,36 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Streets you know'), findsOneWidget);
-    expect(find.text('+2'), findsOneWidget, reason: 'the round counted in');
+    expect(find.text('Tbilisi in memory'), findsOneWidget);
+    await scrollTo(tester, find.text('Last round'));
+    expect(
+      find.bySemanticsLabel('0 Perfect, 2 Great, 0 Close, 0 Miss'),
+      findsOneWidget,
+      reason: 'the round counted in',
+    );
+  });
+
+  testWidgets('Explore offers quick starts: retry the last round’s misses, '
+      'its area again, a random district', (tester) async {
+    final missed = (await tester.runAsync(
+      () => roundWithAnswers(10, tier: Tier.miss),
+    ))!;
+    await tester.runAsync(() => finished(missed));
+    await pumpApp(tester, Routes.home);
+    expect(find.text('Quick starts'), findsOneWidget);
+    expect(find.text('Retry 10 missed'), findsOneWidget);
+    expect(find.textContaining('again'), findsOneWidget);
+    expect(find.text('A random district'), findsOneWidget);
+    await scrollTo(tester, find.text('Areas you played'));
+  });
+
+  testWidgets('before any play, Explore explains itself and offers to start '
+      'near home', (tester) async {
+    await tester.runAsync(SettingsDao(db).markHomeCoachSeen);
+    await pumpApp(tester, Routes.home);
+    expect(find.textContaining('Play a round anywhere'), findsOneWidget);
+    await scrollTo(tester, find.text('Near home'));
+    expect(find.text('Last round'), findsNothing);
   });
 
   testWidgets('results offer to retry Close and Miss streets', (tester) async {
@@ -266,7 +337,7 @@ void main() {
 
   testWidgets('results without a round go home', (tester) async {
     await pumpApp(tester, Routes.results);
-    expect(find.text('Streets you know'), findsOneWidget);
+    expect(find.text('Tbilisi in memory'), findsOneWidget);
   });
 
   group('streak', () {
@@ -383,7 +454,7 @@ void main() {
       await pumpApp(tester, Routes.me);
       expect(find.textContaining('Playing since'), findsOneWidget);
       for (final label in [
-        'Streets known, 0',
+        'Streets in memory, 0',
         'Pins dropped, 1',
         'Days counted, 0',
         'Best streak, 0 days',
@@ -397,7 +468,7 @@ void main() {
 
       await tester.tap(tbilisi);
       await settle(tester);
-      expect(find.byType(CityMemoryCard), findsOneWidget);
+      expect(find.byType(CityMemoryRow), findsOneWidget);
     });
   });
 }

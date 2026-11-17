@@ -79,6 +79,24 @@ class LearningDao extends DatabaseAccessor<AppDatabase>
       (row.streetA, row.streetB),
   ];
 
+  /// Confusions last logged from [from] until [to], latest first, as
+  /// (target, the street the pin hit).
+  Future<List<(String, String)>> confusionsBetween(
+    DateTime from,
+    DateTime to,
+  ) async => [
+    for (final row
+        in await (select(confusions)
+              ..where(
+                (c) =>
+                    c.lastAt.isBiggerOrEqualValue(from) &
+                    c.lastAt.isSmallerThanValue(to),
+              )
+              ..orderBy([(c) => OrderingTerm.desc(c.lastAt)]))
+            .get())
+      (row.streetA, row.streetB),
+  ];
+
   /// The review log, oldest first; from [since] when given.
   Future<List<LogEntry>> log({DateTime? since}) async {
     final query = select(reviewLogs)..orderBy([(l) => OrderingTerm.asc(l.id)]);

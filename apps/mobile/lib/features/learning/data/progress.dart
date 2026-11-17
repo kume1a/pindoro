@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
+import 'package:pindoro/features/learning/data/route_book.dart';
+import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -41,19 +43,31 @@ typedef RaionProgress = ({
 typedef ProgressOverview = ({
   MemorySummary city,
   double sinceYesterday,
-  ({DateTime start, List<double> values}) history,
+  MemoryHistory history,
   double? recall,
   List<int> forecast,
   DateTime? wholeCityBy,
-  District? learning,
+
+  /// The neighbourhood being learnt now, then the next [comingCount] - 1 in
+  /// teaching order; empty once nothing is left to teach.
+  List<ChunkProgress> coming,
   List<RaionProgress> districts,
 });
 
+/// How many neighbourhoods "What's coming" lists, the one being learnt
+/// first.
+const int comingCount = 3;
+
 /// The open city's City memory and its change since yesterday and over the
-/// week (Today).
+/// week (Today); [firstDay] while nothing was played before today.
 final cityMemoryProvider =
     FutureProvider.autoDispose<
-      ({MemorySummary city, double sinceYesterday, double sinceWeek})
+      ({
+        MemorySummary city,
+        double sinceYesterday,
+        double sinceWeek,
+        bool firstDay,
+      })
     >((ref) async {
       final now = ref.watch(clockProvider)();
       final streets = await ref.watch(cityStreetsProvider.future);
@@ -61,10 +75,16 @@ final cityMemoryProvider =
       final sidesOf = await ref.watch(sidesOfProvider.future);
       final log = await ref.watch(learningDaoProvider).log();
       final core = streets.values.where(Curriculum.isCore).toSet();
+      final today = startOfDay(now);
       return (
-        city: _summary(core, cards, now, sidesOf),
+        city: memorySummary(core, cards, now, sidesOf),
         sinceYesterday: _since(core, cards, log, now, const Duration(days: 1)),
         sinceWeek: _since(core, cards, log, now, const Duration(days: 7)),
+        firstDay:
+            log.every((e) => !e.ts.isBefore(today)) &&
+            cards.values.every(
+              (c) => !(c.memory?.lastReview.isBefore(today) ?? false),
+            ),
       );
     });
 
@@ -85,12 +105,15 @@ final progressProvider = FutureProvider.autoDispose<ProgressOverview>((
   final core = streets.values.where(Curriculum.isCore).toSet();
   final coreCards = [for (final s in core) ?cards[s.id]];
   final districts = {for (final d in pack.districts()) d.id: d};
-  final sequence = curriculum.chunkSequence(cards, anchors);
+  final sequence = [
+    for (final id in curriculum.chunkSequence(cards, anchors))
+      if (districts.containsKey(id)) id,
+  ];
   final learning = districts[sequence.firstOrNull];
 
   ChunkProgress chunkOf(String id) {
     final streets = curriculum.streetsIn(id).where(Curriculum.isCore);
-    final memory = _summary(streets, cards, now, sidesOf);
+    final memory = memorySummary(streets, cards, now, sidesOf);
     final seen = streets.where((s) => cards.containsKey(s.id)).length;
     final at = sequence.indexOf(id);
     return (
@@ -125,7 +148,7 @@ final progressProvider = FutureProvider.autoDispose<ProgressOverview>((
       if (districts[id] case final district?)
         (
           district: district,
-          memory: _summary(
+          memory: memorySummary(
             core.where((s) => curriculum.raionOf(s.id) == id),
             cards,
             now,
@@ -135,7 +158,7 @@ final progressProvider = FutureProvider.autoDispose<ProgressOverview>((
         ),
   ]..sort((a, b) => _share(b.memory).compareTo(_share(a.memory)));
 
-  final memory = _summary(core, cards, now, sidesOf);
+  final memory = memorySummary(core, cards, now, sidesOf);
   return (
     city: memory,
     sinceYesterday: _since(core, cards, log, now, const Duration(days: 1)),
@@ -152,12 +175,13 @@ final progressProvider = FutureProvider.autoDispose<ProgressOverview>((
       newPerDay: LearningConfig.newPerDay[settings.minutesPerDay] ?? 0,
       now: now,
     ),
-    learning: learning,
+    coming: [for (final id in sequence.take(comingCount)) chunkOf(id)],
     districts: raions,
   );
 });
 
-MemorySummary _summary(
+/// [streets]' City memory and memory bar counts over their P [cards].
+MemorySummary memorySummary(
   Iterable<NamedStreet> streets,
   Map<String, CardState> cards,
   DateTime now,
@@ -185,6 +209,131 @@ double _since(
   return cityMemory(carded, now, isCore: (_) => true) -
       cityMemoryAt(carded, log, now.subtract(span));
 }
+
+/// Reloads what the tabs show from the learning tables, after anything that
+/// may have written to them (a session, a round, another tab). Learning
+/// providers read with futures, so writers invalidate them.
+void refreshLearning(WidgetRef ref) => ref
+  ..invalidate(learnCityProvider)
+  ..invalidate(cityCardsProvider)
+  ..invalidate(todayPlanProvider)
+  ..invalidate(cityMemoryProvider)
+  ..invalidate(progressProvider)
+  ..invalidate(runsProvider)
+  ..invalidate(todayRunProvider)
+  ..invalidate(mixUpsYesterdayProvider);
+
+/// City memory per area of the open pack (Explore): a raion and a
+/// neighbourhood over the core streets Progress counts for them (by chunk),
+/// any other area (or any area of a pack without chunks) over the core
+/// streets with a part in it.
+final areaMemoryProvider =
+    FutureProvider.autoDispose<Map<String, MemorySummary>>((ref) async {
+      final now = ref.watch(clockProvider)();
+      final pack = await ref.watch(packRepositoryProvider.future);
+      final streets = await ref.watch(cityStreetsProvider.future);
+      final curriculum = await ref.watch(curriculumProvider.future);
+      final cards = await ref.watch(streetCardsProvider.future);
+      final sidesOf = await ref.watch(sidesOfProvider.future);
+      final core = streets.values.where(Curriculum.isCore).toSet();
+      final byCurriculum = <String, List<NamedStreet>>{};
+      for (final s in core) {
+        for (final id in [Curriculum.chunkOf(s), ?curriculum.raionOf(s.id)]) {
+          byCurriculum.putIfAbsent(id, () => []).add(s);
+        }
+      }
+      final parts = pack.partsByDistrict();
+      return {
+        for (final d in pack.districts())
+          d.id: memorySummary(
+            byCurriculum[d.id] ??
+                [
+                  for (final s in core)
+                    if (s.parts.any(
+                      (p) => parts[d.id]?.contains(p.id) ?? false,
+                    ))
+                      s,
+                ],
+            cards,
+            now,
+            sidesOf,
+          ),
+      };
+    });
+
+/// A raion's gateways (SPEC §6.5): how many its neighbourhoods have, how many
+/// of their cards are Solid, and whether any is carded yet.
+typedef GatewayCount = ({int solid, int total, bool started});
+
+final gatewaysProvider = FutureProvider.autoDispose
+    .family<GatewayCount, String>((ref, raion) async {
+      final pack = await ref.watch(packRepositoryProvider.future);
+      final book = await ref.watch(routeBookProvider.future);
+      final cards = await ref.watch(cardsByItemProvider.future);
+      final parents = {for (final d in pack.districts()) d.id: d.parentId};
+      final items = [
+        for (final c in book.candidates)
+          if (c.layer == RouteLayer.gateway && parents[c.chunk] == raion)
+            c.itemId,
+      ];
+      return (
+        solid: items.where((id) => cards[id]?.isSolid ?? false).length,
+        total: items.length,
+        started: items.any(cards.containsKey),
+      );
+    });
+
+/// Street pairs mixed up yesterday (Today's "Watch out for"), latest first.
+final mixUpsYesterdayProvider =
+    FutureProvider.autoDispose<List<(NamedStreet, NamedStreet)>>((ref) async {
+      final today = startOfDay(ref.watch(clockProvider)());
+      final streets = await ref.watch(cityStreetsProvider.future);
+      final pairs = await ref
+          .watch(learningDaoProvider)
+          .confusionsBetween(
+            startOfDay(today.subtract(const Duration(hours: 12))),
+            today,
+          );
+      return [
+        for (final (a, b) in pairs)
+          if ((streets[a], streets[b]) case (final a?, final b?)) (a, b),
+      ];
+    });
+
+/// The neighbourhood being learnt now on its mini map: its outline and the
+/// streets in it the player knows (Today's neighbourhood card); null once
+/// nothing is left to teach.
+typedef NowLearning = ({
+  ChunkProgress chunk,
+  District raion,
+  ChunkProgress? next,
+  List<List<Polyline>> outline,
+  List<Polyline> known,
+});
+
+final nowLearningProvider = FutureProvider.autoDispose<NowLearning?>((
+  ref,
+) async {
+  final now = ref.watch(clockProvider)();
+  final progress = await ref.watch(progressProvider.future);
+  final chunk = progress.coming.firstOrNull;
+  if (chunk == null) return null;
+  final pack = await ref.watch(packRepositoryProvider.future);
+  final curriculum = await ref.watch(curriculumProvider.future);
+  final cards = await ref.watch(streetCardsProvider.future);
+  final raion = pack.districts().where((d) => d.id == chunk.chunk.parentId);
+  if (raion.isEmpty) return null;
+  return (
+    chunk: chunk,
+    raion: raion.single,
+    next: progress.coming.skip(1).firstOrNull,
+    outline: chunk.chunk.boundary,
+    known: [
+      for (final s in curriculum.streetsIn(chunk.chunk.id))
+        if (cards[s.id] case final card? when isKnown(card, now)) ...s.geometry,
+    ],
+  );
+});
 
 /// Core streets not met yet: what the whole-city date counts down.
 final unseenCoreProvider = FutureProvider.autoDispose<int>((ref) async {

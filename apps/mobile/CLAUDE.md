@@ -198,7 +198,10 @@ test/drift/                    generated schema helpers + migration test
   street view.
 - Colour rule: **yellow = truth, cobalt = you, ink = measurement.** Never swap them.
 - Screens get the map through `pindoroMapBuilderProvider`; tests override it to capture the
-  `PindoroMap` config instead of building the platform view.
+  `PindoroMap` config instead of building the platform view. Explore's city map (`ExploreMap`:
+  district fills by City memory, the play area dashed) comes through `exploreMapBuilderProvider`;
+  any test that opens Explore overrides it. The other tab maps are painted (`DistrictMap`,
+  `AreaMiniMap`), never a platform view.
 - Map insets are measured, never guessed: overlays go in `MapLayout` (`features/map/ui`: `top`,
   `bottom`, `behind`, `front`; the map is built with their heights), or a panel in a Scaffold's
   `bottomNavigationBar` with `extendBody` and `MediaQuery.paddingOf(body).bottom` (area, home and

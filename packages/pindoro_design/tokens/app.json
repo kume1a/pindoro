@@ -126,6 +126,14 @@
         "usage": "Illustration park (.i-park in the Illustration preview)."
       },
       {
+        "name": "color.map.district.started.fill",
+        "value": {
+          "light": "#ffc21a1f",
+          "dark": "#ffc21a24"
+        },
+        "usage": "A district with under a quarter of its streets in memory: yellow 400 at 12 % (light) / 14 % (dark) under the progress stroke (canvas V31-90, District fills)."
+      },
+      {
         "name": "color.map.vector.land",
         "value": {
           "light": "#f3f1ed",
@@ -384,6 +392,11 @@
         "name": "opacity.shimmer",
         "value": "0.7",
         "usage": "The skeleton shimmer's peak over color.surface.sunken (.pd-skel::after)."
+      },
+      {
+        "name": "opacity.veil",
+        "value": "0.55",
+        "usage": "Explore's city map: color.surface.base over the basemap, so the district fills and the picked area read first."
       }
     ],
     "note": "Opacities the design system uses in its component CSS but has no token for."

@@ -41,26 +41,73 @@ String signedNumber(double change) {
   return n >= 0 ? '+${formatNumber(n)}' : formatNumber(n);
 }
 
-/// The City memory card (design system City memory card): on Today the change
-/// since yesterday and a note; with [history], the Progress overview's share
-/// and 10-week chart.
+/// "+8 since yesterday", "−41 this week" ([week] set), or "+20 today" on
+/// the [firstDay]; null when it rounds to no change.
+String? memoryChange(
+  AppLocalizations l10n,
+  double change, {
+  bool week = false,
+  bool firstDay = false,
+}) {
+  if (change.round() == 0) return null;
+  final signed = signedNumber(change);
+  return week
+      ? l10n.memoryThisWeek(signed)
+      : firstDay
+      ? l10n.memoryToday(signed)
+      : l10n.memorySinceYesterday(signed);
+}
+
+/// City memory at row size (City memory row, Today): the figure, its
+/// [change] and the thin bar; it opens Progress ([onTap]).
+class CityMemoryRow extends StatelessWidget {
+  const CityMemoryRow({
+    super.key,
+    required this.memory,
+    required this.change,
+    required this.onTap,
+  });
+
+  final MemorySummary memory;
+  final ({double value, String? label}) change;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final number = formatNumber(memory.memory.round());
+    final total = formatNumber(memory.total);
+    return MemoryRow(
+      label: l10n.sessionDoneMemory,
+      value: number,
+      of: l10n.memoryOf(total),
+      change: change.label,
+      down: change.value.round() < 0,
+      counts: memoryCountsOf(memory),
+      semanticsLabel: l10n.a11yCityMemory(
+        number,
+        total,
+        signedNumber(change.value),
+      ),
+      onTap: onTap,
+    );
+  }
+}
+
+/// The City memory card (Progress): the figure and its share, the change
+/// since yesterday, the chart over [history] with the caption naming its
+/// window, the memory bar, its legend and the note.
 class CityMemoryCard extends StatelessWidget {
   const CityMemoryCard({
     super.key,
     required this.memory,
-    this.sinceYesterday,
-    this.sinceWeek,
-    this.history,
-    this.onTap,
+    required this.history,
+    required this.sinceYesterday,
   });
 
   final MemorySummary memory;
-  final double? sinceYesterday;
-
-  /// Shown instead of [sinceYesterday] while catching up ("−41 this week").
-  final double? sinceWeek;
-  final ({DateTime start, List<double> values})? history;
-  final VoidCallback? onTap;
+  final MemoryHistory history;
+  final double sinceYesterday;
 
   @override
   Widget build(BuildContext context) {
@@ -70,13 +117,14 @@ class CityMemoryCard extends StatelessWidget {
     final locale = Localizations.localeOf(context).toLanguageTag();
     final number = formatNumber(memory.memory.round());
     final total = formatNumber(memory.total);
-    final week = sinceWeek;
-    final change = week ?? sinceYesterday;
-    final history = this.history;
     final percent = memory.total == 0
         ? 0
         : (100 * memory.memory / memory.total).round();
-    final card = LipBox(
+    final firstDay =
+        history.window == MemoryWindow.daily && history.points.length == 1;
+    final change = memoryChange(l10n, sinceYesterday, firstDay: firstDay);
+    final points = history.points;
+    return LipBox(
       border: c.lineBase,
       radius: PindoroRadius.xl,
       padding: const EdgeInsets.all(PindoroSpace.s4),
@@ -89,7 +137,7 @@ class CityMemoryCard extends StatelessWidget {
             label: l10n.a11yCityMemory(
               number,
               total,
-              signedNumber(change ?? 0),
+              signedNumber(sinceYesterday),
             ),
             excludeSemantics: true,
             child: Wrap(
@@ -101,9 +149,7 @@ class CityMemoryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      history == null
-                          ? l10n.sessionDoneMemory
-                          : l10n.progressCityMemory,
+                      l10n.progressCityMemory,
                       style: PindoroType.labelMd.copyWith(
                         color: c.textSecondary,
                       ),
@@ -119,7 +165,7 @@ class CityMemoryCard extends StatelessWidget {
                           ),
                           TextSpan(
                             text:
-                                ' ${history == null ? l10n.memoryOfStreets(total) : l10n.progressOfShare(total, formatNumber(percent))}',
+                                ' ${l10n.progressOfShare(total, formatNumber(percent))}',
                             style: PindoroType.bodySm.copyWith(
                               color: c.textSecondary,
                             ),
@@ -131,11 +177,9 @@ class CityMemoryCard extends StatelessWidget {
                 ),
                 if (change != null)
                   Text(
-                    week == null
-                        ? l10n.memorySinceYesterday(signedNumber(change))
-                        : l10n.memoryThisWeek(signedNumber(change)),
+                    change,
                     style: PindoroType.labelMd.copyWith(
-                      color: change.round() < 0
+                      color: sinceYesterday.round() < 0
                           ? c.textSecondary
                           : c.successText,
                     ),
@@ -143,17 +187,30 @@ class CityMemoryCard extends StatelessWidget {
               ],
             ),
           ),
-          if (history != null)
-            MemoryChart(
-              values: history.values,
-              startLabel: DateFormat.MMMd(locale).format(history.start),
-              endLabel: l10n.progressToday,
-              semanticsLabel: l10n.a11yMemoryChart(
-                formatNumber(history.values.first.round()),
-                formatNumber(history.values.last.round()),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: PindoroSpace.s1,
+            children: [
+              MemoryChart(
+                points: points,
+                days: history.days,
+                format: formatNumber,
+                startLabel: DateFormat.MMMd(locale).format(history.start),
+                endLabel: l10n.progressToday,
+                semanticsLabel: l10n.a11yMemoryChart(
+                  formatNumber(points.first.value.round()),
+                  formatNumber(points.last.value.round()),
+                ),
+                animate: animate,
               ),
-              animate: animate,
-            ),
+              Text(switch (history.window) {
+                MemoryWindow.daily when firstDay => l10n.memoryChartFirstDay,
+                MemoryWindow.daily => l10n.memoryChartDaily,
+                MemoryWindow.weekly => l10n.memoryChartWeekly,
+                MemoryWindow.lastWeeks => l10n.memoryChartLastWeeks,
+              }, style: PindoroType.bodySm.copyWith(color: c.textSecondary)),
+            ],
+          ),
           MemoryBar(
             counts: memoryCountsOf(memory),
             semanticsLabel: memoryBarLabel(
@@ -168,15 +225,12 @@ class CityMemoryCard extends StatelessWidget {
             names: memoryNames(l10n),
             format: formatNumber,
           ),
-          if (history == null)
-            Text(
-              l10n.memoryNote,
-              style: PindoroType.bodySm.copyWith(color: c.textSecondary),
-            ),
+          Text(
+            l10n.memoryNote,
+            style: PindoroType.bodySm.copyWith(color: c.textSecondary),
+          ),
         ],
       ),
     );
-    final onTap = this.onTap;
-    return onTap == null ? card : Tappable(onTap: onTap, child: card);
   }
 }

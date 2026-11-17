@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>V31-21 Explore at 360 dp and 200 % text</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pindoro-tokens.css">
+<link rel="stylesheet" href="ds/pindoro/components/bundle.css">
+<link rel="stylesheet" href="pindoro-canvas.css">
+<link rel="stylesheet" href="pindoro-v31.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="cv-flow" style="width: 1700px; height: 1000px">
+<div class="cv-col cv-col--360"><div class="cv-steprow"><span class="cv-step">1</span><span class="cv-steptx">A few areas started, 360 dp</span></div><dc-import name="ExploreScreen" theme="light" state="few" device="360" text="100" hint-size="360px,800px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">2</span><span class="cv-steptx">200 % text</span></div><dc-import name="ExploreScreen" theme="light" state="few" device="390" text="200" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col cv-col--360"><div class="cv-steprow"><span class="cv-step">3</span><span class="cv-steptx">360 dp and 200 % text</span></div><dc-import name="ExploreScreen" theme="light" state="saved" device="360" text="200" hint-size="360px,800px"></dc-import></div>
+<div class="cv-notes cv-notes--wide">
+<div class="cv-caprow"><span class="cv-tag cv-tag--new">New in v3.1</span></div>
+<h3>Explore holds at 360 dp and at 200 % text</h3>
+<ul>
+<li>The map keeps its height and crops at the sides; district labels never scale past the map’s own size.</li>
+<li>The sheet scrolls; the legend wraps to two rows; list rows grow downward.</li>
+<li>The pinned footer grows: its context line wraps and Play keeps a 48 dp minimum, so it stays in the thumb zone above the tab bar.</li>
+<li>The floating city bar grows with the city name instead of clipping it.</li>
+</ul>
+<p>Flutter: the footer is a Column inside a SafeArea above the NavigationBar; the sheet is a DraggableScrollableSheet with snap sizes for peek and open.</p>
+<h4>New data</h4>
+<ul><li>None.</li></ul>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 1700, "height": 1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

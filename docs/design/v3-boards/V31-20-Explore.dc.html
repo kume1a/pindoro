@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>V31-20 Explore: map first, Play in the thumb zone</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pindoro-tokens.css">
+<link rel="stylesheet" href="ds/pindoro/components/bundle.css">
+<link rel="stylesheet" href="pindoro-canvas.css">
+<link rel="stylesheet" href="pindoro-v31.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="cv-flow" style="width: 3040px; height: 1060px">
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">1</span><span class="cv-steptx">New city: nothing known, no area chosen yet</span></div><dc-import name="ExploreScreen" theme="light" state="new" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">2</span><span class="cv-steptx">A few areas started (day 1, as in the screenshots)</span></div><dc-import name="ExploreScreen" theme="light" state="few" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">3</span><span class="cv-steptx">Round saved: it leads the sheet and Play becomes Continue</span></div><dc-import name="ExploreScreen" theme="light" state="saved" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">4</span><span class="cv-steptx">Mid-city: Mtatsminda Mastered, five districts past 25 %</span></div><dc-import name="ExploreScreen" theme="light" state="mid" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">5</span><span class="cv-steptx">Offline: only the bundled Vake pack plays</span></div><dc-import name="ExploreScreen" theme="light" state="offline" hint-size="390px,844px"></dc-import></div>
+<div class="cv-sp"></div>
+<div class="cv-col"><div class="cv-steprow"><span class="cv-step">6</span><span class="cv-steptx">Sheet pulled up (state 2): last round, areas, next badge</span></div><dc-import name="ExploreScreen" theme="light" state="few" sheet="open" hint-size="390px,844px"></dc-import></div>
+<div class="cv-notes cv-notes--wide">
+<div class="cv-caprow"><span class="cv-tag cv-tag--new">New in v3.1</span><span class="cv-tag cv-tag--changed">Replaces HomeScreen for v3</span></div>
+<h3>Explore: map-first free play, Play in the thumb zone</h3>
+<ul>
+<li>The city map leads the tab; the sheet under it lists ways in. Play is pinned above the tab bar in every state, with the area and difficulty on the line above it.</li>
+<li><b>Map colours.</b> Fills say how much of a district is in memory: outline = not started; yellow wash = under 25 % (new token <code>color.map.district.started.fill</code>); progress fill = 25 % or more; cobalt = Mastered. The play area is the dashed cobalt outline, because it is you. No street names: this map teaches nothing.</li>
+<li><b>Decision 2:</b> counts are City memory (“in memory”), the same figure as Today, Progress and Me. “Streets you know 9 / 4 320” is gone.</li>
+<li><b>Decision 3:</b> the shared header (city switcher, streak pill) floats on the map. The gear moved to Me.</li>
+<li>Quick starts: retry the misses, the last area again, a random district. With nothing played, the button reads “Choose an area” and opens the area picker.</li>
+<li>A saved round leads the sheet and the pinned button reads “Continue round”; a tertiary “Start a new round instead” sits under it.</li>
+<li>Offline, districts outside the pack dim (<code>color.map.mask</code>) and the sheet offers only Vake.</li>
+</ul>
+<p>Flutter: homeProvider (play area, difficulty, saved round, last round), progressProvider (the 10 districts and their stages), cityMemoryProvider (header figure), badgesProvider (next badge), streakProvider (pill). Rename HomeScreen → ExploreScreen; the HomeScreen boards stay as the MVP to R5 record.</p>
+<h4>New data</h4>
+<ul>
+<li>City memory per area for all 104 areas (rows and “All 104 areas”). progressProvider has the 10 districts only.</li>
+<li>Last round’s tier counts, if homeProvider doesn’t keep them.</li>
+<li>Which cities and districts are on the device, for the offline state.</li>
+</ul>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview": {"width": 3040, "height": 1060}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

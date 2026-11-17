@@ -66,6 +66,7 @@ void main() {
               ),
               sinceYesterday: 8.2,
               sinceWeek: -41.2,
+              firstDay: false,
             ),
           ),
         ],
@@ -100,11 +101,38 @@ void main() {
     await pump(tester, ready);
     expect(find.text('Today’s drive'), findsOneWidget);
     expect(find.text('About 13 min · saves as you go'), findsOneWidget);
-    expect(find.text('24'), findsOneWidget);
-    expect(find.text('10'), findsOneWidget);
+    expect(find.bySemanticsLabel('Reviews, 24'), findsOneWidget);
+    expect(find.bySemanticsLabel('New, 10'), findsOneWidget);
+    expect(find.text('Turns'), findsNothing);
+    expect(find.text('Drills'), findsNothing);
     expect(find.text('Start'), findsOneWidget);
     expect(find.text('+8 since yesterday'), findsOneWidget);
-    expect(find.text('1\u202f284 of 3\u202f282 streets'), findsOneWidget);
+    expect(find.text('Coming up'), findsOneWidget);
+    expect(find.text('Now learning'), findsOneWidget);
+    expect(find.text('Next 7 days'), findsOneWidget);
+    expect(find.text('Last 7 days'), findsNothing);
+    expect(find.textContaining('1\u202f284 of 3\u202f282'), findsOneWidget);
+  });
+
+  testWidgets('a day of only drills shows them, never Reviews 0 and New 0', (
+    tester,
+  ) async {
+    await placed();
+    await pump(
+      tester,
+      const SessionPlan(
+        steps: [(kind: StepKind.bearing, itemId: 'P:x')],
+        dueCount: 0,
+        backlog: false,
+        reviewCount: 0,
+        newCount: 0,
+        estimatedS: 300,
+        drills: Drills(bearings: ['P:y', 'P:z']),
+      ),
+    );
+    expect(find.bySemanticsLabel('Drills, 2, bearings'), findsOneWidget);
+    expect(find.text('Reviews'), findsNothing);
+    expect(find.text('New'), findsNothing);
   });
 
   testWidgets('done: nothing left today, tomorrow’s reviews', (tester) async {
@@ -125,6 +153,8 @@ void main() {
     expect(find.text('Start'), findsNothing);
     expect(find.text('Learn 5 more'), findsOneWidget);
     expect(find.text('Free play'), findsOneWidget);
+    expect(find.text('Last 7 days'), findsOneWidget);
+    expect(find.text('tomorrow 0'), findsOneWidget);
   });
 
   testWidgets('catching up: the reviews waiting, no new streets, Catch up and '
@@ -149,7 +179,10 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Catch up'), findsOneWidget);
+    expect(find.bySemanticsLabel('New, 0, paused'), findsOneWidget);
     expect(find.text('−41 this week'), findsOneWidget);
     expect(find.textContaining('Most overdue first'), findsOneWidget);
+    expect(find.textContaining('caught up by'), findsOneWidget);
+    expect(find.textContaining('· paused'), findsOneWidget);
   });
 }

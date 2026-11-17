@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Explore</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="pindoro-tokens.css">
+<link rel="stylesheet" href="ds/pindoro/components/bundle.css">
+<link rel="stylesheet" href="pindoro-canvas.css">
+<link rel="stylesheet" href="pindoro-v31.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div class="cv-phone cv-v31 {{tsCls}}" data-theme="{{theme}}" style="width: {{w}}px; height: {{h}}px; font-family: var(--font-sans); color: var(--pd-text)">
+<div class="pd-xmap" role="region" aria-label="{{x.mapA11y}}">
+<svg viewBox="0 0 390 440" aria-hidden="true">
+<rect class="pd-vmap-land" width="390" height="440"></rect>
+<g transform="translate(15 100)">
+<path class="pd-vmap-urban" d="M20 30L330 10L356 250L300 300L40 290Z"></path>
+<path class="pd-vmap-wood" d="M96 176C112 196 124 228 118 262L70 268L44 236Z"></path>
+<path class="pd-vmap-park" d="M58 196C76 188 98 196 102 216S80 246 62 238S40 206 58 196Z"></path>
+<path class="pd-vmap-park" d="M130 168C146 162 160 172 158 188S138 206 128 198S118 174 130 168Z"></path>
+<path class="pd-vmap-park" d="M70 56C88 48 104 58 102 74S82 92 70 86S56 62 70 56Z"></path>
+<ellipse cx="318" cy="64" rx="26" ry="16" style="fill: var(--color\.map\.vector\.water)"></ellipse>
+<path class="pd-vmap-casing" d="M30 100H340M40 160H350M30 220H330M90 20V280M250 20V290M300 40V280" stroke-width="5"></path>
+<path class="pd-vmap-road" d="M30 100H340M40 160H350M30 220H330M90 20V280M250 20V290M300 40V280" stroke-width="3"></path>
+<path class="pd-vmap-major-casing" d="M150 6C150 70 172 120 190 170S226 260 236 310M20 130C90 118 160 112 230 120S320 140 350 150M60 260C120 236 180 200 236 186" stroke-width="9"></path>
+<path class="pd-vmap-major" d="M150 6C150 70 172 120 190 170S226 260 236 310M20 130C90 118 160 112 230 120S320 140 350 150M60 260C120 236 180 200 236 186" stroke-width="6"></path>
+<path class="pd-vmap-water" d="M146 -30C156 30 162 80 178 130S206 220 232 330" stroke-width="11"></path>
+<path class="pd-vmap-rail" d="M120 0C150 60 200 110 230 130S300 190 330 260" stroke-width="2"></path>
+<path class="pd-map-district {{d.nadzaladevi}}" d="M60 24L150 12L160 64L100 90Z"></path>
+<path class="pd-map-district {{d.saburtalo}}" d="M24 96L60 24L100 90L110 150L16 180Z"></path>
+<path class="pd-map-district {{d.didube}}" d="M100 90L160 64L172 110L110 150Z"></path>
+<path class="pd-map-district {{d.mtatsminda}}" d="M110 150L172 110L186 156L120 210Z"></path>
+<path class="pd-map-district {{d.vake}}" d="M16 180L110 150L120 210L150 250L160 294L60 276Z"></path>
+<path class="pd-map-district {{d.krtsanisi}}" d="M120 210L186 156L198 200L212 244L160 294L150 250Z"></path>
+<path class="pd-map-district {{d.gldani}}" d="M150 12L250 8L240 70L160 64Z"></path>
+<path class="pd-map-district {{d.chugureti}}" d="M160 64L240 70L260 130L172 110Z"></path>
+<path class="pd-map-district {{d.isani}}" d="M172 110L260 130L268 190L198 200L186 156Z"></path>
+<path class="pd-map-district {{d.samgori}}" d="M250 8L330 40L348 120L352 240L300 292L160 294L212 244L198 200L268 190L260 130L240 70Z"></path>
+<path class="pd-map-pick" d="{{x.pick}}"></path>
+<g style="font: 700 11px var(--font-sans); fill: var(--pd-text); stroke: var(--color\.map\.vector\.land); stroke-width: 3; paint-order: stroke; stroke-linejoin: round" text-anchor="middle">
+<text x="104" y="52">Nadzaladevi</text><text x="54" y="128">Saburtalo</text><text x="136" y="106">Didube</text><text x="146" y="164">Mtatsminda</text><text x="76" y="232">Vake</text><text x="170" y="240">Krtsanisi</text><text x="200" y="40">Gldani</text><text x="210" y="98">Chugureti</text><text x="226" y="166">Isani</text><text x="300" y="214">Samgori</text>
+</g>
+</g>
+</svg>
+<span class="pd-attrib" style="left: 16px; top: {{attribTop}}px">© OpenStreetMap contributors, Protomaps</span>
+</div>
+<div class="cv-bar" style="top: {{top}}px; gap: 8px"><span class="pd-floatbar"><button class="pd-cityswitch" aria-label="City: Tbilisi. Change city."><span class="pd-c-primary" style="display: flex"><dc-import name="Ic" n="pin" hint-size="24px,24px"></dc-import></span>Tbilisi<span class="pd-c-muted" style="display: flex"><dc-import name="Ic" n="chevron-down" hint-size="24px,24px"></dc-import></span></button></span><span style="flex: 1"></span><span class="pd-pill pd-pill--float" aria-label="{{x.streakA11y}}"><span class="pd-c-flame" style="display: flex"><dc-import name="Ic" n="flame" hint-size="24px,24px"></dc-import></span>{{x.streak}}</span></div>
+<div class="pd-xsheet" style="top: {{sheetTop}}px">
+<span class="pd-handle" aria-hidden="true" style="align-self: center; margin: -10px 0 -4px"></span>
+<sc-if value="{{x.hasOffline}}" hint-placeholder-val="{{false}}"><div class="pd-card" style="padding: 12px 16px; display: flex; gap: 12px; align-items: flex-start; background: var(--color\.warning\.soft); border-color: var(--color\.warning\.soft)"><span class="pd-li-ic" style="background: var(--pd-raised); color: var(--color\.warning\.text)"><dc-import name="Ic" n="download" hint-size="24px,24px"></dc-import></span><span class="cv-stack" style="flex: 1; min-width: 0; gap: 2px"><span class="type-title-sm">Offline: Vake only</span><span class="type-body-sm">Tbilisi’s pack downloads the next time you’re online. Vake comes with the app, so you can play it now.</span></span></div></sc-if>
+<sc-if value="{{x.hasRound}}" hint-placeholder-val="{{false}}"><div class="pd-card" role="group" aria-label="Round in progress: Vake and Vere, Medium, question 6 of 10, saved 2 hours ago" style="padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 var(--pd-lip-2) 0 var(--pd-primary-lip), inset 0 0 0 var(--stroke\.thick) var(--pd-primary)"><div class="cv-row" style="gap: 12px"><span class="pd-li-ic pd-li-ic--done"><dc-import name="Ic" n="play" hint-size="24px,24px"></dc-import></span><span class="cv-stack" style="flex: 1; min-width: 0"><span class="type-title-sm">Round in progress</span><span class="type-body-sm cv-2nd">Vake and Vere · Medium · saved 2 h ago</span></span></div><div class="pd-qbar" aria-hidden="true" style="flex: none; height: 12px; grid-template-columns: repeat(10, minmax(0, 1fr))"><i class="done"></i><i class="done"></i><i class="miss"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i></div><span class="type-label-md cv-2nd">5 answered of 10</span></div></sc-if>
+<div class="cv-stack" style="gap: 8px"><div class="pd-forecast-h"><h2 class="pd-sec-t">{{x.headT}}</h2><span class="type-numeric-sm cv-2nd">{{x.headN}}</span></div><div class="pd-maplegend" aria-hidden="true"><span><i class="pd-swatch is-new" style="width: 16px; height: 16px"></i>Not started</span><span><i class="pd-swatch is-started" style="width: 16px; height: 16px"></i>Under 25 %</span><span><i class="pd-swatch is-progress" style="width: 16px; height: 16px"></i>25 % or more</span><span><i class="pd-swatch is-mastered" style="width: 16px; height: 16px"></i>Mastered</span></div></div>
+<sc-if value="{{x.hasIntro}}" hint-placeholder-val="{{false}}"><p class="type-body-md cv-m0">Play a round anywhere on the map. Every street you place goes into your City memory, the same one Today trains.</p></sc-if>
+<div class="pd-sec"><h2 class="pd-sec-t">Quick starts</h2></div>
+<div class="pd-list"><sc-for list="{{x.quick}}" as="q" hint-placeholder-count="3"><button class="pd-li"><span class="pd-li-ic"><dc-import name="Ic" n="{{q.ic}}" hint-size="24px,24px"></dc-import></span><span class="pd-li-tx cv-li-tx-block"><span class="pd-li-t">{{q.t}}</span><span class="pd-li-s">{{q.s}}</span></span><span class="pd-li-end"><dc-import name="Ic" n="chevron-right" hint-size="24px,24px"></dc-import></span></button></sc-for></div>
+<sc-if value="{{x.hasLast}}" hint-placeholder-val="{{false}}"><div class="pd-card" role="group" aria-label="{{x.lastA11y}}" style="padding: 12px 16px; display: flex; flex-direction: column; gap: 10px"><div class="pd-forecast-h"><span class="pd-forecast-t">Last round</span><span class="pd-forecast-s">{{x.lastS}}</span></div><div class="pd-minitally" aria-hidden="true"><span class="pd-tier--perfect"><i><dc-import name="Ic" n="star" hint-size="16px,16px"></dc-import></i>{{x.tally.p}}</span><span class="pd-tier--great"><i><dc-import name="Ic" n="check-circle" hint-size="16px,16px"></dc-import></i>{{x.tally.g}}</span><span class="pd-tier--close"><i><dc-import name="Ic" n="target" hint-size="16px,16px"></dc-import></i>{{x.tally.c}}</span><span class="pd-tier--miss"><i><dc-import name="Ic" n="reroute" hint-size="16px,16px"></dc-import></i>{{x.tally.m}}</span></div></div></sc-if>
+<sc-if value="{{x.hasAreas}}" hint-placeholder-val="{{true}}"><div class="pd-sec"><h2 class="pd-sec-t">Areas you played</h2></div><div class="pd-list"><sc-for list="{{x.areas}}" as="a" hint-placeholder-count="2"><button class="pd-li" aria-label="{{a.a11y}}"><span class="pd-li-ic {{a.icCls}}"><dc-import name="Ic" n="{{a.ic}}" hint-size="24px,24px"></dc-import></span><span class="pd-li-tx cv-li-tx-block"><span class="pd-li-t">{{a.t}}</span><span class="pd-li-s">{{a.s}}</span><span class="pd-membar pd-membar--sm pd-li-bar" aria-hidden="true"><i class="pd-mem-mastered" style="flex-basis: {{a.m}}%"></i><i class="pd-mem-solid" style="flex-basis: {{a.so}}%"></i><i class="pd-mem-known" style="flex-basis: {{a.k}}%"></i><i class="pd-mem-seen" style="flex-basis: {{a.n}}%"></i></span></span><span class="pd-li-end"><dc-import name="Ic" n="chevron-right" hint-size="24px,24px"></dc-import></span></button></sc-for></div></sc-if>
+<button class="pd-btn pd-btn--tertiary pd-btn--md" style="align-self: flex-start; margin: -8px 0 -4px -12px">All 104 areas</button>
+<div class="pd-card" role="group" aria-label="{{x.badgeA11y}}" style="padding: 12px 16px; display: flex; flex-direction: column; gap: 8px"><div class="pd-forecast-h"><span class="pd-forecast-t">Next badge: {{x.badgeT}}</span><span class="pd-forecast-s">{{x.badgeN}}</span></div><span class="type-body-sm cv-2nd">{{x.badgeS}}</span><span class="pd-membar pd-membar--sm" aria-hidden="true"><i style="flex-basis: {{x.badgeP}}%; background: var(--color\.progress\.done)"></i></span></div>
+<div style="height: 260px; flex: none"></div>
+</div>
+<div class="pd-xfoot"><p class="pd-xfoot-l">{{x.footL}}</p><button class="pd-btn pd-btn--block" aria-label="{{x.playA11y}}"><dc-import name="Ic" n="{{x.playIc}}" hint-size="22px,22px"></dc-import>{{x.play}}</button><sc-if value="{{x.hasRound}}" hint-placeholder-val="{{false}}"><button class="pd-btn pd-btn--tertiary pd-btn--block" style="margin: -4px 0 -4px">Start a new round instead</button></sc-if></div>
+<nav class="pd-nav" aria-label="Main"><button><span><dc-import name="Ic" n="road" hint-size="24px,24px"></dc-import></span>Today</button><button class="on" aria-current="page"><span><dc-import name="Ic" n="map" hint-size="24px,24px"></dc-import></span>Explore</button><button><span><dc-import name="Ic" n="chart" hint-size="24px,24px"></dc-import></span>Progress</button><button><span><dc-import name="Ic" n="user" hint-size="24px,24px"></dc-import></span>Me</button></nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"state":{"editor":"enum","options":["new","few","saved","mid","offline"],"default":"few"},"device":{"editor":"enum","options":["390","360"],"default":"390"},"text":{"editor":"enum","options":["100","200"],"default":"100"},"sheet":{"editor":"enum","options":["peek","open"],"default":"peek"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const theme = this.props.theme ?? 'light';
+    const st = this.props.state ?? 'few';
+    const small = String(this.props.device ?? '390') === '360';
+    const big = String(this.props.text ?? '100') === '200';
+    const open = (this.props.sheet ?? 'peek') === 'open';
+    const N = 'is-new', S = 'is-started', P = 'is-progress', M = 'is-mastered', D = 'is-dimmed';
+    const all = (v) => ({ nadzaladevi: v, saburtalo: v, didube: v, mtatsminda: v, vake: v, krtsanisi: v, gldani: v, chugureti: v, isani: v, samgori: v });
+    const dayOne = Object.assign(all(S), { isani: N });
+    const mid = { nadzaladevi: S, saburtalo: P, didube: P, mtatsminda: M, vake: P, krtsanisi: P, gldani: S, chugureti: P, isani: S, samgori: S };
+    const pct = (v, of) => Math.max(v > 0 ? 1.5 : 0, Math.round(v / of * 1000) / 10);
+    const area = (ic, t, s, m, so, k, n, of, icCls) => ({ ic, t, s, icCls: icCls || '', m: pct(m, of), so: pct(so, of), k: pct(k, of), n: pct(n, of), a11y: t + ', ' + s });
+    const quick = (ic, t, s) => ({ ic, t, s });
+    const pickSaburtalo = 'M48 100L92 92L102 132L58 146Z';
+    const base = {
+      streak: '1', streakA11y: '1-day streak', hasOffline: false, hasRound: false, hasIntro: false, hasPick: true, pick: pickSaburtalo,
+      headT: 'Tbilisi in memory', headN: '20 of 3 216',
+      quick: [quick('retry', 'Retry 3 missed', 'From your last round · Pikris Gora'), quick('pin', 'Pikris Gora again', '1 of 16 streets in memory'), quick('compass', 'A random district', 'Medium · 10 questions')],
+      hasLast: true, lastS: 'Pikris Gora + 2 more · Medium', lastA11y: 'Last round: 1 Perfect, 4 Great, 2 Close, 3 Miss', tally: { p: '1', g: '4', c: '2', m: '3' },
+      hasAreas: true, areas: [area('district', 'Vake', '4 of 264 in memory', 0, 0, 2, 2, 264), area('neighbourhood', 'Pikris Gora', '1 of 16 in memory', 0, 0, 1, 0, 16)],
+      badgeT: 'City memory 500', badgeN: '20 of 500', badgeS: 'City memory reaches 500 streets', badgeP: 4, badgeA11y: 'Next badge: City memory 500, 20 of 500',
+      footL: 'Tbilisi · Pikris Gora + 2 more · Medium', play: 'Play', playIc: 'play', playA11y: 'Play Tbilisi, Pikris Gora and 2 more, Medium',
+      mapA11y: 'Map of Tbilisi’s 10 districts. 9 started, Isani not started. Your play area, Pikris Gora and 2 more, is outlined.'
+    };
+    const STATES = {
+      new: { streak: '0', streakA11y: 'No streak yet', pick: '', headN: '0 of 3 216', hasIntro: true, quick: [quick('compass', 'A random district', 'Medium · 10 questions'), quick('home', 'Near home', 'Set home and start where you live')], hasLast: false, hasAreas: false, areas: [],
+        badgeT: 'First pin', badgeN: '0 of 1', badgeS: 'Drop your first pin', badgeP: 0, badgeA11y: 'Next badge: First pin, drop your first pin',
+        footL: 'Tbilisi · no area yet', play: 'Choose an area', playIc: 'map', playA11y: 'Choose an area in Tbilisi', mapA11y: 'Map of Tbilisi’s 10 districts, none started yet.' },
+      few: {},
+      saved: { hasRound: true, footL: 'Tbilisi · Vake and Vere · Medium · question 6 of 10', play: 'Continue round', playA11y: 'Continue round, question 6 of 10' },
+      mid: { streak: '23', streakA11y: '23-day streak', headN: '1 284 of 3 216', pick: 'M112 150L170 114L184 154L124 204Z',
+        quick: [quick('retry', 'Retry 1 missed', 'From your last round · Mtatsminda'), quick('pin', 'Mtatsminda again', '364 of 364 · Mastered'), quick('compass', 'A random district', 'Hard · 10 questions')],
+        lastS: 'Mtatsminda · Hard', lastA11y: 'Last round: 4 Perfect, 4 Great, 1 Close, 1 Miss', tally: { p: '4', g: '4', c: '1', m: '1' },
+        areas: [area('check-circle', 'Mtatsminda', '364 of 364 · Mastered', 364, 0, 0, 0, 364, 'pd-li-ic--done'), area('neighbourhood', 'Sololaki', '44 of 44 · Mastered', 44, 0, 0, 0, 44)],
+        badgeT: 'City memory 1 500', badgeN: '1 284 of 1 500', badgeS: 'City memory reaches 1 500 streets', badgeP: 86, badgeA11y: 'Next badge: City memory 1 500, 1 284 of 1 500',
+        footL: 'Tbilisi · Mtatsminda · Hard', playA11y: 'Play Tbilisi, Mtatsminda, Hard', mapA11y: 'Map of Tbilisi’s 10 districts. Mtatsminda Mastered, 5 at 25 % or more, 4 started. Your play area, Mtatsminda, is outlined.' },
+      offline: { pick: 'M16 180L110 150L120 210L150 250L160 294L60 276Z', hasOffline: true, headT: 'Vake in memory', headN: '4 of 264',
+        quick: [quick('compass', 'A random part of Vake', 'Medium · 10 questions'), quick('retry', 'Retry 3 missed', 'From your last round · Vake')], hasLast: false,
+        areas: [area('district', 'Vake', '4 of 264 in memory', 0, 0, 2, 2, 264)],
+        footL: 'Vake (offline) · Medium', playA11y: 'Play Vake, offline, Medium', mapA11y: 'Map of Tbilisi. Only Vake is available offline; the other districts are dimmed.' }
+    };
+    const x = Object.assign({}, base, STATES[st] || {});
+    const d = st === 'new' ? all(N) : st === 'mid' ? mid : st === 'offline' ? Object.assign(all(D), { vake: S }) : dayOne;
+    return { theme, x, d, sheetTop: open ? 232 : 404, attribTop: open ? 204 : 376, top: small ? 28 : 47, w: small ? 360 : 390, h: small ? 800 : 844, tsCls: big ? 'ts2' : '' };
+  }
+}
+</script>
+</body>
+</html>
