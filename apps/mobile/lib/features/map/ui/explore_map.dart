@@ -22,10 +22,13 @@ typedef ExploreDistrict = ({
   String name,
 });
 
-/// Explore's city map: the basemap under a veil so the districts' fill steps
+/// Explore's city map: the basemap under a veil so the areas' fill steps
 /// read first, their name chips, the play area as the dashed cobalt outline,
 /// and [legend] over the attribution above [bottomInset] (what the sheet
-/// covers; the camera frames the city above it). Taps report where they land.
+/// covers; the camera frames the city above it). Districts show below
+/// [PindoroCamera.areaDetailZoom], the areas inside them from it on (the
+/// area picker's levels, [detailAt]). Taps report where they land and the
+/// zoom.
 class ExploreMap extends StatefulWidget {
   const ExploreMap({
     super.key,
@@ -37,12 +40,13 @@ class ExploreMap extends StatefulWidget {
     this.legend,
   });
 
+  /// Every area of the pack: districts and the areas inside them.
   final List<ExploreDistrict> districts;
 
   /// The play area's polygons; empty without one.
   final List<List<Polyline>> playArea;
   final Bbox bounds;
-  final ValueChanged<LatLng> onTap;
+  final void Function(LatLng at, double zoom) onTap;
   final double bottomInset;
   final Widget? legend;
 
@@ -120,8 +124,26 @@ class _ExploreMapState extends State<ExploreMap> {
       'width': d.progress == DistrictProgress.notStarted
           ? PindoroStroke.hairline
           : PindoroStroke.base,
+      'kind': d.district.kind.name,
     };
   }
+
+  /// A district (the far level), not an area inside one.
+  static const List<Object> _isDistrict = [
+    '==',
+    ['get', 'kind'],
+    'district',
+  ];
+
+  /// Neighbourhoods are filled zoomed in: quarters overlap them, so only
+  /// their outlines show.
+  static const List<Object> _isNeighbourhood = [
+    '==',
+    ['get', 'kind'],
+    'neighbourhood',
+  ];
+
+  static const List<Object> _isDetail = ['!', _isDistrict];
 
   Future<void> _addLayers() async {
     final c = _controller;
@@ -148,25 +170,43 @@ class _ExploreMapState extends State<ExploreMap> {
       enableInteraction: false,
     );
     await c.addGeoJsonSource(_districts, _districtFeatures(colors));
-    await c.addFillLayer(
-      _districts,
-      '$_districts-fill',
-      const ml.FillLayerProperties(
-        fillColor: ['get', 'fill'],
-        fillOpacity: ['get', 'opacity'],
-      ),
-      enableInteraction: false,
-    );
-    await c.addLineLayer(
-      _districts,
-      '$_districts-outline',
-      const ml.LineLayerProperties(
-        lineColor: ['get', 'stroke'],
-        lineWidth: ['get', 'width'],
-        lineJoin: 'round',
-      ),
-      enableInteraction: false,
-    );
+    const detailZoom = PindoroCamera.areaDetailZoom;
+    for (final (id, filter, minzoom, maxzoom) in [
+      ('fill', _isDistrict, null, detailZoom),
+      ('detail-fill', _isNeighbourhood, detailZoom, null),
+    ]) {
+      await c.addFillLayer(
+        _districts,
+        '$_districts-$id',
+        const ml.FillLayerProperties(
+          fillColor: ['get', 'fill'],
+          fillOpacity: ['get', 'opacity'],
+        ),
+        filter: filter,
+        minzoom: minzoom,
+        maxzoom: maxzoom,
+        enableInteraction: false,
+      );
+    }
+    // Districts frame the map at every zoom; the areas inside them join it
+    // zoomed in.
+    for (final (id, filter, minzoom) in [
+      ('outline', _isDistrict, null),
+      ('detail-outline', _isDetail, detailZoom),
+    ]) {
+      await c.addLineLayer(
+        _districts,
+        '$_districts-$id',
+        const ml.LineLayerProperties(
+          lineColor: ['get', 'stroke'],
+          lineWidth: ['get', 'width'],
+          lineJoin: 'round',
+        ),
+        filter: filter,
+        minzoom: minzoom,
+        enableInteraction: false,
+      );
+    }
     await c.addGeoJsonSource(_play, polygonsGeoJson(const []));
     await c.addFillLayer(
       _play,
@@ -189,15 +229,23 @@ class _ExploreMapState extends State<ExploreMap> {
       enableInteraction: false,
     );
     await c.addGeoJsonSource(_labels, _labelFeatures());
-    await c.addSymbolLayer(
-      _labels,
-      _labels,
-      const ml.SymbolLayerProperties(
-        iconImage: ['get', 'icon'],
-        symbolSortKey: ['get', 'sort'],
-      ),
-      enableInteraction: false,
-    );
+    for (final (id, filter, minzoom, maxzoom) in [
+      (_labels, _isDistrict, null, detailZoom),
+      ('$_labels-detail', _isDetail, detailZoom, null),
+    ]) {
+      await c.addSymbolLayer(
+        _labels,
+        id,
+        const ml.SymbolLayerProperties(
+          iconImage: ['get', 'icon'],
+          symbolSortKey: ['get', 'sort'],
+        ),
+        filter: filter,
+        minzoom: minzoom,
+        maxzoom: maxzoom,
+        enableInteraction: false,
+      );
+    }
     _ready = true;
     await _sync();
     await addPoiImages(c, colors, pixelRatio);
@@ -207,7 +255,11 @@ class _ExploreMapState extends State<ExploreMap> {
     for (final d in widget.districts)
       (
         d.district.center,
-        {'icon': 'explore:${d.district.id}', 'sort': -d.district.areaM2},
+        {
+          'icon': 'explore:${d.district.id}',
+          'sort': -d.district.areaM2,
+          'kind': d.district.kind.name,
+        },
       ),
   ]);
 
@@ -233,6 +285,7 @@ class _ExploreMapState extends State<ExploreMap> {
         zoom: camera.zoom,
         size: size,
       ).toLatLng(at),
+      camera.zoom,
     );
   }
 

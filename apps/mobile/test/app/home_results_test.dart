@@ -30,6 +30,9 @@ void main() {
   late List<Street> streets;
   late District raion;
 
+  /// An area inside [raion] (a quarter or neighbourhood).
+  late District inner;
+
   /// The map Explore last built (tests draw none).
   ExploreMap? exploreMap;
 
@@ -40,6 +43,9 @@ void main() {
     final pack = SqlitePackRepository.open(AppConfig.fixturePackAsset);
     streets = pack.streets(districtId: AppConfig.fixtureDistrictId);
     raion = pack.districts().firstWhere((d) => d.isRaion);
+    inner = pack.districts().firstWhere(
+      (d) => !d.isRaion && boundaryContains(raion.boundary, d.center),
+    );
     pack.close();
   });
 
@@ -149,16 +155,32 @@ void main() {
     tester,
   ) async {
     await pumpApp(tester, Routes.home);
-    exploreMap!.onTap(raion.center);
+    exploreMap!.onTap(raion.center, 11);
     await tester.pumpAndSettle();
     expect(find.text('Where to play?'), findsNothing);
     expect(find.bySemanticsLabel(RegExp('^Play area: ')), findsOneWidget);
     expect(find.text('Play'), findsOneWidget);
     expect(exploreMap!.playArea, isNotEmpty, reason: 'outlined on the map');
 
-    exploreMap!.onTap(const LatLng(0, 0));
+    exploreMap!.onTap(const LatLng(0, 0), 11);
     await tester.pumpAndSettle();
     expect(find.text('Where to play?'), findsOneWidget);
+  });
+
+  testWidgets('zoomed in, a tap picks the area inside the district; zoomed '
+      'out, the district', (tester) async {
+    await pumpApp(tester, Routes.home);
+    expect(
+      exploreMap!.districts.map((d) => d.district.id),
+      containsAll([raion.id, inner.id]),
+      reason: 'the areas inside districts are drawn too',
+    );
+    exploreMap!.onTap(inner.center, PindoroCamera.areaDetailZoom + 1);
+    await tester.pumpAndSettle();
+    expect(exploreMap!.playArea, inner.boundary);
+    exploreMap!.onTap(inner.center, PindoroCamera.areaDetailZoom - 1);
+    await tester.pumpAndSettle();
+    expect(exploreMap!.playArea, raion.boundary);
   });
 
   testWidgets('on the Vake stand-in, Home offers the whole city', (

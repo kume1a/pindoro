@@ -16,6 +16,7 @@ import 'package:pindoro/features/home/ui/widgets/offline_card.dart';
 import 'package:pindoro/features/home/ui/widgets/play_card.dart';
 import 'package:pindoro/features/learning/data/progress.dart';
 import 'package:pindoro/features/learning/ui/city_tab_page.dart';
+import 'package:pindoro/features/map/ui/area_picker_map.dart' show areaAt;
 import 'package:pindoro/features/map/ui/explore_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/pack/ui/pack_pending.dart';
@@ -163,7 +164,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: ref.watch(exploreMapBuilderProvider)(
                     ExploreMap(
                       districts: [
-                        for (final d in raions)
+                        for (final d in pack.districts())
                           (
                             district: d,
                             progress: _fill(areas[d.id]),
@@ -174,10 +175,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       bounds: city.bbox,
                       bottomInset: height * peek,
                       legend: const _MapKey(),
-                      onTap: (at) => setState(
-                        () => _picked = raions
-                            .where((d) => boundaryContains(d.boundary, at))
-                            .firstOrNull,
+                      onTap: (at, zoom) => setState(
+                        () => _picked = areaAt(pack.districts(), at, zoom),
                       ),
                     ),
                   ),
