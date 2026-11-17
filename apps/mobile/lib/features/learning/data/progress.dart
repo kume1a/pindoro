@@ -261,6 +261,31 @@ final areaMemoryProvider =
       };
     });
 
+/// What an Explore round of an area at a difficulty can ask (the question
+/// selector's pool) and how much of it is in memory.
+final roundPoolProvider = FutureProvider.autoDispose
+    .family<MemorySummary, (Area, Difficulty)>((ref, key) async {
+      final (area, difficulty) = key;
+      final now = ref.watch(clockProvider)();
+      final pack = await ref.watch(packRepositoryProvider.future);
+      final streets = await ref.watch(cityStreetsProvider.future);
+      final cards = await ref.watch(streetCardsProvider.future);
+      final sidesOf = await ref.watch(sidesOfProvider.future);
+      final pool = {
+        for (final s in QuestionSelector.candidates(
+          area.streetsIn(pack, difficulty.pool),
+        ))
+          streets[s.id] ?? s,
+      };
+      return memorySummary(pool, cards, now, sidesOf);
+    });
+
+/// Of [m]'s streets, those Known or better.
+int knownOf(MemorySummary m) =>
+    (m.counts[MemoryState.known] ?? 0) +
+    (m.counts[MemoryState.solid] ?? 0) +
+    (m.counts[MemoryState.mastered] ?? 0);
+
 /// A raion's gateways (SPEC §6.5): how many its neighbourhoods have, how many
 /// of their cards are Solid, and whether any is carded yet.
 typedef GatewayCount = ({int solid, int total, bool started});

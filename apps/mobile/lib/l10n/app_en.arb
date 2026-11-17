@@ -2524,6 +2524,23 @@
       }
     }
   },
+  "explorePool": "{count, plural, =1{1 street} other{{total} streets}} at {difficulty} · {known} known",
+  "@explorePool": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "String"
+      },
+      "difficulty": {
+        "type": "String"
+      },
+      "known": {
+        "type": "String"
+      }
+    }
+  },
   "memoryChartFirstDay": "Your line starts today. A point a day for two weeks, then one a week.",
   "memoryChartDaily": "A point a day for your first two weeks, then one a week.",
   "memoryChartWeekly": "A point a week since you started. From week 10 the chart shows the last 10 weeks.",

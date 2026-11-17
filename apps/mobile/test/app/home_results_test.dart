@@ -167,6 +167,18 @@ void main() {
     expect(find.text('Where to play?'), findsOneWidget);
   });
 
+  testWidgets('the play card says what a round can ask at the difficulty and '
+      'how much of it is known', (tester) async {
+    await SettingsDao(db).chooseDifficulty(Difficulty.medium);
+    await pumpApp(tester, Routes.home);
+    exploreMap!.onTap(raion.center, 11);
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining(RegExp(r'streets at Medium · 0 known$')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('zoomed in, a tap picks the area inside the district; zoomed '
       'out, the district', (tester) async {
     await pumpApp(tester, Routes.home);

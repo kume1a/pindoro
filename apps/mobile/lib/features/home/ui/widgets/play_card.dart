@@ -9,13 +9,16 @@ import 'package:pindoro_design/pindoro_design.dart';
 
 /// What Play starts, at the top of Explore's sheet: the round in progress
 /// (Continue), the area picked on the map or last played with its City
-/// memory, the difficulty and Play; or, with no area yet, how to pick one.
+/// memory (once a difficulty is set, what a round there can ask and how
+/// much of it is known), the difficulty and Play; or, with no area yet, how
+/// to pick one.
 class PlayCard extends StatelessWidget {
   const PlayCard({
     super.key,
     required this.saved,
     required this.area,
     required this.memory,
+    this.pool,
     required this.difficulty,
     required this.playLabel,
     required this.onPlay,
@@ -31,6 +34,10 @@ class PlayCard extends StatelessWidget {
   /// The area's name; null asks for one.
   final String? area;
   final MemorySummary? memory;
+
+  /// What a round at [difficulty] can ask here and how much is in memory;
+  /// shown instead of [memory] once known.
+  final MemorySummary? pool;
   final Difficulty? difficulty;
 
   /// "Tbilisi · Vake · Medium", for screen readers.
@@ -47,7 +54,8 @@ class PlayCard extends StatelessWidget {
     final c = PindoroTheme.of(context).colors;
     final saved = this.saved;
     final area = this.area;
-    final memory = this.memory;
+    final pool = this.pool;
+    final memory = pool ?? this.memory;
     final difficulty = this.difficulty;
 
     Widget card(List<Widget> children, {bool primary = false}) => LipBox(
@@ -113,12 +121,19 @@ class PlayCard extends StatelessWidget {
       ]);
     }
 
-    final inMemory = memory == null
-        ? null
-        : l10n.memoryInMemory(
-            formatNumber(memory.memory.round()),
-            formatNumber(memory.total),
-          );
+    final inMemory = switch ((pool, difficulty, memory)) {
+      (final p?, final d?, _) => l10n.explorePool(
+        p.total,
+        formatNumber(p.total),
+        difficultyName(l10n, d),
+        formatNumber(knownOf(p)),
+      ),
+      (_, _, final m?) => l10n.memoryInMemory(
+        formatNumber(m.memory.round()),
+        formatNumber(m.total),
+      ),
+      _ => null,
+    };
     return card([
       Tappable(
         label: l10n.a11yPlayArea(area),

@@ -686,6 +686,7 @@
   "a11yLastWeek": "ბოლო 7 დღე: 7-დან {count} ჩაითვალა.",
   "a11yTodayDrills": "დღევანდელი სესია: {kinds}, დაახლოებით {minutes} წუთი.",
   "memoryInMemory": "{total}-დან {known} მეხსიერებაშია",
+  "explorePool": "{count, plural, other{{total} ქუჩა}} · {difficulty} · {known} ნაცნობი",
   "memoryChartFirstDay": "შენი ხაზი დღეს იწყება. ორი კვირა დღეში ერთი წერტილი, მერე კვირაში ერთი.",
   "memoryChartDaily": "პირველ ორ კვირას დღეში ერთი წერტილი, მერე კვირაში ერთი.",
   "memoryChartWeekly": "დაწყებიდან კვირაში ერთი წერტილი. მე-10 კვირიდან გრაფიკი ბოლო 10 კვირას აჩვენებს.",

@@ -85,6 +85,15 @@ void main() {
   test('NotEnoughStreets counts the candidates', () {
     final s = QuestionSelector().select(_grid(1), bounds: _bounds);
     expect((s as NotEnoughStreets).count, 9);
+    expect(QuestionSelector.candidates(_grid(1)), hasLength(9));
+    expect(
+      QuestionSelector.candidates([
+        ..._grid(1),
+        _street('short', 'short', const LatLng(41.705, 44.705), lengthM: 100),
+      ]),
+      hasLength(9),
+      reason: 'the pool a round draws from, short names left out',
+    );
   });
 
   test('within a cell: unknown, then missed, then known; then not recent', () {

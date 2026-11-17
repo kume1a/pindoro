@@ -136,6 +136,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       saved: round,
       area: area == null ? null : areaLabel(context, area, pack, settings),
       memory: _memoryOf(area, areas),
+      pool: area == null || difficulty == null
+          ? null
+          : ref.watch(roundPoolProvider((area, difficulty))).value,
       difficulty: difficulty,
       playLabel: area == null || difficulty == null
           ? null
