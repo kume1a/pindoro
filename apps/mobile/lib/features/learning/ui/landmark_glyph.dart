@@ -51,7 +51,8 @@ String landmarkKindName(AppLocalizations l10n, String kind) => switch (kind) {
 };
 
 /// A place as a question names it, in the street names' script: a chain's
-/// branch or a repeated name with its street ("Dunkin', Dolidze Street").
+/// branch or a repeated name with its street ("Dunkin', Dolidze Street"), and
+/// with its corner when another of its name stands on that street too.
 String placeName(
   AppLocalizations l10n,
   LandmarkQuestion q,
@@ -60,8 +61,13 @@ String placeName(
   final name = settings?.streetNames == StreetNameMode.english
       ? q.nameEn ?? q.landmark.name
       : q.landmark.name;
-  return switch (q.street) {
-    final street? when q.ambiguous => l10n.placeOnStreet(
+  return switch ((q.street, q.crossStreet)) {
+    (final street?, final cross?) => l10n.placeAtCorner(
+      name,
+      streetName(street, settings),
+      streetName(cross, settings),
+    ),
+    (final street?, _) when q.ambiguous => l10n.placeOnStreet(
       name,
       streetName(street, settings),
     ),

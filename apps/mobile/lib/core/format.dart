@@ -80,10 +80,6 @@ String _km(double metres, AppLocalizations l10n) =>
 String _decimal(String pattern, double value, AppLocalizations l10n) =>
     NumberFormat(pattern, l10n.localeName).format(value);
 
-/// "6:05": minutes and seconds of a countdown.
-String formatCountdown(int seconds) =>
-    '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
-
 /// "5 min", "2 h", "3 d" for how long ago something happened.
 String formatAgo(Duration ago, AppLocalizations l10n) {
   if (ago.inMinutes < 60) return l10n.unitMinutes(ago.inMinutes.clamp(1, 59));

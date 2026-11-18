@@ -12,12 +12,6 @@ void main() {
     expect(formatNumber(1234567), '1 234 567');
   });
 
-  test('a countdown shows minutes and two-digit seconds', () {
-    expect(formatCountdown(365), '6:05');
-    expect(formatCountdown(59), '0:59');
-    expect(formatCountdown(0), '0:00');
-  });
-
   test('Georgian names romanise for Latin search', () {
     expect(latinGeorgian('ვაკე'), 'vake');
     expect(latinGeorgian('სოლოლაკი'), 'sololaki');

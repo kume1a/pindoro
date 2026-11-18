@@ -264,8 +264,9 @@ if due.length * tReview > budget:
 else:
     reviews = due
     nNew = min(nBase, floor((budget - due.length * tReview) / tNew))
-session = interleave([3 intros], [5 reviews], [retrieval 1 of those 3], ... ,
-                     [all retrieval 2s + same-session relearns at the end])
+session = rounds of at most roundSteps steps (§16.20), each
+          interleave([3 intros], [5 reviews], [retrieval 1 of those 3], ... ,
+                     [the round's retrieval 2s + its relearns at the end])
 ```
 
 - Route items (J, G, B, L, S) are reviews like any other; new route items are capped at 10 a day and paused
@@ -377,6 +378,7 @@ pindoro_core `ScoringConfig`, not copied):
 | `groupSize`, `reviewsPerBlock`                                       | 3, 5                                |
 | `retrieval1GapMin`, `retrieval1GapMax`, `retrieval1GapFloor`         | 3, 6, 2 items                       |
 | `learnMoreCount`                                                     | 10                                  |
+| `roundSteps` (a new street counts 3: intro, retrieval 1 and 2)       | 20                                  |
 | `placementSamplePerDistrict`, `placementPassMin`                     | 5, 4                                |
 | `placementPinS` (time estimate per placement pin)                    | 4 s                                 |
 | `nightOwlBefore` (Night owl badge: an answer before this local hour) | 4                                   |
@@ -470,7 +472,7 @@ rest of the spec. Numbers named here are in §13.
 5. **Intro and retrievals.** The intro creates the card row (`intro_at`, state `learning`) and is not
    a review, so it writes no `review_log` row. Retrieval 1 is the card's first FSRS review (S0/D0);
    retrieval 2 is a same-day review. After Again on retrieval 1 the relearn comes 5–10 items later and
-   retrieval 2 still closes the session.
+   retrieval 2 still closes the round.
 6. **Interleaving.** Each retrieval 1 is placed on its own, after a seeded `retrieval1GapMin`–
    `retrieval1GapMax` other items: §7's literal pattern (3 intros, 5 reviews, the 3 retrieval 1s)
    would put 7 items between every intro and its retrieval 1. Near the end, the closing retrieval 2s
@@ -488,7 +490,8 @@ rest of the spec. Numbers named here are in §13.
    is empty only once the day counts. `Planner.plan` takes `introducedToday`, `spentTodayS`,
    `tReviewS` and `tNewS` as inputs.
 9. **Time spent** comes from `review_log`: within a session, the gaps between consecutive answers,
-   each capped at `answerGapCapS`. The session timer is an estimate and never ends a session.
+   each capped at `answerGapCapS`. There is no session timer: the day is played in rounds
+   (§16.20).
    `tReviewS` / `tNewS` become the log medians once there are `timeEstimateMinSamples` samples (M3).
 10. **`review_log.format`**: `placement`, `pretest`, `retrieval1`, `retrieval2`, `review`, `relearn`,
     `explore`, `exploreLog` (an Explore answer that schedules nothing, §16.16), `name`, `nameCheck`,
@@ -845,9 +848,11 @@ blank maps after every answer.
     streets. The player's own landmarks still start as a first review.
 88. **A place's L2 and L3** open only once its L1 is Known; a turn, connection or OSM place needs
     at least one named street to be Known (one met only by connectors stays shut).
-89. **Chains and repeated names** (a brand, or a `name_ka` shared by another landmark in the pack)
-    are asked with their street, the one of the junction's streets nearest the place: "Dunkin',
-    Dolidze Street".
+89. **Chains and repeated names** (a brand, a fuel station or supermarket, or a `name_ka` shared by
+    another landmark in the pack) are asked with their street, the one of the junction's streets
+    nearest the place: "Dunkin', Dolidze Street". A second of the name on that street adds its
+    junction's other street, nearest the place ("Socar, Chavchavadze Avenue × Kazbegi Avenue"),
+    and has no L2, which that name would give away (§16.20).
 90. **Relearns** after Again stop at `relearnMaxPerSession` per card per session; the card then
     waits for its due time (at least a day out), and the reveal says when.
 91. **Maps** (replaces §16.6 item 25):
@@ -918,3 +923,21 @@ about: the 60/40 split sent side streets from day one.
      quick starts offer a round of them: 10 from the learned streets in the districts holding them,
      at every difficulty, scored at the player's, the ones not Known now first. Its answers follow
      item 16: a pass reviews only a near-due card, a miss always counts.
+
+### 16.20 Rounds and places told apart (2026-11-18)
+
+On the second day the player quit a session after about 15 minutes, with its timer still running,
+and was asked for a fuel station that looked like every other one.
+
+102. **Rounds, no timer.** The day's plan comes in rounds of at most `roundSteps` steps, a new
+     street counting three (its intro and both retrievals) and a pending one two, in round 1.
+     Groups of new streets stay with their block of reviews; the rounds are as few as fit and as
+     even as they cut (the smallest cap that needs no more of them). Each round interleaves on
+     its own: its retrieval 1s after their gaps (at least `retrieval1GapFloor` items near its
+     end), its retrieval 2s and relearns closing it, so leaving between rounds leaves nothing
+     half learned. Round done shows that round's counts, Next round and Done for now; the last
+     round's is Session done, with Learn 10 more. The session bar shows the round; a pill shows
+     "Round 1 of 3" when there are more. Today's drive shows the rounds ("3 rounds · saves as you
+     go") instead of minutes. "Time a day" stays the daily goal: it sizes the day (§7, §16.2).
+103. **Chain places with their street.** Fuel stations and supermarkets are always asked with their
+     street, branded or not; two of one name on one street also get their corner (item 89).

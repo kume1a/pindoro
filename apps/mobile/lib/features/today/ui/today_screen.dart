@@ -319,17 +319,17 @@ class _TodaysDrive extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final minutes = (plan.estimatedS / 60).ceil();
+    final rounds = plan.rounds.length;
     final tiles = _planTiles(l10n, plan);
     return _TodayCard(
       primary: true,
       semanticLabel: l10n.a11yTodayDrills(
         [for (final t in tiles) '${t.label} ${t.value}'].join(', '),
-        minutes,
+        rounds,
       ),
       mascot: PindoExpression.happy,
       title: l10n.todayDriveTitle,
-      subtitle: l10n.todayDriveSubtitle(minutes),
+      subtitle: l10n.todayDriveSubtitle(rounds),
       tiles: tiles,
       actions: PindoroButton(
         label: l10n.todayStart,

@@ -9,18 +9,23 @@ import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
-/// Session done: the counts, City memory counting up from the session's
-/// start, and what to watch out for (mix-ups, streets Close twice).
+/// Session done, or a round done with more to come: the counts, City memory
+/// counting up from the round's start, and what to watch out for (mix-ups,
+/// streets Close twice).
 class SessionDoneView extends ConsumerStatefulWidget {
   const SessionDoneView({
     super.key,
     required this.summary,
     required this.onDone,
+    this.onNextRound,
     this.onLearnMore,
   });
 
   final SessionSummary summary;
   final VoidCallback onDone;
+
+  /// "Next round", above "Done for now", while rounds are left.
+  final VoidCallback? onNextRound;
 
   /// "Learn 10 more", above Done when offered.
   final VoidCallback? onLearnMore;
@@ -38,7 +43,9 @@ class _SessionDoneViewState extends ConsumerState<SessionDoneView>
   Widget build(BuildContext context) {
     final summary = widget.summary;
     final onDone = widget.onDone;
+    final onNextRound = widget.onNextRound;
     final onLearnMore = widget.onLearnMore;
+    final more = onNextRound ?? onLearnMore;
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
     final settings = ref.watch(settingsProvider).value;
@@ -75,14 +82,18 @@ class _SessionDoneViewState extends ConsumerState<SessionDoneView>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             spacing: PindoroSpace.s1,
             children: [
-              if (onLearnMore case final learnMore?)
+              if (more != null)
                 PindoroButton(
-                  label: l10n.todayLearnMore(LearningConfig.learnMoreCount),
-                  onPressed: learnMore,
+                  label: onNextRound != null
+                      ? l10n.sessionNextRound
+                      : l10n.todayLearnMore(LearningConfig.learnMoreCount),
+                  onPressed: more,
                 ),
               PindoroButton(
-                label: l10n.commonDone,
-                variant: onLearnMore == null
+                label: onNextRound != null
+                    ? l10n.sessionRoundLater
+                    : l10n.commonDone,
+                variant: more == null
                     ? PindoroButtonVariant.primary
                     : PindoroButtonVariant.secondary,
                 onPressed: onDone,
@@ -92,12 +103,14 @@ class _SessionDoneViewState extends ConsumerState<SessionDoneView>
           children: [
             const Center(child: Pindo(PindoExpression.proud, height: 120)),
             Text(
-              l10n.sessionDoneTitle,
+              onNextRound != null
+                  ? l10n.sessionRoundDoneTitle(s.round, s.rounds)
+                  : l10n.sessionDoneTitle,
               textAlign: TextAlign.center,
               style: PindoroType.headlineLg.copyWith(color: c.textPrimary),
             ),
             Text(
-              s.cleared
+              s.cleared && onNextRound == null
                   ? l10n.sessionDoneCleared(s.minutes)
                   : l10n.sessionMinutes(s.minutes),
               textAlign: TextAlign.center,

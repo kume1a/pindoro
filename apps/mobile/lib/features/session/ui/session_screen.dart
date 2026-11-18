@@ -157,7 +157,10 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
       SessionDone(:final summary) => SessionDoneView(
         summary: summary,
         onDone: _leave,
-        onLearnMore: summary.cleared
+        onNextRound: summary.round < summary.rounds
+            ? controller.nextRound
+            : null,
+        onLearnMore: summary.cleared && summary.round == summary.rounds
             ? () => context.pushReplacement(Routes.learnMore)
             : null,
       ),
@@ -246,7 +249,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
   }
 
   Widget _topBar(SessionPlaying p, SessionController controller) =>
-      SessionTopBar(p, drills: controller.drills, onLeave: _leave);
+      SessionTopBar(p, round: controller.round, onLeave: _leave);
 
   /// "Next review in 12 days", "Back in this session", or for a new leech
   /// "Back tomorrow for a closer look".

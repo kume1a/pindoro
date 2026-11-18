@@ -38,7 +38,8 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                screen: calibration, fitted FSRS weights, tier C relief; the
                                home/work picker and your landmarks: list, add on the map
                                snapped to a junction), streak, me, session (SessionController plays
-                               today's plan, Learn 10 more or the city's placement; each step's
+                               today's plan and Learn 10 more round by round (Round done between
+                               them, no timer), or the city's placement; each step's
                                SessionTask: a pin, Name it, both ends, the family sweep, the
                                crossings drill, a bearing, a route card (RouteView: the
                                turn on the heading-up map, gateway, bridge, connection, landmark) or a
