@@ -62,33 +62,38 @@ Set<String> nameForms(NamedStreet street) {
     ..remove('');
 }
 
-double _distance(String typed, NamedStreet street) {
-  final base = nameBase(typed);
-  final typedForms = {base, transliterate(base)};
-  return [
-    for (final t in typedForms)
-      for (final f in nameForms(street)) nameDistance(t, f),
-  ].fold(1, min);
-}
+/// A typed [base] as it is matched: itself and in Latin letters.
+Set<String> _typedForms(String base) => {base, transliterate(base)};
 
 /// A typed name counts for [street] within [LearningConfig.fuzzyNameMax] of
 /// any of its forms (SPEC §5.2).
-bool nameMatches(String typed, NamedStreet street) =>
-    nameBase(typed).isNotEmpty &&
-    _distance(typed, street) <= LearningConfig.fuzzyNameMax;
+bool nameMatches(String typed, NamedStreet street) {
+  final base = nameBase(typed);
+  if (base.isEmpty) return false;
+  final forms = nameForms(street);
+  return [
+        for (final t in _typedForms(base))
+          for (final f in forms) nameDistance(t, f),
+      ].fold<double>(1, min) <=
+      LearningConfig.fuzzyNameMax;
+}
 
 /// The street [typed] names best among [streets]: a fuzzy match, else the
 /// nearest start of a name (what's typed so far); null under two letters.
 NamedStreet? suggestStreet(String typed, Iterable<NamedStreet> streets) {
   final base = nameBase(typed);
   if (base.length < 2) return null;
-  final typedForms = {base, transliterate(base)};
-  double score(NamedStreet s) => [
-    for (final t in typedForms)
-      for (final f in nameForms(s))
-        nameDistance(t, f.length > t.length ? f.substring(0, t.length) : f) +
-            (f.length - t.length).abs() / 1000,
-  ].fold(1, min);
+  final typedForms = _typedForms(base);
+  double score(NamedStreet s) {
+    final forms = nameForms(s);
+    return [
+      for (final t in typedForms)
+        for (final f in forms)
+          nameDistance(t, f.length > t.length ? f.substring(0, t.length) : f) +
+              (f.length - t.length).abs() / 1000,
+    ].fold(1, min);
+  }
+
   NamedStreet? best;
   var bestScore = LearningConfig.fuzzyNameMax;
   for (final s in streets) {

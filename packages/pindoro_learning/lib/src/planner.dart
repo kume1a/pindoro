@@ -106,8 +106,9 @@ abstract final class Planner {
       for (final c in cards)
         if (c.memory != null) c.itemId: fsrs.retrievability(c.memory!, now),
     };
+    // A due card with no memory (never retrieved) is the most at risk.
     int mostAtRisk(String a, String b) {
-      final byR = retrievability[a]!.compareTo(retrievability[b]!);
+      final byR = (retrievability[a] ?? 0).compareTo(retrievability[b] ?? 0);
       return byR != 0 ? byR : a.compareTo(b);
     }
 
@@ -383,12 +384,13 @@ abstract final class Planner {
       return rounds;
     }
 
-    final fewest = cut(LearningConfig.roundSteps).length;
-    var cap = LearningConfig.roundSteps;
-    while (cap > 1 && cut(cap - 1).length == fewest) {
-      cap--;
+    var best = cut(LearningConfig.roundSteps);
+    for (var cap = LearningConfig.roundSteps - 1; cap > 0; cap--) {
+      final tighter = cut(cap);
+      if (tighter.length > best.length) break;
+      best = tighter;
     }
-    return cut(cap);
+    return best;
   }
 
   // One round: the [pending] retrieval 1s first, then [source], every retrieval 1 slipping in

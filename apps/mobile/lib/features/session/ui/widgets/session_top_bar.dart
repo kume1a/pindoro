@@ -12,7 +12,7 @@ class SessionTopBar extends StatelessWidget {
     this.play, {
     super.key,
     required this.onLeave,
-    this.round = (index: 1, count: 1),
+    required this.round,
   });
 
   final SessionPlaying play;

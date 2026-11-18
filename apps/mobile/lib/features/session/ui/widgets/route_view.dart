@@ -86,15 +86,16 @@ class _RouteViewState extends ConsumerState<RouteView> {
         ? ''
         : junctionName(graph, junction, streets, settings) ?? '';
     final tier = task.result;
-    final field = SearchField(
+    Widget searchField(String placeholder) => SearchField(
       controller: _field,
-      placeholder: l10n.sessionCrossingsHint,
+      placeholder: placeholder,
       clearLabel: l10n.commonClear,
       glyph: PindoroGlyph.signpost,
       autocorrect: false,
       textInputAction: TextInputAction.done,
       onChanged: (_) => setState(() {}),
     );
+    final field = searchField(l10n.sessionCrossingsHint);
     Widget confirm(String label, {required bool ready}) =>
         PindoroButton(label: label, onPressed: ready ? _answer : null);
     TaskResult result(
@@ -133,7 +134,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
               if (q.destChunk != null)
                 l10n.routeHeadingTo(chunkName(q.destChunk)),
               switch (landmark) {
-                final l? => l10n.routeTurnAtLandmark(l.name),
+                final l? => l10n.routeTurnAtLandmark(landmarkName(l, settings)),
                 null => l10n.routeTurnAtJunction,
               },
             ].join('\n'),
@@ -183,9 +184,11 @@ class _RouteViewState extends ConsumerState<RouteView> {
                       (
                         landmark.at,
                         LandmarkBadge(
-                          name: landmark.name,
+                          name: landmarkName(landmark, settings),
                           glyph: landmarkGlyph(landmark.kind),
-                          semanticsLabel: l10n.a11yLandmark(landmark.name),
+                          semanticsLabel: l10n.a11yLandmark(
+                            landmarkName(landmark, settings),
+                          ),
                         ),
                       ),
                     if (tier == null)
@@ -208,15 +211,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
             mainAxisSize: MainAxisSize.min,
             spacing: PindoroSpace.s2,
             children: [
-              SearchField(
-                controller: _field,
-                placeholder: l10n.routeThenOn,
-                clearLabel: l10n.commonClear,
-                glyph: PindoroGlyph.signpost,
-                autocorrect: false,
-                textInputAction: TextInputAction.done,
-                onChanged: (_) => setState(() {}),
-              ),
+              searchField(l10n.routeThenOn),
               confirm(l10n.commonConfirm, ready: chosen != null),
             ],
           ),
@@ -396,7 +391,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
               : AskCard(
                   title: q.n == 2
                       ? l10n.routeLandmarkJunction(shown)
-                      : l10n.routeLandmarkName(junctionAt(q.junction ?? -1)),
+                      : l10n.routeLandmarkName(junction),
                   note: subline,
                 ),
           controls: q.n == 1
@@ -418,11 +413,11 @@ class _RouteViewState extends ConsumerState<RouteView> {
                               onPressed: () => widget.onChoose(j),
                             )
                         else
-                          for (final n in q.names)
+                          for (final l in q.places)
                             PindoroChip(
-                              label: n,
-                              selected: task.choice == n,
-                              onPressed: () => widget.onChoose(n),
+                              label: landmarkName(l, settings),
+                              selected: task.choice == l.name,
+                              onPressed: () => widget.onChoose(l.name),
                             ),
                       ],
                     ),

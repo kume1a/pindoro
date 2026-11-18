@@ -141,6 +141,7 @@ final learnMorePlanProvider = FutureProvider.autoDispose<SessionPlan>(
 );
 
 Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
+  final learnMore = extraNew != null;
   final dao = ref.watch(learningDaoProvider);
   final now = ref.watch(clockProvider)();
   final settings = await ref.watch(settingsProvider.future);
@@ -150,8 +151,9 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
   final streetCardsFuture = ref.watch(streetCardsProvider.future);
   final curriculumFuture = ref.watch(curriculumProvider.future);
   final routesFuture = ref.watch(routeBookProvider.future);
-  final streakFuture = ref.watch(streakProvider.future);
-  final runsFuture = ref.watch(runsProvider.future);
+  // Learn 10 more opens no routes or recitals, so it waits on neither.
+  final streakFuture = learnMore ? null : ref.watch(streakProvider.future);
+  final runsFuture = learnMore ? null : ref.watch(runsProvider.future);
   final candidatesFuture = ref.watch(
     newCandidatesProvider(
       extraNew ?? LearningConfig.newPerDay[settings.minutesPerDay] ?? 0,
@@ -172,7 +174,6 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
   final today = log.where((e) => !e.ts.isBefore(startOfDay(now))).toList();
   final times = timeEstimates(log);
   final seed = now.year * 10000 + now.month * 100 + now.day;
-  final learnMore = extraNew != null;
   final book = await routesFuture;
   final open = learnMore
       ? const <String>[]
@@ -183,7 +184,7 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
           items: byItem,
           now: now,
           phase2Open:
-              (await streakFuture).summary.days >=
+              (await streakFuture!).summary.days >=
               LearningConfig.phase2StableDays,
         );
   final places = {
@@ -213,7 +214,7 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
     placesIntroducedToday: introducedToday(cards, now, types: {CardType.l}),
     openRecitals: learnMore
         ? const []
-        : openRecitals(await runsFuture, cards: byItem, now: now),
+        : openRecitals(await runsFuture!, cards: byItem, now: now),
     recitalsStartedToday: startedToday(today, now, {CardType.r}),
     drills: learnMore
         ? Drills.none

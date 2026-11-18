@@ -20,19 +20,29 @@ import 'package:pindoro_learning/pindoro_learning.dart';
 /// then nothing the pack asks due before midnight or the day's minutes
 /// spent. Called after every learning answer; [roundId] names an Explore
 /// round, [asks] is a session's [asksCardProvider] filter, read once for it.
-Future<void> markDayIfCounts(Ref ref, {String? roundId, AsksCard? asks}) async {
+Future<void> markDayIfCounts(Ref ref, {String? roundId, AsksCard? asks}) =>
+    dayMarker(ref, roundId: roundId, asks: asks)();
+
+/// [markDayIfCounts] with everything it reads taken from [ref] now, so the
+/// day is still marked when the caller is gone before it runs.
+Future<void> Function() dayMarker(Ref ref, {String? roundId, AsksCard? asks}) {
   final now = ref.read(clockProvider)();
   final learning = ref.read(learningDaoProvider);
-  final settings = await ref.read(settingsDaoProvider).read();
-  final asked = asks ?? await ref.hold<AsksCard>(asksCardProvider.future);
-  final counts = dayCounts(
-    cards: (await learning.cards()).where(asked),
-    today: await learning.log(since: startOfDay(now)),
-    minutesPerDay: settings.minutesPerDay,
-    now: now,
-  );
-  if (!counts) return;
-  await ref.read(progressDaoProvider).markDay(now, roundId: roundId);
+  final settingsDao = ref.read(settingsDaoProvider);
+  final progress = ref.read(progressDaoProvider);
+  final asked = asks == null
+      ? ref.hold<AsksCard>(asksCardProvider.future)
+      : Future.value(asks);
+  return () async {
+    final settings = await settingsDao.read();
+    final counts = dayCounts(
+      cards: (await learning.cards()).where(await asked),
+      today: await learning.log(since: startOfDay(now)),
+      minutesPerDay: settings.minutesPerDay,
+      now: now,
+    );
+    if (counts) await progress.markDay(now, roundId: roundId);
+  };
 }
 
 /// When the next reminder fires and the streak it names.

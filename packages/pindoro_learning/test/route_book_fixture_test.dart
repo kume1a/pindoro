@@ -8,11 +8,26 @@ void main() {
   late RouteBook book;
   late RoadGraph graph;
   late Map<int, int> nodes;
+  late Map<String, NamedStreet> streets;
 
   setUpAll(() {
     final vake = Vake.load();
-    (book, graph, nodes) = (vake.book, vake.graph, vake.nodes);
+    (book, graph, nodes, streets) = (
+      vake.book,
+      vake.graph,
+      vake.nodes,
+      vake.streets,
+    );
   });
+
+  Set<NamedStreet> streetsAt(int junction) => {
+    for (final e in graph.edgesAt(junction)) ?streets[e.streetId],
+  };
+  String label(int junction) => (streetsAt(
+    junction,
+  ).map((s) => normaliseName(s.name)).toSet().toList()..sort()).join(' × ');
+  bool names(String place, NamedStreet street) =>
+      nameStems(street).any(normaliseName(place).contains);
 
   test('every J card offers only the junction\'s legal exits, the right one '
       'among them (PLAN M5 accept)', () {
@@ -68,30 +83,88 @@ void main() {
   });
 
   test('two places of one name on one street are told apart by their '
-      'junction’s other street, with no L2 to give it away', () {
-    final places = book.questions.values.whereType<LandmarkQuestion>().where(
-      (q) => q.n == 1,
-    );
-    final twins = places.where((q) => q.crossStreet != null).toList();
+      'corner, with no L2 to give it away', () {
+    final places = book.questions.values
+        .whereType<LandmarkQuestion>()
+        .where((q) => q.n == 1 && !q.landmark.personal && q.street != null)
+        .toList();
+    final twins = [
+      for (final q in places)
+        if (places
+                .where(
+                  (o) =>
+                      normaliseName(o.landmark.name) ==
+                          normaliseName(q.landmark.name) &&
+                      o.street == q.street,
+                )
+                .length >
+            1)
+          q,
+    ];
     expect(twins, isNotEmpty);
     for (final q in twins) {
-      final same = twins.where(
-        (o) => o.landmark.name == q.landmark.name && o.street == q.street,
-      );
-      expect(same, hasLength(greaterThan(1)), reason: q.landmark.name);
-      expect(same.map((o) => o.crossStreet).toSet(), hasLength(same.length));
+      expect(q.crossStreet, isNotNull, reason: q.landmark.name);
       expect(q.crossStreet, isNot(q.street));
       expect(
         book.questions[RouteIds.landmark(q.landmark.id, 2)],
         isNull,
         reason: q.landmark.name,
       );
-      expect(book.questions[RouteIds.landmark(q.landmark.id, 3)], isNotNull);
     }
+    final shown = {
+      for (final q in twins) (q.landmark.name, q.street, q.crossStreet),
+    };
+    expect(shown, hasLength(twins.length), reason: 'no two read the same');
     expect(
       places.where((q) => q.crossStreet == null && q.ambiguous),
       isNotEmpty,
       reason: 'one of its name on the street needs no corner',
     );
+  });
+
+  test('a pick offers two or more choices that read apart: junctions by '
+      'their streets, places by name', () {
+    final picks = book.questions.values
+        .whereType<LandmarkQuestion>()
+        .where((q) => q.n > 1)
+        .toList();
+    expect(picks.where((q) => q.n == 2), isNotEmpty);
+    expect(picks.where((q) => q.n == 3), isNotEmpty);
+    for (final q in picks) {
+      final read = q.n == 2
+          ? q.junctions.map(label).toList()
+          : q.places.map((l) => l.name).toList();
+      expect(read.length, greaterThanOrEqualTo(2), reason: q.itemId);
+      expect(read.toSet(), hasLength(read.length), reason: '${q.itemId} $read');
+      expect(read, everyElement(isNotEmpty));
+      if (q.n == 2) expect(q.junctions, contains(q.junction));
+      if (q.n == 3) expect(read, contains(q.landmark.name));
+    }
+  });
+
+  test('no card names a place that gives its answer street away', () {
+    final named = [
+      for (final q in book.questions.values.whereType<LandmarkQuestion>())
+        if (q.n == 1 &&
+            q.junction != null &&
+            streetsAt(q.junction!).any((s) => names(q.landmark.name, s)))
+          q,
+    ];
+    expect(named, isNotEmpty, reason: 'the fixture has a metro so named');
+    for (final q in named) {
+      expect(
+        book.questions[RouteIds.landmark(q.landmark.id, 3)],
+        isNull,
+        reason: q.landmark.name,
+      );
+    }
+    for (final q in book.questions.values.whereType<TurnQuestion>()) {
+      if (q case TurnQuestion(
+        :final landmark?,
+        :final exitStreet?,
+      ) when exitStreet != q.approachStreet) {
+        expect(names(landmark.name, exitStreet), isFalse, reason: q.itemId);
+      }
+    }
   });
 }

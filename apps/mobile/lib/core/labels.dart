@@ -3,6 +3,7 @@ import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro_learning/pindoro_learning.dart' show RouteLandmark;
 
 /// A district's name per the street-name setting.
 String districtName(District d, Settings? settings) =>
@@ -11,6 +12,10 @@ String districtName(District d, Settings? settings) =>
 /// A street's name per the street-name setting.
 String streetName(NamedStreet s, Settings? settings) =>
     _byNameSetting(s.name, s.nameEn, settings);
+
+/// A place's name in the street names' script.
+String landmarkName(RouteLandmark l, Settings? settings) =>
+    _byNameSetting(l.name, l.nameEn, settings);
 
 String _byNameSetting(String local, String? english, Settings? settings) =>
     settings?.streetNames == StreetNameMode.english ? english ?? local : local;

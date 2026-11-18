@@ -47,7 +47,7 @@ class TodayScreen extends ConsumerWidget {
       (AsyncData(), AsyncData(value: final plan)) => () {
         // The day's minutes spent with reviews still due is a backlog with
         // nothing to start: done (SPEC §16.2).
-        final done = plan.steps.isEmpty;
+        final done = plan.rounds.isEmpty;
         final catchingUp = plan.backlog && !done;
         final run = catchingUp ? null : ref.watch(todayRunProvider).value;
         final learning = ref.watch(nowLearningProvider).value;
@@ -284,10 +284,7 @@ List<StatTile> _planTiles(AppLocalizations l10n, SessionPlan plan) {
     if (drills.crossings != null) l10n.todayDrillCrossings,
     if (drills.bearings.isNotEmpty) l10n.todayDrillBearings,
   ];
-  final drillCount =
-      (drills.sweep == null ? 0 : 1) +
-      (drills.crossings == null ? 0 : 1) +
-      drills.bearings.length;
+  final drillCount = Planner.drillSteps(drills).length;
   return [
     for (final (glyph, label, count, caption) in [
       (

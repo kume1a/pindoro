@@ -49,7 +49,12 @@ Drills planDrills({
   final random = Random(seed);
   return Drills(
     sweep: familySweep(curriculum: curriculum, cards: cards, now: now),
-    crossings: today.any((e) => e.format == ReviewFormat.crossings)
+    crossings:
+        {
+              for (final e in today)
+                if (e.format == ReviewFormat.crossings) e.sessionId,
+            }.length >=
+            LearningConfig.crossingsPerDay
         ? null
         : crossingsDrill(
             curriculum: curriculum,
@@ -143,7 +148,7 @@ CrossingsDrill? crossingsDrill({
         .where(known)
         .take(LearningConfig.crossingsMax)
         .toList();
-    if (asked.length >= 2) {
+    if (asked.length >= LearningConfig.crossingsMin) {
       return (
         streetId: street.id,
         fromId: ordered.first.street.id,

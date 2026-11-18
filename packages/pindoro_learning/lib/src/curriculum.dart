@@ -351,7 +351,7 @@ class Curriculum {
 
   /// Chunks with streets of no band left to teach, in teaching order: the anchors and the centre's
   /// chunk, then chunks already started, then the chunk bordering the most finished chunks
-  /// (ties: nearer the centre).
+  /// (ties: nearer the centre); streets without a chunk last.
   List<String> chunkSequence(
     Map<String, CardState> cards,
     List<String> anchors,
@@ -379,17 +379,24 @@ class Curriculum {
       for (final MapEntry(:key, :value) in _chunkOrder.entries)
         if (value.any((s) => !cards.containsKey(s.id))) key,
     ];
+    // Each chunk's sort keys, worked out once: streets without a chunk always
+    // last (SPEC §16.11 item 41).
+    final keys = {
+      for (final c in open)
+        c: [
+          c == noChunk ? 1 : 0,
+          startRank(c),
+          started(c) ? 0 : 1,
+          -finishedNeighbours(c),
+          fromCentre(c),
+        ],
+    };
     return open..sort((a, b) {
-      final byStart = startRank(a).compareTo(startRank(b));
-      if (byStart != 0) return byStart;
-      final byStarted = (started(a) ? 0 : 1).compareTo(started(b) ? 0 : 1);
-      if (byStarted != 0) return byStarted;
-      final byNeighbours = finishedNeighbours(
-        b,
-      ).compareTo(finishedNeighbours(a));
-      if (byNeighbours != 0) return byNeighbours;
-      final byCentre = fromCentre(a).compareTo(fromCentre(b));
-      return byCentre != 0 ? byCentre : a.compareTo(b);
+      for (final (i, key) in keys[a]!.indexed) {
+        final by = key.compareTo(keys[b]![i]);
+        if (by != 0) return by;
+      }
+      return a.compareTo(b);
     });
   }
 

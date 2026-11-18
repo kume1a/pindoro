@@ -227,6 +227,25 @@ void main() {
       expect(firstChunk(cards: finished(['c1', 'c4'])), 'c3');
     });
 
+    test('streets without a chunk come last, even once one is learnt', () {
+      final withLoose = _curriculum([
+        ...streets,
+        for (var i = 0; i < 2; i++)
+          _street('loose-$i', chunk: null, length: 2000.0 - i),
+      ], neighbours: neighbours);
+      final next = withLoose.next(
+        cards: {
+          ...finished(['c1']),
+          'loose-0': _card('loose-0'),
+        },
+        now: _now,
+        count: 20,
+        anchors: const [],
+      );
+      expect(next.last, 'loose-1');
+      expect(next.first, startsWith('c2'));
+    });
+
     test('a group stays in its chunk while it has streets', () {
       expect(_next(curriculum, count: 6), [
         'c1-0',

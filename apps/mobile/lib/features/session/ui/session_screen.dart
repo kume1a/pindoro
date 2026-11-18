@@ -9,6 +9,7 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/learning/data/progress.dart';
 import 'package:pindoro/features/map/ui/pin_drop_view.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro/features/session/ui/widgets/bearing_view.dart';
@@ -160,8 +161,13 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
         onNextRound: summary.round < summary.rounds
             ? controller.nextRound
             : null,
+        // In place: Today's plans read the cards again, and Today's push
+        // still ends when this screen goes.
         onLearnMore: summary.cleared && summary.round == summary.rounds
-            ? () => context.pushReplacement(Routes.learnMore)
+            ? () {
+                refreshLearning(ref);
+                unawaited(controller.start(more: true));
+              }
             : null,
       ),
       SessionPlaced(:final summary) => PlacementDoneView(

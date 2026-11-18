@@ -116,7 +116,7 @@ void main() {
       expect(street.parts.map((p) => p.id), contains(r.illegal!.edge.streetId));
       expect(r.illegal!.edge.oneway, isNot(Oneway.both));
       expect((r.tier, r.rating), (Tier.miss, Rating.again));
-      final report = moveReport(r.illegal!, r.path!, nodes);
+      final report = moveReport(r.illegal!, nodes);
       expect(report, startsWith('oneway:'));
       final reported = RecitalGrader.grade(
         allowingReports(graph, {report}, nodes),

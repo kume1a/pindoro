@@ -212,6 +212,16 @@ void main() {
       expect(ofKind(p, StepKind.review), ['P:later']);
     });
 
+    test('a due card with no memory plans first, never throws', () {
+      final broken = CardState(
+        itemId: 'P:broken',
+        phase: CardPhase.relearning,
+        dueAt: now,
+      );
+      final p = plan(cards: [...dueCards(3), broken], fresh: const []);
+      expect(ofKind(p, StepKind.review).first, 'P:broken');
+    });
+
     test(
       'a street left in learning gets retrieval 1 first, then retrieval 2',
       () {

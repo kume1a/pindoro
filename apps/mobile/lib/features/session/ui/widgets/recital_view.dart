@@ -308,10 +308,7 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
       final m? when m.reason == IllegalReason.oneway => l10n.recitalOneway(
         nameOf(m.edge),
       ),
-      final m? => l10n.recitalNoTurn(
-        nameOf(_approachOf(path!, m)),
-        nameOf(m.edge),
-      ),
+      final m? => l10n.recitalNoTurn(nameOf(m.approach), nameOf(m.edge)),
       null when path == null => l10n.recitalNoRoute,
       null when stretch == null => l10n.recitalNotThere,
       null => [
@@ -421,15 +418,12 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
           street,
           settings,
         ),
-        (landmark: final landmark?, street: _, turn: _) => landmark.name,
+        (landmark: final landmark?, street: _, turn: _) => landmarkName(
+          landmark,
+          settings,
+        ),
         _ => '',
       });
-}
-
-/// The illegal move's way in: the path's edge before it.
-RoadEdge? _approachOf(Route path, IllegalMove move) {
-  final i = path.edges.indexWhere((e) => identical(e, move.edge));
-  return i > 0 ? path.edges[i - 1] : null;
 }
 
 LatLng _middle(Polyline line) => line[line.length ~/ 2];

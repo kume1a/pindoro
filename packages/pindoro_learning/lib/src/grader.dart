@@ -175,13 +175,20 @@ List<NamedStreet> nameChoices({
   required Random random,
 }) {
   final at = target.parts.first.midpoint;
-  double away(NamedStreet s) => distanceBetween(at, s.parts.first.midpoint);
-  final others = streets.toSet().where((s) => s.id != target.id).toList()
+  // Each street's sort key, worked out once: confusable first, then nearest.
+  final keys = {
+    for (final s in streets)
+      if (s.id != target.id)
+        s: (
+          confusable.contains(s.id) ? 0 : 1,
+          distanceBetween(at, s.parts.first.midpoint),
+        ),
+  };
+  final others = keys.keys.toList()
     ..sort((a, b) {
-      final byConfusable = (confusable.contains(a.id) ? 0 : 1).compareTo(
-        confusable.contains(b.id) ? 0 : 1,
-      );
-      return byConfusable != 0 ? byConfusable : away(a).compareTo(away(b));
+      final (ca, da) = keys[a]!;
+      final (cb, db) = keys[b]!;
+      return ca != cb ? ca.compareTo(cb) : da.compareTo(db);
     });
   final names = {normaliseName(target.name)};
   return [

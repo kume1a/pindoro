@@ -41,6 +41,7 @@ final routeBookProvider = FutureProvider<RouteBook>((ref) async {
         (
           id: l.id,
           name: l.name,
+          nameEn: null,
           kind: l.kind,
           at: LatLng(l.lat, l.lon),
           personal: true,
