@@ -102,7 +102,6 @@ void main() {
       expect(ofKind(p, StepKind.retrieval1), hasLength(10));
       expect(ofKind(p, StepKind.retrieval2), hasLength(10));
       expect(ofKind(p, StepKind.review), hasLength(10));
-      expect(p.estimatedS, 10 * 12 + 10 * 45);
     });
 
     test('nBase follows the minutes: 7 / 10 / 14 / 21 / 28', () {
@@ -230,53 +229,94 @@ void main() {
   });
 
   group('interleaving (SPEC §7, §16.6)', () {
-    test(
-      '3 intros, reviews, retrieval 1 after 3–6 other items, retrieval 2s last',
-      () {
-        for (final dueN in [12, 25, 40, 60]) {
-          for (var seed = 0; seed < 40; seed++) {
-            final p = plan(cards: dueCards(dueN), seed: seed);
-            final steps = p.steps;
-            final why = '$dueN due, seed $seed';
-            expect(
-              steps.take(3).map((s) => s.kind),
-              everyElement(StepKind.intro),
-            );
-            for (final id in ofKind(p, StepKind.intro)) {
+    test('3 intros, reviews, retrieval 1 after 3–6 other items (at least 2 '
+        'near a round’s end), retrieval 2s closing each round', () {
+      for (final (dueN, minutes) in [
+        (0, 20),
+        (5, 20),
+        (12, 20),
+        (25, 20),
+        (40, 20),
+        (60, 20),
+        (0, 60),
+        (30, 45),
+      ]) {
+        for (var seed = 0; seed < 40; seed++) {
+          final p = plan(
+            cards: dueCards(dueN),
+            fresh: candidates(40),
+            minutes: minutes,
+            seed: seed,
+          );
+          final why = '$dueN due, $minutes min, seed $seed';
+          expect(
+            p.steps.take(3).map((s) => s.kind),
+            everyElement(StepKind.intro),
+          );
+          for (final (n, steps) in p.rounds.indexed) {
+            final intros = [
+              for (final s in steps)
+                if (s.kind == StepKind.intro) s.itemId,
+            ];
+            for (final id in intros) {
               final intro = steps.indexOf((kind: StepKind.intro, itemId: id));
               final r1 = steps.indexOf((kind: StepKind.retrieval1, itemId: id));
+              final r2 = steps.indexOf((kind: StepKind.retrieval2, itemId: id));
               expect(
                 r1 - intro - 1,
-                inInclusiveRange(3, 6),
-                reason: '$id, $why',
+                inInclusiveRange(
+                  LearningConfig.retrieval1GapFloor,
+                  LearningConfig.retrieval1GapMax,
+                ),
+                reason: '$id, round $n, $why',
               );
+              expect(r2, greaterThan(r1), reason: '$id, round $n, $why');
             }
             final firstR2 = steps.indexWhere(
               (s) => s.kind == StepKind.retrieval2,
             );
-            expect(
-              steps.skip(firstR2).map((s) => s.kind),
-              everyElement(isIn([StepKind.retrieval1, StepKind.retrieval2])),
-              reason: why,
-            );
-            for (final id in ofKind(p, StepKind.intro)) {
+            if (firstR2 >= 0) {
               expect(
-                steps.indexOf((kind: StepKind.retrieval2, itemId: id)),
-                greaterThan(
-                  steps.indexOf((kind: StepKind.retrieval1, itemId: id)),
-                ),
-                reason: '$id, $why',
+                steps.skip(firstR2).map((s) => s.kind),
+                everyElement(isIn([StepKind.retrieval1, StepKind.retrieval2])),
+                reason: 'round $n, $why',
               );
             }
-            expect(
-              ofKind(p, StepKind.retrieval2).toSet(),
-              ofKind(p, StepKind.intro).toSet(),
-            );
-            expectNoRepeats(steps, why);
           }
+          expectNoRepeats(p.steps, why);
         }
-      },
-    );
+      }
+    });
+
+    test('a day comes in rounds of at most roundSteps steps', () {
+      for (final dueN in [0, 12, 40, 60, 100]) {
+        final p = plan(cards: dueCards(dueN), minutes: 30);
+        expect(p.rounds.length, greaterThan(1), reason: '$dueN due');
+        expect(
+          p.rounds.map((r) => r.length),
+          everyElement(inInclusiveRange(1, LearningConfig.roundSteps)),
+          reason: '$dueN due',
+        );
+        expect(p.rounds.expand((r) => r), p.steps);
+      }
+      final small = plan(cards: dueCards(3), fresh: candidates(2));
+      expect(small.rounds, hasLength(1));
+      expect(plan(cards: dueCards(10), spentTodayS: 1200).rounds, isEmpty);
+    });
+
+    test('a street left in learning opens and closes round 1', () {
+      final left = introduce('P:left', now.subtract(const Duration(hours: 2)));
+      final p = plan(cards: [left, ...dueCards(60)], fresh: const []);
+      expect(p.rounds.length, greaterThan(1));
+      expect(p.rounds.first.first, (
+        kind: StepKind.retrieval1,
+        itemId: 'P:left',
+      ));
+      expect(p.rounds.first.last, (
+        kind: StepKind.retrieval2,
+        itemId: 'P:left',
+      ));
+    });
 
     test('never the same street twice in a row', () {
       for (final fresh in [2, 3, 5, 10]) {
@@ -493,30 +533,6 @@ void main() {
     });
   });
 
-  test('remainingSeconds: 12 s a review, 15 s an intro or retrieval', () {
-    final steps = [
-      (kind: StepKind.intro, itemId: 'P:a'),
-      (kind: StepKind.review, itemId: 'P:b'),
-      (kind: StepKind.retrieval1, itemId: 'P:a'),
-      (kind: StepKind.relearn, itemId: 'P:b'),
-      (kind: StepKind.retrieval2, itemId: 'P:a'),
-    ];
-    expect(remainingSeconds(steps), 15 + 12 + 15 + 12 + 15);
-    expect(remainingSeconds(const []), 0);
-  });
-
-  test('secondsLeft counts down through the current step, never below the '
-      'steps after it', () {
-    final steps = [
-      (kind: StepKind.review, itemId: 'P:a'),
-      (kind: StepKind.intro, itemId: 'P:b'),
-    ];
-    expect(secondsLeft(steps, 0, spentS: 0), 12 + 15);
-    expect(secondsLeft(steps, 0, spentS: 5), 7 + 15);
-    expect(secondsLeft(steps, 0, spentS: 40), 15, reason: 'a slow answer');
-    expect(secondsLeft(steps, 1, spentS: 15), 0);
-  });
-
   group('name and ends cards, leeches, drills (SPEC §16.13)', () {
     final sides = [for (var i = 0; i < 14; i++) 'N:s$i'];
 
@@ -585,8 +601,6 @@ void main() {
         ]);
         expect(ofKind(p, StepKind.review), hasLength(7));
         expect(ofKind(p, StepKind.familySweep), ['P:parent']);
-        expect(p.estimatedS, 7 * 12 + (3 + 2 + 1) * 12);
-        expect(remainingSeconds(p.steps, drills: p.drills), p.estimatedS);
         final backlog = plan(cards: dueCards(150), drills: drills);
         expect(
           backlog.steps
@@ -652,11 +666,6 @@ void main() {
       expect(ofKind(p, StepKind.review), isEmpty);
       expect(p.newCount, 2, reason: 'new streets only');
       expect(p.routeCount, 3);
-      expect(
-        p.estimatedS,
-        5 * LearningConfig.tNewS,
-        reason: 'a place takes a new street\'s time',
-      );
     });
 
     test('places taught today come off the 3; streets keep their own '
@@ -677,16 +686,12 @@ void main() {
     });
   });
 
-  test('recitals: one new a day after the route items, 3 minutes each, paused '
-      'like them; a due one costs 3 minutes too', () {
+  test('recitals: one new a day after the route items, paused like them; a '
+      'due one is reviewed', () {
     const runs = ['R:n1:n2', 'R:n3:n4'];
     final p = plan(cards: dueCards(5), openRecitals: runs, fresh: const []);
     expect(ofKind(p, StepKind.review).last, runs.first);
     expect(p.routeCount, 1);
-    expect(
-      p.estimatedS,
-      5 * LearningConfig.tReviewS + LearningConfig.tRecitalS,
-    );
     expect(plan(openRecitals: runs, recitalsStartedToday: 1).routeCount, 0);
     expect(plan(cards: dueCards(150), openRecitals: runs).routeCount, 0);
     final dueRecital = CardState(
@@ -696,8 +701,7 @@ void main() {
       dueAt: now,
     );
     final withDue = plan(cards: [dueRecital], fresh: const []);
-    expect(withDue.estimatedS, LearningConfig.tRecitalS);
-    expect(remainingSeconds(withDue.steps), LearningConfig.tRecitalS);
+    expect(ofKind(withDue, StepKind.review), [runs.last]);
   });
 
   group('finishedBlocks', () {

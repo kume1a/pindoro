@@ -77,12 +77,14 @@ void main() {
   }
 
   const ready = SessionPlan(
-    steps: [(kind: StepKind.review, itemId: 'P:x')],
+    rounds: [
+      [(kind: StepKind.review, itemId: 'P:x')],
+      [(kind: StepKind.review, itemId: 'P:y')],
+    ],
     dueCount: 24,
     backlog: false,
     reviewCount: 24,
     newCount: 10,
-    estimatedS: 24 * 12 + 10 * 45,
   );
 
   testWidgets('first run: placement or zero; zero goes on to ready', (
@@ -100,7 +102,7 @@ void main() {
     await placed();
     await pump(tester, ready);
     expect(find.text('Today’s drive'), findsOneWidget);
-    expect(find.text('About 13 min · saves as you go'), findsOneWidget);
+    expect(find.text('2 rounds · saves as you go'), findsOneWidget);
     expect(find.bySemanticsLabel('Reviews, 24'), findsOneWidget);
     expect(find.bySemanticsLabel('New, 10'), findsOneWidget);
     expect(find.text('Turns'), findsNothing);
@@ -123,12 +125,13 @@ void main() {
     await pump(
       tester,
       const SessionPlan(
-        steps: [(kind: StepKind.bearing, itemId: 'P:x')],
+        rounds: [
+          [(kind: StepKind.bearing, itemId: 'P:x')],
+        ],
         dueCount: 0,
         backlog: false,
         reviewCount: 0,
         newCount: 0,
-        estimatedS: 300,
         drills: Drills(bearings: ['P:y', 'P:z']),
       ),
     );
@@ -142,12 +145,11 @@ void main() {
     await pump(
       tester,
       const SessionPlan(
-        steps: [],
+        rounds: [],
         dueCount: 0,
         backlog: false,
         reviewCount: 0,
         newCount: 0,
-        estimatedS: 0,
       ),
     );
     expect(find.text('Today’s goal done'), findsOneWidget);
@@ -165,12 +167,11 @@ void main() {
     await pump(
       tester,
       const SessionPlan(
-        steps: [],
+        rounds: [],
         dueCount: 2,
         backlog: true,
         reviewCount: 0,
         newCount: 0,
-        estimatedS: 0,
       ),
     );
     expect(find.text('Today’s goal done'), findsOneWidget);
@@ -186,12 +187,13 @@ void main() {
     await pump(
       tester,
       const SessionPlan(
-        steps: [(kind: StepKind.review, itemId: 'P:x')],
+        rounds: [
+          [(kind: StepKind.review, itemId: 'P:x')],
+        ],
         dueCount: 186,
         backlog: true,
         reviewCount: 150,
         newCount: 0,
-        estimatedS: 150 * 12,
       ),
     );
     expect(find.text('186 reviews waiting'), findsOneWidget);

@@ -65,7 +65,6 @@ final class SessionPlaying extends SessionState {
     required this.street,
     required this.area,
     required this.knownNames,
-    required this.startedAt,
     required this.newIndex,
     required this.newTotal,
     this.task = const PinTask(),
@@ -96,9 +95,6 @@ final class SessionPlaying extends SessionState {
   /// Names of the streets the player knows: a place question names them
   /// (SPEC §16.18).
   final Set<String> knownNames;
-
-  /// When the step showed: the session clock counts down from it.
-  final DateTime startedAt;
 
   /// "New street · [newIndex] of [newTotal]".
   final int newIndex;
@@ -152,7 +148,6 @@ final class SessionPlaying extends SessionState {
     street: street,
     area: area,
     knownNames: knownNames,
-    startedAt: startedAt,
     newIndex: newIndex,
     newTotal: newTotal,
     task: task ?? this.task,
@@ -179,6 +174,10 @@ typedef SessionSummary = ({
   List<NamedStreet> closeTwice,
   int minutes,
   bool cleared,
+
+  /// The round just played, 1-based, of [rounds]: Next round while more are left.
+  int round,
+  int rounds,
 });
 
 final class SessionDone extends SessionState {
@@ -259,8 +258,13 @@ class SessionController extends Notifier<SessionState> {
   LearningDao get _dao => ref.read(learningDaoProvider);
   DateTime _now() => ref.read(clockProvider)();
 
-  /// The plan's drills, for the screen's estimates.
-  Drills get drills => _drills;
+  /// The day's rounds (SPEC §16.20): one for placement.
+  List<List<SessionStep>> _rounds = const [];
+  int _round = 0;
+
+  /// The round playing, 1-based, of how many.
+  ({int index, int count}) get round =>
+      (index: _round + 1, count: _rounds.length);
 
   /// Today's session, with [more] "Learn 10 more", or with [placement] the
   /// city's placement.
@@ -300,13 +304,15 @@ class SessionController extends Notifier<SessionState> {
         },
       );
     }
-    final steps =
-        plan?.steps ??
+    final rounds =
+        plan?.rounds ??
         [
-          for (final id in _placement!.streets)
-            (kind: StepKind.placement, itemId: CardType.p.item(id)),
+          [
+            for (final id in _placement!.streets)
+              (kind: StepKind.placement, itemId: CardType.p.item(id)),
+          ],
         ];
-    if (steps.isEmpty && !placement) {
+    if (rounds.isEmpty) {
       state = const SessionEmpty();
       return;
     }
@@ -338,7 +344,18 @@ class SessionController extends Notifier<SessionState> {
     ).on;
     _seed = now.microsecondsSinceEpoch;
     _memoryBefore = _memory(now);
-    _show(steps, 0, const {});
+    _rounds = rounds;
+    _show(rounds.first, 0, const {});
+  }
+
+  /// After a round's summary: the next round, with a summary of its own.
+  void nextRound() {
+    if (state is! SessionDone || _round + 1 >= _rounds.length) return;
+    _answers.clear();
+    _times.clear();
+    _introsDone = 0;
+    _memoryBefore = _memory(_now());
+    _show(_rounds[++_round], 0, const {});
   }
 
   /// The intro was read: the street becomes a learning card; a leech comes
@@ -882,7 +899,6 @@ class SessionController extends Notifier<SessionState> {
       street: street,
       area: (bbox: city.bbox, boundary: city.boundary),
       knownNames: {for (final s in known) s.name},
-      startedAt: now,
       newIndex: intros.indexOf(step) + 1,
       newTotal: intros.length,
       task: task,
@@ -1395,6 +1411,8 @@ class SessionController extends Notifier<SessionState> {
       ],
       minutes: (activeSeconds(_times) / 60).ceil(),
       cleared: !_cards.values.where(_asks).any((c) => isDueBefore(c, midnight)),
+      round: _round + 1,
+      rounds: _rounds.length,
     );
   }
 }

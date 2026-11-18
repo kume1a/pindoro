@@ -156,9 +156,9 @@ void main() {
     expect(p.backlog, isFalse);
   });
 
-  test('takes the minutes a day from settings', () async {
+  test('a small day fits one round', () async {
     final p = await plan();
-    expect(p.estimatedS, 12 + 2 * 45);
+    expect(p.rounds.single, isNotEmpty);
     expect(p.backlog, isFalse);
   });
 

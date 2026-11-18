@@ -997,10 +997,13 @@
       }
     }
   },
-  "sessionMinutesLeft": "About {minutes} minutes left",
-  "@sessionMinutesLeft": {
+  "sessionRound": "Round {round} of {rounds}",
+  "@sessionRound": {
     "placeholders": {
-      "minutes": {
+      "round": {
+        "type": "int"
+      },
+      "rounds": {
         "type": "int"
       }
     }
@@ -1064,6 +1067,19 @@
   "sessionGuessNote": "A guess never counts against you. Then we’ll show you.",
   "sessionConfirmGuess": "Confirm guess",
   "sessionDoneTitle": "Session done",
+  "sessionRoundDoneTitle": "Round {round} of {rounds} done",
+  "@sessionRoundDoneTitle": {
+    "placeholders": {
+      "round": {
+        "type": "int"
+      },
+      "rounds": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionNextRound": "Next round",
+  "sessionRoundLater": "Done for now",
   "sessionDoneCleared": "{minutes} min · everything due today is cleared",
   "@sessionDoneCleared": {
     "placeholders": {
@@ -1109,10 +1125,10 @@
   "sessionDoneMixedUp": "Mixed up today · you’ll see them side by side",
   "sessionDoneCloseTwice": "Close twice · back tomorrow",
   "todayDriveTitle": "Today’s drive",
-  "todayDriveSubtitle": "About {minutes} min · saves as you go",
+  "todayDriveSubtitle": "{rounds, plural, =1{1 round} other{{rounds} rounds}} · saves as you go",
   "@todayDriveSubtitle": {
     "placeholders": {
-      "minutes": {
+      "rounds": {
         "type": "int"
       }
     }
@@ -1991,6 +2007,20 @@
       }
     }
   },
+  "placeAtCorner": "{place}, {street} × {cross}",
+  "@placeAtCorner": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      },
+      "street": {
+        "type": "String"
+      },
+      "cross": {
+        "type": "String"
+      }
+    }
+  },
   "placeOnStreet": "{place}, {street}",
   "@placeOnStreet": {
     "placeholders": {
@@ -2476,13 +2506,13 @@
       }
     }
   },
-  "a11yTodayDrills": "Today’s session: {kinds}, about {minutes} minutes.",
+  "a11yTodayDrills": "Today’s session: {kinds}, {rounds, plural, =1{1 round} other{{rounds} rounds}}.",
   "@a11yTodayDrills": {
     "placeholders": {
       "kinds": {
         "type": "String"
       },
-      "minutes": {
+      "rounds": {
         "type": "int"
       }
     }

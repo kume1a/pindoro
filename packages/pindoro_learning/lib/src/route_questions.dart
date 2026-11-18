@@ -116,6 +116,7 @@ final class LandmarkQuestion extends RouteQuestion {
     this.approachStreet,
     this.nameEn,
     this.street,
+    this.crossStreet,
     this.ambiguous = false,
     this.outline,
   });
@@ -137,6 +138,10 @@ final class LandmarkQuestion extends RouteQuestion {
 
   /// A chain or a repeated name: the question names [street] with it (SPEC §16.18).
   final bool ambiguous;
+
+  /// Another place of the same name on [street]: its junction's other street,
+  /// named too (SPEC §16.20).
+  final NamedStreet? crossStreet;
 
   /// The pack's outline of an area place (a park, a mall); null for a point.
   final List<List<Polyline>>? outline;
@@ -169,6 +174,10 @@ typedef RouteBook = ({
 
 /// How many choices a pick question offers.
 const int _choices = 4;
+
+// ponytail: by kind, not a city-wide branch count; pack that count if another kind needs it.
+/// Kinds of place the city has many alike, so always named with their street (SPEC §16.20).
+const Set<String> _chainKinds = {'fuel', 'supermarket'};
 
 /// Degrees from north driving along [line] at its start.
 double _startBearing(Polyline line) => bearingDegrees(line[0], line[1]);
@@ -390,14 +399,27 @@ RouteBook buildRouteBook({
   for (final l in landmarks) {
     sameName.update(normaliseName(l.nameKa), (n) => n + 1, ifAbsent: () => 1);
   }
+  List<NamedStreet> turnStreets(RouteLandmark l) => [
+    ?turnJunctions[l.junction]?.approachStreet,
+    ?turnJunctions[l.junction]?.exitStreet,
+  ];
+  String nameOnStreet(RouteLandmark l) =>
+      '${normaliseName(l.name)} ${_nearestTo(l.at, turnStreets(l))?.id}';
+  final sameOnStreet = <String, int>{};
+  for (final l in onTurns.values) {
+    sameOnStreet.update(nameOnStreet(l), (n) => n + 1, ifAbsent: () => 1);
+  }
   for (final landmark in [...onTurns.values, ...personal]) {
     final at = landmark.junction;
     final turn = turnJunctions[at];
     final pack = byLandmark[landmark.id];
-    final street = _nearestTo(landmark.at, [
-      ?turn?.approachStreet,
-      ?turn?.exitStreet,
-    ]);
+    final street = _nearestTo(landmark.at, turnStreets(landmark));
+    final cross = at != null && (sameOnStreet[nameOnStreet(landmark)] ?? 0) > 1
+        ? _nearestTo(landmark.at, [
+            for (final s in {for (final e in graph.edgesAt(at)) ?streetOf(e)})
+              if (s != street) s,
+          ])
+        : null;
     final nearJunctions =
         (turnJunctions.keys.where((j) => j != at).toList()..sort(
               (a, b) => distanceBetween(
@@ -420,6 +442,8 @@ RouteBook buildRouteBook({
     final known = {?turn?.approachStreet?.id};
     for (final n in [1, 2, 3]) {
       if (n > 1 && (at == null || turn == null)) continue;
+      // Named with its junction's streets, its L2 would give the answer away.
+      if (n == 2 && cross != null) continue;
       final id = RouteIds.landmark(landmark.id, n);
       add(
         (
@@ -447,9 +471,11 @@ RouteBook buildRouteBook({
           nameEn: pack?.nameEn,
           outline: pack?.outline,
           street: street,
+          crossStreet: cross,
           ambiguous:
               pack != null &&
               (pack.brand != null ||
+                  _chainKinds.contains(pack.kind) ||
                   (sameName[normaliseName(pack.nameKa)] ?? 0) > 1),
         ),
       );

@@ -58,5 +58,40 @@ void main() {
       (q) => names.where((n) => n == q.landmark.name).length == 1,
     );
     expect(unique.where((q) => !q.ambiguous), isNotEmpty);
+    final fuel = places.where((q) => q.landmark.kind == 'fuel');
+    expect(fuel, isNotEmpty);
+    expect(
+      fuel.where((q) => !q.ambiguous || q.street == null),
+      isEmpty,
+      reason: 'every station, a brandless one too, is named with its street',
+    );
+  });
+
+  test('two places of one name on one street are told apart by their '
+      'junction’s other street, with no L2 to give it away', () {
+    final places = book.questions.values.whereType<LandmarkQuestion>().where(
+      (q) => q.n == 1,
+    );
+    final twins = places.where((q) => q.crossStreet != null).toList();
+    expect(twins, isNotEmpty);
+    for (final q in twins) {
+      final same = twins.where(
+        (o) => o.landmark.name == q.landmark.name && o.street == q.street,
+      );
+      expect(same, hasLength(greaterThan(1)), reason: q.landmark.name);
+      expect(same.map((o) => o.crossStreet).toSet(), hasLength(same.length));
+      expect(q.crossStreet, isNot(q.street));
+      expect(
+        book.questions[RouteIds.landmark(q.landmark.id, 2)],
+        isNull,
+        reason: q.landmark.name,
+      );
+      expect(book.questions[RouteIds.landmark(q.landmark.id, 3)], isNotNull);
+    }
+    expect(
+      places.where((q) => q.crossStreet == null && q.ambiguous),
+      isNotEmpty,
+      reason: 'one of its name on the street needs no corner',
+    );
   });
 }

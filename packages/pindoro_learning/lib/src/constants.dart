@@ -91,6 +91,7 @@ abstract final class LearningConfig {
   static const int retrieval1GapMax = 6;
   static const int retrieval1GapFloor = 2;
   static const int learnMoreCount = 10;
+  static const int roundSteps = 20;
   static const double nearDueFraction = 0.5;
 
   // Curriculum (§6)

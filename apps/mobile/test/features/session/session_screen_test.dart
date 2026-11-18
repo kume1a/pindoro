@@ -116,6 +116,7 @@ void main() {
     List<SessionStep> steps, {
     String at = Routes.session,
     Drills drills = Drills.none,
+    List<List<SessionStep>>? rounds,
   }) async {
     tester.platformDispatcher.accessibilityFeaturesTestValue =
         const FakeAccessibilityFeatures(disableAnimations: true);
@@ -145,12 +146,11 @@ void main() {
           }),
           todayPlanProvider.overrideWith(
             (ref) async => SessionPlan(
-              steps: steps,
+              rounds: rounds ?? [if (steps.isNotEmpty) steps],
               dueCount: 0,
               backlog: false,
               reviewCount: 0,
               newCount: 1,
-              estimatedS: 45,
               drills: drills,
             ),
           ),
@@ -242,6 +242,52 @@ void main() {
     },
   );
 
+  testWidgets('a day in rounds: each ends on its own summary, Next round '
+      'goes on, the last offers no more', (tester) async {
+    await pump(
+      tester,
+      const [],
+      rounds: [
+        [(kind: StepKind.retrieval1, itemId: item(a))],
+        [(kind: StepKind.retrieval1, itemId: item(b))],
+      ],
+    );
+    expect(find.text('Round 1 of 2'), findsOneWidget);
+    // Inside the city, so no toast covers the round's buttons.
+    await answer(tester, a.parts.first.midpoint);
+    await tapThrough(tester, find.text('Next'));
+    expect(find.text('Round 1 of 2 done'), findsOneWidget);
+    expect(
+      find.textContaining('cleared'),
+      findsNothing,
+      reason: 'more to come',
+    );
+    expect(find.text('Done for now'), findsOneWidget);
+
+    await tapThrough(tester, find.text('Next round'));
+    expect(find.text('Round 2 of 2'), findsOneWidget);
+    await answer(tester, b.parts.first.midpoint);
+    await tapThrough(tester, find.text('Next'));
+    expect(find.text('Session done'), findsOneWidget);
+    expect(find.text('Next round'), findsNothing);
+  });
+
+  testWidgets('Done for now leaves between rounds', (tester) async {
+    await pump(
+      tester,
+      const [],
+      rounds: [
+        [(kind: StepKind.retrieval1, itemId: item(a))],
+        [(kind: StepKind.retrieval1, itemId: item(b))],
+      ],
+    );
+    await answer(tester, a.parts.first.midpoint);
+    await tapThrough(tester, find.text('Next'));
+    await tapThrough(tester, find.text('Done for now'));
+    expect(find.byType(SessionScreen), findsNothing);
+    expect((await dao.log()).map((e) => e.itemId), [item(a)]);
+  });
+
   testWidgets('a pin on a confused street is a Mix-up and saves the pair', (
     tester,
   ) async {
@@ -265,7 +311,7 @@ void main() {
   testWidgets('places are named while asking but streets only on the '
       'reveal', (tester) async {
     await pump(tester, [(kind: StepKind.retrieval1, itemId: item(a))]);
-    expect(find.text('0:15'), findsOneWidget, reason: 'the clock in m:ss');
+    expect(find.textContaining('Round'), findsNothing, reason: 'one round');
     expect(
       maps.last.names,
       MapNames(places: true, placesNot: nameStems(a)),
@@ -630,6 +676,20 @@ void main() {
       expect(find.text("Can't find it?"), findsOneWidget);
       final row = (await dao.log()).single;
       expect((row.format, row.rating), (ReviewFormat.landmark, Rating.again));
+    });
+
+    testWidgets('a second place of one name on its street is asked with its '
+        'corner', (tester) async {
+      final q = first<LandmarkQuestion>(
+        (q) => q.n == 1 && q.crossStreet != null,
+      );
+      await pump(tester, [(kind: StepKind.retrieval1, itemId: q.itemId)]);
+      expect(
+        find.text(
+          '${q.landmark.name}, ${q.street!.name} × ${q.crossStreet!.name}',
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets("a place the player can't find is hidden on the phone, its "

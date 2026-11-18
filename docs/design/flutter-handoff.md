@@ -299,7 +299,7 @@ Widgets added for v3 (Learn the whole city). Colours come from `PindoroTheme.col
 ### SessionTopBar
 
 - **Inputs:** `int plannedItems`, `int answeredItems`, `Set<int> forgottenBlocks` (0–11), `Duration timeLeft`, `VoidCallback onLeave`.
-- **Build:** `Row`: 48 dp icon button (`close`, "Leave session"), `SessionBar` (12 equal blocks, 14 dp tall, `space.1` gaps; block i covers one twelfth of `plannedItems`; current `progressCurrent`; finished `progressDone` with a 3 dp `progressDoneLip`, or `feedbackMissFill` with `feedbackMissLip` when the block is in `forgottenBlocks`; upcoming `progressTodo` with a 2 dp `progressTodoBorder`), then the time-left pill (`timer` icon in `primaryText`, "{minutes} min", tabular figures, floating shadow). Semantics: "Today’s session, 5 of 12" and "About 14 minutes left".
+- **Build:** `Row`: 48 dp icon button (`close`, "Leave session"), `SessionBar` (12 equal blocks, 14 dp tall, `space.1` gaps; block i covers one twelfth of `plannedItems`; current `progressCurrent`; finished `progressDone` with a 3 dp `progressDoneLip`, or `feedbackMissFill` with `feedbackMissLip` when the block is in `forgottenBlocks`; upcoming `progressTodo` with a 2 dp `progressTodoBorder`), then, while the day has more than one round, the round pill ("Round 1 of 3", no icon, floating shadow; the time-left pill is gone, SPEC §16.20). Semantics: "Today’s session, 5 of 12".
 - **Tokens:** `progress.*`, `feedback.miss.fill`, `feedback.miss.lip`, `primary.text`, `surface.raised`, `line.base`, `shadow.float`, `radius.xs`, `radius.full`, `space.1`, `motion.duration.fast`.
 
 ### MemoryBar

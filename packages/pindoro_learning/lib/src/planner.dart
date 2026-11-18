@@ -22,21 +22,23 @@ enum StepKind {
 
 typedef SessionStep = ({StepKind kind, String itemId});
 
-/// Today's session, in order, and the numbers Today shows.
+/// Today's session in rounds, in order, and the numbers Today shows.
 class SessionPlan {
   const SessionPlan({
-    required this.steps,
+    required this.rounds,
     required this.dueCount,
     required this.backlog,
     required this.reviewCount,
     required this.newCount,
-    required this.estimatedS,
     this.drills = Drills.none,
     this.routeCount = 0,
   });
 
-  final List<SessionStep> steps;
+  /// At most [LearningConfig.roundSteps] steps each; a round closes its own new streets.
+  final List<List<SessionStep>> rounds;
   final Drills drills;
+
+  List<SessionStep> get steps => [for (final r in rounds) ...r];
 
   /// Every card due today, including the ones a backlog leaves for later.
   final int dueCount;
@@ -45,7 +47,6 @@ class SessionPlan {
   final bool backlog;
   final int reviewCount;
   final int newCount;
-  final int estimatedS;
 
   /// Route items and recitals among the reviews (Today's Turns).
   final int routeCount;
@@ -198,23 +199,33 @@ abstract final class Planner {
     ];
     final kept = backlog ? Drills(sweep: drills.sweep) : drills;
 
-    final steps = _interleave(
-      pending: [for (final c in pending) c.itemId],
-      fresh: [...fresh, ...places],
-      reviews: reviews,
-      drills: drillSteps(kept),
-      random: Random(seed),
-    );
+    final random = Random(seed);
+    final rounds = <List<SessionStep>>[];
+    for (final (i, round) in _rounds(
+      _units(
+        fresh: [...fresh, ...places],
+        reviews: reviews,
+        drills: drillSteps(kept),
+      ),
+      pending: pending.length,
+    ).indexed) {
+      rounds.add(
+        unstacked(
+          _interleave(
+            pending: i == 0 ? [for (final c in pending) c.itemId] : const [],
+            source: round,
+            random: random,
+          ),
+          after: rounds.lastOrNull?.lastOrNull?.itemId,
+        ),
+      );
+    }
     return SessionPlan(
-      steps: steps,
+      rounds: rounds,
       dueCount: due.length,
       backlog: backlog,
       reviewCount: reviews.length,
       newCount: fresh.length,
-      estimatedS:
-          reviews.fold(0, (sum, id) => sum + cost(id)) +
-          (fresh.length + places.length + pending.length) * tNewS +
-          drillSeconds(kept, tReviewS),
       drills: kept,
       routeCount:
           places.length +
@@ -254,13 +265,6 @@ abstract final class Planner {
     for (final id in drills.bearings)
       (kind: StepKind.bearing, itemId: CardType.p.item(id)),
   ];
-
-  /// What [drills] take at [tReviewS] an answer: one per swept child, named crossing and bearing.
-  static int drillSeconds(Drills drills, int tReviewS) =>
-      tReviewS *
-      ((drills.sweep?.children.length ?? 0) +
-          (drills.crossings?.crossings.length ?? 0) +
-          drills.bearings.length);
 
   /// Whether a missed [itemId] comes back again in a session of [steps]: not once it has had
   /// [LearningConfig.relearnMaxPerSession] relearns (SPEC §16.18). It stays due, for the next.
@@ -330,35 +334,70 @@ abstract final class Planner {
     return out;
   }
 
-  // Groups of new streets, each followed by a block of reviews; the drills half-way; every
-  // retrieval 1 slips in once its seeded gap of 3–6 other items has passed; the retrieval 2s
-  // close the session.
-  static List<SessionStep> _interleave({
-    required List<String> pending,
+  // What stays together in a round: each group of new streets with the block of reviews after
+  // it, every other review on its own, and the drills, half-way.
+  static List<List<SessionStep>> _units({
     required List<String> fresh,
     required List<String> reviews,
     required List<SessionStep> drills,
-    required Random random,
   }) {
-    final source = <SessionStep>[];
+    final units = <List<SessionStep>>[];
     final reviewQueue = [...reviews];
     for (var i = 0; i < fresh.length; i += LearningConfig.groupSize) {
-      source.addAll([
-        for (final id in fresh.skip(i).take(LearningConfig.groupSize))
-          (kind: StepKind.intro, itemId: id),
-      ]);
       final block = reviewQueue.take(LearningConfig.reviewsPerBlock).toList();
       reviewQueue.removeRange(0, block.length);
-      source.addAll([
+      units.add([
+        for (final id in fresh.skip(i).take(LearningConfig.groupSize))
+          (kind: StepKind.intro, itemId: id),
         for (final id in block) (kind: StepKind.review, itemId: id),
       ]);
     }
-    source
-      ..addAll([
-        for (final id in reviewQueue) (kind: StepKind.review, itemId: id),
-      ])
-      ..insertAll(source.length ~/ 2, drills);
+    units.addAll([
+      for (final id in reviewQueue) [(kind: StepKind.review, itemId: id)],
+    ]);
+    if (drills.isNotEmpty) units.insert(units.length ~/ 2, drills);
+    return units;
+  }
 
+  // [units] in as few rounds of at most [LearningConfig.roundSteps] steps as they fit, as
+  // even as they cut (SPEC §16.20): the smallest cap that needs no more rounds. A new street
+  // takes three steps (its intro and both retrievals), each of the [pending] two, in round 1.
+  static List<List<SessionStep>> _rounds(
+    List<List<SessionStep>> units, {
+    required int pending,
+  }) {
+    if (units.isEmpty && pending == 0) return [];
+    int cost(List<SessionStep> unit) =>
+        unit.fold(0, (sum, s) => sum + (s.kind == StepKind.intro ? 3 : 1));
+    List<List<SessionStep>> cut(int cap) {
+      final rounds = <List<SessionStep>>[[]];
+      var used = 2 * pending;
+      for (final unit in units) {
+        if (used > 0 && used + cost(unit) > cap) {
+          rounds.add([]);
+          used = 0;
+        }
+        rounds.last.addAll(unit);
+        used += cost(unit);
+      }
+      return rounds;
+    }
+
+    final fewest = cut(LearningConfig.roundSteps).length;
+    var cap = LearningConfig.roundSteps;
+    while (cap > 1 && cut(cap - 1).length == fewest) {
+      cap--;
+    }
+    return cut(cap);
+  }
+
+  // One round: the [pending] retrieval 1s first, then [source], every retrieval 1 slipping in
+  // once its seeded gap of 3–6 other items has passed; the round's retrieval 2s close it.
+  static List<SessionStep> _interleave({
+    required List<String> pending,
+    required List<SessionStep> source,
+    required Random random,
+  }) {
     final out = <SessionStep>[
       for (final id in pending) (kind: StepKind.retrieval1, itemId: id),
     ];
@@ -396,7 +435,11 @@ abstract final class Planner {
     }
     // The closing retrieval 2s keep spacing the last retrieval 1s; one is forced early only when
     // every step left waits on a retrieval 1.
-    final closing = [...pending, ...fresh];
+    final closing = [
+      ...pending,
+      for (final s in source)
+        if (s.kind == StepKind.intro) s.itemId,
+    ];
     while (closing.isNotEmpty || waiting.isNotEmpty) {
       emitReady();
       final next = closing.indexWhere(
@@ -408,7 +451,7 @@ abstract final class Planner {
         emit((kind: StepKind.retrieval1, itemId: waiting.removeAt(0).itemId));
       }
     }
-    return unstacked(out);
+    return out;
   }
 
   static int _ready(List<({String itemId, int target, int since})> waiting) =>
@@ -525,47 +568,6 @@ int activeSeconds(Iterable<DateTime> times) {
   }
   return seconds;
 }
-
-/// Seconds the [steps] left should take at the planner's rates: a review or relearn
-/// [secondsFor] its item, a bearing [tReviewS]; an intro and each of its two retrievals a third of [tNewS] (SPEC §7); the sweep
-/// and the crossings drill [tReviewS] per answer in [drills].
-int remainingSeconds(
-  Iterable<SessionStep> steps, {
-  Drills drills = Drills.none,
-  int tReviewS = LearningConfig.tReviewS,
-  int tNewS = LearningConfig.tNewS,
-}) => steps.fold(
-  0,
-  (sum, s) =>
-      sum +
-      switch (s.kind) {
-        StepKind.review || StepKind.relearn => secondsFor(s.itemId, tReviewS),
-        StepKind.bearing => tReviewS,
-        StepKind.placement => LearningConfig.placementPinS,
-        StepKind.intro ||
-        StepKind.retrieval1 ||
-        StepKind.retrieval2 => tNewS ~/ 3,
-        StepKind.familySweep => Planner.drillSeconds(
-          Drills(sweep: drills.sweep),
-          tReviewS,
-        ),
-        StepKind.crossings => Planner.drillSeconds(
-          Drills(crossings: drills.crossings),
-          tReviewS,
-        ),
-      },
-);
-
-/// The session's countdown [spentS] seconds into step [index]: the steps after it, plus what is
-/// left of the current one's own share (a slow answer stops the clock there, never below).
-int secondsLeft(
-  List<SessionStep> steps,
-  int index, {
-  required int spentS,
-  Drills drills = Drills.none,
-}) =>
-    remainingSeconds(steps.skip(index + 1), drills: drills) +
-    max(0, remainingSeconds([steps[index]], drills: drills) - spentS);
 
 /// What reviewing [itemId] takes: [LearningConfig.tRecitalS] for a recital, else [tReviewS].
 int secondsFor(String itemId, int tReviewS) =>

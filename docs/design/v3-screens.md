@@ -42,7 +42,7 @@ Street photos were dropped (SPEC §16.16) and taken off the canvas: no V3-31 boa
 - Controller: `TodayController` ← `Planner.plan`, `MemoryStats.cityMemory`, streak service.
 
 ### Session (SessionScreen)
-- Top bar: Leave (×) · 12-segment bar (time budget, `miss` segments for Again) · pill with timer icon "14 min".
+- Top bar: Leave (×) · 12-segment bar (the round's steps, `miss` segments for Again) · pill "Round 1 of 3" while the day has more than one round (no timer, SPEC §16.20; the board still shows the old timer pill).
 - Plate rules unchanged (two lines, shrink to 20 dp floor). Sub-line: other script · district when the name
   is shared by more than one street.
 - `placement`: pin question with "I don't know this one" (tertiary) under Confirm.
