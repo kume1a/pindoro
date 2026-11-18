@@ -6,16 +6,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
+import 'package:pindoro/core/dialogs.dart';
+import 'package:pindoro/core/feedback.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/online.dart';
-import 'package:pindoro/core/play_bar.dart';
 import 'package:pindoro/core/routes.dart';
-import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/map/ui/pin_drop_view.dart';
 import 'package:pindoro/features/quiz/ui/round_controller.dart';
 import 'package:pindoro/features/quiz/ui/setup_states.dart';
+import 'package:pindoro/features/quiz/ui/widgets/play_bar.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -81,6 +82,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
     final retryOf = widget.retryOf;
     if (retryOf != null) return controller.startRetry(retryOf);
     final settings = await ref.read(settingsDaoProvider).read();
+    if (!mounted) return;
     if (widget.learned) return controller.startLearned(settings.difficulty);
     await controller.start(settings.area, settings.difficulty);
   }
@@ -198,12 +200,12 @@ class _RoundView extends ConsumerWidget {
     if (play is RoundRevealed && round.isLast) return controller.next();
     final l10n = context.l10n;
     final resumesAt = play is RoundRevealed ? round.number + 1 : round.number;
-    final leave = await confirmLeave(
+    final leave = await askChoice(
       context,
       title: l10n.quizLeaveTitle,
       body: l10n.quizLeaveBody(resumesAt, round.total),
-      stay: l10n.quizLeaveKeepPlaying,
-      leave: l10n.quizLeaveConfirm,
+      primary: l10n.quizLeaveKeepPlaying,
+      secondary: l10n.quizLeaveConfirm,
     );
     if (leave && context.mounted) context.go(Routes.home);
   }

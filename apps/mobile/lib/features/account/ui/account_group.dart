@@ -5,9 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/api_client.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/dialogs.dart';
+import 'package:pindoro/core/feedback.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/routes.dart';
-import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/account/data/account_data.dart';
 import 'package:pindoro/features/account/ui/widgets/account_widgets.dart';
@@ -107,8 +108,9 @@ class AccountGroup extends ConsumerWidget {
   Future<void> _signOut(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
     ref.read(feedbackProvider).tap();
-    final signOut = await showFixedDialog(
+    final signOut = await askChoice(
       context,
+      fixed: true,
       title: l10n.accountSignOutTitle,
       body: l10n.accountSignOutBody,
       primary: l10n.accountSignOutStay,
@@ -122,8 +124,9 @@ class AccountGroup extends ConsumerWidget {
   Future<void> _delete(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
     ref.read(feedbackProvider).tap();
-    final delete = await showFixedDialog(
+    final delete = await askChoice(
       context,
+      fixed: true,
       title: l10n.accountDeleteTitle,
       body: l10n.accountDeleteBody,
       primary: l10n.accountDeleteKeep,

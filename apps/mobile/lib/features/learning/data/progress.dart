@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/learning/data/cards.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/route_book.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
@@ -84,7 +85,7 @@ final cityMemoryProvider =
       final cards = await ref.watch(streetCardsProvider.future);
       final sidesOf = await ref.watch(sidesOfProvider.future);
       final log = await ref.watch(learningDaoProvider).log();
-      final core = streets.values.where(Curriculum.isCore).toSet();
+      final core = coreStreets(streets);
       final today = startOfDay(now);
       return (
         city: memorySummary(core, cards, now, sidesOf),
@@ -112,7 +113,7 @@ final progressProvider = FutureProvider.autoDispose<ProgressOverview>((
   final settings = await ref.watch(settingsProvider.future);
   final log = await ref.watch(learningDaoProvider).log();
 
-  final core = streets.values.where(Curriculum.isCore).toSet();
+  final core = coreStreets(streets);
   final coreCards = [for (final s in core) ?cards[s.id]];
   final districts = {for (final d in pack.districts()) d.id: d};
   final sequence = [
@@ -192,7 +193,7 @@ final progressProvider = FutureProvider.autoDispose<ProgressOverview>((
     forecast: forecast(allCards, now),
     wholeCityBy: wholeCityBy(
       unseenCore: core.where((s) => !cards.containsKey(s.id)).length,
-      newPerDay: LearningConfig.newPerDay[settings.minutesPerDay] ?? 0,
+      newPerDay: newPerDayAt(settings.minutesPerDay),
       now: now,
     ),
     roads: roads,
@@ -260,7 +261,7 @@ final areaMemoryProvider =
       final curriculum = await ref.watch(curriculumProvider.future);
       final cards = await ref.watch(streetCardsProvider.future);
       final sidesOf = await ref.watch(sidesOfProvider.future);
-      final core = streets.values.where(Curriculum.isCore).toSet();
+      final core = coreStreets(streets);
       final byCurriculum = <String, List<NamedStreet>>{};
       for (final s in core) {
         for (final id in [Curriculum.chunkOf(s), ?curriculum.raionOf(s.id)]) {

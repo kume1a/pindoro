@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/clock.dart';
+import 'package:pindoro/features/learning/data/cards.dart';
 import 'package:pindoro/features/learning/data/day.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
-import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
@@ -10,7 +10,8 @@ import 'package:pindoro_learning/pindoro_learning.dart';
 /// Feeds an Explore pin to the learning cards (SPEC §16.16): graded like a
 /// session pin, it reviews a due or nearly due card, creates one for a
 /// first-sight Good or Easy, and is only logged otherwise. Then marks the
-/// day when it counts.
+/// day when it counts. Everything it reads from [ref] is taken before the
+/// first await: the round may be left while the pin saves.
 Future<void> learnFromExplore(
   Ref ref, {
   required NamedStreet street,
@@ -20,10 +21,14 @@ Future<void> learnFromExplore(
 }) async {
   final dao = ref.read(learningDaoProvider);
   final now = ref.read(clockProvider)();
-  final streets = await ref.read(cityStreetsProvider.future);
-  final curriculum = await ref.read(curriculumProvider.future);
+  final streetsFuture = ref.read(cityStreetsProvider.future);
+  final curriculumFuture = ref.read(curriculumProvider.future);
+  final markDay = dayMarker(ref, roundId: roundId);
+  final streets = await streetsFuture;
+  final curriculum = await curriculumFuture;
   final all = streets.values.toSet();
-  final itemId = CardType.p.item(street.id);
+  final card = await _cardOf(dao, street);
+  final itemId = card?.itemId ?? CardType.p.item(street.id);
   final successes = (await dao.log())
       .where((e) => e.itemId == itemId && e.rating.isSuccess)
       .length;
@@ -41,7 +46,7 @@ Future<void> learnFromExplore(
     priorSuccesses: successes,
   );
   final result = exploreAnswer(
-    await dao.card(itemId),
+    card,
     itemId: itemId,
     grade: grade,
     now: now,
@@ -49,5 +54,13 @@ Future<void> learnFromExplore(
     sessionId: roundId,
   );
   await dao.saveAnswer(card: result.card, log: result.log);
-  await markDayIfCounts(ref, roundId: roundId);
+  await markDay();
+}
+
+/// The street's P card, on whichever of its parts it was made.
+Future<CardState?> _cardOf(LearningDao dao, NamedStreet street) async {
+  for (final part in street.parts) {
+    if (await dao.card(CardType.p.item(part.id)) case final card?) return card;
+  }
+  return null;
 }

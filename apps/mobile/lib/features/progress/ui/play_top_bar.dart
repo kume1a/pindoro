@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/progress/data/streak.dart';
@@ -37,7 +37,7 @@ class PlayTopBar extends StatelessWidget {
             PindoroIcon(PindoroGlyph.pin, size: 22, color: c.primaryText),
             Flexible(
               child: Text(
-                context.localName(ka: city.nameKa, en: city.nameEn),
+                cityName(context, city),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: PindoroType.titleMd.copyWith(

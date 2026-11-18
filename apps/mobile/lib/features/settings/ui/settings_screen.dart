@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
+import 'package:pindoro/core/feedback.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';

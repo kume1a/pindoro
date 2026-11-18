@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pindoro/features/map/ui/area_picker_map.dart';
+import 'package:pindoro/features/map/data/area_levels.dart';
 import 'package:pindoro/features/setup/data/area_tree.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 

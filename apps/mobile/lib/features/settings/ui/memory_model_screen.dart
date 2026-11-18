@@ -80,6 +80,7 @@ class _MemoryModelScreenState extends ConsumerState<MemoryModelScreen> {
                   subtitle: l10n.memoryBinRecalled(
                     percent(b.recalled),
                     b.reviews,
+                    formatNumber(b.reviews),
                   ),
                   trailing: switch (b.calibrated) {
                     true => PindoroIcon(

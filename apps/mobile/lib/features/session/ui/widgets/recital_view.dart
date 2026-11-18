@@ -6,8 +6,8 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
-import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/map/ui/widgets/route_draw_layer.dart';
+import 'package:pindoro/features/map/ui/widgets/street_match_row.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
@@ -60,12 +60,13 @@ class RecitalView extends ConsumerStatefulWidget {
 
 class _RecitalViewState extends ConsumerState<RecitalView> {
   final _field = TextEditingController();
-  MapProjection? _projection;
+  final _projection = ValueNotifier<MapProjection?>(null);
   bool _notFound = false;
 
   @override
   void dispose() {
     _field.dispose();
+    _projection.dispose();
     super.dispose();
   }
 
@@ -139,15 +140,12 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
             route: (
               a: graph.at(task.from),
               b: task.draft.reached ? graph.at(task.to) : null,
-              street: const [],
               drawn: task.draft.lines,
               best: const [],
-              ghost: const [],
-              car: null,
               chip: null,
               reached: task.draft.reached,
             ),
-            onCamera: (p) => setState(() => _projection = p),
+            onCamera: (p) => _projection.value = p,
             topInset: insets.top,
             bottomInset: insets.bottom,
           ),
@@ -246,13 +244,9 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
                 ),
               ),
             if (match != null)
-              ListRow(
-                leading: const RowTile(PindoroGlyph.signpost),
-                title: name(match),
-                subtitle: [
-                  ?otherScript(match, settings),
-                  l10n.sessionCrossingsMatch,
-                ].join(' · '),
+              StreetMatchRow(
+                match,
+                note: l10n.sessionCrossingsMatch,
                 onTap: () {
                   _field.clear();
                   _add(suggested: match);
@@ -289,12 +283,10 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
         label: m.reason == IllegalReason.oneway
             ? l10n.recitalOnewayChip
             : l10n.recitalNoTurnChip,
-        anchor: 'bottom',
       ),
       null when graded.divergence != null && extraM >= 1 => (
         at: graph.at(graded.divergence!),
         label: '+${formatDistance(extraM, l10n)}',
-        anchor: 'bottom',
       ),
       null => null,
     };
@@ -347,11 +339,8 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
           route: (
             a: a,
             b: b,
-            street: const [],
             drawn: path?.lines ?? const [],
             best: best?.lines ?? const [],
-            ghost: const [],
-            car: null,
             chip: chip,
             reached: true,
           ),

@@ -127,6 +127,22 @@ void main() {
     expect(location.cancelled, isTrue);
   });
 
+  test('a double tap on Start or I’m there records and saves once', () async {
+    final controller = container.read(driveControllerProvider.notifier);
+    container.listen(driveControllerProvider, (_, _) {});
+    // The fake's track allows one listener: a second start would throw.
+    await Future.wait([
+      controller.start(title: 't', text: 't'),
+      controller.start(title: 't', text: 't'),
+    ]);
+    await location.drive(route, now);
+    await Future.wait([controller.end(), controller.end()]);
+    final review = container.read(driveControllerProvider) as DriveReview;
+    final saved = review.credited + review.failed;
+    expect(saved, greaterThan(0));
+    expect(await db.select(db.implicitEvidence).get(), hasLength(saved));
+  });
+
   test('Lost? Show the way ends the test unrecorded', () async {
     final controller = container.read(driveControllerProvider.notifier);
     container.listen(driveControllerProvider, (_, _) {});

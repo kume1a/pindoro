@@ -5,11 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
+import 'package:pindoro/core/feedback.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
+import 'package:pindoro/features/map/data/area_levels.dart';
 import 'package:pindoro/features/map/ui/area_picker_map.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -382,10 +384,7 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
                             : context.go(Routes.home),
                       ),
                       Pill(
-                        label: context.localName(
-                          ka: city.nameKa,
-                          en: city.nameEn,
-                        ),
+                        label: cityName(context, city),
                         icon: PindoroGlyph.city,
                         floating: true,
                       ),

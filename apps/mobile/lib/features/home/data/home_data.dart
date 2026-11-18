@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/learning/data/cards.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
-import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -77,10 +77,7 @@ Future<double> _memoryAt(Ref ref, DateTime t) async {
   final streets = await ref.watch(cityStreetsProvider.future);
   final cards = await ref.watch(streetCardsProvider.future);
   return cityMemoryAt(
-    [
-      for (final s in streets.values.where(Curriculum.isCore).toSet())
-        ?cards[s.id],
-    ],
+    [for (final s in coreStreets(streets)) ?cards[s.id]],
     await ref.watch(learningDaoProvider).log(),
     t,
   );

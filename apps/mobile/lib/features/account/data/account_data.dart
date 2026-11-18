@@ -171,7 +171,9 @@ class AccountActions {
   /// carries the recovery code to show.
   Future<Session> create(String username, String password) async {
     final session = await _api.create(username, password);
-    await _keep(session);
+    await _signIn(session);
+    // The code shows while the upload runs: it is only ever shown once.
+    unawaited(_ref.read(backupSyncProvider).backUpQuietly());
     return session;
   }
 
@@ -231,13 +233,16 @@ class AccountActions {
 
   /// This phone's progress goes up over any backup.
   Future<void> _keep(Session session) async {
-    await _dao.save(
-      username: session.username,
-      token: session.token,
-      changedAt: DateTime.now(),
-    );
+    await _signIn(session);
     await _ref.read(backupSyncProvider).backUpQuietly();
   }
+
+  /// Signs this phone in with [session], its progress waiting to go up.
+  Future<void> _signIn(Session session) => _dao.save(
+    username: session.username,
+    token: session.token,
+    changedAt: DateTime.now(),
+  );
 
   /// Replaces this phone's progress with the account's backup and starts the
   /// app again on it. Throws [UnreadableBackup] when this build can't open it.

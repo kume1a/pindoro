@@ -16,6 +16,7 @@ import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
+import 'package:pindoro/features/map/ui/widgets/street_match_row.dart';
 import 'package:pindoro/features/map/ui/widgets/tier_reveal.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
@@ -136,10 +137,8 @@ class _SetupState extends ConsumerState<_Setup> {
                 onChanged: (_) => setState(() {}),
               ),
               if (match != null)
-                ListRow(
-                  leading: const RowTile(PindoroGlyph.signpost),
-                  title: name(match),
-                  subtitle: otherScript(match, settings),
+                StreetMatchRow(
+                  match,
                   check: match == setup.own ? CheckState.on : CheckState.off,
                   onTap: () => controller.pickOwn(match),
                 ),
@@ -149,7 +148,11 @@ class _SetupState extends ConsumerState<_Setup> {
         if (denied != null || setup.noTarget)
           ListRow(
             leading: const RowTile(PindoroGlyph.locateOff),
-            title: denied != null ? l10n.driveNoLocation : l10n.driveNoRun,
+            title: denied != null
+                ? l10n.driveNoLocation
+                : setup.to == DriveTo.run
+                ? l10n.driveNoRun
+                : l10n.driveNoTarget,
             onTap: denied == null
                 ? null
                 : () => unawaited(
@@ -358,17 +361,13 @@ class _Review extends ConsumerWidget {
                     route: (
                       a: points.first,
                       b: graph.at(review.target.junction),
-                      street: const [],
                       drawn: lines,
                       best: best,
-                      ghost: const [],
-                      car: null,
                       chip: match.uTurns.isEmpty
                           ? null
                           : (
                               at: match.uTurns.first,
                               label: l10n.driveUTurnHere,
-                              anchor: 'bottom',
                             ),
                       reached: true,
                     ),
@@ -404,8 +403,10 @@ class _Review extends ConsumerWidget {
                       child: StatTile(
                         label: l10n.driveLonger,
                         value: stretch == null
-                            ? '–'
-                            : '+${formatNumber(((stretch - 1) * 100).round())} %',
+                            ? l10n.progressNoValue
+                            : l10n.driveLongerBy(
+                                formatNumber(((stretch - 1) * 100).round()),
+                              ),
                         glyph: PindoroGlyph.route,
                       ),
                     ),

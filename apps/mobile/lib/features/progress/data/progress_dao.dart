@@ -237,16 +237,6 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     return ids;
   });
 
-  /// The area of [cityId]'s most recent round; null before one.
-  Future<Area?> lastRoundArea(String cityId) async => parseArea(
-    await (select(rounds)
-          ..where((r) => r.cityId.equals(cityId))
-          ..orderBy([(_) => OrderingTerm.desc(_rowid)])
-          ..limit(1))
-        .map((r) => r.areaJson)
-        .getSingleOrNull(),
-  );
-
   /// The last pin distance of each of [streetIds] in [cityId], from Explore
   /// (except the round [exceptRoundId]).
   Future<Map<String, double>> lastDistances(
@@ -389,21 +379,6 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
       for (final k in legacy) (k.streetId, Tier.great),
     ]);
   }
-
-  /// Known / total streets of [pack]'s city and its districts, from the
-  /// answers before [before] (all of them without it).
-  Future<KnownCounts> knownIn(
-    PackRepository pack,
-    Map<String, NamedStreet> streets, {
-    DateTime? before,
-  }) async => knownCounts(
-    streets: streets,
-    partsByDistrict: pack.partsByDistrict(),
-    known: knownStreetIds(
-      await bestTierByPart(pack.city().id, before: before),
-      streets,
-    ),
-  );
 
   /// Street ids planned in the [count] most recent rounds of [cityId].
   Future<Set<String>> askedInLastRounds(String cityId, {int count = 3}) async {

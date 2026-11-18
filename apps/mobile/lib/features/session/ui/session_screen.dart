@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/database/database.dart' show Settings;
+import 'package:pindoro/core/feedback.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
@@ -99,6 +100,8 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
       final SessionPlaying p
           when p.step.kind == StepKind.intro && p.guess == null =>
         SessionIntro(
+          // Intros come in a row: each step gets its own note field.
+          key: ValueKey(p.index),
           play: p,
           contrast: p.contrast,
           topBar: _topBar(p, controller),

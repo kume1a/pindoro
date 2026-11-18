@@ -4,9 +4,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
+import 'package:pindoro/features/map/data/area_levels.dart';
 import 'package:pindoro/features/map/data/geojson.dart';
-import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/data/maplibre_convert.dart';
+import 'package:pindoro/features/map/ui/map_host.dart';
 import 'package:pindoro/features/map/ui/map_work.dart';
 import 'package:pindoro/features/map/ui/outline_labels.dart';
 import 'package:pindoro/features/map/ui/poi_icons.dart';
@@ -16,48 +17,6 @@ import 'package:pindoro/features/map/ui/widgets/map_taps.dart';
 import 'package:pindoro/features/map/ui/widgets/map_zoom_controls.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
-
-/// Districts show below [PindoroCamera.areaDetailZoom]; from it on, the
-/// smaller areas inside them (quarters and neighbourhoods).
-bool detailAt(double zoom) => zoom >= PindoroCamera.areaDetailZoom;
-
-bool isDetail(District d) => !d.isRaion;
-
-/// The area a tap at [at] picks: the smallest one of the zoom's level that
-/// contains it, else the smallest of any level.
-District? areaAt(List<District> areas, LatLng at, double zoom) {
-  final hits = [
-    for (final d in areas)
-      if (boundaryContains(d.boundary, at)) d,
-  ]..sort((a, b) => a.areaM2.compareTo(b.areaM2));
-  final detail = detailAt(zoom);
-  return hits.where((d) => isDetail(d) == detail).firstOrNull ??
-      hits.firstOrNull;
-}
-
-/// The areas not in [picks] for the nearby chips: those of the zoom's level
-/// ([detail]) first, then the nearest to [here].
-List<District> nearestAreas(
-  List<District> areas,
-  Set<String> picks,
-  LatLng here, {
-  required bool detail,
-}) {
-  final rest =
-      [
-        for (final d in areas)
-          if (!picks.contains(d.id))
-            (
-              area: d,
-              level: isDetail(d) == detail ? 0 : 1,
-              m: distanceBetween(here, d.center),
-            ),
-      ]..sort((a, b) {
-        final byLevel = a.level.compareTo(b.level);
-        return byLevel != 0 ? byLevel : a.m.compareTo(b.m);
-      });
-  return [for (final r in rest) r.area];
-}
 
 /// The area picker's map: outlines and name chips of the zoom's level (see
 /// [detailAt]), picked areas in "you" cobalt at every zoom. Reports taps and
@@ -149,25 +108,14 @@ const List<Object> _isDistrict = [
   'district',
 ];
 
-class _AreaPickerMapState extends State<AreaPickerMap> {
-  ml.MapLibreMapController? _controller;
-  Future<String>? _style;
-  Brightness? _brightness;
+class _AreaPickerMapState extends State<AreaPickerMap>
+    with MapHost<AreaPickerMap> {
   bool _ready = false;
   bool _startReported = false;
-  Size? _size;
   final Set<String> _pickedImages = {};
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final brightness = Theme.of(context).brightness;
-    if (brightness != _brightness) {
-      _brightness = brightness;
-      _ready = false;
-      _style = loadMapStyle(brightness);
-    }
-  }
+  void styleChanged() => _ready = false;
 
   @override
   void didUpdateWidget(AreaPickerMap old) {
@@ -206,22 +154,11 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
   );
 
   Future<void> _moveTo(Bbox b) async {
-    final size = _size;
+    final size = mapSize;
     if (size == null) return;
     final camera = _fit(b, size);
-    await _controller?.animateCamera(
+    await mapController?.animateCamera(
       ml.CameraUpdate.newLatLngZoom(camera.target.toMapLibre, camera.zoom),
-    );
-  }
-
-  MapProjection? get _projection {
-    final camera = _controller?.cameraPosition;
-    final size = _size;
-    if (camera == null || size == null) return null;
-    return MapProjection(
-      target: camera.target.toCore,
-      zoom: camera.zoom,
-      size: size,
     );
   }
 
@@ -231,7 +168,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
   /// Zoomed in, district names run along their outlines, on the district's
   /// side, so the player still knows which district a quarter is in.
   Future<void> _addOutlineLabels() async {
-    final c = _controller!;
+    final c = mapController!;
     final colors = PindoroTheme.of(context).colors;
     final pixelRatio = MediaQuery.devicePixelRatioOf(context);
     final districts = widget.districts.where((d) => !isDetail(d)).toList();
@@ -289,7 +226,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
   }
 
   Future<void> _addImages(Iterable<District> areas, {required bool picked}) {
-    final c = _controller!;
+    final c = mapController!;
     final colors = PindoroTheme.of(context).colors;
     final pixelRatio = MediaQuery.devicePixelRatioOf(context);
     return Future.wait([
@@ -308,7 +245,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
   }
 
   Future<void> _addLayers() async {
-    final c = _controller;
+    final c = mapController;
     if (c == null) return;
     final colors = PindoroTheme.of(context).colors;
     final pixelRatio = MediaQuery.devicePixelRatioOf(context);
@@ -413,7 +350,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
   }
 
   Future<void> _syncPicked() async {
-    final c = _controller!;
+    final c = mapController!;
     await _addImages([
       for (final d in widget.districts)
         if (widget.picked.contains(d.id) && _pickedImages.add(d.id)) d,
@@ -430,7 +367,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
 
   Future<void> _syncVisibility() async {
     for (final layer in _pickingLayers) {
-      await _controller?.setLayerVisibility(layer, widget.showDistricts);
+      await mapController?.setLayerVisibility(layer, widget.showDistricts);
     }
   }
 
@@ -450,7 +387,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
   ]);
 
   void _reportCamera() {
-    if (_projection case final projection?) _report(projection);
+    if (mapProjection case final projection?) _report(projection);
   }
 
   /// Reports the opening camera after the first frame: the platform may not
@@ -467,16 +404,29 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
     });
   }
 
-  void _report(MapProjection projection) {
-    final Size(:width, :height) = projection.size;
-    widget.onCamera(
-      projection.toLatLng(Offset(width / 2, (height - widget.bottomInset) / 2)),
-      projection.zoom,
+  /// The centre of what the sheet leaves uncovered.
+  Offset _focus(Size size) =>
+      Offset(size.width / 2, (size.height - widget.bottomInset) / 2);
+
+  void _report(MapProjection projection) => widget.onCamera(
+    projection.toLatLng(_focus(projection.size)),
+    projection.zoom,
+  );
+
+  /// Zooms [by] levels around [_focus], not the view's centre under the sheet.
+  void _zoom(double by) {
+    final projection = mapProjection;
+    if (projection == null) return;
+    final camera = projection.zoomedAround(_focus(projection.size), by);
+    unawaited(
+      mapController?.animateCamera(
+        ml.CameraUpdate.newLatLngZoom(camera.target.toMapLibre, camera.zoom),
+      ),
     );
   }
 
   void _tapped(Offset at) {
-    if (_projection case final projection?) {
+    if (mapProjection case final projection?) {
       widget.onTap(projection.toLatLng(at));
     }
   }
@@ -484,9 +434,9 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final size = _size = constraints.biggest;
+      final size = mapSize = constraints.biggest;
       return FutureBuilder<String>(
-        future: _style,
+        future: mapStyle,
         builder: (context, style) {
           // Opens where the load would frame it, so nothing zooms in after.
           final start = _fit(widget.focus ?? widget.initialBounds, size);
@@ -504,7 +454,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
                     ),
                     trackCameraPosition: true,
                     onMapCreated: (c) {
-                      _controller = c..addListener(_reportCamera);
+                      mapController = c..addListener(_reportCamera);
                     },
                     onCameraIdle: () => widget.onCameraIdle?.call(),
                     onStyleLoadedCallback: () => runMapWork(_addLayers),
@@ -524,9 +474,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
               Positioned(
                 right: PindoroSpace.s4,
                 bottom: widget.bottomInset + PindoroSpace.s4,
-                child: MapZoomControls(
-                  onCamera: (update) => _controller?.animateCamera(update),
-                ),
+                child: MapZoomControls(onZoom: _zoom),
               ),
             ],
           );
@@ -537,7 +485,7 @@ class _AreaPickerMapState extends State<AreaPickerMap> {
 
   @override
   void dispose() {
-    _controller?.removeListener(_reportCamera);
+    mapController?.removeListener(_reportCamera);
     super.dispose();
   }
 }

@@ -5,13 +5,14 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/app/router.dart';
+import 'package:pindoro/core/feedback.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/launch_overlay.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/account/data/account_data.dart';
 import 'package:pindoro/features/badges/data/badge_data.dart';
 import 'package:pindoro/features/learning/data/day.dart';
-import 'package:pindoro/features/learning/data/today_plan.dart';
+import 'package:pindoro/features/learning/data/progress.dart';
 import 'package:pindoro/features/pack/data/app_update.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
@@ -48,12 +49,14 @@ class _PindoroAppState extends ConsumerState<PindoroApp> {
   void initState() {
     super.initState();
     // The date may have changed while the app was away, and so may what is
-    // due.
+    // due: Today's "yesterday", "tomorrow" and weekly run move with it.
     _lifecycle = AppLifecycleListener(
-      onResume: () => ref
-        ..invalidate(streakProvider)
-        ..invalidate(reminderProvider)
-        ..invalidate(todayPlanProvider),
+      onResume: () {
+        refreshLearning(ref);
+        ref
+          ..invalidate(streakProvider)
+          ..invalidate(reminderProvider);
+      },
       // The app may not come back: a waiting backup goes up now.
       onHide: () => unawaited(ref.read(backupSyncProvider).flushWaiting()),
     );

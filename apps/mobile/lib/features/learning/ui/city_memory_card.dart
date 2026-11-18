@@ -234,3 +234,12 @@ class CityMemoryCard extends StatelessWidget {
     );
   }
 }
+
+/// Every core street of [m] Mastered (and it has some).
+bool allMastered(MemorySummary m) =>
+    m.total > 0 && m.counts[MemoryState.mastered] == m.total;
+
+/// A district's fill step for its City memory (District fills).
+DistrictProgress districtFill(MemorySummary? m) => m == null || m.total == 0
+    ? DistrictProgress.notStarted
+    : DistrictProgress.of(m.memory / m.total, mastered: allMastered(m));

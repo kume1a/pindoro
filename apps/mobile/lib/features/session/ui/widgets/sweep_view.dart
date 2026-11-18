@@ -39,10 +39,16 @@ class SweepView extends ConsumerStatefulWidget {
 }
 
 class _SweepViewState extends ConsumerState<SweepView> {
-  MapProjection? _projection;
+  final _projection = ValueNotifier<MapProjection?>(null);
 
   /// The label tapped in the tray, waiting for a socket.
   String? _held;
+
+  @override
+  void dispose() {
+    _projection.dispose();
+    super.dispose();
+  }
 
   void _place(String label, String lane) {
     setState(() => _held = null);
@@ -81,7 +87,7 @@ class _SweepViewState extends ConsumerState<SweepView> {
                 for (final lane in task.lanes) lane.name,
             },
           ),
-          onCamera: (p) => setState(() => _projection = p),
+          onCamera: (p) => _projection.value = p,
           topInset: insets.top,
           bottomInset: insets.bottom,
         ),

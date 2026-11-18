@@ -104,6 +104,27 @@ class MapProjection {
     );
   }
 
+  /// This camera zoomed [by] levels with the point under [focus] kept in
+  /// place: MapLibre's own zoom keeps the view's centre, which a sheet may
+  /// cover, and its focus variant moves the centre on iOS.
+  // ponytail: no clamp at MapLibre's max zoom (22); past it a zoom in pans a
+  // little towards the focus.
+  MapProjection zoomedAround(Offset focus, double by) {
+    final zoomed = MapProjection(
+      target: toLatLng(focus),
+      zoom: zoom + by,
+      size: size,
+      bearing: bearing,
+    );
+    return MapProjection(
+      // The focus sits off the centre by as much as the centre sits off it.
+      target: zoomed.toLatLng(size.center(Offset.zero) * 2 - focus),
+      zoom: zoomed.zoom,
+      size: size,
+      bearing: bearing,
+    );
+  }
+
   /// Ground metres one dp covers at [at].
   double metresPerDp(LatLng at) =>
       _earthCircumferenceM * math.cos(at.lat * math.pi / 180) / _world;

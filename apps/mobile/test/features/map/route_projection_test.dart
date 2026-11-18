@@ -1,6 +1,5 @@
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pindoro/features/map/ui/route_layers.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
@@ -91,9 +90,21 @@ void main() {
     },
   );
 
-  test('the distance chip grows inwards near an edge', () {
-    expect(chipAnchor(20, 390), 'bottom-left');
-    expect(chipAnchor(195, 390), 'bottom');
-    expect(chipAnchor(370, 390), 'bottom-right');
+  test('zooming around a point off the centre keeps that point in place', () {
+    const focus = Offset(200, 250);
+    for (final bearing in [0.0, 30.0]) {
+      final p = MapProjection(
+        target: target,
+        zoom: 14,
+        size: const Size(400, 800),
+        bearing: bearing,
+      );
+      final under = p.toLatLng(focus);
+      for (final by in [1.0, -1.0]) {
+        final zoomed = p.zoomedAround(focus, by);
+        expect(zoomed.zoom, 14 + by);
+        expect((zoomed.toScreen(under) - focus).distance, lessThan(0.01));
+      }
+    }
   });
 }

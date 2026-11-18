@@ -19,10 +19,10 @@ enum ExitDirection {
   final PindoroGlyph glyph;
 }
 
-/// One exit of the junction map (Exit button): a 56 dp round secondary
-/// button with its direction's arrow; [selected] takes the primary colours.
-/// A toggle for screen readers, labelled with the action ("Turn right").
-/// Placed centred on its arm; [JunctionMap] places its own.
+/// One exit of the turn card (Exit button): a 56 dp round secondary button
+/// with its direction's arrow; [selected] takes the primary colours. A
+/// toggle for screen readers, labelled with the action ("Turn right").
+/// The app centres it on its arm of the map.
 class ExitButton extends StatefulWidget {
   const ExitButton({
     super.key,

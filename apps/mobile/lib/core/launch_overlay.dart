@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/core/feedback.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// The native splash's pin, measured from `res/drawable*/splash.png`: dp per

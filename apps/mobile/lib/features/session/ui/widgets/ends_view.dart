@@ -37,7 +37,13 @@ class EndsView extends ConsumerStatefulWidget {
 }
 
 class _EndsViewState extends ConsumerState<EndsView> {
-  MapProjection? _projection;
+  final _projection = ValueNotifier<MapProjection?>(null);
+
+  @override
+  void dispose() {
+    _projection.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +64,7 @@ class _EndsViewState extends ConsumerState<EndsView> {
           morePins: pins.skip(1).toList(),
           truth: grade == null ? null : play.street.geometry,
           onTap: grade == null ? widget.onPin : null,
-          onCamera: (p) => setState(() => _projection = p),
+          onCamera: (p) => _projection.value = p,
           showControls: grade == null,
           topInset: insets.top,
           bottomInset: insets.bottom,
