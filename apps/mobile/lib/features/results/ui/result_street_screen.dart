@@ -5,6 +5,7 @@ import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/results/data/results_data.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -57,36 +58,32 @@ class ResultStreetScreen extends ConsumerWidget {
       // The map runs under the sheet; the body gets its height as padding.
       extendBody: true,
       body: Builder(
-        builder: (body) => Stack(
-          children: [
-            ref.watch(pindoroMapBuilderProvider)(
-              PindoroMap(
-                area: shape,
-                pin: pin,
-                truth: street.geometry,
-                measure: (from: pin, to: nearest, label: distance),
-                topInset: MediaQuery.paddingOf(context).top + 80,
-                bottomInset: MediaQuery.paddingOf(body).bottom,
-                showControls: false,
-              ),
+        builder: (body) => MapLayout(
+          map: (insets) => ref.watch(pindoroMapBuilderProvider)(
+            PindoroMap(
+              area: shape,
+              pin: pin,
+              truth: street.geometry,
+              measure: (from: pin, to: nearest, label: distance),
+              topInset: insets.top,
+              bottomInset: MediaQuery.paddingOf(body).bottom,
+              showControls: false,
             ),
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(PindoroSpace.s4),
-                child: Row(
-                  spacing: PindoroSpace.s3,
-                  children: [
-                    MapControl(
-                      glyph: PindoroGlyph.back,
-                      semanticLabel: l10n.resultsBackToResults,
-                      onPressed: context.pop,
-                    ),
-                    Expanded(child: StreetPlate(name, compact: true)),
-                  ],
+          ),
+          top: Padding(
+            padding: const EdgeInsets.symmetric(vertical: PindoroSpace.s2),
+            child: Row(
+              spacing: PindoroSpace.s3,
+              children: [
+                MapControl(
+                  glyph: PindoroGlyph.back,
+                  semanticLabel: l10n.resultsBackToResults,
+                  onPressed: context.pop,
                 ),
-              ),
+                Expanded(child: StreetPlate(name, compact: true)),
+              ],
             ),
-          ],
+          ),
         ),
       ),
       bottomNavigationBar: Container(

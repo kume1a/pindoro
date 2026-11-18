@@ -49,7 +49,7 @@ class SetupStates extends ConsumerWidget {
           await ref
               .read(settingsDaoProvider)
               .chooseDifficulty(Difficulty.values[difficulty.index + 1]);
-          await onRetry();
+          if (context.mounted) await onRetry();
         },
       ),
       RoundAreaMissing() => _Message(

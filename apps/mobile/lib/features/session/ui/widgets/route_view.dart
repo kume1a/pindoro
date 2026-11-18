@@ -57,11 +57,12 @@ class RouteView extends ConsumerStatefulWidget {
 
 class _RouteViewState extends ConsumerState<RouteView> {
   final _field = TextEditingController();
-  MapProjection? _projection;
+  final _projection = ValueNotifier<MapProjection?>(null);
 
   @override
   void dispose() {
     _field.dispose();
+    _projection.dispose();
     super.dispose();
   }
 
@@ -165,7 +166,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
                           )
                         : MapNames.all,
                     showControls: false,
-                    onCamera: (p) => setState(() => _projection = p),
+                    onCamera: (p) => _projection.value = p,
                     topInset: insets.top,
                     bottomInset: insets.bottom,
                   ),
@@ -276,7 +277,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
               area: play.area,
               frame: play.frame,
               truth: tier == null ? null : q.bridge.geometry,
-              onCamera: (p) => setState(() => _projection = p),
+              onCamera: (p) => _projection.value = p,
               topInset: insets.top,
               bottomInset: insets.bottom,
             ),

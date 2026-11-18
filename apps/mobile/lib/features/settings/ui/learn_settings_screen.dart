@@ -4,14 +4,15 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
+import 'package:pindoro/core/feedback.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/learning/data/cards.dart';
 import 'package:pindoro/features/learning/data/personal_landmarks.dart';
 import 'package:pindoro/features/learning/data/progress.dart';
-import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/settings/ui/widgets/settings_rows.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -30,7 +31,7 @@ class LearnSettingsScreen extends ConsumerWidget {
     if (settings == null) return const Scaffold();
     final now = ref.watch(clockProvider)();
     final locale = Localizations.localeOf(context).toLanguageTag();
-    final perDay = LearningConfig.newPerDay[settings.minutesPerDay] ?? 0;
+    final perDay = newPerDayAt(settings.minutesPerDay);
     final by = switch (ref.watch(unseenCoreProvider).value) {
       final unseen? => wholeCityBy(
         unseenCore: unseen,

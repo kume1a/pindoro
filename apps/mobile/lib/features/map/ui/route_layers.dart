@@ -4,48 +4,31 @@ import 'package:pindoro/features/map/data/maplibre_convert.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// A road trip on the map: A, B where the route reached the destination
-/// [street] (null until then; the street itself shows once checked), the
-/// route drawn so far (cobalt dashes), the best route as painted so far
-/// (yellow, with chevrons), the first-trip ghost, the replay [car] and the
-/// distance [chip] at the route's end (its [chipAnchor] keeps it on screen).
-/// [reached] pops B once.
+/// A route on the map (a recital, a drive): A, B (null until the route
+/// reached it), the route drawn so far (cobalt dashes), the best route
+/// (yellow, with chevrons) and a [chip] over a spot on it. [reached] pops B
+/// once.
 typedef RouteOverlay = ({
   LatLng a,
   LatLng? b,
-  MultiPolyline street,
   MultiPolyline drawn,
   MultiPolyline best,
-  MultiPolyline ghost,
-  LatLng? car,
-  ({LatLng at, String label, String anchor})? chip,
+  ({LatLng at, String label})? chip,
   bool reached,
 });
 
-/// The distance chip's MapLibre icon anchor for a route end at [x] on a map
-/// [width] wide: near an edge the chip grows inwards instead of off screen.
-String chipAnchor(double x, double width) => x < width / 4
-    ? 'bottom-left'
-    : x > width * 3 / 4
-    ? 'bottom-right'
-    : 'bottom';
-
-/// GeoJSON source ids of a road trip.
+/// GeoJSON source ids of a route.
 abstract final class RouteSources {
-  static const String street = 'route-street';
   static const String best = 'route-best';
   static const String drawn = 'route-drawn';
-  static const String ghost = 'route-ghost';
   static const String a = 'route-a';
   static const String b = 'route-b';
-  static const String car = 'route-car';
   static const String chip = 'route-chip';
 }
 
 const String _chevron = 'route-chevron';
 const String _aImage = 'route-a-pin';
 const String _bImage = 'route-b-pin';
-const String _carImage = 'route-car-mark';
 
 /// Chevrons on the best route, every 80 dp (`color.map.route.arrow`).
 const double _chevronSpacing = 80;
@@ -55,9 +38,6 @@ const double drawnWidth = 5;
 const double drawnHalo = 9;
 const double drawnDash = 8;
 const double drawnGap = 7;
-
-/// The ghost: round dots 9 dp apart (`.pd-map-ghost`).
-const double _ghostWidth = 6;
 
 /// An endpoint pin, anchored at its tip and grown by [scale] (B's pop).
 ml.SymbolLayerProperties endpointLayer(
@@ -73,9 +53,8 @@ ml.SymbolLayerProperties endpointLayer(
   iconIgnorePlacement: true,
 );
 
-/// Adds the road-trip sources, images and layers, bottom to top: the
-/// destination street, the best route, the drawn route, the ghost, A and B,
-/// the car and the chip.
+/// Adds the route sources, images and layers, bottom to top: the best route,
+/// the drawn route, A and B, and the chip.
 /// Overlays never take taps (see PindoroMap).
 Future<void> addRouteLayers(
   ml.MapLibreMapController c,
@@ -90,7 +69,6 @@ Future<void> addRouteLayers(
     _bImage,
     await PinMark.endpoint('B', colors).toPng(pixelRatio),
   );
-  await c.addImage(_carImage, await CarMark(colors).toPng(pixelRatio));
   await c.addImage(
     _chevron,
     await glyphPng(
@@ -101,36 +79,23 @@ Future<void> addRouteLayers(
       pixelRatio: pixelRatio,
     ),
   );
-  for (final id in [
-    RouteSources.street,
-    RouteSources.best,
-    RouteSources.drawn,
-    RouteSources.ghost,
-  ]) {
+  for (final id in [RouteSources.best, RouteSources.drawn]) {
     await c.addGeoJsonSource(id, linesGeoJson(const []));
   }
-  for (final id in [
-    RouteSources.a,
-    RouteSources.b,
-    RouteSources.car,
-    RouteSources.chip,
-  ]) {
+  for (final id in [RouteSources.a, RouteSources.b, RouteSources.chip]) {
     await c.addGeoJsonSource(id, pointsGeoJson(const []));
   }
-  for (final (source, id, color, width) in [
-    for (final source in [RouteSources.street, RouteSources.best]) ...[
-      (
-        source,
-        'casing',
-        colors.mapRouteCasing,
-        PindoroStroke.answer + 2 * PindoroStroke.base,
-      ),
-      (source, 'line', colors.mapRouteLine, PindoroStroke.answer),
-    ],
+  for (final (id, color, width) in [
+    (
+      'casing',
+      colors.mapRouteCasing,
+      PindoroStroke.answer + 2 * PindoroStroke.base,
+    ),
+    ('line', colors.mapRouteLine, PindoroStroke.answer),
   ]) {
     await c.addLineLayer(
-      source,
-      '$source-$id',
+      RouteSources.best,
+      '${RouteSources.best}-$id',
       ml.LineLayerProperties(
         lineColor: hexColor(color),
         lineWidth: width,
@@ -176,17 +141,6 @@ Future<void> addRouteLayers(
     ),
     enableInteraction: false,
   );
-  await c.addLineLayer(
-    RouteSources.ghost,
-    '${RouteSources.ghost}-dots',
-    ml.LineLayerProperties(
-      lineColor: hexColor(colors.coachBg),
-      lineWidth: _ghostWidth,
-      lineCap: 'round',
-      lineDasharray: [0, 9 / _ghostWidth],
-    ),
-    enableInteraction: false,
-  );
   for (final (id, image) in [
     (RouteSources.a, _aImage),
     (RouteSources.b, _bImage),
@@ -199,21 +153,11 @@ Future<void> addRouteLayers(
     );
   }
   await c.addSymbolLayer(
-    RouteSources.car,
-    '${RouteSources.car}-mark',
-    const ml.SymbolLayerProperties(
-      iconImage: _carImage,
-      iconAllowOverlap: true,
-      iconIgnorePlacement: true,
-    ),
-    enableInteraction: false,
-  );
-  await c.addSymbolLayer(
     RouteSources.chip,
     '${RouteSources.chip}-label',
     const ml.SymbolLayerProperties(
       iconImage: ['get', 'icon'],
-      iconAnchor: ['get', 'anchor'],
+      iconAnchor: 'bottom',
       iconAllowOverlap: true,
       iconIgnorePlacement: true,
     ),
@@ -240,16 +184,12 @@ Future<void> syncRoute(
   Future<String> Function(String label) chipImage,
 ) async {
   final lines = <String, MultiPolyline>{
-    RouteSources.street: now?.street ?? const [],
     RouteSources.best: now?.best ?? const [],
     RouteSources.drawn: now?.drawn ?? const [],
-    RouteSources.ghost: now?.ghost ?? const [],
   };
   final old = <String, MultiPolyline>{
-    RouteSources.street: before?.street ?? const [],
     RouteSources.best: before?.best ?? const [],
     RouteSources.drawn: before?.drawn ?? const [],
-    RouteSources.ghost: before?.ghost ?? const [],
   };
   for (final MapEntry(:key, :value) in lines.entries) {
     if (before == null || !identical(value, old[key])) {
@@ -259,12 +199,10 @@ Future<void> syncRoute(
   final points = <String, LatLng?>{
     RouteSources.a: now?.a,
     RouteSources.b: now?.b,
-    RouteSources.car: now?.car,
   };
   final oldPoints = <String, LatLng?>{
     RouteSources.a: before?.a,
     RouteSources.b: before?.b,
-    RouteSources.car: before?.car,
   };
   for (final MapEntry(:key, :value) in points.entries) {
     if (before == null || value != oldPoints[key]) {
@@ -279,10 +217,7 @@ Future<void> syncRoute(
           ? pointsGeoJson(const [])
           : pointsGeoJson(
               [chip.at],
-              properties: {
-                'icon': await chipImage(chip.label),
-                'anchor': chip.anchor,
-              },
+              properties: {'icon': await chipImage(chip.label)},
             ),
     );
   }

@@ -76,23 +76,6 @@ class LocationService {
     }
   }
 
-  /// The last known position when location is on and already allowed; never
-  /// asks and never waits for a fix.
-  Future<LatLng?> ifAllowed() async {
-    try {
-      if (!await Geolocator.isLocationServiceEnabled()) return null;
-      final permission = await Geolocator.checkPermission();
-      if (permission != LocationPermission.always &&
-          permission != LocationPermission.whileInUse) {
-        return null;
-      }
-      final p = await Geolocator.getLastKnownPosition();
-      return p == null ? null : LatLng(p.latitude, p.longitude);
-    } on Object {
-      return null;
-    }
-  }
-
   /// A fix about every second while a GPS-free drive records, also with the
   /// screen locked: Android keeps a foreground service up with [title] and
   /// [text] as its notification, iOS goes on in the background (permission

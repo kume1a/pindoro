@@ -62,7 +62,10 @@ final runsProvider = FutureProvider.autoDispose<List<Run>>((ref) async {
             ...?streets[itemKey(c.itemId)]?.parts.map((p) => p.id),
       },
       existing: runs,
-      gatewayPhase: cards.values.any((c) => c.type == CardType.g),
+      // This pack's gateways: another city's don't start its phase here.
+      gatewayPhase: cards.values.any(
+        (c) => c.type == CardType.g && book.questions.containsKey(c.itemId),
+      ),
       now: now,
       seed: now.millisecondsSinceEpoch ~/ Duration.millisecondsPerDay ~/ 7,
     ),

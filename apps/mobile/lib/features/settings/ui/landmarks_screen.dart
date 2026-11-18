@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pindoro/core/dialogs.dart';
+import 'package:pindoro/core/feedback.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
@@ -25,16 +27,14 @@ class LandmarksScreen extends ConsumerWidget {
     PersonalLandmarkRow landmark,
   ) async {
     final l10n = context.l10n;
-    final delete = await showDialog<bool>(
-      context: context,
-      builder: (_) => PindoroDialog(
-        title: l10n.landmarksDeleteTitle(landmark.name),
-        body: l10n.landmarksDeleteBody,
-        primary: l10n.landmarksKeep,
-        secondary: l10n.landmarksDeleteConfirm,
-      ),
+    final delete = await askChoice(
+      context,
+      title: l10n.landmarksDeleteTitle(landmark.name),
+      body: l10n.landmarksDeleteBody,
+      primary: l10n.landmarksKeep,
+      secondary: l10n.landmarksDeleteConfirm,
     );
-    if (delete != true) return;
+    if (!delete) return;
     ref.read(feedbackProvider).tap();
     await ref.read(learningDaoProvider).deletePersonalLandmark(landmark.id);
     ref.invalidate(personalLandmarksProvider);

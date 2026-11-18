@@ -1,7 +1,9 @@
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pindoro/features/learning/data/cards.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
+import 'package:pindoro/features/pack/data/installed_packs.dart';
 import 'package:pindoro/features/pack/data/pack_store.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
@@ -22,11 +24,6 @@ Future<BadgeStats> readBadgeStats(
   final now = at ?? DateTime.now();
   final counts = await dao.badgeCounts();
   final allCards = await learning.cards();
-  final cards = {
-    for (final c in allCards)
-      if (c.type == CardType.p) itemKey(c.itemId): c,
-  };
-  final byItem = {for (final c in allCards) c.itemId: c};
   final pins = [
     for (final e in await learning.log())
       if (e.type == CardType.p &&
@@ -39,18 +36,15 @@ Future<BadgeStats> readBadgeStats(
     await dao.recentCityIds(),
     open: open,
     (pack, streets) async {
-      final curriculum = Curriculum(
-        streets: streets.values,
-        districts: pack.districts(),
-        centre: pack.city().center,
-        families: pack.families(),
-      );
+      final curriculum = curriculumOf(pack, streets);
+      final byItem = cardsByItemOf(streets, allCards);
       final areas = areaCounts(
         streets: streets.values,
         districts: pack.districts(),
-        cards: cards,
+        cards: streetCardsOf(streets, allCards),
         now: now,
-        sidesOf: (p) => curriculum.sidesOf(itemKey(p.itemId), byItem),
+        sidesOf: (p) =>
+            curriculum.sidesOf(streets[itemKey(p.itemId)]!.id, byItem),
       );
       final perfects = pins.where((e) {
         final street = streets[itemKey(e.itemId)];
@@ -66,7 +60,15 @@ Future<BadgeStats> readBadgeStats(
     },
   );
   final days = (await dao.goalDayRounds()).keys.toSet();
-  final openCore = open?.streets.values.toSet().where(Curriculum.isCore);
+  int openCityMemory(OpenPack open) {
+    final cards = streetCardsOf(open.streets, allCards);
+    return cityMemory(
+      [for (final s in coreStreets(open.streets)) ?cards[s.id]],
+      now,
+      isCore: (_) => true,
+    ).round();
+  }
+
   return (
     pins: counts.pins,
     perfects:
@@ -81,13 +83,7 @@ Future<BadgeStats> readBadgeStats(
     goalDays: counts.goalDays,
     leechesCleared: leechesCleared(allCards),
     lateAnswer: counts.lateAnswer,
-    cityMemory: openCore == null
-        ? 0
-        : cityMemory(
-            [for (final s in openCore) ?cards[s.id]],
-            now,
-            isCore: (_) => true,
-          ).round(),
+    cityMemory: open == null ? 0 : openCityMemory(open),
   );
 }
 
@@ -105,10 +101,10 @@ typedef AwardBadges = Future<List<String>> Function();
 
 /// The open pack, unless it is the bundled Vake stand-in: badges count only
 /// a city's real pack.
-OpenPack? _badgePack(Ref ref) => switch (openPackOf(
-  ref.read(packRepositoryProvider),
-  ref.read(cityStreetsProvider),
-)) {
+OpenPack? _badgePack(
+  AsyncValue<PackRepository> pack,
+  AsyncValue<Map<String, NamedStreet>> streets,
+) => switch (openPackOf(pack, streets)) {
   final open? when !isFixturePack(open.pack) => open,
   _ => null,
 };
@@ -120,7 +116,10 @@ final awardBadgesProvider = Provider<AwardBadges>(
       dao,
       ref.read(learningDaoProvider),
       ref.read(packStoreProvider),
-      open: _badgePack(ref),
+      open: _badgePack(
+        ref.read(packRepositoryProvider),
+        ref.read(cityStreetsProvider),
+      ),
     );
     return dao.earn(earnedIds(stats), DateTime.now());
   },
@@ -145,7 +144,10 @@ final badgesProvider = FutureProvider.autoDispose<List<BadgeView>>((ref) async {
     dao,
     ref.watch(learningDaoProvider),
     ref.watch(packStoreProvider),
-    open: _badgePack(ref),
+    open: _badgePack(
+      ref.watch(packRepositoryProvider),
+      ref.watch(cityStreetsProvider),
+    ),
   );
   final saved = await dao.earnedBadges();
   final reached = {

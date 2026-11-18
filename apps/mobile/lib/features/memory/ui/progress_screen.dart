@@ -8,6 +8,7 @@ import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/learning/data/cards.dart';
 import 'package:pindoro/features/learning/data/progress.dart';
 import 'package:pindoro/features/learning/ui/city_memory_card.dart';
 import 'package:pindoro/features/learning/ui/city_tab_page.dart';
@@ -16,7 +17,6 @@ import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
-import 'package:pindoro_learning/pindoro_learning.dart';
 
 /// Progress (canvas V31-30): how memory grows (the City memory card, recall
 /// and the whole-city date), what's coming (the 14-day forecast, the
@@ -73,10 +73,7 @@ class ProgressScreen extends ConsumerWidget {
                 caption: by == null
                     ? null
                     : l10n.progressWholeCityPace(
-                        formatNumber(
-                          LearningConfig.newPerDay[settings?.minutesPerDay] ??
-                              0,
-                        ),
+                        formatNumber(newPerDayAt(settings?.minutesPerDay)),
                       ),
               ),
             ]),
@@ -161,17 +158,9 @@ class ProgressScreen extends ConsumerWidget {
   }
 }
 
-bool _mastered(MemorySummary m) =>
-    m.total > 0 && m.counts[MemoryState.mastered] == m.total;
-
-DistrictProgress _fill(MemorySummary m) => DistrictProgress.of(
-  m.total == 0 ? 0 : m.memory / m.total,
-  mastered: _mastered(m),
-);
-
 /// "1 Mastered", "all 10 started" or "9 of 10 districts started".
 String _whereMeta(AppLocalizations l10n, List<RaionProgress> districts) {
-  final mastered = districts.where((d) => _mastered(d.memory)).length;
+  final mastered = districts.where((d) => allMastered(d.memory)).length;
   final started = districts.where((d) => d.memory.memory.round() > 0).length;
   final total = formatNumber(districts.length);
   return mastered > 0
@@ -203,15 +192,15 @@ class _DistrictMap extends ConsumerWidget {
         for (final d in districts)
           (
             boundary: d.district.boundary,
-            progress: _fill(d.memory),
+            progress: districtFill(d.memory),
             name: districtName(d.district, settings),
             labelAt: d.district.center,
           ),
       ],
       semanticsLabel: l10n.a11yDistrictMap(
-        city == null ? '' : context.localName(ka: city.nameKa, en: city.nameEn),
+        city == null ? '' : cityName(context, city),
         formatNumber(started.length),
-        formatNumber(districts.where((d) => _mastered(d.memory)).length),
+        formatNumber(districts.where((d) => allMastered(d.memory)).length),
       ),
       onTap: (i) => onTap(districts[i].district.id),
       overlay: const Positioned(
@@ -295,7 +284,7 @@ class _DistrictRow extends StatelessWidget {
     final c = PindoroTheme.of(context).colors;
     final m = district.memory;
     final name = districtName(district.district, settings);
-    final mastered = _mastered(m);
+    final mastered = allMastered(m);
     final learning = this.learning;
     final subtitle = [
       l10n.memoryInMemory(

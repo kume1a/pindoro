@@ -42,22 +42,3 @@ class PlayBar extends StatelessWidget {
     );
   }
 }
-
-/// Asks before leaving a play screen: [stay] or [leave]. True to leave.
-Future<bool> confirmLeave(
-  BuildContext context, {
-  required String title,
-  required String body,
-  required String stay,
-  required String leave,
-}) async =>
-    await showDialog<bool>(
-      context: context,
-      builder: (context) => PindoroDialog(
-        title: title,
-        body: body,
-        primary: stay,
-        secondary: leave,
-      ),
-    ) ??
-    false;

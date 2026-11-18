@@ -20,6 +20,10 @@ String landmarkName(RouteLandmark l, Settings? settings) =>
 String _byNameSetting(String local, String? english, Settings? settings) =>
     settings?.streetNames == StreetNameMode.english ? english ?? local : local;
 
+/// A city's name in the app's language.
+String cityName(BuildContext context, City city) =>
+    context.localName(ka: city.nameKa, en: city.nameEn);
+
 /// "Vake and Vere", "Vake + 2 more", "2 km circle", "2.6 × 3 km rectangle";
 /// districts in the order the area picker lists them (by shown name).
 String areaLabel(
@@ -56,7 +60,7 @@ String resumeLabel(
 ) {
   final city = pack.city();
   return [
-    context.localName(ka: city.nameKa, en: city.nameEn),
+    cityName(context, city),
     areaLabel(context, area, pack, settings),
     difficultyName(AppLocalizations.of(context), difficulty),
   ].join(' · ');

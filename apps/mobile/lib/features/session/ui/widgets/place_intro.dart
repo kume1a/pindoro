@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pindoro/core/dialogs.dart';
+import 'package:pindoro/core/feedback.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/google_maps.dart';
 import 'package:pindoro/core/labels.dart';
@@ -9,10 +11,11 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/ui/junction_name.dart';
 import 'package:pindoro/features/learning/ui/landmark_glyph.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
-import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/map/ui/widgets/street_view_button.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
+import 'package:pindoro/features/session/ui/widgets/intro_scaffold.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
@@ -51,60 +54,42 @@ class PlaceIntro extends ConsumerWidget {
       _ => null,
     };
     final mapOf = ref.watch(pindoroMapBuilderProvider);
-    return Scaffold(
-      body: MapLayout(
-        map: (insets) => mapOf(
-          PindoroMap(
-            area: play.area,
-            truthPoint: landmark.at,
-            truth: question.outlineLines,
-            names: MapNames.all,
-            topInset: insets.top,
-            bottomInset: insets.bottom,
-          ),
+    return IntroScaffold(
+      stepKey: play.index,
+      map: (insets) => mapOf(
+        PindoroMap(
+          area: play.area,
+          truthPoint: landmark.at,
+          truth: question.outlineLines,
+          names: MapNames.all,
+          topInset: insets.top,
+          bottomInset: insets.bottom,
         ),
-        top: Column(
-          spacing: PindoroSpace.s2,
-          children: [
-            topBar,
-            RiseSwitcher(
-              child: StreetPlate(
-                name,
-                key: ValueKey(play.index),
-                prompt: prompt,
-                promptGlyph: landmarkGlyph(landmark.kind),
-                subline: landmarkKindName(l10n, landmark.kind),
-                semanticLabel: '$prompt: $name',
-              ),
-            ),
-          ],
-        ),
-        bottom: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: RiseIn(
-            key: ValueKey(play.index),
-            child: IntroSheet(
-              title: l10n.lessonWhereTitle,
-              where: junction == null
-                  ? l10n.placeOnStreetSentence(streetName(street, settings))
-                  : l10n.placeAtJunction(junction),
-              facts: landmarkKindName(l10n, landmark.kind),
-              extra: [CantFindItChip(name: name, onHide: onHide)],
-              regionLabel: l10n.placeIntroRegion,
-              streetViewLabel: l10n.streetView,
-              onStreetView: () {
-                ref.read(feedbackProvider).tap();
-                final spot = placeSpot(street, landmark.at);
-                unawaited(GoogleMaps.open(GoogleMaps.streetView(spot)));
-              },
-              gotItLabel: l10n.revealGotIt,
-              onGotIt: () {
-                ref.read(feedbackProvider).tap();
-                onGotIt();
-              },
-            ),
-          ),
-        ),
+      ),
+      topBar: topBar,
+      plate: StreetPlate(
+        name,
+        prompt: prompt,
+        promptGlyph: landmarkGlyph(landmark.kind),
+        subline: landmarkKindName(l10n, landmark.kind),
+        semanticLabel: '$prompt: $name',
+      ),
+      sheet: IntroSheet(
+        title: l10n.lessonWhereTitle,
+        where: junction == null
+            ? l10n.placeOnStreetSentence(streetName(street, settings))
+            : l10n.placeAtJunction(junction),
+        facts: landmarkKindName(l10n, landmark.kind),
+        extra: [CantFindItChip(name: name, onHide: onHide)],
+        regionLabel: l10n.placeIntroRegion,
+        streetViewLabel: l10n.streetView,
+        onStreetView: () =>
+            StreetViewButton.open(ref, placeSpot(street, landmark.at)),
+        gotItLabel: l10n.revealGotIt,
+        onGotIt: () {
+          ref.read(feedbackProvider).tap();
+          onGotIt();
+        },
       ),
     );
   }
@@ -120,16 +105,14 @@ class CantFindItChip extends StatelessWidget {
 
   Future<void> _ask(BuildContext context) async {
     final l10n = context.l10n;
-    final hide = await showDialog<bool>(
-      context: context,
-      builder: (_) => PindoroDialog(
-        title: l10n.placeHideTitle(name),
-        body: l10n.placeHideBody,
-        primary: l10n.landmarksKeep,
-        secondary: l10n.placeHideConfirm,
-      ),
+    final hide = await askChoice(
+      context,
+      title: l10n.placeHideTitle(name),
+      body: l10n.placeHideBody,
+      primary: l10n.landmarksKeep,
+      secondary: l10n.placeHideConfirm,
     );
-    if (hide == true) onHide();
+    if (hide) onHide();
   }
 
   @override

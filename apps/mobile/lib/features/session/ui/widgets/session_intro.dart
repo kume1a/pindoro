@@ -2,18 +2,20 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pindoro/core/feedback.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/google_maps.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/speech.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
-import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/map/ui/widgets/street_facts.dart';
+import 'package:pindoro/features/map/ui/widgets/street_view_button.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
+import 'package:pindoro/features/session/ui/widgets/intro_scaffold.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -75,90 +77,72 @@ class _SessionIntroState extends ConsumerState<SessionIntro> {
         ? l10n.sessionLeechPrompt
         : l10n.lessonNewStreet(play.newIndex, play.newTotal);
     final mapOf = ref.watch(pindoroMapBuilderProvider);
-    return Scaffold(
-      body: MapLayout(
-        map: (insets) => mapOf(
-          PindoroMap(
-            area: play.area,
-            truth: street.geometry,
-            names: MapNames.all,
-            hit: contrast?.geometry,
-            topInset: insets.top,
-            bottomInset: insets.bottom,
+    return IntroScaffold(
+      stepKey: play.index,
+      map: (insets) => mapOf(
+        PindoroMap(
+          area: play.area,
+          truth: street.geometry,
+          names: MapNames.all,
+          hit: contrast?.geometry,
+          topInset: insets.top,
+          bottomInset: insets.bottom,
+        ),
+      ),
+      topBar: topBar,
+      plate: StreetPlate(
+        name,
+        prompt: prompt,
+        promptGlyph: PindoroGlyph.signpost,
+        subline: otherScript(street, settings),
+        semanticLabel: '$prompt: $name',
+      ),
+      sheet: IntroSheet(
+        title: l10n.lessonWhereTitle,
+        where: intro.where,
+        facts: intro.facts,
+        etymology: street.parts.first.etymology,
+        family: switch (play.family) {
+          final f? => l10n.sessionFamily(
+            streetName(f.parent, settings),
+            familyCounts(l10n, f.children),
           ),
-        ),
-        top: Column(
-          spacing: PindoroSpace.s2,
-          children: [
-            topBar,
-            RiseSwitcher(
-              child: StreetPlate(
-                name,
-                key: ValueKey(play.index),
-                prompt: prompt,
-                promptGlyph: PindoroGlyph.signpost,
-                subline: otherScript(street, settings),
-                semanticLabel: '$prompt: $name',
-              ),
-            ),
-          ],
-        ),
-        bottom: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
-          child: RiseIn(
-            key: ValueKey(play.index),
-            child: IntroSheet(
-              title: l10n.lessonWhereTitle,
-              where: intro.where,
-              facts: intro.facts,
-              etymology: street.parts.first.etymology,
-              family: switch (play.family) {
-                final f? => l10n.sessionFamily(
-                  streetName(f.parent, settings),
-                  familyCounts(l10n, f.children),
-                ),
-                null => null,
-              },
-              regionLabel: l10n.sessionIntroRegion,
-              hearLabel: l10n.lessonHearName,
-              onHear: canSpeak
-                  ? () {
-                      ref.read(feedbackProvider).tap();
-                      unawaited(ref.read(speechProvider).speak(name, language));
-                    }
-                  : null,
-              streetViewLabel: l10n.streetView,
-              onStreetView: () {
+          null => null,
+        },
+        regionLabel: l10n.sessionIntroRegion,
+        hearLabel: l10n.lessonHearName,
+        onHear: canSpeak
+            ? () {
                 ref.read(feedbackProvider).tap();
-                final spot = streetSpot(street, street.parts.first.midpoint);
-                unawaited(GoogleMaps.open(GoogleMaps.streetView(spot)));
-              },
-              extra: [
-                if (contrast != null)
-                  StatChip(
-                    label: l10n.sessionLeechContrast(
-                      streetName(contrast, settings),
-                    ),
-                    glyph: PindoroGlyph.reroute,
-                  ),
-                if (play.leech)
-                  SearchField(
-                    controller: _note,
-                    placeholder: l10n.sessionLeechNoteHint,
-                    clearLabel: l10n.commonClear,
-                    glyph: PindoroGlyph.edit,
-                    textInputAction: TextInputAction.done,
-                    textCapitalization: TextCapitalization.sentences,
-                  ),
-              ],
-              gotItLabel: l10n.revealGotIt,
-              onGotIt: () {
-                ref.read(feedbackProvider).tap();
-                widget.onGotIt(play.leech ? _note.text : null);
-              },
-            ),
-          ),
+                unawaited(ref.read(speechProvider).speak(name, language));
+              }
+            : null,
+        streetViewLabel: l10n.streetView,
+        onStreetView: () => StreetViewButton.open(
+          ref,
+          streetSpot(street, street.parts.first.midpoint),
         ),
+        extra: [
+          if (contrast != null)
+            StatChip(
+              label: l10n.sessionLeechContrast(streetName(contrast, settings)),
+              glyph: PindoroGlyph.reroute,
+            ),
+          if (play.leech)
+            SearchField(
+              controller: _note,
+              placeholder: l10n.sessionLeechNoteHint,
+              clearLabel: l10n.commonClear,
+              glyph: PindoroGlyph.edit,
+              textInputAction: TextInputAction.done,
+              textCapitalization: TextCapitalization.sentences,
+            ),
+        ],
+        gotItLabel: l10n.revealGotIt,
+        onGotIt: () {
+          ref.read(feedbackProvider).tap();
+          widget.onGotIt(play.leech ? _note.text : null);
+        },
       ),
     );
   }

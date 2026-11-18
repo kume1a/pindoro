@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:pindoro/features/map/ui/route_layers.dart';
@@ -35,7 +36,7 @@ class RouteDrawLayer extends StatefulWidget {
     required this.onOffRoad,
   });
 
-  final MapProjection? projection;
+  final ValueListenable<MapProjection?> projection;
   final RouteDraft draft;
   final ValueChanged<RouteDraft> onDraft;
   final VoidCallback onTouch;
@@ -60,7 +61,7 @@ class _RouteDrawLayerState extends State<RouteDrawLayer> {
   }
 
   bool _startsNearEnd(Offset global) {
-    final projection = widget.projection;
+    final projection = widget.projection.value;
     final box = context.findRenderObject() as RenderBox?;
     if (projection == null || box == null || _draft.reached) return false;
     final end = projection.toScreen(_draft.graph.at(_draft.end));
@@ -68,7 +69,7 @@ class _RouteDrawLayerState extends State<RouteDrawLayer> {
   }
 
   void _move(Offset local) {
-    final projection = widget.projection;
+    final projection = widget.projection.value;
     if (projection == null) return;
     final finger = projection.toLatLng(local);
     final snapM = snapDp * projection.metresPerDp(finger);
@@ -104,7 +105,7 @@ class _RouteDrawLayerState extends State<RouteDrawLayer> {
 
   @override
   Widget build(BuildContext context) {
-    final projection = widget.projection;
+    final projection = widget.projection.value;
     final finger = _finger;
     final street = projection == null
         ? null

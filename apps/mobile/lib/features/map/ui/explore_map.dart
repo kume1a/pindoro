@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:pindoro/features/map/data/geojson.dart';
-import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/data/maplibre_convert.dart';
+import 'package:pindoro/features/map/ui/map_host.dart';
 import 'package:pindoro/features/map/ui/map_work.dart';
 import 'package:pindoro/features/map/ui/poi_icons.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
@@ -69,23 +69,11 @@ const String _labels = 'explore-labels';
 /// 3 dp line).
 const List<double> _dash = [8 / 3, 2];
 
-class _ExploreMapState extends State<ExploreMap> {
-  ml.MapLibreMapController? _controller;
-  Future<String>? _style;
-  Brightness? _brightness;
+class _ExploreMapState extends State<ExploreMap> with MapHost<ExploreMap> {
   bool _ready = false;
-  Size? _size;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final brightness = Theme.of(context).brightness;
-    if (brightness != _brightness) {
-      _brightness = brightness;
-      _ready = false;
-      _style = loadMapStyle(brightness);
-    }
-  }
+  void styleChanged() => _ready = false;
 
   @override
   void didUpdateWidget(ExploreMap old) {
@@ -146,7 +134,7 @@ class _ExploreMapState extends State<ExploreMap> {
   static const List<Object> _isDetail = ['!', _isDistrict];
 
   Future<void> _addLayers() async {
-    final c = _controller;
+    final c = mapController;
     if (c == null) return;
     final colors = PindoroTheme.of(context).colors;
     final pixelRatio = MediaQuery.devicePixelRatioOf(context);
@@ -264,7 +252,7 @@ class _ExploreMapState extends State<ExploreMap> {
   ]);
 
   Future<void> _sync() async {
-    final c = _controller!;
+    final c = mapController!;
     final colors = PindoroTheme.of(context).colors;
     await c.setGeoJsonSource(_districts, _districtFeatures(colors));
     await c.setGeoJsonSource(
@@ -276,25 +264,17 @@ class _ExploreMapState extends State<ExploreMap> {
   }
 
   void _tapped(Offset at) {
-    final camera = _controller?.cameraPosition;
-    final size = _size;
-    if (camera == null || size == null) return;
-    widget.onTap(
-      MapProjection(
-        target: camera.target.toCore,
-        zoom: camera.zoom,
-        size: size,
-      ).toLatLng(at),
-      camera.zoom,
-    );
+    if (mapProjection case final projection?) {
+      widget.onTap(projection.toLatLng(at), projection.zoom);
+    }
   }
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final size = _size = constraints.biggest;
+      final size = mapSize = constraints.biggest;
       return FutureBuilder<String>(
-        future: _style,
+        future: mapStyle,
         builder: (context, style) {
           final start = _fit(size);
           return Stack(
@@ -309,7 +289,7 @@ class _ExploreMapState extends State<ExploreMap> {
                       zoom: start.zoom,
                     ),
                     trackCameraPosition: true,
-                    onMapCreated: (c) => _controller = c,
+                    onMapCreated: (c) => mapController = c,
                     onStyleLoadedCallback: () => runMapWork(_addLayers),
                     rotateGesturesEnabled: false,
                     tiltGesturesEnabled: false,

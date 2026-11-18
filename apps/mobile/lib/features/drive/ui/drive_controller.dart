@@ -86,11 +86,24 @@ final class DriveReview extends DriveState {
 class DriveController extends Notifier<DriveState> {
   StreamSubscription<DriveFix>? _track;
   final List<DriveFix> _fixes = [];
+  bool _busy = false;
 
   @override
   DriveState build() {
     ref.onDispose(() => unawaited(_track?.cancel()));
     return const DriveSetup();
+  }
+
+  /// Runs [step] unless another is still running: a double tap on Start or
+  /// I'm there opens one track and saves the drive once.
+  Future<void> _once(Future<void> Function() step) async {
+    if (_busy) return;
+    _busy = true;
+    try {
+      await step();
+    } finally {
+      _busy = false;
+    }
   }
 
   void choose(DriveTo to) {
@@ -106,7 +119,10 @@ class DriveController extends Notifier<DriveState> {
   /// Start drive: finds the destination (a surprise or the player's own
   /// street from where they are) and starts the track, its notification
   /// reading [title] and [text].
-  Future<void> start({required String title, required String text}) async {
+  Future<void> start({required String title, required String text}) =>
+      _once(() => _start(title, text));
+
+  Future<void> _start(String title, String text) async {
     final setup = state;
     if (setup is! DriveSetup) return;
     final location = ref.read(locationServiceProvider);
@@ -198,7 +214,9 @@ class DriveController extends Notifier<DriveState> {
   /// I'm there: stops the track, matches it to the streets and grades it
   /// against the best legal route to the destination, then saves each
   /// decision as evidence and the near-due J cards it failed as Again.
-  Future<void> end() async {
+  Future<void> end() => _once(_end);
+
+  Future<void> _end() async {
     final recording = state;
     if (recording is! DriveRecording) return;
     await _track?.cancel();
@@ -267,7 +285,9 @@ class DriveController extends Notifier<DriveState> {
   }
 
   /// Lost? Show the way: the test ends unrecorded.
-  Future<void> abandon() async {
+  Future<void> abandon() => _once(_abandon);
+
+  Future<void> _abandon() async {
     await _track?.cancel();
     _track = null;
     _fixes.clear();

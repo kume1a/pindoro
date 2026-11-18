@@ -195,8 +195,10 @@ void main() {
     int dueInDays = 0,
     CardPhase phase = CardPhase.review,
     int lapses = 0,
+    String? note,
   }) => CardState(
     itemId: itemId,
+    note: note,
     phase: phase,
     memory: Memory(
       stability: stability,
@@ -538,6 +540,33 @@ void main() {
       final card = (await dao.card(item(a)))!;
       expect((card.phase, card.note), (CardPhase.relearning, 'by the bakery'));
       expect(card.lapses, LearningConfig.leechLapses);
+    });
+
+    testWidgets('two leeches in a row each keep their own note', (
+      tester,
+    ) async {
+      for (final (street, note) in [(a, 'by the bakery'), (b, 'one way up')]) {
+        await dao.putCard(
+          reviewed(
+            item(street),
+            stability: 1,
+            daysAgo: 1,
+            phase: CardPhase.suspended,
+            lapses: LearningConfig.leechLapses,
+            note: note,
+          ),
+        );
+      }
+      await pump(tester, [
+        (kind: StepKind.intro, itemId: item(a)),
+        (kind: StepKind.intro, itemId: item(b)),
+      ]);
+      expect(find.text('by the bakery'), findsOneWidget);
+      await tapThrough(tester, find.text('Got it'));
+      expect(find.text('one way up'), findsOneWidget);
+      await tapThrough(tester, find.text('Got it'));
+      expect((await dao.card(item(a)))!.note, 'by the bakery');
+      expect((await dao.card(item(b)))!.note, 'one way up');
     });
 
     testWidgets('the family sweep grades each lane\'s pin card and saves '

@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/clock.dart';
+import 'package:pindoro/features/learning/data/cards.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
+import 'package:pindoro/features/pack/data/installed_packs.dart';
 import 'package:pindoro/features/pack/data/pack_store.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
@@ -43,17 +45,15 @@ final meProvider = FutureProvider.autoDispose<MeData>((ref) async {
     ref.watch(cityStreetsProvider),
   );
   final streak = await ref.watch(streakProvider.future);
-  final cards = {
-    for (final c in await ref.watch(learningDaoProvider).cards())
-      if (c.type == CardType.p) itemKey(c.itemId): c,
-  };
+  final allCards = await ref.watch(learningDaoProvider).cards();
 
   Future<MeCity> count(
     PackRepository pack,
     Map<String, NamedStreet> streets,
   ) async {
     final city = pack.city();
-    final core = streets.values.toSet().where(Curriculum.isCore).toList();
+    final core = coreStreets(streets);
+    final cards = streetCardsOf(streets, allCards);
     final memory = cityMemory(
       [for (final s in core) ?cards[s.id]],
       now,

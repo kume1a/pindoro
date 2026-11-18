@@ -240,12 +240,6 @@ void main() {
     expect(await progress.previousDistances(retry), {'a': 250, 'b': 300});
   });
 
-  test('the last round area', () async {
-    expect(await progress.lastRoundArea('tbilisi'), isNull);
-    await round(['a']);
-    expect(await progress.lastRoundArea('tbilisi'), vake);
-  });
-
   group('badges', () {
     test('pins count Explore answers and session and placement pins, '
         'Perfects the Explore ones; counted days too', () async {

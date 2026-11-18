@@ -2,9 +2,7 @@ import 'dart:async';
 import 'dart:math' as math show max, pi, sin;
 import 'dart:math' show Point;
 
-import 'package:flutter/foundation.dart' show Factory, listEquals;
-import 'package:flutter/gestures.dart'
-    show EagerGestureRecognizer, OneSequenceGestureRecognizer;
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
@@ -16,6 +14,7 @@ import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/map/data/geojson.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/data/maplibre_convert.dart';
+import 'package:pindoro/features/map/ui/map_host.dart';
 import 'package:pindoro/features/map/ui/map_work.dart';
 import 'package:pindoro/features/map/ui/poi_icons.dart';
 import 'package:pindoro/features/map/ui/route_layers.dart';
@@ -79,7 +78,6 @@ class PindoroMap extends ConsumerStatefulWidget {
     this.route,
     this.frame,
     this.onCamera,
-    this.ownsGestures = false,
     this.names = const MapNames(),
     this.traces = const [],
     this.hit,
@@ -105,10 +103,6 @@ class PindoroMap extends ConsumerStatefulWidget {
   final List<LatLng>? frame;
   final ValueChanged<MapProjection>? onCamera;
 
-  /// Inside a scroll view: drags and pinches on the map move the map, not
-  /// the page.
-  final bool ownsGestures;
-
   /// The street and place names the basemap draws (none by default).
   final MapNames names;
 
@@ -130,8 +124,7 @@ class PindoroMap extends ConsumerStatefulWidget {
 }
 
 class _PindoroMapState extends ConsumerState<PindoroMap>
-    with TickerProviderStateMixin {
-  ml.MapLibreMapController? _controller;
+    with TickerProviderStateMixin, MapHost<PindoroMap> {
   bool _locating = false;
 
   /// The camera is still where the last fit put it: no touch or control has
@@ -151,15 +144,12 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   )..addListener(_paintTick);
   double _paintReachM = 0;
   double _pixelRatio = 1;
-  Size? _size;
 
   /// B pops when the route reaches it (`spring.bouncy`, a quick grow).
   late final AnimationController _pop = AnimationController(
     vsync: this,
     duration: PindoroMotion.durationBase,
   )..addListener(_popTick);
-  Brightness? _brightness;
-  Future<String>? _style;
 
   /// The style's own filters of its name layers, which [MapNames] narrows.
   Map<String, Object?> _baseFilters = const {};
@@ -172,20 +162,11 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   bool _routeChanged = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final brightness = Theme.of(context).brightness;
-    if (brightness != _brightness) {
-      _brightness = brightness;
-      _overlaysReady = false;
-      _style = loadMapStyle(
-        brightness,
-        english:
-            ref.read(settingsProvider).value?.streetNames ==
-            StreetNameMode.english,
-      );
-    }
-  }
+  bool get englishNames =>
+      ref.read(settingsProvider).value?.streetNames == StreetNameMode.english;
+
+  @override
+  void styleChanged() => _overlaysReady = false;
 
   /// The pin symbol anchored at its tip, raised by [dy] dp.
   ml.SymbolLayerProperties _pinLayer(double dy) => ml.SymbolLayerProperties(
@@ -198,7 +179,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
 
   @override
   void dispose() {
-    _controller?.removeListener(_cameraMoved);
+    mapController?.removeListener(_cameraMoved);
     _drop.dispose();
     _paint.dispose();
     _pop.dispose();
@@ -206,41 +187,54 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   }
 
   void _popTick() {
-    if (!_overlaysReady || _controller == null) return;
+    if (!_overlaysReady || mapController == null) return;
     unawaited(
       scaleB(
-        _controller!,
+        mapController!,
         _pixelRatio,
         1 + 0.25 * math.sin(math.pi * _pop.value),
       ),
     );
   }
 
-  MapProjection? get _projection {
-    final camera = _controller?.cameraPosition;
-    final size = _size;
-    if (camera == null || size == null) return null;
-    return MapProjection(
-      target: camera.target.toCore,
-      zoom: camera.zoom,
-      size: size,
-      bearing: camera.bearing,
-    );
-  }
-
   void _cameraMoved() {
-    if (_projection case final projection?) widget.onCamera?.call(projection);
+    if (mapProjection case final projection?) widget.onCamera?.call(projection);
   }
 
   void _tapped(Offset at) {
-    if (_projection case final projection?) {
+    if (mapProjection case final projection?) {
       widget.onTap?.call(projection.toLatLng(at));
     }
   }
 
+  /// Zooms [by] levels around the centre of the map between the insets, not
+  /// the view's centre, which the bottom sheet may cover.
+  void _zoom(double by) {
+    final projection = mapProjection;
+    if (projection == null) return;
+    final Size(:width, :height) = projection.size;
+    final focus = Offset(
+      width / 2,
+      (widget.topInset + height - widget.bottomInset) / 2,
+    );
+    final camera = projection.zoomedAround(focus, by);
+    _framed = false;
+    unawaited(
+      mapController?.animateCamera(
+        ml.CameraUpdate.newCameraPosition(
+          ml.CameraPosition(
+            target: camera.target.toMapLibre,
+            zoom: camera.zoom,
+            bearing: camera.bearing,
+          ),
+        ),
+      ),
+    );
+  }
+
   /// A screen reader's double-tap drops the pin at the centre.
   void _tappedCentre() {
-    if (_controller?.cameraPosition case final camera?) {
+    if (mapController?.cameraPosition case final camera?) {
       widget.onTap?.call(camera.target.toCore);
     }
   }
@@ -257,7 +251,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   // Ticks skip frames while a new style (theme change) lacks the sources.
   void _paintTick() {
     if (!_overlaysReady) return;
-    _controller?.setGeoJsonSource(
+    mapController?.setGeoJsonSource(
       _MapSources.truthStreet,
       linesGeoJson(_paintedTruth),
     );
@@ -276,7 +270,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     if (!_overlaysReady) return;
     final fall = 24 * (1 - Curves.bounceOut.transform(_drop.value));
     // setLayerProperties replaces every property, so send them all.
-    _controller?.setLayerProperties(
+    mapController?.setLayerProperties(
       '${_MapSources.youPin}-pin',
       _pinLayer(PinMark.tipInset - fall),
     );
@@ -295,13 +289,15 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     if (widget.truth != null && widget.measure?.to != oldWidget.measure?.to) {
       _startPaint();
     }
+    // Screens rebuild their lines on every build; only new ones count.
+    final truthMoved = !_sameLines(widget.truth, oldWidget.truth);
     if (widget.pin != oldWidget.pin ||
         !listEquals(widget.morePins, oldWidget.morePins) ||
-        widget.truth != oldWidget.truth ||
+        truthMoved ||
         widget.truthPoint != oldWidget.truthPoint ||
         widget.measure != oldWidget.measure ||
         !listEquals(widget.traces, oldWidget.traces) ||
-        widget.hit != oldWidget.hit) {
+        !_sameLines(widget.hit, oldWidget.hit)) {
       runMapWork(_syncOverlays);
     }
     if (widget.names != oldWidget.names) runMapWork(_syncNames);
@@ -309,7 +305,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     final insetsMoved =
         widget.topInset != oldWidget.topInset ||
         widget.bottomInset != oldWidget.bottomInset;
-    if (widget.truth != oldWidget.truth ||
+    if (truthMoved ||
         widget.truthPoint != oldWidget.truthPoint ||
         (frame != null && !listEquals(frame, oldWidget.frame)) ||
         (insetsMoved && _framed)) {
@@ -380,11 +376,11 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   );
 
   Future<void> _fit(List<LatLng> points) async {
-    final size = _size;
+    final size = mapSize;
     if (size == null) return;
     _framed = true;
     final camera = _cameraFor(points, size);
-    await _controller?.animateCamera(
+    await mapController?.animateCamera(
       ml.CameraUpdate.newCameraPosition(
         ml.CameraPosition(
           target: camera.target.toMapLibre,
@@ -396,7 +392,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   }
 
   Future<void> _addOverlays() async {
-    final c = _controller;
+    final c = mapController;
     if (c == null) return;
     final colors = PindoroTheme.of(context).colors;
     final pixelRatio = _pixelRatio = MediaQuery.devicePixelRatioOf(context);
@@ -567,7 +563,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     await _syncOverlays();
     await _fit(_framePoints);
     _cameraMoved();
-    if (await _style case final style?) {
+    if (await mapStyle case final style?) {
       _baseFilters = {
         for (final id in [NameLayers.roads, NameLayers.pois])
           id: styleFilter(style, id),
@@ -579,7 +575,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
 
   /// Shows [PindoroMap.names] through the style's name layers.
   Future<void> _syncNames() async {
-    final c = _controller;
+    final c = mapController;
     if (!_overlaysReady || c == null) return;
     final names = widget.names;
     for (final (id, filter) in [
@@ -592,7 +588,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   }
 
   Future<void> _syncOverlays() async {
-    final c = _controller!;
+    final c = mapController!;
     final pin = widget.pin;
     final measure = widget.measure;
     await c.setGeoJsonSource(
@@ -642,7 +638,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       do {
         _routeChanged = false;
         final route = widget.route;
-        await syncRoute(_controller!, route, _sentRoute, _chipImage);
+        await syncRoute(mapController!, route, _sentRoute, _chipImage);
         _sentRoute = route;
       } while (_routeChanged);
     } finally {
@@ -671,7 +667,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     final icon = 'measure:$label';
     if (_measureImages.add(icon)) {
       final chip = MapChip.distance(label, PindoroTheme.of(context).colors);
-      await _controller!.addImage(icon, await chip.toPng(_pixelRatio));
+      await mapController!.addImage(icon, await chip.toPng(_pixelRatio));
     }
     return icon;
   }
@@ -686,7 +682,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       if (!mounted) return;
       switch (result) {
         case Located(:final position):
-          await _controller?.animateCamera(
+          await mapController?.animateCamera(
             ml.CameraUpdate.newLatLng(position.toMapLibre),
           );
         case LocationDenied():
@@ -710,13 +706,13 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      final size = _size = constraints.biggest;
+      final size = mapSize = constraints.biggest;
       return _map(context, size);
     },
   );
 
   Widget _map(BuildContext context, Size size) => FutureBuilder<String>(
-    future: _style,
+    future: mapStyle,
     builder: (context, style) {
       final l10n = context.l10n;
       final taps = widget.onTap != null;
@@ -739,15 +735,8 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
                       zoom: start.zoom,
                       bearing: widget.bearing,
                     ),
-                    gestureRecognizers: widget.ownsGestures
-                        ? {
-                            Factory<OneSequenceGestureRecognizer>(
-                              EagerGestureRecognizer.new,
-                            ),
-                          }
-                        : null,
                     onMapCreated: (c) =>
-                        _controller = c..addListener(_cameraMoved),
+                        mapController = c..addListener(_cameraMoved),
                     trackCameraPosition: widget.onCamera != null || taps,
                     onStyleLoadedCallback: () => runMapWork(_addOverlays),
                     // A tap drops the pin at once, so a second can't zoom.
@@ -778,13 +767,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
                     semanticLabel: l10n.a11yRecentre,
                     onPressed: _fitArea,
                   ),
-                  MapZoomControls(
-                    top: PindoroSpace.s2,
-                    onCamera: (update) {
-                      _framed = false;
-                      unawaited(_controller?.animateCamera(update));
-                    },
-                  ),
+                  MapZoomControls(top: PindoroSpace.s2, onZoom: _zoom),
                 ],
               ),
             ),
@@ -798,3 +781,11 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     },
   );
 }
+
+/// Whether [a] and [b] hold the same lines, point by point.
+bool _sameLines(MultiPolyline? a, MultiPolyline? b) =>
+    identical(a, b) ||
+    (a != null &&
+        b != null &&
+        a.length == b.length &&
+        Iterable<int>.generate(a.length).every((i) => listEquals(a[i], b[i])));

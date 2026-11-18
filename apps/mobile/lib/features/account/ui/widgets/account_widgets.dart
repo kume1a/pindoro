@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pindoro/core/api_client.dart';
+import 'package:pindoro/core/dialogs.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
@@ -92,35 +93,12 @@ class AccountField extends StatelessWidget {
   }
 }
 
-/// A [PindoroDialog] that only its buttons close: false for [primary], true
-/// for [secondary].
-Future<bool> showFixedDialog(
-  BuildContext context, {
-  required String title,
-  required String body,
-  required String primary,
-  required String secondary,
-}) async =>
-    await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => PopScope(
-        canPop: false,
-        child: PindoroDialog(
-          title: title,
-          body: body,
-          primary: primary,
-          secondary: secondary,
-        ),
-      ),
-    ) ??
-    false;
-
 /// Shows a new recovery code once; Copy code puts it on the clipboard.
 Future<void> showRecoveryCodeDialog(BuildContext context, String code) async {
   final l10n = context.l10n;
-  final copy = !await showFixedDialog(
+  final copy = !await askChoice(
     context,
+    fixed: true,
     title: l10n.accountCodeTitle,
     body: l10n.accountCodeBody(groupRecoveryCode(code)),
     primary: l10n.accountCodeCopy,
@@ -134,8 +112,9 @@ Future<void> showRecoveryCodeDialog(BuildContext context, String code) async {
 /// Asks whether a backup made at [backupAt] replaces this phone's progress.
 Future<bool> askRestore(BuildContext context, DateTime backupAt) {
   final l10n = context.l10n;
-  return showFixedDialog(
+  return askChoice(
     context,
+    fixed: true,
     title: l10n.accountRestoreTitle,
     body: l10n.accountRestoreBody(formatSince(backupAt, l10n)),
     primary: l10n.accountRestore,

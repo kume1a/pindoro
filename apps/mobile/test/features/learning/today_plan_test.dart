@@ -4,8 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/features/learning/data/cards.dart';
 import 'package:pindoro/features/learning/data/carry_over.dart';
 import 'package:pindoro/features/learning/data/day.dart';
+import 'package:pindoro/features/learning/data/explore.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/route_book.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
@@ -147,6 +149,46 @@ void main() {
       p.steps.where((s) => s.kind == StepKind.intro).map((s) => s.itemId),
       ['P:b1', 'P:c1'],
     );
+  });
+
+  test('cards are keyed by street, whichever part they were made on', () async {
+    final byPart = {
+      for (final s in [a, b, c])
+        for (final p in s.parts) p.id: s,
+    };
+    final cards = await LearningDao(db).cards();
+    expect(streetCardsOf(byPart, cards).keys, [a.id]);
+    expect(
+      cardsByItemOf(byPart, cards).keys,
+      unorderedEquals(['P:${a.id}', 'P:gone']),
+    );
+  });
+
+  test('an Explore pin reviews the card made on another part of its street, '
+      'not a new one', () async {
+    final roundId = await ProgressDao(db).startRound(
+      cityId: 'tbilisi',
+      area: const DistrictsArea({'vake'}),
+      difficulty: Difficulty.expert,
+      packVersion: '1',
+      streetIds: [a.id],
+    );
+    final explore = FutureProvider<void>(
+      (ref) => learnFromExplore(
+        ref,
+        street: a,
+        pin: a.parts.first.midpoint,
+        rtMs: 3000,
+        roundId: roundId,
+      ),
+    );
+    await container.read(explore.future);
+    final dao = LearningDao(db);
+    expect(
+      (await dao.cards()).map((card) => card.itemId),
+      unorderedEquals(['P:a2', 'P:gone']),
+    );
+    expect((await dao.log()).single.itemId, 'P:a2');
   });
 
   test('Learn 10 more plans new streets past the daily number', () async {

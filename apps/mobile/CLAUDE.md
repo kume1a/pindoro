@@ -8,7 +8,9 @@ lib/main.dart                  open AppDatabase (openDatabase), pick the initial
 lib/app/                       shell: PindoroApp, router (the only place that imports screens),
                                TabShell (bottom navigation)
 lib/core/                      shared by every feature: routes (paths + RoundSummary), config, format,
-                               labels, settings, google_maps (Maps and Street View links), location (+ the drive's background track), online, toast,
+                               labels, settings, feedback (`feedbackProvider`: haptics and sounds per game event,
+                               the end screens' count-up ticks), dialogs (`askChoice`), google_maps (Maps and Street
+                               View links), location (+ the drive's background track), online, toast,
                                page scaffold, launch overlay, clock (clockProvider), hold (`ref.hold` keeps an
                                auto-dispose provider alive while a controller awaits it),
                                api_client (ApiClient + apiClientProvider, ApiException), restart, database/ (Drift tables,
@@ -24,7 +26,7 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                the recital's Draw mode), learning (LearningDao: the v3 cards, review log,
                                mix-up pairs, learn_city and the player's landmarks
                                (`landmark_personal`, `personalLandmarksProvider`, the kind glyphs); pindoro_learning decides, it only
-                               stores; today's and Learn 10 more plans, carry-over, Progress data,
+                               stores; the open city's cards, curriculum and placement (`cards.dart`), today's and Learn 10 more plans, carry-over, Progress data,
                                day marking and the reminder, Explore answers into cards, the route
                                book (`routeBookProvider`: the pack's J/G/B/C/L items and your
                                landmarks' L cards), recital runs (`runsProvider` makes route-book runs and weekly
@@ -187,6 +189,9 @@ test/drift/                    generated schema helpers + migration test
 
 - Flutter widgets that sit on map points (the sweep's sockets, the crossings' rings, "End 1") go
   in a `GeoAnchors` over the map, fed by `PindoroMap.onCamera`'s projection.
+- `PindoroMap`, the area picker and Explore's map share `MapHost` (`map_host.dart`: the controller,
+  the style per theme brightness, `mapProjection`); the area levels (`detailAt`, `areaAt`,
+  `nearestAreas`) are pure, in `features/map/data/area_levels.dart`.
 - `PindoroMap` loads the bundled style, injects `{TILES_BASE_URL}` (Martin source `georgia` and its
   FiraGO glyphs) and `{NAME_KEY}` (`name`, or `name:en` with English street names), and always
   shows "© OpenStreetMap contributors, Protomaps". Never point it at public OSM tile servers.

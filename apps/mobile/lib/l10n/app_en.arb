@@ -1135,11 +1135,14 @@
   },
   "todayStart": "Start",
   "todayDoneTitle": "Today’s goal done",
-  "todayDueTomorrow": "{count, plural, =0{Nothing due tomorrow} =1{1 review due tomorrow} other{{count} reviews due tomorrow}}",
+  "todayDueTomorrow": "{count, plural, =0{Nothing due tomorrow} =1{1 review due tomorrow} other{{shown} reviews due tomorrow}}",
   "@todayDueTomorrow": {
     "placeholders": {
       "count": {
         "type": "int"
+      },
+      "shown": {
+        "type": "String"
       }
     }
   },
@@ -1503,11 +1506,14 @@
       }
     }
   },
-  "a11yTodayBacklog": "{count} reviews waiting. New streets are paused until you catch up, about {days} days at {minutes} minutes.",
+  "a11yTodayBacklog": "{count, plural, =1{1 review waiting} other{{shown} reviews waiting}}. New streets are paused until you catch up, {days, plural, =1{about 1 day} other{about {days} days}} at {minutes} minutes.",
   "@a11yTodayBacklog": {
     "placeholders": {
       "count": {
         "type": "int"
+      },
+      "shown": {
+        "type": "String"
       },
       "days": {
         "type": "int"
@@ -2242,6 +2248,7 @@
   "driveRuleHandsNote": "Check your drive once you've parked",
   "driveStart": "Start drive",
   "driveNoRun": "No run yet: it comes once you know the turns on one.",
+  "driveNoTarget": "Nothing to drive to from here yet.",
   "driveRecording": "Recording your drive",
   "driveSoFar": "{distance} so far · the screen can stay locked",
   "@driveSoFar": {
@@ -2288,6 +2295,14 @@
   },
   "driveDriven": "Driven",
   "driveLonger": "Longer",
+  "driveLongerBy": "+{percent} %",
+  "@driveLongerBy": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
   "driveUTurnsTile": "U-turns",
   "driveCredited": "{credited} turns credited · {failed} to practise",
   "@driveCredited": {
@@ -2328,7 +2343,7 @@
       }
     }
   },
-  "memoryBinRecalled": "Recalled {recalled} % · {count, plural, =1{1 review} other{{count} reviews}}",
+  "memoryBinRecalled": "Recalled {recalled} % · {count, plural, =1{1 review} other{{shown} reviews}}",
   "@memoryBinRecalled": {
     "placeholders": {
       "recalled": {
@@ -2336,6 +2351,9 @@
       },
       "count": {
         "type": "int"
+      },
+      "shown": {
+        "type": "String"
       }
     }
   },

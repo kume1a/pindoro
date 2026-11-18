@@ -5,9 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/api_client.dart';
+import 'package:pindoro/core/feedback.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/page_scaffold.dart';
-import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/account/data/account_api.dart';
 import 'package:pindoro/features/account/data/account_data.dart';
@@ -124,73 +124,81 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
           ? _run(_reset, unauthorized: l10n.accountWrongCode)
           : _run(_signIn, unauthorized: l10n.accountWrong),
     );
-    return PageScaffold(
-      title: _resetting ? l10n.accountReset : l10n.accountTitle,
-      children: [
-        Text(
-          _resetting ? l10n.accountResetIntro : l10n.accountIntro,
-          style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
-        ),
-        AutofillGroup(
-          onDisposeAction: AutofillContextAction.cancel,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            spacing: PindoroSpace.s3,
-            children: [
-              AccountField(AccountFieldKind.username, controller: _username),
-              if (_resetting)
-                AccountField(AccountFieldKind.recoveryCode, controller: _code),
-              AccountField(
-                _resetting
-                    ? AccountFieldKind.newPassword
-                    : AccountFieldKind.password,
-                controller: _password,
-                last: true,
-                onSubmitted: (_) => submit(),
-              ),
-            ],
+    // No leaving mid-call: a new recovery code shows only once, from here.
+    return PopScope(
+      canPop: !_busy,
+      child: PageScaffold(
+        title: _resetting ? l10n.accountReset : l10n.accountTitle,
+        showBack: !_busy,
+        children: [
+          Text(
+            _resetting ? l10n.accountResetIntro : l10n.accountIntro,
+            style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
           ),
-        ),
-        Text(
-          l10n.accountRules,
-          style: PindoroType.bodySm.copyWith(color: c.textSecondary),
-        ),
-        ListenableBuilder(
-          listenable: Listenable.merge([_username, _password, _code]),
-          builder: (context, _) {
-            final enabled = !_busy && _valid;
-            return Column(
+          AutofillGroup(
+            onDisposeAction: AutofillContextAction.cancel,
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               spacing: PindoroSpace.s3,
               children: [
-                PindoroButton(
-                  label: _resetting ? l10n.accountReset : l10n.accountSignIn,
-                  onPressed: enabled ? submit : null,
-                ),
-                if (!_resetting)
-                  PindoroButton(
-                    label: l10n.accountCreate,
-                    variant: PindoroButtonVariant.secondary,
-                    onPressed: enabled
-                        ? () => unawaited(
-                            _run(_create, unauthorized: l10n.accountWrong),
-                          )
-                        : null,
+                AccountField(AccountFieldKind.username, controller: _username),
+                if (_resetting)
+                  AccountField(
+                    AccountFieldKind.recoveryCode,
+                    controller: _code,
                   ),
-                PindoroButton(
-                  label: _resetting
-                      ? l10n.accountBackToSignIn
-                      : l10n.accountForgot,
-                  variant: PindoroButtonVariant.tertiary,
-                  onPressed: _busy
-                      ? null
-                      : () => setState(() => _resetting = !_resetting),
+                AccountField(
+                  _resetting
+                      ? AccountFieldKind.newPassword
+                      : AccountFieldKind.password,
+                  controller: _password,
+                  last: true,
+                  onSubmitted: (_) => submit(),
                 ),
               ],
-            );
-          },
-        ),
-      ],
+            ),
+          ),
+          Text(
+            l10n.accountRules,
+            style: PindoroType.bodySm.copyWith(color: c.textSecondary),
+          ),
+          ListenableBuilder(
+            listenable: Listenable.merge([_username, _password, _code]),
+            builder: (context, _) {
+              final enabled = !_busy && _valid;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                spacing: PindoroSpace.s3,
+                children: [
+                  PindoroButton(
+                    label: _resetting ? l10n.accountReset : l10n.accountSignIn,
+                    onPressed: enabled ? submit : null,
+                  ),
+                  if (!_resetting)
+                    PindoroButton(
+                      label: l10n.accountCreate,
+                      variant: PindoroButtonVariant.secondary,
+                      onPressed: enabled
+                          ? () => unawaited(
+                              _run(_create, unauthorized: l10n.accountWrong),
+                            )
+                          : null,
+                    ),
+                  PindoroButton(
+                    label: _resetting
+                        ? l10n.accountBackToSignIn
+                        : l10n.accountForgot,
+                    variant: PindoroButtonVariant.tertiary,
+                    onPressed: _busy
+                        ? null
+                        : () => setState(() => _resetting = !_resetting),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

@@ -15,8 +15,9 @@ import 'package:pindoro/features/home/ui/widgets/explore_sheet.dart';
 import 'package:pindoro/features/home/ui/widgets/offline_card.dart';
 import 'package:pindoro/features/home/ui/widgets/play_card.dart';
 import 'package:pindoro/features/learning/data/progress.dart';
+import 'package:pindoro/features/learning/ui/city_memory_card.dart';
 import 'package:pindoro/features/learning/ui/city_tab_page.dart';
-import 'package:pindoro/features/map/ui/area_picker_map.dart' show areaAt;
+import 'package:pindoro/features/map/data/area_levels.dart';
 import 'package:pindoro/features/map/ui/explore_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/pack/ui/pack_pending.dart';
@@ -54,6 +55,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// The district a tap on the map picked; Play starts it instead of the
   /// saved area.
   District? _picked;
+
+  /// An area is being saved before its page opens.
+  bool _saving = false;
 
   @override
   void initState() {
@@ -120,17 +124,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       refreshLearning(ref);
     }
 
-    Future<void> play(Area area) async {
-      await ref.read(settingsDaoProvider).chooseArea(area, cityId: city.id);
-      await open(difficulty == null ? Routes.difficulty : Routes.round);
+    // Saves [area], then opens [location], once per tap: a double tap would
+    // push two rounds.
+    Future<void> openWith(Area? area, String location) async {
+      if (_saving) return;
+      _saving = true;
+      try {
+        if (area != null) {
+          await ref.read(settingsDaoProvider).chooseArea(area, cityId: city.id);
+        }
+        if (mounted) await open(location);
+      } finally {
+        _saving = false;
+      }
     }
 
-    Future<void> changeDifficulty() async {
-      if (area != null) {
-        await ref.read(settingsDaoProvider).chooseArea(area, cityId: city.id);
-      }
-      await open(Routes.difficulty);
-    }
+    Future<void> play(Area area) =>
+        openWith(area, difficulty == null ? Routes.difficulty : Routes.round);
+
+    Future<void> changeDifficulty() => openWith(area, Routes.difficulty);
 
     final playCard = PlayCard(
       saved: round,
@@ -161,16 +173,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               Positioned.fill(
                 child: Semantics(
-                  label: l10n.a11yExploreMap(
-                    context.localName(ka: city.nameKa, en: city.nameEn),
-                  ),
+                  label: l10n.a11yExploreMap(cityName(context, city)),
                   child: ref.watch(exploreMapBuilderProvider)(
                     ExploreMap(
                       districts: [
                         for (final d in pack.districts())
                           (
                             district: d,
-                            progress: _fill(areas[d.id]),
+                            progress: districtFill(areas[d.id]),
                             name: districtName(d, settings),
                           ),
                       ],
@@ -257,10 +267,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 for (final card in [
                                   if (ref.watch(offlineVakeProvider))
                                     OfflineCard(
-                                      city: context.localName(
-                                        ka: city.nameKa,
-                                        en: city.nameEn,
-                                      ),
+                                      city: cityName(context, city),
                                       onDownload: () => ref
                                           .read(offlineVakeProvider.notifier)
                                           .set(false),
@@ -327,14 +334,6 @@ class _MapKey extends StatelessWidget {
     );
   }
 }
-
-/// A district's fill step for its City memory (District fills).
-DistrictProgress _fill(MemorySummary? m) => m == null || m.total == 0
-    ? DistrictProgress.notStarted
-    : DistrictProgress.of(
-        m.memory / m.total,
-        mastered: m.counts[MemoryState.mastered] == m.total,
-      );
 
 /// City memory over an area's districts; null for a drawn area or one
 /// without streets yet.

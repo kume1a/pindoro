@@ -54,8 +54,6 @@ class AreaTree {
   final List<DistrictGroup> groups;
   final Map<String, String> _parent = {};
 
-  String? parentOf(String id) => _parent[id];
-
   /// [picked] without the areas a picked district already covers.
   Set<String> normalise(Set<String> picked) => {
     for (final id in picked)

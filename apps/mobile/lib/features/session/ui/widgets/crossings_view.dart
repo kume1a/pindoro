@@ -10,6 +10,7 @@ import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
+import 'package:pindoro/features/map/ui/widgets/street_match_row.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
@@ -41,11 +42,12 @@ class CrossingsView extends ConsumerStatefulWidget {
 
 class _CrossingsViewState extends ConsumerState<CrossingsView> {
   final _field = TextEditingController();
-  MapProjection? _projection;
+  final _projection = ValueNotifier<MapProjection?>(null);
 
   @override
   void dispose() {
     _field.dispose();
+    _projection.dispose();
     super.dispose();
   }
 
@@ -111,7 +113,7 @@ class _CrossingsViewState extends ConsumerState<CrossingsView> {
               for (final c in task.crossings.take(at)) c.street.name,
             },
           ),
-          onCamera: (p) => setState(() => _projection = p),
+          onCamera: (p) => _projection.value = p,
           topInset: insets.top,
           bottomInset: insets.bottom,
         ),
@@ -174,13 +176,9 @@ class _CrossingsViewState extends ConsumerState<CrossingsView> {
             onSubmitted: (_) => _submit(),
           ),
           if (match != null)
-            ListRow(
-              leading: const RowTile(PindoroGlyph.signpost),
-              title: streetName(match, settings),
-              subtitle: [
-                ?otherScript(match, settings),
-                l10n.sessionCrossingsMatch,
-              ].join(' · '),
+            StreetMatchRow(
+              match,
+              note: l10n.sessionCrossingsMatch,
               onTap: () =>
                   setState(() => _field.text = streetName(match, settings)),
             ),

@@ -10,8 +10,8 @@ import 'package:pindoro/features/badges/data/badge_data.dart';
 import 'package:pindoro/features/badges/ui/badge_look.dart';
 import 'package:pindoro/features/home/data/home_data.dart';
 import 'package:pindoro/features/home/ui/widgets/home_coach.dart';
+import 'package:pindoro/features/learning/data/cards.dart';
 import 'package:pindoro/features/learning/data/progress.dart';
-import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/learning/ui/city_memory_card.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -193,9 +193,7 @@ class _InMemoryHeader extends ConsumerWidget {
               child: Semantics(
                 header: true,
                 child: Text(
-                  l10n.exploreInMemory(
-                    context.localName(ka: city.nameKa, en: city.nameEn),
-                  ),
+                  l10n.exploreInMemory(cityName(context, city)),
                   style: PindoroType.titleMd.copyWith(color: c.textPrimary),
                 ),
               ),

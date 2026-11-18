@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/core/feedback.dart';
 import 'package:pindoro/core/sounds.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 

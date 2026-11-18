@@ -337,10 +337,10 @@ class _MemoryChartPainter extends CustomPainter {
           ..color = colors.lineBase
           ..strokeWidth = PindoroStroke.hairline,
       );
-      (TextPainter(
-        text: gridLabel(v.round()),
-        textDirection: TextDirection.ltr,
-      )..layout()).paint(canvas, Offset(0, y(v) + 2));
+      TextPainter(text: gridLabel(v.round()), textDirection: TextDirection.ltr)
+        ..layout()
+        ..paint(canvas, Offset(0, y(v) + 2))
+        ..dispose();
     }
     canvas.drawLine(
       Offset(0, bottom),

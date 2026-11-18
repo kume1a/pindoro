@@ -231,10 +231,13 @@ class _DistrictPainter extends CustomPainter {
         textDirection: TextDirection.ltr,
       )..layout();
       // A name wider than its district would sit on its neighbours.
-      if (text.width > room.width) continue;
-      final centre = at(d.labelAt) - Offset(text.width / 2, text.height / 2);
-      halo.paint(canvas, centre);
-      text.paint(canvas, centre);
+      if (text.width <= room.width) {
+        final centre = at(d.labelAt) - Offset(text.width / 2, text.height / 2);
+        halo.paint(canvas, centre);
+        text.paint(canvas, centre);
+      }
+      halo.dispose();
+      text.dispose();
     }
   }
 

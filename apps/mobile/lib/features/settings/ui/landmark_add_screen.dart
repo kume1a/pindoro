@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/database/database.dart' show Settings;
+import 'package:pindoro/core/feedback.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/location.dart';
@@ -15,6 +16,7 @@ import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/personal_landmarks.dart';
 import 'package:pindoro/features/learning/ui/junction_name.dart';
 import 'package:pindoro/features/learning/ui/landmark_glyph.dart';
+import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -174,40 +176,36 @@ class _LandmarkAddScreenState extends ConsumerState<LandmarkAddScreen> {
       extendBody: true,
       resizeToAvoidBottomInset: false,
       body: Builder(
-        builder: (body) => Stack(
-          children: [
-            ref.watch(pindoroMapBuilderProvider)(
-              PindoroMap(
-                area: (bbox: city.bbox, boundary: city.boundary),
-                pin: junction == null ? spot : graph.at(junction),
-                frame: junction == null ? null : _around(graph.at(junction)),
-                onTap: (at) => _mark(graph, at),
-                topInset: MediaQuery.paddingOf(context).top + 80,
-                bottomInset: MediaQuery.paddingOf(body).bottom,
-              ),
+        builder: (body) => MapLayout(
+          map: (insets) => ref.watch(pindoroMapBuilderProvider)(
+            PindoroMap(
+              area: (bbox: city.bbox, boundary: city.boundary),
+              pin: junction == null ? spot : graph.at(junction),
+              frame: junction == null ? null : _around(graph.at(junction)),
+              onTap: (at) => _mark(graph, at),
+              topInset: insets.top,
+              bottomInset: MediaQuery.paddingOf(body).bottom,
             ),
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(PindoroSpace.s4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    MapControl(
-                      glyph: PindoroGlyph.back,
-                      semanticLabel: l10n.commonBack,
-                      onPressed: context.pop,
-                    ),
-                    PindoroButton(
-                      label: l10n.landmarkHere,
-                      icon: PindoroGlyph.locate,
-                      variant: PindoroButtonVariant.secondary,
-                      onPressed: () => unawaited(_here(graph)),
-                    ),
-                  ],
+          ),
+          top: Padding(
+            padding: const EdgeInsets.symmetric(vertical: PindoroSpace.s2),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                MapControl(
+                  glyph: PindoroGlyph.back,
+                  semanticLabel: l10n.commonBack,
+                  onPressed: context.pop,
                 ),
-              ),
+                PindoroButton(
+                  label: l10n.landmarkHere,
+                  icon: PindoroGlyph.locate,
+                  variant: PindoroButtonVariant.secondary,
+                  onPressed: () => unawaited(_here(graph)),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
       bottomNavigationBar: Padding(
