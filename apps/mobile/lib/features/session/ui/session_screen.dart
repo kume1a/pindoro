@@ -58,6 +58,16 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
 
   void _leave() => context.canPop() ? context.pop() : context.go(Routes.today);
 
+  void _dropPin(LatLng at) {
+    ref.read(feedbackProvider).pinDrop();
+    ref.read(sessionControllerProvider.notifier).dropPin(at);
+  }
+
+  void _confirm(Future<void> Function() answer) {
+    ref.read(feedbackProvider).confirm();
+    unawaited(answer());
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen(sessionControllerProvider, (previous, next) {
@@ -105,8 +115,8 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
         ExtentTask(:final nextReviewDays) => EndsView(
           play: p,
           topBar: _topBar(p, controller),
-          onPin: controller.dropPin,
-          onConfirm: () => unawaited(controller.confirm()),
+          onPin: _dropPin,
+          onConfirm: () => _confirm(controller.confirm),
           onNext: () async => controller.next(),
           chip: _nextReviewChip(p, nextReviewDays),
         ),
@@ -114,7 +124,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           play: p,
           topBar: _topBar(p, controller),
           onPlace: controller.placeLane,
-          onCheck: () => unawaited(controller.checkSweep()),
+          onCheck: () => _confirm(controller.checkSweep),
           onNext: () async => controller.next(),
         ),
         CrossingsTask() => CrossingsView(
@@ -127,15 +137,16 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           play: p,
           topBar: _topBar(p, controller),
           onTurn: controller.turn,
-          onCheck: () => unawaited(controller.checkBearing()),
+          onCheck: () => _confirm(controller.checkBearing),
           onNext: () async => controller.next(),
         ),
         RouteTask(:final nextReviewDays) => RouteView(
           play: p,
           topBar: _topBar(p, controller),
           onChoose: controller.choose,
-          onPin: controller.dropPin,
-          onAnswer: (typed) => unawaited(controller.answerRoute(typed: typed)),
+          onPin: _dropPin,
+          onAnswer: (typed) =>
+              _confirm(() => controller.answerRoute(typed: typed)),
           onNext: () async => controller.next(),
           onHidePlace: () => unawaited(controller.hidePlace()),
           chip: _nextReviewChip(p, nextReviewDays),
@@ -148,7 +159,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           onAdd: controller.recitalAdd,
           onUndo: controller.recitalUndo,
           onDraw: controller.recitalDraw,
-          onCheck: () => unawaited(controller.checkRecital()),
+          onCheck: () => _confirm(controller.checkRecital),
           onReport: () => unawaited(controller.reportMove()),
           onNext: () async => controller.next(),
           chip: _nextReviewChip(p, nextReviewDays),
@@ -204,8 +215,8 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
       skip: placing
           ? (label: l10n.placementSkip, onSkip: controller.skip)
           : null,
-      onPin: controller.dropPin,
-      onConfirm: () => unawaited(controller.confirm()),
+      onPin: _dropPin,
+      onConfirm: () => _confirm(controller.confirm),
       onNext: () async => controller.next(),
       mixUp: hit,
       guess: switch (p.guess) {
