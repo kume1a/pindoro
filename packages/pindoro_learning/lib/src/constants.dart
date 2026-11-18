@@ -115,6 +115,9 @@ abstract final class LearningConfig {
   static const int familySweepMax = 6;
   static const int crossingsMax = 5;
 
+  /// A crossings drill asks at least this many Known crossings.
+  static const int crossingsMin = 2;
+
   /// Solid streets tried for a crossings drill with two Known crossings.
   static const int crossingsTries = 8;
 
@@ -217,6 +220,12 @@ abstract final class LearningConfig {
   static const int chartWeeks = 10;
   static const int cityMemoryMilestone = 500;
   static const int maintenanceBadgeDays = 100;
+  static const int bullseyeBadgePerfects = 10;
+  static const int onFireBadgeDays = 7;
+  static const int explorerBadgeDistricts = 5;
+
+  /// Recall rate (§16.18) over the due reviews of the last this many days.
+  static const int recallWindowDays = 30;
 
   /// Night owl: an answer from midnight until this local hour.
   static const int nightOwlBefore = 4;

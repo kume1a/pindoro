@@ -117,6 +117,7 @@ void main() {
     String at = Routes.session,
     Drills drills = Drills.none,
     List<List<SessionStep>>? rounds,
+    List<List<SessionStep>> more = const [],
   }) async {
     tester.platformDispatcher.accessibilityFeaturesTestValue =
         const FakeAccessibilityFeatures(disableAnimations: true);
@@ -152,6 +153,15 @@ void main() {
               reviewCount: 0,
               newCount: 1,
               drills: drills,
+            ),
+          ),
+          learnMorePlanProvider.overrideWith(
+            (ref) async => SessionPlan(
+              rounds: more,
+              dueCount: 0,
+              backlog: false,
+              reviewCount: 0,
+              newCount: 1,
             ),
           ),
         ],
@@ -270,6 +280,73 @@ void main() {
     await tapThrough(tester, find.text('Next'));
     expect(find.text('Session done'), findsOneWidget);
     expect(find.text('Next round'), findsNothing);
+  });
+
+  testWidgets('Learn 10 more after the last round starts over in place, at '
+      'its own round 1', (tester) async {
+    await pump(
+      tester,
+      const [],
+      rounds: [
+        [(kind: StepKind.retrieval1, itemId: item(a))],
+        [(kind: StepKind.retrieval1, itemId: item(b))],
+      ],
+      more: [
+        [(kind: StepKind.retrieval1, itemId: item(c))],
+        [(kind: StepKind.retrieval1, itemId: item(parent))],
+      ],
+    );
+    for (final s in [a, b]) {
+      await answer(tester, s.parts.first.midpoint);
+      await tapThrough(tester, find.text('Next'));
+      if (s == a) await tapThrough(tester, find.text('Next round'));
+    }
+    await tapThrough(tester, find.text('Learn 10 more'));
+    expect(find.byType(SessionScreen), findsOneWidget);
+    expect(find.text('Round 1 of 2'), findsOneWidget);
+    await answer(tester, c.parts.first.midpoint);
+    await tapThrough(tester, find.text('Next'));
+    expect(find.text('Round 1 of 2 done'), findsOneWidget);
+    final log = await dao.log();
+    expect(log.map((e) => e.sessionId).toSet(), hasLength(2));
+  });
+
+  testWidgets('a double tap on Confirm answers once', (tester) async {
+    await pump(tester, [(kind: StepKind.retrieval1, itemId: item(a))]);
+    maps.last.onTap!(a.parts.first.midpoint);
+    await settle(tester);
+    final session = controller(tester);
+    await tester.runAsync(
+      () => Future.wait([session.confirm(), session.confirm()]),
+    );
+    await settle(tester);
+    expect(await dao.log(), hasLength(1));
+  });
+
+  testWidgets('the relearn cap counts the whole session, not each round', (
+    tester,
+  ) async {
+    final miss = LatLng(onStreet(a).lat + 0.02, onStreet(a).lon);
+    await dao.putCard(reviewed(item(a)));
+    await pump(
+      tester,
+      const [],
+      rounds: [
+        [(kind: StepKind.review, itemId: item(a))],
+        [(kind: StepKind.review, itemId: item(a))],
+      ],
+    );
+    for (final chip in ['Back in this session', 'Back in this session']) {
+      await answer(tester, miss);
+      expect(find.text(chip), findsOneWidget);
+      await tapThrough(tester, find.text('Got it'));
+    }
+    await answer(tester, miss);
+    expect(find.text('Back in this session'), findsNothing);
+    await tapThrough(tester, find.text('Got it'));
+    await tapThrough(tester, find.text('Next round'));
+    await answer(tester, miss);
+    expect(find.text('Back in this session'), findsNothing);
   });
 
   testWidgets('Done for now leaves between rounds', (tester) async {

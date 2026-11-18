@@ -1,5 +1,4 @@
-import 'package:pindoro/core/database/database.dart'
-    show Settings, StreetNameMode;
+import 'package:pindoro/core/database/database.dart' show Settings;
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -58,9 +57,7 @@ String placeName(
   LandmarkQuestion q,
   Settings? settings,
 ) {
-  final name = settings?.streetNames == StreetNameMode.english
-      ? q.nameEn ?? q.landmark.name
-      : q.landmark.name;
+  final name = landmarkName(q.landmark, settings);
   return switch ((q.street, q.crossStreet)) {
     (final street?, final cross?) => l10n.placeAtCorner(
       name,

@@ -385,6 +385,7 @@ pindoro_core `ScoringConfig`, not copied):
 | `familySweepMinChildren`, `familySweepWindowDays`                    | 3, 2                                |
 | `crossingsPerDay`, `bearingsPerSessionMin`, `bearingsPerSessionMax`  | 1, 1, 3                             |
 | `familySweepMax`, `crossingsMax`, `crossingsTries`                   | 6, 5, 8                             |
+| `crossingsMin` (Known crossings a crossings drill needs)             | 2                                   |
 | `bearingUnlockGridSolid`                                             | 0.50                                |
 | `nameCheckOptions`                                                   | 6                                   |
 | `familyOrphanM`, `familyNearM`                                       | 1500, 500                           |
@@ -392,6 +393,8 @@ pindoro_core `ScoringConfig`, not copied):
 | `nearDueFraction`                                                    | 0.5 (implicit evidence and Explore) |
 | `tierCReliefFactor`                                                  | 1.2                                 |
 | `cityMemoryMilestone`, `maintenanceBadgeDays`                        | 500, 100                            |
+| `bullseyeBadgePerfects`, `onFireBadgeDays`, `explorerBadgeDistricts` | 10, 7, 5                            |
+| `recallWindowDays` (recall rate, §16.18)                             | 30                                  |
 | `chartDailyDays`, `chartWeeks`                                       | 14, 10                              |
 | `uTurnPenaltyM` (pindoro_core `RoutingConfig`, referenced)           | 250                                 |
 | `turnStraightDeg`, `turnUTurnDeg` (a J card's exit directions)       | 30, 150                             |
@@ -941,3 +944,23 @@ and was asked for a fuel station that looked like every other one.
      go") instead of minutes. "Time a day" stays the daily goal: it sizes the day (§7, §16.2).
 103. **Chain places with their street.** Fuel stations and supermarkets are always asked with their
      street, branded or not; two of one name on one street also get their corner (item 89).
+
+### 16.21 Review pass (2026-11-18)
+
+A review of the learning code found these; each was a bug against the rules above.
+
+104. **Pick questions read apart.** An L2's junctions differ by the names of the streets meeting
+     there (the answer's set and every distractor's, none empty), an L3's places by name; a pick
+     with fewer than two choices (L2, L3 or bridge) is not asked.
+105. **Twins.** Two pack places of one name on one street both lose their L2. Each is named with
+     its corner: the other street at its junction nearest it, else the street crossing its own
+     nearest it. A place's street is the named street at its junction nearest it (item 89). The
+     player's own places never get a corner.
+106. **No give-aways.** A place named after a street at its junction has no L3, and a J card shows
+     no landmark named after the street it turns onto, as the maps leave such a place unnamed
+     (§16.18 item 91).
+107. **Lapses.** An Again counts as a lapse on a card in review, or on one still relearning from an
+     earlier day (its relearns ran out, or the session was left) and not re-introduced since, so a
+     card missed day after day becomes a leech. A same-day relearn never lapses. An Explore
+     answer never reviews a suspended leech: it comes back through its intro.
+108. **The relearn cap** (item 90) counts the whole session, across its rounds.

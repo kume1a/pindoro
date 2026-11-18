@@ -296,8 +296,8 @@ List<_Snap> _viterbi(
     final bound = 2 * straight + 2 * LearningConfig.driveSnapM;
     final previous = layers[i - 1];
     final reach = [for (final a in previous) _reach(graph, a, bound)];
-    final jump = cost.reduce(min) + straight + 2 * LearningConfig.driveSnapM;
-    final jumpFrom = cost.indexOf(cost.reduce(min));
+    final jumpFrom = _argMin(cost);
+    final jump = cost[jumpFrom] + straight + 2 * LearningConfig.driveSnapM;
     final next = <double>[];
     final from = <int>[];
     for (final b in layers[i]) {
@@ -316,7 +316,7 @@ List<_Snap> _viterbi(
     back.add(from);
     cost = next;
   }
-  var k = cost.indexOf(cost.reduce(min));
+  var k = _argMin(cost);
   final picked = [layers.last[k]];
   for (var i = layers.length - 1; i > 0; i--) {
     k = back[i - 1][k];
@@ -359,4 +359,13 @@ List<LatLng> _hesitations(RoadGraph graph, List<DriveFix> fixes) {
     i = j + 1;
   }
   return out;
+}
+
+/// The index of [values]' least, the first on a tie.
+int _argMin(List<double> values) {
+  var arg = 0;
+  for (var i = 1; i < values.length; i++) {
+    if (values[i] < values[arg]) arg = i;
+  }
+  return arg;
 }

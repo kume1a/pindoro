@@ -47,9 +47,9 @@ String reviewLogCsv(Iterable<LogEntry> log) {
   return out.toString();
 }
 
+final RegExp _needsQuotes = RegExp('[",\r\n]');
+
 String _field(Object? value) {
   final text = value?.toString() ?? '';
-  return text.contains(RegExp('[",\r\n]'))
-      ? '"${text.replaceAll('"', '""')}"'
-      : text;
+  return text.contains(_needsQuotes) ? '"${text.replaceAll('"', '""')}"' : text;
 }

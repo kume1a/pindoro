@@ -279,7 +279,14 @@ List<RecitalStep> resolveRecital(
 enum IllegalReason { oneway, restriction }
 
 /// The first move of a path the rules forbid: driving [edge] away from [junction].
-typedef IllegalMove = ({int junction, RoadEdge edge, IllegalReason reason});
+typedef IllegalMove = ({
+  int junction,
+  RoadEdge edge,
+  IllegalReason reason,
+
+  /// The way in to a restricted turn; null for a one-way.
+  RoadEdge? approach,
+});
 
 /// A place on the path with another legal way on (SPEC §5.3 step 6): arriving on [approach] (null
 /// at the start), leaving on [exit]. [correct] when legal and still on a legal path to B within
@@ -528,13 +535,23 @@ abstract final class RecitalGrader {
     for (final (i, e) in path.edges.indexed) {
       final j = path.junctions[i];
       if (!graph.canDrive(e, j)) {
-        return (junction: j, edge: e, reason: IllegalReason.oneway);
+        return (
+          junction: j,
+          edge: e,
+          reason: IllegalReason.oneway,
+          approach: null,
+        );
       }
       if (i > 0 &&
           !graph
               .legalExits(j, approach: path.edges[i - 1])
               .any((x) => x.id == e.id)) {
-        return (junction: j, edge: e, reason: IllegalReason.restriction);
+        return (
+          junction: j,
+          edge: e,
+          reason: IllegalReason.restriction,
+          approach: path.edges[i - 1],
+        );
       }
     }
     return null;
@@ -821,15 +838,14 @@ List<({String itemId, bool ok})> recitalEvidence(
 
 /// The player's report that [move] on [path] is legal after all ("Wrong? Report this turn",
 /// SPEC §15), by OSM nodes: `oneway:n<from>:n<to>` or `turn:n<from>:n<via>:n<to>`.
-String moveReport(IllegalMove move, Route path, Map<int, int> junctionNodes) {
+String moveReport(IllegalMove move, Map<int, int> junctionNodes) {
   String n(int junction) => 'n${junctionNodes[junction]}';
   final to = n(move.edge.other(move.junction));
-  if (move.reason == IllegalReason.oneway) {
-    return 'oneway:${n(move.junction)}:$to';
-  }
-  final i = path.edges.indexWhere((e) => identical(e, move.edge));
-  final approach = path.edges[i - 1];
-  return 'turn:${n(approach.other(move.junction))}:${n(move.junction)}:$to';
+  return switch (move.approach) {
+    final approach? =>
+      'turn:${n(approach.other(move.junction))}:${n(move.junction)}:$to',
+    null => 'oneway:${n(move.junction)}:$to',
+  };
 }
 
 /// [graph] with the moves in [reports] ([moveReport]s) let through; a report naming junctions

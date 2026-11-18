@@ -63,14 +63,17 @@ extension BadgeProgressRules on BadgeProgress {
 BadgeProgress badgeProgress(BadgeId id, BadgeStats s) {
   final (value, target) = switch (id) {
     BadgeId.firstPin => (s.pins, 1),
-    BadgeId.bullseye => (s.perfects, 10),
-    BadgeId.onFire => (s.bestStreak, 7),
+    BadgeId.bullseye => (s.perfects, LearningConfig.bullseyeBadgePerfects),
+    BadgeId.onFire => (s.bestStreak, LearningConfig.onFireBadgeDays),
     BadgeId.navigator => (s.masteredDistricts, 1),
     BadgeId.local => (s.masteredNeighbourhoods, 1),
     BadgeId.keeper => (s.goalDays, LearningConfig.maintenanceBadgeDays),
     BadgeId.clearRoad => (s.leechesCleared ? 1 : 0, 1),
     BadgeId.nightOwl => (s.lateAnswer ? 1 : 0, 1),
-    BadgeId.explorer => (s.knownDistricts, 5),
+    BadgeId.explorer => (
+      s.knownDistricts,
+      LearningConfig.explorerBadgeDistricts,
+    ),
     BadgeId.roadTrip || BadgeId.pitCrew => (0, 1),
   };
   return (value: min(value, target), target: target);

@@ -60,6 +60,7 @@ SEQUENCES = {
     "easy": [(4, None), (4, on_due)],
     "hard_then_same_day_good": [(2, None), (3, after(timedelta(minutes=20))), (3, on_due)],
     "retrieval_1_and_2": [(3, None), (3, after(timedelta(minutes=15))), (3, on_due)],
+    "hard_same_day": [(3, None), (2, after(timedelta(minutes=15))), (3, on_due)],
     "relearn_in_session": [
         (3, None),
         (1, on_due),

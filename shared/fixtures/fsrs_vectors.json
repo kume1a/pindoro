@@ -319,6 +319,41 @@
       ]
     },
     {
+      "name": "hard_same_day",
+      "reviews": [
+        {
+          "at": "2026-01-05T09:00:00Z",
+          "rating": 3,
+          "elapsed_days": null,
+          "retrievability": null,
+          "stability": 2.3065,
+          "difficulty": 2.118103970459016,
+          "interval_days": 2,
+          "due": "2026-01-07T09:00:00Z"
+        },
+        {
+          "at": "2026-01-05T09:15:00Z",
+          "rating": 2,
+          "elapsed_days": 0,
+          "retrievability": 1.0,
+          "stability": 2.3065,
+          "difficulty": 4.752858488532557,
+          "interval_days": 2,
+          "due": "2026-01-07T09:15:00Z"
+        },
+        {
+          "at": "2026-01-07T09:15:00Z",
+          "rating": 3,
+          "elapsed_days": 2,
+          "retrievability": 0.9094932559773545,
+          "stability": 8.39604480040517,
+          "difficulty": 4.743333999340863,
+          "interval_days": 8,
+          "due": "2026-01-15T09:15:00Z"
+        }
+      ]
+    },
+    {
       "name": "relearn_in_session",
       "reviews": [
         {

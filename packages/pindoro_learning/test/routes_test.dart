@@ -85,6 +85,7 @@ void main() {
       landmark: (
         id: 'p',
         name: 'Park',
+        nameEn: null,
         kind: 'park',
         at: at,
         personal: false,

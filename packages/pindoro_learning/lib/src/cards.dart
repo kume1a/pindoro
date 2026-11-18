@@ -3,6 +3,7 @@ import 'dart:math';
 import 'constants.dart';
 import 'fsrs.dart';
 import 'grader.dart';
+import 'planner.dart' show startOfDay;
 
 /// Card types; an item id is `<TYPE>:<key>` (SPEC §3).
 enum CardType {
@@ -231,7 +232,7 @@ CardState carriedOver(
     retention: retention,
     fuzz: fuzzFor(itemId, now),
   );
-  final lapsed = rating == Rating.again && card?.phase == CardPhase.review;
+  final lapsed = rating == Rating.again && card != null && _inReview(card, now);
   final lapses = (card?.lapses ?? 0) + (lapsed ? 1 : 0);
   final next = CardState(
     itemId: itemId,
@@ -273,6 +274,17 @@ CardState carriedOver(
   return (card: next, log: log);
 }
 
+/// Whether [card] counts as reviewed at [now], where an Again is a lapse (SPEC §4): in review,
+/// or still relearning from an earlier day (its relearns ran out, or the session was left) and
+/// not shown again since. A relearn the same day never lapses it again.
+bool _inReview(CardState card, DateTime now) => switch (card) {
+  CardState(phase: CardPhase.review) => true,
+  CardState(phase: CardPhase.relearning, :final memory?, :final introAt) =>
+    memory.lastReview.isBefore(startOfDay(now)) &&
+        (introAt == null || !introAt.isAfter(memory.lastReview)),
+  _ => false,
+};
+
 /// A [Random] seeded by FNV-1a of the item and the time: the same review always fuzzes alike.
 Random fuzzFor(String itemId, DateTime now) {
   var hash = 0x811c9dc5;
@@ -294,10 +306,12 @@ Random fuzzFor(String itemId, DateTime now) {
   required int rtMs,
   String? sessionId,
 }) {
+  // A suspended leech comes back only through its intro (SPEC §16.13).
   final reviews = card == null
       ? grade.rating == Rating.good || grade.rating == Rating.easy
-      : isNearDue(card, now) ||
-            (grade.rating == Rating.again && card.phase == CardPhase.review);
+      : card.phase != CardPhase.suspended &&
+            (isNearDue(card, now) ||
+                (grade.rating == Rating.again && _inReview(card, now)));
   final applied = applyReview(
     card,
     itemId: itemId,
@@ -335,11 +349,7 @@ bool isNearDue(CardState card, DateTime now) {
   required DateTime now,
   required ReviewSource source,
   String? sessionId,
-}) =>
-    ok ||
-        card == null ||
-        card.phase != CardPhase.review ||
-        !isNearDue(card, now)
+}) => ok || card == null || !_inReview(card, now) || !isNearDue(card, now)
     ? null
     : applyReview(
         card,

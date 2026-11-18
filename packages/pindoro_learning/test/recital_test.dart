@@ -214,6 +214,7 @@ void main() {
       final fuel = (
         id: 'osm:n1',
         name: 'ლუკოილი',
+        nameEn: null,
         kind: 'fuel',
         at: graph.at(j(0, 2)),
         personal: false,
@@ -304,6 +305,7 @@ void main() {
         junction: j(2, 3),
         edge: graph.edgesAt(j(2, 3)).firstWhere((e) => e.id == h(2, 2)),
         reason: IllegalReason.oneway,
+        approach: null,
       ));
       expect((r.tier, r.rating), (Tier.miss, Rating.again));
     });
@@ -378,6 +380,7 @@ void main() {
       final fuel = (
         id: 'osm:n1',
         name: 'ლუკოილი',
+        nameEn: null,
         kind: 'fuel',
         at: graph.at(j(1, 1)),
         personal: false,
@@ -446,6 +449,11 @@ void main() {
       expect(turn.illegal?.reason, IllegalReason.restriction);
       expect(turn.illegal?.junction, j(1, 1));
       expect(turn.illegal?.edge.id, v(0, 1));
+      expect(
+        turn.illegal?.approach?.id,
+        h(1, 0),
+        reason: 'the way in is the edge driven, not searched for again',
+      );
 
       final uTurn = RecitalGrader.score(
         graph,

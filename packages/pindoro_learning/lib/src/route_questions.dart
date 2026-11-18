@@ -4,6 +4,7 @@ import 'package:pindoro_core/pindoro_core.dart';
 
 import 'curriculum.dart';
 import 'grader.dart';
+import 'map_labels.dart';
 import 'routes.dart';
 
 /// A landmark a route card can ask about: one from the pack, or the player's own (SPEC §9).
@@ -11,6 +12,9 @@ import 'routes.dart';
 typedef RouteLandmark = ({
   String id,
   String name,
+
+  /// The English name, when the pack has one (the player's own have none).
+  String? nameEn,
   String kind,
   LatLng at,
   bool personal,
@@ -104,7 +108,7 @@ final class ConnectionQuestion extends RouteQuestion {
 }
 
 /// L1 pin the [landmark]; L2 pick its junction among [junctions]; L3 at [junction] coming in
-/// on [approachStreet], pick the landmark among [names].
+/// on [approachStreet], pick the landmark among [places].
 final class LandmarkQuestion extends RouteQuestion {
   const LandmarkQuestion(
     super.itemId, {
@@ -112,9 +116,8 @@ final class LandmarkQuestion extends RouteQuestion {
     required this.landmark,
     this.junction,
     this.junctions = const [],
-    this.names = const [],
+    this.places = const [],
     this.approachStreet,
-    this.nameEn,
     this.street,
     this.crossStreet,
     this.ambiguous = false,
@@ -128,10 +131,10 @@ final class LandmarkQuestion extends RouteQuestion {
   /// L2's choices, the right one among them (pack junction ids).
   final List<int> junctions;
 
-  /// L3's choices, the right one among them.
-  final List<String> names;
+  /// L3's choices, one per name, the right one among them; the answer is the
+  /// chosen place's `name`.
+  final List<RouteLandmark> places;
   final NamedStreet? approachStreet;
-  final String? nameEn;
 
   /// The street the landmark stands on: the one of its junction's nearest it.
   final NamedStreet? street;
@@ -266,6 +269,7 @@ RouteBook buildRouteBook({
           final l? => (
             id: l.id,
             name: l.nameKa,
+            nameEn: l.nameEn,
             kind: l.kind,
             at: l.at,
             personal: false,
@@ -275,6 +279,8 @@ RouteBook buildRouteBook({
           null => null,
         };
         if (landmark != null) onTurns.putIfAbsent(landmark.id, () => landmark);
+        final turnsOntoIt =
+            onto != null && onto != into && _namesStreet(landmark, onto);
         final id = RouteIds.junction(node, from, to);
         add(
           (
@@ -298,7 +304,8 @@ RouteBook buildRouteBook({
             approachStreet: into,
             exitStreet: onto,
             destChunk: item.destChunkId,
-            landmark: landmark,
+            // A place named after the way on would give the answer away.
+            landmark: turnsOntoIt ? null : landmark,
           ),
         );
       case JunctionLayer.gatewayOut || JunctionLayer.gatewayIn:
@@ -338,6 +345,7 @@ RouteBook buildRouteBook({
             ).compareTo(distanceBetween(at, b.midpoint)),
           );
         final options = nearest.take(_choices).toList();
+        if (options.length < 2) continue;
         if (!options.contains(bridge)) options[options.length - 1] = bridge;
         final id = RouteIds.bridge(
           bridge.id,
@@ -399,51 +407,65 @@ RouteBook buildRouteBook({
   for (final l in landmarks) {
     sameName.update(normaliseName(l.nameKa), (n) => n + 1, ifAbsent: () => 1);
   }
-  List<NamedStreet> turnStreets(RouteLandmark l) => [
-    ?turnJunctions[l.junction]?.approachStreet,
-    ?turnJunctions[l.junction]?.exitStreet,
-  ];
-  String nameOnStreet(RouteLandmark l) =>
-      '${normaliseName(l.name)} ${_nearestTo(l.at, turnStreets(l))?.id}';
-  final sameOnStreet = <String, int>{};
+  Set<NamedStreet> streetsAt(int junction) => {
+    for (final e in graph.edgesAt(junction)) ?streetOf(e),
+  };
+  // How a junction reads on an L2 chip: the names of the streets there.
+  String labelOf(int junction) => (streetsAt(
+    junction,
+  ).map((s) => normaliseName(s.name)).toSet().toList()..sort()).join(' × ');
+  final places = [...onTurns.values, ...personal];
+  // A place stands on the street of its junction nearest it (SPEC §16.18 item 89).
+  final streetOfPlace = {
+    for (final l in places)
+      l.id: switch (l.junction) {
+        final j? => _nearestTo(l.at, streetsAt(j).toList()),
+        null => null,
+      },
+  };
+  (String, String) nameOnStreet(RouteLandmark l) =>
+      (normaliseName(l.name), streetOfPlace[l.id]?.id ?? '');
+  final sameOnStreet = <(String, String), int>{};
   for (final l in onTurns.values) {
+    if (streetOfPlace[l.id] == null) continue;
     sameOnStreet.update(nameOnStreet(l), (n) => n + 1, ifAbsent: () => 1);
   }
-  for (final landmark in [...onTurns.values, ...personal]) {
+  for (final landmark in places) {
     final at = landmark.junction;
     final turn = turnJunctions[at];
     final pack = byLandmark[landmark.id];
-    final street = _nearestTo(landmark.at, turnStreets(landmark));
-    final cross = at != null && (sameOnStreet[nameOnStreet(landmark)] ?? 0) > 1
-        ? _nearestTo(landmark.at, [
-            for (final s in {for (final e in graph.edgesAt(at)) ?streetOf(e)})
-              if (s != street) s,
-          ])
+    final street = streetOfPlace[landmark.id];
+    final twin =
+        pack != null &&
+        street != null &&
+        (sameOnStreet[nameOnStreet(landmark)] ?? 0) > 1;
+    final cross = twin
+        ? _corner(landmark.at, street, streetsAt(at!), all)
         : null;
-    final nearJunctions =
-        (turnJunctions.keys.where((j) => j != at).toList()..sort(
-              (a, b) => distanceBetween(
-                landmark.at,
-                graph.at(a),
-              ).compareTo(distanceBetween(landmark.at, graph.at(b))),
-            ))
-            .take(_choices - 1);
-    final nearNames =
-        (onTurns.values.where((l) => l.name != landmark.name).toList()..sort(
-              (a, b) => distanceBetween(
-                landmark.at,
-                a.at,
-              ).compareTo(distanceBetween(landmark.at, b.at)),
-            ))
-            .map((l) => l.name)
-            .toSet()
-            .take(_choices - 1);
     final random = Random(landmark.id.hashCode);
     final known = {?turn?.approachStreet?.id};
     for (final n in [1, 2, 3]) {
       if (n > 1 && (at == null || turn == null)) continue;
-      // Named with its junction's streets, its L2 would give the answer away.
-      if (n == 2 && cross != null) continue;
+      // Named with its corner, its L2 would give the answer away.
+      if (n == 2 && twin) continue;
+      final junctions = n == 2
+          ? _junctionChoices(
+              at!,
+              turnJunctions.keys,
+              landmark.at,
+              graph,
+              labelOf,
+            )
+          : const <int>[];
+      final choices = n == 3
+          ? _placeChoices(landmark, onTurns.values)
+          : const <RouteLandmark>[];
+      if (n == 2 && junctions.length < 2) continue;
+      if (n == 3 &&
+          (choices.length < 2 ||
+              streetsAt(at!).any((s) => _namesStreet(landmark, s)))) {
+        continue;
+      }
       final id = RouteIds.landmark(landmark.id, n);
       add(
         (
@@ -461,14 +483,9 @@ RouteBook buildRouteBook({
           n: n,
           landmark: landmark,
           junction: at,
-          junctions: n == 2
-              ? ([?at, ...nearJunctions]..shuffle(random))
-              : const [],
-          names: n == 3
-              ? ([landmark.name, ...nearNames]..shuffle(random))
-              : const [],
+          junctions: n == 2 ? (junctions..shuffle(random)) : const [],
+          places: n == 3 ? (choices..shuffle(random)) : const [],
           approachStreet: turn?.approachStreet,
-          nameEn: pack?.nameEn,
           outline: pack?.outline,
           street: street,
           crossStreet: cross,
@@ -485,11 +502,89 @@ RouteBook buildRouteBook({
 }
 
 /// Of [streets], the one nearest [at].
-NamedStreet? _nearestTo(LatLng at, List<NamedStreet> streets) => streets.isEmpty
-    ? null
-    : streets.reduce(
-        (a, b) => a.nearest(at).distanceM <= b.nearest(at).distanceM ? a : b,
-      );
+NamedStreet? _nearestTo(LatLng at, List<NamedStreet> streets) {
+  NamedStreet? best;
+  var bestM = double.infinity;
+  for (final s in streets) {
+    final m = s.nearest(at).distanceM;
+    if (m < bestM) (best, bestM) = (s, m);
+  }
+  return best;
+}
+
+/// Whether [place]'s name, in either script, holds a stem of [street]'s names.
+bool _namesStreet(RouteLandmark? place, NamedStreet street) {
+  if (place == null) return false;
+  final stems = nameStems(street);
+  return [
+    place.name,
+    ?place.nameEn,
+  ].any((name) => stems.any(normaliseName(name).contains));
+}
+
+/// A twin place's corner: the other street at its [junctionStreets] nearest [at], else the
+/// street crossing [street] nearest it.
+NamedStreet? _corner(
+  LatLng at,
+  NamedStreet street,
+  Set<NamedStreet> junctionStreets,
+  Set<NamedStreet> all,
+) =>
+    _nearestTo(at, [
+      for (final s in junctionStreets)
+        if (s != street) s,
+    ]) ??
+    _byDistance(
+      at,
+      crossingsAlong(street, all),
+      (c) => c.at,
+    ).firstOrNull?.street;
+
+/// [items] nearest [at] first, each measured once.
+List<T> _byDistance<T>(LatLng at, Iterable<T> items, LatLng Function(T) where) {
+  final distance = {for (final i in items) i: distanceBetween(at, where(i))};
+  return distance.keys.toList()
+    ..sort((a, b) => distance[a]!.compareTo(distance[b]!));
+}
+
+/// L2's choices: [answer] and the turn [junctions] nearest [at] whose streets read apart from
+/// every other choice's (SPEC §16.21).
+List<int> _junctionChoices(
+  int answer,
+  Iterable<int> junctions,
+  LatLng at,
+  RoadGraph graph,
+  String Function(int junction) labelOf,
+) {
+  final label = labelOf(answer);
+  if (label.isEmpty) return const [];
+  final seen = {label};
+  return [
+    answer,
+    ..._byDistance(at, junctions.where((j) => j != answer), graph.at)
+        .where((j) {
+          final read = labelOf(j);
+          return read.isNotEmpty && seen.add(read);
+        })
+        .take(_choices - 1),
+  ];
+}
+
+/// L3's choices: [place] and the places on turns nearest it, one per name.
+List<RouteLandmark> _placeChoices(
+  RouteLandmark place,
+  Iterable<RouteLandmark> onTurns,
+) {
+  final names = {place.name};
+  return [
+    place,
+    ..._byDistance(
+      place.at,
+      onTurns,
+      (l) => l.at,
+    ).where((l) => names.add(l.name)).take(_choices - 1),
+  ];
+}
 
 /// The pack junction with OSM node [node] (a personal landmark's), or null.
 int? junctionOfNode(Map<int, int> junctionNodes, int node) => junctionNodes

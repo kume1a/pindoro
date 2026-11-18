@@ -254,9 +254,54 @@ void main() {
       expect(explore(introduce(itemId, t0), Rating.good, t0).card, isNull);
       expect(explore(introduce(itemId, t0), Rating.again, t0).card, isNull);
     });
+
+    test('a suspended leech is only logged: it comes back through its '
+        'intro', () {
+      final leech = CardState(
+        itemId: itemId,
+        phase: CardPhase.suspended,
+        memory: Memory(stability: 1, difficulty: 9, lastReview: t0),
+        dueAt: t0.add(const Duration(days: 1)),
+        lapses: LearningConfig.leechLapses,
+      );
+      final near = explore(
+        leech,
+        Rating.good,
+        t0.add(const Duration(hours: 13)),
+      );
+      expect(near.card, isNull);
+      expect(near.log.format, ReviewFormat.exploreLog);
+    });
   });
 
   group('leeches (SPEC §4)', () {
+    test('a card missed day after day lapses once a day, relearns aside, '
+        'and becomes a leech', () {
+      var card = rate(null, Rating.good, t0).card;
+      var at = t0;
+      for (var day = 1; day <= LearningConfig.leechLapses; day++) {
+        at = at.add(const Duration(days: 1));
+        card = rate(card, Rating.again, at).card;
+        expect(card.lapses, day, reason: 'day $day');
+        if (card.phase == CardPhase.suspended) break;
+        card = rate(
+          card,
+          Rating.again,
+          at.add(const Duration(minutes: 8)),
+        ).card;
+        expect(card.lapses, day, reason: 'a same-day relearn, day $day');
+        expect(card.phase, CardPhase.relearning);
+      }
+      expect(card.phase, CardPhase.suspended);
+      final back = reintroduce(card, at.add(const Duration(days: 1)));
+      final missed = rate(back, Rating.again, at.add(const Duration(days: 1)));
+      expect(
+        missed.card.lapses,
+        card.lapses,
+        reason: 'the re-intro’s first miss is no lapse',
+      );
+    });
+
     test(
       'every 6th lapse suspends; a re-intro relearns on the kept memory',
       () {
