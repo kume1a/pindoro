@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'package:pindoro/core/config.dart';
+import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
 
 /// Bundled style with the tile server injected (Martin source `georgia` and
 /// its FiraGO glyphs); its name layers read English names when [english].
@@ -24,6 +26,14 @@ Future<String> loadMapStyle(
 abstract final class NameLayers {
   static const String roads = 'road-names';
   static const String pois = 'poi-names';
+  static const String areas = 'area-names';
+  static const String water = 'water-names';
+
+  /// The layers named with the places: landmarks, neighbourhoods, rivers.
+  static const List<String> places = [pois, areas, water];
+
+  /// The lowest name layer in the style: overlay lines go under it.
+  static const String lowest = pois;
 }
 
 /// [style]'s own filter of the layer [id].
@@ -47,10 +57,17 @@ class MapNames {
   /// Every street and place.
   static const all = MapNames(streets: null, places: true);
 
+  /// A question's names: places, but none named after [answer], the street
+  /// being asked.
+  factory MapNames.asking(NamedStreet? answer) => MapNames(
+    places: true,
+    placesNot: answer == null ? const {} : nameStems(answer),
+  );
+
   /// The streets named, by their OSM name; null names every street.
   final Set<String>? streets;
 
-  /// Whether places are named.
+  /// Whether places, neighbourhoods and rivers are named.
   final bool places;
 
   /// Lower-case stems no named place may contain: it would name the street

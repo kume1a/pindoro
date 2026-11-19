@@ -417,7 +417,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
         fillColor: hexColor(colors.mapMask),
         fillOpacity: PindoroOpacity.mask,
       ),
-      belowLayerId: NameLayers.roads,
+      belowLayerId: NameLayers.lowest,
       enableInteraction: false,
     );
     if (widget.route != null) await addRouteLayers(c, colors, pixelRatio);
@@ -432,7 +432,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
         lineCap: 'round',
         lineJoin: 'round',
       ),
-      belowLayerId: NameLayers.roads,
+      belowLayerId: NameLayers.lowest,
       enableInteraction: false,
     );
     await c.addGeoJsonSource(_MapSources.truthStreet, linesGeoJson(const []));
@@ -454,7 +454,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
           lineCap: 'round',
           lineJoin: 'round',
         ),
-        belowLayerId: NameLayers.roads,
+        belowLayerId: NameLayers.lowest,
         enableInteraction: false,
       );
     }
@@ -478,7 +478,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
           lineCap: dash == null ? 'round' : null,
           lineDasharray: dash,
         ),
-        belowLayerId: NameLayers.roads,
+        belowLayerId: NameLayers.lowest,
         enableInteraction: false,
       );
     }
@@ -493,7 +493,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
         // Dots: zero-length dashes with round caps; dash units are line widths.
         lineDasharray: [0, PindoroSize.mapMeasureGap / PindoroStroke.thick],
       ),
-      belowLayerId: NameLayers.roads,
+      belowLayerId: NameLayers.lowest,
       enableInteraction: false,
     );
     await c.addGeoJsonSource(_MapSources.measureEnd, pointsGeoJson(const []));
@@ -565,12 +565,12 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     _cameraMoved();
     if (await mapStyle case final style?) {
       _baseFilters = {
-        for (final id in [NameLayers.roads, NameLayers.pois])
+        for (final id in [NameLayers.roads, ...NameLayers.places])
           id: styleFilter(style, id),
       };
     }
     await _syncNames();
-    await addPoiImages(c, colors, pixelRatio);
+    await addBasemapImages(c, colors, pixelRatio);
   }
 
   /// Shows [PindoroMap.names] through the style's name layers.
@@ -580,7 +580,8 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     final names = widget.names;
     for (final (id, filter) in [
       (NameLayers.roads, names.roadFilter(_baseFilters[NameLayers.roads])),
-      (NameLayers.pois, names.placeFilter(_baseFilters[NameLayers.pois])),
+      for (final id in NameLayers.places)
+        (id, names.placeFilter(_baseFilters[id])),
     ]) {
       if (filter != null) await c.setFilter(id, filter);
       await c.setLayerVisibility(id, filter != null);

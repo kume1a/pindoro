@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
@@ -48,6 +49,8 @@ class NameItView extends ConsumerWidget {
           area: play.area,
           truth: street.geometry,
           frame: play.frame,
+          // Asking: places, but none named after the street.
+          names: picked == null ? MapNames.asking(street) : MapNames.all,
           topInset: insets.top,
           bottomInset: insets.bottom,
         ),

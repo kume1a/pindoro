@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
@@ -63,6 +64,7 @@ class _EndsViewState extends ConsumerState<EndsView> {
           pin: pins.firstOrNull,
           morePins: pins.skip(1).toList(),
           truth: grade == null ? null : play.street.geometry,
+          names: grade == null ? const MapNames(places: true) : MapNames.all,
           onTap: grade == null ? widget.onPin : null,
           onCamera: (p) => _projection.value = p,
           showControls: grade == null,

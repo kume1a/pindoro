@@ -4,6 +4,7 @@ import 'package:pindoro/core/database/database.dart' show Settings;
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/route_draw_layer.dart';
@@ -145,6 +146,7 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
               chip: null,
               reached: task.draft.reached,
             ),
+            names: const MapNames(places: true),
             onCamera: (p) => _projection.value = p,
             topInset: insets.top,
             bottomInset: insets.bottom,
@@ -344,6 +346,7 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
             chip: chip,
             reached: true,
           ),
+          names: MapNames.all,
           topInset: insets.top,
           bottomInset: insets.bottom,
         ),

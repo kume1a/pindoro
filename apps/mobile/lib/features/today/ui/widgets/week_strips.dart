@@ -29,7 +29,7 @@ class NextWeek extends ConsumerWidget {
     final l10n = context.l10n;
     final locale = Localizations.localeOf(context).toLanguageTag();
     final now = ref.watch(clockProvider)();
-    final cards = ref.watch(cityCardsProvider).value ?? const [];
+    final cards = ref.watch(reviewedCardsProvider).value ?? const [];
     final counts = forecast(cards, now, days: _days);
     final days = [for (var d = 0; d < _days; d++) now.add(Duration(days: d))];
     final total = counts.fold(0, (a, b) => a + b);

@@ -26,8 +26,8 @@
     done moment is the city scene's (Pindo cheers, the star lands), not a check on the bar.
   - A minimum time on screen for a Try again that fails at once, and an exit transition from the
     city scene into the screen behind it (the screens swap as soon as the pack opens).
-- Area names and the distance chip are images drawn by `MapChip`; street and place names are the
-  basemap's own text (FiraGO glyphs from Martin).
+- Area names and the distance chip are images drawn by `MapChip`; street, place, neighbourhood
+  and river names are the basemap's own text (FiraGO glyphs from Martin).
 
 ## Gameplay
 
@@ -244,8 +244,15 @@ and the specs after R5. Fix them in roughly this order.
     main roads." with a road glyph.
   - Explore's quick starts open with "Your streets" (book glyph, "{n} streets learned") once 10
     streets are learned.
+- Changed in the app (2026-11-19, SPEC §16.22), to carry back to claude.ai:
+  - Streets of a later road class than the one taught wait (no reviews) until the ladder reaches
+    them; Today, its forecasts and Your streets leave them out.
+  - The basemap draws fuel stations (Maki `fuel`, transit disc), shows places a zoom earlier,
+    names neighbourhoods and rivers with the places, names places on every map but a place
+    question's, and draws one-way arrows (`chevron-right` in `color.map.vector.label`) from z14
+    on every map.
+  - Lakes are not named (Protomaps gives them no label point); Lisi Lake is the only one.
 - Left out of the road-class pass, on purpose:
-  - Streets learned before it (residential ones included) stay in the reviews; nothing parks them.
   - A "Your streets" round left half-way is not offered as Continue on Explore (Continue matches
     the chosen area).
 - Left out of the field-feedback pass, on purpose:

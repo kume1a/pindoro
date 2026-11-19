@@ -181,6 +181,41 @@ void main() {
     );
   });
 
+  test('streets of a later road class than the one taught wait, until the '
+      'ladder reaches them', () {
+    final curriculum = _curriculum([
+      _street('res'),
+      _street('unc', roadClass: 'unclassified'),
+      _street('ter', tier: StreetTier.b, roadClass: 'tertiary'),
+      _street('sec', tier: StreetTier.b),
+      _street('pri', tier: StreetTier.a),
+    ]);
+    final learnedEarly = {'res': _card('res'), 'ter': _card('ter')};
+    expect(curriculum.parkedStreets(learnedEarly), {
+      'sec',
+      'ter',
+      'unc',
+      'res',
+    });
+    expect(curriculum.parkedStreets({...learnedEarly, 'pri': _card('pri')}), {
+      'ter',
+      'unc',
+      'res',
+    });
+    expect(
+      curriculum.parkedStreets({
+        for (final id in ['pri', 'sec', 'res']) id: _card(id),
+      }),
+      {'unc', 'res'},
+    );
+    expect(
+      curriculum.parkedStreets({
+        for (final id in ['pri', 'sec', 'ter', 'unc']) id: _card(id),
+      }),
+      isEmpty,
+    );
+  });
+
   group('chunks', () {
     final streets = [
       for (final c in ['c1', 'c2', 'c3', 'c4'])

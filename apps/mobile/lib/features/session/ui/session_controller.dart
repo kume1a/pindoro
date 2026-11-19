@@ -217,6 +217,14 @@ class SessionController extends Notifier<SessionState> {
 
   /// Whether the pack asks a card: one it doesn't is never due.
   late AsksCard _asks;
+
+  /// Which of [cards] are reviewed now: asked, and not parked (SPEC §16.22).
+  AsksCard _reviews(Iterable<CardState> cards) => reviewsOf(
+    _asks,
+    streets: _streets,
+    curriculum: _curriculum,
+    cards: cards,
+  );
   late List<(String, String)> _confusions;
   late Map<String, int> _successes;
   late double _memoryBefore;
@@ -585,7 +593,7 @@ class SessionController extends Notifier<SessionState> {
     if (p is! SessionPlaying || p.task is! SweepTask) return;
     final task = p.task as SweepTask;
     if (task.checked || task.placed.length < task.lanes.length) return;
-    final markDay = dayMarker(ref, asks: _asks);
+    final markDay = dayMarker(ref, reviews: _reviews);
     final relearn = <String>[];
     for (final lane in task.lanes) {
       final on = task.placed[lane.id];
@@ -687,7 +695,7 @@ class SessionController extends Notifier<SessionState> {
     bool countDay = true,
   }) async {
     final now = _now();
-    final markDay = dayMarker(ref, asks: _asks);
+    final markDay = dayMarker(ref, reviews: _reviews);
     final target = street ?? _streets[itemKey(step.itemId)]!;
     final result = applyReview(
       _cards[step.itemId],
@@ -741,7 +749,7 @@ class SessionController extends Notifier<SessionState> {
     (NamedStreet, NamedStreet)? mixUp,
   }) async {
     final now = _now();
-    final markDay = dayMarker(ref, asks: _asks);
+    final markDay = dayMarker(ref, reviews: _reviews);
     _times.add(now);
     await _dao.saveAnswer(
       log: LogEntry(
@@ -837,7 +845,7 @@ class SessionController extends Notifier<SessionState> {
       rtMs: rtMs,
       priorKnown: true,
     );
-    final markDay = dayMarker(ref, asks: _asks);
+    final markDay = dayMarker(ref, reviews: _reviews);
     await _dao.saveAnswer(card: placed ? result.card : null, log: result.log);
     await markDay();
     if (!ref.mounted) return;
@@ -1185,7 +1193,7 @@ class SessionController extends Notifier<SessionState> {
             sessionId: _sessionId,
           ),
       ];
-      final markDay = dayMarker(ref, asks: _asks);
+      final markDay = dayMarker(ref, reviews: _reviews);
       await _dao.saveTest(
         log: answer.log,
         card: answer.card,
@@ -1486,7 +1494,9 @@ class SessionController extends Notifier<SessionState> {
           if (value >= 2) _streets[key]!,
       ],
       minutes: (activeSeconds(_times) / 60).ceil(),
-      cleared: !_cards.values.where(_asks).any((c) => isDueBefore(c, midnight)),
+      cleared: !_cards.values
+          .where(_reviews(_cards.values))
+          .any((c) => isDueBefore(c, midnight)),
       round: _round + 1,
       rounds: _rounds.length,
     );

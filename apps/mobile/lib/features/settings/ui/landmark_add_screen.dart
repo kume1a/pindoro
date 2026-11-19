@@ -16,6 +16,7 @@ import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/personal_landmarks.dart';
 import 'package:pindoro/features/learning/ui/junction_name.dart';
 import 'package:pindoro/features/learning/ui/landmark_glyph.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -183,6 +184,7 @@ class _LandmarkAddScreenState extends ConsumerState<LandmarkAddScreen> {
               pin: junction == null ? spot : graph.at(junction),
               frame: junction == null ? null : _around(graph.at(junction)),
               onTap: (at) => _mark(graph, at),
+              names: MapNames.all,
               topInset: insets.top,
               bottomInset: MediaQuery.paddingOf(body).bottom,
             ),

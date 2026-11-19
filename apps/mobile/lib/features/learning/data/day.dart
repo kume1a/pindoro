@@ -9,6 +9,7 @@ import 'package:pindoro/core/hold.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/data/cards.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
+import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/progress/data/streak.dart';
@@ -16,33 +17,51 @@ import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
+/// Which of the cards read just now are reviewed now ([reviewsOf]).
+typedef Reviews = AsksCard Function(Iterable<CardState> cards);
+
 /// Marks today on the streak once it counts (SPEC §8): something answered,
-/// then nothing the pack asks due before midnight or the day's minutes
-/// spent. Called after every learning answer; [roundId] names an Explore
-/// round, [asks] is a session's [asksCardProvider] filter, read once for it.
-Future<void> markDayIfCounts(Ref ref, {String? roundId, AsksCard? asks}) =>
-    dayMarker(ref, roundId: roundId, asks: asks)();
+/// then nothing reviewed now due before midnight or the day's minutes spent.
+/// Called after every learning answer; [roundId] names an Explore round,
+/// [reviews] is a session's, built once from what it read at its start.
+Future<void> markDayIfCounts(Ref ref, {String? roundId, Reviews? reviews}) =>
+    dayMarker(ref, roundId: roundId, reviews: reviews)();
 
 /// [markDayIfCounts] with everything it reads taken from [ref] now, so the
 /// day is still marked when the caller is gone before it runs.
-Future<void> Function() dayMarker(Ref ref, {String? roundId, AsksCard? asks}) {
+Future<void> Function() dayMarker(
+  Ref ref, {
+  String? roundId,
+  Reviews? reviews,
+}) {
   final now = ref.read(clockProvider)();
   final learning = ref.read(learningDaoProvider);
   final settingsDao = ref.read(settingsDaoProvider);
   final progress = ref.read(progressDaoProvider);
-  final asked = asks == null
-      ? ref.hold<AsksCard>(asksCardProvider.future)
-      : Future.value(asks);
+  final reviewing = reviews == null
+      ? _openCityReviews(ref)
+      : Future.value(reviews);
   return () async {
     final settings = await settingsDao.read();
+    final cards = await learning.cards();
     final counts = dayCounts(
-      cards: (await learning.cards()).where(await asked),
+      cards: cards.where((await reviewing)(cards)),
       today: await learning.log(since: startOfDay(now)),
       minutesPerDay: settings.minutesPerDay,
       now: now,
     );
     if (counts) await progress.markDay(now, roundId: roundId);
   };
+}
+
+/// [Reviews] over the open city's pack and curriculum, held while they load.
+Future<Reviews> _openCityReviews(Ref ref) async {
+  final asks = ref.hold(asksCardProvider.future);
+  final streets = ref.hold(cityStreetsProvider.future);
+  final curriculum = ref.hold(curriculumProvider.future);
+  final (a, s, c) = (await asks, await streets, await curriculum);
+  return (Iterable<CardState> cards) =>
+      reviewsOf(a, streets: s, curriculum: c, cards: cards);
 }
 
 /// When the next reminder fires and the streak it names.
@@ -77,7 +96,12 @@ final reminderProvider = FutureProvider<ReminderNotice?>((ref) async {
   if (!settings.reminder) return null;
   final streak = await ref.watch(streakProvider.future);
   final asks = await ref.watch(asksCardProvider.future);
-  final cards = (await ref.read(learningDaoProvider).cards()).where(asks);
+  final streets = await ref.watch(cityStreetsProvider.future);
+  final curriculum = await ref.watch(curriculumProvider.future);
+  final all = await ref.read(learningDaoProvider).cards();
+  final cards = all.where(
+    reviewsOf(asks, streets: streets, curriculum: curriculum, cards: all),
+  );
   final plan = nextReminder(
     streak.metDays,
     ref.read(clockProvider)(),

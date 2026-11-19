@@ -12,7 +12,7 @@ import 'package:pindoro_learning/pindoro_learning.dart';
 /// Reviews due by the end of tomorrow (Today's done state).
 final dueTomorrowProvider = FutureProvider.autoDispose<int>((ref) async {
   final now = ref.watch(clockProvider)();
-  final cards = await ref.watch(cityCardsProvider.future);
+  final cards = await ref.watch(reviewedCardsProvider.future);
   final endOfTomorrow = nextMidnight(nextMidnight(now));
   return cards.where((c) => isDueBefore(c, endOfTomorrow)).length;
 });
@@ -35,6 +35,7 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
   final settings = await ref.watch(settingsProvider.future);
   final streetsFuture = ref.watch(cityStreetsProvider.future);
   final cardsFuture = ref.watch(cityCardsProvider.future);
+  final reviewedFuture = ref.watch(reviewedCardsProvider.future);
   final byItemFuture = ref.watch(cardsByItemProvider.future);
   final streetCardsFuture = ref.watch(streetCardsProvider.future);
   final curriculumFuture = ref.watch(curriculumProvider.future);
@@ -49,6 +50,7 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
   );
   final streets = await streetsFuture;
   final cards = await cardsFuture;
+  final reviewed = await reviewedFuture;
   final cardedStreets = {
     for (final card in cards) ?streets[itemKey(card.itemId)]?.id,
   };
@@ -80,7 +82,7 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
       if (isPlaceIntro(c)) c.itemId,
   };
   return Planner.plan(
-    cards: cards,
+    cards: reviewed,
     newCandidates: candidates,
     minutesPerDay: settings.minutesPerDay,
     now: now,
@@ -88,7 +90,9 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
     introducedToday: introducedToday(cards, now),
     spentTodayS: spentTodayS(log, now),
     extraNew: extraNew,
-    openSides: learnMore ? const [] : curriculum.openSides(byItem),
+    openSides: learnMore
+        ? const []
+        : curriculum.openSides(cardsByItemOf(streets, reviewed)),
     sidesStartedToday: startedToday(today, now, sideTypes),
     openRoutes: [
       for (final id in open)
@@ -109,7 +113,7 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
         : planDrills(
             curriculum: curriculum,
             streets: streets.values,
-            cards: await streetCardsFuture,
+            cards: streetCardsOf(streets, reviewed),
             today: today,
             centre: curriculum.centre,
             now: now,

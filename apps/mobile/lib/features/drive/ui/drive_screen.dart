@@ -13,6 +13,7 @@ import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
@@ -371,6 +372,7 @@ class _Review extends ConsumerWidget {
                             ),
                       reached: true,
                     ),
+                    names: MapNames.all,
                     topInset: insets.top,
                     bottomInset: insets.bottom,
                   ),

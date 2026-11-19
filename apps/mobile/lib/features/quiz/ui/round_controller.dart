@@ -233,15 +233,17 @@ class RoundController extends Notifier<RoundState> {
     }
   }
 
-  /// "Your streets": a round of the streets the player has learned (P cards)
-  /// in the districts holding them, the ones not Known now first, scored at
-  /// [difficulty]. Its area isn't the saved one, so Explore won't offer to
-  /// continue it once left.
+  /// "Your streets": a round of the streets the player has learned (P cards,
+  /// parked ones aside) in the districts holding them, the ones not Known now
+  /// first, scored at [difficulty]. Its area isn't the saved one, so Explore
+  /// won't offer to continue it once left.
   Future<void> startLearned(Difficulty difficulty) async {
     state = const RoundLoading();
-    final cards = await ref.hold(streetCardsProvider.future);
+    final reviewed = await ref.hold(reviewedCardsProvider.future);
+    final streets = await ref.read(cityStreetsProvider.future);
     final curriculum = await ref.read(curriculumProvider.future);
     if (!ref.mounted) return;
+    final cards = streetCardsOf(streets, reviewed);
     final now = _now();
     await start(
       DistrictsArea({for (final id in cards.keys) ?curriculum.raionOf(id)}),
