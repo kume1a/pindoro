@@ -997,5 +997,6 @@ names.
        asked street's stems (pin, turn, gateway, Name it, both ends, bridge, the drawn recital),
        reveals and maps that are no question (Explore's result street, the drive review, Add
        landmark) with every name. Drills keep only their own streets.
-     - One-way arrows (OSM `oneway=yes`, from z14) show on every map, questions included: a
-       driver sees them too.
+     - One-way arrows (OSM `oneway=yes`, from z16) show on every map, questions included: a
+       driver sees them too. They are small tailed arrows a step off the road paint
+       (`color.map.vector.oneway`), so they never pull the eye; two-way streets get none.

@@ -202,7 +202,7 @@ test/drift/                    generated schema helpers + migration test
   questions show places through `MapNames.asking(street)`, whose `placesNot` stems hide a place
   named after the asked street. A place question shows Known streets only, and a drill only its
   own streets. Its landmark icons (the style's `pois` layer) are `poi-<kind>` images, and its
-  always-on `oneway-arrows` use the `oneway` chevron. `addBasemapImages`
+  always-on `oneway-arrows` (from z16) use the `oneway` image (`onewayArrowPng`). `addBasemapImages`
   (`features/map/ui/poi_icons.dart`) adds both after the overlays, in `PindoroMap`, the area
   picker and Explore's map. A kind added to the pipeline's `POI_KINDS` needs an entry in
   `poiIcons`.

@@ -249,8 +249,9 @@ and the specs after R5. Fix them in roughly this order.
     them; Today, its forecasts and Your streets leave them out.
   - The basemap draws fuel stations (Maki `fuel`, transit disc), shows places a zoom earlier,
     names neighbourhoods and rivers with the places, names places on every map but a place
-    question's, and draws one-way arrows (`chevron-right` in `color.map.vector.label`) from z14
-    on every map.
+    question's, and draws one-way arrows from z16
+    on every map: small tailed arrows in `color.map.vector.oneway` (2026-11-19, the z14 label-ink
+    chevrons were too loud).
   - Lakes are not named (Protomaps gives them no label point); Lisi Lake is the only one.
 - Left out of the road-class pass, on purpose:
   - A "Your streets" round left half-way is not offered as Continue on Explore (Continue matches

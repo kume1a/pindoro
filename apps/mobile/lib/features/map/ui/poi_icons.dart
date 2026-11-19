@@ -88,13 +88,7 @@ Future<void> addBasemapImages(
   () async {
     await c.addImage(
       onewayImage,
-      await glyphPng(
-        PindoroGlyph.chevronRight,
-        ink: colors.mapVectorLabel,
-        cut: colors.mapVectorRoad,
-        size: PindoroSize.iconSm,
-        pixelRatio: pixelRatio,
-      ),
+      await onewayArrowPng(colors.mapVectorOneway, pixelRatio),
     );
   }(),
 ]);
