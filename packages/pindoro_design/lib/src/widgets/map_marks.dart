@@ -92,6 +92,31 @@ Future<Uint8List> glyphPng(
   }
 }
 
+/// A one-way street's arrow (the basemap's `oneway-arrows`): a hairline shaft
+/// with an open head pointing right, along the road, as a 12 × 6 dp PNG.
+Future<Uint8List> onewayArrowPng(Color color, double pixelRatio) {
+  const size = Size(12, 6);
+  const inset = PindoroStroke.hairline / 2;
+  final headStart = size.width - 3.5;
+  final mid = size.height / 2;
+  return _png(size, pixelRatio, (canvas) {
+    canvas.drawPath(
+      Path()
+        ..moveTo(inset, mid)
+        ..lineTo(size.width - inset, mid)
+        ..moveTo(headStart, inset)
+        ..lineTo(size.width - inset, mid)
+        ..lineTo(headStart, size.height - inset),
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = PindoroStroke.hairline
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+  });
+}
+
 /// The road-trip replay's car (`.pd-map-car`): a route-arrow disc with the
 /// car in route paint, on a white halo, as a PNG centred on its point.
 class CarMark {

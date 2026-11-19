@@ -189,12 +189,12 @@ const onewayLayer = {
   type: "symbol",
   source: "protomaps",
   "source-layer": "roads",
-  // The tiles carry `oneway` ("yes" or "no") from z14.
-  minzoom: 14,
+  // The tiles carry `oneway` ("yes" or "no") from z14; the arrows wait for street level.
+  minzoom: 16,
   filter: ["==", ["get", "oneway"], "yes"],
   layout: {
     "symbol-placement": "line",
-    "symbol-spacing": 80,
+    "symbol-spacing": 120,
     "icon-image": "oneway",
     "icon-rotation-alignment": "map",
   },

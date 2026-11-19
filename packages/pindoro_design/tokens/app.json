@@ -254,6 +254,14 @@
         "usage": "Casing of minor and service streets."
       },
       {
+        "name": "color.map.vector.oneway",
+        "value": {
+          "light": "#c4bdb2",
+          "dark": "#5c626c"
+        },
+        "usage": "One-way arrows along streets (from z16): a step off the road paint, so they read without pulling the eye."
+      },
+      {
         "name": "color.map.vector.major",
         "value": {
           "light": "#fde3c8",
