@@ -236,7 +236,7 @@ class _ExploreMapState extends State<ExploreMap> with MapHost<ExploreMap> {
     }
     _ready = true;
     await _sync();
-    await addPoiImages(c, colors, pixelRatio);
+    await addBasemapImages(c, colors, pixelRatio);
   }
 
   Map<String, dynamic> _labelFeatures() => labelledPointsGeoJson([

@@ -107,7 +107,7 @@ final progressProvider = FutureProvider.autoDispose<ProgressOverview>((
   final streets = await ref.watch(cityStreetsProvider.future);
   final curriculum = await ref.watch(curriculumProvider.future);
   final cards = await ref.watch(streetCardsProvider.future);
-  final allCards = await ref.watch(cityCardsProvider.future);
+  final reviewed = await ref.watch(reviewedCardsProvider.future);
   final sidesOf = await ref.watch(sidesOfProvider.future);
   final anchors = await ref.watch(anchorsProvider.future);
   final settings = await ref.watch(settingsProvider.future);
@@ -190,7 +190,7 @@ final progressProvider = FutureProvider.autoDispose<ProgressOverview>((
       isCore: (_) => true,
     ),
     recall: recallRate(log, now),
-    forecast: forecast(allCards, now),
+    forecast: forecast(reviewed, now),
     wholeCityBy: wholeCityBy(
       unseenCore: core.where((s) => !cards.containsKey(s.id)).length,
       newPerDay: newPerDayAt(settings.minutesPerDay),
@@ -242,6 +242,7 @@ void refreshLearning(WidgetRef ref) => ref
   ..invalidate(learnCityProvider)
   ..invalidate(asksCardProvider)
   ..invalidate(cityCardsProvider)
+  ..invalidate(reviewedCardsProvider)
   ..invalidate(todayPlanProvider)
   ..invalidate(cityMemoryProvider)
   ..invalidate(progressProvider)

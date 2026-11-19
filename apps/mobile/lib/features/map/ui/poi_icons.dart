@@ -61,12 +61,17 @@ const Map<String, (String, PoiCategory)> poiIcons = {
   'supermarket': ('grocery', PoiCategory.shop),
   'mall': ('shop', PoiCategory.shop),
   'marketplace': ('shop', PoiCategory.shop),
+  'fuel': ('fuel', PoiCategory.transit),
 };
 
-/// Adds the `poi-<kind>` image the style's `pois` layer draws, for every
-/// kind. Overlays never wait on these: call it after them.
+/// The image the style's `oneway-arrows` layer draws along one-way roads.
+const String onewayImage = 'oneway';
+
+/// Adds the images the basemap's own layers draw: the `poi-<kind>` landmark
+/// icons and the one-way arrow. Overlays never wait on these: call it after
+/// them.
 // ponytail: re-rastered on every map load (~30 tiny SVGs); cache per theme and pixel ratio if it shows in traces.
-Future<void> addPoiImages(
+Future<void> addBasemapImages(
   ml.MapLibreMapController c,
   PindoroColors colors,
   double pixelRatio,
@@ -80,4 +85,16 @@ Future<void> addPoiImages(
       );
       await c.addImage('poi-$kind', await mark.toPng(pixelRatio));
     }(),
+  () async {
+    await c.addImage(
+      onewayImage,
+      await glyphPng(
+        PindoroGlyph.chevronRight,
+        ink: colors.mapVectorLabel,
+        cut: colors.mapVectorRoad,
+        size: PindoroSize.iconSm,
+        pixelRatio: pixelRatio,
+      ),
+    );
+  }(),
 ]);

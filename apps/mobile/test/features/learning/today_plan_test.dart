@@ -17,13 +17,13 @@ import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
-Street _part(String id, double lengthM) {
+Street _part(String id, double lengthM, {String roadClass = 'residential'}) {
   const at = LatLng(41.7, 44.8);
   return Street(
     id: id,
     nameKa: id.substring(0, 1),
     nameEn: null,
-    roadClass: 'residential',
+    roadClass: roadClass,
     difficulty: Difficulty.expert,
     lengthM: lengthM,
     midpoint: at,
@@ -38,6 +38,8 @@ void main() {
   final now = DateTime(2026, 3, 2, 9);
   late AppDatabase db;
   late ProviderContainer container;
+  // Streets only the curriculum knows: a main road makes its class the taught one.
+  var curriculumOnly = <NamedStreet>[];
 
   // Street a has two parts; its card is keyed by the shorter one.
   final a = NamedStreet([_part('a1', 300), _part('a2', 120)]);
@@ -50,6 +52,7 @@ void main() {
   });
 
   setUp(() async {
+    curriculumOnly = [];
     db = AppDatabase(NativeDatabase.memory());
     final dao = LearningDao(db);
     for (final id in ['P:a2', 'P:gone']) {
@@ -90,7 +93,7 @@ void main() {
         runsProvider.overrideWith((ref) async => const <Run>[]),
         curriculumProvider.overrideWith(
           (ref) async => Curriculum(
-            streets: [a, b, c],
+            streets: [a, b, c, ...curriculumOnly],
             districts: const [],
             centre: const LatLng(41.7, 44.8),
           ),
@@ -138,6 +141,34 @@ void main() {
         source: ReviewSource.session,
       ),
     );
+    final markDay = FutureProvider<void>(markDayIfCounts);
+    await container.read(markDay.future);
+    expect((await ProgressDao(db).goalDayRounds()).keys, [calendarDay(now)]);
+  });
+
+  test('while main roads are taught, a residential card waits: never due, '
+      'and the day counts without it', () async {
+    curriculumOnly = [
+      NamedStreet([_part('m1', 400, roadClass: 'primary')]),
+    ];
+    await LearningDao(db).saveAnswer(
+      card: CardState(
+        itemId: 'P:c1',
+        phase: CardPhase.review,
+        memory: Memory(stability: 5, difficulty: 5, lastReview: now),
+        dueAt: now.add(const Duration(days: 5)),
+      ),
+      log: LogEntry(
+        ts: now,
+        itemId: 'P:c1',
+        format: ReviewFormat.review,
+        rating: Rating.good,
+        source: ReviewSource.session,
+      ),
+    );
+    final p = await plan();
+    expect(p.dueCount, 0);
+    expect(p.steps.where((s) => s.kind == StepKind.review), isEmpty);
     final markDay = FutureProvider<void>(markDayIfCounts);
     await container.read(markDay.future);
     expect((await ProgressDao(db).goalDayRounds()).keys, [calendarDay(now)]);

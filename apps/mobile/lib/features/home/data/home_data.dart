@@ -32,7 +32,8 @@ typedef HomeData = ({
   /// without one.
   double? before,
 
-  /// Streets the player has learned (a P card): what "Your streets" asks.
+  /// Streets the player has learned (a P card), parked ones aside: what "Your
+  /// streets" asks.
   int learned,
 });
 
@@ -69,7 +70,10 @@ final homeProvider = FutureProvider.autoDispose.family<HomeData, DateTime?>((
       for (final id in await dao.recentDistrictIds(city.id)) ?byId[id],
     ].take(recentAreaCount).toList(),
     before: introBefore == null ? null : await _memoryAt(ref, introBefore),
-    learned: (await ref.watch(streetCardsProvider.future)).length,
+    learned: streetCardsOf(
+      streets,
+      await ref.watch(reviewedCardsProvider.future),
+    ).length,
   );
 });
 

@@ -127,6 +127,22 @@ class Curriculum {
       if (streets.any((s) => isCore(s) && !cards.containsKey(s.id))) band,
   ];
 
+  /// The streets whose cards wait, never due, while an earlier road class is taught (SPEC §16.22):
+  /// every street of a later class than the first of [bandsLeft], residential ones last. None once
+  /// every class is seen.
+  Set<String> parkedStreets(Map<String, CardState> cards) {
+    final taught = bandsLeft(cards).firstOrNull;
+    if (taught == null) return const {};
+    return {
+      for (final s in _byId.values)
+        if (_classRank(s) > taught.index) s.id,
+    };
+  }
+
+  /// [s]'s place in the class ladder: its [RoadBand], residential after every band.
+  static int _classRank(NamedStreet s) =>
+      bandOf(s)?.index ?? RoadBand.values.length;
+
   bool _isChild(NamedStreet s) => _parentOf.containsKey(s.id);
 
   StreetTier? tierOf(String id) => switch (_byId[id]) {

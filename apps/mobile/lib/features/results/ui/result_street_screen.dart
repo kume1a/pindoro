@@ -5,6 +5,7 @@ import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/results/data/results_data.dart';
@@ -65,6 +66,7 @@ class ResultStreetScreen extends ConsumerWidget {
               pin: pin,
               truth: street.geometry,
               measure: (from: pin, to: nearest, label: distance),
+              names: MapNames.all,
               topInset: insets.top,
               bottomInset: MediaQuery.paddingOf(body).bottom,
               showControls: false,

@@ -346,7 +346,7 @@ class _AreaPickerMapState extends State<AreaPickerMap>
     _ready = true;
     await _syncPicked();
     await _syncVisibility();
-    await addPoiImages(c, colors, pixelRatio);
+    await addBasemapImages(c, colors, pixelRatio);
   }
 
   Future<void> _syncPicked() async {

@@ -15,6 +15,7 @@ import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/ui/city_memory_card.dart';
 import 'package:pindoro/features/map/ui/explore_map.dart';
+import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
@@ -81,6 +82,9 @@ void main() {
         exploreMap = map;
         return const SizedBox.expand();
       }),
+      pindoroMapBuilderProvider.overrideWithValue(
+        (_) => const SizedBox.expand(),
+      ),
     ],
     child: PindoroApp(initialLocation: location, coldStart: coldStart),
   );
@@ -342,7 +346,11 @@ void main() {
     await tester.runAsync(() async {
       await SettingsDao(db).markHomeCoachSeen();
       final dao = LearningDao(db);
-      final named = {for (final s in streets) s.nameKa: s}.values;
+      // Main roads first: a street of a class not taught yet would wait.
+      int classRank(Street s) =>
+          Curriculum.bandOf(NamedStreet([s]))?.index ?? RoadBand.values.length;
+      final named = {for (final s in streets) s.nameKa: s}.values.toList()
+        ..sort((a, b) => classRank(a).compareTo(classRank(b)));
       for (final s in named.take(QuestionSelector.roundSize)) {
         final placed = applyReview(
           null,
@@ -472,7 +480,14 @@ void main() {
       await tester.runAsync(
         () => LearningDao(db).putCard(
           CardState(
-            itemId: CardType.p.item(streets.first.id),
+            // A main road: a residential card would wait, never due.
+            itemId: CardType.p.item(
+              streets
+                  .firstWhere(
+                    (s) => Curriculum.bandOf(NamedStreet([s])) == RoadBand.main,
+                  )
+                  .id,
+            ),
             phase: CardPhase.review,
             memory: Memory(
               stability: 3,

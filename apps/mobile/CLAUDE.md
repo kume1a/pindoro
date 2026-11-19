@@ -195,20 +195,24 @@ test/drift/                    generated schema helpers + migration test
 - `PindoroMap` loads the bundled style, injects `{TILES_BASE_URL}` (Martin source `georgia` and its
   FiraGO glyphs) and `{NAME_KEY}` (`name`, or `name:en` with English street names), and always
   shows "© OpenStreetMap contributors, Protomaps". Never point it at public OSM tile servers.
-- The basemap draws no text but its two name layers, `road-names` and `poi-names` (pipeline
-  `tiles.ts`), hidden until `PindoroMap.names` (`MapNames`, `map_style.dart`) shows them: every
-  name on intros and reveals, places on street questions (`placesNot` stems hide one named after
-  the street), Known streets on a place question, a drill's own streets. Its landmark icons (the
-  style's `pois` layer) are `poi-<kind>` images that `addPoiImages`
-  (`features/map/ui/poi_icons.dart`) adds after the overlays, in `PindoroMap` and the area picker.
-  A kind added to the pipeline's `POI_KINDS` needs an entry in `poiIcons`.
+- The basemap draws no text but its name layers (pipeline `tiles.ts` `NAME_LAYERS`): `road-names`,
+  and `poi-names`, `area-names` (neighbourhoods) and `water-names` (rivers), which go together as
+  the places. They stay hidden until `PindoroMap.names` (`MapNames`, `map_style.dart`) shows them
+  (SPEC §16.22 item 111). Intros, reveals and maps that are no question show every name. Other
+  questions show places through `MapNames.asking(street)`, whose `placesNot` stems hide a place
+  named after the asked street. A place question shows Known streets only, and a drill only its
+  own streets. Its landmark icons (the style's `pois` layer) are `poi-<kind>` images, and its
+  always-on `oneway-arrows` use the `oneway` chevron. `addBasemapImages`
+  (`features/map/ui/poi_icons.dart`) adds both after the overlays, in `PindoroMap`, the area
+  picker and Explore's map. A kind added to the pipeline's `POI_KINDS` needs an entry in
+  `poiIcons`.
 - GeoJSON source names: `you-pin` (a symbol of the `PinMark` rendered to PNG, anchored at its tip),
   `truth-street` (8 dp yellow over a 12 dp ink casing), `truth-point` (a place as the answer:
   yellow dot, ink ring), `measure` (dotted ink) + `measure-end` (ring), `area-mask` (dims outside
   the round's area), `trace` (a drill's streets, grey), `hit-street` (a Mix-up's, dashed cobalt).
-  Lines go under the basemap's names, points over them. The map owns its controls (my location,
-  recentre, and zoom only with Settings → Map → Zoom buttons) and the attribution chip, placed
-  above `bottomInset`.
+  Lines go under the basemap's names (`NameLayers.lowest`), points over them. The map owns its
+  controls (my location, recentre, and zoom only with Settings → Map → Zoom buttons) and the
+  attribution chip, placed above `bottomInset`.
 - Street View is a link only (`core/google_maps.dart`: `GoogleMaps.streetView`, `streetSpot`,
   `placeSpot`; `StreetViewButton`), on intros and reveals.
 - **Round screens** (`features/quiz`, `features/results`): `/round` is one Explore route for setup

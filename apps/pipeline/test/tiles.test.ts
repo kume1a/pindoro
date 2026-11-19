@@ -33,6 +33,6 @@ it("map styles draw text only in the name layers, hidden, with glyphs from the t
     expect(style.glyphs).toMatch(/^\{TILES_BASE_URL\}\/font\//);
     const text = style.layers.filter((l) => l.layout?.["text-field"]);
     expect(text.map((l) => l.id)).toEqual(Object.values(NAME_LAYERS));
-    expect(text.map((l) => l.layout?.visibility)).toEqual(["none", "none"]);
+    expect(text.every((l) => l.layout?.visibility === "none")).toBe(true);
   }
 });

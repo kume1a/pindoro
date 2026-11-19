@@ -13,7 +13,6 @@ import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/map/ui/widgets/tier_reveal.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
-import 'package:pindoro_learning/pindoro_learning.dart';
 
 /// A confirmed pin: its tier and distance, where it was and the nearest
 /// point of the street (the measure line), the sheet's [chips] and the
@@ -133,9 +132,7 @@ class PinDropView extends ConsumerWidget {
             showControls: reveal == null,
             frame: reveal == null ? frame : null,
             // Asking: places, but none named after the street.
-            names: reveal == null
-                ? MapNames(places: true, placesNot: nameStems(street))
-                : MapNames.all,
+            names: reveal == null ? MapNames.asking(street) : MapNames.all,
             hit: reveal == null ? null : mixUp?.geometry,
           ),
         ),

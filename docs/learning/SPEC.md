@@ -869,6 +869,8 @@ blank maps after every answer.
     - A place question names no places and only Known streets, never the street in the place's
       own name; its reveal marks the place in yellow, the dotted ink line from the pin and the
       distance, and names everything.
+    - Since §16.22 item 111, every other map names places too, and neighbourhoods and rivers
+      go with the places.
 92. **Street View** (§10, a Google Maps link): on every street intro and pin reveal, at the
     street's point nearest the answer looking along it; on every place intro and L1 reveal, from its
     street looking at it.
@@ -964,3 +966,36 @@ A review of the learning code found these; each was a bug against the rules abov
      card missed day after day becomes a leech. A same-day relearn never lapses. An Explore
      answer never reviews a suspended leech: it comes back through its intro.
 108. **The relearn cap** (item 90) counts the whole session, across its rounds.
+
+### 16.22 Later classes wait, and a map you can read (2026-11-19)
+
+Tertiary and residential streets learned before §16.19 (and tier B placement cards) kept coming
+back every day, ahead of the main roads the player wanted first. Fuel stations, which the player
+uses to find junctions off the main roads, were missing from the map, and the map showed almost no
+names.
+
+109. **Later classes wait.** While a road class is taught (the first of the classes with a core
+     street unseen, item 99), the P, name and ends cards of every street of a later class are
+     parked. Residential and living streets count as after every class. A parked card is never
+     due and never planned (no review, no leech intro, no name or ends opening, no drill). It
+     doesn't stop the day from counting or call the reminder, and Today's forecasts and Your
+     streets leave it out. A class's cards come back as ordinary reviews, under the backlog cap,
+     once the ladder reaches it: tertiary when the last core secondary street is seen,
+     residential once the neighbourhoods start. Parking is worked out from the cards and never
+     stored. City memory, Progress and the classes' "seen" counts keep every card. Explore
+     rounds still answer a parked card as item 16 says; it then waits like the rest.
+110. **Fuel stations on the map.** The basemap draws fuel stations with an icon (Maki `fuel`,
+     transit colour) and names them with the other places.
+111. **Map text.**
+     - Places show a zoom earlier: from the first zoom whose tiles carry them (`min_zoom` − 1).
+       Restaurants, cafés, bars, pubs, fast food, pharmacies and hotels wait for their own
+       `min_zoom`. Landmarks and fuel then show from z15, the dense kinds from z16.
+     - Neighbourhood names (OSM `macrohood` and `neighbourhood` places) and river and stream
+       names are shown and hidden with the places, and follow the same rule: no name sharing a
+       stem with the street asked.
+     - Every map names places unless its question is about a place: questions without the
+       asked street's stems (pin, turn, gateway, Name it, both ends, bridge, the drawn recital),
+       reveals and maps that are no question (Explore's result street, the drive review, Add
+       landmark) with every name. Drills keep only their own streets.
+     - One-way arrows (OSM `oneway=yes`, from z14) show on every map, questions included: a
+       driver sees them too.

@@ -157,13 +157,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
                     },
                     // Asking: places, but none named after the way on.
                     names: tier == null
-                        ? MapNames(
-                            places: true,
-                            placesNot: switch (q.exitStreet) {
-                              final s? => nameStems(s),
-                              null => const {},
-                            },
-                          )
+                        ? MapNames.asking(q.exitStreet)
                         : MapNames.all,
                     showControls: false,
                     onCamera: (p) => _projection.value = p,
@@ -237,6 +231,10 @@ class _RouteViewState extends ConsumerState<RouteView> {
               pin: play.pin,
               onTap: tier == null ? widget.onPin : null,
               truth: tier == null ? null : q.exitStreet?.geometry,
+              // Asking: places, but none named after the way out.
+              names: tier == null
+                  ? MapNames.asking(q.exitStreet)
+                  : MapNames.all,
               topInset: insets.top,
               bottomInset: insets.bottom,
             ),
@@ -277,6 +275,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
               area: play.area,
               frame: play.frame,
               truth: tier == null ? null : q.bridge.geometry,
+              names: tier == null ? const MapNames(places: true) : MapNames.all,
               onCamera: (p) => _projection.value = p,
               topInset: insets.top,
               bottomInset: insets.bottom,

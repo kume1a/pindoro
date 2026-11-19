@@ -56,9 +56,13 @@ export const POI_KINDS = [
   "supermarket",
   "mall",
   "marketplace",
+  "fuel",
 ];
 
-/** Kinds so dense in a city centre (hundreds per km²) that they wait one zoom past their min_zoom. */
+/**
+ * Kinds so dense in a city centre (hundreds per km²) that they wait for their min_zoom; the rest
+ * show a zoom earlier, from the first zoom whose tiles carry them.
+ */
 const DENSE_POI_KINDS = ["restaurant", "cafe", "bar", "pub", "fast_food", "pharmacy", "hotel"];
 
 type Mode = "light" | "dark";
@@ -170,12 +174,29 @@ const poiLayer = {
   filter: [
     "all",
     ["in", ["get", "kind"], ["literal", POI_KINDS]],
-    [">=", ["zoom"], ["+", ["get", "min_zoom"], ["match", ["get", "kind"], DENSE_POI_KINDS, 1, 0]]],
+    [">=", ["zoom"], ["-", ["get", "min_zoom"], ["match", ["get", "kind"], DENSE_POI_KINDS, 0, 1]]],
   ],
   layout: {
     "icon-image": ["concat", "poi-", ["get", "kind"]],
     // Landmarks (lower min_zoom) win collisions over cafés.
     "symbol-sort-key": ["get", "min_zoom"],
+  },
+};
+
+/** One-way arrows along the roads, always shown; the app adds the `oneway` image (poi_icons.dart). */
+const onewayLayer = {
+  id: "oneway-arrows",
+  type: "symbol",
+  source: "protomaps",
+  "source-layer": "roads",
+  // The tiles carry `oneway` ("yes" or "no") from z14.
+  minzoom: 14,
+  filter: ["==", ["get", "oneway"], "yes"],
+  layout: {
+    "symbol-placement": "line",
+    "symbol-spacing": 80,
+    "icon-image": "oneway",
+    "icon-rotation-alignment": "map",
   },
 };
 
@@ -185,10 +206,18 @@ const GLYPHS = "{TILES_BASE_URL}/font/{fontstack}/{range}";
 /** The name in the app's street-name language: the app turns `{NAME_KEY}` into `name` or `name:en`. */
 const NAME = ["coalesce", ["get", "{NAME_KEY}"], ["get", "name"]];
 
-/** The name layers, hidden until the app shows them (SPEC §16.18). */
-export const NAME_LAYERS = { roads: "road-names", pois: "poi-names" } as const;
+/** The name layers, bottom to top, hidden until the app shows them (SPEC §16.18, §16.22). */
+export const NAME_LAYERS = {
+  pois: "poi-names",
+  areas: "area-names",
+  water: "water-names",
+  roads: "road-names",
+} as const;
 
-/** Street names along the roads and place names under their icons. */
+/** Neighbourhoods named on the map (Protomaps `places` kinds). */
+const AREA_KINDS = ["macrohood", "neighbourhood"];
+
+/** Street names along the roads, place names under their icons, neighbourhood and river names. */
 const nameLayers = (mode: Mode): object[] => {
   const tokens = loadTokens();
   const paint = {
@@ -197,6 +226,65 @@ const nameLayers = (mode: Mode): object[] => {
     "text-halo-width": 1.5,
   };
   return [
+    {
+      id: NAME_LAYERS.pois,
+      type: "symbol",
+      source: "protomaps",
+      "source-layer": "pois",
+      filter: poiLayer.filter,
+      layout: {
+        visibility: "none",
+        "symbol-sort-key": ["get", "min_zoom"],
+        "text-field": NAME,
+        "text-font": ["FiraGO Regular"],
+        "text-size": 11,
+        // Under the icon drawn at the same point, clear of its collision box.
+        "text-anchor": "top",
+        "text-offset": [0, 1.4],
+        "text-max-width": 8,
+      },
+      paint,
+    },
+    {
+      id: NAME_LAYERS.areas,
+      type: "symbol",
+      source: "protomaps",
+      "source-layer": "places",
+      filter: [
+        "all",
+        ["in", ["get", "kind"], ["literal", AREA_KINDS]],
+        [">=", ["zoom"], ["get", "min_zoom"]],
+      ],
+      layout: {
+        visibility: "none",
+        "symbol-sort-key": ["get", "min_zoom"],
+        "text-field": NAME,
+        "text-font": ["FiraGO Medium"],
+        "text-size": 13,
+        "text-max-width": 8,
+      },
+      paint,
+    },
+    {
+      id: NAME_LAYERS.water,
+      type: "symbol",
+      source: "protomaps",
+      "source-layer": "water",
+      // Rivers and streams; lakes have no label point.
+      filter: [
+        "all",
+        ["has", "name"],
+        ["in", ["geometry-type"], ["literal", ["LineString", "MultiLineString"]]],
+      ],
+      layout: {
+        visibility: "none",
+        "symbol-placement": "line",
+        "text-field": NAME,
+        "text-font": ["FiraGO Regular"],
+        "text-size": 12,
+      },
+      paint,
+    },
     {
       id: NAME_LAYERS.roads,
       type: "symbol",
@@ -213,29 +301,13 @@ const nameLayers = (mode: Mode): object[] => {
       },
       paint,
     },
-    {
-      id: NAME_LAYERS.pois,
-      type: "symbol",
-      source: "protomaps",
-      "source-layer": "pois",
-      filter: poiLayer.filter,
-      layout: {
-        visibility: "none",
-        "symbol-sort-key": ["get", "min_zoom"],
-        "text-field": NAME,
-        "text-font": ["FiraGO Regular"],
-        "text-size": 11,
-        // Under the icon drawn at the same point.
-        "text-anchor": "top",
-        "text-offset": [0, 1.1],
-        "text-max-width": 8,
-      },
-      paint,
-    },
   ];
 };
 
-/** Protomaps layers minus every symbol layer, recoloured from the tokens, plus POI icons and the hidden name layers. */
+/**
+ * Protomaps layers minus every symbol layer, recoloured from the tokens, plus one-way arrows, the
+ * hidden name layers and the POI icons on top.
+ */
 export const mapStyle = (mode: Mode): object => ({
   version: 8,
   name: `pindoro-${mode}`,
@@ -252,8 +324,10 @@ export const mapStyle = (mode: Mode): object => ({
   },
   layers: [
     ...layers("protomaps", flavorFor(mode)).filter((layer) => layer.type !== "symbol"),
-    poiLayer,
+    onewayLayer,
     ...nameLayers(mode),
+    // On top: MapLibre places the top layer first, so landmark icons win over names.
+    poiLayer,
   ],
 });
 
