@@ -573,15 +573,19 @@ class Navigator {
       ? NavHelp.recovery
       : NavHelp.none;
 
+  /// After a move that lost the good path: Off says nothing, Guided says the new route's first
+  /// turn ("New route"), Coached and Quiet recover (item 115).
   void _recover(DateTime now, List<NavPrompt> prompts) {
-    if (_level != DriveLevel.coached && _level != DriveLevel.quiet) return;
+    if (_level == DriveLevel.off) return;
+    prompts.add(
+      _prompt(PromptKind.recovery, decision: _plan?.decisions.firstOrNull),
+    );
+    if (_level == DriveLevel.guided) return;
     _recovering = true;
     _goodSince = null;
     _lastRecoveryAt = now;
     _recoveries.add(now);
     if (_level == DriveLevel.coached) _recoveriesAtCoached++;
-    final next = _plan?.decisions.firstOrNull;
-    prompts.add(_prompt(PromptKind.recovery, decision: next));
   }
 
   /// Item 115's frustration guard: Quiet goes Coached after two recoveries within

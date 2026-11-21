@@ -73,6 +73,7 @@ DriveLevel _suggest({
 );
 
 void main() {
+  _historyTests();
   group('silent-eligible', () {
     test('a Known card at high recall with no recent failure', () {
       expect(silentEligible(_card(), null, _now), isTrue);
@@ -282,5 +283,64 @@ void main() {
         );
       },
     );
+  });
+}
+
+void _historyTests() {
+  group('history from the drive log', () {
+    LoggedDecision decision(
+      String drive,
+      String key, {
+      bool? ok = true,
+      NavHelp help = NavHelp.none,
+      int daysAgo = 1,
+    }) => (
+      driveId: drive,
+      key: key,
+      ok: ok,
+      help: help,
+      recentHelp: false,
+      at: _now.subtract(Duration(days: daysAgo)),
+    );
+
+    test('own drives latest first, failures from the log and elsewhere', () {
+      final h = navHistory(
+        drives: [
+          (id: 'b', level: DriveLevel.quiet, stretch: 1.1, recoveries: 1),
+          (id: 'a', level: DriveLevel.guided, stretch: null, recoveries: 0),
+        ],
+        decisions: [
+          decision('a', 'k1', help: NavHelp.guided, daysAgo: 3),
+          decision('b', 'k1'),
+          decision('a', 'k2', ok: false, daysAgo: 3),
+          decision('b', 'k3', ok: null),
+        ],
+        failures: {'k4': _now},
+      );
+      expect(h.decisions['k1']!.ownDrives, [true, false]);
+      expect(
+        h.decisions['k2']!.lastFailure,
+        _now.subtract(const Duration(days: 3)),
+      );
+      expect(h.decisions['k3'], isNull);
+      expect(h.decisions['k4']!.lastFailure, _now);
+      expect(h.past.map((p) => p.level), [DriveLevel.quiet, DriveLevel.guided]);
+      expect(h.past.first.decisions, {'k1', 'k3'});
+    });
+
+    test('a route\'s suggestion counts its silent decisions', () {
+      final s = routeSuggestion(
+        decisions: _decisions(2),
+        cards: {'k0': _card()},
+        history: {
+          'k1': (lastFailure: null, ownDrives: [true, true]),
+        },
+        past: const [],
+        areaJ: 10,
+        now: _now,
+      );
+      expect(s.silent, {'k0', 'k1'});
+      expect(s.level, DriveLevel.quiet);
+    });
   });
 }

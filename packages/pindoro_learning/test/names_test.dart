@@ -17,6 +17,7 @@ NamedStreet _street(String id, String ka, String? en) => NamedStreet([
 ]);
 
 void main() {
+  _withoutKindTests();
   final barnovi = _street('b', 'ბარნოვის ქუჩა', 'Barnovi Street');
   final bakhtrioni = _street('k', 'ბახტრიონის ქუჩა', null);
   final chavchavadze = _street(
@@ -47,5 +48,13 @@ void main() {
     expect(suggestStreet('ილია ჭავ', all), chavchavadze);
     expect(suggestStreet('b', all), isNull);
     expect(suggestStreet('zzzz', all), isNull);
+  });
+}
+
+void _withoutKindTests() {
+  test('a turn prompt drops the kind of street, case kept', () {
+    expect(withoutKind('Ilia Chavchavadze Avenue'), 'Ilia Chavchavadze');
+    expect(withoutKind('ილია ჭავჭავაძის გამზირი'), 'ილია ჭავჭავაძის');
+    expect(withoutKind('Square'), 'Square');
   });
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/database/database.dart';
@@ -8,6 +10,7 @@ import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
 
 /// A control under its label, with an optional help line.
 class LabelledField extends StatelessWidget {
@@ -136,5 +139,42 @@ Future<void> _setReminder(
     await dao.setReminder(on: true);
   } else if (context.mounted) {
     showToast(context, context.l10n.settingsReminderDenied);
+  }
+}
+
+/// "Warn me over the limit by" (SPEC §16.23 item 127): 0 to the most km/h, saved when let go.
+class SpeedToleranceField extends ConsumerStatefulWidget {
+  const SpeedToleranceField({super.key, required this.kmh});
+
+  final int kmh;
+
+  @override
+  ConsumerState<SpeedToleranceField> createState() =>
+      _SpeedToleranceFieldState();
+}
+
+class _SpeedToleranceFieldState extends ConsumerState<SpeedToleranceField> {
+  late double _kmh = widget.kmh.toDouble();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final label = l10n.settingsSpeedToleranceValue(_kmh.round());
+    return LabelledField(
+      label: '${l10n.settingsSpeedTolerance}: $label',
+      help: l10n.settingsSpeedToleranceNote,
+      child: Slider(
+        value: _kmh,
+        max: LearningConfig.speedToleranceMaxKmh.toDouble(),
+        divisions: LearningConfig.speedToleranceMaxKmh,
+        label: label,
+        semanticFormatterCallback: (v) =>
+            l10n.settingsSpeedToleranceValue(v.round()),
+        onChanged: (v) => setState(() => _kmh = v),
+        onChangeEnd: (v) => unawaited(
+          ref.read(settingsDaoProvider).setSpeedTolerance(v.round()),
+        ),
+      ),
+    );
   }
 }

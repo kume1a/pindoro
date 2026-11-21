@@ -1050,6 +1050,8 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      row at the level with stretch ≤ 1.25 and at most one recovery; one more after two with
      stretch > 1.60 or three recoveries; never more than one step. The player may always choose
      more help, and one step less.
+     Today's run (a route-book run, the GPS-free test of item 81) offers every level and starts
+     at Off unless another is picked (decided 2026-11-21).
 115. **Recovery**: a decision that fails §5.3 step 6 (or is illegal) brings the voice and a
      heading-up next-turn view until the car has been on a good path for 10 s. Frustration guard:
      two recoveries within 5 min, or 180 s lost against the best route, switch the rest of the
@@ -1074,6 +1076,8 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      collide: action, recovery, prepare, confirmation, district cue. Coached confirms only the
      turns it spoke. Mute silences every prompt; recovery still shows on screen. GPS lost: a line
      after 10 s, "Still finding you" at 60 s; decisions in the gap count neither way.
+     In Guided a wrong turn says the new route's first turn ("New route: right onto Pekini") with
+     no recovery; Off says nothing (decided 2026-11-21, board V32-21).
 118. **Screens**: Quiet and Coached are dark, with a heading arrow and its cardinal letter, the
      district name and a status dot (on a good path, recovering); no map, route, next turn or
      street name, since those would answer cards. Preview and review are north-up. While moving:

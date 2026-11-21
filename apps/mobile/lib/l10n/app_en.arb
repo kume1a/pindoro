@@ -2233,7 +2233,7 @@
     }
   },
   "todayRunDrive": "Drive",
-  "driveTitle": "GPS-free drive",
+  "driveTitle": "Drive",
   "driveDestination": "Destination",
   "driveTodaysRun": "Today's run",
   "driveSurprise": "Surprise me",
@@ -2267,7 +2267,6 @@
     }
   },
   "driveEnd": "I'm there: end drive",
-  "driveLost": "Lost? Show the way (ends the test)",
   "driveNotificationTitle": "Recording your drive",
   "driveNotificationText": "End it in Pindoro once you have parked.",
   "driveNoLocation": "Pindoro needs your location to record the drive.",
@@ -2766,5 +2765,183 @@
         "type": "int"
       }
     }
-  }
+  },
+  "navLeft": "left",
+  "navRight": "right",
+  "navStraight": "straight on",
+  "navUTurn": "turn around",
+  "navKeepGoing": "keep going",
+  "navOnto": "{turn} onto {street}",
+  "@navOnto": {
+    "placeholders": {
+      "turn": {
+        "type": "String"
+      },
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "navMetres": "{count} metres",
+  "@navMetres": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "navKilometres": "{km} kilometres",
+  "@navKilometres": {
+    "placeholders": {
+      "km": {
+        "type": "String"
+      }
+    }
+  },
+  "navAt": "At {place}",
+  "@navAt": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "navAtLights": "At the lights",
+  "navIn": "In {distance}",
+  "@navIn": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "navPrepare": "{lead}, {move}.",
+  "@navPrepare": {
+    "placeholders": {
+      "lead": {
+        "type": "String"
+      },
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "navMove": "{move}.",
+  "@navMove": {
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "navHere": "{turn} here.",
+  "@navHere": {
+    "placeholders": {
+      "turn": {
+        "type": "String"
+      }
+    }
+  },
+  "navNewRoute": "New route: {move}.",
+  "@navNewRoute": {
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "navNewWay": "New way: {move}.",
+  "@navNewWay": {
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "navConfirm": "{street}, heading {direction}.",
+  "@navConfirm": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "navDistrict": "Into {district}, heading {direction}.",
+  "@navDistrict": {
+    "placeholders": {
+      "district": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "navGuard": "I'll guide the tricky turns for the rest of this drive.",
+  "navStillFinding": "Still finding you.",
+  "navCamera": "Speed camera, {limit}.",
+  "@navCamera": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "navRescued": "Guiding you from here.",
+  "navArrived": "You're here: {street}.",
+  "@navArrived": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "driveLevelTitle": "Help",
+  "driveLevelGuided": "Guided",
+  "driveLevelCoached": "Coached",
+  "driveLevelQuiet": "Quiet",
+  "driveLevelOff": "Off",
+  "driveLevelGuidedNote": "The voice says every turn.",
+  "driveLevelCoachedNote": "The voice speaks only at the turns you don't know yet.",
+  "driveLevelQuietNote": "Silent until a turn goes wrong.",
+  "driveLevelOffNote": "No help at all: the drive is only recorded.",
+  "driveYours": "{yours} of {turns} turns are yours",
+  "@driveYours": {
+    "placeholders": {
+      "yours": {
+        "type": "int"
+      },
+      "turns": {
+        "type": "int"
+      }
+    }
+  },
+  "driveSuggested": "Suggested: {level}",
+  "@driveSuggested": {
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "driveFinding": "Finding the way…",
+  "driveRescue": "Rescue: guide me",
+  "driveMute": "Mute",
+  "driveUnmute": "Unmute",
+  "driveGpsFinding": "Keep going, finding you…",
+  "settingsDriving": "Driving",
+  "settingsSpeedTolerance": "Warn me over the limit by",
+  "settingsSpeedToleranceValue": "{kmh} km/h",
+  "@settingsSpeedToleranceValue": {
+    "placeholders": {
+      "kmh": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsSpeedToleranceNote": "Fines in Georgia start above 15 km/h over the limit.",
+  "meDriveNote": "Guided, coached or on your own"
 }

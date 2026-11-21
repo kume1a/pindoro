@@ -193,6 +193,20 @@ void main() {
     expect(run.nav.passed[1].recentHelp, isTrue);
   });
 
+  test('Guided: a wrong turn says the new route, with no recovery', () {
+    final net = _grid();
+    final run = _run(
+      net,
+      _drive([_p(50, 0), _at(0, 2), _at(2, 2), _at(2, 1)]),
+      to: g(2, 1),
+      level: DriveLevel.guided,
+    );
+    expect(run.prompts.map((p) => p.kind), contains(PromptKind.recovery));
+    expect(run.nav.recoveries, 0);
+    expect(run.nav.passed.first.ok, isFalse);
+    expect(run.nav.passed.first.help, NavHelp.guided);
+  });
+
   test('Quiet: another good way plans again in silence', () {
     final net = _grid();
     final plan = planNav(

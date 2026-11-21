@@ -7,12 +7,6 @@ typedef StreetViewSpot = ({LatLng at, double heading});
 /// Links that open the Google Maps app (SPEC §10): Maps URLs only, no API
 /// key, nothing from Google inside Pindoro.
 abstract final class GoogleMaps {
-  static Uri directions(LatLng to) => Uri.https(
-    'www.google.com',
-    '/maps/dir/',
-    {'api': '1', 'destination': '${to.lat},${to.lon}', 'travelmode': 'driving'},
-  );
-
   static Uri streetView(StreetViewSpot spot) =>
       Uri.https('www.google.com', '/maps/@', {
         'api': '1',

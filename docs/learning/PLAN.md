@@ -192,3 +192,11 @@ grouped by week, and opens from Me only until Progress has its routes (step 5). 
 the signed limits, traffic lights and speed cameras to the pack (§16.23 item 127): step 3 shows the
 limit, chimes and warns of cameras, and adds the "Warn me over the limit by" setting. The GPS-free
 drive already logs its junctions (`drive_decision`); credit by item 119 waits for step 5.
+
+Step 3 is split (decided 2026-11-21). 3a done: the engine runs every level. It covers voice by
+V32-21 that ducks music, the speed chime and camera warning, the screen kept on, the suggested
+level and its picker in setup, Rescue and Mute while stopped, arrival ending the drive, the drive
+and decision log, and Settings → Driving. Guided, Coached and Quiet speak over the Off screen
+until 3b; Guided, Coached and Quiet change no card until step 5. 3b, the level screens
+(V32-20 to V32-41, the stopped bar, the speed sign), waits for the design system's drive
+components.
