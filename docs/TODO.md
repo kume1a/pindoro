@@ -220,6 +220,9 @@ landmarks, recitals and drives) and the curriculum order.
 - Pack downloads hold the whole `.gz` in memory; stream to disk if packs grow past a few MB.
 - Decide a refresh cadence for the Georgia tiles (Protomaps daily builds); in production only a
   Deploy run with the tiles box ticked downloads them again.
+- Speed data (pack format 7) reads only `maxspeed` and `GE:*` zones: `maxspeed:forward/backward`,
+  conditional limits and average-speed sections (`type=enforcement` relations) are left out, and a
+  camera tagged `direction=forward/backward` counts as both ways.
 
 ## Infra / CI
 

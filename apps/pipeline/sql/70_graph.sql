@@ -15,6 +15,7 @@ WITH way AS (
 )
 SELECT w.street_key, w.way_id, w.geom, n.nodes,
        pipeline.oneway(o.oneway, o.junction, o.highway) AS oneway,
+       pipeline.maxspeed_kmh(o.maxspeed) AS maxspeed,
        CASE WHEN o.bridge IS NOT NULL AND o.bridge <> 'no' THEN o.way_id END AS bridge_way
 FROM way w
 JOIN osm.roads o ON o.way_id = w.way_id
@@ -52,6 +53,7 @@ stretch AS (
   SELECT g.street_key,
          g.way_id,
          g.oneway,
+         g.maxspeed,
          g.bridge_way,
          c.junction AS from_junction,
          c.next_junction AS to_junction,
@@ -66,6 +68,7 @@ SELECT row_number() OVER (ORDER BY street_key, way_id, from_junction, to_junctio
        street_key,
        way_id,
        oneway,
+       maxspeed,
        bridge_way,
        from_junction,
        to_junction,
@@ -101,3 +104,30 @@ JOIN way_end te ON te.way_id = r.to_way AND te.node_id = r.via_node
 JOIN pipeline.road_edge f ON f.way_id = r.from_way AND j.id IN (f.from_junction, f.to_junction)
 JOIN pipeline.road_edge t ON t.way_id = r.to_way AND j.id IN (t.from_junction, t.to_junction)
 WHERE r.restriction LIKE 'no\_%' OR r.restriction LIKE 'only\_%';
+
+CREATE INDEX ON pipeline.road_edge USING gist ((geom::geography));
+CREATE INDEX ON pipeline.junction_point USING gist ((geom::geography));
+
+-- Junctions with traffic lights (SPEC §16.23 item 117): a `highway=traffic_signals` node within
+-- 25 m, since lights often stand on an approach rather than on the junction node.
+CREATE TABLE pipeline.junction_signals AS
+SELECT DISTINCT j.id
+FROM pipeline.junction_point j
+JOIN osm.road_points p ON p.kind = 'traffic_signals'
+  AND ST_DWithin(j.geom::geography, p.geom::geography, 25);
+
+-- Speed cameras (SPEC §16.23 item 127) within 30 m of a graph edge, on the nearest one, with
+-- their limit and the heading of the traffic they check when tagged.
+CREATE TABLE pipeline.speed_camera AS
+SELECT p.node_id, p.geom,
+       pipeline.maxspeed_kmh(p.maxspeed) AS maxspeed,
+       pipeline.direction_deg(p.direction) AS direction,
+       e.id AS edge_id
+FROM osm.road_points p
+CROSS JOIN LATERAL (
+  SELECT e.id FROM pipeline.road_edge e
+  WHERE ST_DWithin(e.geom::geography, p.geom::geography, 30)
+  ORDER BY e.geom::geography <-> p.geom::geography, e.id
+  LIMIT 1
+) e
+WHERE p.kind = 'speed_camera';

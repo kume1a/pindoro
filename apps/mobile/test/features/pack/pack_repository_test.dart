@@ -9,9 +9,9 @@ void main() {
   setUpAll(() => pack = SqlitePackRepository.open(AppConfig.fixturePackAsset));
   tearDownAll(() => pack.close());
 
-  test('meta describes a v6 fixture pack with attribution', () {
+  test('meta describes a v7 fixture pack with attribution', () {
     final meta = pack.meta();
-    expect(meta['format_version'], '6');
+    expect(meta['format_version'], '7');
     expect(meta['scope'], 'fixture');
     expect(meta['version'], isNotEmpty);
     expect(meta['attribution'], contains('OpenStreetMap'));
@@ -42,6 +42,16 @@ void main() {
     for (final l in areas) {
       expect(boundaryContains(l.outline!, l.at), isTrue, reason: l.id);
     }
+  });
+
+  test('format 7 adds signed limits, traffic lights and speed cameras', () {
+    final graph = pack.roadGraph()!;
+    expect(graph.edges.where((e) => e.maxspeedKmh != null), isNotEmpty);
+    expect(graph.signals, isNotEmpty);
+    expect(graph.signals.every(graph.junctions.containsKey), isTrue);
+    final edges = {for (final e in graph.edges) e.id};
+    expect(graph.cameras, isNotEmpty);
+    expect(graph.cameras.every((c) => edges.contains(c.edgeId)), isTrue);
   });
 
   test('the fixture holds Vake and the quarters and neighbourhoods in it', () {

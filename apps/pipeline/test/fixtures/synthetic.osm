@@ -135,6 +135,14 @@
     <tag k="amenity" v="pharmacy"/>
     <tag k="brand" v="TP"/>
   </node>
+  <node id="914" version="1" lat="41.7201" lon="44.7650">
+    <tag k="highway" v="traffic_signals"/>
+  </node>
+  <node id="915" version="1" lat="41.7201" lon="44.7625">
+    <tag k="highway" v="speed_camera"/>
+    <tag k="maxspeed" v="50"/>
+    <tag k="direction" v="E"/>
+  </node>
   <node id="930" version="1" lat="41.7212" lon="44.7680"/>
   <node id="931" version="1" lat="41.7212" lon="44.7690"/>
   <node id="932" version="1" lat="41.7218" lon="44.7690"/>
@@ -302,11 +310,13 @@
     <nd ref="901"/><nd ref="902"/>
     <tag k="highway" v="secondary"/>
     <tag k="name" v="East Street"/>
+    <tag k="maxspeed" v="50"/>
   </way>
   <way id="2102" version="1">
     <nd ref="904"/><nd ref="902"/>
     <tag k="highway" v="residential"/>
     <tag k="name" v="Turn Street"/>
+    <tag k="maxspeed" v="GE:living_street"/>
     <tag k="oneway" v="yes"/>
   </way>
   <way id="2103" version="1">
