@@ -8,7 +8,7 @@ import type { Sql } from "postgres";
 import type { CityConfig } from "./config.ts";
 import { isoSeconds, replaceAtomically, writeJson } from "./io.ts";
 
-export const PACK_FORMAT_VERSION = 6;
+export const PACK_FORMAT_VERSION = 7;
 
 // Mirrors docs/pack-format.md exactly; `validate` diffs packs against it.
 export const PACK_DDL = `
@@ -84,7 +84,8 @@ CREATE TABLE junction (
   id      INTEGER PRIMARY KEY,
   node_id INTEGER NOT NULL,
   lat     REAL NOT NULL,
-  lon     REAL NOT NULL
+  lon     REAL NOT NULL,
+  signals INTEGER NOT NULL CHECK (signals IN (0, 1))
 );
 
 CREATE TABLE bridge (
@@ -104,7 +105,17 @@ CREATE TABLE road_edge (
   oneway        INTEGER NOT NULL CHECK (oneway IN (-1, 0, 1)),
   bridge_id     TEXT REFERENCES bridge (id),
   length_m      REAL NOT NULL,
-  geometry      TEXT NOT NULL
+  geometry      TEXT NOT NULL,
+  maxspeed      INTEGER
+);
+
+CREATE TABLE speed_camera (
+  id        INTEGER PRIMARY KEY,
+  edge_id   INTEGER NOT NULL REFERENCES road_edge (id),
+  lat       REAL NOT NULL,
+  lon       REAL NOT NULL,
+  maxspeed  INTEGER,
+  direction REAL
 );
 
 CREATE TABLE turn_restriction (
@@ -330,17 +341,24 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
   const edges = await sql.unsafe(
     `SELECT e.id::float8 AS id, e.from_junction::float8 AS from_junction,
             e.to_junction::float8 AS to_junction, e.street_key::float8 AS street_key, e.oneway,
-            b.bridge_id, e.length_m, ST_AsGeoJSON(e.geom, 7) AS geojson
+            b.bridge_id, e.length_m, ST_AsGeoJSON(e.geom, 7) AS geojson, e.maxspeed
      FROM pipeline.road_edge e LEFT JOIN pipeline.edge_bridge b ON b.edge_id = e.id
      WHERE e.id = ANY($1::bigint[]) ORDER BY e.id`,
     [edgeIds],
   );
   const junctions = await sql.unsafe(
-    `SELECT j.id::float8 AS id, jn.node_id::float8 AS node_id, ST_Y(j.geom) AS lat, ST_X(j.geom) AS lon
+    `SELECT j.id::float8 AS id, jn.node_id::float8 AS node_id, ST_Y(j.geom) AS lat, ST_X(j.geom) AS lon,
+            (j.id IN (SELECT id FROM pipeline.junction_signals))::int AS signals
      FROM pipeline.junction_point j JOIN pipeline.junction jn USING (id)
      WHERE j.id IN (SELECT unnest(ARRAY[e.from_junction, e.to_junction]) FROM pipeline.road_edge e
                     WHERE e.id = ANY($1::bigint[]))
      ORDER BY j.id`,
+    [edgeIds],
+  );
+  const cameras = await sql.unsafe(
+    `SELECT c.node_id::float8 AS id, c.edge_id::float8 AS edge_id, ST_Y(c.geom) AS lat,
+            ST_X(c.geom) AS lon, c.maxspeed, c.direction
+     FROM pipeline.speed_camera c WHERE c.edge_id = ANY($1::bigint[]) ORDER BY c.node_id`,
     [edgeIds],
   );
   const restrictions = await sql.unsafe(
@@ -449,7 +467,9 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
       const link = db.prepare("INSERT INTO street_district VALUES (?, ?, ?, ?)");
       for (const l of links) link.run(streetId(l.street_key), l.district_id, l.length_m, l.share);
 
-      const junction = db.prepare("INSERT INTO junction VALUES (@id, @node_id, @lat, @lon)");
+      const junction = db.prepare(
+        "INSERT INTO junction VALUES (@id, @node_id, @lat, @lon, @signals)",
+      );
       for (const j of junctions) junction.run(j);
       const bridge = db.prepare(
         "INSERT INTO bridge VALUES (@id, @name_ka, @name_en, @mid_lat, @mid_lon, @geometry)",
@@ -457,7 +477,7 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
       for (const { geojson, ...b } of bridges) bridge.run({ ...b, geometry: multiline6(geojson) });
       const edge = db.prepare(
         `INSERT INTO road_edge VALUES (@id, @from_junction, @to_junction, @street_id, @oneway,
-          @bridge_id, @length_m, @geometry)`,
+          @bridge_id, @length_m, @geometry, @maxspeed)`,
       );
       for (const { street_key, geojson, ...e } of edges) {
         edge.run({
@@ -466,6 +486,10 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
           geometry: line6(geojson),
         });
       }
+      const camera = db.prepare(
+        "INSERT INTO speed_camera VALUES (@id, @edge_id, @lat, @lon, @maxspeed, @direction)",
+      );
+      for (const c of cameras) camera.run(c);
       const restriction = db.prepare("INSERT INTO turn_restriction VALUES (?, ?, ?, ?)");
       for (const r of restrictions) {
         restriction.run(r.from_edge, r.via_junction, r.to_edge, r.only);

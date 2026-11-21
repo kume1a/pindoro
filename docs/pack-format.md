@@ -1,7 +1,11 @@
-# City pack format (v6)
+# City pack format (v7)
 
 A city pack is a read-only SQLite database built by `pipeline` from OpenStreetMap data and
 downloaded by the app. Packs are immutable: a new build gets a new `version` and a new file name.
+
+v7 (2026-11) adds navigation data: `road_edge.maxspeed` (the signed limit in km/h, NULL where OSM has none),
+`junction.signals` (traffic lights within 25 m) and `speed_camera` (OSM speed cameras within 30 m of
+an edge). The app installs v3 to v7; navigation reads them where present.
 
 v6 (2026-11) adds `landmark.outline`: an area place's outline (multipolygon6), so a pin anywhere in
 a park counts; NULL for a point. The app installs v3 to v6; route items need v5.
@@ -149,7 +153,8 @@ CREATE TABLE junction (
   id      INTEGER PRIMARY KEY,           -- pack-local; not stable across pack versions
   node_id INTEGER NOT NULL,              -- OSM node id: stable, `n<node_id>` in route item ids
   lat     REAL NOT NULL,
-  lon     REAL NOT NULL
+  lon     REAL NOT NULL,
+  signals INTEGER NOT NULL CHECK (signals IN (0, 1)) -- 1: a highway=traffic_signals node within 25 m
 );
 
 CREATE TABLE bridge (
@@ -169,7 +174,17 @@ CREATE TABLE road_edge (
   oneway        INTEGER NOT NULL CHECK (oneway IN (-1, 0, 1)), -- 1 from→to only, -1 to→from only
   bridge_id     TEXT REFERENCES bridge (id),
   length_m      REAL NOT NULL,           -- along the unsimplified way
-  geometry      TEXT NOT NULL            -- polyline6 from from_junction to to_junction
+  geometry      TEXT NOT NULL,           -- polyline6 from from_junction to to_junction
+  maxspeed      INTEGER                  -- km/h from the way's maxspeed (a number or a GE:* zone); NULL: none
+);
+
+CREATE TABLE speed_camera (
+  id        INTEGER PRIMARY KEY,         -- OSM node id of the highway=speed_camera
+  edge_id   INTEGER NOT NULL REFERENCES road_edge (id), -- the nearest edge, within 30 m
+  lat       REAL NOT NULL,
+  lon       REAL NOT NULL,
+  maxspeed  INTEGER,                     -- km/h, when tagged
+  direction REAL                         -- degrees from north of the traffic it checks; NULL: unknown
 );
 
 CREATE TABLE turn_restriction (

@@ -432,6 +432,33 @@ class DriveTracks extends Table {
   Set<Column<Object>> get primaryKey => {driveId};
 }
 
+/// Each junction with a way on to choose on a drive (SPEC §16.23 item 124), append-only: the move
+/// made ([itemKey], its J item id, null without OSM nodes), whether navigation had a decision
+/// there ([planned]), whether it kept a good path ([ok], null in a GPS gap), the level and help.
+@DataClassName('DriveDecisionRow')
+class DriveDecisions extends Table {
+  @override
+  String get tableName => 'drive_decision';
+
+  TextColumn get driveId => text().references(Drives, #id)();
+  IntColumn get seq => integer()();
+  DateTimeColumn get at => dateTime()();
+  TextColumn get itemKey => text().nullable()();
+  BoolColumn get planned => boolean()();
+  BoolColumn get ok => boolean().nullable()();
+  TextColumn get level => textEnum<DriveLevel>()();
+  TextColumn get help => textEnum<NavHelp>()();
+
+  /// A recovery within `noCreditAfterPromptS` before it.
+  BoolColumn get recentHelp => boolean()();
+
+  /// A hesitation within `hesitationBeforeM` of the junction.
+  BoolColumn get hesitated => boolean()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {driveId, seq};
+}
+
 @DriftDatabase(
   tables: [
     UserSettings,
@@ -452,6 +479,7 @@ class DriveTracks extends Table {
     TurnOverrides,
     Drives,
     DriveTracks,
+    DriveDecisions,
   ],
   include: {
     'answer_immutable.drift',
@@ -463,7 +491,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 23;
+  static const int version = 24;
 
   @override
   int get schemaVersion => version;
@@ -578,6 +606,11 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(schema.driveTrack);
         await m.create(schema.driveNoUpdate);
         await m.create(schema.driveNoDelete);
+      },
+      from23To24: (m, schema) async {
+        await m.createTable(schema.driveDecision);
+        await m.create(schema.driveDecisionNoUpdate);
+        await m.create(schema.driveDecisionNoDelete);
       },
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),

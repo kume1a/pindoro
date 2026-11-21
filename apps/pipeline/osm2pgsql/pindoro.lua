@@ -28,6 +28,8 @@ local roads = osm2pgsql.define_table({
         -- One-way travel and roundabouts, for the directed graph; bridges for bridge items.
         { column = 'oneway', type = 'text' },
         { column = 'junction', type = 'text' },
+        -- The signed speed limit, for navigation's route times and speed warnings.
+        { column = 'maxspeed', type = 'text' },
         { column = 'bridge', type = 'text' },
         { column = 'bridge_name', type = 'text' },
         -- Comma-separated node ids, for the road graph's junctions (text works on 1.8 and 1.11).
@@ -106,6 +108,19 @@ local pois = osm2pgsql.define_table({
     }),
 })
 
+-- Traffic lights and speed cameras on the roads (navigation: voice landmarks, camera warnings).
+local road_points = osm2pgsql.define_table({
+    name = 'road_points',
+    schema = schema,
+    ids = { type = 'node', id_column = 'node_id' },
+    columns = {
+        { column = 'kind', type = 'text', not_null = true },
+        { column = 'maxspeed', type = 'text' },
+        { column = 'direction', type = 'text' },
+        { column = 'geom', type = 'point', projection = 4326, not_null = true },
+    },
+})
+
 local area_places = { quarter = true, neighbourhood = true }
 
 -- Memorials big enough to see from a car; plaques, busts and stones are not.
@@ -152,6 +167,14 @@ function osm2pgsql.process_node(object)
     if tags.place then
         places:insert(name_values(tags, { place = tags.place, geom = object:as_point() }))
     end
+    if tags.highway == 'traffic_signals' or tags.highway == 'speed_camera' then
+        road_points:insert({
+            kind = tags.highway,
+            maxspeed = tags.maxspeed,
+            direction = tags.direction,
+            geom = object:as_point(),
+        })
+    end
     insert_poi(tags, object:as_point())
 end
 
@@ -164,6 +187,7 @@ function osm2pgsql.process_way(object)
             etymology = tags['name:etymology'],
             oneway = tags.oneway,
             junction = tags.junction,
+            maxspeed = tags.maxspeed,
             bridge = tags.bridge,
             bridge_name = tags['bridge:name'],
             nodes = table.concat(object.nodes, ','),

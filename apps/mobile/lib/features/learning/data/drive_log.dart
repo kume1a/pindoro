@@ -7,15 +7,20 @@ part 'drive_log.g.dart';
 
 /// The drive log (SPEC §16.23 item 124): every drive's summary for good, its track for
 /// [LearningConfig.driveTrackKeepDays].
-@DriftAccessor(tables: [Drives, DriveTracks])
+@DriftAccessor(tables: [Drives, DriveTracks, DriveDecisions])
 class DriveLogDao extends DatabaseAccessor<AppDatabase>
     with _$DriveLogDaoMixin {
   DriveLogDao(super.attachedDatabase);
 
-  /// Saves [drive] with its [track], and drops the tracks of drives that ended more than
-  /// [LearningConfig.driveTrackKeepDays] before it.
-  Future<void> save(DriveRow drive, String track) => transaction(() async {
+  /// Saves [drive] with its [track] and [decisions], and drops the tracks of drives that ended
+  /// more than [LearningConfig.driveTrackKeepDays] before it.
+  Future<void> save(
+    DriveRow drive,
+    String track, {
+    List<DriveDecisionRow> decisions = const [],
+  }) => transaction(() async {
     await into(drives).insert(drive);
+    await batch((b) => b.insertAll(driveDecisions, decisions));
     await into(
       driveTracks,
     ).insert(DriveTracksCompanion.insert(driveId: drive.id, track: track));

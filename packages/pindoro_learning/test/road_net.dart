@@ -7,7 +7,7 @@ class RoadNet {
 
   final Map<int, LatLng> at = {};
   final List<RoadEdge> edges = [];
-  final Map<String, ({String ka, String en})> _names = {};
+  final Map<String, ({String ka, String en, String roadClass})> _names = {};
   final Map<String, List<RoadEdge>> _byStreet = {};
 
   /// The point [east], [north] metres from [origin].
@@ -17,8 +17,12 @@ class RoadNet {
   void junction(int id, double east, double north) =>
       at[id] = point(east, north);
 
-  void street(String key, String ka, String en) =>
-      _names[key] = (ka: ka, en: en);
+  void street(
+    String key,
+    String ka,
+    String en, {
+    String roadClass = 'residential',
+  }) => _names[key] = (ka: ka, en: en, roadClass: roadClass);
 
   RoadEdge edge(
     int id,
@@ -27,6 +31,7 @@ class RoadNet {
     String? street, {
     double? m,
     Oneway oneway = Oneway.both,
+    int? maxspeed,
   }) {
     final line = [at[from]!, at[to]!];
     final e = RoadEdge(
@@ -37,14 +42,24 @@ class RoadNet {
       lengthM: m ?? distanceBetween(line.first, line.last),
       line: line,
       oneway: oneway,
+      maxspeedKmh: maxspeed,
     );
     edges.add(e);
     if (street != null) _byStreet.putIfAbsent(street, () => []).add(e);
     return e;
   }
 
-  RoadGraph graph({List<TurnRestriction> restrictions = const []}) =>
-      RoadGraph(at, edges, restrictions: restrictions);
+  RoadGraph graph({
+    List<TurnRestriction> restrictions = const [],
+    Set<int> signals = const {},
+    List<SpeedCamera> cameras = const [],
+  }) => RoadGraph(
+    at,
+    edges,
+    restrictions: restrictions,
+    signals: signals,
+    cameras: cameras,
+  );
 
   /// The named streets by key.
   late final Map<String, NamedStreet> named = {
@@ -55,7 +70,7 @@ class RoadNet {
             id: e.streetId!,
             nameKa: _names[key]!.ka,
             nameEn: _names[key]!.en,
-            roadClass: 'residential',
+            roadClass: _names[key]!.roadClass,
             difficulty: Difficulty.medium,
             lengthM: e.lengthM,
             midpoint: e.line.first,

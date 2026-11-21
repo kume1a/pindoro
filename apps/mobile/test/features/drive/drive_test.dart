@@ -140,6 +140,19 @@ void main() {
     expect(drive.fixes, location.sent);
     expect(drive.gpsGaps, 0);
     expect(await log.track(drive.id), hasLength(location.sent));
+    final decisions = await db.select(db.driveDecisions).get();
+    expect(decisions, isNotEmpty);
+    expect(
+      decisions.every((d) => d.driveId == drive.id && d.ok == true),
+      isTrue,
+    );
+    expect(decisions.map((d) => d.seq), [
+      for (var i = 0; i < decisions.length; i++) i,
+    ]);
+    expect(
+      () => db.customStatement('DELETE FROM drive_decision'),
+      throwsA(anything),
+    );
     final replay = await container.read(pastDriveProvider(drive.id).future);
     expect(replay!.match.path.edges.map((e) => e.id), [
       for (final e in route.edges) e.id,

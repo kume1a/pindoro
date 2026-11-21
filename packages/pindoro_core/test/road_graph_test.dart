@@ -95,6 +95,18 @@ void main() {
       }
     });
 
+    test('takes a priced detour round a slow street, costed by the price', () {
+      final grid = roadGrid(4).graph;
+      double slowRow0(RoadEdge e) => e.lengthM * (e.streetId == 'row0' ? 5 : 1);
+      expect(grid.shortestRoute(0, {3})!.junctions, [0, 1, 2, 3]);
+      final detour = grid.shortestRoute(0, {3}, costOf: slowRow0)!;
+      expect(detour.junctions, [0, 4, 5, 6, 7, 3]);
+      expect(
+        detour.costM,
+        closeTo(detour.edges.fold(0.0, (sum, e) => sum + slowRow0(e)), 1e-6),
+      );
+    });
+
     test('is null between parts that never meet', () {
       // Drop every edge of column 0 and row 0 around junction 0.
       final grid = roadGrid(3, skip: {0, 1}).graph;
