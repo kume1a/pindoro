@@ -187,5 +187,8 @@ Spec §16.23. Research `docs/research/03-navigation-that-fades.md`. Boards V32-*
 Accept: a recorded drive replays to the same decisions and evidence; nothing takes input above
 5 km/h; a Guided drive never writes a review.
 
-Status: step 1 done (2026-11-21, schema 23). Past drives is one list, not grouped by week, and
-opens from Me only until Progress has its routes (step 5).
+Status: steps 1 and 2 done (2026-11-21, schema 24, pack format 7). Past drives is one list, not
+grouped by week, and opens from Me only until Progress has its routes (step 5). Step 2 also added
+the signed limits, traffic lights and speed cameras to the pack (§16.23 item 127): step 3 shows the
+limit, chimes and warns of cameras, and adds the "Warn me over the limit by" setting. The GPS-free
+drive already logs its junctions (`drive_decision`); credit by item 119 waits for step 5.

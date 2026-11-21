@@ -377,6 +377,22 @@ final class _Walk {
 
 bool _isConnector(RoadEdge e) => e.streetId == null;
 
+/// SPEC §5.3 step 6: leaving on [exit] (after [approach]) keeps a good path when it, plus the
+/// shortest legal drive [after] it, is at most [LearningConfig.stretchGreat] times the shortest
+/// drive [here] (both to B; null: none).
+bool keepsGoodPath(
+  RoadEdge exit, {
+  required RoadEdge? approach,
+  required double? here,
+  required double? after,
+}) =>
+    here != null &&
+    after != null &&
+    exit.lengthM +
+            (exit.id == approach?.id ? RoutingConfig.uTurnPenaltyM : 0) +
+            after <=
+        LearningConfig.stretchGreat * here + 1e-6;
+
 /// The cheapest legal drive left from [junction] to B having arrived on an edge, memoised.
 final class _Remaining {
   _Remaining(this.graph, this.to);
@@ -578,9 +594,6 @@ abstract final class RecitalGrader {
       final legal = graph.legalExits(j, approach: approach);
       final choice = legal.any((e) => e.id != approach?.id && e.id != exit.id);
       if (!choice) continue;
-      final here = remaining.from(j, approach);
-      final after = remaining.from(exit.other(j), exit);
-      final uTurn = exit.id == approach?.id ? RoutingConfig.uTurnPenaltyM : 0;
       decisions.add((
         junction: j,
         approach: approach,
@@ -590,10 +603,12 @@ abstract final class RecitalGrader {
             : turnOf(arrivingBearing(approach, j), leavingBearing(exit, j)),
         correct:
             legal.any((e) => e.id == exit.id) &&
-            here != null &&
-            after != null &&
-            exit.lengthM + uTurn + after <=
-                LearningConfig.stretchGreat * here + 1e-6,
+            keepsGoodPath(
+              exit,
+              approach: approach,
+              here: remaining.from(j, approach),
+              after: remaining.from(exit.other(j), exit),
+            ),
         newStreet: newStreet,
       ));
     }

@@ -10,3 +10,13 @@ CREATE TRIGGER drive_no_delete BEFORE DELETE ON drive
 BEGIN
   SELECT RAISE(ABORT, 'drive rows are never deleted');
 END;
+
+CREATE TRIGGER drive_decision_no_update BEFORE UPDATE ON drive_decision
+BEGIN
+  SELECT RAISE(ABORT, 'drive decisions are immutable');
+END;
+
+CREATE TRIGGER drive_decision_no_delete BEFORE DELETE ON drive_decision
+BEGIN
+  SELECT RAISE(ABORT, 'drive decisions are never deleted');
+END;

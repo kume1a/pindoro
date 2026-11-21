@@ -205,6 +205,111 @@ abstract final class LearningConfig {
   /// A drive's track stays on the phone this long; its summary stays for good.
   static const int driveTrackKeepDays = 90;
 
+  // Navigation (§16.23)
+  /// Another way on within this of the route's straightness makes a junction a decision.
+  static const double decisionAlikeDeg = 30;
+
+  /// Typical speed by road class (OSRM's car profile; motorway and trunk at Georgia's limits).
+  static const Map<String, double> navClassKmh = {
+    'motorway': 110,
+    'trunk': 90,
+    'primary': 65,
+    'secondary': 55,
+    'tertiary': 40,
+    'unclassified': 25,
+    'residential': 25,
+    'living_street': 10,
+    'service': 15,
+  };
+
+  /// A connector's speed (an unnamed way or a link), and any class not above.
+  static const double navConnectorKmh = 25;
+
+  /// Georgian limits where no sign is mapped.
+  static const int limitTownKmh = 60;
+  static const int limitMotorwayKmh = 110;
+  static const int limitLivingStreetKmh = 20;
+
+  /// "Warn me over the limit by": the default (fines start above 15 km/h over) and the most.
+  static const int speedToleranceKmh = 14;
+  static const int speedToleranceMaxKmh = 20;
+  static const int overspeedHoldS = 3;
+  static const int overspeedRepeatS = 30;
+  static const double cameraWarnM = 300;
+  static const int cameraWarnS = 15;
+
+  /// A camera tagged with a direction checks traffic heading within this of it.
+  static const double cameraHeadingDeg = 60;
+
+  /// Silent-eligible: a Known J card at this recall, not failed for this many days; a decision
+  /// without one after this many drives through it on the player's own.
+  static const double silentMinR = 0.85;
+  static const int silentNoFailDays = 14;
+  static const int silentOwnDrives = 2;
+
+  /// The suggested level by the share of silent-eligible decisions.
+  static const double levelOffShare = 0.90;
+  static const double levelOffMinR = 0.75;
+  static const double levelQuietShare = 0.70;
+  static const double levelCoachedShare = 0.40;
+
+  /// Fewer introduced J cards than this in the destination's raion: always Guided.
+  static const int levelMinAreaJ = 5;
+
+  /// An earlier drive is on this route when it passed this share of the route's decisions.
+  static const double routeOverlap = 0.80;
+
+  /// One level less after [stepDrives] good drives in a row, one more after as many poor ones.
+  static const int stepDrives = 2;
+  static const double stepDownStretch = 1.25;
+  static const double stepUpStretch = 1.60;
+  static const int stepUpRecoveries = 3;
+
+  /// Recovery ends after this long back on a good path.
+  static const int recoveryHoldS = 10;
+
+  /// The frustration guard: this many recoveries within [guardWindowS], or [guardLostS] lost,
+  /// switch to Coached; [guardToGuidedRecoveries] at Coached to Guided.
+  static const int guardRecoveries = 2;
+  static const int guardWindowS = 300;
+  static const int guardLostS = 180;
+  static const int guardToGuidedRecoveries = 3;
+
+  /// Stopped: below [stoppedKmh] for [stoppedHoldS]; arrived: stopped this close to the
+  /// destination.
+  static const double stoppedKmh = 5;
+  static const int stoppedHoldS = 2;
+  static const double navArriveM = 50;
+
+  /// Voice: the prepare prompt at the larger of [prepareM] and [prepareS] ahead, the action
+  /// prompt at the larger of [actionM] and [actionS].
+  static const double prepareM = 150;
+  static const int prepareS = 10;
+  static const double actionM = 40;
+  static const int actionS = 4;
+
+  /// A landmark this close to a junction names it in a prompt; without one the distance does.
+  static const double landmarkAtM = 50;
+  static const int confirmDelayS = 6;
+  static const double districtCueM = 2000;
+  static const int districtCueS = 180;
+
+  /// GPS lost this long: "Still finding you" (the line shows after [gpsGapS]).
+  static const int gpsLostSayS = 60;
+
+  /// Drive credit: only while recall is at most [creditMaxR]; Hard after a hesitation within
+  /// [hesitationBeforeM] before the junction; none within [noCreditAfterPromptS] of a prompt or
+  /// recovery.
+  static const double creditMaxR = 0.92;
+  static const double hesitationBeforeM = 150;
+  static const int noCreditAfterPromptS = 60;
+
+  /// A habitual corridor ([habitPasses] passes in [habitWindowDays]) credits once per
+  /// [habitCreditDays].
+  static const int habitPasses = 3;
+  static const int habitWindowDays = 14;
+  static const int habitCreditDays = 7;
+
   // Tuning (§12, §16.17)
   /// Calibration bins over predicted recall 0–1, each this wide a share.
   static const int calibrationBins = 10;
