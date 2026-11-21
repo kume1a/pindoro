@@ -5,7 +5,8 @@ Pure Dart game logic. **No Flutter imports** — it must run under plain `dart t
 ```
 lib/src/geo/        LatLng, LocalProjection, Bbox, pointToPolylineDistance, bearings, compass
                     points, headingAlong (Dart-only: Street View links), polyline6 (+ Dart-only
-                    `encodeInts`/`decodeInts`: the drive log's track)
+                    `encodeInts`/`decodeInts`: the drive log's track), sun (Dart-only:
+                    `isNight` by sun elevation, the drive screens' day and night)
 lib/src/scoring/    Difficulty, Tier, ScoringConfig (half-widths, fixed distances, difficulty
                     factors), TierThresholds, scoreAnswer (the tier of a pin)
 lib/src/progress/   account: the account's username, password and recovery-code rules;

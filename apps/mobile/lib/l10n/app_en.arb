@@ -2250,23 +2250,7 @@
   "driveNoRun": "No run yet: it comes once you know the turns on one.",
   "driveNoTarget": "Nothing to drive to from here yet.",
   "driveRecording": "Recording your drive",
-  "driveSoFar": "{distance} so far · the screen can stay locked",
-  "@driveSoFar": {
-    "placeholders": {
-      "distance": {
-        "type": "String"
-      }
-    }
-  },
-  "driveHeadingTo": "Heading to {street}",
-  "@driveHeadingTo": {
-    "placeholders": {
-      "street": {
-        "type": "String"
-      }
-    }
-  },
-  "driveEnd": "I'm there: end drive",
+  "driveEnd": "End drive",
   "driveNotificationTitle": "Recording your drive",
   "driveNotificationText": "End it in Pindoro once you have parked.",
   "driveNoLocation": "Pindoro needs your location to record the drive.",
@@ -2919,19 +2903,10 @@
       }
     }
   },
-  "driveSuggested": "Suggested: {level}",
-  "@driveSuggested": {
-    "placeholders": {
-      "level": {
-        "type": "String"
-      }
-    }
-  },
   "driveFinding": "Finding the way…",
-  "driveRescue": "Rescue: guide me",
-  "driveMute": "Mute",
-  "driveUnmute": "Unmute",
-  "driveGpsFinding": "Keep going, finding you…",
+  "driveRescue": "Rescue",
+  "driveMute": "Mute the voice",
+  "driveUnmute": "Unmute the voice",
   "settingsDriving": "Driving",
   "settingsSpeedTolerance": "Warn me over the limit by",
   "settingsSpeedToleranceValue": "{kmh} km/h",
@@ -2943,5 +2918,181 @@
     }
   },
   "settingsSpeedToleranceNote": "Fines in Georgia start above 15 km/h over the limit.",
-  "meDriveNote": "Guided, coached or on your own"
+  "meDriveNote": "Guided, coached or on your own",
+  "driveSuggestedLead": "Suggested:",
+  "driveRunLead": "Today's run:",
+  "driveStartsAt": "starts at {level}",
+  "@driveStartsAt": {
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "driveEveryLevel": "every level open",
+  "driveSuggestedTag": "Suggested",
+  "driveTooFar": "Two steps past the suggestion",
+  "driveTurn": "{turn, select, left{Left onto} right{Right onto} keepLeft{Keep left} keepRight{Keep right} uTurn{Turn around onto} other{Straight on}}",
+  "@driveTurn": {
+    "placeholders": {
+      "turn": {
+        "type": "String"
+      }
+    }
+  },
+  "driveThen": "then",
+  "driveNewRoute": "New route",
+  "driveHere": "You’re here",
+  "driveKeepGoing": "Keep going,",
+  "driveFindingYou": "finding you…",
+  "driveStillFinding": "Still finding you",
+  "driveHeading": "heading {direction}",
+  "@driveHeading": {
+    "placeholders": {
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "driveGpsLostFor": "GPS lost {time}",
+  "@driveGpsLostFor": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "driveLeft": "{distance} left",
+  "@driveLeft": {
+    "placeholders": {
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "driveArrive": "Arrive {time}",
+  "@driveArrive": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "driveLevelRest": "Level for the rest of this drive",
+  "driveRescueOffer": "Lost the way? Rescue guides you from here to {street}. The drive is kept, marked rescued.",
+  "@driveRescueOffer": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "driveNowLevel": "Now {level}",
+  "@driveNowLevel": {
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "driveCardinal": "{direction, select, n{N} ne{NE} e{E} se{SE} s{S} sw{SW} w{W} nw{NW} other{}}",
+  "@driveCardinal": {
+    "placeholders": {
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yDriveHelp": "How much help on this drive",
+  "a11yDrivePips": "{turns} turns on this route: {yours} yours, {rest} not yet",
+  "@a11yDrivePips": {
+    "placeholders": {
+      "turns": {
+        "type": "int"
+      },
+      "yours": {
+        "type": "int"
+      },
+      "rest": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yDriveBar": "{left} left, arriving at {time}",
+  "@a11yDriveBar": {
+    "placeholders": {
+      "left": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "a11ySpeedLimit": "Speed limit {limit}",
+  "@a11ySpeedLimit": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "a11ySpeedOver": "Over the speed limit of {limit}",
+  "@a11ySpeedOver": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yCameraAhead": "Speed camera ahead",
+  "a11yRescuedDrive": "Rescued drive",
+  "a11yStoppedControls": "Controls while stopped",
+  "a11yDriveLevel": "Level: {level}. Change.",
+  "@a11yDriveLevel": {
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yHeading": "Heading {direction}",
+  "@a11yHeading": {
+    "placeholders": {
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yHeadingIn": "Heading {direction}, in {district}",
+  "@a11yHeadingIn": {
+    "placeholders": {
+      "direction": {
+        "type": "String"
+      },
+      "district": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yHeadingLost": "Heading unknown, finding your position",
+  "a11yOnGoodPath": "On a good path",
+  "a11yRecoveringDot": "Recovering",
+  "a11yRecovering": "Recovering. Next: {move}",
+  "@a11yRecovering": {
+    "placeholders": {
+      "move": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yFindingPosition": "Finding your position",
+  "a11yDistrict": "District: {district}",
+  "@a11yDistrict": {
+    "placeholders": {
+      "district": {
+        "type": "String"
+      }
+    }
+  }
 }

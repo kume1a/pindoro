@@ -74,7 +74,14 @@ List<DriveFix> _drive(List<LatLng> points, {double mps = 8, int stopS = 4}) {
 }
 
 /// Runs [fixes] through a navigator to [to] at [level]; the prompts in order, the last view.
-({List<NavPrompt> prompts, NavView view, int chimes, Navigator nav}) _run(
+({
+  List<NavPrompt> prompts,
+  NavView view,
+  List<NavView> views,
+  int chimes,
+  Navigator nav,
+})
+_run(
   RoadNet net,
   List<DriveFix> fixes, {
   required int to,
@@ -92,15 +99,21 @@ List<DriveFix> _drive(List<LatLng> points, {double mps = 8, int stopS = 4}) {
     silent: silent,
   );
   final prompts = <NavPrompt>[];
-  late NavView view;
+  final views = <NavView>[];
   var chimes = 0;
   for (final f in fixes) {
     final u = nav.onFix(f);
     if (u.prompt case final p?) prompts.add(p);
     if (u.chime) chimes++;
-    view = u.view;
+    views.add(u.view);
   }
-  return (prompts: prompts, view: view, chimes: chimes, nav: nav);
+  return (
+    prompts: prompts,
+    view: views.last,
+    views: views,
+    chimes: chimes,
+    nav: nav,
+  );
 }
 
 List<PromptKind> _kinds(List<NavPrompt> prompts) => [
@@ -141,6 +154,44 @@ void main() {
     );
     expect(run.view.arrived, isTrue);
     expect(run.view.stopped, isTrue);
+  });
+
+  test('the screens see the approach from the prepare point, the street just '
+      'turned onto until the voice confirms it, and the metres left', () {
+    final net = _grid();
+    final run = _run(
+      net,
+      _drive(_rightTurn),
+      to: g(2, 1),
+      level: DriveLevel.guided,
+    );
+    expect(run.views.first.leftM, closeTo(250 + 600, 5));
+    expect(run.views.first.street!.nameEn, 'Row 0');
+    final approach = run.views.firstWhere((v) => v.prepareM != null);
+    expect(approach.prepareM, closeTo(LearningConfig.prepareM, 8));
+    expect(approach.next!.turn, Turn.right);
+    expect(approach.then, isNull);
+    final turned = [for (final v in run.views) ?v.turned];
+    expect(turned.first.street.nameEn, 'Column 1');
+    expect(turned.first.headingDeg, closeTo(180, 1));
+    expect(turned, hasLength(LearningConfig.confirmDelayS));
+    expect(run.view.leftM, lessThan(LearningConfig.navArriveM));
+    expect(run.view.leftS, lessThan(5));
+  });
+
+  test('a decision close after the next one shows as "then"', () {
+    // Slow along row 0, so the plan leaves it at once: right, then left at row 1.
+    final net = _grid(row0Limit: 5);
+    final run = _run(
+      net,
+      _drive([_p(10, 0), _at(0, 1), _at(1, 1), _at(1, 2)], mps: 35),
+      to: g(1, 2),
+      level: DriveLevel.guided,
+    );
+    final withThen = run.views.firstWhere((v) => v.then != null);
+    expect(withThen.next!.junction, g(0, 1));
+    expect(withThen.then!.junction, g(1, 1));
+    expect(withThen.then!.turn, Turn.left);
   });
 
   test('Coached cues a decision that isn\'t silent, prepare only, and '
@@ -186,6 +237,9 @@ void main() {
     expect(wrong.planned, isTrue);
     expect(wrong.help, NavHelp.none);
     expect(run.nav.recoveries, 1);
+    final good = run.views.map((v) => v.goodS).nonNulls;
+    expect(good.first, 0);
+    expect(good.last, greaterThanOrEqualTo(LearningConfig.recoveryHoldS - 1));
     expect(run.view.recovering, isFalse);
     expect(run.view.arrived, isTrue);
     // The recovery ended before the next turn: silent again, but too soon after it to credit.
@@ -205,6 +259,10 @@ void main() {
     expect(run.nav.recoveries, 0);
     expect(run.nav.passed.first.ok, isFalse);
     expect(run.nav.passed.first.help, NavHelp.guided);
+    expect(run.views.any((v) => v.recovering), isFalse);
+    final newRoute = run.views.firstWhere((v) => v.newRoute);
+    expect(newRoute.next!.junction, g(0, 2));
+    expect(run.view.newRoute, isFalse);
   });
 
   test('Quiet: another good way plans again in silence', () {
@@ -283,6 +341,13 @@ void main() {
       graph: graph,
     );
     expect(run.chimes, 2);
+    expect(
+      run.views.indexWhere((v) => v.over),
+      LearningConfig.overspeedHoldS,
+      reason: 'over from the first fix, warned 3 s later',
+    );
+    expect(run.views.any((v) => v.camera), isTrue);
+    expect(run.view.camera, isFalse, reason: 'passed');
     expect(run.view.limitKmh, 40);
     expect(run.prompts.map((p) => (p.kind, p.limitKmh)), [
       (PromptKind.camera, 40),

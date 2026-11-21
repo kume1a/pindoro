@@ -53,10 +53,14 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                intro (a leech's with its mix-up and note), reveal, Session done,
                                the placement result), today (the Today tab, "Drive this run today"), memory (the Progress
                                tab: overview and a district), drive (`/drive`: DriveController and
-                               DriveScreen: setup with the destination and the suggested level, a
-                               drive run by pindoro_learning's Navigator at its level (voice by
-                               `NavWords`, the speed chime, Rescue and Mute only while stopped,
-                               arrival ends it), the matched and graded review with its GPS gaps,
+                               DriveScreen: setup with the destination, the suggested level and the
+                               LevelPicker, a drive run by pindoro_learning's Navigator at its level
+                               (voice by `NavWords`, the speed chime) on `DriveRecordingView`:
+                               Guided's live `DriveMap` with the turn plate and bottom bar, Coached
+                               and Quiet's dial and Recovery, Off's black screen; day or night by sun
+                               time at the car; no input while moving, the stopped bar (Mute, level,
+                               End drive, Off's Rescue) while stopped; arrival ends it), the matched
+                               and graded review with its GPS gaps,
                                every drive and its decisions logged; Past drives `/drive/past` and
                                one replayed from its track)
 lib/features/quiz/ui/round_controller.dart   Explore round state machine; resumes from round_question + answers;
@@ -231,6 +235,9 @@ test/drift/                    generated schema helpers + migration test
   states, question and reveal; Results (`results_data.dart` gathers everything) and the per-answer
   street view.
 - Colour rule: **yellow = truth, cobalt = you, ink = measurement.** Never swap them.
+- The drive's Guided map is `DriveMap` (`drive_map.dart`): heading-up, tilted 32°, following the
+  car, route and car only (no names or landmark icons), no gestures; it comes through
+  `driveMapBuilderProvider`, which drive tests override. The screen shows its attribution.
 - Screens get the map through `pindoroMapBuilderProvider`; tests override it to capture the
   `PindoroMap` config instead of building the platform view. Explore's city map (`ExploreMap`:
   district fills by City memory, the play area dashed) comes through `exploreMapBuilderProvider`;
