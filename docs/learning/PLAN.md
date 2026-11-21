@@ -196,7 +196,13 @@ drive already logs its junctions (`drive_decision`); credit by item 119 waits fo
 Step 3 is split (decided 2026-11-21). 3a done: the engine runs every level. It covers voice by
 V32-21 that ducks music, the speed chime and camera warning, the screen kept on, the suggested
 level and its picker in setup, Rescue and Mute while stopped, arrival ending the drive, the drive
-and decision log, and Settings → Driving. Guided, Coached and Quiet speak over the Off screen
-until 3b; Guided, Coached and Quiet change no card until step 5. 3b, the level screens
-(V32-20 to V32-41, the stopped bar, the speed sign), waits for the design system's drive
-components.
+and decision log, and Settings → Driving. Guided, Coached and Quiet change no card until step 5.
+3b done: the level screens from the design system's drive components (synced 2026-11-21): setup's
+LevelSuggestion with its pips and the LevelPicker; Guided's live heading-up map with the turn
+plate, the bottom bar, the district chip and the speed sign; Coached and Quiet's heading dial,
+status dot and Recovery; Off's recording dot; the stopped-controls bar with Mute, the level (it
+applies at once) and End drive, and Off's Rescue; day or night by sun time at the car. A drive
+that leaves Off while stopped is no longer the GPS-free test, so it credits nothing until step 5.
+`docs/TODO.md` lists where the screens differ from the boards. 3c: setup's destination search
+with Home, Work, recents and Surprise me (V32-10 `search`), the route preview with "Recite the
+turns" (V32-11), and the stopped bar's Route button.

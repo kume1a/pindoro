@@ -18,6 +18,8 @@ class PindoroButton extends StatefulWidget {
     this.icon,
     this.tier,
     this.hero = false,
+    this.large = false,
+    this.iconOnly = false,
   });
 
   final String label;
@@ -32,6 +34,12 @@ class PindoroButton extends StatefulWidget {
 
   /// The bigger `elevation.3` lip for hero actions.
   final bool hero;
+
+  /// 56 dp (`size.button.lg`): the drive's stopped-controls bar, reached from the driver's seat.
+  final bool large;
+
+  /// A square button showing only [icon]; [label] is what a screen reader hears.
+  final bool iconOnly;
 
   /// The face's least height, the lip not counted.
   static const double height = PindoroSize.buttonMd;
@@ -104,7 +112,10 @@ class _PindoroButtonState extends State<PindoroButton> {
       style: PindoroType.labelButton.copyWith(color: text),
     );
 
+    final height = widget.large ? PindoroSize.buttonLg : PindoroButton.height;
+    final square = widget.iconOnly && widget.icon != null;
     return Tappable(
+      label: square ? widget.label : null,
       onTap: !enabled
           ? null
           : () {
@@ -122,11 +133,16 @@ class _PindoroButtonState extends State<PindoroButton> {
         decoration: BoxDecoration(color: lip, borderRadius: radius),
         // A label wrapping at large text sizes grows it.
         child: Container(
-          constraints: const BoxConstraints(minHeight: PindoroButton.height),
-          padding: const EdgeInsets.symmetric(
-            horizontal: PindoroSpace.s6,
-            vertical: PindoroSpace.s2,
+          constraints: BoxConstraints(
+            minHeight: height,
+            minWidth: square ? height : 0,
           ),
+          padding: square
+              ? EdgeInsets.zero
+              : const EdgeInsets.symmetric(
+                  horizontal: PindoroSpace.s6,
+                  vertical: PindoroSpace.s2,
+                ),
           decoration: BoxDecoration(
             color: face,
             borderRadius: radius,
@@ -139,6 +155,8 @@ class _PindoroButtonState extends State<PindoroButton> {
             heightFactor: 1,
             child: widget.icon == null
                 ? label
+                : square
+                ? PindoroIcon(widget.icon!, color: text, cut: face)
                 : Row(
                     mainAxisSize: MainAxisSize.min,
                     spacing: PindoroSpace.s2,

@@ -12,7 +12,11 @@ loading `Skeleton`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` inc
 `LandmarkBadge`, `MapLabelChip`, `CarMarker`, `MapTip`), v3
 progress (`MemoryBar`, `MemoryLegend`, `MemoryChart`, `ForecastBars`, `WeekBars`, `MemoryRow`), the streak (`StreakPill`, `StreakCalendar`, `StreakWeek`,
 `StreakFreezeCard`), badges (`BadgeShield`, `BadgeTile`; fields `color.badge.*`),
-setup components (`SearchField`, `PindoroChip`, `DifficultyCard`, the painted `DistrictMap` and `AreaMiniMap`), `MiniTally`
+setup components (`SearchField`, `PindoroChip`, `DifficultyCard`, the painted `DistrictMap` and `AreaMiniMap`), `MiniTally`,
+the drive (v3.2: `DriveGlyph`, `TurnPlate`, `DriveBottomBar`, `SpeedLimitSign`, `CameraBadge`,
+`DistrictChip`, `DistrictLine`, `HeadingDial`, `StatusDot`, `SpeakingBars`, `RecoveryBand`, `RecordingDot`,
+`LevelPicker`, `LevelSuggestion`, `StoppedBar`; their `color.drive.*` are day in the light theme and night
+in the dark one, and drive type ignores the text scale)
 and motion (`PindoroPageTransitions`, `CountUp`, `PopIn`, `RiseIn`, `Celebration`, `Wiggle`,
 `Shake`, `FadeIndexedStack`; all calm down under reduce motion). Widgets take their text as
 parameters; strings live in the app.
@@ -55,7 +59,8 @@ parameters; strings live in the app.
 - The turn card draws on the real map (the app's `PindoroMap`, heading-up), not a painted junction
   map: `ExitButton`, `CarMarker` and `LandmarkBadge` sit on it (2026-11-17, see `docs/TODO.md`).
 - `PindoroButton` and `SearchField` are 48 dp (`size.button.md`), not the design's 56: the app
-  felt too big (2026-11-16, see `docs/TODO.md`).
+  felt too big (2026-11-16, see `docs/TODO.md`). The drive's stopped bar is the exception:
+  `PindoroButton(large: true)` is 56 dp, `iconOnly` a square icon button.
 
 ## Tests
 

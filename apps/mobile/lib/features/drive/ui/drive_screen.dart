@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/location.dart';
@@ -11,11 +10,12 @@ import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
+import 'package:pindoro/features/drive/ui/drive_levels.dart';
+import 'package:pindoro/features/drive/ui/drive_recording_view.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
-import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/map/ui/widgets/street_match_row.dart';
 import 'package:pindoro/features/map/ui/widgets/tier_reveal.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -37,7 +37,7 @@ class DriveScreen extends ConsumerWidget {
     void leave() => context.canPop() ? context.pop() : context.go(Routes.today);
     return switch (ref.watch(driveControllerProvider)) {
       final DriveSetup s => _Setup(setup: s),
-      final DriveRecording r => _Recording(recording: r),
+      final DriveRecording r => DriveRecordingView(recording: r),
       final DriveReview r => DriveReviewView(review: r, onDone: leave),
     };
   }
@@ -162,22 +162,37 @@ class _SetupState extends ConsumerState<_Setup> {
                   ),
           ),
         SectionTitle(l10n.driveLevelTitle),
-        SegmentedControl<DriveLevel>(
-          segments: {
-            for (final level in setup.choices) level: levelLabel(l10n, level),
-          },
+        if (setup.to == DriveTo.run)
+          LevelSuggestion(
+            lead: l10n.driveRunLead,
+            level: l10n.driveStartsAt(levelLabel(l10n, DriveLevel.off)),
+            reason: l10n.driveEveryLevel,
+          )
+        else if (setup.suggestion case final s?)
+          LevelSuggestion(
+            lead: l10n.driveSuggestedLead,
+            level: levelLabel(l10n, s.level),
+            reason: l10n.driveYours(s.yours, s.turns),
+            yours: s.pips,
+            pipsLabel: l10n.a11yDrivePips(s.turns, s.yours, s.turns - s.yours),
+          )
+        else if (setup.target == null && !setup.noTarget && denied == null)
+          Text(
+            l10n.driveFinding,
+            style: PindoroType.bodyMd.copyWith(
+              color: PindoroTheme.of(context).colors.textSecondary,
+            ),
+          ),
+        LevelPicker<DriveLevel>(
+          steps: levelSteps(l10n, setup.choices),
           selected: setup.chosen,
+          suggested: setup.to == DriveTo.run ? null : setup.suggestion?.level,
+          suggestedLabel: l10n.driveSuggestedTag,
+          semanticsLabel: l10n.a11yDriveHelp,
           onChanged: controller.pickLevel,
         ),
         Text(
-          [
-            levelNote(l10n, setup.chosen),
-            if (setup.suggestion case final s?)
-              '${l10n.driveSuggested(levelLabel(l10n, s.level))} · '
-                  '${l10n.driveYours(s.yours, s.turns)}'
-            else if (setup.target == null && !setup.noTarget && denied == null)
-              l10n.driveFinding,
-          ].join(' '),
+          levelNote(l10n, setup.chosen),
           style: PindoroType.bodyMd.copyWith(
             color: PindoroTheme.of(context).colors.textSecondary,
           ),
@@ -208,22 +223,6 @@ class _SetupState extends ConsumerState<_Setup> {
   }
 }
 
-/// A drive level's name (SPEC §16.23 item 112).
-String levelLabel(AppLocalizations l10n, DriveLevel level) => switch (level) {
-  DriveLevel.guided => l10n.driveLevelGuided,
-  DriveLevel.coached => l10n.driveLevelCoached,
-  DriveLevel.quiet => l10n.driveLevelQuiet,
-  DriveLevel.off => l10n.driveLevelOff,
-};
-
-/// What a level shows and says, in one sentence (board V32-10).
-String levelNote(AppLocalizations l10n, DriveLevel level) => switch (level) {
-  DriveLevel.guided => l10n.driveLevelGuidedNote,
-  DriveLevel.coached => l10n.driveLevelCoachedNote,
-  DriveLevel.quiet => l10n.driveLevelQuietNote,
-  DriveLevel.off => l10n.driveLevelOffNote,
-};
-
 /// "Paliashvili St → Tamarashvili St · 2.4 km".
 String _runLine(
   AppLocalizations l10n,
@@ -234,124 +233,6 @@ String _runLine(
   name(run.ends.toStreet),
   formatDistance(run.ends.best.lengthM, l10n),
 );
-
-class _Recording extends ConsumerStatefulWidget {
-  const _Recording({required this.recording});
-
-  final DriveRecording recording;
-
-  @override
-  ConsumerState<_Recording> createState() => _RecordingState();
-}
-
-class _RecordingState extends ConsumerState<_Recording> {
-  late final Timer _tick;
-
-  @override
-  void initState() {
-    super.initState();
-    _tick = Timer.periodic(const Duration(seconds: 1), (_) => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _tick.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final theme = PindoroTheme.of(context);
-    final c = theme.colors;
-    final settings = ref.watch(settingsProvider).value;
-    final recording = widget.recording;
-    final elapsed = ref.read(clockProvider)().difference(recording.startedAt);
-    final target = recording.target.street;
-    final controller = ref.read(driveControllerProvider.notifier);
-    final lostS = recording.view?.gpsLostS;
-    return PageScaffold(
-      showBack: false,
-      // Controls only while stopped (SPEC §16.23 item 116): moving, the screen takes no input.
-      footer: recording.stopped
-          ? Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              spacing: PindoroSpace.s2,
-              children: [
-                PindoroButton(
-                  label: l10n.driveEnd,
-                  icon: PindoroGlyph.stop,
-                  onPressed: () => unawaited(controller.end()),
-                ),
-                if (recording.level == DriveLevel.off)
-                  PindoroButton(
-                    label: l10n.driveRescue,
-                    variant: PindoroButtonVariant.tertiary,
-                    onPressed: controller.rescue,
-                  )
-                else
-                  PindoroButton(
-                    label: recording.muted ? l10n.driveUnmute : l10n.driveMute,
-                    variant: PindoroButtonVariant.tertiary,
-                    onPressed: controller.toggleMute,
-                  ),
-              ],
-            )
-          : null,
-      children: [
-        const SizedBox(height: PindoroSpace.s8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          spacing: PindoroSpace.s2,
-          children: [
-            Container(
-              width: PindoroSpace.s3,
-              height: PindoroSpace.s3,
-              decoration: BoxDecoration(
-                color: theme.tier(Tier.miss).lip,
-                shape: BoxShape.circle,
-              ),
-            ),
-            Text(
-              l10n.driveRecording,
-              style: PindoroType.labelLg.copyWith(color: c.textSecondary),
-            ),
-          ],
-        ),
-        Semantics(
-          liveRegion: false,
-          child: Text(
-            formatClock(elapsed),
-            textAlign: TextAlign.center,
-            style: PindoroType.numericXl.copyWith(color: c.textPrimary),
-          ),
-        ),
-        Text(
-          l10n.driveSoFar(formatDistance(recording.drivenM, l10n)),
-          textAlign: TextAlign.center,
-          style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
-        ),
-        if (lostS != null)
-          Text(
-            l10n.driveGpsFinding,
-            textAlign: TextAlign.center,
-            style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
-          ),
-        const SizedBox(height: PindoroSpace.s4),
-        ListGroup(
-          children: [
-            ListRow(
-              leading: const RowTile(PindoroGlyph.flag),
-              title: l10n.driveHeadingTo(streetName(target, settings)),
-              subtitle: otherScript(target, settings),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
 
 /// A drive's review: the track over the best route, the tier, the numbers
 /// and the GPS line; also a past drive's (Past drives).

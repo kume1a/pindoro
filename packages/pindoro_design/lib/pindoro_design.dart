@@ -8,6 +8,8 @@ export 'src/widgets/bearing_dial.dart';
 export 'src/widgets/controls.dart';
 export 'src/widgets/difficulty_card.dart';
 export 'src/widgets/district_map.dart';
+export 'src/widgets/drive.dart';
+export 'src/widgets/drive_glyph.dart';
 export 'src/widgets/graphics.dart';
 export 'src/widgets/junction.dart';
 export 'src/widgets/map_marks.dart';

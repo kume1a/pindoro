@@ -42,10 +42,33 @@ String nameBase(String name) => normaliseName(name)
 String withoutKind(String name) {
   final short = name
       .replaceAll(RegExp(_kindWords.pattern, caseSensitive: false), ' ')
-      .replaceAll(RegExp(r's+'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
   return short.isEmpty ? name : short;
 }
+
+const Map<String, String> _shortKinds = {
+  'avenue': 'Ave',
+  'street': 'St',
+  'square': 'Sq',
+  'lane': 'Ln',
+  'road': 'Rd',
+  'highway': 'Hwy',
+  'embankment': 'Emb',
+  'გამზირი': 'გამზ.',
+  'ქუჩა': 'ქ.',
+};
+
+/// [name] with its kind of street shortened ("Chavchavadze Avenue" → "Chavchavadze Ave"): how
+/// the drive screens show it, so it fits their 54 dp type (board V32-20).
+String shortKind(String name) => name.replaceAllMapped(
+  RegExp(
+    '(?<![\\p{L}])(${_shortKinds.keys.join('|')})(?![\\p{L}])',
+    caseSensitive: false,
+    unicode: true,
+  ),
+  (m) => _shortKinds[m[1]!.toLowerCase()]!,
+);
 
 /// Levenshtein distance over the longer length: 0 same, 1 nothing shared.
 double nameDistance(String a, String b) {

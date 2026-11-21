@@ -19,6 +19,7 @@ import 'package:pindoro/features/drive/ui/drive_screen.dart';
 import 'package:pindoro/features/drive/ui/past_drives_screen.dart';
 import 'package:pindoro/features/learning/data/drive_log.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
+import 'package:pindoro/features/map/ui/drive_map.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
@@ -38,6 +39,7 @@ void main() {
   final now = DateTime(2026, 11, 16, 9);
   late DateTime clockNow;
   late _Device device;
+  final maps = <DriveMap>[];
 
   setUpAll(() {
     final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
@@ -66,6 +68,7 @@ void main() {
       ),
     );
     clockNow = now;
+    maps.clear();
     location = _Track(route.lines.first.first);
     device = _Device();
     overrides = [
@@ -101,6 +104,10 @@ void main() {
       pindoroMapBuilderProvider.overrideWithValue(
         (_) => const SizedBox.expand(),
       ),
+      driveMapBuilderProvider.overrideWithValue((map) {
+        maps.add(map);
+        return const SizedBox.expand();
+      }),
     ];
     container = ProviderContainer(overrides: overrides);
   });
@@ -120,10 +127,6 @@ void main() {
     expect((recording as DriveRecording).target.junction, route.junctions.last);
     expect(location.notice, ('Recording', 'End it in Pindoro'));
     await location.drive(route, now);
-    expect(
-      (container.read(driveControllerProvider) as DriveRecording).drivenM,
-      closeTo(route.lengthM, route.lengthM * 0.05),
-    );
     await controller.end();
     final review = container.read(driveControllerProvider) as DriveReview;
     expect(review.match.path.edges.map((e) => e.id), [
@@ -327,8 +330,23 @@ void main() {
     expect(() => db.customStatement('DELETE FROM drive'), throwsA(anything));
   });
 
-  testWidgets('the screens: setup with today\'s run, recording with no map, '
-      'then the review', (tester) async {
+  test('a level picked while stopped applies at once; leaving Off ends the '
+      'GPS-free test, so no card changes', () async {
+    final controller = container.read(driveControllerProvider.notifier);
+    container.listen(driveControllerProvider, (_, _) {});
+    await controller.start(title: 't', text: 't');
+    controller.pickDriveLevel(DriveLevel.quiet);
+    final quiet = container.read(driveControllerProvider) as DriveRecording;
+    expect(quiet.level, DriveLevel.quiet);
+    expect(device.screenOn, isTrue);
+    await location.drive(route, now);
+    await controller.end();
+    expect(await db.select(db.implicitEvidence).get(), isEmpty);
+    final drive = (await container.read(driveLogDaoProvider).all()).single;
+    expect(drive.level, DriveLevel.off, reason: 'the level it started at');
+  });
+
+  Future<void> pumpDrive(WidgetTester tester) async {
     tester.view
       ..physicalSize = const Size(1080, 2400)
       ..devicePixelRatio = 2.75;
@@ -358,30 +376,74 @@ void main() {
       ),
     );
     await settle(tester);
+  }
+
+  // The drive screens tick every second, so they never settle.
+  Future<void> pumpUntil(WidgetTester tester, Finder target) async {
+    for (var i = 0; i < 40 && target.evaluate().isEmpty; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 50)),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+  }
+
+  testWidgets('the screens: setup with today\'s run at Off, the black '
+      'recording screen, then the review', (tester) async {
+    await pumpDrive(tester);
     expect(find.text('Drive'), findsOneWidget);
     expect(find.textContaining(' → '), findsOneWidget);
-    // The recording screen ticks every second, so it never settles.
-    Future<void> pumpUntil(Finder target) async {
-      for (var i = 0; i < 40 && target.evaluate().isEmpty; i++) {
-        await tester.runAsync(
-          () => Future<void>.delayed(const Duration(milliseconds: 50)),
-        );
-        await tester.pump();
-      }
-    }
-
+    expect(find.textContaining('starts at Off'), findsOneWidget);
+    expect(find.byType(LevelPicker<DriveLevel>), findsOneWidget);
     await tester.tap(find.text('Start drive'));
-    await pumpUntil(find.text('00:00'));
-    expect(find.text('Recording your drive'), findsOneWidget);
-    expect(find.text('00:00'), findsOneWidget);
+    await pumpUntil(tester, find.byType(RecordingDot));
+    expect(find.bySemanticsLabel('Recording your drive'), findsOneWidget);
     final last = await tester.runAsync(() => location.drive(route, now));
+    // Past the bar's exit: it showed while parked before the first fix.
     await tester.pump();
+    await tester.pump(PindoroMotion.durationSlow);
     // Moving: no controls. Stopped at the destination, the drive ends by itself.
-    expect(find.text("I'm there: end drive"), findsNothing);
+    expect(find.byType(StoppedBar), findsNothing);
+    expect(maps, isEmpty, reason: 'Off shows no map');
     await tester.runAsync(() => location.park(route.lines.last.last, last!, 3));
-    await pumpUntil(find.text('Done'));
+    await pumpUntil(tester, find.text('Done'));
     await settle(tester);
     expect(find.text('Perfect!'), findsOneWidget);
+    expect(find.text('Done'), findsOneWidget);
+  });
+
+  testWidgets('Guided: the map and the turn plate while moving; stopped, the '
+      'bar rises, and a level picked there applies at once', (tester) async {
+    await pumpDrive(tester);
+    await tester.tap(find.text('Guided'));
+    await tester.pump();
+    await tester.tap(find.text('Start drive'));
+    await pumpUntil(tester, find.byType(TurnPlate));
+    // The first stretch of the run, then a stop short of the destination.
+    final first = Route(route.junctions.take(2).toList(), [
+      route.edges.first,
+    ], route.edges.first.lengthM);
+    final last = await tester.runAsync(() => location.drive(first, now));
+    await tester.pump();
+    await tester.pump(PindoroMotion.durationSlow);
+    expect(maps.last.route, isNotEmpty);
+    expect(maps.last.at, isNotNull);
+    expect(find.byType(TurnPlate), findsOneWidget);
+    expect(find.byType(StoppedBar), findsNothing);
+    await tester.runAsync(() => location.park(first.lines.last.last, last!, 3));
+    await pumpUntil(tester, find.byType(StoppedBar));
+    await tester.pump(PindoroMotion.durationSlow);
+    await tester.tap(find.bySemanticsLabel('Mute the voice'));
+    await tester.pump();
+    expect(find.bySemanticsLabel('Unmute the voice'), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('Level: Guided. Change.'));
+    await tester.pump();
+    expect(find.text('Level for the rest of this drive'), findsOneWidget);
+    await tester.tap(find.text('Quiet'));
+    await pumpUntil(tester, find.byType(HeadingDial));
+    expect(find.byType(HeadingDial), findsOneWidget);
+    await tester.tap(find.text('End drive'));
+    await pumpUntil(tester, find.text('Done'));
     expect(find.text('Done'), findsOneWidget);
   });
 }

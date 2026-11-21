@@ -32,11 +32,14 @@ typedef DriveTarget = ({int junction, NamedStreet street});
 
 /// The setup's suggestion (SPEC §16.23 items 113–114): the level, and the route's turns that
 /// are the player's ([silent], [yours] of [turns]).
-typedef LevelSuggestion = ({
+typedef DriveSuggestion = ({
   DriveLevel level,
   int yours,
   int turns,
   Set<String> silent,
+
+  /// Each turn on the route, in order: whether it is yours (the setup's pips).
+  List<bool> pips,
 });
 
 sealed class DriveState {
@@ -63,7 +66,7 @@ final class DriveSetup extends DriveState {
   final LocationDenied? denied;
   final bool noTarget;
   final DriveTarget? target;
-  final LevelSuggestion? suggestion;
+  final DriveSuggestion? suggestion;
   final DriveLevel? level;
 
   /// The level picked, else the suggestion; today's run is the GPS-free test (Off) unless
@@ -84,28 +87,40 @@ final class DriveSetup extends DriveState {
   bool sameChoice(DriveSetup other) => to == other.to && own == other.own;
 }
 
-/// Driving to [target] since [startedAt] at [level] (the guard and Rescue change it), [drivenM]
-/// so far; [view] is the navigator's latest.
+/// Driving to [target] (at [destination]) since [startedAt] at [level] (the guard, Rescue and a
+/// pick while stopped change it, among the setup's [choices]); [view] is the
+/// navigator's latest. [speaking] while a prompt is said, [guardedAt] when the guard last
+/// stepped in, [beat] counts the speed chimes (each pulses the sign).
 final class DriveRecording extends DriveState {
   const DriveRecording({
     required this.target,
+    required this.destination,
     required this.to,
     required this.startedAt,
     required this.level,
-    this.drivenM = 0,
+    required this.choices,
+    this.suggestion,
     this.view,
     this.muted = false,
     this.rescued = false,
+    this.speaking = false,
+    this.guardedAt,
+    this.beat = 0,
   });
 
   final DriveTarget target;
+  final LatLng destination;
   final DriveTo to;
   final DateTime startedAt;
   final DriveLevel level;
-  final double drivenM;
+  final List<DriveLevel> choices;
+  final DriveSuggestion? suggestion;
   final NavView? view;
   final bool muted;
   final bool rescued;
+  final bool speaking;
+  final DateTime? guardedAt;
+  final int beat;
 
   /// Controls take input only while stopped (item 116); before the first fix the car hasn't
   /// moved.
@@ -113,19 +128,26 @@ final class DriveRecording extends DriveState {
 
   DriveRecording copyWith({
     DriveLevel? level,
-    double? drivenM,
     NavView? view,
     bool? muted,
     bool? rescued,
+    bool? speaking,
+    DateTime? guardedAt,
+    int? beat,
   }) => DriveRecording(
     target: target,
+    destination: destination,
     to: to,
     startedAt: startedAt,
     level: level ?? this.level,
-    drivenM: drivenM ?? this.drivenM,
+    choices: choices,
+    suggestion: suggestion,
     view: view ?? this.view,
     muted: muted ?? this.muted,
     rescued: rescued ?? this.rescued,
+    speaking: speaking ?? this.speaking,
+    guardedAt: guardedAt ?? this.guardedAt,
+    beat: beat ?? this.beat,
   );
 }
 
@@ -175,6 +197,10 @@ class DriveController extends Notifier<DriveState> {
   DriveLevel? _suggested;
   final List<DriveFix> _fixes = [];
   bool _ending = false;
+
+  /// The drive left Off at some point: it is no longer the GPS-free test.
+  bool _leftOff = false;
+  int _speaking = 0;
 
   DriveDevice get _device => ref.read(driveDeviceProvider);
 
@@ -255,7 +281,7 @@ class DriveController extends Notifier<DriveState> {
     );
   }
 
-  Future<LevelSuggestion?> _suggest(DriveTarget target, LatLng here) async {
+  Future<DriveSuggestion?> _suggest(DriveTarget target, LatLng here) async {
     final graph = await ref.hold(drivingGraphProvider.future);
     if (graph == null) return null;
     final pack = await ref.read(packRepositoryProvider.future);
@@ -292,11 +318,13 @@ class DriveController extends Notifier<DriveState> {
       areaJ: raion == null ? 0 : jCardsIn(raion, cards.values, byNode, graph),
       now: ref.read(clockProvider)(),
     );
+    final pips = [for (final d in plan.decisions) s.silent.contains(d.key)];
     return (
       level: s.level,
-      yours: s.silent.length,
+      yours: pips.where((mine) => mine).length,
       turns: plan.decisions.length,
       silent: s.silent,
+      pips: pips,
     );
   }
 
@@ -359,33 +387,30 @@ class DriveController extends Notifier<DriveState> {
     );
     _fixes.clear();
     _ending = false;
+    _leftOff = false;
+    _speaking = 0;
     await _device.start();
     await _device.keepScreenOn(on: _startLevel != DriveLevel.off);
     if (!ref.mounted) return;
     state = DriveRecording(
       target: target,
+      destination: graph.at(target.junction),
       to: setup.to,
       startedAt: ref.read(clockProvider)(),
       level: _startLevel,
+      choices: setup.choices,
+      suggestion: setup.suggestion,
     );
     _track = location.track(title: title, text: text).listen(_onFix);
     _tick = Timer.periodic(const Duration(seconds: 1), (_) => _onTick());
   }
 
   void _onFix(DriveFix fix) {
-    final last = _fixes.lastOrNull;
     _fixes.add(fix);
     final r = state;
     final nav = _nav;
     if (r is! DriveRecording || nav == null) return;
-    _apply(
-      r.copyWith(
-        drivenM: last == null
-            ? r.drivenM
-            : r.drivenM + distanceBetween(last.at, fix.at),
-      ),
-      nav.onFix(fix),
-    );
+    _apply(r, nav.onFix(fix));
   }
 
   /// Between fixes: only the GPS-lost line and "Still finding you" change anything.
@@ -398,7 +423,15 @@ class DriveController extends Notifier<DriveState> {
   }
 
   void _apply(DriveRecording r, NavUpdate u) {
-    state = r.copyWith(view: u.view, level: u.view.level);
+    state = r.copyWith(
+      view: u.view,
+      level: u.view.level,
+      guardedAt: u.prompt?.kind == PromptKind.guard
+          ? ref.read(clockProvider)()
+          : null,
+      beat: u.chime ? r.beat + 1 : null,
+    );
+    if (u.view.level != DriveLevel.off) _leftOff = true;
     if (!r.muted) {
       if (u.prompt case final p?) _say(_words!.words(p, u.view.level));
       if (u.chime) unawaited(_device.chime());
@@ -409,7 +442,24 @@ class DriveController extends Notifier<DriveState> {
     }
   }
 
-  void _say(String text) => unawaited(_device.say(text, _voice));
+  /// Says [text]; [DriveRecording.speaking] while it does (Coached's bars).
+  void _say(String text) => unawaited(_speak(text));
+
+  Future<void> _speak(String text) async {
+    void speaking(bool on) {
+      if (state case final DriveRecording r when r.speaking != on) {
+        state = r.copyWith(speaking: on);
+      }
+    }
+
+    _speaking++;
+    speaking(true);
+    try {
+      await _device.say(text, _voice);
+    } finally {
+      if (--_speaking == 0 && ref.mounted) speaking(false);
+    }
+  }
 
   /// Arrival (item 116): the line said to its end, then the drive ends by itself.
   Future<void> _arrive(DriveRecording r) async {
@@ -442,6 +492,23 @@ class DriveController extends Notifier<DriveState> {
     }
   }
 
+  /// A level picked while stopped applies at once (item 116), among the setup's choices.
+  void pickDriveLevel(DriveLevel level) {
+    final r = state;
+    final nav = _nav;
+    if (r is! DriveRecording ||
+        nav == null ||
+        !r.stopped ||
+        level == r.level ||
+        !r.choices.contains(level)) {
+      return;
+    }
+    nav.setLevel(level);
+    if (level != DriveLevel.off) _leftOff = true;
+    state = r.copyWith(level: level);
+    unawaited(_device.keepScreenOn(on: level != DriveLevel.off));
+  }
+
   /// End drive: stops the track, matches it to the streets and grades it
   /// against the best legal route to the destination; at Off saves each
   /// decision as evidence and the near-due J cards it failed as Again.
@@ -465,7 +532,8 @@ class DriveController extends Notifier<DriveState> {
       recording.target.junction,
       streets: streets,
     );
-    final gpsFree = _startLevel == DriveLevel.off && !recording.rescued;
+    final gpsFree =
+        _startLevel == DriveLevel.off && !recording.rescued && !_leftOff;
     final evidence = graded == null || !gpsFree
         ? const <({String itemId, bool ok})>[]
         : await _saveEvidence(graded, now);

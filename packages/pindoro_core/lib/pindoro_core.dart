@@ -9,6 +9,7 @@ export 'src/game/route_draft.dart';
 export 'src/game/street_facts.dart';
 export 'src/geo/geo.dart';
 export 'src/geo/polyline6.dart';
+export 'src/geo/sun.dart';
 export 'src/pack/models.dart';
 export 'src/pack/pack_repository.dart';
 export 'src/pack/road_graph.dart';

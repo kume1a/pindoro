@@ -175,16 +175,26 @@ and the specs after R5. Fix them in roughly this order.
 - Changed in the app, not yet on claude.ai, since the 2026-11-20 sync (the design system's "App
   sync" section, the canvas's board C-99). List new changes here, and new tokens in
   `packages/pindoro_design/tokens/app.json`, for the next sync.
-  - **Drive setup (2026-11-21):** "Help", a SegmentedControl of the levels on offer, with a line
-    under it ("Coached: the voice speaks only at the turns you don't know yet. Suggested: Guided ·
-    3 of 17 turns are yours"). It stands in for V32-10's LevelPicker and pips. The GPS-free rules
-    show only at Off.
-  - **Recording screen:** End drive, and Rescue (Off) or Mute, only while stopped. A "Keep going,
-    finding you…" line after 10 s without GPS. It stands in for V32-20 to V32-41 until those
-    screens are built.
-  - **Me → Drives:** the first row is now "Drive" ("Guided, coached or on your own").
-  - **Settings → Driving:** "Warn me over the limit by: 14 km/h", a Slider from 0 to 20 with a
-    help line (SPEC §16.23 item 127).
+  - **Drive screens (M9 step 3b, 2026-11-21)**, built from the design system's drive components;
+    where they differ from boards V32-20 to V32-41:
+    - Recovery shows the next turn's DriveGlyph at 220 dp over the street, not the canvas's
+      painted junction with the car on its disc.
+    - The Guided map draws the route yellow on ink and the car as `CarMark`, but doesn't grey the
+      road behind the car, puts no landmark badge at the corner, and dims under a veil while GPS
+      is lost (the car stays as it is, no accuracy ring). The north arrow is the DriveGlyph
+      compass in a 64 dp disc in the district chip's paint.
+    - The stopped bar has no Route button yet: preview and destination screens come with step 3c.
+      Off's Rescue offer is a card with the text and a 56 dp button, without the rescue glyph.
+    - The district chip is left out when the name is wider than the room (the pack has no short
+      names).
+    - Roundabout glyphs and "Exit 3 onto" are unused: the road graph doesn't know roundabouts.
+      Forks under 45° use keep left and right.
+    - A word wider than the plate's line breaks between letters: Flutter doesn't hyphenate.
+    - The bottom bar's trip block shrinks under 54 dp when the rescued mark, a camera and the sign
+      share a narrow phone.
+    - Coached's speaking bars move in a fixed wave while the voice speaks, not with its level.
+    - "Now Coached" is a plate-coloured chip in `type.drive.read` for 4 s.
+    - `PindoroButton` gained `large` (56 dp) and `iconOnly`, for the stopped bar.
 - Lakes are not named (Protomaps gives them no label point); Lisi Lake is the only one.
 - Left out of the road-class pass, on purpose:
   - A "Your streets" round left half-way is not offered as Continue on Explore (Continue matches
