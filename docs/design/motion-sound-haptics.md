@@ -74,6 +74,8 @@ Today, the Progress tab, Session done and the placement result. Quiet: no sound 
 | Forecast bars, Progress opened | Bars grow up from the bottom, today first | `base` `ease.decelerate`, each `stagger` after the last | final bars at once | none | none |
 | City memory, Session done | Number counts up from the session's start value | `count-up`, ease-out | final value at once | results sound (with Session done) | success haptic (with Session done) |
 | Placement result | Stat tiles stagger in (fade + 8 dp rise) | `base`, `stagger` apart | at once | none | none |
+| Explore, back from a round (app 2.8) | City memory counts up from its value replayed to the round's start, with a "+n" pill; the district fills change without fading in | `count-up`, ease-out | final value at once | none | none |
+| Session bar, between rounds (app 2.8) | Round done replaces the round's last reveal; the round pill steps to the next round when Next round starts. No timer runs | sheet `base` | fade | none | none |
 
 Compact memory bars in list rows never animate. Progress never animates backwards: a drop is drawn at its new size.
 
