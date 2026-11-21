@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
 
 part 'settings_dao.g.dart';
 
@@ -25,6 +26,7 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
     reminder: false,
     minutesPerDay: 20,
     zoomButtons: false,
+    speedToleranceKmh: LearningConfig.speedToleranceKmh,
   );
 
   SimpleSelectStatement<$UserSettingsTable, Settings> get _row =>
@@ -77,6 +79,9 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> setZoomButtons({required bool on}) =>
       _update(UserSettingsCompanion(zoomButtons: Value(on)));
+
+  Future<void> setSpeedTolerance(int kmh) =>
+      _update(UserSettingsCompanion(speedToleranceKmh: Value(kmh)));
 
   Future<void> setReminder({required bool on}) =>
       _update(UserSettingsCompanion(reminder: Value(on)));

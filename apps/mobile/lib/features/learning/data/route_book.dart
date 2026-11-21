@@ -36,18 +36,24 @@ final routeBookProvider = FutureProvider<RouteBook>((ref) async {
     bridges: pack.bridges(),
     streets: streets,
     curriculum: curriculum,
-    personal: [
-      for (final l in mine)
-        (
-          id: l.id,
-          name: l.name,
-          nameEn: null,
-          kind: l.kind,
-          at: LatLng(l.lat, l.lon),
-          personal: true,
-          junction: junctionOfNode(nodes, int.parse(l.junctionId.substring(1))),
-          onLeft: l.side == 'left',
-        ),
-    ],
+    personal: personalRouteLandmarks(mine, nodes),
   );
 });
+
+/// The player's own landmarks as route landmarks, at their junctions by OSM node ([nodes]).
+List<RouteLandmark> personalRouteLandmarks(
+  List<PersonalLandmarkRow> mine,
+  Map<int, int> nodes,
+) => [
+  for (final l in mine)
+    (
+      id: l.id,
+      name: l.name,
+      nameEn: null,
+      kind: l.kind,
+      at: LatLng(l.lat, l.lon),
+      personal: true,
+      junction: junctionOfNode(nodes, int.parse(l.junctionId.substring(1))),
+      onLeft: l.side == 'left',
+    ),
+];

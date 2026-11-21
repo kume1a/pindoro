@@ -37,6 +37,16 @@ String nameBase(String name) => normaliseName(name)
     .replaceAll(RegExp(r'\s+'), ' ')
     .trim();
 
+/// [name] without its kind of street, case kept ("Chavchavadze Avenue" → "Chavchavadze"): how turn
+/// prompts say it (SPEC §16.23 item 117). A name that is only a kind stays whole.
+String withoutKind(String name) {
+  final short = name
+      .replaceAll(RegExp(_kindWords.pattern, caseSensitive: false), ' ')
+      .replaceAll(RegExp(r's+'), ' ')
+      .trim();
+  return short.isEmpty ? name : short;
+}
+
 /// Levenshtein distance over the longer length: 0 same, 1 nothing shared.
 double nameDistance(String a, String b) {
   if (a.isEmpty && b.isEmpty) return 0;

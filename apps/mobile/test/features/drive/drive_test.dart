@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/drive_device.dart';
 import 'package:pindoro/core/location.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
@@ -36,6 +37,7 @@ void main() {
   late Map<String, NamedStreet> streets;
   final now = DateTime(2026, 11, 16, 9);
   late DateTime clockNow;
+  late _Device device;
 
   setUpAll(() {
     final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
@@ -65,10 +67,12 @@ void main() {
     );
     clockNow = now;
     location = _Track(route.lines.first.first);
+    device = _Device();
     overrides = [
       databaseProvider.overrideWithValue(db),
       clockProvider.overrideWithValue(() => clockNow),
       locationServiceProvider.overrideWithValue(location),
+      driveDeviceProvider.overrideWithValue(device),
       packRepositoryProvider.overrideWith((ref) async {
         final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
         ref.onDispose(repo.close);
@@ -193,20 +197,94 @@ void main() {
   });
 
   test(
-    'Lost? Show the way ends the test ungraded and logs it as abandoned',
+    'setup finds the destination and suggests a level; today\'s run offers '
+    'every level, Off first, another destination one step less at most',
     () async {
-      final controller = container.read(driveControllerProvider.notifier);
       container.listen(driveControllerProvider, (_, _) {});
-      await controller.start(title: 't', text: 't');
-      await controller.abandon();
-      expect(container.read(driveControllerProvider), isA<DriveSetup>());
-      expect(location.cancelled, isTrue);
-      expect(await db.select(db.implicitEvidence).get(), isEmpty);
-      final drive = (await container.read(driveLogDaoProvider).all()).single;
-      expect(drive.outcome, DriveOutcome.abandoned);
-      expect(drive.tier, isNull);
+      Future<DriveSetup> settled() async {
+        for (var i = 0; i < 50; i++) {
+          final s = container.read(driveControllerProvider) as DriveSetup;
+          if (s.target != null || s.noTarget) return s;
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+        }
+        return container.read(driveControllerProvider) as DriveSetup;
+      }
+
+      final run = await settled();
+      expect(run.target!.junction, route.junctions.last);
+      // A new player: few J cards in the raion, so Guided.
+      expect(run.suggestion!.level, DriveLevel.guided);
+      expect(run.suggestion!.turns, greaterThan(0));
+      expect(run.chosen, DriveLevel.off);
+      expect(run.choices, DriveLevel.values);
+
+      final controller = container.read(driveControllerProvider.notifier);
+      controller.pickOwn(streets[route.edges.last.streetId]!);
+      final own = await settled();
+      expect(own.chosen, DriveLevel.guided);
+      expect(own.choices, [DriveLevel.guided, DriveLevel.coached]);
+      controller.pickLevel(DriveLevel.off);
+      expect(
+        (container.read(driveControllerProvider) as DriveSetup).chosen,
+        DriveLevel.guided,
+      );
     },
   );
+
+  test('Rescue at Off, while stopped: Guided from there, said once; the '
+      'drive logs it, rescued, changing no card and at most Close', () async {
+    final controller = container.read(driveControllerProvider.notifier);
+    container.listen(driveControllerProvider, (_, _) {});
+    await controller.start(title: 't', text: 't');
+    expect(
+      (container.read(driveControllerProvider) as DriveRecording).level,
+      DriveLevel.off,
+    );
+    controller.rescue();
+    final rescued = container.read(driveControllerProvider) as DriveRecording;
+    expect(rescued.level, DriveLevel.guided);
+    expect(rescued.rescued, isTrue);
+    expect(device.said, ['Guiding you from here.']);
+    expect(device.screenOn, isTrue);
+    await location.drive(route, now);
+    await controller.end();
+    final review = container.read(driveControllerProvider) as DriveReview;
+    expect(review.tier!.index, greaterThanOrEqualTo(Tier.close.index));
+    expect(await db.select(db.implicitEvidence).get(), isEmpty);
+    final drive = (await container.read(driveLogDaoProvider).all()).single;
+    expect(drive.rescued, isTrue);
+    expect(drive.level, DriveLevel.off);
+    expect(device.screenOn, isFalse);
+  });
+
+  test('a Guided drive speaks its turns, logs them as guided and changes no '
+      'card', () async {
+    final controller = container.read(driveControllerProvider.notifier);
+    container.listen(driveControllerProvider, (_, _) {});
+    controller.pickLevel(DriveLevel.guided);
+    await controller.start(title: 't', text: 't');
+    expect(device.screenOn, isTrue);
+    await location.drive(route, now);
+    await controller.end();
+    expect(device.said, isNotEmpty);
+    expect(await db.select(db.implicitEvidence).get(), isEmpty);
+    final drive = (await container.read(driveLogDaoProvider).all()).single;
+    expect(drive.level, DriveLevel.guided);
+    final decisions = await db.select(db.driveDecisions).get();
+    expect(decisions, isNotEmpty);
+    expect(decisions.every((d) => d.help == NavHelp.guided), isTrue);
+  });
+
+  test('muted, nothing is said', () async {
+    final controller = container.read(driveControllerProvider.notifier);
+    container.listen(driveControllerProvider, (_, _) {});
+    controller.pickLevel(DriveLevel.guided);
+    await controller.start(title: 't', text: 't');
+    controller.toggleMute();
+    await location.drive(route, now);
+    await controller.end();
+    expect(device.said, isEmpty);
+  });
 
   test('the log keeps every drive but drops tracks after '
       '${LearningConfig.driveTrackKeepDays} days, and never rewrites a '
@@ -227,6 +305,8 @@ void main() {
       fixes: 0,
       gpsGaps: 0,
       longestGapS: 0,
+      recoveries: 0,
+      rescued: false,
     );
     await log.save(drive('old', now), '');
     await log.save(drive('kept', now.add(const Duration(days: 1))), '');
@@ -278,7 +358,7 @@ void main() {
       ),
     );
     await settle(tester);
-    expect(find.text('GPS-free drive'), findsOneWidget);
+    expect(find.text('Drive'), findsOneWidget);
     expect(find.textContaining(' → '), findsOneWidget);
     // The recording screen ticks every second, so it never settles.
     Future<void> pumpUntil(Finder target) async {
@@ -294,9 +374,11 @@ void main() {
     await pumpUntil(find.text('00:00'));
     expect(find.text('Recording your drive'), findsOneWidget);
     expect(find.text('00:00'), findsOneWidget);
-    await tester.runAsync(() => location.drive(route, now));
+    final last = await tester.runAsync(() => location.drive(route, now));
     await tester.pump();
-    await tester.tap(find.text("I'm there: end drive"));
+    // Moving: no controls. Stopped at the destination, the drive ends by itself.
+    expect(find.text("I'm there: end drive"), findsNothing);
+    await tester.runAsync(() => location.park(route.lines.last.last, last!, 3));
     await pumpUntil(find.text('Done'));
     await settle(tester);
     expect(find.text('Perfect!'), findsOneWidget);
@@ -362,4 +444,44 @@ class _Track extends LocationService {
     await Future<void>.delayed(Duration.zero);
     return t;
   }
+
+  /// Stays at [at] for [seconds] fixes after [after], once a second.
+  Future<void> park(LatLng at, DateTime after, int seconds) async {
+    for (var s = 1; s <= seconds; s++) {
+      _fixes.add((
+        at: at,
+        t: after.add(Duration(seconds: s)),
+        headingDeg: null,
+        speedMps: 0,
+        accuracyM: 5,
+      ));
+      sent++;
+      await Future<void>.delayed(Duration.zero);
+    }
+  }
+}
+
+/// The phone during a drive: what was said, chimes and the screen.
+class _Device implements DriveDevice {
+  final List<String> said = [];
+  int chimes = 0;
+  bool screenOn = false;
+
+  @override
+  Future<bool> canSpeak(String languageTag) async => languageTag == 'en-US';
+
+  @override
+  Future<void> start() async {}
+
+  @override
+  Future<void> say(String text, String languageTag) async => said.add(text);
+
+  @override
+  Future<void> chime() async => chimes++;
+
+  @override
+  Future<void> keepScreenOn({required bool on}) async => screenOn = on;
+
+  @override
+  Future<void> stop() async => screenOn = false;
 }
