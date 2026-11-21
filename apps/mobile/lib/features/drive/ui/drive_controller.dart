@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/clock.dart';
+import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/hold.dart';
 import 'package:pindoro/core/location.dart';
+import 'package:pindoro/features/learning/data/drive_log.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/route_book.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
@@ -46,22 +48,25 @@ final class DriveSetup extends DriveState {
       DriveSetup(to: to ?? this.to, own: own ?? this.own);
 }
 
-/// Recording since [startedAt], [drivenM] so far.
+/// Recording since [startedAt] towards the setup's choice [to], [drivenM] so
+/// far.
 final class DriveRecording extends DriveState {
   const DriveRecording({
     required this.target,
+    required this.to,
     required this.startedAt,
     this.drivenM = 0,
   });
 
   final DriveTarget target;
+  final DriveTo to;
   final DateTime startedAt;
   final double drivenM;
 }
 
 /// The drive graded like a recital (SPEC §5.3): the matched [match] over
 /// the best route, [stoppedM] from the target when it ended short of it,
-/// and the turns of the book [credited] and [failed].
+/// the turns of the book [credited] and [failed], and the GPS [gaps].
 final class DriveReview extends DriveState {
   const DriveReview({
     required this.target,
@@ -70,6 +75,7 @@ final class DriveReview extends DriveState {
     required this.stoppedM,
     required this.credited,
     required this.failed,
+    required this.gaps,
   });
 
   final DriveTarget target;
@@ -78,6 +84,7 @@ final class DriveReview extends DriveState {
   final double? stoppedM;
   final int credited;
   final int failed;
+  final GpsGaps gaps;
 }
 
 /// A GPS-free drive (SPEC §5.3 drives, board V3-50): pick a destination,
@@ -140,13 +147,14 @@ class DriveController extends Notifier<DriveState> {
     }
     _fixes.clear();
     final startedAt = ref.read(clockProvider)();
-    state = DriveRecording(target: target, startedAt: startedAt);
+    state = DriveRecording(target: target, to: setup.to, startedAt: startedAt);
     _track = location.track(title: title, text: text).listen((fix) {
       final last = _fixes.lastOrNull;
       _fixes.add(fix);
       if (state case final DriveRecording r when last != null) {
         state = DriveRecording(
           target: r.target,
+          to: r.to,
           startedAt: r.startedAt,
           drivenM: r.drivenM + distanceBetween(last.at, fix.at),
         );
@@ -221,40 +229,54 @@ class DriveController extends Notifier<DriveState> {
     if (recording is! DriveRecording) return;
     await _track?.cancel();
     _track = null;
+    final now = ref.read(clockProvider)();
     final graph = (await ref.hold(drivingGraphProvider.future))!;
-    final pack = await ref.read(packRepositoryProvider.future);
     final streets = await ref.read(cityStreetsProvider.future);
+    final match = matchDrive(graph, _fixes);
+    final (:graded, :stoppedM) = gradeDrive(
+      graph,
+      match,
+      recording.target.junction,
+      streets: streets,
+    );
+    final evidence = graded == null
+        ? const <({String itemId, bool ok})>[]
+        : await _saveEvidence(graded, now);
+    final credited = evidence.where((e) => e.ok).length;
+    final failed = evidence.length - credited;
+    final gaps = await _log(
+      recording,
+      endedAt: now,
+      outcome: graded == null || stoppedM != null
+          ? DriveOutcome.stopped
+          : DriveOutcome.arrived,
+      match: match,
+      graded: graded,
+      credited: credited,
+      failed: failed,
+    );
+    if (!ref.mounted) return;
+    state = DriveReview(
+      target: recording.target,
+      match: match,
+      graded: graded,
+      stoppedM: stoppedM,
+      credited: credited,
+      failed: failed,
+      gaps: gaps,
+    );
+  }
+
+  /// Saves each decision of the book's J items as evidence, and the
+  /// near-due cards it failed as Again.
+  Future<List<({String itemId, bool ok})>> _saveEvidence(
+    RecitalResult graded,
+    DateTime now,
+  ) async {
+    final pack = await ref.read(packRepositoryProvider.future);
     final book = await ref.read(routeBookProvider.future);
     final dao = ref.read(learningDaoProvider);
     final cards = {for (final c in await dao.cards()) c.itemId: c};
-    final match = matchDrive(graph, _fixes);
-    final target = recording.target.junction;
-    final path = match.path;
-    if (path.edges.isEmpty) {
-      if (!ref.mounted) return;
-      state = DriveReview(
-        target: recording.target,
-        match: match,
-        graded: null,
-        stoppedM: null,
-        credited: 0,
-        failed: 0,
-      );
-      return;
-    }
-    final stoppedM = distanceBetween(
-      graph.at(path.junctions.last),
-      graph.at(target),
-    );
-    final arrived = stoppedM <= LearningConfig.driveArriveM;
-    final graded = RecitalGrader.score(
-      graph,
-      path,
-      from: path.junctions.first,
-      to: arrived ? path.junctions.last : target,
-      streets: streets,
-    );
-    final now = ref.read(clockProvider)();
     final evidence = recitalEvidence(graded, pack.junctionNodes(), {
       for (final id in book.questions.keys)
         if (CardType.ofItem(id) == CardType.j) id,
@@ -273,23 +295,66 @@ class DriveController extends Notifier<DriveState> {
           ),
       ],
     );
-    if (!ref.mounted) return;
-    state = DriveReview(
-      target: recording.target,
-      match: match,
-      graded: graded,
-      stoppedM: arrived ? null : stoppedM,
-      credited: evidence.where((e) => e.ok).length,
-      failed: evidence.where((e) => !e.ok).length,
-    );
+    return evidence;
   }
 
-  /// Lost? Show the way: the test ends unrecorded.
+  /// Writes the drive and its track to the drive log (SPEC §16.23 item 124)
+  /// and returns its GPS gaps.
+  Future<GpsGaps> _log(
+    DriveRecording recording, {
+    required DateTime endedAt,
+    required DriveOutcome outcome,
+    DriveMatch? match,
+    RecitalResult? graded,
+    int credited = 0,
+    int failed = 0,
+  }) async {
+    final fixes = List.of(_fixes);
+    final gaps = gpsGaps(fixes, recording.startedAt, endedAt);
+    final pack = await ref.read(packRepositoryProvider.future);
+    await ref
+        .read(driveLogDaoProvider)
+        .save(
+          DriveRow(
+            id: newId(),
+            startedAt: recording.startedAt,
+            endedAt: endedAt,
+            level: DriveLevel.off,
+            goal: recording.to.name,
+            targetNode: pack.junctionNodes()[recording.target.junction],
+            targetStreet: recording.target.street.id,
+            outcome: outcome,
+            drivenM: match?.drivenM ?? recording.drivenM,
+            tier: graded?.tier,
+            stretch: graded?.stretch,
+            uTurns: match?.uTurns.length,
+            hesitations: match?.hesitations.length,
+            credited: credited,
+            failed: failed,
+            fixes: fixes.length,
+            gpsGaps: gaps.count,
+            longestGapS: gaps.longest.inSeconds,
+          ),
+          encodeTrack(fixes),
+        );
+    ref.invalidate(pastDrivesProvider);
+    return gaps;
+  }
+
+  /// Lost? Show the way: the test ends ungraded, logged as abandoned.
   Future<void> abandon() => _once(_abandon);
 
   Future<void> _abandon() async {
+    final recording = state;
     await _track?.cancel();
     _track = null;
+    if (recording is DriveRecording) {
+      await _log(
+        recording,
+        endedAt: ref.read(clockProvider)(),
+        outcome: DriveOutcome.abandoned,
+      );
+    }
     _fixes.clear();
     if (ref.mounted) state = const DriveSetup();
   }

@@ -4,14 +4,7 @@
 
 - **Georgian translation** — `apps/mobile/lib/l10n/app_ka.arb` is a draft; it needs a native
   review.
-- **Designed in text, not drawn** — the 2026-11-07 design pass (map greys, 104-area picker, city
-  pack download, Miss directions) lives in `tokens.json` and `docs/design/v1-screens.md`; the
-  claude.ai canvas has no boards for it yet (chips at both zoom bands, district names along
-  outlines, narrow with Undo, All areas, pack download and failure, offline Vake). The pack
-  download's city scene, Connecting state and server-failure copy (2026-11-13) are local only:
-  bring them to the canvas (26–30) and the design system's `v1-screens.md`, and add
-  `color.illustration.block-alt` and `color.illustration.park` (in `app.json`) to `tokens.json`.
-- **Left out of that pass, on purpose:**
+- **Left out of the 2026-11-07 design pass (area picker, city pack download), on purpose:**
   - Download progress in the City row: tapping a city opens the Area picker at once, so the row is
     gone before a bar could show. The wait shows in the Area picker's panel instead.
   - Area chips that step aside instead of hiding: MapLibre only shifts text labels
@@ -108,16 +101,6 @@
   - "Watch out for" says "Mixed up yesterday" without the board's "back today side by side": the
     planner doesn't pair mix-ups. Recall's empty state says "Shows after your first reviews",
     not "after 7 days": the rate shows as soon as reviews exist.
-  - The new parts (`TitledCard`, `MemoryRow`, `WeekBars`, `StreakWeek`, `MiniTally`,
-    `DistrictMap`, `AreaMiniMap`, `SheetHandle`, `TileGrid`, StatTile's caption, SectionTitle's
-    meta) and `color.map.district.started.fill` (in `app.json`) still need the design system run
-    on claude.ai; the canvas's Part 2 boards (the app as built) are only the tab bar, Me and the
-    app tokens so far.
-  - Explore was redrawn in the app (2026-11-17) and differs from V31-20: the basemap under a
-    color.surface.base veil (opacity.veil, in pp.json), the fills' key over the map, a tap
-    on a district picks it (the old tap opened the area picker), a pinned play card in the sheet
-    replaces the Play footer and the saved-round card, and the quick starts are a sideways row of
-    cards. Carry it back to the canvas with the design system run.
 
 - v3 recitals and drives (M6), left out on purpose:
   - Speech (SPEC §11): no Speak mode, transcript chips, Vosk model download or self-grade
@@ -189,70 +172,10 @@ and the specs after R5. Fix them in roughly this order.
 - Accepted divergences: the Home Pit stop card became the Pit stop tab's badge (R4); the cold start
   is a Flutter overlay (about 1.9 s) rather than `FlutterNativeSplash.preserve()` with the wordmark
   on the native splash.
-- Changed in the app, not yet on the claude.ai canvas (2026-11-16 UI sweep), to carry back:
-  - Area picker (v1-screens §3): the sheet is compact so the map stays the main thing: the title
-    over the count with the "All n" chip beside them, the chips in one row that scrolls sideways,
-    and the help line only while nothing is picked (or for the offline and few-streets notes).
-  - Add landmark (board V3-32): two steps. Picking the spot keeps the panel small (the kind's
-    tile, the title, the junction name and Next) and frames about 150 m around the junction;
-    Next opens the form (name, the kinds and the approaches each in one sideways row, the side)
-    with Change spot in the header and Save pinned under it.
-  - Smaller controls (2026-11-16): `PindoroButton` and `SearchField` are 48 dp
-    (`size.button.md`) instead of 56, and the street plate's name starts at `headline.sm` (22)
-    instead of `headline.md`. On claude.ai: `size.button.lg` usage, the StreetCard fit rule,
-    v1-screens § Frames, accessibility.md and signpost.md "56 dp".
-- Changed in the app from field feedback (2026-11-17, SPEC §16.18), to carry back to claude.ai:
-  - The street plate starts at `title.lg` (20) down to `size.plate.name-floor` (16, in
-    `app.json`), its sub-line on one line; the Reveal sheet has a 32 dp badge, a `title.lg`
-    label, 12 dp padding, a 56 dp Pindo and an optional icon button beside its action; the Intro
-    sheet 12–16 dp padding. Map screens keep 8 dp above and below the plate and end their footer
-    12 dp over the safe area.
-  - Settings → Map with Zoom buttons (off by default).
-  - The session bar's time pill counts down by the second ("5:26") instead of "6 min".
-  - The turn card (J) on the real map, turned so the driver goes up the screen: the approach
-    cobalt dashed with the car, exit buttons on the roads, the landmark badge, place names; the
-    plate reads "Driving on <street>" / "Heading to <place>" / "Which way at <landmark>?" and
-    the field "Then you're on… (optional)". The painted `JunctionMap` is gone; monuments use the
-    star glyph, not the flag.
-  - The place intro (a learning screen the canvas lacks): yellow place dot, "New place · 1 of 3",
-    the Intro sheet with Street View; the place reveal's dot and measure; street and place
-    names as map text (along the roads, under the icons) on intros, reveals and questions, with
-    the `color.map.vector.label` token; the Street View (eye) button.
-  - Explore: areas inside a district drawn and picked zoomed in; the play card's "48 streets at
-    Hard · 31 known"; the same line on the difficulty screen.
-  - Explore's first-question coach mark is gone, so `color.map.reticle` and `quizCoach*` copy are
-    unused in the app.
-  - "Can't find it?" (flag chip) on the place intro and place reveals, confirmed by "Hide
-    <place>?" (Keep it / Hide it); plaques and busts are no longer landmarks (SPEC §16.18 items
-    93–94).
-  - An area place's intro and reveal draw its outline in yellow, and the reveal measures to its
-    nearest edge (SPEC §16.18 item 95).
-- Changed in the app (2026-11-17), to carry back to claude.ai:
-  - No city picker while Tbilisi is the only city: the City screen and the CitySwitcher are gone,
-    the top bar shows the city's name without the chevron, Welcome's hero is "Start learning"
-    straight to Today (no "No recent cities yet" box, no "Find another city"), and a failed pack
-    download offers only Try again and, offline, Vake. A second city needs a picker again.
-  - Today's `done` card reads "Today's goal done" with Learn 10 more as its primary button;
-    Session done puts Learn 10 more above a secondary Done when it offers it. Time a day adds
-    45 and 60 min (21 and 28 new streets).
-  - Name it (SessionScreen `nameHidden` / `nameShown`) always offers six names: no Show name,
-    Forgot or Knew it, and the "What's this street called?" ask is gone (SPEC §16.18 item 98).
-- Changed in the app (2026-11-18, SPEC §16.19), to carry back to claude.ai:
-  - Today's Now learning card names a road class ("Main roads", "Next: Secondary roads") over the
-    city's districts until the neighbourhoods start; Progress's What's coming lists the classes
-    first (play / lock tiles, no chevron); placement's result says "New streets start with the
-    main roads." with a road glyph.
-  - Explore's quick starts open with "Your streets" (book glyph, "{n} streets learned") once 10
-    streets are learned.
-- Changed in the app (2026-11-19, SPEC §16.22), to carry back to claude.ai:
-  - Streets of a later road class than the one taught wait (no reviews) until the ladder reaches
-    them; Today, its forecasts and Your streets leave them out.
-  - The basemap draws fuel stations (Maki `fuel`, transit disc), shows places a zoom earlier,
-    names neighbourhoods and rivers with the places, names places on every map but a place
-    question's, and draws one-way arrows from z16
-    on every map: small tailed arrows in `color.map.vector.oneway` (2026-11-19, the z14 label-ink
-    chevrons were too loud).
-  - Lakes are not named (Protomaps gives them no label point); Lisi Lake is the only one.
+- Changed in the app, not yet on claude.ai: nothing since the 2026-11-20 sync (the design
+  system's "App sync" section, the canvas's board C-99). List new changes here, and new tokens
+  in `packages/pindoro_design/tokens/app.json`, for the next sync.
+- Lakes are not named (Protomaps gives them no label point); Lisi Lake is the only one.
 - Left out of the road-class pass, on purpose:
   - A "Your streets" round left half-way is not offered as Continue on Explore (Continue matches
     the chosen area).

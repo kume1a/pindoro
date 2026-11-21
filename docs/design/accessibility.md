@@ -5,7 +5,7 @@ Pindoro is a visual map game, so accessibility is designed in rather than bolted
 ## Touch and reach
 
 - Every interactive element has a 48 × 48 dp minimum target (`size.tap.min`), including map controls, exit buttons, chips (40 dp face inside a 48 dp target) and icon buttons.
-- Primary actions (Confirm, Next, Continue, Start, Catch up) are full-width 56 dp buttons at the bottom of the screen, in the thumb zone. Destructive or leaving actions are never in that position.
+- Primary actions (Confirm, Next, Continue, Start, Catch up) are full-width 48 dp buttons (`size.button.md`, since app 2.8) at the bottom of the screen, in the thumb zone; the search field is 48 dp too. Destructive or leaving actions are never in that position.
 - Adjacent targets are at least 8 dp apart.
 
 ## Colour and contrast
@@ -17,7 +17,7 @@ Pindoro is a visual map game, so accessibility is designed in rather than bolted
 ## Text scaling
 
 - Every text style scales with the system setting up to 200 %. Test at 100 %, 130 %, 160 % and 200 %.
-- The street plate grows downward and wraps the name to as many lines as needed; at 200 % the sub-line moves into the reveal sheet if the plate would cover more than 45 % of the map.
+- The street plate's name starts at `title.lg` (20) and steps down to `size.plate.name-floor` (16) × the text scale before it takes a third line; the plate grows downward, and its sub-line stays on one line. At 200 % the sub-line moves into the reveal sheet if the plate would cover more than 45 % of the map.
 - The reveal sheet scrolls internally at large sizes; **Next** stays pinned and visible.
 - Never ellipsize a street name except in the compact plate during the reveal (the full name is in the sheet).
 - Use `MediaQuery.textScalerOf(context)`; don't clamp text scale below 2.0.
@@ -31,12 +31,14 @@ Pindoro is a visual map game, so accessibility is designed in rather than bolted
 | Player's pin | "Your pin. Double-tap and hold to move." After a drop: "Pin dropped, 3 blocks north of the river." |
 | Confirm | "Confirm answer" (disabled: "Confirm. Drop a pin first.") |
 | Question bar | "Question 5 of 10" (a session: "Today’s session, 5 of 12") |
+| Round pill | "Round 1 of 3" (only when the day has more than one round) |
+| Place intro | Heading: "New place, 1 of 3. Tbilisi Concert Hall." "Can't find it? Hide this place" opens the "Hide {place}?" dialog. |
 | Reveal sheet | One live announcement: "Great. 84 metres away. Next review in 12 days." Focus moves to Next. |
-| Today card | "Today’s session: 24 reviews and 10 new streets, about 20 minutes." Then Start as its own button. |
+| Today card | "Today’s session: 24 reviews, 10 new streets and 6 turns, in 3 rounds." Then Start as its own button. Done: "Today’s goal done. 14-day streak kept, 22 reviews due tomorrow." |
 | Bottom nav | "Today, tab, 1 of 4, selected." |
 | Streak pill | "12-day streak." |
 | District | "Market. In progress, 6 of 10 streets." |
-| City memory | "City memory: 1 284 of 3 282 streets you’d place today, 8 more than yesterday." |
+| City memory | Today's row: "City memory 1 284 of 3 216 streets, plus 8 since yesterday. Opens Progress." Progress's card: "City memory: 1 284 of 3 216 streets you’d place today, 8 more than yesterday." |
 | Pindo | Decorative by default (excluded from semantics); in empty states, describe the moment. |
 
 Use Flutter `Semantics` with `header`, `button`, `liveRegion` (reveal, toasts) and `excludeSemantics` for decoration. Group a stat chip's icon and text into one node.

@@ -5,6 +5,7 @@ import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/account/ui/account_screen.dart';
 import 'package:pindoro/features/drive/ui/drive_screen.dart';
+import 'package:pindoro/features/drive/ui/past_drives_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/me/ui/me_screen.dart';
@@ -172,6 +173,15 @@ GoRouter buildRouter(String initialLocation) {
         builder: (_, _) => const MemoryModelScreen(),
       ),
       GoRoute(path: Routes.drive, builder: (_, _) => const DriveScreen()),
+      GoRoute(
+        path: Routes.pastDrives,
+        builder: (_, _) => const PastDrivesScreen(),
+      ),
+      GoRoute(
+        path: Routes.pastDrive,
+        redirect: _requires('id', otherwise: Routes.pastDrives),
+        builder: (_, state) => PastDriveScreen(id: _param(state, 'id')),
+      ),
     ],
   );
 }

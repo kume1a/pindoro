@@ -67,6 +67,12 @@ String _km(double metres, AppLocalizations l10n) =>
 String _decimal(String pattern, double value, AppLocalizations l10n) =>
     NumberFormat(pattern, l10n.localeName).format(value);
 
+/// "04:07" (minutes and seconds) for a drive's clock and its GPS gaps.
+String formatClock(Duration d) {
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${two(d.inMinutes)}:${two(d.inSeconds % 60)}';
+}
+
 /// "5 min", "2 h", "3 d" for how long ago something happened.
 String formatAgo(Duration ago, AppLocalizations l10n) {
   if (ago.inMinutes < 60) return l10n.unitMinutes(ago.inMinutes.clamp(1, 59));

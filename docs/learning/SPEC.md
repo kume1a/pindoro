@@ -413,6 +413,7 @@ pindoro_core `ScoringConfig`, not copied):
 | `driveSampleM`, `driveSnapM`, `driveHeadingM` (per 90°)              | 20, 35, 20                          |
 | `driveTurnBackM`, `driveWrongWayM`, `driveArriveM`                   | 40, 15, 200                         |
 | `hesitationJunctionM`                                                | 30                                  |
+| `gpsGapS`, `driveTrackKeepDays`                                      | 10, 90                              |
 | `calibrationBins`, `calibrationTolerance`, `calibrationMinReviews`   | 10, 0.05, 20                        |
 | `fitMinReviews`                                                      | 1000                                |
 | `tierCReliefDays`, `tierCReliefReplayDays`                           | 7, 28                               |
@@ -1000,3 +1001,105 @@ names.
      - One-way arrows (OSM `oneway=yes`, from z16) show on every map, questions included: a
        driver sees them too. They are small tailed arrows a step off the road paint
        (`color.map.vector.oneway`), so they never pull the eye; two-way streets get none.
+
+### 16.23 Navigation that fades (2026-11-20)
+
+The player drives with the phone in a holder (CarPlay connected only for music) and wants Pindoro
+to replace Waze and Yandex, then to be needed less and less. Research:
+`docs/research/03-navigation-that-fades.md`. Screens: canvas page "v3.2 · Navigate and learn". The
+numbers go into §13 and `constants.dart` with the code (PLAN M9).
+
+112. **Four levels, applied per decision.** A decision is a junction where the route turns onto
+     another named street, or one with another legal way on that looks as likely (item 78).
+     - Guided: heading-up map with a north arrow, the route, district names, the current and next
+       street names; voice at every decision and a confirmation 5–10 s after each turn
+       ("Chavchavadze Avenue, heading west"). No FSRS effect.
+     - Coached: the Quiet screen; voice only at decisions that aren't silent-eligible (item 113),
+       a cue without a question ("At Vake Park, left onto Chavchavadze"); silent elsewhere.
+     - Quiet: silent until a decision fails, then recovery (item 115).
+     - Off: the GPS-free drive (§16.15 item 81), a dark screen with a recording dot.
+113. **Silent-eligible**: the decision's J card is Known, its R ≥ `silentMinR` (0.85) and it
+     failed nowhere (session, recital, drive) in `silentNoFailDays` (14). A decision with no J item
+     in the book is silent-eligible when the player took it on their own on the last two drives
+     through it and missed it nowhere in `silentNoFailDays` (board V32-99).
+114. **Suggested level** from the share S of silent-eligible decisions on the route: Off at S ≥
+     0.90 with every R ≥ 0.75 and a Quiet drive on this route (80 % overlap) with at most one
+     recovery; Quiet at S ≥ 0.70; Coached at S ≥ 0.40; else Guided, and always Guided when the
+     destination's area has fewer than 5 introduced J cards. One level less after two drives in a
+     row at the level with stretch ≤ 1.25 and at most one recovery; one more after two with
+     stretch > 1.60 or three recoveries; never more than one step. The player may always choose
+     more help, and one step less.
+115. **Recovery**: a decision that fails §5.3 step 6 (or is illegal) brings the voice and a
+     heading-up next-turn view until the car has been on a good path for 10 s. Frustration guard:
+     two recoveries within 5 min, or 180 s lost against the best route, switch the rest of the
+     drive to Coached, said once ("I'll guide the tricky turns for the rest of this drive");
+     three recoveries at Coached switch to Guided.
+116. **No touch while moving.** Above 5 km/h the screen takes no input; every in-drive change is
+     automatic. Stopped is below 5 km/h for 2 s: then destination, level, preview, mute and End
+     drive show, and they leave the moment the speed passes 5 km/h (an open picker closes
+     unchanged). A level changed while stopped applies at once; one the guard set holds to the end
+     unless changed while stopped. Arrival (stopped within 50 m of the destination) ends the drive
+     by itself; End drive asks nothing; both offer the debrief. Grading's "arrived" stays
+     `driveArriveM`. Off's "Lost? Show the way" becomes Rescue: while stopped, one tap, no question,
+     gives Guided to the destination; the drive is marked rescued, its later decisions are watched
+     only, and its tier is at most Close. Off records with the screen locked, as GPS-free drives do.
+117. **Voice**: landmark, then action, then street ("At Vake Park, turn left onto Chavchavadze
+     Avenue"); a distance only when no landmark is within 50 m of the junction; traffic lights
+     count as a landmark. A prepare prompt at max(150 m, 10 s) and an action prompt at max(40 m,
+     4 s), at most two per decision (Coached: the prepare prompt only), each ≤ 3 s. A district cue
+     ("Into Vake, heading north") on crossing into a district in Guided and Coached, at most every
+     2 km and 3 min. No questions in the car. Names are spoken in the street-names setting with a
+     voice the phone has, without their kind word in turn prompts; music ducks 12 dB. When prompts
+     collide: action, recovery, prepare, confirmation, district cue. Coached confirms only the
+     turns it spoke. Mute silences every prompt; recovery still shows on screen. GPS lost: a line
+     after 10 s, "Still finding you" at 60 s; decisions in the gap count neither way.
+118. **Screens**: Quiet and Coached are dark, with a heading arrow and its cardinal letter, the
+     district name and a status dot (on a good path, recovering); no map, route, next turn or
+     street name, since those would answer cards. Preview and review are north-up. While moving:
+     cap height ≥ 6 mm (≥ 8 mm for the one primary item), at most 3 text items, contrast ≥ 3:1 by
+     day and 5:1 at night (text 7:1), a dim night look chosen by sun time at the car's position,
+     whatever the app theme. Quiet is dark by day too; Off is black.
+119. **Evidence** (for drives this replaces §4's "correct decisions are logged only"; recitals
+     keep it): a decision with no prompt of its own and no recovery in the 60 s before it
+     (Coached-silent, Quiet, Off) reviews its J card: Good, or Hard after a hesitation within
+     150 m before the junction; a failure is Again as before; never Easy. A success counts only
+     while the card's R ≤ 0.92, once per card a day, and on a habitual corridor (passed ≥ 3 times
+     in 14 days in the same direction) once per 7 days; failures always count. Guided turns,
+     Coached cues and recovery decisions are exposure only; a wrong move while guided is a
+     "followed-guidance error", not a lapse. J cards stay one-way: a success never credits the
+     reverse, and a habitual route queues its reverse J items for introduction.
+120. **Your routes first, up to a quarter**: a book junction on a route driven ≥ 2 times in 14
+     days, or on the home–work route, may be introduced ahead of the road-class order, up to 25 %
+     of the day's new cards, with its streets' P cards (the main road it hangs on first). The rest
+     keeps the order of §16.19 and §16.22. If City memory grows below 80 % of its earlier rate,
+     the cap drops to 15 %.
+121. **Before and after.** Preview (parked, 60–90 s): north-up whole route with district names
+     (about 20 s), then the key decisions with their landmarks (about 10 s each): the ones not
+     silent-eligible plus complex junctions and roundabouts, 3 to 7. An optional "Recite the turns"
+     follows (feedback at once, exposure only: the turns were just shown). Debrief on arrival
+     (offered for 24 h): the key decisions plus every missed or helped one, at most 7, each
+     recalled before it's shown; missed turns join a short drill as relearns; once per new
+     destination, "Point to home" with the compass (tiers at 10°, 25°, 45°), logged as the
+     pointing error.
+122. **Weekly drive goal**: two drives at Quiet or Off and one new destination reached without
+     help a week (Monday to Sunday), counted as weeks done, not a streak. A missed week shows
+     "Back on track", never a reset. The planning prompt ("Pick your two drives") comes on Monday
+     or the week's first open. New destinations are suggested next to known ground (S ≥ 0.60),
+     Surprise me at S ≥ 0.70.
+123. **Progress**: each frequent route's level history ("Home → Work: Guided in March, Off since
+     June") and a weekly line ("This week: 3 drives without help, 1 new place, 92 % of turns on
+     your own"). Tiers stay; no XP.
+124. **Drive log**, every drive at every level: the level suggested, chosen and changed (and why),
+     GPS gaps, each decision (item, help given, prompts, outcome, ratio, hesitation, FSRS effect or
+     why none), the voice prompts, screen states, touches while moving (expected none), names
+     heard or shown, and the preview, debrief and pointing results, append-only like
+     `review_log`. The 1 Hz track (with accuracy, heading and speed) stays on the phone for 90 days,
+     then only the rest is kept (board V32-60).
+125. **Routing**: navigation prefers main roads (edge cost is time by road class, speeds in §13);
+     grading keeps the shortest legal route (§5.3). A destination outside the pack can be found
+     but not chosen.
+126. **Where the v3.2 boards differ, this spec wins** (the canvas was drawn without the research):
+     the suggested level (item 114, not V32-99's 100 / 90 / 60 %), Good and Hard (item 119, not
+     "under 10 km/h for 3 s in the last 100 m"), a wrong turn and a good path (§5.3 step 6's 1.25×,
+     not 15 % or 30 m), drive tiers (§5.3's stretch, not counts of misses), and the preview's
+     recited turns (exposure only, not a J review).
