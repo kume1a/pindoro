@@ -15,6 +15,8 @@ import 'package:pindoro/core/location.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
 import 'package:pindoro/features/drive/ui/drive_screen.dart';
+import 'package:pindoro/features/drive/ui/past_drives_screen.dart';
+import 'package:pindoro/features/learning/data/drive_log.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -33,6 +35,7 @@ void main() {
   late Route route;
   late Map<String, NamedStreet> streets;
   final now = DateTime(2026, 11, 16, 9);
+  late DateTime clockNow;
 
   setUpAll(() {
     final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
@@ -60,10 +63,11 @@ void main() {
         closeStreamsSynchronously: true,
       ),
     );
+    clockNow = now;
     location = _Track(route.lines.first.first);
     overrides = [
       databaseProvider.overrideWithValue(db),
-      clockProvider.overrideWithValue(() => now),
+      clockProvider.overrideWithValue(() => clockNow),
       locationServiceProvider.overrideWithValue(location),
       packRepositoryProvider.overrideWith((ref) async {
         final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
@@ -124,7 +128,38 @@ void main() {
     expect(review.graded!.tier, Tier.perfect);
     expect(review.stoppedM, isNull);
     expect(review.match.uTurns, isEmpty);
+    expect(review.gaps.count, 0);
     expect(location.cancelled, isTrue);
+
+    final log = container.read(driveLogDaoProvider);
+    final drive = (await log.all()).single;
+    expect(drive.level, DriveLevel.off);
+    expect(drive.goal, DriveTo.run.name);
+    expect(drive.outcome, DriveOutcome.arrived);
+    expect(drive.tier, Tier.perfect);
+    expect(drive.fixes, location.sent);
+    expect(drive.gpsGaps, 0);
+    expect(await log.track(drive.id), hasLength(location.sent));
+    final replay = await container.read(pastDriveProvider(drive.id).future);
+    expect(replay!.match.path.edges.map((e) => e.id), [
+      for (final e in route.edges) e.id,
+    ]);
+    expect(replay.graded!.tier, Tier.perfect);
+    expect(replay.credited, review.credited);
+  });
+
+  test('a drive that loses GPS logs its gaps and says so', () async {
+    final controller = container.read(driveControllerProvider.notifier);
+    container.listen(driveControllerProvider, (_, _) {});
+    await controller.start(title: 't', text: 't');
+    final lastFix = await location.drive(route, now);
+    clockNow = lastFix.add(const Duration(seconds: 130));
+    await controller.end();
+    final review = container.read(driveControllerProvider) as DriveReview;
+    expect(review.gaps, (count: 1, longest: const Duration(seconds: 130)));
+    final drive = (await container.read(driveLogDaoProvider).all()).single;
+    expect(drive.gpsGaps, 1);
+    expect(drive.longestGapS, 130);
   });
 
   test('a double tap on Start or I’m there records and saves once', () async {
@@ -141,16 +176,62 @@ void main() {
     final saved = review.credited + review.failed;
     expect(saved, greaterThan(0));
     expect(await db.select(db.implicitEvidence).get(), hasLength(saved));
+    expect(await container.read(driveLogDaoProvider).all(), hasLength(1));
   });
 
-  test('Lost? Show the way ends the test unrecorded', () async {
-    final controller = container.read(driveControllerProvider.notifier);
-    container.listen(driveControllerProvider, (_, _) {});
-    await controller.start(title: 't', text: 't');
-    await controller.abandon();
-    expect(container.read(driveControllerProvider), isA<DriveSetup>());
-    expect(location.cancelled, isTrue);
-    expect(await db.select(db.implicitEvidence).get(), isEmpty);
+  test(
+    'Lost? Show the way ends the test ungraded and logs it as abandoned',
+    () async {
+      final controller = container.read(driveControllerProvider.notifier);
+      container.listen(driveControllerProvider, (_, _) {});
+      await controller.start(title: 't', text: 't');
+      await controller.abandon();
+      expect(container.read(driveControllerProvider), isA<DriveSetup>());
+      expect(location.cancelled, isTrue);
+      expect(await db.select(db.implicitEvidence).get(), isEmpty);
+      final drive = (await container.read(driveLogDaoProvider).all()).single;
+      expect(drive.outcome, DriveOutcome.abandoned);
+      expect(drive.tier, isNull);
+    },
+  );
+
+  test('the log keeps every drive but drops tracks after '
+      '${LearningConfig.driveTrackKeepDays} days, and never rewrites a '
+      'drive', () async {
+    final log = container.read(driveLogDaoProvider);
+    DriveRow drive(String id, DateTime endedAt) => DriveRow(
+      id: id,
+      startedAt: endedAt,
+      endedAt: endedAt,
+      level: DriveLevel.off,
+      goal: DriveTo.run.name,
+      targetNode: 1,
+      targetStreet: 's',
+      outcome: DriveOutcome.arrived,
+      drivenM: 100,
+      credited: 0,
+      failed: 0,
+      fixes: 0,
+      gpsGaps: 0,
+      longestGapS: 0,
+    );
+    await log.save(drive('old', now), '');
+    await log.save(drive('kept', now.add(const Duration(days: 1))), '');
+    await log.save(
+      drive(
+        'new',
+        now.add(const Duration(days: LearningConfig.driveTrackKeepDays + 1)),
+      ),
+      '',
+    );
+    expect(await log.all(), hasLength(3));
+    expect(await log.track('old'), isNull);
+    expect(await log.track('kept'), isEmpty);
+    expect(
+      () => db.customStatement("UPDATE drive SET goal = 'own'"),
+      throwsA(anything),
+    );
+    expect(() => db.customStatement('DELETE FROM drive'), throwsA(anything));
   });
 
   testWidgets('the screens: setup with today\'s run, recording with no map, '
@@ -220,6 +301,9 @@ class _Track extends LocationService {
   (String, String)? notice;
   bool cancelled = false;
 
+  /// How many fixes [drive] sent.
+  int sent = 0;
+
   @override
   Future<LocationResult> locate() async => Located(here);
 
@@ -230,7 +314,8 @@ class _Track extends LocationService {
     return _fixes.stream;
   }
 
-  Future<void> drive(Route route, DateTime start) async {
+  /// Plays [route] from [start] and returns the last fix's time.
+  Future<DateTime> drive(Route route, DateTime start) async {
     const mps = 8.0;
     var t = start;
     var carry = 0.0;
@@ -249,7 +334,9 @@ class _Track extends LocationService {
             t: t,
             headingDeg: heading,
             speedMps: mps,
+            accuracyM: 5,
           ));
+          sent++;
           t = t.add(const Duration(seconds: 1));
           await Future<void>.delayed(Duration.zero);
         }
@@ -257,7 +344,9 @@ class _Track extends LocationService {
       }
     }
     final end = route.lines.last.last;
-    _fixes.add((at: end, t: t, headingDeg: null, speedMps: 0));
+    _fixes.add((at: end, t: t, headingDeg: null, speedMps: 0, accuracyM: 5));
+    sent++;
     await Future<void>.delayed(Duration.zero);
+    return t;
   }
 }

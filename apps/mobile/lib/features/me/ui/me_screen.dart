@@ -10,6 +10,7 @@ import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/badges/data/badge_data.dart';
 import 'package:pindoro/features/badges/ui/badge_look.dart';
+import 'package:pindoro/features/learning/data/drive_log.dart';
 import 'package:pindoro/features/me/data/me_data.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -88,7 +89,38 @@ class MeScreen extends ConsumerWidget {
       ],
       SectionTitle(l10n.meCities),
       ListGroup(children: [for (final city in me.cities) _CityRow(city)]),
+      SectionTitle(l10n.meDrives),
+      ListGroup(
+        children: [
+          ListRow(
+            title: l10n.driveTitle,
+            subtitle: l10n.driveRuleMap,
+            leading: const RowTile(PindoroGlyph.route),
+            trailing: const PindoroIcon(PindoroGlyph.chevronRight),
+            onTap: () => unawaited(context.push(Routes.drive)),
+          ),
+          const _DrivesRow(),
+        ],
+      ),
     ];
+  }
+}
+
+/// Past drives, with how many there are.
+class _DrivesRow extends ConsumerWidget {
+  const _DrivesRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final count = ref.watch(pastDrivesProvider).value?.length ?? 0;
+    return ListRow(
+      title: l10n.pastDrivesTitle,
+      subtitle: l10n.meDrivesCount(count),
+      leading: const RowTile(PindoroGlyph.car),
+      trailing: const PindoroIcon(PindoroGlyph.chevronRight),
+      onTap: () => unawaited(context.push(Routes.pastDrives)),
+    );
   }
 }
 

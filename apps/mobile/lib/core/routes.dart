@@ -58,6 +58,12 @@ abstract final class Routes {
   /// A GPS-free drive: setup, recording and review (DriveScreen).
   static const String drive = '/drive';
 
+  /// Every drive, the latest first, and one of them (`?id=`) replayed.
+  static const String pastDrives = '/drive/past';
+  static const String pastDrive = '/drive/past/one';
+
+  static String pastDriveOf(String id) => '$pastDrive?id=$id';
+
   static String progressOf(String districtId) =>
       '$progressDistrict?id=$districtId';
   static String anchorOf(String which) => '$anchor?which=$which';

@@ -7,6 +7,7 @@ export 'src/constants.dart';
 export 'src/curriculum.dart';
 export 'src/drills.dart';
 export 'src/drive.dart';
+export 'src/drive_log.dart';
 export 'src/export.dart';
 export 'src/fsrs.dart';
 export 'src/grader.dart';

@@ -1,0 +1,12 @@
+import 'database.dart';
+
+-- The drive log is append-only (docs/learning/SPEC.md §16.23 item 124); only drive_track rows go.
+CREATE TRIGGER drive_no_update BEFORE UPDATE ON drive
+BEGIN
+  SELECT RAISE(ABORT, 'drive rows are immutable');
+END;
+
+CREATE TRIGGER drive_no_delete BEFORE DELETE ON drive
+BEGIN
+  SELECT RAISE(ABORT, 'drive rows are never deleted');
+END;

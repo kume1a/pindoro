@@ -2726,5 +2726,45 @@
       }
     }
   },
-  "meStreetsInMemory": "Streets in memory"
+  "meStreetsInMemory": "Streets in memory",
+  "driveGpsLost": "{count, plural, =1{GPS lost once, for {longest}.} other{GPS lost {count} times, longest {longest}.}}",
+  "@driveGpsLost": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "longest": {
+        "type": "String"
+      }
+    }
+  },
+  "pastDrivesTitle": "Past drives",
+  "pastDrivesEmpty": "Your drives show here once you've driven one, each with its track and how well GPS kept up.",
+  "pastDriveTo": "To {street}",
+  "@pastDriveTo": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "pastDriveAbandoned": "Asked for the way",
+  "pastDriveGpsLost": "{count, plural, =1{GPS lost once} other{GPS lost {count} times}}",
+  "@pastDriveGpsLost": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pastDriveGone": "This drive's track is no longer kept, or its destination left the city pack.",
+  "meDrives": "Drives",
+  "meDrivesCount": "{count, plural, =0{None yet} =1{1 drive} other{{count} drives}}",
+  "@meDrivesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

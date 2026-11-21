@@ -712,5 +712,14 @@
   "a11yPlayArea": "სათამაშო ადგილი: {area}. ადგილის შეცვლა.",
   "a11yDifficulty": "სირთულე: {difficulty}. სირთულის შეცვლა.",
   "a11yExploreMap": "{city}-ის რაიონების რუკა, შევსებული იმის მიხედვით, თითოეულის რა ნაწილია მეხსიერებაში. შეეხე, რომ აირჩიო შემდეგი რაუნდისთვის.",
-  "meStreetsInMemory": "ქუჩები მეხსიერებაში"
+  "meStreetsInMemory": "ქუჩები მეხსიერებაში",
+  "driveGpsLost": "{count, plural, =1{GPS ერთხელ დაიკარგა, {longest}-ით.} other{GPS {count}-ჯერ დაიკარგა, ყველაზე დიდხანს {longest}.}}",
+  "pastDrivesTitle": "წინა მგზავრობები",
+  "pastDrivesEmpty": "აქ გამოჩნდება შენი მგზავრობები, თითოეული თავისი ტრეკით და იმით, რამდენად კარგად მუშაობდა GPS.",
+  "pastDriveTo": "{street}-მდე",
+  "pastDriveAbandoned": "გზა იკითხე",
+  "pastDriveGpsLost": "{count, plural, =1{GPS ერთხელ დაიკარგა} other{GPS {count}-ჯერ დაიკარგა}}",
+  "pastDriveGone": "ამ მგზავრობის ტრეკი აღარ ინახება, ან დანიშნულება ქალაქის პაკეტში აღარ არის.",
+  "meDrives": "მგზავრობები",
+  "meDrivesCount": "{count, plural, =0{ჯერ არცერთი} =1{1 მგზავრობა} other{{count} მგზავრობა}}"
 }

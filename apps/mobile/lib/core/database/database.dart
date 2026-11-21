@@ -378,6 +378,60 @@ class TurnOverrides extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+/// Every drive (SPEC §16.23 item 124), append-only (`drive_immutable.drift`); its track sits in
+/// `drive_track` while it is kept.
+@DataClassName('DriveRow')
+class Drives extends Table {
+  @override
+  String get tableName => 'drive';
+
+  TextColumn get id => text()();
+  DateTimeColumn get startedAt => dateTime()();
+  DateTimeColumn get endedAt => dateTime()();
+  TextColumn get level => textEnum<DriveLevel>()();
+
+  /// The setup's choice: `run`, `surprise` or `own`.
+  TextColumn get goal => text()();
+
+  /// The destination's OSM node (pack junction ids change between packs); null when the pack
+  /// has no node for it.
+  IntColumn get targetNode => integer().nullable()();
+
+  /// The destination street, by any of its parts' ids.
+  TextColumn get targetStreet => text()();
+  TextColumn get outcome => textEnum<DriveOutcome>()();
+  RealColumn get drivenM => real()();
+
+  /// Null when nothing was graded (no fix near a road, or the drive was abandoned).
+  TextColumn get tier => textEnum<Tier>().nullable()();
+  RealColumn get stretch => real().nullable()();
+  IntColumn get uTurns => integer().nullable()();
+  IntColumn get hesitations => integer().nullable()();
+
+  /// Turns of the route book credited and failed.
+  IntColumn get credited => integer()();
+  IntColumn get failed => integer()();
+  IntColumn get fixes => integer()();
+  IntColumn get gpsGaps => integer()();
+  IntColumn get longestGapS => integer()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+/// A drive's fixes (`encodeTrack`), dropped after `driveTrackKeepDays` (SPEC §16.23 item 124).
+@DataClassName('DriveTrackRow')
+class DriveTracks extends Table {
+  @override
+  String get tableName => 'drive_track';
+
+  TextColumn get driveId => text().references(Drives, #id)();
+  TextColumn get track => text()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {driveId};
+}
+
 @DriftDatabase(
   tables: [
     UserSettings,
@@ -396,14 +450,20 @@ class TurnOverrides extends Table {
     ImplicitEvidence,
     Runs,
     TurnOverrides,
+    Drives,
+    DriveTracks,
   ],
-  include: {'answer_immutable.drift', 'review_log_immutable.drift'},
+  include: {
+    'answer_immutable.drift',
+    'review_log_immutable.drift',
+    'drive_immutable.drift',
+  },
 )
 class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 22;
+  static const int version = 23;
 
   @override
   int get schemaVersion => version;
@@ -513,6 +573,12 @@ class AppDatabase extends _$AppDatabase {
           m.addColumn(schema.userSettings, schema.userSettings.fsrsWeights),
       from21To22: (m, schema) =>
           m.addColumn(schema.userSettings, schema.userSettings.zoomButtons),
+      from22To23: (m, schema) async {
+        await m.createTable(schema.drive);
+        await m.createTable(schema.driveTrack);
+        await m.create(schema.driveNoUpdate);
+        await m.create(schema.driveNoDelete);
+      },
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );
