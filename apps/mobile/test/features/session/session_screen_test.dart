@@ -482,6 +482,8 @@ void main() {
       expect(find.text('Which street is painted yellow?'), findsOneWidget);
       expect(find.text('6 names'), findsOneWidget);
       expect(maps.last.truth, a.geometry, reason: 'the street is the cue');
+      await tester.ensureVisible(find.text(a.name).last);
+      await tester.pump();
       await tester.tap(find.text(a.name).last);
       await tester.pump();
       await confirmTray(tester);
@@ -745,6 +747,8 @@ void main() {
       expect(find.textContaining(q.landmark.name), findsWidgets);
       final tray = tester.widget<AnswerTray>(find.byType(AnswerTray));
       final right = tray.choices[q.junctions.indexOf(q.junction!)].label;
+      await tester.ensureVisible(find.text(right));
+      await tester.pump();
       await tester.tap(find.text(right));
       await tester.pump();
       await confirmTray(tester);
