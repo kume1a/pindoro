@@ -55,6 +55,8 @@ void main() {
 
   testWidgets('Settings shares the review log', (tester) async {
     await pump(tester);
+    await tester.ensureVisible(row);
+    await tester.pump();
     await tapThrough(tester, row);
     expect(exports, 1);
     expect(
@@ -66,6 +68,8 @@ void main() {
   testWidgets('a failed export says so', (tester) async {
     fail = true;
     await pump(tester);
+    await tester.ensureVisible(row);
+    await tester.pump();
     await tapThrough(tester, row);
     expect(exports, 1);
     expect(

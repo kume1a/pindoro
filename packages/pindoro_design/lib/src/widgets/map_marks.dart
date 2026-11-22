@@ -117,6 +117,35 @@ Future<Uint8List> onewayArrowPng(Color color, double pixelRatio) {
   });
 }
 
+/// The head of Guided's turn arrow on the map: a [fill] triangle pointing up
+/// in a [casing] rim, as a 28 × 22 dp PNG whose bottom centre sits on the
+/// arrow's end.
+Future<Uint8List> turnArrowHeadPng({
+  required Color fill,
+  required Color casing,
+  required double pixelRatio,
+}) {
+  const size = Size(28, 22);
+  const rim = PindoroStroke.thick;
+  final head = Path()
+    ..moveTo(size.width / 2, rim)
+    ..lineTo(size.width - rim, size.height - rim)
+    ..lineTo(rim, size.height - rim)
+    ..close();
+  return _png(size, pixelRatio, (canvas) {
+    canvas
+      ..drawPath(
+        head,
+        Paint()
+          ..color = casing
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2 * rim
+          ..strokeJoin = StrokeJoin.round,
+      )
+      ..drawPath(head, Paint()..color = fill);
+  });
+}
+
 /// The road-trip replay's car (`.pd-map-car`): a route-arrow disc with the
 /// car in route paint, on a white halo, as a PNG centred on its point.
 class CarMark {
@@ -150,6 +179,45 @@ class CarMark {
     } finally {
       car.picture.dispose();
     }
+  }
+}
+
+/// Guided's car as a navigation arrow (the default): a cobalt arrowhead pointing up, its
+/// right half in the lip shade, in a halo rim, as a 36 × 40 dp PNG centred on its point.
+/// Laid flat on the map, it points along the road.
+class ArrowMark {
+  const ArrowMark(this.colors);
+
+  final PindoroColors colors;
+
+  static const Size size = Size(36, 40);
+
+  Future<Uint8List> toPng(double pixelRatio) {
+    const rim = PindoroStroke.thick;
+    final tip = Offset(size.width / 2, rim);
+    final notch = Offset(size.width / 2, size.height * 0.7);
+    final left = Offset(rim, size.height - rim);
+    final right = Offset(size.width - rim, size.height - rim);
+    Path shape(List<Offset> points) => Path()..addPolygon(points, true);
+    return _png(size, pixelRatio, (canvas) {
+      canvas
+        ..drawPath(
+          shape([tip, right, notch, left]),
+          Paint()
+            ..color = colors.mapPlayerHalo
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2 * rim
+            ..strokeJoin = StrokeJoin.round,
+        )
+        ..drawPath(
+          shape([tip, notch, left]),
+          Paint()..color = colors.mapPlayerPin,
+        )
+        ..drawPath(
+          shape([tip, right, notch]),
+          Paint()..color = colors.mapPlayerPinLip,
+        );
+    });
   }
 }
 

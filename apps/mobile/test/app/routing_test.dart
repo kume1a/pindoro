@@ -11,6 +11,8 @@ import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/routes.dart';
+import 'package:pindoro/features/drive/ui/drive_screen.dart';
+import 'package:pindoro/features/drive/ui/drive_tab.dart';
 import 'package:pindoro/features/map/ui/area_picker_map.dart';
 import 'package:pindoro/features/map/ui/explore_map.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
@@ -141,7 +143,7 @@ void main() {
       await tester.pumpAndSettle();
     }
     expect(find.text('Let’s see what you already know'), findsNothing);
-    expect(await tester.runAsync(() => startLocation(db)), Routes.today);
+    expect(await tester.runAsync(() => startLocation(db)), Routes.driveTab);
   });
 
   testWidgets('Explore: area -> difficulty -> round', (tester) async {
@@ -230,7 +232,7 @@ void main() {
       )
       .first;
 
-  testWidgets('tabs keep their place; back goes to Today first', (
+  testWidgets('tabs keep their place; back goes to Drive first', (
     tester,
   ) async {
     calm(tester);
@@ -260,13 +262,23 @@ void main() {
       () => Future<void>.delayed(const Duration(milliseconds: 100)),
     );
     await tester.pumpAndSettle();
-    expect(find.byType(TodayScreen).hitTestable(), findsOneWidget);
+    expect(find.byType(DriveTab).hitTestable(), findsOneWidget);
 
     await tapLabelled(tester, 'Progress');
     expect(offset(), greaterThan(0), reason: 'the tab kept its scroll');
 
     await tapLabelled(tester, 'Progress');
     expect(offset(), 0, reason: 'tapping the open tab scrolls it up');
+  });
+
+  testWidgets('a pick on the Drive tab opens the drive over the tabs', (
+    tester,
+  ) async {
+    await pumpApp(tester, Routes.driveTab);
+    expect(find.byType(DriveTab), findsOneWidget);
+    await tapAndSettle(tester, 'Surprise me');
+    expect(find.byType(DriveScreen), findsOneWidget);
+    expect(find.byType(PindoroNavBar).hitTestable(), findsNothing);
   });
 
   testWidgets('settings lead to the map data credits', (tester) async {

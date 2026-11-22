@@ -5,11 +5,11 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'constants.dart';
 import 'drive.dart';
 import 'drive_log.dart';
+import 'grader.dart';
 import 'nav_level.dart';
 import 'nav_route.dart';
 import 'recital.dart';
 import 'route_questions.dart';
-import 'routes.dart';
 
 /// What navigation says, most urgent first (SPEC §16.23 items 115, 117, 127): when two come
 /// together the first wins and the other is dropped.
@@ -68,6 +68,15 @@ typedef NavView = ({
   int? gpsLostS,
   LatLng? at,
   double? headingDeg,
+
+  /// The car on its plan and the way the road runs there ([LearningConfig.navRoadAheadM]
+  /// ahead): Guided's car and bearing, the road ahead straight up (item 130). Null off the
+  /// plan or before its first junction.
+  ({LatLng at, double headingDeg})? onRoad,
+
+  /// The road from the car to the plan's first junction while it is still short of it (the
+  /// plan's route starts there); empty once on the route.
+  Polyline toPlan,
   double speedKmh,
   int? limitKmh,
 
@@ -96,14 +105,18 @@ typedef NavView = ({
   NamedStreet? street,
   String? district,
 
+  /// The metres driven so far: with [leftM], the bar's progress.
+  double drivenM,
+
   /// The plan's metres and seconds left.
   double? leftM,
   double? leftS,
   NavPlan? plan,
 });
 
-/// One step of navigation: the view, at most one prompt, and whether to chime for speed.
-typedef NavUpdate = ({NavView view, NavPrompt? prompt, bool chime});
+/// One step of navigation: the view, the prompts due (most urgent first; each is due once, so
+/// the app says them all), and whether to chime for speed.
+typedef NavUpdate = ({NavView view, List<NavPrompt> prompts, bool chime});
 
 NavPrompt _prompt(
   PromptKind kind, {
@@ -123,9 +136,6 @@ NavPrompt _prompt(
   limitKmh: limitKmh,
 );
 
-double _angleOff(double a, double b) =>
-    (((a - b) % 360 + 540) % 360 - 180).abs();
-
 /// Navigation to [destination] fed one fix at a time (SPEC §16.23 items 112–117, 127): where the
 /// car is on the plan, the next decision and its prompts by level, a silent new plan after a
 /// move that keeps a good path, recovery after one that doesn't, the frustration guard, district
@@ -141,7 +151,9 @@ class Navigator {
     this.junctionNodes = const {},
     this.silent = const {},
     this.districtAt,
-  }) : _destination = destination,
+    Route? prefer,
+  }) : _prefer = prefer,
+       _destination = destination,
        _level = level,
        _camerasByEdge = _byEdge(graph.cameras);
 
@@ -162,6 +174,10 @@ class Navigator {
   final String? Function(LatLng at)? districtAt;
 
   final Map<int, List<SpeedCamera>> _camerasByEdge;
+
+  /// The route picked at setup (SPEC §16.23 item 129): the first plan follows it from where the
+  /// car joins it; once off it, the quickest way is planned as ever.
+  Route? _prefer;
 
   /// The decisions passed so far, in order.
   final List<PassedDecision> passed = [];
@@ -202,6 +218,16 @@ class Navigator {
   DriveFix? _last;
   DateTime? _stillSaidFor;
 
+  /// The last heading taken while moving: a stopped or crawling fix's heading is noise (or a
+  /// platform's 0 for none), so the screens keep this one.
+  double? _headingDeg;
+
+  /// The first tick, from which a drive with no fix yet counts as GPS lost.
+  DateTime? _firstTick;
+
+  /// Whether the last fix was on the plan.
+  bool _onPlan = false;
+
   DriveLevel get level => _level;
   bool get rescued => _rescued;
   int get recoveries => _recoveries.length;
@@ -217,6 +243,7 @@ class Navigator {
   void setDestination(int to, {Set<String> silent = const {}}) {
     _destination = to;
     this.silent = silent;
+    _prefer = null;
     _plan = null;
     _arrived = false;
   }
@@ -227,6 +254,45 @@ class Navigator {
     _rescued = true;
   }
 
+  /// Other ways on from the car (SPEC §16.23 item 130's routes): the quickest drives to the
+  /// destination from its next junction, leaving out the rest of the plan; none off the plan.
+  List<NavPlan> routeOptions() {
+    final plan = _plan;
+    final edge = _edgeNow;
+    if (plan == null || edge == null || !_onPlan) return const [];
+    final rest = [for (final e in plan.route.edges.skip(_index + 1)) e.id];
+    return [
+      for (final option in planNavOptions(
+        graph,
+        cost,
+        from: plan.route.junctions[_index + 1],
+        to: destination,
+        approach: edge,
+        streets: streets,
+        landmarks: landmarks,
+        junctionNodes: junctionNodes,
+      ))
+        if (!_sameIds(option.route.edges, rest)) option,
+    ];
+  }
+
+  /// Drives [option] (one of [routeOptions]) from here on, at once and without a word.
+  void takeRoute(NavPlan option) {
+    final plan = _plan;
+    final edge = _edgeNow;
+    if (plan == null || edge == null) return;
+    _prefer = option.route;
+    _replan(
+      edge,
+      plan.route.junctions[_index + 1],
+      edge.lengthM == 0 ? 1 : _alongNow / edge.lengthM,
+    );
+  }
+
+  static bool _sameIds(List<RoadEdge> edges, List<int> ids) =>
+      edges.length == ids.length &&
+      edges.indexed.every((e) => e.$2.id == ids[e.$1]);
+
   NavUpdate onFix(DriveFix fix) {
     final now = fix.t;
     final last = _last;
@@ -236,12 +302,15 @@ class Navigator {
     final inGap = gapS > LearningConfig.gpsGapS;
     final moved = last == null ? 0.0 : distanceBetween(last.at, fix.at);
     final speed = fix.speedMps ?? (gapS > 0 ? moved / gapS : 0.0);
-    _drivenM += moved;
+    // A stopped fix's move is GPS jitter, not driving.
+    if (speed * 3.6 >= LearningConfig.stoppedKmh) _drivenM += moved;
     _last = fix;
     final heading = speed > 2 ? fix.headingDeg : null;
+    _headingDeg = heading ?? _headingDeg;
     final prompts = <NavPrompt>[];
 
-    final where = _plan == null ? null : _track(fix.at, heading);
+    final where = _plan == null ? null : _track(fix.at, heading, wide: inGap);
+    _onPlan = where != null;
     if (_plan == null) {
       final located = _locate(fix.at, heading);
       if (located != null) _replan(located.edge, located.ahead, located.along);
@@ -272,28 +341,13 @@ class Navigator {
       );
       _confirm = null;
     }
-    _cueDistrict(fix.at, heading, now, prompts);
+    _cueDistrict(fix.at, _headingDeg, now, prompts);
     final edge = _edgeNow;
     _warnCameras(speed, prompts);
 
     final kmh = speed * 3.6;
     final limit = edge == null ? null : cost.limitKmh(edge);
-    var warned = false;
-    var chime = false;
-    if (limit != null && kmh > limit + cost.toleranceKmh) {
-      final since = _overSince ??= now;
-      final chimed = _chimedAt;
-      warned = now.difference(since).inSeconds >= LearningConfig.overspeedHoldS;
-      if (warned &&
-          (chimed == null ||
-              now.difference(chimed).inSeconds >=
-                  LearningConfig.overspeedRepeatS)) {
-        chime = true;
-        _chimedAt = now;
-      }
-    } else {
-      _overSince = null;
-    }
+    final (:warned, :chime) = _overspeed(now, kmh, limit);
     if (kmh < LearningConfig.stoppedKmh) {
       _slowSince ??= now;
     } else {
@@ -310,45 +364,64 @@ class Navigator {
       view: _view(
         now: now,
         at: fix.at,
-        headingDeg: fix.headingDeg,
+        headingDeg: _headingDeg,
         speedMps: speed,
         limitKmh: limit,
         over: warned,
         stopped: stopped,
         gpsLostS: null,
       ),
-      prompt: prompts.firstOrNull,
+      prompts: prompts,
       chime: chime,
     );
   }
 
-  /// Time passing without fixes: the GPS line after [LearningConfig.gpsGapS], "Still finding
-  /// you" once at [LearningConfig.gpsLostSayS].
+  /// Over [limit] plus the tolerance for [LearningConfig.overspeedHoldS]: [warned], and a
+  /// [chime] then and every [LearningConfig.overspeedRepeatS] while it lasts.
+  ({bool warned, bool chime}) _overspeed(DateTime now, double kmh, int? limit) {
+    if (limit == null || kmh <= limit + cost.toleranceKmh) {
+      _overSince = null;
+      return (warned: false, chime: false);
+    }
+    final since = _overSince ??= now;
+    final chimed = _chimedAt;
+    final warned =
+        now.difference(since).inSeconds >= LearningConfig.overspeedHoldS;
+    final chime =
+        warned &&
+        (chimed == null ||
+            now.difference(chimed).inSeconds >=
+                LearningConfig.overspeedRepeatS);
+    if (chime) _chimedAt = now;
+    return (warned: warned, chime: chime);
+  }
+
+  /// Time passing without fixes (since the last one, or the first tick before any): the GPS
+  /// line after [LearningConfig.gpsGapS], "Still finding you" once at
+  /// [LearningConfig.gpsLostSayS]. Before the first fix, and once lost that long, the car
+  /// counts as stopped: its speed is unknown, and End drive must stay within reach.
   NavUpdate onTick(DateTime now) {
     final last = _last;
-    final gapS = last == null ? 0 : now.difference(last.t).inSeconds;
-    NavPrompt? prompt;
-    if (last != null &&
-        gapS >= LearningConfig.gpsLostSayS &&
-        _stillSaidFor != last.t) {
-      _stillSaidFor = last.t;
-      prompt = _prompt(PromptKind.stillFinding);
-    }
+    final since = last?.t ?? (_firstTick ??= now);
+    final gapS = now.difference(since).inSeconds;
+    final still = gapS >= LearningConfig.gpsLostSayS && _stillSaidFor != since;
+    if (still) _stillSaidFor = since;
     return (
       view: _view(
         now: now,
         at: last?.at,
-        headingDeg: last?.headingDeg,
+        headingDeg: _headingDeg,
         speedMps: 0,
         limitKmh: switch (_edgeNow) {
           final e? => cost.limitKmh(e),
           null => null,
         },
         over: false,
-        stopped: _stopped(now),
+        stopped:
+            last == null || gapS >= LearningConfig.gpsLostSayS || _stopped(now),
         gpsLostS: gapS > LearningConfig.gpsGapS ? gapS : null,
       ),
-      prompt: prompt,
+      prompts: [if (still) _prompt(PromptKind.stillFinding)],
       chime: false,
     );
   }
@@ -403,6 +476,8 @@ class Navigator {
       gpsLostS: gpsLostS,
       at: at,
       headingDeg: headingDeg,
+      onRoad: plan != null && _onPlan ? _onRoad(plan) : null,
+      toPlan: plan != null && _onPlan && _index < 0 ? _toPlan() : const [],
       speedKmh: speedMps * 3.6,
       limitKmh: limitKmh,
       over: over,
@@ -424,9 +499,40 @@ class Navigator {
           : null,
       street: edge?.streetId == null ? null : streets[edge!.streetId],
       district: _district,
+      drivenM: _drivenM,
       leftM: plan == null ? null : plan.route.lengthM - _progressM,
       leftS: plan == null ? null : _remainingS(),
       plan: plan,
+    );
+  }
+
+  ({LatLng at, double headingDeg})? _onRoad(NavPlan plan) {
+    final edge = _edgeNow!;
+    if (edge.lengthM <= 0) return null;
+    // Before the plan's first junction the car is on the edge it arrived on.
+    final ahead = _index >= 0
+        ? plan.slice(_progressM, _progressM + LearningConfig.navRoadAheadM)
+        : linePart(
+            edge.lineFrom(_fromNow!),
+            _alongNow / edge.lengthM,
+            min(1, (_alongNow + LearningConfig.navRoadAheadM) / edge.lengthM),
+          );
+    if (ahead.length < 2 || distanceBetween(ahead.first, ahead.last) < 1) {
+      return null;
+    }
+    return (
+      at: ahead.first,
+      headingDeg: bearingDegrees(ahead.first, ahead.last),
+    );
+  }
+
+  Polyline _toPlan() {
+    final edge = _approach!;
+    if (edge.lengthM <= 0) return const [];
+    return linePart(
+      edge.lineFrom(_fromNow!),
+      (_alongNow / edge.lengthM).clamp(0, 1),
+      1,
     );
   }
 
@@ -475,16 +581,31 @@ class Navigator {
   }
 
   void _replan(RoadEdge edge, int ahead, double along) {
-    final plan = planNav(
-      graph,
-      cost,
-      from: ahead,
-      to: destination,
-      approach: edge,
-      streets: streets,
-      landmarks: landmarks,
-      junctionNodes: junctionNodes,
-    );
+    final preferred = _restOf(_prefer, edge, ahead);
+    _prefer = null;
+    final plan = preferred == null
+        ? planNav(
+            graph,
+            cost,
+            from: ahead,
+            to: destination,
+            approach: edge,
+            streets: streets,
+            landmarks: landmarks,
+            junctionNodes: junctionNodes,
+          )
+        : NavPlan(
+            preferred,
+            navDecisions(
+              graph,
+              preferred,
+              approach: edge,
+              streets: streets,
+              landmarks: landmarks,
+              junctionNodes: junctionNodes,
+            ),
+            cost.secondsOf(preferred),
+          );
     _plan = plan;
     _approach = edge;
     _junctionM = plan?.junctionM ?? const [];
@@ -496,12 +617,33 @@ class Navigator {
     _prepareFrom.clear();
   }
 
-  /// The car on the plan near where it was: its progress, or null when it is off the plan.
-  double? _track(LatLng p, double? heading) {
+  /// [route] from [ahead] on, when the car on [edge] joins it there legally; else null.
+  Route? _restOf(Route? route, RoadEdge edge, int ahead) {
+    if (route == null) return null;
+    final k = route.junctions.indexOf(ahead);
+    if (k < 0 || k >= route.edges.length) return null;
+    final joins = k > 0
+        ? route.edges[k - 1].id == edge.id
+        : graph
+              .legalExits(ahead, approach: edge)
+              .any((e) => e.id == route.edges.first.id);
+    if (!joins) return null;
+    final edges = route.edges.sublist(k);
+    return Route(
+      route.junctions.sublist(k),
+      edges,
+      edges.fold(0, (sum, e) => sum + e.lengthM),
+    );
+  }
+
+  /// The car on the plan near where it was ([wide]: anywhere further along, after a GPS gap):
+  /// its progress, or null when it is off the plan.
+  double? _track(LatLng p, double? heading, {bool wide = false}) {
     final plan = _plan!;
     final edges = plan.route.edges;
+    final last = wide ? edges.length - 1 : min(_index + 3, edges.length - 1);
     ({int i, double distM, double alongM})? best;
-    for (var i = max(-1, _index); i <= min(_index + 3, edges.length - 1); i++) {
+    for (var i = max(-1, _index); i <= last; i++) {
       final e = i < 0 ? _approach! : edges[i];
       final from = i < 0
           ? _approach!.other(plan.route.junctions.first)
@@ -510,7 +652,7 @@ class Navigator {
       if (n.distM > LearningConfig.driveSnapM) continue;
       final forward = from == e.from;
       final way = forward ? n.headingDeg : (n.headingDeg + 180) % 360;
-      if (heading != null && _angleOff(heading, way) > 100) continue;
+      if (heading != null && bearingError(heading, way) > 100) continue;
       if (best == null || n.distM < best.distM) {
         best = (
           i: i,
@@ -560,10 +702,11 @@ class Navigator {
     }
   }
 
-  NavHelp _helpAt(NavDecision d) {
+  /// The help a move had: Guided's, a recovery's, Coached's cue at [d] when it was said.
+  NavHelp _helpAt(NavDecision? d) {
     if (_level == DriveLevel.guided || _rescued) return NavHelp.guided;
     if (_recovering) return NavHelp.recovery;
-    if (_said[d.index]?.contains(PromptKind.prepare) ?? false) {
+    if (d != null && (_said[d.index]?.contains(PromptKind.prepare) ?? false)) {
       return NavHelp.cue;
     }
     return NavHelp.none;
@@ -578,19 +721,12 @@ class Navigator {
     required DateTime now,
     required NavHelp help,
   }) {
-    final node = junctionNodes[junction];
-    final from = approach == null
-        ? null
-        : junctionNodes[approach.other(junction)];
-    final to = junctionNodes[exit.other(junction)];
     final recovered = _lastRecoveryAt;
     passed.add((
       junction: junction,
       approach: approach,
       exit: exit,
-      key: node == null || from == null || to == null
-          ? null
-          : RouteIds.junction(node, from, to),
+      key: junctionKey(junctionNodes, junction, approach, exit),
       planned: planned,
       ok: ok,
       at: now,
@@ -649,7 +785,7 @@ class Navigator {
         planned: planned != null,
         ok: ok,
         now: now,
-        help: planned == null ? _helpNow : _helpAt(planned),
+        help: _helpAt(planned),
       );
       break;
     }
@@ -658,12 +794,6 @@ class Navigator {
     if (ok == false) _recover(now, prompts);
     _guard(now, prompts);
   }
-
-  NavHelp get _helpNow => _level == DriveLevel.guided || _rescued
-      ? NavHelp.guided
-      : _recovering
-      ? NavHelp.recovery
-      : NavHelp.none;
 
   /// After a move that lost the good path: Off says nothing, Guided says the new route's first
   /// turn ("New route"), Coached and Quiet recover (item 115).
@@ -804,7 +934,8 @@ class Navigator {
         if (aheadM < 0 ||
             aheadM > reach ||
             (direction != null &&
-                _angleOff(direction, way) > LearningConfig.cameraHeadingDeg) ||
+                bearingError(direction, way) >
+                    LearningConfig.cameraHeadingDeg) ||
             !_warned.add(c.id)) {
           continue;
         }
@@ -857,20 +988,7 @@ List<PassedDecision> offDriveDecisions(
       junction: d.junction,
       approach: d.approach,
       exit: d.exit,
-      key: switch ((
-        junctionNodes[d.junction],
-        d.approach == null
-            ? null
-            : junctionNodes[d.approach!.other(d.junction)],
-        junctionNodes[d.exit.other(d.junction)],
-      )) {
-        (final node?, final from?, final to?) => RouteIds.junction(
-          node,
-          from,
-          to,
-        ),
-        _ => null,
-      },
+      key: junctionKey(junctionNodes, d.junction, d.approach, d.exit),
       planned: isDecision(
         graph,
         d.junction,

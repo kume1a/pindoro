@@ -127,6 +127,17 @@ class SettingsScreen extends ConsumerWidget {
         ),
         SectionTitle(l10n.settingsDriving),
         const DrivePlacesGroup(),
+        LabelledField(
+          label: l10n.settingsDriveMarker,
+          child: SegmentedControl(
+            segments: {
+              DriveMarker.arrow: l10n.settingsDriveMarkerArrow,
+              DriveMarker.car: l10n.settingsDriveMarkerCar,
+            },
+            selected: settings.driveMarker,
+            onChanged: (v) => save(() => dao.setDriveMarker(v)),
+          ),
+        ),
         SpeedToleranceField(kmh: settings.speedToleranceKmh),
         SectionTitle(l10n.settingsAccount),
         const AccountGroup(),

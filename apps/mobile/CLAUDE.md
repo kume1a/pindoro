@@ -60,21 +60,33 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                (choices in its docked `AnswerTray`, shown right and wrong before
                                the reveal);
                                intro (a leech's with its mix-up and note), reveal, Session done,
-                               the placement result), today (the Today tab, "Drive this run today", the drives: the one
-                               waiting, the week's goal, the nudge, "Pick your two drives"), memory
+                               the placement result), today (the Today tab, "Drive this run today"), memory
                                (the Progress tab: overview, the drives' week line and route stairs,
-                               and a district), drive (`/drive`, `?to=run`: DriveController and
-                               DriveScreen: Where to (`DestinationSearch`: Home, Work, today's run,
-                               Surprise me, Recent, streets and places), then the destination with
-                               the suggested level and the LevelPicker; `/drive/place` sets Home or
+                               and a district), drive (the Drive tab `/drive`, `DriveTab`: `WhereTo`
+                               (`DestinationSearch` with Home and Work tiles and their minutes from
+                               `driveHereProvider`, today's run, Choose on the map (`/drive/map`,
+                               `DriveMapScreen`: a tap snaps to a named street's junction, pops
+                               with it), Surprise me, Recent, streets and
+                               places) over `DriveCards` (the drive waiting, the week's goal, the
+                               nudge, "Pick your two drives", Past drives); a pick pushes the drive
+                               `/drive/go` (`?to=home|work|run|surprise`, a street or place as
+                               `extra`): DriveController and DriveScreen: the plan map with the
+                               route options (`DriveSetup.options`, `pickRoute`: Fastest, Most
+                               familiar; the Navigator follows the picked one, `prefer`) over the
+                               destination, the suggested level and the LevelPicker; `/drive/place` sets Home or
                                Work; a drive run by pindoro_learning's Navigator at its level
                                (voice by `NavWords`, the speed chime) on `DriveRecordingView`:
-                               Guided's live `DriveMap` with the turn plate and bottom bar, Coached
+                               Guided's live `DriveMap` with the turn card, the speeds and the
+                               floating bar (stopped: End drive on it), the street above it, and
+                               buttons that pop in at a touch (routes overview, Mute, level,
+                               compass or Recentre), Coached
                                and Quiet's dial and Recovery, Off's black screen; day or night by sun
-                               time at the car; no input while moving, the stopped bar (Mute, level,
-                               Route: `DriveRouteScreen`'s new destination, End drive, Off's Rescue)
-                               while stopped; arrival ends it), `/drive/preview` (the route
-                               north-up with its numbered key turns, then "Recite the turns");
+                               time at the car; while moving only Guided's map and Recentre take
+                               touch, the stopped bar (Mute, level, Route: `DriveRouteScreen`'s
+                               Home, Work or a new destination, End drive, Off's Rescue) while
+                               stopped; back does nothing; arrival ends it), `/drive/preview` (the route
+                               north-up with its numbered key turns, stepped through with Back and
+                               Next, then "Recite the turns");
                                every decision without help reviews its J card (item 119), every
                                drive and its decisions logged; the debrief (`DebriefScreen` over
                                `driveDebriefProvider`: offered for a day, each turn recalled then
@@ -97,7 +109,7 @@ test/drift/                    generated schema helpers + migration test
 - **Layers, lowest first:** `l10n` → `core` → `features/progress` → `features/pack` →
   `features/map` → `features/learning` (v3 cards, plans, Progress data) → `features/account` →
   `features/badges` → screen features (`home`, `setup`, `quiz`, `results`, `settings`, `streak`,
-  `me`, `session`, `today`, `memory`) → `app` → `main.dart`. A file imports its own slice or a
+  `me`, `session`, `today`, `memory`, `drive`) → `app` → `main.dart`. A file imports its own slice or a
   lower layer only; screen features never import each other. Something two features need moves
   down (to `core`, or to `progress`/`pack`/`map`/`learning`). `test/architecture_test.dart`
   enforces this, and that `ui/` never imports Drift; a new feature gets a layer there. Imports are
@@ -107,9 +119,9 @@ test/drift/                    generated schema helpers + migration test
   provide. `databaseProvider` is overridden in `main()` and in tests. Widgets read with
   `ref.watch` in build, `ref.read` in callbacks.
 - **Routing:** go_router, paths in `Routes`. The tabs are a `StatefulShellRoute` (`TabShell`, a
-  `FadeIndexedStack` of one page per branch): `/today` Today, `/` Explore (Home), `/progress`
-  Progress, `/me` Me (design system Bottom nav); `go` to one of them switches tab, back on another
-  tab goes to Today first, and each tab page gets its own `PrimaryScrollController` (a tap on the
+  `FadeIndexedStack` of one page per branch): `/drive` Drive, `/today` Today, `/` Explore (Home),
+  `/progress` Progress, `/me` Me (design system Bottom nav); `go` to one of them switches tab, back
+  on another tab goes to Drive first, and each tab page gets its own `PrimaryScrollController` (a tap on the
   open tab scrolls it up). Every other route sits on the root navigator, over the bar:
   `/welcome`, `/area`,
   `/difficulty`, `/round` (`?round=` resumes, `?retry=` retries, `?learned=1` plays "Your
@@ -117,9 +129,10 @@ test/drift/                    generated schema helpers + migration test
   `/settings`, `/settings/credits`, `/session` (`?placement=1` places, `?more=1` learns 10 more),
   `/progress/district?id=`, `/settings/learning`, `/settings/learning/anchor?which=`,
   `/settings/learning/landmarks`, `/settings/learning/landmarks/add`, `/settings/learning/memory`
-  `/drive` (from Today's run card and Me), `/drive/past` (from Me) and `/drive/past/one?id=`.
+  `/drive/go` (from the Drive tab and Today's run card), `/drive/past` (from the Drive tab) and
+  `/drive/past/one?id=`.
   `startLocation`: a player who placed a city (`learn_city`), finished a round or left one saved
-  opens Today (Explore offers to continue the saved round); anyone else gets Welcome, whose Start
+  opens the Drive tab (Explore offers to continue the saved round); anyone else gets Welcome, whose Start
   learning leads to Today and its placement. The app is portrait only (Android manifest, iOS
   Info.plist). Footers end 12 dp above the bar on a tab (`bottomActionGap`).
 - **Learning (v3, docs/learning/SPEC.md):** pindoro_learning decides everything; the app stores
@@ -254,9 +267,16 @@ test/drift/                    generated schema helpers + migration test
   states, question and reveal; Results (`results_data.dart` gathers everything) and the per-answer
   street view.
 - Colour rule: **yellow = truth, cobalt = you, ink = measurement.** Never swap them.
-- The drive's Guided map is `DriveMap` (`drive_map.dart`): heading-up, tilted 32°, following the
-  car, route and car only (no names or landmark icons), no gestures; it comes through
-  `driveMapBuilderProvider`, which drive tests override. The screen shows its attribution.
+- The drive's Guided map is `DriveMap` (`drive_map.dart`): the road ahead up (the navigator's
+  `onRoad`), tilted 32°, the car 70 % down (`ArrowMark` laid on the road, or `CarMark` by the
+  `driveMarker` setting: keyed, as the image is made once), following it while `follow`; the
+  route ahead only (from the car while short of the plan, `toPlan`, then the plan sliced from
+  the car), `northUp`, the routes `overview` with its `alternatives` (grey), the next
+  decision's `turn` arrow (`drive-turn`, its head
+  `drive-turn-head`) and the car only (no names or landmark icons). It drags and pinches at
+  any speed and reports each touch to `onMoved`; the recording view stops following, shows
+  Recentre and follows again after 10 s. It comes through `driveMapBuilderProvider`, which drive
+  tests override. The screen shows its attribution.
 - Screens get the map through `pindoroMapBuilderProvider`; tests override it to capture the
   `PindoroMap` config instead of building the platform view. Explore's city map (`ExploreMap`:
   district fills by City memory, the play area dashed) comes through `exploreMapBuilderProvider`;

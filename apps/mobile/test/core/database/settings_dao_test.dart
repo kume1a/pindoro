@@ -72,6 +72,12 @@ void main() {
     expect((now.reminder, now.minutesPerDay), (false, 20));
   });
 
+  test('the drive map shows an arrow until the car is chosen', () async {
+    expect((await settings.read()).driveMarker, DriveMarker.arrow);
+    await settings.setDriveMarker(DriveMarker.car);
+    expect((await settings.read()).driveMarker, DriveMarker.car);
+  });
+
   test('zoom buttons start off and turn on', () async {
     expect((await settings.read()).zoomButtons, isFalse);
     await settings.setZoomButtons(on: true);

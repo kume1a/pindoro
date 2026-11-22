@@ -12,195 +12,200 @@ import 'tappable.dart';
 // The drive parts of the design system (v3.2 · Navigate and learn, V32-90). Their
 // `color.drive.*` colours are day in the light theme and night in the dark one: the drive screen
 // picks the theme by sun time at the car's position, not by the app's theme. Text read while
-// moving is `type.drive.*` and ignores the system text scale.
+// moving ignores the system text scale: `type.drive.*` on Coached, Quiet and Off; Guided's
+// turn card, bar and chips are compact (title and headline sizes, SPEC §16.23 items 118 and
+// 130) so its map keeps its room.
 
-/// `type.drive.read` on its 56 dp plate line.
-TextStyle _read(Color color) =>
-    PindoroType.driveRead.copyWith(color: color, height: 56 / 54);
-
-/// Drive type: already at least 6 mm cap height, so the system text scale
-/// never changes it.
+/// Drive type is sized for a glance from the holder, so the system text
+/// scale never changes it.
 Widget _unscaled(BuildContext context, Widget child) =>
     MediaQuery.withNoTextScaling(child: child);
 
-/// The ink plate across the top of Guided (TurnPlate): what to do at the
-/// next junction. The lead is a [landmark] with its [landmarkKind] badge, a
-/// [distance] (the primary item) or plain [lead] lines; then the [glyph] row
-/// with its [action], the [street], a [secondary] line, the [then] chip and
-/// the [approach] bar (the share of the approach left, 1 to 0). Announced
-/// once per change as [semanticsLabel]; takes no input.
+/// One lane of the road ahead (TurnPlate's [TurnPlate.lanes], left to right): its painted
+/// arrows as turn angles in degrees (0 straight on, -90 left, 90 right, ±180 turning around)
+/// and [use], the arrow to take in it; null when the lane doesn't go the way.
+typedef DriveLane = ({List<double> arrowsDeg, double? use});
+
+/// Guided's turn card, top left over the map (TurnPlate, the compact card of SPEC §16.23 item
+/// 130): the [glyph] beside the [headline] (the distance to the turn), the [street] under them,
+/// a small [note] with its [noteKind] badge (the landmark at the turn, the heading), the
+/// [lanes] at the bottom; small [lead] lines above ("New route"), and the [then] chip under the
+/// card. Announced once per change as [semanticsLabel]; takes no input.
 class TurnPlate extends StatelessWidget {
   const TurnPlate({
     super.key,
     required this.semanticsLabel,
-    this.landmark,
-    this.landmarkKind,
-    this.distance,
     this.lead = const [],
     this.glyph,
-    this.action,
+    this.headline,
     this.street,
-    this.secondary,
+    this.note,
+    this.noteKind,
+    this.lanes = const [],
     this.then,
     this.thenLabel,
-    this.approach,
   });
 
   final String semanticsLabel;
-  final String? landmark;
-  final DriveGlyphName? landmarkKind;
-  final String? distance;
   final List<String> lead;
   final DriveGlyphName? glyph;
-  final String? action;
+  final String? headline;
   final String? street;
-  final String? secondary;
+  final String? note;
+  final DriveGlyphName? noteKind;
+  final List<DriveLane> lanes;
   final DriveGlyphName? then;
   final String? thenLabel;
-  final double? approach;
 
-  static const double glyphSize = 76;
-  static const double _badge = 40;
-  static const double _badgeGlyph = 28;
-  static const double _thenGlyph = 48;
-  static const double _bar = 8;
+  static const double glyphSize = 44;
+  static const double _badge = 24;
+  static const double _badgeGlyph = 16;
+  static const double _thenGlyph = 24;
+
+  /// The card's widest, as a share of the screen: the map keeps the rest.
+  static const double _widthShare = 0.55;
 
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
-    final read = _read(c.drivePlateText);
     final top = MediaQuery.paddingOf(context).top;
+    final width = MediaQuery.sizeOf(context).width * _widthShare;
+    final line = PindoroType.titleLg.copyWith(
+      color: c.drivePlateText,
+      height: 1.2,
+    );
+    final small = PindoroType.labelLg.copyWith(color: c.drivePlateText2);
+    final glyph = this.glyph;
+    final headline = this.headline;
+    final then = this.then;
+    final card = DecoratedBox(
+      decoration: BoxDecoration(
+        color: c.drivePlate,
+        borderRadius: BorderRadius.circular(PindoroRadius.lg),
+        boxShadow: [
+          BoxShadow(
+            color: c.drivePlate.withValues(alpha: 0.28),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(PindoroSpace.s3),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          spacing: PindoroSpace.s1,
+          children: [
+            for (final l in lead) Text(l, style: line),
+            if (glyph != null || headline != null)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                spacing: PindoroSpace.s2,
+                children: [
+                  if (glyph != null)
+                    DriveGlyph(
+                      glyph,
+                      size: glyphSize,
+                      color: c.drivePlateGlyph,
+                      cut: c.drivePlate,
+                    ),
+                  if (headline != null)
+                    Flexible(
+                      child: Text(
+                        headline,
+                        style: PindoroType.headlineLg.copyWith(
+                          color: c.drivePlateText,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            if (street case final s?) Text(s, style: line),
+            if (note case final n?)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                spacing: PindoroSpace.s2,
+                children: [
+                  Flexible(
+                    child: Text(
+                      n,
+                      style: small,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (noteKind case final kind?)
+                    Container(
+                      width: _badge,
+                      height: _badge,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: c.driveBadge,
+                        borderRadius: BorderRadius.circular(PindoroRadius.sm),
+                      ),
+                      child: DriveGlyph(
+                        kind,
+                        size: _badgeGlyph,
+                        color: c.driveBadgeInk,
+                        cut: c.driveBadge,
+                      ),
+                    ),
+                ],
+              ),
+            if (lanes.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: PindoroSpace.s1),
+                child: LaneArrows(lanes),
+              ),
+          ],
+        ),
+      ),
+    );
     return Semantics(
       liveRegion: true,
       label: semanticsLabel,
       child: ExcludeSemantics(
         child: _unscaled(
           context,
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: c.drivePlate,
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(PindoroRadius.r2xl),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: c.drivePlate.withValues(alpha: 0.28),
-                  blurRadius: 18,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              PindoroSpace.s3,
+              top + PindoroSpace.s2,
+              PindoroSpace.s3,
+              0,
             ),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                PindoroSpace.s3,
-                top + PindoroSpace.s2,
-                PindoroSpace.s3,
-                18,
-              ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: width),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
-                spacing: 2,
+                spacing: PindoroSpace.s1,
                 children: [
-                  if (landmark case final l?)
-                    Text.rich(
-                      TextSpan(
-                        text: l,
+                  card,
+                  if (then != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: PindoroSpace.s3,
+                        vertical: PindoroSpace.s1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: c.drivePlate,
+                        borderRadius: BorderRadius.circular(PindoroRadius.md),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        spacing: PindoroSpace.s2,
                         children: [
-                          if (landmarkKind case final kind?)
-                            WidgetSpan(
-                              alignment: PlaceholderAlignment.middle,
-                              child: Padding(
-                                padding: const EdgeInsets.only(
-                                  left: PindoroSpace.s2,
-                                ),
-                                child: Container(
-                                  width: _badge,
-                                  height: _badge,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: c.driveBadge,
-                                    borderRadius: BorderRadius.circular(
-                                      PindoroRadius.md,
-                                    ),
-                                  ),
-                                  child: DriveGlyph(
-                                    kind,
-                                    size: _badgeGlyph,
-                                    color: c.driveBadgeInk,
-                                    cut: c.driveBadge,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      style: read,
-                    ),
-                  if (distance case final d?)
-                    Text(
-                      d,
-                      style: PindoroType.drivePrimary.copyWith(
-                        color: c.drivePlateText,
-                      ),
-                    ),
-                  for (final line in lead) Text(line, style: read),
-                  if (glyph case final g?)
-                    Row(
-                      spacing: PindoroSpace.s2,
-                      children: [
-                        DriveGlyph(
-                          g,
-                          size: glyphSize,
-                          color: c.drivePlateGlyph,
-                          cut: c.drivePlate,
-                        ),
-                        if (action case final a?)
-                          Flexible(child: Text(a, style: read)),
-                      ],
-                    ),
-                  if (street case final s?) Text(s, style: read),
-                  if (secondary case final s?)
-                    Text(s, style: _read(c.drivePlateText2)),
-                  if (then case final t?)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Container(
-                        padding: const EdgeInsets.fromLTRB(10, 4, 18, 4),
-                        decoration: BoxDecoration(
-                          color: c.drivePlateLine,
-                          borderRadius: BorderRadius.circular(PindoroRadius.lg),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          spacing: 6,
-                          children: [
-                            DriveGlyph(
-                              t,
-                              size: _thenGlyph,
-                              color: c.drivePlateGlyph,
-                              cut: c.drivePlateLine,
-                            ),
-                            if (thenLabel case final l?) Text(l, style: read),
-                          ],
-                        ),
-                      ),
-                    ),
-                  if (approach case final share?)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 10),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(_bar / 2),
-                        child: Container(
-                          height: _bar,
-                          color: c.drivePlateLine,
-                          alignment: Alignment.centerLeft,
-                          child: FractionallySizedBox(
-                            widthFactor: share.clamp(0, 1),
-                            heightFactor: 1,
-                            child: ColoredBox(color: c.drivePlateGlyph),
+                          if (thenLabel case final l?) Text(l, style: small),
+                          DriveGlyph(
+                            then,
+                            size: _thenGlyph,
+                            color: c.drivePlateGlyph,
+                            cut: c.drivePlate,
                           ),
-                        ),
+                        ],
                       ),
                     ),
                 ],
@@ -213,111 +218,488 @@ class TurnPlate extends StatelessWidget {
   }
 }
 
-/// The ink bar along the bottom of Guided (DriveBottomBar): the [arrival]
-/// time after the flag over the distance [left], or one [line] instead
-/// ("GPS lost 1:02"); then the rescued mark, the camera badge and the [sign].
-/// One polite live region, [semanticsLabel].
-class DriveBottomBar extends StatelessWidget {
-  const DriveBottomBar({
-    super.key,
-    required this.semanticsLabel,
-    this.arrival,
-    this.left,
-    this.line,
-    this.rescued = false,
-    this.camera = false,
-    this.sign,
-  });
+/// The lanes of the road ahead, left to right (TurnPlate's bottom row): each lane's arrows,
+/// the arrow to take bright in the lanes that go the way, the rest dim.
+class LaneArrows extends StatelessWidget {
+  const LaneArrows(this.lanes, {super.key});
 
-  final String semanticsLabel;
-  final String? arrival;
-  final String? left;
-  final String? line;
-  final bool rescued;
-  final bool camera;
-  final Widget? sign;
+  final List<DriveLane> lanes;
+
+  static const Size laneSize = Size(28, 36);
 
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
-    final read = PindoroType.driveRead.copyWith(color: c.drivePlateText);
+    return Wrap(
+      spacing: PindoroSpace.s1,
+      runSpacing: PindoroSpace.s1,
+      children: [
+        for (final lane in lanes)
+          CustomPaint(
+            size: laneSize,
+            painter: _LanePainter(
+              lane,
+              on: c.drivePlateGlyph,
+              off: c.drivePlateText2.withValues(alpha: PindoroOpacity.hatch),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// One lane's arrows from a shared stem at the bottom centre, all to one scale: straight on up
+/// the middle to the top, the turns bending off it with their heads level with a straight
+/// arrow's (half way up when the lane also goes straight on), a U-turn hooking back down on
+/// the left.
+class _LanePainter extends CustomPainter {
+  const _LanePainter(this.lane, {required this.on, required this.off});
+
+  final DriveLane lane;
+  final Color on;
+  final Color off;
+
+  static const double _stroke = 3.5;
+  static const double _head = 6;
+
+  /// How near straight on an arrow counts as straight.
+  static const double _straightDeg = 22.5;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final use = lane.use;
+    final through = lane.arrowsDeg.any((a) => a.abs() < _straightDeg);
+    // The arrow to take last, so it lies over the dim ones.
+    final arrows = [
+      for (final a in lane.arrowsDeg)
+        if (a != use) a,
+      ?use,
+    ];
+    for (final a in arrows) {
+      _arrow(canvas, size, a, a == use ? on : off, through: through);
+    }
+  }
+
+  void _arrow(
+    Canvas canvas,
+    Size size,
+    double deg,
+    Color color, {
+    required bool through,
+  }) {
+    final w = size.width;
+    final h = size.height;
+    final base = Offset(w / 2, h - _stroke / 2);
+    // Where the heads reach: a straight arrow's tip, and every turn's in a lane without one.
+    const top = _head + 1;
+    final reach = w * 0.4;
+    final rad = deg * math.pi / 180;
+    final knee = Offset(
+      w / 2,
+      deg.abs() < _straightDeg
+          ? top + reach
+          : through
+          ? h * 0.55
+          : top + reach * math.max(0, math.cos(rad)),
+    );
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = _stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final path = Path()..moveTo(base.dx, base.dy);
+    final Offset tip;
+    final Offset from;
+    if (deg.abs() >= 150) {
+      // Turning around: up, over to the left and back down.
+      final r = w * 0.22;
+      path
+        ..lineTo(knee.dx, h * 0.35)
+        ..arcToPoint(
+          Offset(knee.dx - 2 * r, h * 0.35),
+          radius: Radius.circular(r),
+          clockwise: false,
+        )
+        ..lineTo(knee.dx - 2 * r, h * 0.6);
+      tip = Offset(knee.dx - 2 * r, h * 0.6);
+      from = Offset(tip.dx, tip.dy - 1);
+    } else {
+      tip = Offset(
+        knee.dx + reach * math.sin(rad),
+        knee.dy - reach * math.cos(rad),
+      );
+      path
+        ..lineTo(knee.dx, knee.dy)
+        ..lineTo(tip.dx, tip.dy);
+      from = knee;
+    }
+    canvas.drawPath(path, paint);
+    final d = tip - from;
+    final unit = d / d.distance;
+    final side = Offset(-unit.dy, unit.dx);
+    canvas.drawPath(
+      Path()
+        ..moveTo(tip.dx + unit.dx * 2, tip.dy + unit.dy * 2)
+        ..lineTo(
+          tip.dx - unit.dx * _head + side.dx * _head,
+          tip.dy - unit.dy * _head + side.dy * _head,
+        )
+        ..lineTo(
+          tip.dx - unit.dx * _head - side.dx * _head,
+          tip.dy - unit.dy * _head - side.dy * _head,
+        )
+        ..close(),
+      Paint()..color = color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_LanePainter old) =>
+      old.lane != lane || old.on != on || old.off != off;
+}
+
+/// Guided's bar, floating over the bottom of the map (DriveBottomBar, SPEC §16.23 item 130):
+/// the distance [left], the [arrival] time and the [minutes] left side by side over a line of
+/// the drive's [progress] (0 to 1), or one [line] instead ("GPS lost 1:02"); the rescued mark
+/// before them. The [trailing] button (End drive, while stopped) sits at its right end. One
+/// polite live region, [semanticsLabel].
+class DriveBottomBar extends StatelessWidget {
+  const DriveBottomBar({
+    super.key,
+    required this.semanticsLabel,
+    this.left,
+    this.arrival,
+    this.minutes,
+    this.progress,
+    this.line,
+    this.rescued = false,
+    this.trailing,
+  });
+
+  final String semanticsLabel;
+  final String? left;
+  final String? arrival;
+  final String? minutes;
+  final double? progress;
+  final String? line;
+  final bool rescued;
+  final Widget? trailing;
+
+  static const double _track = 4;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    final read = PindoroType.headlineSm.copyWith(
+      color: c.drivePlateText,
+      height: 1.15,
+    );
     final bottom = math.max(
       MediaQuery.paddingOf(context).bottom,
       PindoroSpace.s3,
     );
+    final progress = this.progress;
+    final values = [?left, ?arrival, ?minutes];
+    final words = Column(
+      mainAxisSize: MainAxisSize.min,
+      spacing: PindoroSpace.s2,
+      children: [
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: line != null
+              ? Text(line!, style: read)
+              : Row(
+                  spacing: PindoroSpace.s6,
+                  children: [
+                    if (rescued)
+                      DriveGlyph(
+                        DriveGlyphName.rescue,
+                        size: 24,
+                        color: c.drivePlateText2,
+                        cut: c.drivePlate,
+                      ),
+                    for (final v in values) Text(v, style: read),
+                  ],
+                ),
+        ),
+        if (line == null && progress != null)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(_track / 2),
+            child: Container(
+              height: _track,
+              color: c.drivePlateLine,
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: progress.clamp(0, 1),
+                heightFactor: 1,
+                child: ColoredBox(color: c.drivePlateGlyph),
+              ),
+            ),
+          ),
+      ],
+    );
+    return Padding(
+      padding: EdgeInsets.fromLTRB(PindoroSpace.s3, 0, PindoroSpace.s3, bottom),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: c.drivePlate,
+          borderRadius: BorderRadius.circular(PindoroRadius.xl),
+          boxShadow: [
+            BoxShadow(
+              color: c.drivePlate.withValues(alpha: 0.28),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(PindoroSpace.s3),
+          child: Row(
+            spacing: PindoroSpace.s3,
+            children: [
+              Expanded(
+                child: Semantics(
+                  liveRegion: true,
+                  label: semanticsLabel,
+                  child: ExcludeSemantics(child: _unscaled(context, words)),
+                ),
+              ),
+              ?trailing,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A square button at an end of Guided's bar (End drive): the [glyph] on the plate's line
+/// colour, [label] for screen readers.
+class DriveBarButton extends StatelessWidget {
+  const DriveBarButton({
+    super.key,
+    required this.glyph,
+    required this.label,
+    required this.onTap,
+  });
+
+  final PindoroGlyph glyph;
+  final String label;
+  final VoidCallback onTap;
+
+  static const double size = PindoroSize.buttonMd;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    return Tappable(
+      label: label,
+      onTap: onTap,
+      child: Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: c.drivePlateLine,
+          borderRadius: BorderRadius.circular(PindoroRadius.md),
+        ),
+        child: PindoroIcon(
+          glyph,
+          size: PindoroSize.iconMd,
+          color: c.drivePlateText,
+          cut: c.drivePlateLine,
+        ),
+      ),
+    );
+  }
+}
+
+/// A round button over Guided's map (DriveMapButton, its right-hand column): [child] on
+/// `drive.surface` in a `drive.surface-line` rim; [label] for screen readers, [toggled] for
+/// one that switches.
+class DriveMapButton extends StatelessWidget {
+  const DriveMapButton({
+    super.key,
+    required this.label,
+    required this.onTap,
+    required this.child,
+    this.toggled,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final Widget child;
+  final bool? toggled;
+
+  static const double size = PindoroSize.buttonMd;
+
+  /// A [PindoroGlyph] in the button's ink.
+  static Widget glyph(BuildContext context, PindoroGlyph glyph) {
+    final c = PindoroTheme.of(context).colors;
+    return PindoroIcon(
+      glyph,
+      size: PindoroSize.iconMd,
+      color: c.driveText,
+      cut: c.driveSurface,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    return Tappable(
+      label: label,
+      toggled: toggled,
+      onTap: onTap,
+      child: Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: c.driveSurface,
+          border: Border.all(
+            color: c.driveSurfaceLine,
+            width: PindoroStroke.base,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: c.drivePlate.withValues(alpha: 0.18),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// Recentre (DriveMapButton): back onto the car once the map was moved; the arrow leans 45°
+/// right, as the car's own arrow never does.
+class DriveRecentre extends StatelessWidget {
+  const DriveRecentre({super.key, required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    return DriveMapButton(
+      label: label,
+      onTap: onTap,
+      child: Transform.rotate(
+        angle: math.pi / 4,
+        child: DriveGlyph(
+          DriveGlyphName.recentre,
+          size: 26,
+          color: c.driveText,
+          cut: c.driveSurface,
+        ),
+      ),
+    );
+  }
+}
+
+/// The compass (DriveCompass, a DriveMapButton): a needle with a small hole at its pivot, its
+/// north half red, turned by the map's [bearingDeg] so it points north. A tap switches north
+/// up and heading up ([label] says which).
+class DriveCompass extends StatelessWidget {
+  const DriveCompass({
+    super.key,
+    required this.bearingDeg,
+    required this.label,
+    required this.onTap,
+  });
+
+  final double bearingDeg;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    return DriveMapButton(
+      label: label,
+      onTap: onTap,
+      child: Transform.rotate(
+        angle: -bearingDeg * math.pi / 180,
+        child: CustomPaint(
+          size: const Size(12, 32),
+          painter: _NeedlePainter(north: c.driveSignRing, south: c.driveText),
+        ),
+      ),
+    );
+  }
+}
+
+/// A compass needle filling its box, a small hole cut at its pivot: the [north] half up, the
+/// [south] half down.
+class _NeedlePainter extends CustomPainter {
+  const _NeedlePainter({required this.north, required this.south});
+
+  final Color north;
+  final Color south;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final mid = size.height / 2;
+    final hole = Path()
+      ..addOval(
+        Rect.fromCircle(
+          center: Offset(size.width / 2, mid),
+          radius: size.width * 0.18,
+        ),
+      );
+    Path half(double tip) => Path.combine(
+      PathOperation.difference,
+      Path()
+        ..moveTo(size.width / 2, tip)
+        ..lineTo(size.width, mid)
+        ..lineTo(0, mid)
+        ..close(),
+      hole,
+    );
+    canvas
+      ..drawPath(half(0), Paint()..color = north)
+      ..drawPath(half(size.height), Paint()..color = south);
+  }
+
+  @override
+  bool shouldRepaint(_NeedlePainter old) =>
+      old.north != north || old.south != south;
+}
+
+/// The car's speed beside the speed sign (SpeedNow): the [kmh] on the plate's ink disc, as big
+/// as the sign.
+class SpeedNow extends StatelessWidget {
+  const SpeedNow({super.key, required this.kmh, required this.semanticsLabel});
+
+  final int kmh;
+  final String semanticsLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    final style = (kmh >= 100 ? PindoroType.headlineMd : PindoroType.headlineLg)
+        .copyWith(color: c.drivePlateText, height: 1);
     return Semantics(
-      liveRegion: true,
       label: semanticsLabel,
       child: ExcludeSemantics(
         child: _unscaled(
           context,
-          DecoratedBox(
+          Container(
+            width: SpeedLimitSign.size,
+            height: SpeedLimitSign.size,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
+              shape: BoxShape.circle,
               color: c.drivePlate,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(PindoroRadius.r2xl),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: c.drivePlate.withValues(alpha: 0.22),
-                  blurRadius: 18,
-                  offset: const Offset(0, -6),
-                ),
-              ],
             ),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                PindoroSpace.s4,
-                PindoroSpace.s3,
-                PindoroSpace.s3,
-                bottom,
-              ),
-              child: Row(
-                spacing: PindoroSpace.s3,
-                children: [
-                  // ponytail: on a narrow phone with the rescued mark and a
-                  // camera at once, the trip block shrinks under 54 dp rather
-                  // than wrap a figure per line; the canvas never draws all
-                  // three together.
-                  Expanded(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: line != null
-                          ? Text(line!, style: read)
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (arrival case final a?)
-                                  Row(
-                                    spacing: PindoroSpace.s2,
-                                    children: [
-                                      DriveGlyph(
-                                        DriveGlyphName.flag,
-                                        size: 30,
-                                        color: c.drivePlateGlyph,
-                                        cut: c.drivePlate,
-                                      ),
-                                      Text(a, style: read),
-                                    ],
-                                  ),
-                                if (left case final l?) Text(l, style: read),
-                              ],
-                            ),
-                    ),
-                  ),
-                  if (rescued)
-                    DriveGlyph(
-                      DriveGlyphName.rescue,
-                      size: 44,
-                      color: c.drivePlateText2,
-                      cut: c.drivePlate,
-                    ),
-                  if (camera) const CameraBadge(),
-                  ?sign,
-                ],
-              ),
-            ),
+            child: Text('$kmh', style: style),
           ),
         ),
       ),
@@ -342,7 +724,7 @@ class SpeedLimitSign extends StatefulWidget {
   final bool over;
   final int beat;
 
-  static const double size = 96;
+  static const double size = 64;
 
   @override
   State<SpeedLimitSign> createState() => _SpeedLimitSignState();
@@ -386,7 +768,8 @@ class _SpeedLimitSignState extends State<SpeedLimitSign>
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
     final three = widget.limit >= 100;
-    final figures = three ? 44.0 : 54.0;
+    final figures =
+        (three ? PindoroType.headlineMd : PindoroType.headlineLg).fontSize!;
     return Semantics(
       image: true,
       label: widget.semanticsLabel,
@@ -407,16 +790,16 @@ class _SpeedLimitSignState extends State<SpeedLimitSign>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: c.driveSignBg,
-                    border: Border.all(color: c.driveSignRing, width: 10),
+                    border: Border.all(color: c.driveSignRing, width: 7),
                     boxShadow: [
                       if (i > 0) ...[
                         BoxShadow(
                           color: c.driveSignRing.withValues(alpha: 0.45),
-                          spreadRadius: 8 * i,
+                          spreadRadius: 6 * i,
                         ),
                         BoxShadow(
                           color: c.driveSignRing.withValues(alpha: 0.18),
-                          spreadRadius: 18 * i,
+                          spreadRadius: 12 * i,
                         ),
                       ],
                     ],
@@ -468,71 +851,60 @@ class CameraBadge extends StatelessWidget {
   }
 }
 
-/// The district as a chip on Guided's map (DistrictChip), left out when
-/// [name] doesn't fit the width it is given.
-class DistrictChip extends StatelessWidget {
-  const DistrictChip(this.name, {super.key, required this.semanticsLabel});
+/// The street the car is on, a pill over Guided's map above its bar (StreetChip): one line,
+/// cut short with an ellipsis when [name] is wider than the room it has.
+class StreetChip extends StatelessWidget {
+  const StreetChip(this.name, {super.key, required this.semanticsLabel});
 
   final String name;
   final String semanticsLabel;
 
-  static const double height = 64;
-  static const double _sides = 18;
+  static const double height = 36;
 
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
-    final style = PindoroType.driveRead.copyWith(
-      color: c.driveText,
-      height: height / 54,
-    );
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final text = TextPainter(
-          text: TextSpan(text: name, style: style),
-          textDirection: Directionality.of(context),
-          maxLines: 1,
-        )..layout();
-        final fits =
-            text.width + 2 * (_sides + PindoroStroke.base) <=
-            constraints.maxWidth;
-        text.dispose();
-        if (!fits) return const SizedBox.shrink();
-        return Semantics(
-          liveRegion: true,
-          label: semanticsLabel,
-          child: ExcludeSemantics(
-            child: _unscaled(
-              context,
-              Container(
-                height: height,
-                padding: const EdgeInsets.symmetric(horizontal: _sides),
-                decoration: BoxDecoration(
-                  color: c.driveSurface,
-                  borderRadius: BorderRadius.circular(PindoroRadius.lg),
-                  border: Border.all(
-                    color: c.driveSurfaceLine,
-                    width: PindoroStroke.base,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: c.drivePlate.withValues(alpha: 0.18),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+    return Semantics(
+      liveRegion: true,
+      label: semanticsLabel,
+      child: ExcludeSemantics(
+        child: _unscaled(
+          context,
+          Container(
+            height: height,
+            padding: const EdgeInsets.symmetric(horizontal: PindoroSpace.s3),
+            decoration: BoxDecoration(
+              color: c.driveSurface,
+              borderRadius: BorderRadius.circular(height / 2),
+              border: Border.all(
+                color: c.driveSurfaceLine,
+                width: PindoroStroke.base,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: c.drivePlate.withValues(alpha: 0.18),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
-                child: Text(name, style: style, maxLines: 1),
+              ],
+            ),
+            child: Center(
+              widthFactor: 1,
+              child: Text(
+                name,
+                style: PindoroType.titleSm.copyWith(color: c.driveText),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
 
-/// The district under the Coached and Quiet dial (DistrictChip's line):
+/// The district under the Coached and Quiet dial:
 /// `type.drive.district`, stepping down 2 dp at a time to fit, never under
 /// 54 dp; still too wide, it wraps.
 class DistrictLine extends StatelessWidget {
@@ -1385,6 +1757,182 @@ class _LevelChip extends StatelessWidget {
   }
 }
 
+/// The level picker under its [title] and the [reason] for the level suggested (StoppedBar,
+/// LevelPickerCard).
+class _PickerPanel extends StatelessWidget {
+  const _PickerPanel({required this.picker, this.title, this.reason});
+
+  final Widget picker;
+  final String? title;
+  final String? reason;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: 6,
+      children: [
+        Row(
+          spacing: PindoroSpace.s2,
+          children: [
+            Expanded(
+              child: Text(
+                title ?? '',
+                style: PindoroType.labelLg.copyWith(color: c.driveText),
+              ),
+            ),
+            if (reason case final r?)
+              Text(r, style: PindoroType.labelLg.copyWith(color: c.driveText2)),
+          ],
+        ),
+        picker,
+      ],
+    );
+  }
+}
+
+/// The level picker in a card over Guided's map (LevelPickerCard, opened by its level button):
+/// [picker] under its [title] and the [reason] for the level suggested.
+class LevelPickerCard extends StatelessWidget {
+  const LevelPickerCard({
+    super.key,
+    required this.picker,
+    this.title,
+    this.reason,
+  });
+
+  final Widget picker;
+  final String? title;
+  final String? reason;
+
+  @override
+  Widget build(BuildContext context) => _DriveCard(
+    child: _PickerPanel(title: title, reason: reason, picker: picker),
+  );
+}
+
+/// A card over Guided's map, in its surface and rim.
+class _DriveCard extends StatelessWidget {
+  const _DriveCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: PindoroSpace.s3),
+      padding: const EdgeInsets.all(PindoroSpace.s3),
+      decoration: BoxDecoration(
+        color: c.driveSurface,
+        borderRadius: BorderRadius.circular(PindoroRadius.xl),
+        border: Border.all(
+          color: c.driveSurfaceLine,
+          width: PindoroStroke.base,
+        ),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// One way to drive in [RouteOptions]: its [time] ("16 min") and [length] ("15.8 km"), and
+/// [delta] against the route driven now ("+3 min"; null for that one).
+typedef RouteOption = ({String time, String length, String? delta});
+
+/// Guided's routes (RouteOptions, SPEC §16.23 item 130): the route driven now ([nowLabel]) and
+/// the other ways on, each a row that takes it ([onPick], by index); [actionLabel] (Change
+/// destination) under them when given. Each way's swatch is its colour on the map.
+class RouteOptions extends StatelessWidget {
+  const RouteOptions({
+    super.key,
+    required this.semanticsLabel,
+    required this.options,
+    required this.nowLabel,
+    required this.onPick,
+    this.actionLabel,
+    this.onAction,
+  });
+
+  final String semanticsLabel;
+  final List<RouteOption> options;
+  final String nowLabel;
+  final void Function(int index) onPick;
+  final String? actionLabel;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = PindoroTheme.of(context).colors;
+    Widget row(int i, RouteOption o) {
+      final now = o.delta == null;
+      final words = [o.time, o.length, now ? nowLabel : o.delta!];
+      return Tappable(
+        label: words.join(', '),
+        onTap: () => onPick(i),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: PindoroSpace.s2),
+          child: Row(
+            spacing: PindoroSpace.s3,
+            children: [
+              Container(
+                width: PindoroSpace.s6,
+                height: PindoroStroke.answer,
+                decoration: BoxDecoration(
+                  color: now ? c.mapAnswerLine : c.drivePlateText2,
+                  borderRadius: BorderRadius.circular(PindoroStroke.answer),
+                ),
+              ),
+              Text(
+                o.time,
+                style: PindoroType.headlineSm.copyWith(color: c.driveText),
+              ),
+              Expanded(
+                child: Text(
+                  o.length,
+                  style: PindoroType.labelLg.copyWith(color: c.driveText2),
+                ),
+              ),
+              Text(
+                now ? nowLabel : o.delta!,
+                style: PindoroType.labelLg.copyWith(
+                  color: now ? c.driveText : c.driveText2,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final action = (actionLabel, onAction);
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      label: semanticsLabel,
+      child: _DriveCard(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final (i, o) in options.indexed) row(i, o),
+            if (action case (final label?, final tap?)) ...[
+              const SizedBox(height: PindoroSpace.s2),
+              PindoroButton(
+                label: label,
+                variant: PindoroButtonVariant.secondary,
+                onPressed: tap,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// The level shown on the [StoppedBar]'s chip.
 typedef StoppedLevel = ({
   PindoroGlyph icon,
@@ -1471,46 +2019,11 @@ class StoppedBar extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           spacing: 10,
           children: [
-            Transform.translate(
-              offset: const Offset(0, -PindoroSpace.s1),
-              child: Center(
-                child: Container(
-                  width: 40,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: c.driveSurfaceLine,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-            ),
             if (levelOpen && picker != null)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                spacing: 6,
-                children: [
-                  Row(
-                    spacing: PindoroSpace.s2,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          pickerTitle ?? '',
-                          style: PindoroType.labelLg.copyWith(
-                            color: c.driveText,
-                          ),
-                        ),
-                      ),
-                      if (pickerReason case final r?)
-                        Text(
-                          r,
-                          style: PindoroType.labelLg.copyWith(
-                            color: c.driveText2,
-                          ),
-                        ),
-                    ],
-                  ),
-                  picker,
-                ],
+              _PickerPanel(
+                title: pickerTitle,
+                reason: pickerReason,
+                picker: picker,
               ),
             Row(
               children: [

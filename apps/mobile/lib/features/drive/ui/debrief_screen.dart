@@ -12,6 +12,7 @@ import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/drive/ui/debrief_data.dart';
+import 'package:pindoro/features/drive/ui/drive_levels.dart';
 import 'package:pindoro/features/drive/ui/plan_map.dart';
 import 'package:pindoro/features/learning/data/drive_history.dart';
 import 'package:pindoro/features/learning/data/drive_log.dart';
@@ -91,6 +92,7 @@ class _DebriefScreenState extends ConsumerState<DebriefScreen> {
       return;
     }
     await _log(DriveEventKind.debrief, value: d.turns.length.toDouble());
+    if (!mounted) return;
     ref.invalidate(pendingDebriefProvider);
     _go(_Step.review);
   }
@@ -101,7 +103,7 @@ class _DebriefScreenState extends ConsumerState<DebriefScreen> {
     final d = debrief.value;
     if (d == null) {
       return debrief.isLoading
-          ? const Scaffold(body: SizedBox.expand())
+          ? const Scaffold(body: Center(child: LaneLoader()))
           : PageScaffold(
               title: context.l10n.pastDrivesTitle,
               children: [
@@ -397,22 +399,7 @@ class _Recall extends ConsumerWidget {
                 exits == null ? came : '$came ${l10n.debriefTapWhat}',
                 style: PindoroType.bodySm.copyWith(color: c.textSecondary),
               ),
-              if (exits != null)
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: PindoroSpace.s4,
-                  runSpacing: PindoroSpace.s3,
-                  children: [
-                    for (final turn in Turn.values)
-                      if (exits.containsKey(turn))
-                        ExitButton(
-                          direction: ExitDirection.values.byName(turn.name),
-                          selected: false,
-                          semanticsLabel: exitLabel(l10n, turn),
-                          onTap: () => onSaid(turn),
-                        ),
-                  ],
-                ),
+              if (exits != null) ExitChoices(turns: exits.keys, onTap: onSaid),
               PindoroButton(
                 label: exits == null ? l10n.debriefShow : l10n.debriefForgot,
                 variant: exits == null

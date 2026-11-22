@@ -8,18 +8,19 @@ import 'package:pindoro/core/format.dart';
 import 'package:pindoro/features/badges/data/badge_data.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// The bottom navigation around the tabs (design system Bottom nav): Today,
-/// Explore, Progress, Me. Back on another tab goes to Today first; tapping
-/// the open tab scrolls it to the top. Opening Me takes its New badges for
-/// the visit.
+/// The bottom navigation around the tabs (design system Bottom nav): Drive,
+/// Today, Explore, Progress, Me. Back on another tab goes to Drive first;
+/// tapping the open tab scrolls it to the top. Opening Me takes its New
+/// badges for the visit.
 class TabShell extends ConsumerWidget {
   const TabShell({super.key, required this.shell, required this.scroll});
 
-  static const int today = 0;
-  static const int explore = 1;
-  static const int progress = 2;
-  static const int me = 3;
-  static const int tabs = 4;
+  static const int drive = 0;
+  static const int today = 1;
+  static const int explore = 2;
+  static const int progress = 3;
+  static const int me = 4;
+  static const int tabs = 5;
 
   final StatefulNavigationShell shell;
 
@@ -51,9 +52,9 @@ class TabShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     return PopScope(
-      canPop: shell.currentIndex == today,
+      canPop: shell.currentIndex == drive,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) shell.goBranch(today);
+        if (!didPop) shell.goBranch(drive);
       },
       child: Scaffold(
         body: shell,
@@ -61,6 +62,11 @@ class TabShell extends ConsumerWidget {
           current: shell.currentIndex,
           onSelect: (index) => _select(context, ref, index),
           items: [
+            (
+              glyph: PindoroGlyph.car,
+              label: l10n.driveTitle,
+              semanticLabel: null,
+            ),
             (
               glyph: PindoroGlyph.road,
               label: l10n.tabToday,

@@ -49,7 +49,10 @@ class PastDrivesScreen extends ConsumerWidget {
     );
     final title = route == null ? l10n.pastDrivesTitle : name(route);
     if (drives == null || history == null) {
-      return PageScaffold(title: title, children: const []);
+      return PageScaffold(
+        title: title,
+        children: const [Center(child: LaneLoader())],
+      );
     }
     final routes = {
       for (final (i, d) in history.drives.indexed)

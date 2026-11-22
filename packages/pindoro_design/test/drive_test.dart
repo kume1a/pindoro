@@ -101,7 +101,7 @@ void main() {
     );
   });
 
-  testWidgets('a three-figure limit drops to 44 dp to fit the ring', (
+  testWidgets('a three-figure limit drops to 26 dp to fit the ring', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -116,14 +116,95 @@ void main() {
     );
     double size(String text) =>
         tester.widget<Text>(find.text(text)).style!.fontSize!;
-    expect(size('60'), 54);
-    expect(size('110'), 44);
+    expect(size('60'), 32);
+    expect(size('110'), 26);
+  });
+
+  testWidgets('a long street keeps to one line, cut short in the room it has', (
+    tester,
+  ) async {
+    const name = 'Vedzisi, Kazbegi, Gotua, Saburtalo Street';
+    await tester.pumpWidget(
+      _host(
+        const Center(
+          child: SizedBox(
+            width: 200,
+            child: Center(child: StreetChip(name, semanticsLabel: 'On $name')),
+          ),
+        ),
+      ),
+    );
+    expect(tester.takeException(), isNull);
+    expect(find.bySemanticsLabel('On $name'), findsOneWidget);
+    final size = tester.getSize(find.byType(StreetChip));
+    expect(size.width, lessThanOrEqualTo(200));
+    expect(size.height, StreetChip.height);
+  });
+
+  testWidgets('the compass turns against the map\'s bearing and switches on a '
+      'tap; Recentre takes a tap', (tester) async {
+    var taps = 0;
+    var recentred = 0;
+    await tester.pumpWidget(
+      _host(
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DriveCompass(
+                bearingDeg: 90,
+                label: 'North up',
+                onTap: () => taps++,
+              ),
+              DriveRecentre(label: 'Recentre', onTap: () => recentred++),
+            ],
+          ),
+        ),
+      ),
+    );
+    final turn = tester.widget<Transform>(
+      find.descendant(
+        of: find.byType(DriveCompass),
+        matching: find.byType(Transform),
+      ),
+    );
+    expect(turn.transform.getRotation().entry(0, 1), closeTo(1, 1e-9));
+    await tester.tap(find.bySemanticsLabel('North up'));
+    await tester.tap(find.bySemanticsLabel('Recentre'));
+    expect((taps, recentred), (1, 1));
+  });
+
+  testWidgets('the routes: a row takes its way; the action under them', (
+    tester,
+  ) async {
+    final picked = <int>[];
+    var changed = 0;
+    await tester.pumpWidget(
+      _host(
+        RouteOptions(
+          semanticsLabel: 'Routes',
+          options: const [
+            (time: '16 min', length: '15.8 km', delta: null),
+            (time: '19 min', length: '14.2 km', delta: '+3 min'),
+          ],
+          nowLabel: 'Now',
+          onPick: picked.add,
+          actionLabel: 'Change destination',
+          onAction: () => changed++,
+        ),
+      ),
+    );
+    await tester.tap(find.text('+3 min'));
+    await tester.tap(find.text('Change destination'));
+    expect(picked, [1]);
+    expect(changed, 1);
+    expect(find.text('Now'), findsOneWidget);
   });
 
   group('goldens', skip: _goldensSkip, () {
     for (final brightness in Brightness.values) {
       testWidgets('drive ${brightness.name}', (tester) async {
-        await tester.binding.setSurfaceSize(const Size(400, 1780));
+        await tester.binding.setSurfaceSize(const Size(400, 2200));
         addTearDown(() => tester.binding.setSurfaceSize(null));
         await tester.pumpWidget(
           _host(
@@ -135,27 +216,116 @@ void main() {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   spacing: 16,
                   children: [
-                    const TurnPlate(
-                      semanticsLabel: 'At Vake Park, left onto Chavchavadze',
-                      landmark: 'At Vake Park',
-                      landmarkKind: DriveGlyphName.park,
-                      glyph: DriveGlyphName.left,
-                      action: 'Left onto',
-                      street: 'Chavchavadze Ave',
-                      then: DriveGlyphName.right,
-                      thenLabel: 'then',
-                      approach: 0.62,
+                    const Align(
+                      alignment: Alignment.topLeft,
+                      child: TurnPlate(
+                        semanticsLabel:
+                            'In 300 m, at Vake Park, left onto Chavchavadze',
+                        glyph: DriveGlyphName.left,
+                        headline: '300 m',
+                        street: 'Chavchavadze Ave',
+                        note: 'At Vake Park',
+                        noteKind: DriveGlyphName.park,
+                        lanes: [
+                          (arrowsDeg: [-90], use: -90),
+                          (arrowsDeg: [-90, 0], use: -90),
+                          (arrowsDeg: [0], use: null),
+                          (arrowsDeg: [0, 90], use: null),
+                          (arrowsDeg: [90], use: null),
+                          (arrowsDeg: [180], use: null),
+                        ],
+                        then: DriveGlyphName.right,
+                        thenLabel: 'then',
+                      ),
+                    ),
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      spacing: 8,
+                      children: [
+                        CameraBadge(),
+                        SpeedNow(kmh: 72, semanticsLabel: 'Your speed 72'),
+                        SpeedLimitSign(
+                          limit: 60,
+                          over: true,
+                          semanticsLabel: 'Over the speed limit of 60',
+                        ),
+                      ],
                     ),
                     const DriveBottomBar(
                       semanticsLabel: '3.4 kilometres left',
-                      arrival: '12:41',
                       left: '3.4 km',
+                      arrival: '12:41',
+                      minutes: '9 min',
+                      progress: 0.4,
                       rescued: true,
-                      camera: true,
-                      sign: SpeedLimitSign(
-                        limit: 60,
-                        over: true,
-                        semanticsLabel: 'Over the speed limit of 60',
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      spacing: 8,
+                      children: [
+                        const StreetChip(
+                          'Chavchavadze Ave',
+                          semanticsLabel: 'On Chavchavadze Ave',
+                        ),
+                        DriveMapButton(
+                          label: 'Routes',
+                          onTap: () {},
+                          child: DriveGlyph(
+                            DriveGlyphName.routes,
+                            size: 28,
+                            color: PindoroTheme.of(context).colors.driveText,
+                            cut: PindoroTheme.of(context).colors.driveSurface,
+                          ),
+                        ),
+                        DriveMapButton(
+                          label: 'Mute the voice',
+                          onTap: () {},
+                          child: DriveMapButton.glyph(
+                            context,
+                            PindoroGlyph.soundOn,
+                          ),
+                        ),
+                        DriveCompass(
+                          bearingDeg: 30,
+                          label: 'North up',
+                          onTap: () {},
+                        ),
+                        DriveRecentre(label: 'Recentre', onTap: () {}),
+                      ],
+                    ),
+                    LevelPickerCard(
+                      title: 'Level for the rest of this drive',
+                      reason: '14 of 17',
+                      picker: LevelPicker<_Level>(
+                        steps: _steps(),
+                        selected: _Level.guided,
+                        suggested: _Level.coached,
+                        suggestedLabel: 'Suggested',
+                        onChanged: (_) {},
+                        semanticsLabel: 'Level',
+                      ),
+                    ),
+                    RouteOptions(
+                      semanticsLabel: 'Routes',
+                      options: const [
+                        (time: '16 min', length: '15.8 km', delta: null),
+                        (time: '19 min', length: '14.2 km', delta: '+3 min'),
+                      ],
+                      nowLabel: 'Now',
+                      onPick: (_) {},
+                      actionLabel: 'Change destination',
+                      onAction: () {},
+                    ),
+                    DriveBottomBar(
+                      semanticsLabel: '3.4 kilometres left',
+                      left: '3.4 km',
+                      arrival: '12:41',
+                      minutes: '9 min',
+                      progress: 0.4,
+                      trailing: DriveBarButton(
+                        glyph: PindoroGlyph.close,
+                        label: 'End drive',
+                        onTap: () {},
                       ),
                     ),
                     Wrap(
@@ -206,10 +376,6 @@ void main() {
                     ),
                     const DistrictLine('Nadzaladevi'),
                     const RecoveryBand(),
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: DistrictChip('Vake', semanticsLabel: 'Vake'),
-                    ),
                     ColoredBox(
                       color: PindoroTheme.of(context).colors.surfaceBase,
                       child: Padding(

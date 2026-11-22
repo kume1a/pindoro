@@ -179,14 +179,10 @@ and the specs after R5. Fix them in roughly this order.
     where they differ from boards V32-20 to V32-41:
     - Recovery shows the next turn's DriveGlyph at 220 dp over the street, not the canvas's
       painted junction with the car on its disc.
-    - The Guided map draws the route yellow on ink and the car as `CarMark`, but doesn't grey the
-      road behind the car, puts no landmark badge at the corner, and dims under a veil while GPS
-      is lost (the car stays as it is, no accuracy ring). The north arrow is the DriveGlyph
-      compass in a 64 dp disc in the district chip's paint.
+    - The Guided map draws the route yellow on ink, puts no landmark badge at the corner, and
+      dims under a veil while GPS is lost (the car stays as it is, no accuracy ring).
     - The stopped bar's Route button is left out at Off (SPEC §16.23 item 128). Off's Rescue offer
       is a card with the text and a 56 dp button, without the rescue glyph.
-    - The district chip is left out when the name is wider than the room (the pack has no short
-      names).
     - Roundabout glyphs and "Exit 3 onto" are unused: the road graph doesn't know roundabouts.
       Forks under 45° use keep left and right.
     - A word wider than the plate's line breaks between letters: Flutter doesn't hyphenate.
@@ -232,8 +228,57 @@ and the specs after R5. Fix them in roughly this order.
     - The answer tray has no 1–6 or arrow keys and doesn't move focus to the first choice; the
       goal line's just-met dot doesn't bounce. In the sweep, a tap on a placed label doesn't send
       it back to the tray (another label dropped on its lane does).
-    - Goldens for the new parts (`drive_review`, `answer_tray`) and the StoppedBar's Route
-      button wait for `just goldens`.
+  - **The Drive tab (SPEC §16.23 item 129, 2026-11-22)** was built in the app, not on the canvas:
+    the canvas needs a Drive tab board and the five-tab bar. Home and Work are `StatTile`s (the
+    minutes as the value, else the place's name; "Set your home" when unset), the rest is V32-10's
+    Where to and V32-71's drives moved off Today. Choose on the map is Add landmark's map and
+    panel (V3-32) with a destination's words.
+  - **The setup's routes and the stepped preview (item 129, 2026-11-22)**, built in the app:
+    - The setup is the plan map (routes: the picked one yellow, the others grey) over a panel
+      with the destination, a `ListRow` per route (time · length, Fastest / Most familiar, the
+      turns you know, a tick on the picked one), the level and the rules; V32-10 has no map and
+      one route. The canvas and design system need a route card.
+    - The preview steps (Show the turns, Back, Next) instead of V32-11's Pause and timed play.
+    - The StoppedBar lost its grab handle: it suggested a sheet to drag, and there is none. The
+      design system's StoppedBar still draws it.
+  - **Guided, compact and movable (SPEC §16.23 items 116, 118 and 130, 2026-11-22/23)**, after
+    test drives, with the player's own navigator as the model; boards V32-01 and V32-20 still
+    draw the full-width 54/72 dp plate:
+    - TurnPlate is a card in the top left (`radius.lg`, at most 55 % of the screen wide): the
+      44 dp glyph beside the distance in `headline.lg`, the street in `title.lg`, a `label.lg`
+      note with a 24 dp badge (the landmark, the heading), the lanes, and "then" as a chip under
+      the card. The approach bar is gone (the distance counts down).
+    - New: `LaneArrows` (`DriveLane`: a lane's arrows as turn angles and the one to take), 28 ×
+      36 dp per lane, the arrow to take in `drive.plate.glyph`, the rest in
+      `drive.plate.text-2` at `opacity.hatch`; and `turnArrowHeadPng`, the head of the turn arrow
+      the map draws at the next decision (line `drive.plate.text` on a `drive.plate` casing).
+    - DriveBottomBar floats over the map (`radius.xl`, 12 dp in from the edges): "3.4 km",
+      "12:41" and "9 min" in `headline.sm` over a 4 dp progress line (`drive.plate.glyph` on
+      `drive.plate.line`); stopped, a 48 dp `DriveBarButton` (End drive, ✕) at its right end.
+      Coached, Quiet and Off keep StoppedBar.
+    - Buttons at a touch (2026-11-23): new `DriveMapButton`, a 48 dp round on `drive.surface`
+      in a `drive.surface-line` rim, in a right-hand column that pops in (scale + fade,
+      `duration.base`) and goes 10 s after the last touch: routes (new DriveGlyph `routes`, a
+      fork with one dim branch), Mute, the level (its icon) and `DriveCompass` (a 12 × 32 dp
+      needle, north `drive.sign.ring`, south `drive.text`, a hole cut at its pivot) or
+      `DriveRecentre` (the DriveGlyph `recentre` leaning 45° right). New `LevelPickerCard`
+      and `RouteOptions` (rows of minutes, kilometres and "+3 min", a swatch in the line's
+      colour, Change destination under them) over the bar. The canvas's StoppedControls row is
+      gone.
+    - New `SpeedNow` (the car's speed on a 64 dp ink disc) beside SpeedLimitSign (64 dp, figures
+      32, three figures 26) in the top right, the camera badge under them. DistrictChip became
+      `StreetChip`: the street driven, a 36 dp pill (`title.sm`, one line, ellipsis) centred
+      above the bar. Coached, Quiet, Recovery and Off keep `type.drive.*`.
+    - LaneArrows to one scale: a lane without a straight arrow bends near the top, its head
+      level with a straight arrow's; with one, its turns branch half way up.
+    - The map drags and pinches at any speed, and returns 10 s after the last touch; the
+      compass turns it north up. The car sits on its road, the road ahead straight
+      up, 70 % down the map (map padding), the route drawn ahead of it only (the canvas greys
+      the road behind; here it is gone); until the car is on a road the route picked at setup
+      shows.
+    - New `ArrowMark`, the car as a navigation arrow (36 × 40 dp, `map.player.pin` with its
+      right half in `map.player.pin-lip`, a 3 dp `map.player.halo` rim), laid flat on the map;
+      the default, with `CarMark` a choice in Settings → Driving.
 - Lakes are not named (Protomaps gives them no label point); Lisi Lake is the only one.
 - Left out of the road-class pass, on purpose:
   - A "Your streets" round left half-way is not offered as Continue on Explore (Continue matches
@@ -243,6 +288,15 @@ and the specs after R5. Fix them in roughly this order.
   - Name it, both ends, drills and the other route cards keep their maps as they were (no place
     names, no Street View).
   - The player's own landmarks are not in the map data, so the map never names them.
+- Left out of the navigation review (2026-11-23), on purpose:
+  - Fix accuracy is never checked: Android's "Approximate" and iOS's "Precise: Off" locations
+    navigate, and 80 m fixes can start false recoveries. Needs a setup step (ask for precise
+    location, say why) before the navigator ignores coarse fixes.
+  - End drive map-matches on the UI thread, and `edgeSnaps` scans every road edge per fix: a
+    long drive can freeze End for seconds. A spatial index on `RoadGraph` fixes both this and
+    the navigator's `_locate`.
+  - The drive's district names follow the voice's language; the other screens follow the
+    street-name setting (`districtName`).
 
 ## Designed, not scheduled
 
@@ -282,6 +336,10 @@ landmarks, recitals and drives) and the curriculum order.
 - Speed data (pack format 7) reads only `maxspeed` and `GE:*` zones: `maxspeed:forward/backward`,
   conditional limits and average-speed sections (`type=enforcement` relations) are left out, and a
   camera tagged `direction=forward/backward` counts as both ways.
+- Lane arrows (pack format 8) come from the `turn:lanes` of the way into a junction, carried on
+  every edge of that way: where a long way crosses minor junctions before the one its lanes are
+  for, a decision there can show them (`laneMatchDeg` drops most such cases). `turn:lanes` on
+  `*_link` approaches and `change:lanes` are not read.
 
 ## Infra / CI
 

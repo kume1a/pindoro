@@ -4,11 +4,11 @@ import 'package:test/test.dart';
 
 import 'road_net.dart';
 
-/// A residential side street straight from 1 to 2 (600 m), and the main road round it: 1 → 3
+/// A side street ([sideClass]) straight from 1 to 2 (600 m), and the main road round it: 1 → 3
 /// (secondary, 100 m), 3 → 4 (primary, 600 m, signed [mainLimit]), 4 → 2 (secondary, 100 m).
-RoadNet _bypass({int? mainLimit}) {
+RoadNet _bypass({int? mainLimit, String sideClass = 'residential'}) {
   final net = RoadNet()
-    ..street('side', 'გვერდითი', 'Side')
+    ..street('side', 'გვერდითი', 'Side', roadClass: sideClass)
     ..street('west', 'დასავლეთი', 'West', roadClass: 'secondary')
     ..street('main', 'მთავარი', 'Main', roadClass: 'primary')
     ..street('east', 'აღმოსავლეთი', 'East', roadClass: 'secondary')
@@ -103,6 +103,27 @@ void main() {
       expect(plan.seconds, closeTo(200 / (55 / 3.6) + 600 / (65 / 3.6), 0.1));
     });
 
+    test('the route options: the quickest first, then a clearly different '
+        'way not much slower; one far slower is left out', () {
+      List<List<int>> options(RoadNet net) => [
+        for (final p in planNavOptions(
+          net.graph(),
+          NavCost(net.byPart, toleranceKmh: 14),
+          from: 1,
+          to: 2,
+          streets: net.byPart,
+        ))
+          p.route.junctions,
+      ];
+      expect(options(_bypass(sideClass: 'tertiary')), [
+        [1, 3, 4, 2],
+        [1, 2],
+      ]);
+      expect(options(_bypass()), [
+        [1, 3, 4, 2],
+      ], reason: 'the residential side street takes 1.9 times as long');
+    });
+
     test('a low sign on the main road sends it down the side street', () {
       final net = _bypass(mainLimit: 10);
       final plan = planNav(
@@ -190,6 +211,81 @@ void main() {
         ),
         isEmpty,
       );
+    });
+  });
+
+  group('the map and the lanes', () {
+    final net = _cross();
+    final graph = net.graph();
+    NavPlan plan(List<int> junctions) {
+      final route = _along(graph, junctions);
+      return NavPlan(route, navDecisions(graph, route, streets: net.byPart), 0);
+    }
+
+    double east(LatLng p) => LocalProjection(RoadNet.origin).project(p).$1;
+
+    test('a slice runs between its metres along the route, over junctions', () {
+      final line = plan([1, 2, 3]).slice(50, 150);
+      expect(east(line.first), closeTo(50, 0.5));
+      expect(east(line.last), closeTo(150, 0.5));
+      expect(line.map(east), contains(closeTo(100, 0.5)));
+      expect(plan([1, 2, 3]).slice(400, 500), isEmpty);
+    });
+
+    test('the turn arrow runs from before the decision to just after it', () {
+      final p = plan([1, 2, 3, 7]);
+      final d = p.decisions.single;
+      expect(d.junction, 3);
+      final arrow = turnArrow(p, d);
+      expect(
+        east(arrow.first),
+        closeTo(200 - LearningConfig.navArrowBeforeM, 0.5),
+      );
+      expect(
+        east(arrow.last),
+        closeTo(200 + LearningConfig.navArrowAfterM, 0.5),
+      );
+    });
+
+    RoadGraph laned(String lanes) {
+      final n = _cross();
+      final edges = [
+        for (final e in n.edges)
+          e.id == 21
+              ? RoadEdge(
+                  id: e.id,
+                  from: e.from,
+                  to: e.to,
+                  streetId: e.streetId,
+                  lengthM: e.lengthM,
+                  line: e.line,
+                  lanes: lanes,
+                )
+              : e,
+      ];
+      return RoadGraph(n.at, edges);
+    }
+
+    NavDecision at3(RoadGraph g, int to) {
+      final route = _along(g, [1, 2, 3, to]);
+      return navDecisions(g, route, streets: net.byPart).single;
+    }
+
+    test('the lanes that go the way light their arrow', () {
+      final g = laned('slight_left|through;slight_left|through');
+      final straight = navLanes(at3(g, 7))!;
+      expect(straight.map((l) => l.arrowsDeg), [
+        [-45.0],
+        [0.0, -45.0],
+        [0.0],
+      ]);
+      expect(straight.map((l) => l.use), [null, 0.0, 0.0]);
+      expect(navLanes(at3(g, 6))!.map((l) => l.use), [-45.0, -45.0, null]);
+    });
+
+    test('no lanes when none are mapped or none goes the way', () {
+      expect(navLanes(at3(graph, 7)), isNull);
+      expect(navLanes(at3(laned('left|left'), 7)), isNull);
     });
   });
 }

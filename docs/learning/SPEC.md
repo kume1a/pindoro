@@ -430,10 +430,13 @@ pindoro_core `ScoringConfig`, not copied):
 | `prepareM`, `prepareS`, `actionM`, `actionS`                            | 150, 10, 40, 4                      |
 | `landmarkAtM`, `confirmDelayS`, `districtCueM`, `districtCueS`          | 50, 6, 2000, 180                    |
 | `gpsLostSayS`                                                           | 60                                  |
+| `navRoadAheadM`, `navArrowBeforeM`, `navArrowAfterM`, `laneMatchDeg`    | 10, 35, 20, 60                      |
 | `creditMaxR`, `hesitationBeforeM`, `noCreditAfterPromptS`               | 0.92, 150, 60                       |
 | `habitPasses`, `habitWindowDays`, `habitCreditDays`                     | 3, 14, 7                            |
 | `keyTurnsMin`, `keyTurnsMax`, `complexWaysOn`                           | 3, 7, 4                             |
-| `previewOverviewS`, `previewTurnS`, `debriefOfferHours`                 | 20, 10, 24                          |
+| `debriefOfferHours`                                                     | 24                                  |
+| `navOptions`, `navOptionPenalty`, `navOptionMaxSlower`                  | 3, 1.5, 1.4                         |
+| `navOptionMaxShared`, `navOptionTries`                                  | 0.7, 6                              |
 | `pointPerfectDeg`, `pointGreatDeg`, `pointCloseDeg`                     | 10, 25, 45                          |
 | `yourRouteDrives`, `yourRouteDays`                                      | 2, 14                               |
 | `yourRoutesShare`, `yourRoutesSlowShare`, `yourRoutesSlowRate`          | 0.25, 0.15, 0.80                    |
@@ -1074,6 +1077,11 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      `driveArriveM`. Off's "Lost? Show the way" becomes Rescue: while stopped, one tap, no question,
      gives Guided to the destination; the drive is marked rescued, its later decisions are watched
      only, and its tier is at most Close. Off records with the screen locked, as GPS-free drives do.
+     The one exception is Guided (decided 2026-11-22, widened 2026-11-23): its map drags and
+     pinches at any speed, and a touch pops in its buttons (routes, Mute, the level, the compass
+     or Recentre) at any speed; 10 s after the last touch they go and the map is back on the car.
+     End drive and Change destination stay stopped-only. Back does nothing during a drive. With no fix yet, or
+     none for 60 s, the car counts as stopped: its speed is unknown and End drive stays in reach.
 117. **Voice**: landmark, then action, then street ("At Vake Park, turn left onto Chavchavadze
      Avenue"); a distance only when no landmark is within 50 m of the junction; traffic lights
      count as a landmark. A prepare prompt at max(150 m, 10 s) and an action prompt at max(40 m,
@@ -1091,7 +1099,9 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      street name, since those would answer cards. Preview and review are north-up. While moving:
      cap height ≥ 6 mm (≥ 8 mm for the one primary item), at most 3 text items, contrast ≥ 3:1 by
      day and 5:1 at night (text 7:1), a dim night look chosen by sun time at the car's position,
-     whatever the app theme. Quiet is dark by day too; Off is black.
+     whatever the app theme. Quiet is dark by day too; Off is black. Guided is the exception
+     (decided 2026-11-22: its 54 dp plate covered half the map): a turn card in the top left
+     and a floating bar in 22 dp (item 130).
 119. **Evidence** (for drives this replaces §4's "correct decisions are logged only"; recitals
      keep it): a decision with no prompt of its own and no recovery in the 60 s before it
      (Coached-silent, Quiet, Off) reviews its J card: Good, or Hard after a hesitation within
@@ -1106,8 +1116,8 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      of the day's new cards, with its streets' P cards (the main road it hangs on first). The rest
      keeps the order of §16.19 and §16.22. If City memory grows below 80 % of its earlier rate,
      the cap drops to 15 %.
-121. **Before and after.** Preview (parked, 60–90 s): north-up whole route with district names
-     (about 20 s), then the key decisions with their landmarks (about 10 s each): the ones not
+121. **Before and after.** Preview (parked, stepped through by the player, item 129): north-up
+     whole route with district names, then the key decisions with their landmarks: the ones not
      silent-eligible plus complex junctions and roundabouts, 3 to 7. An optional "Recite the turns"
      follows (feedback at once, exposure only: the turns were just shown). Debrief on arrival
      (offered for 24 h): the key decisions plus every missed or helped one, at most 7, each
@@ -1189,3 +1199,73 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      - Answer choices (Name it, a place's junction, the place at a junction, the family sweep)
        take a pick and Confirm, and show right and wrong on the choices for 600 ms before the
        reveal; the grading is unchanged.
+129. **The Drive tab** (2026-11-22): Pindoro is the player's everyday navigation, so a drive starts
+     from the first page.
+     - The bar is Drive · Today · Explore · Progress · Me, and a player who played opens on
+       Drive (Welcome and its placement still lead to Today). Back on another tab goes to Drive.
+     - Drive is Where to with no map: the search, Home and Work as tiles, today's run, Surprise
+       me and Recent, then the drives that item 128 put on Today (the one waiting, the week's
+       goal, the nudge, "Pick your two drives") and Past drives. Today keeps "Drive this run
+       today" (the run is part of the day's plan); Me no longer lists drives.
+     - A tile shows the minutes there by the way a drive would take, only when location is
+       already allowed: the tab never asks for it. They are found again on a return to the tab
+       or the app.
+     - A pick opens the drive set up on it (destination, level, Preview, Start); its end comes
+       back to the tab.
+     - Choose on the map (Where to, and Home and Work's picker): a tap drops the pin on the
+       nearest junction of a named street within `snapSearchM`, named under it; Drive here (Use
+       this spot for Home and Work) takes it. The map opens around where the phone is.
+     - The search finds a street or place by any of its words in either script, in any order
+       ("kazbegi" for "ალექსანდრე ყაზბეგის გამზირი"), each word within `fuzzyNameMax` of a
+       word's start; a whole name still matches as before.
+     - Surprise me says what it needs: a new place 1.5–5 km away with at least 7 of every 10
+       turns on the way the player's ("you already know"); without one, "No surprise yet" and
+       why. "Yours" reads "you already know" everywhere.
+     - Finding where the phone is uses a last known position under 2 minutes old as it is, and
+       waits 8 s at most for a new fix (it waited 20 s, the setup's "Finding the way…").
+     - Route options: the setup offers up to `navOptions` routes on a map over its panel, the
+       picked one yellow and the others grey; each with its time, length and the turns you
+       already know, the quickest tagged Fastest and the one with the largest share of known
+       turns Most familiar. A tap on a route or its line picks it, and the suggested level
+       follows it. Each next route is the quickest once the roads of those before cost
+       `navOptionPenalty` times as much, kept at most `navOptionMaxSlower` times the quickest's
+       time and sharing at most `navOptionMaxShared` of its length with each one kept. The drive
+       follows the picked route from where the car joins it; off it, the quickest way as ever.
+       No traffic: times come from road classes and limits only (item 125).
+     - The preview is stepped through, not timed (it looked stuck for its 20 s overview): the
+       whole route with "Show the turns" and Skip, then each key turn with Back and Next; item
+       121's 20 s and 10 s are gone.
+130. **Guided like a car navigator** (2026-11-23, after the player's own navigator):
+     - The turn card sits in the top left, at most 55 % of the screen wide: the turn glyph
+       beside the distance (32 dp), the street to turn onto under them (20 dp; the action when
+       the street has no name), then the landmark line (15 dp) with its badge, and the lanes.
+       "then" is a chip under the card. The card shows the next decision at any distance; the
+       street just turned onto, with its heading, takes its place until the confirmation,
+       unless the next decision is already within the prepare reach.
+     - The map keeps the car on its road and turns the road ahead (`navRoadAheadM`) straight up;
+       off the plan, the GPS position and heading as before. The car sits 70 % down the map,
+       the route drawn ahead of it only (the road driven drops away behind the car), and an
+       arrow in the card's colours marks the next decision, from `navArrowBeforeM` before it to
+       `navArrowAfterM` after. The car is a navigation arrow laid on the road, or the car disc:
+       Settings → Driving, "Your car on the map" (default the arrow).
+     - Lanes (pack format 8, OSM `turn:lanes` on the way into the junction): within the prepare
+       reach the card shows each lane's arrows, left to right, the arrow nearest the turn bright
+       in the lanes that have it; none when no lanes are mapped there or no arrow is within
+       `laneMatchDeg` of the turn. An unmarked or merging lane counts as straight on.
+     - The bar floats over the bottom of the map, rounded: the distance left, the arrival time
+       and the minutes left side by side over a line of the drive's progress (metres driven
+       against those left); stopped, End drive (✕) at its right end. The street the car is on
+       sits in a pill centred above it. The car's speed and the speed sign sit in the top right,
+       the camera badge under them; no district on screen (the voice still cues it).
+     - Buttons (2026-11-23): none while driving. A touch pops in a column on the right, bottom
+       up: the compass (a needle with a hole at its pivot; a tap switches north up and the road
+       ahead up), Recentre in its place while the map is off the car (its arrow leaning 45°
+       right), the level (opening the picker over the bar), Mute and the routes. 10 s after the
+       last touch they go (item 116).
+     - Routes: the map zooms out, north up and flat, to the route ahead and up to two other ways
+       on from the car's next junction (grey), listed over the bar as minutes, kilometres and
+       "+3 min" against the route driven now; a tap drives that way from there at once, silently.
+       Change destination is there while stopped.
+     - Coached, Quiet and Off keep their stopped bar.
+     - The preview's recital names no street before the way is tapped: the street turned onto
+       would give the way.

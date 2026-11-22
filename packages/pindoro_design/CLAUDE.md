@@ -5,7 +5,7 @@ Signpost widgets: `PindoroButton`, `StreetPlate`, surfaces (`LipBox`, `ListGroup
 `RowTile`, `StatTile`, `TileGrid`, `TitledCard`, `SheetHandle`), the bottom navigation (`PindoroNavBar`, no counts on tabs), controls
 (`SegmentedControl`, `PindoroToggle`, `PindoroIconButton`, `PindoroDialog`, `LaneLoader`, the
 loading `Skeleton`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` incl. the route's
-`PinMark.endpoint`, `CarMark`, `glyphPng` and `onewayArrowPng` for map images), the round components (`QuestionBar`,
+`PinMark.endpoint`, `CarMark`, Guided's `ArrowMark`, `glyphPng` and `onewayArrowPng` for map images), the round components (`QuestionBar`,
 `Pill`, `MapControl`, `RevealSheet` and its `TierSheetFrame`, `ResultRow`, `TierTally`,
 `CoachBubble`), the v3 session (`StatChip`, `NextReviewChip`, `IntroSheet`, the drills'
 `BearingDial`; the session bar is `QuestionBar` with `height: 14`), v3 route items (`ExitButton`,
@@ -13,8 +13,9 @@ loading `Skeleton`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` inc
 progress (`MemoryBar`, `MemoryLegend`, `MemoryChart`, `ForecastBars`, `WeekBars`, `MemoryRow`), the streak (`StreakPill`, `StreakCalendar`, `StreakWeek`,
 `StreakFreezeCard`), badges (`BadgeShield`, `BadgeTile`; fields `color.badge.*`),
 setup components (`SearchField`, `PindoroChip`, `DifficultyCard`, the painted `DistrictMap` and `AreaMiniMap`), `MiniTally`,
-the drive (v3.2: `DriveGlyph`, `TurnPlate`, `DriveBottomBar`, `SpeedLimitSign`, `CameraBadge`,
-`DistrictChip`, `DistrictLine`, `HeadingDial`, `StatusDot`, `SpeakingBars`, `RecoveryBand`, `RecordingDot`,
+the drive (v3.2: `DriveGlyph`, `TurnPlate` with `LaneArrows`, `DriveBottomBar` with
+`DriveBarButton`, Guided's `DriveMapButton` column (`DriveCompass`, `DriveRecentre`), `RouteOptions`,
+`LevelPickerCard`, `StreetChip`, `SpeedNow`, `SpeedLimitSign`, `CameraBadge`, `DistrictLine`, `HeadingDial`, `StatusDot`, `SpeakingBars`, `RecoveryBand`, `RecordingDot`,
 `LevelPicker`, `LevelSuggestion`, `StoppedBar`; their `color.drive.*` are day in the light theme and night
 in the dark one, and drive type ignores the text scale), the v3.2 parked parts in the app theme (`ReviewMark`, `TurnNumber`, `StartRing`,
 `DestinationFlag`, `StepDots`, `TierChip`, `GoalLine`, `PlanChecklist`, `RouteLevelStair`, `SuggestionCard`,

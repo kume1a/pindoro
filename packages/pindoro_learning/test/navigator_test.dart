@@ -88,6 +88,7 @@ _run(
   required DriveLevel level,
   Set<String> silent = const {},
   RoadGraph? graph,
+  Route? prefer,
 }) {
   final nav = Navigator(
     graph: graph ?? net.graph(),
@@ -97,13 +98,14 @@ _run(
     streets: net.byPart,
     junctionNodes: {for (final j in net.at.keys) j: 5000 + j},
     silent: silent,
+    prefer: prefer,
   );
   final prompts = <NavPrompt>[];
   final views = <NavView>[];
   var chimes = 0;
   for (final f in fixes) {
     final u = nav.onFix(f);
-    if (u.prompt case final p?) prompts.add(p);
+    prompts.addAll(u.prompts);
     if (u.chime) chimes++;
     views.add(u.view);
   }
@@ -290,6 +292,44 @@ void main() {
     expect(run.view.arrived, isTrue);
   });
 
+  test('the route picked at setup is the one guided, not the quickest', () {
+    final net = _grid();
+    final graph = net.graph();
+    final approach = graph
+        .edgesAt(g(0, 0))
+        .firstWhere((e) => e.other(g(0, 0)) == g(0, 1));
+    final quickest = planNav(
+      graph,
+      NavCost(net.byPart, toleranceKmh: 14),
+      from: g(0, 1),
+      to: g(2, 2),
+      approach: approach,
+      streets: net.byPart,
+    )!;
+    // Equal-length ways: pick the one the quickest plan didn't take.
+    final picked = quickest.route.junctions[1] == g(0, 2)
+        ? [g(0, 1), g(1, 1), g(2, 1), g(2, 2)]
+        : [g(0, 1), g(0, 2), g(1, 2), g(2, 2)];
+    final edges = [
+      for (var i = 0; i + 1 < picked.length; i++)
+        graph
+            .edgesAt(picked[i])
+            .firstWhere((e) => e.other(picked[i]) == picked[i + 1]),
+    ];
+    final run = _run(
+      net,
+      _drive([_p(50, 0), for (final j in picked) net.at[j]!]),
+      to: g(2, 2),
+      level: DriveLevel.guided,
+      prefer: Route(picked, edges, edges.fold(0, (s, e) => s + e.lengthM)),
+    );
+    // South first turns at column 1; east first goes straight on there, turning at column 2.
+    final first = run.prompts.firstWhere((p) => p.kind == PromptKind.action);
+    expect(first.decision?.junction, picked[1] == g(1, 1) ? g(0, 1) : g(0, 2));
+    expect(run.view.newRoute, isFalse);
+    expect(run.view.arrived, isTrue);
+  });
+
   test('two recoveries within 5 minutes switch Quiet to Coached, said once', () {
     final net = _grid();
     // Wanted: right at column 1 down to row 4; driven straight on twice first.
@@ -369,8 +409,92 @@ void main() {
     expect(nav.onTick(t.add(const Duration(seconds: 5))).view.gpsLostS, isNull);
     expect(nav.onTick(t.add(const Duration(seconds: 11))).view.gpsLostS, 11);
     final lost = nav.onTick(t.add(const Duration(seconds: 60)));
-    expect(lost.prompt?.kind, PromptKind.stillFinding);
-    expect(nav.onTick(t.add(const Duration(seconds: 61))).prompt, isNull);
+    expect(_kinds(lost.prompts), [PromptKind.stillFinding]);
+    expect(nav.onTick(t.add(const Duration(seconds: 61))).prompts, isEmpty);
+  });
+
+  Navigator plainNav(RoadNet net) => Navigator(
+    graph: net.graph(),
+    cost: NavCost(net.byPart, toleranceKmh: 14),
+    destination: g(2, 1),
+    level: DriveLevel.guided,
+    streets: net.byPart,
+  );
+
+  test('no fix yet: lost from the first tick, and stopped, so End drive '
+      'stays within reach', () {
+    final nav = plainNav(_grid());
+    final first = nav.onTick(_t0);
+    expect(first.view.gpsLostS, isNull);
+    expect(first.view.stopped, isTrue);
+    final later = nav.onTick(_t0.add(const Duration(seconds: 11)));
+    expect(later.view.gpsLostS, 11);
+    expect(later.view.stopped, isTrue);
+    final still = nav.onTick(_t0.add(const Duration(seconds: 60)));
+    expect(_kinds(still.prompts), [PromptKind.stillFinding]);
+    expect(nav.onTick(_t0.add(const Duration(seconds: 61))).prompts, isEmpty);
+  });
+
+  test('lost while moving: moving until lost a minute, then stopped', () {
+    final nav = plainNav(_grid());
+    final fixes = _drive(_rightTurn).take(5).toList();
+    fixes.forEach(nav.onFix);
+    final t = fixes.last.t;
+    expect(
+      nav.onTick(t.add(const Duration(seconds: 11))).view.stopped,
+      isFalse,
+    );
+    expect(nav.onTick(t.add(const Duration(seconds: 60))).view.stopped, isTrue);
+  });
+
+  test('the screens keep the heading driven: a stopped fix\'s 0 (a '
+      'platform\'s "none") or null leaves it', () {
+    final fixes = [
+      for (final (i, f) in _drive(_rightTurn).indexed)
+        if (f.speedMps == 0)
+          (
+            at: f.at,
+            t: f.t,
+            headingDeg: i.isEven ? 0.0 : null,
+            speedMps: 0.0,
+            accuracyM: f.accuracyM,
+          )
+        else
+          f,
+    ];
+    final run = _run(_grid(), fixes, to: g(2, 1), level: DriveLevel.guided);
+    expect(run.view.stopped, isTrue);
+    expect(run.view.headingDeg, closeTo(180, 1));
+  });
+
+  test('the map\'s car sits on its road, the road ahead straight up, '
+      'whatever the GPS drifts', () {
+    final fixes = [
+      for (final f in _drive([_p(50, 8), _p(550, 8)]))
+        (
+          at: f.at,
+          t: f.t,
+          headingDeg: 75.0,
+          speedMps: f.speedMps,
+          accuracyM: f.accuracyM,
+        ),
+    ];
+    final run = _run(_grid(), fixes, to: g(0, 4), level: DriveLevel.guided);
+    final road = run.views[10].onRoad!;
+    final (east, north) = LocalProjection(RoadNet.origin).project(road.at);
+    expect(north, closeTo(0, 0.5));
+    final (fixEast, _) = LocalProjection(RoadNet.origin).project(fixes[10].at);
+    expect(east, closeTo(fixEast, 1));
+    expect(road.headingDeg, closeTo(90, 1));
+    expect(run.views.first.onRoad, isNull);
+    // Short of the plan's first junction, the road there is drawn from the car.
+    final toPlan = run.views[10].toPlan;
+    expect(toPlan.first, road.at);
+    expect(
+      LocalProjection(RoadNet.origin).project(toPlan.last).$1,
+      closeTo(300, 0.5),
+    );
+    expect(run.views[40].toPlan, isEmpty);
   });
 
   test(
@@ -412,5 +536,173 @@ void main() {
     final gapped = [...fixes.take(20), ...fixes.skip(45)];
     final run = _run(net, gapped, to: g(2, 1), level: DriveLevel.quiet);
     expect(run.nav.passed.single.ok, isNull);
+  });
+
+  test('prompts due on the same fix all come through: a camera ahead and '
+      "Coached's prepare", () {
+    final net = _grid();
+    final graph = net.graph(
+      cameras: [
+        (
+          id: 9,
+          edgeId: net.edges
+              .firstWhere((e) => e.from == g(0, 1) && e.to == g(0, 2))
+              .id,
+          // 300 m ahead (the warning's reach) as the turn comes within 150 m (the prepare's).
+          at: _p(450, 5),
+          maxspeedKmh: 40,
+          directionDeg: 90,
+        ),
+      ],
+    );
+    final run = _run(
+      net,
+      _drive(_rightTurn),
+      to: g(2, 1),
+      level: DriveLevel.coached,
+      graph: graph,
+    );
+    expect(_kinds(run.prompts), [
+      PromptKind.camera,
+      PromptKind.prepare,
+      PromptKind.confirmation,
+    ]);
+    expect(run.nav.passed.single.help, NavHelp.cue);
+  });
+
+  test('back from a GPS gap further along the plan, the car is still on it; '
+      'the turn in the gap is passed, counting neither way', () {
+    final net = _grid();
+    final graph = net.graph();
+    // East to column 3, right, down to row 4: past more than 3 edges in the gap.
+    final picked = [
+      g(0, 1),
+      g(0, 2),
+      g(0, 3),
+      g(1, 3),
+      g(2, 3),
+      g(3, 3),
+      g(4, 3),
+    ];
+    final edges = [
+      for (var i = 0; i + 1 < picked.length; i++)
+        graph
+            .edgesAt(picked[i])
+            .firstWhere((e) => e.other(picked[i]) == picked[i + 1]),
+    ];
+    final fixes = _drive([_p(50, 0), for (final j in picked) net.at[j]!]);
+    // Lost from 200 m in until half way down row 2 to row 3.
+    final gapped = [...fixes.take(20), ...fixes.skip(20 + (850 + 750) ~/ 8)];
+    final run = _run(
+      net,
+      gapped,
+      to: g(4, 3),
+      level: DriveLevel.quiet,
+      graph: graph,
+      prefer: Route(picked, edges, edges.fold(0, (s, e) => s + e.lengthM)),
+    );
+    final passed = run.nav.passed.single;
+    expect(passed.junction, g(0, 3));
+    expect(passed.ok, isNull);
+    expect(run.nav.recoveries, 0);
+    expect(run.view.arrived, isTrue);
+  });
+
+  test("a stopped car's GPS jitter adds no metres driven", () {
+    final fixes = _drive(_rightTurn);
+    final stop = fixes.last;
+    final jitter = [
+      for (var i = 1; i <= 30; i++)
+        (
+          at: _p(300.0 + (i.isEven ? 3 : -3), -600),
+          t: stop.t.add(Duration(seconds: i)),
+          headingDeg: null,
+          speedMps: 0.0,
+          accuracyM: 5.0,
+        ),
+    ];
+    final still = _run(_grid(), fixes, to: g(2, 1), level: DriveLevel.quiet);
+    final jittered = _run(
+      _grid(),
+      [...fixes, ...jitter],
+      to: g(2, 1),
+      level: DriveLevel.quiet,
+    );
+    expect(jittered.view.drivenM, closeTo(still.view.drivenM, 1e-6));
+  });
+
+  test(
+    'a district crossed at a crawl is cued with the heading driven before',
+    () {
+      final fixes = _drive(_rightTurn);
+      final turn = fixes.indexWhere((f) => f.at.lat < _at(0, 1).lat - 1e-4);
+      // Into the second district at walking pace just past the turn.
+      final crawl = [
+        ...fixes.take(turn),
+        for (final (i, f) in fixes.skip(turn).indexed)
+          (
+            at: f.at,
+            t: f.t,
+            headingDeg: f.headingDeg,
+            speedMps: i < 3 ? 1.0 : f.speedMps,
+            accuracyM: f.accuracyM,
+          ),
+      ];
+      final net = _grid();
+      final nav = Navigator(
+        graph: net.graph(),
+        cost: NavCost(net.byPart, toleranceKmh: 14),
+        destination: g(2, 1),
+        level: DriveLevel.guided,
+        streets: net.byPart,
+        districtAt: (p) => p.lat < _at(0, 1).lat - 1e-4 ? 'South' : 'North',
+      );
+      final cues = [
+        for (final f in crawl)
+          ...nav.onFix(f).prompts.where((p) => p.kind == PromptKind.district),
+      ];
+      expect(cues.single.district, 'South');
+      expect(cues.single.headingDeg, isNotNull);
+    },
+  );
+
+  test("the routes on from the car leave out the plan's own; taking one "
+      'follows it at once, saying nothing', () {
+    final net = _grid();
+    final nav = Navigator(
+      graph: net.graph(),
+      cost: NavCost(net.byPart, toleranceKmh: 14),
+      destination: g(2, 2),
+      level: DriveLevel.guided,
+      streets: net.byPart,
+    );
+    final fixes = _drive([_p(50, 0), _at(0, 1)]).take(10).toList();
+    final prompts = [for (final f in fixes) ...nav.onFix(f).prompts];
+    final rest = nav.onTick(fixes.last.t).view.plan!.route.edges;
+    final options = nav.routeOptions();
+    expect(options, isNotEmpty);
+    for (final o in options) {
+      expect(o.route.edges.map((e) => e.id), isNot(rest.map((e) => e.id)));
+    }
+    final other = options.first;
+    nav.takeRoute(other);
+    final view = nav.onTick(fixes.last.t).view;
+    expect(
+      view.plan!.route.edges.map((e) => e.id),
+      other.route.edges.map((e) => e.id),
+    );
+    expect(view.newRoute, isFalse);
+    final next = nav.onFix((
+      at: _p(130, 0),
+      t: fixes.last.t.add(const Duration(seconds: 1)),
+      headingDeg: 90,
+      speedMps: 8,
+      accuracyM: 5,
+    ));
+    expect(
+      [...prompts, ...next.prompts].map((p) => p.kind),
+      isNot(contains(PromptKind.recovery)),
+    );
+    expect(nav.recoveries, 0);
   });
 }

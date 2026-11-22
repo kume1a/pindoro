@@ -60,6 +60,30 @@ void main() {
       places.first,
     ]);
   });
+
+  test('the search finds a name by any of its words, in either script, in '
+      'any order and with a slip', () {
+    final kazbegi = _street(
+      'z',
+      'ალექსანდრე ყაზბეგის გამზირი',
+      'Aleksandre Kazbegi Avenue',
+    );
+    final lane = _street(
+      'l',
+      'ივანე ბერიტაშვილის III შესახვევი',
+      'Ivane Beritashvili 3rd Lane',
+    );
+    final all = [barnovi, bakhtrioni, chavchavadze, kazbegi, lane];
+    expect(searchNames('Kazbegi', all, nameForms), [kazbegi]);
+    expect(searchNames('kazbegi ave', all, nameForms), [kazbegi]);
+    expect(searchNames('ყაზბეგი', all, nameForms), [kazbegi]);
+    expect(searchNames('qazbegis', all, nameForms), [kazbegi]);
+    expect(searchNames('chavchavadze', all, nameForms), [chavchavadze]);
+    expect(searchNames('chavchavadze ilia', all, nameForms), [chavchavadze]);
+    expect(searchNames('chavchavaze', all, nameForms), [chavchavadze]);
+    expect(searchNames('beritashvili 3', all, nameForms), [lane]);
+    expect(searchNames('kazbegi barnovi', all, nameForms), isEmpty);
+  });
 }
 
 void _withoutKindTests() {

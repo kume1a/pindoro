@@ -2,14 +2,11 @@ import 'package:drift/drift.dart' show DatabaseConnection;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/app/app.dart';
-import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
-import 'package:pindoro/features/learning/data/drive_log.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/progress.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
@@ -35,11 +32,7 @@ void main() {
   Future<void> placed() =>
       LearningDao(db).markPlaced(AppConfig.defaultCityId, DateTime(2026));
 
-  Future<void> pump(
-    WidgetTester tester,
-    SessionPlan plan, {
-    List<Override> more = const [],
-  }) async {
+  Future<void> pump(WidgetTester tester, SessionPlan plan) async {
     tester.platformDispatcher.accessibilityFeaturesTestValue =
         const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
@@ -50,7 +43,6 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          ...more,
           databaseProvider.overrideWithValue(db),
           pindoroMapBuilderProvider.overrideWithValue((_) => const SizedBox()),
           todayPlanProvider.overrideWith((ref) async => plan),
@@ -217,69 +209,5 @@ void main() {
     expect(find.textContaining('Most overdue first'), findsOneWidget);
     expect(find.textContaining('caught up by'), findsOneWidget);
     expect(find.textContaining('· paused'), findsOneWidget);
-  });
-
-  testWidgets('drives: the one waiting to be gone through, the week’s goal '
-      'and, once a week, the two drives to pick', (tester) async {
-    await placed();
-    // A Wednesday: three drives this week on one route, the last an hour ago.
-    final now = DateTime(2026, 11, 18, 12);
-    final pack = SqlitePackRepository.open(AppConfig.fixturePackAsset);
-    final nodes = pack.junctionNodes().values.toList();
-    final street = pack.roadGraph()!.edges.first.streetId!;
-    pack.close();
-    final log = DriveLogDao(db);
-    for (var i = 0; i < 3; i++) {
-      final at = now.subtract(Duration(hours: 3 - i));
-      await log.save(
-        DriveRow(
-          id: 'd$i',
-          startedAt: at.subtract(const Duration(minutes: 20)),
-          endedAt: at,
-          level: DriveLevel.quiet,
-          goal: 'own',
-          startNode: nodes.first,
-          targetNode: nodes.last,
-          targetStreet: street,
-          outcome: DriveOutcome.arrived,
-          drivenM: 2000,
-          credited: 0,
-          failed: 0,
-          fixes: 0,
-          gpsGaps: 0,
-          longestGapS: 0,
-          recoveries: 0,
-          rescued: false,
-          mostHelp: DriveLevel.quiet,
-        ),
-        '',
-        decisions: [
-          DriveDecisionRow(
-            driveId: 'd$i',
-            seq: 0,
-            at: at,
-            itemKey: 'J:n1:n2:n3',
-            planned: true,
-            ok: true,
-            level: DriveLevel.quiet,
-            help: NavHelp.none,
-            recentHelp: false,
-            hesitated: false,
-            keyTurn: true,
-          ),
-        ],
-      );
-    }
-    await pump(
-      tester,
-      ready,
-      more: [clockProvider.overrideWithValue(() => now)],
-    );
-    expect(find.text('Drives'), findsOneWidget);
-    expect(find.text('Your drive is waiting'), findsOneWidget);
-    expect(find.text('This week’s goal is done.'), findsOneWidget);
-    expect(find.text('Pick your two drives'), findsOneWidget);
-    await tapThrough(tester, find.text('Not this week'));
-    expect(find.text('Pick your two drives'), findsNothing);
   });
 }

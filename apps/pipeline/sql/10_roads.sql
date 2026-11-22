@@ -46,6 +46,16 @@ LANGUAGE sql IMMUTABLE AS $$
   END
 $$;
 
+-- A way's lane arrows driving along its nodes (`dir` 1) or against them (-1), left to right in
+-- that driving direction, as OSM has them (`left|through;right`): the `:forward` / `:backward`
+-- tag, else the plain `turn:lanes` when the way is one-way in `dir` (`oneway` from
+-- pipeline.oneway); a two-way way's plain tag says no direction and is ignored. NULL: unmapped.
+CREATE FUNCTION pipeline.turn_lanes(dir int, oneway int, plain text, directional text) RETURNS text
+LANGUAGE sql IMMUTABLE AS $$
+  SELECT coalesce(nullif(btrim(directional), ''),
+                  CASE WHEN oneway = dir THEN nullif(btrim(plain), '') END)
+$$;
+
 -- A `maxspeed` tag in km/h: a number (km/h unless `mph`), or a Georgian zone (`GE:urban` 60,
 -- `GE:rural` 90, `GE:motorway` 110, `GE:living_street` 20); NULL for anything else (`none`,
 -- `signals`, a typo).

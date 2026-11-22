@@ -27,6 +27,7 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
     minutesPerDay: 20,
     zoomButtons: false,
     speedToleranceKmh: LearningConfig.speedToleranceKmh,
+    driveMarker: DriveMarker.arrow,
   );
 
   SimpleSelectStatement<$UserSettingsTable, Settings> get _row =>
@@ -82,6 +83,9 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> setSpeedTolerance(int kmh) =>
       _update(UserSettingsCompanion(speedToleranceKmh: Value(kmh)));
+
+  Future<void> setDriveMarker(DriveMarker marker) =>
+      _update(UserSettingsCompanion(driveMarker: Value(marker)));
 
   /// Home ([home]) or Work for drives, as `DrivePlace` JSON; null clears it.
   Future<void> setDrivePlace(String? json, {required bool home}) => _update(

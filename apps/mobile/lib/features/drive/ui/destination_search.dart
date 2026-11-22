@@ -30,18 +30,22 @@ final _findablesProvider = FutureProvider.autoDispose<List<_Findable>>((
 });
 
 /// Where to (DriveSetup `search`, board V32-10): the search field over the pack's streets and
-/// places; with nothing typed, the [quick] rows (Home, Work, today's run, Surprise me) and the
-/// recent destinations. [here] gives each its distance.
+/// places; with nothing typed, [above], the [quick] rows (today's run, Surprise me), the recent
+/// destinations and [below]. [here] gives each its distance.
 class DestinationSearch extends ConsumerStatefulWidget {
   const DestinationSearch({
     required this.onPick,
+    this.above = const [],
     this.quick = const [],
+    this.below = const [],
     this.here,
     super.key,
   });
 
   final ValueChanged<DriveDest> onPick;
+  final List<Widget> above;
   final List<Widget> quick;
+  final List<Widget> below;
   final LatLng? here;
 
   @override
@@ -63,13 +67,13 @@ class _DestinationSearchState extends ConsumerState<DestinationSearch> {
     final settings = ref.watch(settingsProvider).value;
     final typed = _field.text.trim();
     final recents = ref.watch(recentDestinationsProvider).value ?? const [];
-    final found = typed.isEmpty
-        ? const <_Findable>[]
-        : searchNames(
-            typed,
-            ref.watch(_findablesProvider).value ?? const <_Findable>[],
-            (f) => f.forms,
-          );
+    // Watched from the start, so the names are ready by the first letters.
+    final findables = ref.watch(_findablesProvider).value;
+    // searchNames needs two letters; under that the usual rows stay.
+    final searching = typed.length >= 2;
+    final found = searching && findables != null
+        ? searchNames(typed, findables, (f) => f.forms)
+        : const <_Findable>[];
     final where = PlaceLine(here: widget.here);
     Widget row({
       required PindoroGlyph glyph,
@@ -94,8 +98,10 @@ class _DestinationSearchState extends ConsumerState<DestinationSearch> {
           autocorrect: false,
           onChanged: (_) => setState(() {}),
         ),
-        if (typed.isNotEmpty)
-          found.isEmpty
+        if (searching)
+          findables == null
+              ? const Center(child: LaneLoader())
+              : found.isEmpty
               ? Text(
                   l10n.driveNoMatch,
                   style: PindoroType.bodyMd.copyWith(
@@ -123,6 +129,7 @@ class _DestinationSearchState extends ConsumerState<DestinationSearch> {
                   ],
                 )
         else ...[
+          ...widget.above,
           if (widget.quick.isNotEmpty) ListGroup(children: widget.quick),
           if (recents.isNotEmpty) ...[
             SectionTitle(l10n.driveRecent),
@@ -144,6 +151,7 @@ class _DestinationSearchState extends ConsumerState<DestinationSearch> {
               ],
             ),
           ],
+          ...widget.below,
         ],
       ],
     );

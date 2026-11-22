@@ -225,6 +225,16 @@ abstract final class LearningConfig {
   /// A connector's speed (an unnamed way or a link), and any class not above.
   static const double navConnectorKmh = 25;
 
+  /// Route options (item 129): up to [navOptions] plans, each next one the quickest once the
+  /// roads of the plans so far cost [navOptionPenalty] times as much, kept when it takes at
+  /// most [navOptionMaxSlower] times the quickest's time and shares at most
+  /// [navOptionMaxShared] of its length with each plan kept; [navOptionTries] plans at most.
+  static const int navOptions = 3;
+  static const double navOptionPenalty = 1.5;
+  static const double navOptionMaxSlower = 1.4;
+  static const double navOptionMaxShared = 0.7;
+  static const int navOptionTries = 6;
+
   /// Georgian limits where no sign is mapped.
   static const int limitTownKmh = 60;
   static const int limitMotorwayKmh = 110;
@@ -297,6 +307,14 @@ abstract final class LearningConfig {
   /// GPS lost this long: "Still finding you" (the line shows after [gpsGapS]).
   static const int gpsLostSayS = 60;
 
+  /// Guided's map (item 130): the road's way this far ahead of the car is straight up; the
+  /// turn arrow runs from [navArrowBeforeM] before the next decision to [navArrowAfterM] after
+  /// it; a lane's arrow within [laneMatchDeg] of the turn is the one to take.
+  static const double navRoadAheadM = 10;
+  static const double navArrowBeforeM = 35;
+  static const double navArrowAfterM = 20;
+  static const double laneMatchDeg = 60;
+
   /// Drive credit: only while recall is at most [creditMaxR]; Hard after a hesitation within
   /// [hesitationBeforeM] before the junction; none within [noCreditAfterPromptS] of a prompt or
   /// recovery.
@@ -311,13 +329,11 @@ abstract final class LearningConfig {
   static const int habitCreditDays = 7;
 
   /// Preview and debrief (item 121): the key decisions, at least [keyTurnsMin] and at most
-  /// [keyTurnsMax]; a junction with [complexWaysOn] or more ways on is complex. The preview
-  /// spends [previewOverviewS] on the whole route, then [previewTurnS] a key decision.
+  /// [keyTurnsMax]; a junction with [complexWaysOn] or more ways on is complex. The player
+  /// steps through the preview (item 129).
   static const int keyTurnsMin = 3;
   static const int keyTurnsMax = 7;
   static const int complexWaysOn = 4;
-  static const int previewOverviewS = 20;
-  static const int previewTurnS = 10;
 
   /// The debrief waits this long after a drive.
   static const int debriefOfferHours = 24;

@@ -23,7 +23,8 @@ lib/src/pack/       City/District/Street (pack rows; format 4 adds the curriculu
                     `shortestRoute` to a goal set with the U-turn penalty in `RoutingConfig`,
                     edgeNear; Dart only, not twinned: `allowing` the player's reported moves,
                     `shortestRoute`'s `costOf` and `uTurnCostM` (navigation), format 7's
-                    `RoadEdge.maxspeedKmh`, `signals` and `cameras`)
+                    `RoadEdge.maxspeedKmh`, `signals` and `cameras`, format 8's `RoadEdge.lanes`,
+                    `lanesBack` and `lanesInto`)
 ```
 
 ## Rules

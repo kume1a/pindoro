@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:pindoro_core/pindoro_core.dart';
 
 import 'constants.dart';
+import 'grader.dart';
 import 'route_questions.dart';
 import 'routes.dart';
 
@@ -52,15 +53,29 @@ final class NavCost {
   /// A U-turn: the routing penalty's 30 s, at the top speed.
   double get uTurnCostM => 30 * _topKmh / 3.6;
 
-  /// The quickest legal drive from [from] to [to], having arrived on [approach].
-  Route? route(RoadGraph graph, int from, int to, {RoadEdge? approach}) =>
-      graph.shortestRoute(
-        from,
-        {to},
-        approach: approach,
-        costOf: cost,
-        uTurnCostM: uTurnCostM,
-      );
+  /// The quickest legal drive from [from] to [to], having arrived on [approach]; the edges in
+  /// [avoid] cost [LearningConfig.navOptionPenalty] times as much.
+  Route? route(
+    RoadGraph graph,
+    int from,
+    int to, {
+    RoadEdge? approach,
+    Set<int> avoid = const {},
+  }) => graph.shortestRoute(
+    from,
+    {to},
+    approach: approach,
+    costOf: avoid.isEmpty
+        ? cost
+        : (e) =>
+              cost(e) *
+              (avoid.contains(e.id) ? LearningConfig.navOptionPenalty : 1),
+    uTurnCostM: uTurnCostM,
+  );
+
+  /// [route]'s time.
+  double secondsOf(Route route) =>
+      route.edges.fold(0, (sum, e) => sum + seconds(e));
 }
 
 /// A decision on a planned route (SPEC §16.23 item 112): at [junction], arriving on [approach],
@@ -98,6 +113,103 @@ final class NavPlan {
     }
     return out;
   }
+
+  /// The route from [fromM] to [toM] metres along it, clamped to it; each edge's metres (its
+  /// `lengthM`, as the plan counts them) spread evenly over its line. Empty past its end.
+  Polyline slice(double fromM, double toM) {
+    final out = <LatLng>[];
+    var startM = 0.0;
+    for (final (i, e) in route.edges.indexed) {
+      final endM = startM + e.lengthM;
+      final a = max(fromM, startM);
+      final b = min(toM, endM);
+      if (a <= b && e.lengthM > 0) {
+        final part = linePart(
+          e.lineFrom(route.junctions[i]),
+          (a - startM) / e.lengthM,
+          (b - startM) / e.lengthM,
+        );
+        // Edges meet at their junction: drop the repeated point.
+        out.addAll(out.isEmpty ? part : part.skip(1));
+      }
+      if (endM >= toM) break;
+      startM = endM;
+    }
+    return out;
+  }
+}
+
+/// [line] from share [from] to share [to] of its length.
+Polyline linePart(Polyline line, double from, double to) {
+  final cum = [0.0];
+  for (var i = 1; i < line.length; i++) {
+    cum.add(cum.last + distanceBetween(line[i - 1], line[i]));
+  }
+  final total = cum.last;
+  LatLng at(double m) {
+    for (var i = 1; i < line.length; i++) {
+      if (cum[i] >= m) {
+        final len = cum[i] - cum[i - 1];
+        final t = len == 0 ? 0.0 : (m - cum[i - 1]) / len;
+        final a = line[i - 1], b = line[i];
+        return LatLng(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t);
+      }
+    }
+    return line.last;
+  }
+
+  final fromM = from * total, toM = to * total;
+  return [
+    at(fromM),
+    for (var i = 1; i < line.length - 1; i++)
+      if (cum[i] > fromM && cum[i] < toM) line[i],
+    if (toM > fromM) at(toM),
+  ];
+}
+
+/// The arrow Guided draws on the map at [d] (SPEC §16.23 item 130): [plan]'s route from
+/// [LearningConfig.navArrowBeforeM] before it to [LearningConfig.navArrowAfterM] after.
+Polyline turnArrow(NavPlan plan, NavDecision d) => plan.slice(
+  d.atM - LearningConfig.navArrowBeforeM,
+  d.atM + LearningConfig.navArrowAfterM,
+);
+
+/// A lane into a junction, left to right (item 130): its painted arrows as turn angles in
+/// degrees (0 straight on, -90 left, 90 right, 180 turning around) and [use], the arrow to take
+/// in it; null when the lane doesn't go the way.
+typedef NavLane = ({List<double> arrowsDeg, double? use});
+
+/// OSM `turn:lanes` values as turn angles; an unmarked lane (`none`, empty) and a merging one
+/// count as straight on.
+const Map<String, double> _laneDeg = {
+  'sharp_left': -135,
+  'left': -90,
+  'slight_left': -45,
+  'through': 0,
+  'slight_right': 45,
+  'right': 90,
+  'sharp_right': 135,
+  'reverse': 180,
+};
+
+/// The lanes into [d]'s junction (its approach's `turn:lanes`), each with the arrow to take:
+/// the painted arrow nearest the turn [d] makes, in every lane that has it. Null when no lanes
+/// are mapped there, or no arrow is within [LearningConfig.laneMatchDeg] of the turn.
+List<NavLane>? navLanes(NavDecision d) {
+  final approach = d.approach;
+  final tagged = approach?.lanesInto(d.junction);
+  if (approach == null || tagged == null) return null;
+  final lanes = [
+    for (final lane in tagged.split('|'))
+      {for (final v in lane.split(';')) _laneDeg[v.trim()] ?? 0.0}.toList(),
+  ];
+  final turn = turnAngle(approach, d.exit, d.junction);
+  double off(double a) => bearingError(turn, a);
+  final best = lanes.expand((l) => l).reduce((a, b) => off(b) < off(a) ? b : a);
+  if (off(best) > LearningConfig.laneMatchDeg) return null;
+  return [
+    for (final l in lanes) (arrowsDeg: l, use: l.contains(best) ? best : null),
+  ];
 }
 
 /// The turn from [approach] onto [exit] at [junction] in degrees, -180 to 180 (right positive).
@@ -107,6 +219,22 @@ double turnAngle(RoadEdge approach, RoadEdge exit, int junction) =>
             540) %
         360 -
     180;
+
+/// The J item id of leaving [junction] on [exit] after [approach], by OSM node ([nodes]); null
+/// without an approach or a node.
+String? junctionKey(
+  Map<int, int> nodes,
+  int junction,
+  RoadEdge? approach,
+  RoadEdge exit,
+) => switch ((
+  nodes[junction],
+  approach == null ? null : nodes[approach.other(junction)],
+  nodes[exit.other(junction)],
+)) {
+  (final node?, final from?, final to?) => RouteIds.junction(node, from, to),
+  _ => null,
+};
 
 /// Whether leaving [junction] on [exit] after [approach] is a decision (SPEC §16.23 item 112):
 /// another legal way on (U-turns aside), and the route enters another named street or another
@@ -159,9 +287,6 @@ List<NavDecision> navDecisions(
     final newStreet = street != null && namedId != null && namedId != street;
     if (namedId != null) street = namedId;
     if (isDecision(graph, j, before, exit, newStreet: newStreet)) {
-      final node = junctionNodes[j];
-      final from = before == null ? null : junctionNodes[before.other(j)];
-      final to = junctionNodes[exit.other(j)];
       out.add((
         index: i,
         junction: j,
@@ -173,9 +298,7 @@ List<NavDecision> navDecisions(
         street: named,
         newStreet: newStreet,
         atM: atM,
-        key: node == null || from == null || to == null
-            ? null
-            : RouteIds.junction(node, from, to),
+        key: junctionKey(junctionNodes, j, before, exit),
         landmark: _landmarkAt(graph.at(j), j, landmarks),
         signals: graph.signals.contains(j),
       ));
@@ -209,19 +332,77 @@ NavPlan? planNav(
   Map<String, NamedStreet> streets = const {},
   List<RouteLandmark> landmarks = const [],
   Map<int, int> junctionNodes = const {},
+}) => planNavOptions(
+  graph,
+  cost,
+  from: from,
+  to: to,
+  approach: approach,
+  streets: streets,
+  landmarks: landmarks,
+  junctionNodes: junctionNodes,
+  count: 1,
+).firstOrNull;
+
+/// Up to [count] drives from junction [from] (arrived on [approach]) to [to], the quickest first
+/// (SPEC §16.23 item 129): each next one the quickest once the roads of the drives so far cost
+/// more, kept when it is not much slower and clearly different (see
+/// [LearningConfig.navOptions]); none when no drive is legal.
+List<NavPlan> planNavOptions(
+  RoadGraph graph,
+  NavCost cost, {
+  required int from,
+  required int to,
+  RoadEdge? approach,
+  Map<String, NamedStreet> streets = const {},
+  List<RouteLandmark> landmarks = const [],
+  Map<int, int> junctionNodes = const {},
+  int count = LearningConfig.navOptions,
 }) {
-  final route = cost.route(graph, from, to, approach: approach);
-  if (route == null) return null;
-  return NavPlan(
-    route,
-    navDecisions(
-      graph,
-      route,
-      approach: approach,
-      streets: streets,
-      landmarks: landmarks,
-      junctionNodes: junctionNodes,
-    ),
-    route.edges.fold(0, (sum, e) => sum + cost.seconds(e)),
-  );
+  final quickest = cost.route(graph, from, to, approach: approach);
+  if (quickest == null) return const [];
+  final kept = [quickest];
+  final avoid = {for (final e in quickest.edges) e.id};
+  final slowest = cost.secondsOf(quickest) * LearningConfig.navOptionMaxSlower;
+  for (
+    var i = 1;
+    i < LearningConfig.navOptionTries && kept.length < count;
+    i++
+  ) {
+    final next = cost.route(graph, from, to, approach: approach, avoid: avoid);
+    final known = avoid.length;
+    avoid.addAll([...?next?.edges.map((e) => e.id)]);
+    if (next == null || avoid.length == known) break;
+    if (cost.secondsOf(next) <= slowest &&
+        kept.every(
+          (k) =>
+              _sharedM(next, k) <=
+              next.lengthM * LearningConfig.navOptionMaxShared,
+        )) {
+      kept.add(next);
+    }
+  }
+  return [
+    for (final route in kept)
+      NavPlan(
+        route,
+        navDecisions(
+          graph,
+          route,
+          approach: approach,
+          streets: streets,
+          landmarks: landmarks,
+          junctionNodes: junctionNodes,
+        ),
+        cost.secondsOf(route),
+      ),
+  ];
+}
+
+/// The length of [a] on edges [b] also takes.
+double _sharedM(Route a, Route b) {
+  final ids = {for (final e in b.edges) e.id};
+  return a.edges
+      .where((e) => ids.contains(e.id))
+      .fold(0, (sum, e) => sum + e.lengthM);
 }

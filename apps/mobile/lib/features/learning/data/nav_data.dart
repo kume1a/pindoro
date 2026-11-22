@@ -1,11 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pindoro/core/database/settings_dao.dart';
+import 'package:pindoro/core/location.dart';
 import 'package:pindoro/features/learning/data/drive_log.dart';
+import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/personal_landmarks.dart';
 import 'package:pindoro/features/learning/data/route_book.dart';
+import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
+
+extension NavPlanMinutes on NavPlan {
+  /// The drive's time in whole minutes, rounded up.
+  int get minutes => (seconds / 60).ceil();
+}
 
 /// The landmarks navigation may name at a junction (SPEC §16.23 item 117): the pack's
 /// junction-item landmarks at their junctions and the player's own, hidden places left out.
@@ -70,12 +79,123 @@ final navHistoryProvider =
       );
     });
 
+/// The ways navigation offers from [here] to junction [to] (up to [count], the quickest first),
+/// from the nearer end of the road [here] is on; none off the road graph or with no way there.
+List<NavPlan> plansFrom(
+  RoadGraph graph,
+  LatLng here,
+  int to, {
+  required Map<String, NamedStreet> streets,
+  required List<RouteLandmark> landmarks,
+  required Map<int, int> junctionNodes,
+  required int toleranceKmh,
+  int count = LearningConfig.navOptions,
+}) {
+  final near = graph.edgeNear(here, 4 * LearningConfig.driveSnapM);
+  if (near == null) return const [];
+  final from =
+      distanceBetween(here, graph.at(near.from)) <
+          distanceBetween(here, graph.at(near.to))
+      ? near.from
+      : near.to;
+  return planNavOptions(
+    graph,
+    NavCost(streets, toleranceKmh: toleranceKmh),
+    from: from,
+    to: to,
+    streets: streets,
+    landmarks: landmarks,
+    junctionNodes: junctionNodes,
+    count: count,
+  );
+}
+
+/// Where the phone is (never asking for location) and the minutes from there to Home and Work
+/// by the way a drive would take; each null when unknown, unset or out of reach.
+final driveHereProvider =
+    FutureProvider.autoDispose<({LatLng? here, int? home, int? work})>((
+      ref,
+    ) async {
+      final located = await ref
+          .watch(locationServiceProvider)
+          .locate(ask: false);
+      if (located is! Located) return (here: null, home: null, work: null);
+      final here = located.position;
+      final places = await ref.watch(drivePlacesProvider.future);
+      final graph = await ref.watch(drivingGraphProvider.future);
+      if (graph == null || (places.home == null && places.work == null)) {
+        return (here: here, home: null, work: null);
+      }
+      final pack = await ref.watch(packRepositoryProvider.future);
+      final streets = await ref.watch(cityStreetsProvider.future);
+      final landmarks = await ref.watch(navLandmarksProvider.future);
+      final settings = await ref.watch(settingsDaoProvider).read();
+      // ponytail: two route plans on the UI isolate; move to an isolate if the tab stutters.
+      int? minutes(DriveTarget? place) {
+        if (place == null) return null;
+        final plan = plansFrom(
+          graph,
+          here,
+          place.junction,
+          streets: streets,
+          landmarks: landmarks,
+          junctionNodes: pack.junctionNodes(),
+          toleranceKmh: settings.speedToleranceKmh,
+          count: 1,
+        ).firstOrNull;
+        return plan?.minutes;
+      }
+
+      return (
+        here: here,
+        home: minutes(places.home),
+        work: minutes(places.work),
+      );
+    });
+
+/// The junction nearest [at] within [LearningConfig.snapSearchM] that has a road and that
+/// [keep] allows; null when none is that near.
+int? nearestJunction(
+  RoadGraph graph,
+  LatLng at, {
+  bool Function(int junction)? keep,
+}) {
+  int? best;
+  var bestM = LearningConfig.snapSearchM;
+  for (final MapEntry(key: id, value: p) in graph.junctions.entries) {
+    final m = distanceBetween(at, p);
+    if (m <= bestM &&
+        graph.edgesAt(id).isNotEmpty &&
+        (keep?.call(id) ?? true)) {
+      (best, bestM) = (id, m);
+    }
+  }
+  return best;
+}
+
+/// A spot picked on the map as a destination: the nearest junction on a named street.
+DriveDest? destNear(
+  RoadGraph graph,
+  Map<String, NamedStreet> streets,
+  LatLng at,
+) {
+  final j = nearestJunction(
+    graph,
+    at,
+    keep: (j) => streetAt(graph, streets, j) != null,
+  );
+  return j == null
+      ? null
+      : (street: streetAt(graph, streets, j), place: null, junction: j);
+}
+
 /// The raion [at] lies in, among the pack's [districts].
 District? raionAt(List<District> districts, LatLng at) => districts
     .where((d) => d.isRaion && boundaryContains(d.boundary, at))
     .firstOrNull;
 
-/// The smallest district [at] lies in, for district cues and the drive screen.
+/// The smallest district [at] lies in, to tell a destination found by name apart (the drive's
+/// cues use [raionAt]).
 District? districtAt(List<District> districts, LatLng at) {
   District? best;
   for (final d in districts) {
@@ -84,6 +204,9 @@ District? districtAt(List<District> districts, LatLng at) {
   }
   return best;
 }
+
+/// A turn's J item id's junction node (`...:n123:...`).
+final RegExp _turnNode = RegExp(r':n(\d+):');
 
 /// How many introduced J [cards] turn at a junction inside [raion] (item 114's area check),
 /// junctions found by OSM node through [byNode].
@@ -96,7 +219,7 @@ int jCardsIn(
   var count = 0;
   for (final c in cards) {
     if (c.type != CardType.j) continue;
-    final node = RegExp(r':n(\d+):').firstMatch(c.itemId)?.group(1);
+    final node = _turnNode.firstMatch(c.itemId)?.group(1);
     final junction = node == null ? null : byNode[int.parse(node)];
     if (junction == null) continue;
     if (boundaryContains(raion.boundary, graph.at(junction))) count++;
