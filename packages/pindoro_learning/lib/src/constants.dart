@@ -310,6 +310,47 @@ abstract final class LearningConfig {
   static const int habitWindowDays = 14;
   static const int habitCreditDays = 7;
 
+  /// Preview and debrief (item 121): the key decisions, at least [keyTurnsMin] and at most
+  /// [keyTurnsMax]; a junction with [complexWaysOn] or more ways on is complex. The preview
+  /// spends [previewOverviewS] on the whole route, then [previewTurnS] a key decision.
+  static const int keyTurnsMin = 3;
+  static const int keyTurnsMax = 7;
+  static const int complexWaysOn = 4;
+  static const int previewOverviewS = 20;
+  static const int previewTurnS = 10;
+
+  /// The debrief waits this long after a drive.
+  static const int debriefOfferHours = 24;
+
+  /// Point to home: Perfect, Great and Close up to these errors.
+  static const double pointPerfectDeg = 10;
+  static const double pointGreatDeg = 25;
+  static const double pointCloseDeg = 45;
+
+  /// Your routes first (item 120): a route driven [yourRouteDrives] times in [yourRouteDays];
+  /// its book junctions take up to [yourRoutesShare] of the day's new cards, [yourRoutesSlowShare]
+  /// while City memory grows below [yourRoutesSlowRate] of its rate over the [yourRouteDays]
+  /// before.
+  static const int yourRouteDrives = 2;
+  static const int yourRouteDays = 14;
+  static const double yourRoutesShare = 0.25;
+  static const double yourRoutesSlowShare = 0.15;
+  static const double yourRoutesSlowRate = 0.80;
+
+  /// The weekly drive goal (item 122): [weekQuietDrives] drives at Quiet or Off and
+  /// [weekNewPlaces] new destination reached without help; new places are suggested at
+  /// [newPlaceMinShare] of the route the player's, Surprise me at [surpriseMinShare].
+  static const int weekQuietDrives = 2;
+  static const int weekNewPlaces = 1;
+  static const double newPlaceMinShare = 0.60;
+  static const double surpriseMinShare = 0.70;
+
+  /// Progress's routes (item 123): a route with this many drives.
+  static const int frequentRouteDrives = 3;
+
+  /// A drive starts or ends at Home or Work within this of it.
+  static const double placeNearM = 300;
+
   // Tuning (§12, §16.17)
   /// Calibration bins over predicted recall 0–1, each this wide a share.
   static const int calibrationBins = 10;

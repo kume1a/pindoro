@@ -128,19 +128,22 @@ class Curriculum {
   ];
 
   /// The streets whose cards wait, never due, while an earlier road class is taught (SPEC §16.22):
-  /// every street of a later class than the first of [bandsLeft], residential ones last. None once
-  /// every class is seen.
-  Set<String> parkedStreets(Map<String, CardState> cards) {
+  /// every street of a later class than the first of [bandsLeft], residential ones last, but not
+  /// those [except] (the player's routes, §16.23 item 120). None once every class is seen.
+  Set<String> parkedStreets(
+    Map<String, CardState> cards, {
+    Set<String> except = const {},
+  }) {
     final taught = bandsLeft(cards).firstOrNull;
     if (taught == null) return const {};
     return {
       for (final s in _byId.values)
-        if (_classRank(s) > taught.index) s.id,
+        if (classRank(s) > taught.index && !except.contains(s.id)) s.id,
     };
   }
 
   /// [s]'s place in the class ladder: its [RoadBand], residential after every band.
-  static int _classRank(NamedStreet s) =>
+  static int classRank(NamedStreet s) =>
       bandOf(s)?.index ?? RoadBand.values.length;
 
   bool _isChild(NamedStreet s) => _parentOf.containsKey(s.id);

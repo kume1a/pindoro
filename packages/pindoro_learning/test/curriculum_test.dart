@@ -202,6 +202,12 @@ void main() {
       'unc',
       'res',
     });
+    // The player's routes go on (SPEC §16.23 item 120).
+    expect(curriculum.parkedStreets(learnedEarly, except: {'res'}), {
+      'sec',
+      'ter',
+      'unc',
+    });
     expect(
       curriculum.parkedStreets({
         for (final id in ['pri', 'sec', 'res']) id: _card(id),

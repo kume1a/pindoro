@@ -10,6 +10,7 @@ import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/learning/ui/city_memory_card.dart';
 import 'package:pindoro/features/learning/ui/city_tab_page.dart';
 import 'package:pindoro/features/today/ui/widgets/coming_up.dart';
+import 'package:pindoro/features/today/ui/widgets/drives.dart';
 import 'package:pindoro/features/today/ui/widgets/first_run.dart';
 import 'package:pindoro/features/today/ui/widgets/today_card.dart';
 import 'package:pindoro/features/today/ui/widgets/week_strips.dart';
@@ -18,7 +19,7 @@ import 'package:pindoro_design/pindoro_design.dart';
 
 /// Today, the first tab (canvas V31-10): `firstRun` offers placement until
 /// the city is placed; then the one thing to do now (`ready`, `catching up`
-/// or `done`), City memory as a row, and what comes next: the run to drive,
+/// or `done`), City memory as a row, the drives (V32-71), and what comes next: the run to drive,
 /// the neighbourhood being learnt, the gateways, the next 7 days and any
 /// mix-up to watch.
 class TodayScreen extends ConsumerWidget {
@@ -83,9 +84,10 @@ class TodayScreen extends ConsumerWidget {
                     ),
               onTap: () => context.go(Routes.progress),
             ),
+          TodayDrives(onOpen: open),
           SectionTitle(l10n.todayComingUp),
           if (run != null)
-            DriveThisRun(run: run, onDrive: () => open(Routes.drive)),
+            DriveThisRun(run: run, onDrive: () => open(Routes.driveRun)),
           if (learning != null)
             NowLearningCard(
               learning: learning,

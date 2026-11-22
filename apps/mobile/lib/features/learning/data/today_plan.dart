@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/data/cards.dart';
+import 'package:pindoro/features/learning/data/drive_history.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/route_book.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
@@ -81,9 +82,29 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
     for (final c in book.candidates)
       if (isPlaceIntro(c)) c.itemId,
   };
+  final mine = learnMore
+      ? null
+      : await ref.watch(yourRouteItemsProvider.future);
+  final first = yourRoutesFirst(
+    newCandidates: candidates,
+    openRoutes: [
+      for (final id in open)
+        if (!places.contains(id)) id,
+    ],
+    mineRoutes: mine?.routes ?? const {},
+    mineStreets: [
+      for (final id in mine?.streets ?? const <String>[])
+        if (!cardedStreets.contains(id)) CardType.p.item(id),
+    ],
+    cap: mine == null || mine.routes.isEmpty
+        ? 0
+        : (_yourRoutesShare(cards, log, now) *
+                  newPerDayAt(settings.minutesPerDay))
+              .round(),
+  );
   return Planner.plan(
     cards: reviewed,
-    newCandidates: candidates,
+    newCandidates: first.newCandidates,
     minutesPerDay: settings.minutesPerDay,
     now: now,
     seed: seed,
@@ -94,10 +115,7 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
         ? const []
         : curriculum.openSides(cardsByItemOf(streets, reviewed)),
     sidesStartedToday: startedToday(today, now, sideTypes),
-    openRoutes: [
-      for (final id in open)
-        if (!places.contains(id)) id,
-    ],
+    openRoutes: first.openRoutes,
     routesStartedToday: startedToday(today, now, routeTypes),
     openPlaces: [
       for (final id in open)
@@ -122,4 +140,18 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
     tReviewS: times.tReviewS,
     tNewS: times.tNewS,
   );
+}
+
+/// The share of the day's new cards the player's routes may take (SPEC §16.23 item 120), by how
+/// City memory grew over the last [LearningConfig.yourRouteDays] and the days before.
+double _yourRoutesShare(
+  List<CardState> cards,
+  List<LogEntry> log,
+  DateTime now,
+) {
+  double at(int daysAgo) =>
+      cityMemoryAt(cards, log, now.subtract(Duration(days: daysAgo)));
+  const days = LearningConfig.yourRouteDays;
+  final (a, b, c) = (at(0), at(days), at(2 * days));
+  return yourRoutesShare(gainNow: a - b, gainBefore: b - c);
 }

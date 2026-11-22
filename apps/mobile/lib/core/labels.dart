@@ -3,7 +3,8 @@ import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
-import 'package:pindoro_learning/pindoro_learning.dart' show RouteLandmark;
+import 'package:pindoro_learning/pindoro_learning.dart'
+    show RouteLandmark, Turn;
 
 /// A district's name per the street-name setting.
 String districtName(District d, Settings? settings) =>
@@ -16,6 +17,10 @@ String streetName(NamedStreet s, Settings? settings) =>
 /// A place's name in the street names' script.
 String landmarkName(RouteLandmark l, Settings? settings) =>
     _byNameSetting(l.name, l.nameEn, settings);
+
+/// A pack place's name in the street names' script.
+String placeLabel(Landmark l, Settings? settings) =>
+    _byNameSetting(l.nameKa, l.nameEn, settings);
 
 String _byNameSetting(String local, String? english, Settings? settings) =>
     settings?.streetNames == StreetNameMode.english ? english ?? local : local;
@@ -97,4 +102,12 @@ String tierWord(AppLocalizations l10n, Tier tier) => switch (tier) {
   Tier.great => l10n.tierGreatWord,
   Tier.close => l10n.tierClose,
   Tier.miss => l10n.tierMissWord,
+};
+
+/// A way out of a junction as an action ("Turn left"): an exit button's label.
+String exitLabel(AppLocalizations l10n, Turn turn) => switch (turn) {
+  Turn.left => l10n.routeExitLeft,
+  Turn.straight => l10n.routeExitStraight,
+  Turn.right => l10n.routeExitRight,
+  Turn.uTurn => l10n.routeExitUTurn,
 };

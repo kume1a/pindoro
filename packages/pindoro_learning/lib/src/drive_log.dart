@@ -10,6 +10,10 @@ enum DriveLevel { guided, coached, quiet, off }
 /// given up for directions (SPEC §16.23 item 116).
 enum DriveOutcome { arrived, stopped, abandoned }
 
+/// What a drive event records (SPEC §16.23 items 121, 124): the preview watched, a turn recited
+/// before the drive or recalled in the debrief, the debrief gone through, Point to home.
+enum DriveEventKind { preview, recite, recall, debrief, point }
+
 /// A drive's fixes as text for the drive log (SPEC §16.23 item 124): per fix the position (1e-6°)
 /// and time (ms) as deltas, then heading (0.1°), speed (cm/s) and accuracy (dm), each one more
 /// than its value so that 0 means missing.

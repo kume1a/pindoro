@@ -19,7 +19,9 @@ import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro/features/session/ui/session_screen.dart';
+import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
 import 'package:pindoro_core/pindoro_core.dart';
+import 'package:pindoro_design/pindoro_design.dart' show AnswerTray;
 import 'package:pindoro_learning/pindoro_learning.dart';
 
 import '../../support/settle.dart';
@@ -477,9 +479,14 @@ void main() {
       tester,
     ) async {
       await pump(tester, [(kind: StepKind.review, itemId: 'N:${a.id}')]);
-      expect(find.text('Which name is it?'), findsOneWidget);
+      expect(find.text('Which street is painted yellow?'), findsOneWidget);
+      expect(find.text('6 names'), findsOneWidget);
       expect(maps.last.truth, a.geometry, reason: 'the street is the cue');
-      await tapThrough(tester, find.text(a.name).last);
+      await tester.ensureVisible(find.text(a.name).last);
+      await tester.pump();
+      await tester.tap(find.text(a.name).last);
+      await tester.pump();
+      await confirmTray(tester);
       expect(find.text('It’s ${a.name}.'), findsOneWidget);
       expect(find.textContaining('Next review in'), findsOneWidget);
       final row = (await dao.log()).single;
@@ -585,13 +592,14 @@ void main() {
         ),
       );
       expect(find.text('Put its lanes in order'), findsOneWidget);
-      expect(find.text('Check · 0 of 2 placed'), findsOneWidget);
+      expect(find.text('0 of 2 placed'), findsOneWidget);
       final session = controller(tester);
       session
         ..placeLane(lanes[0].id, lanes[1].id)
         ..placeLane(lanes[1].id, lanes[0].id);
       await settle(tester);
-      await tapThrough(tester, find.text('Check · 2 of 2 placed'));
+      expect(find.text('2 of 2 placed'), findsOneWidget);
+      await confirmTray(tester);
       expect(find.text('0 of 2 in the right place.'), findsOneWidget);
       final log = await dao.log();
       expect(log.map((e) => (e.format, e.rating)).toSet(), {
@@ -737,9 +745,13 @@ void main() {
       final q = first<LandmarkQuestion>((q) => q.n == 2);
       await pump(tester, [(kind: StepKind.review, itemId: q.itemId)]);
       expect(find.textContaining(q.landmark.name), findsWidgets);
-      controller(tester).choose(q.junction!);
-      await settle(tester);
-      await tapThrough(tester, find.text('Confirm'));
+      final tray = tester.widget<AnswerTray>(find.byType(AnswerTray));
+      final right = tray.choices[q.junctions.indexOf(q.junction!)].label;
+      await tester.ensureVisible(find.text(right));
+      await tester.pump();
+      await tester.tap(find.text(right));
+      await tester.pump();
+      await confirmTray(tester);
       final row = (await dao.log()).single;
       expect((row.format, row.rating), (ReviewFormat.landmark, Rating.good));
       expect((await dao.card(q.itemId))!.phase, CardPhase.review);
@@ -915,4 +927,16 @@ class _NoReminders implements Reminders {
 class _NoSpeech implements Speech {
   @override
   dynamic noSuchMethod(Invocation invocation) async => false;
+}
+
+/// Confirms the answer tray's pick and waits out the right and wrong shown on
+/// it before the reveal.
+Future<void> confirmTray(WidgetTester tester) async {
+  await tester.runAsync(() async {
+    await tester.tap(find.text('Confirm'));
+    await Future<void>.delayed(
+      answerResultDelay + const Duration(milliseconds: 300),
+    );
+  });
+  await settle(tester);
 }

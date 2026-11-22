@@ -8,10 +8,15 @@ import 'package:pindoro/features/map/ui/widgets/tier_reveal.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
+/// How long an answer tray shows the right and wrong choices before the
+/// reveal sheet takes over (AnswerChoices).
+const Duration answerResultDelay = Duration(milliseconds: 600);
+
 /// A session task's screen (name, ends, drills): the [map] (none for a
 /// bearing), built with what the top bar, [header] and [body] and the
-/// bottom cover, with [overlays] over it; the [controls] at the bottom until
-/// the [result] sheet replaces them.
+/// bottom cover, with [overlays] over it; the [controls] at the bottom (or a
+/// [tray] docked to its edge, AnswerChoices) until the [result] sheet
+/// replaces them.
 class TaskScaffold extends StatelessWidget {
   const TaskScaffold({
     super.key,
@@ -21,6 +26,7 @@ class TaskScaffold extends StatelessWidget {
     this.overlays = const [],
     this.body,
     this.controls,
+    this.tray,
     this.result,
   });
 
@@ -32,6 +38,7 @@ class TaskScaffold extends StatelessWidget {
   /// Content under the header: the bearing dial, a recital's modes.
   final Widget? body;
   final Widget? controls;
+  final Widget? tray;
   final TaskResult? result;
 
   @override
@@ -39,8 +46,10 @@ class TaskScaffold extends StatelessWidget {
     final map = this.map;
     final result = this.result;
     final controls = this.controls;
+    final tray = this.tray;
     final bottom =
         result ??
+        tray ??
         switch (controls) {
           final c? => Padding(
             padding: EdgeInsets.fromLTRB(

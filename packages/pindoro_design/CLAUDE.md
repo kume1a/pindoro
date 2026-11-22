@@ -16,7 +16,10 @@ setup components (`SearchField`, `PindoroChip`, `DifficultyCard`, the painted `D
 the drive (v3.2: `DriveGlyph`, `TurnPlate`, `DriveBottomBar`, `SpeedLimitSign`, `CameraBadge`,
 `DistrictChip`, `DistrictLine`, `HeadingDial`, `StatusDot`, `SpeakingBars`, `RecoveryBand`, `RecordingDot`,
 `LevelPicker`, `LevelSuggestion`, `StoppedBar`; their `color.drive.*` are day in the light theme and night
-in the dark one, and drive type ignores the text scale)
+in the dark one, and drive type ignores the text scale), the v3.2 parked parts in the app theme (`ReviewMark`, `TurnNumber`, `StartRing`,
+`DestinationFlag`, `StepDots`, `TierChip`, `GoalLine`, `PlanChecklist`, `RouteLevelStair`, `SuggestionCard`,
+`DialResultChip` and `BearingDial`'s pointing `calibrating`/`degrees`), the answer trays (`AnswerTray` docked over
+the map in place of floating chips; the family sweep's `SweepTray` and `SweepSocket`)
 and motion (`PindoroPageTransitions`, `CountUp`, `PopIn`, `RiseIn`, `Celebration`, `Wiggle`,
 `Shake`, `FadeIndexedStack`; all calm down under reduce motion). Widgets take their text as
 parameters; strings live in the app.

@@ -79,7 +79,8 @@ enum ReviewSource {
   recital,
   drive;
 
-  /// Implicit evidence (SPEC §4, `implicitReview`): only a failed decision is logged.
+  /// Implicit evidence (SPEC §4, `implicitReview`): a recital logs only failed decisions, a drive
+  /// also its credited successes (§16.23 item 119); calibration leaves both out.
   bool get implicit => this == recital || this == drive;
 }
 

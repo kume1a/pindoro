@@ -1,15 +1,8 @@
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
+import 'package:pindoro/features/learning/ui/drive_labels.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
-
-/// A drive level's name (SPEC §16.23 item 112).
-String levelLabel(AppLocalizations l10n, DriveLevel level) => switch (level) {
-  DriveLevel.guided => l10n.driveLevelGuided,
-  DriveLevel.coached => l10n.driveLevelCoached,
-  DriveLevel.quiet => l10n.driveLevelQuiet,
-  DriveLevel.off => l10n.driveLevelOff,
-};
 
 /// What a level shows and says, in one sentence (board V32-10).
 String levelNote(AppLocalizations l10n, DriveLevel level) => switch (level) {
@@ -17,14 +10,6 @@ String levelNote(AppLocalizations l10n, DriveLevel level) => switch (level) {
   DriveLevel.coached => l10n.driveLevelCoachedNote,
   DriveLevel.quiet => l10n.driveLevelQuietNote,
   DriveLevel.off => l10n.driveLevelOffNote,
-};
-
-/// A level's icon in the picker and on the stopped bar's chip (LevelPicker).
-PindoroGlyph levelIcon(DriveLevel level) => switch (level) {
-  DriveLevel.guided => PindoroGlyph.map,
-  DriveLevel.coached => PindoroGlyph.soundOn,
-  DriveLevel.quiet => PindoroGlyph.compass,
-  DriveLevel.off => PindoroGlyph.locateOff,
 };
 
 /// The four levels for a [LevelPicker], those not among [choices] disabled

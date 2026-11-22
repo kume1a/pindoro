@@ -432,6 +432,14 @@ pindoro_core `ScoringConfig`, not copied):
 | `gpsLostSayS`                                                           | 60                                  |
 | `creditMaxR`, `hesitationBeforeM`, `noCreditAfterPromptS`               | 0.92, 150, 60                       |
 | `habitPasses`, `habitWindowDays`, `habitCreditDays`                     | 3, 14, 7                            |
+| `keyTurnsMin`, `keyTurnsMax`, `complexWaysOn`                           | 3, 7, 4                             |
+| `previewOverviewS`, `previewTurnS`, `debriefOfferHours`                 | 20, 10, 24                          |
+| `pointPerfectDeg`, `pointGreatDeg`, `pointCloseDeg`                     | 10, 25, 45                          |
+| `yourRouteDrives`, `yourRouteDays`                                      | 2, 14                               |
+| `yourRoutesShare`, `yourRoutesSlowShare`, `yourRoutesSlowRate`          | 0.25, 0.15, 0.80                    |
+| `weekQuietDrives`, `weekNewPlaces`                                      | 2, 1                                |
+| `newPlaceMinShare`, `surpriseMinShare`                                  | 0.60, 0.70                          |
+| `frequentRouteDrives`, `placeNearM`                                     | 3, 300                              |
 | `calibrationBins`, `calibrationTolerance`, `calibrationMinReviews`      | 10, 0.05, 20                        |
 | `fitMinReviews`                                                         | 1000                                |
 | `tierCReliefDays`, `tierCReliefReplayDays`                              | 7, 28                               |
@@ -1146,3 +1154,38 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        item 118); Off shows nothing.
      - Traffic lights (`junction.signals`) are voice landmarks ("At the lights, turn left onto …",
        item 117) and, like junctions, no hesitation.
+128. **Decided while building M9 steps 3c–5** (2026-11-21):
+     - Home and Work for drives are a street or a pack place picked once (from Where to, or
+       Settings → Driving), kept apart from the learning neighbourhoods of §6.3. A drive starts
+       or ends at one within `placeNearM` (300 m); otherwise a route's ends are the pack place
+       driven to, else the street. Point to home uses Home.
+     - The weekly goal counts drives that arrived and stayed at Quiet or Off: no guard step,
+       no Rescue, no level raised while stopped. A destination is new until the first drive
+       that arrives there, at any level.
+     - Debrief: missed turns' J cards (already Again from the drive) run as relearns in a short
+       session, "Drill it now"; the recall itself is logged, never graded.
+     - A complex junction has `complexWaysOn` (4) or more ways on; roundabouts aren't in the
+       pack, so none count yet.
+     - Surprise me picks, among up to 12 shuffled junctions on Known streets
+       `randomRunMinM`–`randomRunMaxM` away and never driven to, the first whose route is at
+       least `surpriseMinShare` the player's; none fits until then.
+     - Every route-book decision taken without help is implicit evidence, carded or not, at every
+       level (item 113 needs the misses); each decision logs its FSRS effect or why none.
+     - The stopped bar's Route (preview and destination) is not offered at Off: the way there
+       would be help, and Rescue is Off's help.
+     - Progress's level by month is the level of the month's last drive on the route.
+     - The debrief is offered while fresh (item 121's 24 h, not yet gone through) and walks:
+       each turn recalled by its way on (or "I don't remember"), then shown; the whole drive
+       with its marks; the tier and numbers; the streets driven with the drill; Point to home
+       when due. Gone through once the last turn is shown (logged). Later, or past 24 h, a past
+       drive opens on the tier and numbers, its turns a tap away.
+     - The route preview opens from the setup only; reciting logs each turn as right or wrong
+       (exposure, item 126) and the preview the seconds watched.
+     - Today shows the drives once there is one: the drive waiting to be gone through, the week's
+       goal, the nudge when a frequent route's suggestion now has less help than its last drive,
+       and "Pick your two drives" (the frequent routes at their suggested level, the first two
+       ticked) until it is answered that week, "Not this week" included. Guided drives show no
+       tier in Past drives.
+     - Answer choices (Name it, a place's junction, the place at a junction, the family sweep)
+       take a pick and Confirm, and show right and wrong on the choices for 600 ms before the
+       reveal; the grading is unchanged.

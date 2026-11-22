@@ -183,25 +183,22 @@ List<int> _knownEnds(
   for (final part in knownParts) ...graph.junctionsOfPart(part),
 }.where(junctionNodes.containsKey).toList()..sort();
 
-/// A surprise destination (GPS-free drive, Surprise me): a junction on the Known streets
-/// [knownParts] [LearningConfig.randomRunMinM]–[LearningConfig.randomRunMaxM] from [from], seeded
-/// by [seed]; null when none is that far.
-int? surpriseEnd({
+/// Surprise destinations (Surprise me), shuffled by [seed]: junctions on the Known streets
+/// [knownParts] [LearningConfig.randomRunMinM]–[LearningConfig.randomRunMaxM] from [from]; the
+/// drive takes the first whose route is the player's enough (SPEC §16.23 item 122).
+List<int> surpriseEnds({
   required RoadGraph graph,
   required Map<int, int> junctionNodes,
   required Set<String> knownParts,
   required LatLng from,
   required int seed,
-}) {
-  final ends = [
-    for (final j in _knownEnds(graph, knownParts, junctionNodes))
-      if (distanceBetween(from, graph.at(j)) case final m
-          when m >= LearningConfig.randomRunMinM &&
-              m <= LearningConfig.randomRunMaxM)
-        j,
-  ];
-  return ends.isEmpty ? null : ends[Random(seed).nextInt(ends.length)];
-}
+}) => [
+  for (final j in _knownEnds(graph, knownParts, junctionNodes))
+    if (distanceBetween(from, graph.at(j)) case final m
+        when m >= LearningConfig.randomRunMinM &&
+            m <= LearningConfig.randomRunMaxM)
+      j,
+]..shuffle(Random(seed));
 
 /// A run's ends in a pack: its junctions, the best legal route between them and the first and
 /// last named streets on it.

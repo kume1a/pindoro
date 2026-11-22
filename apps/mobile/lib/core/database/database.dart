@@ -84,6 +84,14 @@ class UserSettings extends Table {
   IntColumn get speedToleranceKmh =>
       integer().withDefault(const Constant(14))();
 
+  /// Home and Work for drives (SPEC §16.23 item 120), as JSON (`DrivePlace`); null until set.
+  TextColumn get driveHome => text().nullable()();
+  TextColumn get driveWork => text().nullable()();
+
+  /// This week's planned drives (item 122, "Pick your two drives"), as JSON (`DrivePlan`); null
+  /// until the first plan.
+  TextColumn get drivePlan => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -425,6 +433,12 @@ class Drives extends Table {
   IntColumn get recoveries => integer().withDefault(const Constant(0))();
   BoolColumn get rescued => boolean().withDefault(const Constant(false))();
 
+  /// Where it started (the first junction's OSM node), the pack place driven to, and the level
+  /// with the most help it reached (items 120–122); null on drives before schema 26.
+  IntColumn get startNode => integer().nullable()();
+  TextColumn get targetPlace => text().nullable()();
+  TextColumn get mostHelp => textEnum<DriveLevel>().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -465,8 +479,34 @@ class DriveDecisions extends Table {
   /// A hesitation within `hesitationBeforeM` of the junction.
   BoolColumn get hesitated => boolean()();
 
+  /// One of the drive plan's key decisions (item 121): the preview's and the debrief's.
+  BoolColumn get keyTurn => boolean().withDefault(const Constant(false))();
+
+  /// What it did to its J card (item 124): the rating given (`good`, `hard`, `again`) or why
+  /// none (a `CreditSkip`); null without a key or in a GPS gap.
+  TextColumn get effect => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {driveId, seq};
+}
+
+/// What a drive's preview, recital of the turns, debrief and Point to home found (SPEC §16.23
+/// item 124), append-only: per turn ([itemKey]) or for the drive. A preview's rows carry the id
+/// the drive will have, so they may name a drive never started.
+@DataClassName('DriveEventRow')
+class DriveEvents extends Table {
+  @override
+  String get tableName => 'drive_event';
+
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get driveId => text()();
+  DateTimeColumn get at => dateTime()();
+  TextColumn get kind => textEnum<DriveEventKind>()();
+  TextColumn get itemKey => text().nullable()();
+
+  /// [DriveEventKind]'s number: seconds watched, 1 right and 0 wrong (null: not remembered),
+  /// the turns gone through, the pointing error in degrees.
+  RealColumn get value => real().nullable()();
 }
 
 @DriftDatabase(
@@ -490,6 +530,7 @@ class DriveDecisions extends Table {
     Drives,
     DriveTracks,
     DriveDecisions,
+    DriveEvents,
   ],
   include: {
     'answer_immutable.drift',
@@ -501,7 +542,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 25;
+  static const int version = 26;
 
   @override
   int get schemaVersion => version;
@@ -630,6 +671,19 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(schema.drive, schema.drive.suggested);
         await m.addColumn(schema.drive, schema.drive.recoveries);
         await m.addColumn(schema.drive, schema.drive.rescued);
+      },
+      from25To26: (m, schema) async {
+        await m.addColumn(schema.userSettings, schema.userSettings.driveHome);
+        await m.addColumn(schema.userSettings, schema.userSettings.driveWork);
+        await m.addColumn(schema.userSettings, schema.userSettings.drivePlan);
+        await m.addColumn(schema.drive, schema.drive.startNode);
+        await m.addColumn(schema.drive, schema.drive.targetPlace);
+        await m.addColumn(schema.drive, schema.drive.mostHelp);
+        await m.addColumn(schema.driveDecision, schema.driveDecision.keyTurn);
+        await m.addColumn(schema.driveDecision, schema.driveDecision.effect);
+        await m.createTable(schema.driveEvent);
+        await m.create(schema.driveEventNoUpdate);
+        await m.create(schema.driveEventNoDelete);
       },
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),

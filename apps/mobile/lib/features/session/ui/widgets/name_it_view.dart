@@ -14,8 +14,9 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// Name it (SessionScreen `nameHidden`, `nameShown`): the street painted on
-/// the map and six names to pick from, then the result.
-class NameItView extends ConsumerWidget {
+/// the map and six names in the answer tray (AnswerChoices): pick, Confirm,
+/// the right and wrong names marked on the tray, then the result.
+class NameItView extends ConsumerStatefulWidget {
   const NameItView({
     super.key,
     required this.play,
@@ -34,16 +35,41 @@ class NameItView extends ConsumerWidget {
   final Widget? chip;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<NameItView> createState() => _NameItViewState();
+}
+
+class _NameItViewState extends ConsumerState<NameItView> {
+  /// The choice confirmed, shown on the tray for [answerResultDelay] before
+  /// it is graded.
+  int? _confirmed;
+
+  @override
+  void didUpdateWidget(NameItView old) {
+    super.didUpdateWidget(old);
+    if (old.play.index != widget.play.index) _confirmed = null;
+  }
+
+  Future<void> _confirm(int i, List<NamedStreet> choices) async {
+    setState(() => _confirmed = i);
+    await Future<void>.delayed(answerResultDelay);
+    if (mounted) widget.onPick(choices[i]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = context.l10n;
     final settings = ref.watch(settingsProvider).value;
+    final play = widget.play;
+    final chip = widget.chip;
+    final onNext = widget.onNext;
     final task = play.task as NameTask;
     final street = play.street;
     final name = streetName(street, settings);
     final picked = task.picked;
     final mapOf = ref.watch(pindoroMapBuilderProvider);
+    final confirmed = _confirmed;
     return TaskScaffold(
-      topBar: topBar,
+      topBar: widget.topBar,
       map: (insets) => mapOf(
         PindoroMap(
           area: play.area,
@@ -55,6 +81,7 @@ class NameItView extends ConsumerWidget {
           bottomInset: insets.bottom,
         ),
       ),
+      // Asking, the tray holds the question.
       header: RiseSwitcher(
         child: picked != null
             ? QuestionPlate(
@@ -65,23 +92,22 @@ class NameItView extends ConsumerWidget {
                 prompt: l10n.sessionNameDidYouKnow,
                 glyph: PindoroGlyph.eye,
               )
-            : AskCard(
-                key: ValueKey((play.index, 'ask')),
-                title: l10n.sessionNameCheckAsk,
-                note: l10n.sessionNameCheckNote,
-              ),
+            : SizedBox.shrink(key: ValueKey((play.index, 'ask'))),
       ),
-      controls: Wrap(
-        spacing: PindoroSpace.s2,
-        runSpacing: PindoroSpace.s1,
-        alignment: WrapAlignment.center,
-        children: [
+      tray: AnswerTray(
+        key: ValueKey((play.index, 'tray')),
+        question: l10n.sessionNameCheckAsk,
+        meta: l10n.answerNames(task.choices.length),
+        choices: [
           for (final s in task.choices)
-            PindoroChip.action(
-              label: streetName(s, settings),
-              onPressed: () => onPick(s),
-            ),
+            (label: streetName(s, settings), sublabel: null),
         ],
+        confirmLabel: l10n.commonConfirm,
+        confirmHint: l10n.answerPickFirst,
+        result: confirmed == null
+            ? null
+            : (picked: confirmed, right: task.choices.indexOf(street)),
+        onConfirm: (i) => unawaited(_confirm(i, task.choices)),
       ),
       result: switch ((task.result, picked)) {
         (final tier?, final picked?) => TaskResult(

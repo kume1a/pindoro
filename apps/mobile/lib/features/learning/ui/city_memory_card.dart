@@ -103,11 +103,15 @@ class CityMemoryCard extends StatelessWidget {
     required this.memory,
     required this.history,
     required this.sinceYesterday,
+    this.driveLine,
   });
 
   final MemorySummary memory;
   final MemoryHistory history;
   final double sinceYesterday;
+
+  /// The turns drives reviewed this month (board V32-70); null without any.
+  final String? driveLine;
 
   @override
   Widget build(BuildContext context) {
@@ -229,6 +233,11 @@ class CityMemoryCard extends StatelessWidget {
             l10n.memoryNote,
             style: PindoroType.bodySm.copyWith(color: c.textSecondary),
           ),
+          if (driveLine case final line?)
+            Text(
+              line,
+              style: PindoroType.bodySm.copyWith(color: c.textSecondary),
+            ),
         ],
       ),
     );

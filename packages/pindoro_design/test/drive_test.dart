@@ -84,14 +84,17 @@ void main() {
             onLevel: () => taps.add('level'),
             endLabel: 'End drive',
             onEnd: () => taps.add('end'),
+            routeLabel: 'Route and destination',
+            onRoute: () => taps.add('route'),
           ),
         ),
       ),
     );
     await tester.tap(find.bySemanticsLabel('Mute the voice'));
     await tester.tap(find.text('Quiet'));
+    await tester.tap(find.bySemanticsLabel('Route and destination'));
     await tester.tap(find.text('End drive'));
-    expect(taps, ['mute', 'level', 'end']);
+    expect(taps, ['mute', 'level', 'route', 'end']);
     expect(
       tester.getSize(find.bySemanticsLabel('Mute the voice')).height,
       greaterThanOrEqualTo(PindoroSize.buttonLg),
@@ -248,6 +251,8 @@ void main() {
                       onLevel: () {},
                       endLabel: 'End drive',
                       onEnd: () {},
+                      routeLabel: 'Route and destination',
+                      onRoute: () {},
                       pickerTitle: 'Level for the rest of this drive',
                       pickerReason: '14 of 17',
                       picker: LevelPicker<_Level>(

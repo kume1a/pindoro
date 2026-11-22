@@ -187,8 +187,8 @@ Spec §16.23. Research `docs/research/03-navigation-that-fades.md`. Boards V32-*
 Accept: a recorded drive replays to the same decisions and evidence; nothing takes input above
 5 km/h; a Guided drive never writes a review.
 
-Status: steps 1 and 2 done (2026-11-21, schema 24, pack format 7). Past drives is one list, not
-grouped by week, and opens from Me only until Progress has its routes (step 5). Step 2 also added
+Status: steps 1 and 2 done (2026-11-21, schema 24, pack format 7). Past drives opens from Me, and
+since step 5 from Progress's routes too. Step 2 also added
 the signed limits, traffic lights and speed cameras to the pack (§16.23 item 127): step 3 shows the
 limit, chimes and warns of cameras, and adds the "Warn me over the limit by" setting. The GPS-free
 drive already logs its junctions (`drive_decision`); credit by item 119 waits for step 5.
@@ -206,3 +206,16 @@ that leaves Off while stopped is no longer the GPS-free test, so it credits noth
 `docs/TODO.md` lists where the screens differ from the boards. 3c: setup's destination search
 with Home, Work, recents and Surprise me (V32-10 `search`), the route preview with "Recite the
 turns" (V32-11), and the stopped bar's Route button.
+
+Steps 3c, 4 and 5 done (2026-11-21, schema 26, 2.13.0+18), decisions in §16.23 item 128,
+with the design system's parked parts (synced 2026-11-21): Where to with Home and Work (their
+own picker, also in Settings → Driving), today's run, Surprise me (new places with 70 % of the
+turns yours) and Recent; the route preview with "Recite the turns"; the Route button's new
+destination; every drive credits its turns by item 119 at every level and logs each decision's
+FSRS effect and its key turns; the debrief (recall, then see; the marks; the tier; the streets
+and the drill of missed turns; Point to home) on arrival and from Today for a day; Past drives by
+week with the tier chip; your routes first with the 15 % slow-down and the reverse of habitual
+corridors, their streets never parked; the week's goal on setup and Today, "Pick your two
+drives" and the step-down nudge; Progress's week line and route stairs. The answer tray
+replaces the floating chips of Name it, the place questions and the family sweep. `docs/TODO.md`
+lists where the screens differ from the boards.

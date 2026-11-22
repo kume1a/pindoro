@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
@@ -10,12 +12,12 @@ import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
-import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// The family sweep (SessionScreen `family`): the parent named, its lanes
-/// traced with a socket each; the lanes' labels wait in a tray to be dragged
-/// (or tapped, then a socket tapped) onto their lanes. Check grades them all.
+/// The family sweep (SessionScreen `family`, AnswerChoices' sweep): the
+/// parent named, its lanes traced with a socket each; the lanes' labels wait
+/// in the tray to be dragged (or tapped, then a socket tapped) onto their
+/// lanes. Confirm grades them all and marks each socket before the result.
 class SweepView extends ConsumerStatefulWidget {
   const SweepView({
     super.key,
@@ -41,8 +43,12 @@ class SweepView extends ConsumerStatefulWidget {
 class _SweepViewState extends ConsumerState<SweepView> {
   final _projection = ValueNotifier<MapProjection?>(null);
 
-  /// The label tapped in the tray, waiting for a socket.
-  String? _held;
+  /// The label (its tray index) picked up, waiting for a socket.
+  int? _held;
+
+  /// The question whose result sheet shows: Check marks the sockets first,
+  /// then the sheet takes over after [answerResultDelay].
+  int? _resultFor;
 
   @override
   void dispose() {
@@ -55,6 +61,12 @@ class _SweepViewState extends ConsumerState<SweepView> {
     widget.onPlace(label, lane);
   }
 
+  Future<void> _check(int index) async {
+    widget.onCheck();
+    await Future<void>.delayed(answerResultDelay);
+    if (mounted) setState(() => _resultFor = index);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -63,12 +75,11 @@ class _SweepViewState extends ConsumerState<SweepView> {
     final task = play.task as SweepTask;
     final parent = play.street;
     final names = {for (final s in task.lanes) s.id: streetName(s, settings)};
-    final placedLabels = task.placed.keys.toSet();
-    final tray = [
-      for (final s in task.lanes)
-        if (!placedLabels.contains(s.id)) s.id,
-    ]..sort((a, b) => names[a]!.compareTo(names[b]!));
+    final labels = [for (final s in task.lanes) s.id]
+      ..sort((a, b) => names[a]!.compareTo(names[b]!));
+    final placed = task.placed;
     final tier = task.result;
+    final held = _held;
     final mapOf = ref.watch(pindoroMapBuilderProvider);
     return TaskScaffold(
       topBar: widget.topBar,
@@ -98,29 +109,32 @@ class _SweepViewState extends ConsumerState<SweepView> {
             projection: _projection,
             anchors: [
               for (final (i, lane) in task.lanes.indexed)
-                (
-                  lane.parts.first.midpoint,
-                  _Socket(
-                    number: i + 1,
-                    label: switch (task.placed.entries
-                        .where((e) => e.value == lane.id)
-                        .firstOrNull) {
-                      final e? => names[e.key],
-                      null => null,
-                    },
-                    right: tier == null
-                        ? null
-                        : task.placed.entries.any(
-                            (e) => e.value == lane.id && e.key == lane.id,
-                          ),
-                    onDrop: tier == null
-                        ? (label) => _place(label, lane.id)
-                        : null,
-                    onTap: tier == null && _held != null
-                        ? () => _place(_held!, lane.id)
-                        : null,
-                  ),
-                ),
+                () {
+                  final label = placed.entries
+                      .where((e) => e.value == lane.id)
+                      .firstOrNull
+                      ?.key;
+                  final right = tier == null ? null : label == lane.id;
+                  return (
+                    lane.parts.first.midpoint,
+                    SweepSocket(
+                      semanticsLabel: l10n.a11ySweepSocket(
+                        i + 1,
+                        label == null ? l10n.a11ySweepEmpty : names[label]!,
+                      ),
+                      label: label == null ? null : names[label],
+                      waking: held != null && label == null,
+                      right: right,
+                      truth: right == false ? names[lane.id] : null,
+                      onAccept: tier == null
+                          ? (l) => _place(labels[l], lane.id)
+                          : null,
+                      onTap: tier == null && held != null
+                          ? () => _place(labels[held], lane.id)
+                          : null,
+                    ),
+                  );
+                }(),
             ],
           ),
         ),
@@ -134,52 +148,23 @@ class _SweepViewState extends ConsumerState<SweepView> {
         glyph: PindoroGlyph.road,
         detail: l10n.sessionSweepHint,
       ),
-      controls: Column(
-        mainAxisSize: MainAxisSize.min,
-        spacing: PindoroSpace.s4,
-        children: [
-          Wrap(
-            spacing: PindoroSpace.s2,
-            runSpacing: PindoroSpace.s1,
-            alignment: WrapAlignment.center,
-            children: [
-              for (final id in tray)
-                Draggable<String>(
-                  data: id,
-                  feedback: Material(
-                    type: MaterialType.transparency,
-                    child: PindoroChip(
-                      label: names[id]!,
-                      selected: true,
-                      onPressed: () {},
-                    ),
-                  ),
-                  childWhenDragging: Opacity(
-                    opacity: PindoroOpacity.hatch,
-                    child: PindoroChip.action(
-                      label: names[id]!,
-                      onPressed: () {},
-                    ),
-                  ),
-                  child: PindoroChip(
-                    label: names[id]!,
-                    selected: _held == id,
-                    onPressed: () =>
-                        setState(() => _held = _held == id ? null : id),
-                  ),
-                ),
-            ],
-          ),
-          PindoroButton(
-            label: l10n.sessionSweepCheck(
-              task.placed.length,
-              task.lanes.length,
-            ),
-            onPressed: tray.isEmpty ? widget.onCheck : null,
-          ),
-        ],
+      tray: SweepTray(
+        question: l10n.answerWhichLane,
+        meta: l10n.answerPlaced(placed.length, task.lanes.length),
+        labels: [for (final id in labels) (label: names[id]!, sublabel: null)],
+        placed: {
+          for (final (i, id) in labels.indexed)
+            if (placed.containsKey(id)) i,
+        },
+        held: held,
+        onHold: (i) => setState(() => _held = i),
+        confirmLabel: l10n.commonConfirm,
+        confirmHint: l10n.answerPlaceAll,
+        onConfirm: tier == null && placed.length == task.lanes.length
+            ? () => unawaited(_check(play.index))
+            : null,
       ),
-      result: tier == null
+      result: tier == null || _resultFor != play.index
           ? null
           : TaskResult(
               resultKey: play.index,
@@ -187,79 +172,6 @@ class _SweepViewState extends ConsumerState<SweepView> {
               sentence: l10n.sessionSweepResult(task.right, task.lanes.length),
               onNext: widget.onNext,
             ),
-    );
-  }
-}
-
-/// A lane's socket: empty, or the label dropped on it; once checked, in the
-/// tier colours of whether it is the lane's own.
-class _Socket extends StatelessWidget {
-  const _Socket({
-    required this.number,
-    required this.label,
-    required this.right,
-    required this.onDrop,
-    required this.onTap,
-  });
-
-  final int number;
-  final String? label;
-  final bool? right;
-  final ValueChanged<String>? onDrop;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final theme = PindoroTheme.of(context);
-    final c = theme.colors;
-    final label = this.label;
-    final tier = switch (right) {
-      true => theme.tier(Tier.great),
-      false => theme.tier(Tier.miss),
-      null => null,
-    };
-    Widget face(bool hovering) => Container(
-      constraints: const BoxConstraints(minWidth: 34, minHeight: 24),
-      padding: const EdgeInsets.symmetric(horizontal: PindoroSpace.s2),
-      decoration: BoxDecoration(
-        color:
-            tier?.fill ?? (label == null ? c.surfaceRaised : c.chipSelectedBg),
-        borderRadius: BorderRadius.circular(PindoroRadius.full),
-        border: Border.all(
-          color: hovering
-              ? c.primaryBase
-              : tier?.lip ??
-                    (label == null ? c.mapRegionOutline : c.chipSelectedBorder),
-          width: PindoroStroke.base,
-        ),
-      ),
-      alignment: Alignment.center,
-      child: label == null
-          ? null
-          : Text(
-              label,
-              style: PindoroType.labelMd.copyWith(
-                color: tier?.on ?? c.chipSelectedText,
-              ),
-            ),
-    );
-    return Semantics(
-      button: onTap != null,
-      label: l10n.a11ySweepSocket(number, label ?? l10n.a11ySweepEmpty),
-      onTap: onTap,
-      excludeSemantics: true,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(PindoroSpace.s2),
-          child: DragTarget<String>(
-            onWillAcceptWithDetails: (_) => onDrop != null,
-            onAcceptWithDetails: (d) => onDrop?.call(d.data),
-            builder: (context, hovering, _) => face(hovering.isNotEmpty),
-          ),
-        ),
-      ),
     );
   }
 }

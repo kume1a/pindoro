@@ -4,6 +4,9 @@ import 'package:pindoro/app/tab_shell.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/account/ui/account_screen.dart';
+import 'package:pindoro/features/drive/ui/drive_controller.dart';
+import 'package:pindoro/features/drive/ui/drive_place_screen.dart';
+import 'package:pindoro/features/drive/ui/drive_preview_screen.dart';
 import 'package:pindoro/features/drive/ui/drive_screen.dart';
 import 'package:pindoro/features/drive/ui/past_drives_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
@@ -141,6 +144,7 @@ GoRouter buildRouter(String initialLocation) {
         builder: (_, state) => SessionScreen(
           placement: state.uri.queryParameters.containsKey('placement'),
           more: state.uri.queryParameters.containsKey('more'),
+          drill: state.uri.queryParameters['drill']?.split(' '),
         ),
       ),
       GoRoute(
@@ -172,10 +176,26 @@ GoRouter buildRouter(String initialLocation) {
         path: Routes.memoryModel,
         builder: (_, _) => const MemoryModelScreen(),
       ),
-      GoRoute(path: Routes.drive, builder: (_, _) => const DriveScreen()),
+      GoRoute(
+        path: Routes.drive,
+        builder: (_, state) => DriveScreen(
+          to: state.uri.queryParameters['to'] == 'run' ? DriveTo.run : null,
+        ),
+      ),
+      GoRoute(
+        path: Routes.drivePlace,
+        builder: (_, state) => DrivePlaceScreen(
+          home: state.uri.queryParameters['which'] != 'work',
+        ),
+      ),
+      GoRoute(
+        path: Routes.drivePreview,
+        builder: (_, _) => const DrivePreviewScreen(),
+      ),
       GoRoute(
         path: Routes.pastDrives,
-        builder: (_, _) => const PastDrivesScreen(),
+        builder: (_, state) =>
+            PastDrivesScreen(route: state.uri.queryParameters['route']),
       ),
       GoRoute(
         path: Routes.pastDrive,

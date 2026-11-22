@@ -8,6 +8,7 @@ import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
+import 'package:pindoro/features/learning/data/drive_log.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
@@ -123,5 +124,56 @@ void main() {
     expect(learning, findsOneWidget);
     await tapThrough(tester, learning);
     expect(find.textContaining('learning now'), findsOneWidget);
+  });
+
+  testWidgets('drives: this week’s line and each frequent route’s level by '
+      'month, in words and as a stair', (tester) async {
+    await place([streets.first]);
+    final pack = SqlitePackRepository.open(AppConfig.fixturePackAsset);
+    final nodes = pack.junctionNodes().values.toList();
+    final street = pack.roadGraph()!.edges.first.streetId!;
+    pack.close();
+    final log = DriveLogDao(db);
+    for (final (i, (at, level)) in [
+      (DateTime(2026, 1, 12, 8), DriveLevel.guided),
+      (DateTime(2026, 2, 9, 8), DriveLevel.coached),
+      (DateTime(2026, 3, 2, 8), DriveLevel.quiet),
+    ].indexed) {
+      await log.save(
+        DriveRow(
+          id: 'd$i',
+          startedAt: at,
+          endedAt: at.add(const Duration(minutes: 20)),
+          level: level,
+          goal: 'own',
+          startNode: nodes.first,
+          targetNode: nodes.last,
+          targetStreet: street,
+          outcome: DriveOutcome.arrived,
+          drivenM: 2000,
+          credited: 0,
+          failed: 0,
+          fixes: 0,
+          gpsGaps: 0,
+          longestGapS: 0,
+          recoveries: 0,
+          rescued: false,
+          mostHelp: level,
+        ),
+        '',
+      );
+    }
+    await pump(tester);
+    await tester.scrollUntilVisible(find.byType(RouteLevelStair), 300);
+    expect(find.text('Drives'), findsOneWidget);
+    expect(
+      find.text('This week: 1 drive without help, 0 new places'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Guided in January, Coached in February, Quiet since March'),
+      findsOneWidget,
+    );
+    expect(find.text('3 drives'), findsOneWidget);
   });
 }

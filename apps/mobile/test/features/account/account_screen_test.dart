@@ -196,10 +196,15 @@ void main() {
       () => AccountDao(db).save(username: 'nino', token: 't'),
     );
     await pump(tester);
+    // The account rows sit at the end of Settings.
+    await tester.ensureVisible(find.text('Delete account'));
+    await tester.pump();
     await tapThrough(tester, find.text('Delete account'));
     expect(find.text('Delete your account?'), findsOneWidget);
     await tapThrough(tester, find.text('Keep account'));
     expect(sent, isEmpty, reason: 'keeping the account sends nothing');
+    await tester.ensureVisible(find.text('Sign out'));
+    await tester.pump();
     await tapThrough(tester, find.text('Sign out'));
     await tapThrough(tester, find.widgetWithText(PindoroButton, 'Sign out'));
     await until(

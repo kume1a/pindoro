@@ -9,10 +9,12 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/data/cards.dart';
+import 'package:pindoro/features/learning/data/drive_history.dart';
 import 'package:pindoro/features/learning/data/progress.dart';
 import 'package:pindoro/features/learning/ui/city_memory_card.dart';
 import 'package:pindoro/features/learning/ui/city_tab_page.dart';
 import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
+import 'package:pindoro/features/memory/ui/progress_drives.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -54,6 +56,11 @@ class ProgressScreen extends ConsumerWidget {
               memory: p.city,
               history: p.history,
               sinceYesterday: p.sinceYesterday,
+              driveLine: switch (ref.watch(driveReviewsThisMonthProvider)) {
+                AsyncData(value: final n) when n > 0 =>
+                  l10n.progressDriveReviews(n),
+                _ => null,
+              },
             ),
             TileGrid(columns: scale >= TileGrid.stackAt ? 1 : 2, [
               StatTile(
@@ -150,6 +157,7 @@ class ProgressScreen extends ConsumerWidget {
                 ],
               ),
             ],
+            const ProgressDrives(),
           ];
         }(),
         _ => const [Center(child: LaneLoader())],

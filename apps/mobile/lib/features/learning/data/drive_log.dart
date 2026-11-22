@@ -7,7 +7,7 @@ part 'drive_log.g.dart';
 
 /// The drive log (SPEC §16.23 item 124): every drive's summary for good, its track for
 /// [LearningConfig.driveTrackKeepDays].
-@DriftAccessor(tables: [Drives, DriveTracks, DriveDecisions])
+@DriftAccessor(tables: [Drives, DriveTracks, DriveDecisions, DriveEvents])
 class DriveLogDao extends DatabaseAccessor<AppDatabase>
     with _$DriveLogDaoMixin {
   DriveLogDao(super.attachedDatabase);
@@ -50,6 +50,37 @@ class DriveLogDao extends DatabaseAccessor<AppDatabase>
 
   /// Every logged decision of every drive.
   Future<List<DriveDecisionRow>> decisions() => select(driveDecisions).get();
+
+  /// [driveId]'s decisions in drive order.
+  Future<List<DriveDecisionRow>> decisionsOf(String driveId) =>
+      (select(driveDecisions)
+            ..where((d) => d.driveId.equals(driveId))
+            ..orderBy([(d) => OrderingTerm.asc(d.seq)]))
+          .get();
+
+  /// Appends a preview, recital, debrief or pointing result (SPEC §16.23 item 124).
+  Future<void> addEvent({
+    required String driveId,
+    required DateTime at,
+    required DriveEventKind kind,
+    String? itemKey,
+    double? value,
+  }) => into(driveEvents).insert(
+    DriveEventsCompanion.insert(
+      driveId: driveId,
+      at: at,
+      kind: kind,
+      itemKey: Value(itemKey),
+      value: Value(value),
+    ),
+  );
+
+  /// Every event of [kind], oldest first.
+  Future<List<DriveEventRow>> events(DriveEventKind kind) =>
+      (select(driveEvents)
+            ..where((e) => e.kind.equalsValue(kind))
+            ..orderBy([(e) => OrderingTerm.asc(e.id)]))
+          .get();
 
   /// The ids of the drives whose track is still kept.
   Future<Set<String>> tracked() async {

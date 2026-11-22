@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -16,7 +17,6 @@ import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro/features/session/ui/widgets/place_intro.dart';
 import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
-import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
@@ -67,6 +67,23 @@ class _RouteViewState extends ConsumerState<RouteView> {
   }
 
   void _answer() => widget.onAnswer(_field.text);
+
+  /// The tray's choice confirmed, shown for [answerResultDelay] before it is
+  /// graded.
+  int? _confirmed;
+
+  @override
+  void didUpdateWidget(RouteView old) {
+    super.didUpdateWidget(old);
+    if (old.play.index != widget.play.index) _confirmed = null;
+  }
+
+  Future<void> _confirm(int i, Object choice) async {
+    setState(() => _confirmed = i);
+    widget.onChoose(choice);
+    await Future<void>.delayed(answerResultDelay);
+    if (mounted) _answer();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +137,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
       case final TurnQuestion q:
         final chosen = task.choice as Turn?;
         final right = tier == null ? null : chosen == q.correct;
-        final exitWord = _turnWord(l10n, q.correct);
+        final exitWord = exitLabel(l10n, q.correct);
         final scene = graph == null ? null : _turnScene(graph, q);
         final landmark = q.landmark;
         return TaskScaffold(
@@ -195,7 +212,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
                             direction: _direction(turn),
                             selected: chosen == turn,
                             onTap: () => widget.onChoose(turn),
-                            semanticsLabel: _turnWord(l10n, turn),
+                            semanticsLabel: exitLabel(l10n, turn),
                           ),
                         ),
                   ],
@@ -396,34 +413,48 @@ class _RouteViewState extends ConsumerState<RouteView> {
                 ),
           controls: q.n == 1
               ? confirm(l10n.commonConfirm, ready: play.pin != null)
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  spacing: PindoroSpace.s2,
-                  children: [
-                    Wrap(
-                      spacing: PindoroSpace.s2,
-                      runSpacing: PindoroSpace.s1,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        if (q.n == 2)
-                          for (final j in q.junctions)
-                            PindoroChip(
-                              label: junctionAt(j),
-                              selected: task.choice == j,
-                              onPressed: () => widget.onChoose(j),
-                            )
-                        else
-                          for (final l in q.places)
-                            PindoroChip(
-                              label: landmarkName(l, settings),
-                              selected: task.choice == l.name,
-                              onPressed: () => widget.onChoose(l.name),
-                            ),
-                      ],
-                    ),
-                    confirm(l10n.commonConfirm, ready: task.choice != null),
-                  ],
-                ),
+              : null,
+          tray: q.n == 1
+              ? null
+              : () {
+                  final choices = <Object>[
+                    if (q.n == 2)
+                      ...q.junctions
+                    else
+                      ...q.places.map((l) => l.name),
+                  ];
+                  final confirmed = _confirmed;
+                  return AnswerTray(
+                    key: ValueKey((play.index, 'tray')),
+                    question: q.n == 2
+                        ? l10n.answerPickJunction
+                        : l10n.answerPickPlace,
+                    meta: q.n == 2
+                        ? l10n.answerJunctions(choices.length)
+                        : l10n.answerPlaces(choices.length),
+                    choices: [
+                      if (q.n == 2)
+                        for (final j in q.junctions)
+                          (label: junctionAt(j), sublabel: null)
+                      else
+                        for (final l in q.places)
+                          (label: landmarkName(l, settings), sublabel: null),
+                    ],
+                    confirmLabel: l10n.commonConfirm,
+                    confirmHint: l10n.answerPickFirst,
+                    result: confirmed == null
+                        ? null
+                        : (
+                            picked: confirmed,
+                            right: q.n == 2
+                                ? q.junctions.indexOf(q.junction ?? -1)
+                                : q.places.indexWhere(
+                                    (l) => l.name == landmark.name,
+                                  ),
+                          ),
+                    onConfirm: (i) => unawaited(_confirm(i, choices[i])),
+                  );
+                }(),
           result: tier == null
               ? null
               : result(
@@ -442,13 +473,6 @@ class _RouteViewState extends ConsumerState<RouteView> {
 }
 
 ExitDirection _direction(Turn turn) => ExitDirection.values.byName(turn.name);
-
-String _turnWord(AppLocalizations l10n, Turn turn) => switch (turn) {
-  Turn.left => l10n.routeExitLeft,
-  Turn.straight => l10n.routeExitStraight,
-  Turn.right => l10n.routeExitRight,
-  Turn.uTurn => l10n.routeExitUTurn,
-};
 
 /// A turn card on the real map, driving up the screen: the [approach] into
 /// the junction and each exit's road out of it (ends at the junction), where

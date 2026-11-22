@@ -134,19 +134,21 @@ class Navigator {
   Navigator({
     required this.graph,
     required this.cost,
-    required this.destination,
+    required int destination,
     required DriveLevel level,
     this.streets = const {},
     this.landmarks = const [],
     this.junctionNodes = const {},
     this.silent = const {},
     this.districtAt,
-  }) : _level = level,
+  }) : _destination = destination,
+       _level = level,
        _camerasByEdge = _byEdge(graph.cameras);
 
   final RoadGraph graph;
   final NavCost cost;
-  final int destination;
+  int _destination;
+  int get destination => _destination;
 
   /// By part id.
   final Map<String, NamedStreet> streets;
@@ -154,7 +156,7 @@ class Navigator {
   final Map<int, int> junctionNodes;
 
   /// The silent-eligible decisions, by key: Coached says nothing at them.
-  final Set<String> silent;
+  Set<String> silent;
 
   /// The district a point lies in, for cues and the screen.
   final String? Function(LatLng at)? districtAt;
@@ -209,6 +211,15 @@ class Navigator {
 
   /// A level chosen while stopped (item 116), at once.
   void setLevel(DriveLevel level) => _level = level;
+
+  /// A destination changed while stopped (item 116), with its route's [silent] decisions: the
+  /// next fix plans the way there.
+  void setDestination(int to, {Set<String> silent = const {}}) {
+    _destination = to;
+    this.silent = silent;
+    _plan = null;
+    _arrived = false;
+  }
 
   /// Off's Rescue (item 116): Guided to the destination; later decisions are watched only.
   void rescue() {

@@ -55,14 +55,32 @@ abstract final class Routes {
   /// Calibration, fitted FSRS weights and tier C relief (SPEC §12).
   static const String memoryModel = '/settings/learning/memory';
 
-  /// A GPS-free drive: setup, recording and review (DriveScreen).
+  /// A drive: setup, recording and debrief (DriveScreen); `?to=run` opens on today's run.
   static const String drive = '/drive';
+  static const String driveRun = '$drive?to=run';
 
-  /// Every drive, the latest first, and one of them (`?id=`) replayed.
+  /// Home or Work for drives (`?which=home|work`).
+  static const String drivePlace = '/drive/place';
+
+  static String drivePlaceOf(String which) => '$drivePlace?which=$which';
+
+  /// The route preview of the drive being set up (V32-11).
+  static const String drivePreview = '/drive/preview';
+
+  /// Every drive by week (`?route=`: one route's), and one of them (`?id=`): its debrief.
   static const String pastDrives = '/drive/past';
   static const String pastDrive = '/drive/past/one';
 
+  static String pastDrivesOf(String route) =>
+      Uri(path: pastDrives, queryParameters: {'route': route}).toString();
+
   static String pastDriveOf(String id) => '$pastDrive?id=$id';
+
+  /// A short session of [items] as relearns (a drive's missed turns).
+  static String drillOf(List<String> items) => Uri(
+    path: session,
+    queryParameters: {'drill': items.join(' ')},
+  ).toString();
 
   static String progressOf(String districtId) =>
       '$progressDistrict?id=$districtId';

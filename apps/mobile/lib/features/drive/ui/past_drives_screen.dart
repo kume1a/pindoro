@@ -4,79 +4,151 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/drive/ui/debrief_screen.dart';
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
-import 'package:pindoro/features/drive/ui/drive_screen.dart';
+import 'package:pindoro/features/learning/data/drive_history.dart';
 import 'package:pindoro/features/learning/data/drive_log.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
+import 'package:pindoro/features/learning/ui/drive_labels.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
-/// Every drive, the latest first (board V32-60): where to, when, how far,
-/// how it went and whether GPS dropped out. A graded drive whose track is
-/// still kept opens its review.
+/// Every drive by week, the latest first (board V32-60): the route, the day, the level, the
+/// outcome in a few words and the tier (none for Guided, watched only). Only [route]'s when
+/// given (Progress's routes). A drive whose track is still kept opens.
 class PastDrivesScreen extends ConsumerWidget {
-  const PastDrivesScreen({super.key});
+  const PastDrivesScreen({super.key, this.route});
+
+  final String? route;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final drives = ref.watch(pastDrivesProvider).value;
+    final history = ref.watch(driveHistoryProvider).value;
+    final settings = ref.watch(settingsProvider).value;
+    final streets = ref.watch(cityStreetsProvider).value ?? const {};
+    final places = ref.watch(packRepositoryProvider).value?.landmarks() ?? [];
+    final now = ref.watch(clockProvider)();
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    final route = this.route;
+    String name(String r) => routeName(
+      l10n,
+      r,
+      places: places,
+      streets: streets,
+      settings: settings,
+    );
+    final title = route == null ? l10n.pastDrivesTitle : name(route);
+    if (drives == null || history == null) {
+      return PageScaffold(title: title, children: const []);
+    }
+    final routes = {
+      for (final (i, d) in history.drives.indexed)
+        d.id: history.summaries[i].route,
+    };
+    final weeks = <DateTime, List<({DriveRow drive, bool tracked})>>{};
+    for (final d in drives) {
+      if (route != null && routes[d.drive.id] != route) continue;
+      weeks.putIfAbsent(weekOf(d.drive.startedAt), () => []).add(d);
+    }
+    final thisWeek = weekOf(now);
+    final lastWeek = weekOf(thisWeek.subtract(const Duration(days: 1)));
+    String weekTitle(DateTime w) => w == thisWeek
+        ? l10n.pastDrivesThisWeek
+        : w == lastWeek
+        ? l10n.pastDrivesLastWeek
+        : l10n.pastDrivesWeekOf(DateFormat.MMMd(locale).format(w));
     return PageScaffold(
-      title: l10n.pastDrivesTitle,
+      title: title,
       children: [
-        if (drives case final drives? when drives.isEmpty)
-          Text(l10n.pastDrivesEmpty, style: PindoroType.bodyMd)
-        else if (drives != null)
+        if (weeks.isEmpty)
+          Text(l10n.pastDrivesEmpty, style: PindoroType.bodyMd),
+        for (final MapEntry(key: week, value: list) in weeks.entries) ...[
+          SectionTitle(weekTitle(week)),
           ListGroup(
             children: [
-              for (final d in drives)
+              for (final d in list)
                 _DriveRow(
                   drive: d.drive,
-                  opens: d.tracked && d.drive.tier != null,
+                  title: switch (routes[d.drive.id]) {
+                    final r? => name(r),
+                    null => switch (streets[d.drive.targetStreet]) {
+                      final s? => l10n.pastDriveTo(streetName(s, settings)),
+                      null => l10n.driveTitle,
+                    },
+                  },
+                  decisions:
+                      history.decisions[d.drive.id] ??
+                      const <DriveDecisionRow>[],
+                  opens: d.tracked,
                 ),
             ],
           ),
+        ],
       ],
     );
   }
 }
 
-class _DriveRow extends ConsumerWidget {
-  const _DriveRow({required this.drive, required this.opens});
+class _DriveRow extends StatelessWidget {
+  const _DriveRow({
+    required this.drive,
+    required this.title,
+    required this.decisions,
+    required this.opens,
+  });
 
   final DriveRow drive;
+  final String title;
+  final List<DriveDecisionRow> decisions;
   final bool opens;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final settings = ref.watch(settingsProvider).value;
-    final street = ref.watch(cityStreetsProvider).value?[drive.targetStreet];
     final locale = Localizations.localeOf(context).toLanguageTag();
+    final own = decisions
+        .map(
+          (r) => turnMark(
+            ok: r.ok,
+            help: r.help,
+            recentHelp: r.recentHelp,
+            hesitated: r.hesitated,
+          ),
+        )
+        .where((m) => m == TurnMark.good || m == TurnMark.hard)
+        .length;
     final line = [
       DateFormat.MMMEd(locale).add_Hm().format(drive.startedAt.toLocal()),
-      formatDistance(drive.drivenM, l10n),
-      switch ((drive.outcome, drive.tier)) {
-        (DriveOutcome.abandoned, _) => l10n.pastDriveAbandoned,
-        (_, final tier?) => tierLabel(l10n, tier),
-        _ => l10n.driveNoTrack,
-      },
+      levelLabel(l10n, drive.level),
+      if (drive.outcome == DriveOutcome.abandoned)
+        l10n.pastDriveAbandoned
+      else if (drive.rescued)
+        l10n.pastDriveRescued
+      else if (decisions.isNotEmpty)
+        l10n.pastDriveOwn(own, decisions.length),
       if (drive.gpsGaps > 0) l10n.pastDriveGpsLost(drive.gpsGaps),
     ].join(' · ');
+    final guided = drive.level == DriveLevel.guided;
+    final tier = drive.tier;
     return ListRow(
-      title: street == null
-          ? l10n.driveTitle
-          : l10n.pastDriveTo(streetName(street, settings)),
+      title: title,
       subtitle: line,
       leading: const RowTile(PindoroGlyph.car),
-      trailing: opens ? const PindoroIcon(PindoroGlyph.chevronRight) : null,
+      trailing: switch ((guided, tier)) {
+        (true, _) => TierChip(tier: null, label: l10n.pastDriveNoTier),
+        (false, final t?) => TierChip(tier: t, label: tierWord(l10n, t)),
+        _ => null,
+      },
       onTap: opens
           ? () => unawaited(context.push(Routes.pastDriveOf(drive.id)))
           : null,
@@ -112,7 +184,9 @@ final pastDriveProvider = FutureProvider.autoDispose
         streets: streets,
       );
       return DriveReview(
-        target: (junction: junction, street: street),
+        id: id,
+        rescued: drive.rescued,
+        target: (junction: junction, street: street, place: null),
         match: match,
         graded: graded,
         stoppedM: stoppedM,
@@ -125,25 +199,13 @@ final pastDriveProvider = FutureProvider.autoDispose
       );
     });
 
-/// One past drive's review (Past drives).
-class PastDriveScreen extends ConsumerWidget {
+/// One past drive (V32-60): its debrief, offered while fresh.
+class PastDriveScreen extends StatelessWidget {
   const PastDriveScreen({required this.id, super.key});
 
   final String id;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final review = ref.watch(pastDriveProvider(id));
-    return switch (review) {
-      AsyncData(value: final review?) => DriveReviewView(
-        review: review,
-        onDone: () => context.pop(),
-      ),
-      AsyncLoading() => const Scaffold(body: SizedBox.expand()),
-      _ => PageScaffold(
-        title: context.l10n.pastDrivesTitle,
-        children: [Text(context.l10n.pastDriveGone, style: PindoroType.bodyMd)],
-      ),
-    };
-  }
+  Widget build(BuildContext context) =>
+      DebriefScreen(id: id, onDone: () => context.pop());
 }

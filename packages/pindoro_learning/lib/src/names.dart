@@ -111,6 +111,41 @@ bool nameMatches(String typed, NamedStreet street) {
       LearningConfig.fuzzyNameMax;
 }
 
+/// The forms a place named [ka] (and [en]) is recognised by, as [nameForms] for a street.
+Set<String> placeForms(String ka, String? en) {
+  final base = nameBase(ka);
+  return {base, transliterate(base), if (en != null) nameBase(en)}..remove('');
+}
+
+/// The [items] [typed] names best, best first and at most [limit]: a fuzzy match, else the
+/// nearest start of a name, within [LearningConfig.fuzzyNameMax]; none under two letters.
+/// [forms] gives an item's names (see [nameForms], [placeForms]).
+List<T> searchNames<T>(
+  String typed,
+  Iterable<T> items,
+  Set<String> Function(T item) forms, {
+  int limit = 8,
+}) {
+  final base = nameBase(typed);
+  if (base.length < 2) return const [];
+  final typedForms = _typedForms(base);
+  final scored = <(double, int, T)>[];
+  for (final (i, item) in items.indexed) {
+    final score = [
+      for (final t in typedForms)
+        for (final f in forms(item))
+          nameDistance(t, f.length > t.length ? f.substring(0, t.length) : f) +
+              (f.length - t.length).abs() / 1000,
+    ].fold<double>(1, min);
+    if (score <= LearningConfig.fuzzyNameMax) scored.add((score, i, item));
+  }
+  scored.sort((a, b) {
+    final byScore = a.$1.compareTo(b.$1);
+    return byScore != 0 ? byScore : a.$2.compareTo(b.$2);
+  });
+  return [for (final s in scored.take(limit)) s.$3];
+}
+
 /// The street [typed] names best among [streets]: a fuzzy match, else the
 /// nearest start of a name (what's typed so far); null under two letters.
 NamedStreet? suggestStreet(String typed, Iterable<NamedStreet> streets) {

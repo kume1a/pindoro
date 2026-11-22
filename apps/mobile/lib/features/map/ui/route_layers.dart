@@ -4,14 +4,16 @@ import 'package:pindoro/features/map/data/maplibre_convert.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// A route on the map (a recital, a drive): A, B (null until the route
-/// reached it), the route drawn so far (cobalt dashes), the best route
-/// (yellow, with chevrons) and a [chip] over a spot on it. [reached] pops B
-/// once.
+/// A route on the map (a recital, a drive): A (none on a drive's plan map,
+/// which marks its ends itself), B (null until the route reached it), the
+/// route drawn so far (cobalt dashes), a drive's [track] (solid cobalt), the
+/// best route (yellow, with chevrons) and a [chip] over a spot on it.
+/// [reached] pops B once.
 typedef RouteOverlay = ({
-  LatLng a,
+  LatLng? a,
   LatLng? b,
   MultiPolyline drawn,
+  MultiPolyline track,
   MultiPolyline best,
   ({LatLng at, String label})? chip,
   bool reached,
@@ -21,6 +23,7 @@ typedef RouteOverlay = ({
 abstract final class RouteSources {
   static const String best = 'route-best';
   static const String drawn = 'route-drawn';
+  static const String track = 'route-track';
   static const String a = 'route-a';
   static const String b = 'route-b';
   static const String chip = 'route-chip';
@@ -38,6 +41,9 @@ const double drawnWidth = 5;
 const double drawnHalo = 9;
 const double drawnDash = 8;
 const double drawnGap = 7;
+
+/// A drive's track on the plan and review map: 4 dp solid (MapOverlays).
+const double trackWidth = 4;
 
 /// An endpoint pin, anchored at its tip and grown by [scale] (B's pop).
 ml.SymbolLayerProperties endpointLayer(
@@ -79,7 +85,11 @@ Future<void> addRouteLayers(
       pixelRatio: pixelRatio,
     ),
   );
-  for (final id in [RouteSources.best, RouteSources.drawn]) {
+  for (final id in [
+    RouteSources.best,
+    RouteSources.drawn,
+    RouteSources.track,
+  ]) {
     await c.addGeoJsonSource(id, linesGeoJson(const []));
   }
   for (final id in [RouteSources.a, RouteSources.b, RouteSources.chip]) {
@@ -141,6 +151,17 @@ Future<void> addRouteLayers(
     ),
     enableInteraction: false,
   );
+  await c.addLineLayer(
+    RouteSources.track,
+    '${RouteSources.track}-line',
+    ml.LineLayerProperties(
+      lineColor: hexColor(colors.mapPlayerRoute),
+      lineWidth: trackWidth,
+      lineCap: 'round',
+      lineJoin: 'round',
+    ),
+    enableInteraction: false,
+  );
   for (final (id, image) in [
     (RouteSources.a, _aImage),
     (RouteSources.b, _bImage),
@@ -186,10 +207,12 @@ Future<void> syncRoute(
   final lines = <String, MultiPolyline>{
     RouteSources.best: now?.best ?? const [],
     RouteSources.drawn: now?.drawn ?? const [],
+    RouteSources.track: now?.track ?? const [],
   };
   final old = <String, MultiPolyline>{
     RouteSources.best: before?.best ?? const [],
     RouteSources.drawn: before?.drawn ?? const [],
+    RouteSources.track: before?.track ?? const [],
   };
   for (final MapEntry(:key, :value) in lines.entries) {
     if (before == null || !identical(value, old[key])) {

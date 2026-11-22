@@ -141,6 +141,18 @@ The app copies `tokens.json`, `README.md`, `v1-screens.md`, `flutter-handoff.md`
   - DriveGlyph: not in the app yet.
   - SpeedLimitSign: not in the app yet.
   - CameraBadge: not in the app yet.
+- **Also added on 2026-11-21: the parked parts of v3.2** (drive setup, the route preview, the debrief, Past drives, Progress and Today; V32-90's "Review marks", "Compass pointing" and "Progress and Today parts"), plus a redesign of the answer choices. These use the system tokens and the app theme (not `color.drive.*`), follow the system text scale to 200 % and have 48 dp targets. No new tokens.
+  - ReviewMark (Good, Hard, Again, Helped, Watched only): not in the app yet.
+  - TurnNumber (with the map's start ring and destination flag): not in the app yet.
+  - StepDots: not in the app yet. It uses the session bar's colours (done yellow, now cobalt, to come outlined), where the screens canvas had done in cobalt and now in yellow.
+  - TierChip (and No tier for Guided drives): not in the app yet.
+  - GoalLine: not in the app yet.
+  - PlanChecklist: not in the app yet.
+  - RouteLevelStair: not in the app yet.
+  - SuggestionCard: not in the app yet. It is the Today card's primary ring around the info card's layout; no single existing card covered it.
+  - BearingDial, pointing mode (the debrief's "Point to home"): not in the app yet.
+  - MapOverlays, the north-up plan and review map (route, track, start ring, flag, key-turn numbers, review marks): not in the app yet.
+  - AnswerChoices, a tray docked over the map for Name it, a place's junction, the place at a junction and the family sweep: not in the app yet. It replaces the floating `Wrap` of `PindoroChip.action` and adds Confirm before the reveal (see its Flutter notes and section 13 of `flutter-handoff.md`).
 - **Deliberate differences** (the app keeps them; this system does not chase them):
   - The basemap is self-hosted Protomaps vector tiles drawn by MapLibre, credited "© OpenStreetMap contributors, Protomaps". `color.map.basemap.*` stays here as the CARTO fallback for testing overlays; the sections of `v1-screens.md` and `flutter-handoff.md` that still name CARTO and `flutter_map` describe that fallback.
   - The app generates its own Dart from `tokens.json`, so `handoff/pindoro_tokens.dart` is not used.
