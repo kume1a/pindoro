@@ -55,9 +55,19 @@ abstract final class Routes {
   /// Calibration, fitted FSRS weights and tier C relief (SPEC §12).
   static const String memoryModel = '/settings/learning/memory';
 
-  /// A drive: setup, recording and debrief (DriveScreen); `?to=run` opens on today's run.
-  static const String drive = '/drive';
+  /// The Drive tab, the first tab and the page the app opens on: Where to, Home and Work.
+  static const String driveTab = '/drive';
+
+  /// A drive: setup, recording and debrief (DriveScreen); `?to=home|work|run|surprise` opens on
+  /// that destination, a street or place comes as the route's `extra`.
+  static const String drive = '/drive/go';
   static const String driveRun = '$drive?to=run';
+
+  static String driveTo(String to) => '$drive?to=$to';
+
+  /// A destination picked on the map; `?place=1` for Home or Work. Pops with a `DriveDest`.
+  static const String driveMap = '/drive/map';
+  static const String driveMapPlace = '$driveMap?place=1';
 
   /// Home or Work for drives (`?which=home|work`).
   static const String drivePlace = '/drive/place';

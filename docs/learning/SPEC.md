@@ -1189,3 +1189,27 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      - Answer choices (Name it, a place's junction, the place at a junction, the family sweep)
        take a pick and Confirm, and show right and wrong on the choices for 600 ms before the
        reveal; the grading is unchanged.
+129. **The Drive tab** (2026-11-22): Pindoro is the player's everyday navigation, so a drive starts
+     from the first page.
+     - The bar is Drive · Today · Explore · Progress · Me, and a player who played opens on
+       Drive (Welcome and its placement still lead to Today). Back on another tab goes to Drive.
+     - Drive is Where to with no map: the search, Home and Work as tiles, today's run, Surprise
+       me and Recent, then the drives that item 128 put on Today (the one waiting, the week's
+       goal, the nudge, "Pick your two drives") and Past drives. Today keeps "Drive this run
+       today" (the run is part of the day's plan); Me no longer lists drives.
+     - A tile shows the minutes there by the way a drive would take, only when location is
+       already allowed: the tab never asks for it. They are found again on a return to the tab
+       or the app.
+     - A pick opens the drive set up on it (destination, level, Preview, Start); its end comes
+       back to the tab.
+     - Choose on the map (Where to, and Home and Work's picker): a tap drops the pin on the
+       nearest junction of a named street within `snapSearchM`, named under it; Drive here (Use
+       this spot for Home and Work) takes it. The map opens around where the phone is.
+     - The search finds a street or place by any of its words in either script, in any order
+       ("kazbegi" for "ალექსანდრე ყაზბეგის გამზირი"), each word within `fuzzyNameMax` of a
+       word's start; a whole name still matches as before.
+     - Surprise me says what it needs: a new place 1.5–5 km away with at least 7 of every 10
+       turns on the way the player's ("you already know"); without one, "No surprise yet" and
+       why. "Yours" reads "you already know" everywhere.
+     - Finding where the phone is uses a last known position under 2 minutes old as it is, and
+       waits 8 s at most for a new fix (it waited 20 s, the setup's "Finding the way…").

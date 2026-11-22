@@ -60,12 +60,17 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                (choices in its docked `AnswerTray`, shown right and wrong before
                                the reveal);
                                intro (a leech's with its mix-up and note), reveal, Session done,
-                               the placement result), today (the Today tab, "Drive this run today", the drives: the one
-                               waiting, the week's goal, the nudge, "Pick your two drives"), memory
+                               the placement result), today (the Today tab, "Drive this run today"), memory
                                (the Progress tab: overview, the drives' week line and route stairs,
-                               and a district), drive (`/drive`, `?to=run`: DriveController and
-                               DriveScreen: Where to (`DestinationSearch`: Home, Work, today's run,
-                               Surprise me, Recent, streets and places), then the destination with
+                               and a district), drive (the Drive tab `/drive`, `DriveTab`: `WhereTo`
+                               (`DestinationSearch` with Home and Work tiles and their minutes from
+                               `driveHereProvider`, today's run, Choose on the map (`/drive/map`,
+                               `DriveMapScreen`: a tap snaps to a named street's junction, pops
+                               with it), Surprise me, Recent, streets and
+                               places) over `DriveCards` (the drive waiting, the week's goal, the
+                               nudge, "Pick your two drives", Past drives); a pick pushes the drive
+                               `/drive/go` (`?to=home|work|run|surprise`, a street or place as
+                               `extra`): DriveController and DriveScreen: the destination with
                                the suggested level and the LevelPicker; `/drive/place` sets Home or
                                Work; a drive run by pindoro_learning's Navigator at its level
                                (voice by `NavWords`, the speed chime) on `DriveRecordingView`:
@@ -97,7 +102,7 @@ test/drift/                    generated schema helpers + migration test
 - **Layers, lowest first:** `l10n` → `core` → `features/progress` → `features/pack` →
   `features/map` → `features/learning` (v3 cards, plans, Progress data) → `features/account` →
   `features/badges` → screen features (`home`, `setup`, `quiz`, `results`, `settings`, `streak`,
-  `me`, `session`, `today`, `memory`) → `app` → `main.dart`. A file imports its own slice or a
+  `me`, `session`, `today`, `memory`, `drive`) → `app` → `main.dart`. A file imports its own slice or a
   lower layer only; screen features never import each other. Something two features need moves
   down (to `core`, or to `progress`/`pack`/`map`/`learning`). `test/architecture_test.dart`
   enforces this, and that `ui/` never imports Drift; a new feature gets a layer there. Imports are
@@ -107,9 +112,9 @@ test/drift/                    generated schema helpers + migration test
   provide. `databaseProvider` is overridden in `main()` and in tests. Widgets read with
   `ref.watch` in build, `ref.read` in callbacks.
 - **Routing:** go_router, paths in `Routes`. The tabs are a `StatefulShellRoute` (`TabShell`, a
-  `FadeIndexedStack` of one page per branch): `/today` Today, `/` Explore (Home), `/progress`
-  Progress, `/me` Me (design system Bottom nav); `go` to one of them switches tab, back on another
-  tab goes to Today first, and each tab page gets its own `PrimaryScrollController` (a tap on the
+  `FadeIndexedStack` of one page per branch): `/drive` Drive, `/today` Today, `/` Explore (Home),
+  `/progress` Progress, `/me` Me (design system Bottom nav); `go` to one of them switches tab, back
+  on another tab goes to Drive first, and each tab page gets its own `PrimaryScrollController` (a tap on the
   open tab scrolls it up). Every other route sits on the root navigator, over the bar:
   `/welcome`, `/area`,
   `/difficulty`, `/round` (`?round=` resumes, `?retry=` retries, `?learned=1` plays "Your
@@ -117,9 +122,10 @@ test/drift/                    generated schema helpers + migration test
   `/settings`, `/settings/credits`, `/session` (`?placement=1` places, `?more=1` learns 10 more),
   `/progress/district?id=`, `/settings/learning`, `/settings/learning/anchor?which=`,
   `/settings/learning/landmarks`, `/settings/learning/landmarks/add`, `/settings/learning/memory`
-  `/drive` (from Today's run card and Me), `/drive/past` (from Me) and `/drive/past/one?id=`.
+  `/drive/go` (from the Drive tab and Today's run card), `/drive/past` (from the Drive tab) and
+  `/drive/past/one?id=`.
   `startLocation`: a player who placed a city (`learn_city`), finished a round or left one saved
-  opens Today (Explore offers to continue the saved round); anyone else gets Welcome, whose Start
+  opens the Drive tab (Explore offers to continue the saved round); anyone else gets Welcome, whose Start
   learning leads to Today and its placement. The app is portrait only (Android manifest, iOS
   Info.plist). Footers end 12 dp above the bar on a tab (`bottomActionGap`).
 - **Learning (v3, docs/learning/SPEC.md):** pindoro_learning decides everything; the app stores

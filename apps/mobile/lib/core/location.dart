@@ -34,14 +34,16 @@ final class LocationUnavailable extends LocationResult {
 class LocationService {
   const LocationService();
 
-  Future<LocationResult> locate() async {
+  /// Where the phone is; [ask] false never shows the permission prompt (not yet allowed is
+  /// [LocationDenied]).
+  Future<LocationResult> locate({bool ask = true}) async {
     LocationPermission permission;
     try {
       if (!await Geolocator.isLocationServiceEnabled()) {
         return const LocationServicesOff();
       }
       permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
+      if (permission == LocationPermission.denied && ask) {
         permission = await Geolocator.requestPermission();
       }
     } on Object {
@@ -52,21 +54,32 @@ class LocationService {
         permission == LocationPermission.deniedForever) {
       return const LocationDenied();
     }
+    final last = await _lastKnown();
     Position? p;
-    try {
-      p = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.medium,
-          timeLimit: Duration(seconds: 20),
-        ),
-      );
-    } on Object {
-      p = await _lastKnown();
+    if (last != null && DateTime.now().difference(last.timestamp) < fresh) {
+      p = last;
+    } else {
+      try {
+        p = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.medium,
+            timeLimit: waitForFix,
+          ),
+        );
+      } on Object {
+        p = last;
+      }
     }
     return p == null
         ? const LocationUnavailable()
         : Located(LatLng(p.latitude, p.longitude));
   }
+
+  /// A last known position this recent is used as it is: a new fix can take 20 s indoors.
+  static const Duration fresh = Duration(minutes: 2);
+
+  /// How long a new fix is waited for before the last known one, however old, stands in.
+  static const Duration waitForFix = Duration(seconds: 8);
 
   static Future<Position?> _lastKnown() async {
     try {

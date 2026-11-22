@@ -17,8 +17,10 @@ import 'package:pindoro/core/drive_device.dart';
 import 'package:pindoro/core/location.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
+import 'package:pindoro/features/drive/ui/drive_map_screen.dart';
 import 'package:pindoro/features/drive/ui/drive_preview_screen.dart';
 import 'package:pindoro/features/drive/ui/drive_screen.dart';
+import 'package:pindoro/features/drive/ui/drive_tab.dart';
 import 'package:pindoro/features/drive/ui/past_drives_screen.dart';
 import 'package:pindoro/features/learning/data/drive_log.dart';
 import 'package:pindoro/features/learning/data/drive_places.dart';
@@ -52,6 +54,9 @@ void main() {
   late int homeNode;
   late double homeBearing;
 
+  /// The run's end (its OSM node), a drive away from where the phone starts.
+  late int endNode;
+
   setUpAll(() {
     final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
     final graph = repo.roadGraph()!;
@@ -69,6 +74,7 @@ void main() {
               r.edges.last.streetId != null,
         );
     homeNode = repo.junctionNodes()[route.junctions.first]!;
+    endNode = repo.junctionNodes()[route.junctions.last]!;
     homeBearing = bearingDegrees(
       graph.at(route.junctions.last),
       graph.at(route.junctions.first),
@@ -461,16 +467,20 @@ void main() {
             initialLocation: at,
             routes: [
               GoRoute(
+                path: Routes.driveTab,
+                builder: (_, _) => const DriveTab(),
+              ),
+              GoRoute(
                 path: Routes.drive,
-                builder: (_, state) => DriveScreen(
-                  to: state.uri.queryParameters['to'] == 'run'
-                      ? DriveTo.run
-                      : null,
-                ),
+                builder: (_, state) => DriveScreen.route(state),
               ),
               GoRoute(
                 path: Routes.drivePreview,
                 builder: (_, _) => const DrivePreviewScreen(),
+              ),
+              GoRoute(
+                path: Routes.driveMap,
+                builder: (_, _) => const DriveMapScreen(),
               ),
               GoRoute(
                 path: Routes.pastDrives,
@@ -617,9 +627,9 @@ void main() {
     expect(debrief, findsOneWidget);
   });
 
-  testWidgets('where to: Home to set, today’s run, Surprise me; a street '
-      'found by name is the destination', (tester) async {
-    await pumpDrive(tester, at: Routes.drive);
+  testWidgets('the Drive tab: Home and Work to set, today’s run, Surprise '
+      'me; a street found by name opens the drive on it', (tester) async {
+    await pumpDrive(tester, at: Routes.driveTab);
     expect(find.text('Set your home'), findsOneWidget);
     expect(find.text('Set your work'), findsOneWidget);
     expect(find.text("Today's run"), findsOneWidget);
@@ -631,6 +641,7 @@ void main() {
       matching: find.text(street.name),
     );
     await pumpUntil(tester, result);
+    expect(find.text('Set your home'), findsNothing, reason: 'only results');
     await tester.tap(result.first);
     await pumpUntil(tester, find.byType(LevelSuggestion));
     expect(find.byType(LevelPicker<DriveLevel>), findsOneWidget);
@@ -641,6 +652,145 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('the Drive tab: Home set shows the minutes there, and one tap '
+      'sets the drive up on Home', (tester) async {
+    await SettingsDao(db).setDrivePlace(
+      encodeDrivePlace((
+        node: endNode,
+        street: route.edges.last.streetId!,
+        place: null,
+      )),
+      home: true,
+    );
+    await pumpDrive(tester, at: Routes.driveTab);
+    final minutes = find.descendant(
+      of: find.byType(StatTile),
+      matching: find.textContaining(RegExp(r'^\d+ min$')),
+    );
+    await pumpUntil(tester, minutes);
+    expect(minutes, findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(StatTile),
+        matching: find.text(streets[route.edges.last.streetId]!.name),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Home'));
+    await pumpUntil(tester, find.byType(LevelSuggestion));
+    expect(find.byType(LevelPicker<DriveLevel>), findsOneWidget);
+    expect(find.text('Start drive'), findsOneWidget);
+  });
+
+  testWidgets('Surprise me with no turns known yet says why there is no '
+      'surprise', (tester) async {
+    await pumpDrive(tester, at: Routes.driveTo('surprise'));
+    await pumpUntil(tester, find.text('No surprise yet'));
+    expect(find.text('No surprise yet'), findsOneWidget);
+    expect(find.textContaining('7 of every 10 turns'), findsOneWidget);
+    expect(find.text('Start drive'), findsOneWidget);
+  });
+
+  testWidgets('choose on the map: a tap snaps the pin to the nearest junction '
+      'on a named street, and Drive here sets the drive up on it', (
+    tester,
+  ) async {
+    await pumpDrive(tester, at: Routes.driveTab);
+    await tester.tap(find.text('Choose on the map'));
+    await settle(tester);
+    expect(find.text('Tap the map where you’re going.'), findsOneWidget);
+    final drive = find.text('Drive here');
+    expect(
+      tester
+          .widget<PindoroButton>(
+            find.ancestor(of: drive, matching: find.byType(PindoroButton)),
+          )
+          .onPressed,
+      isNull,
+      reason: 'nothing picked yet',
+    );
+    final end = route.lines.last.last;
+    plans.last.onTap!(end);
+    await tester.pump();
+    expect(
+      distanceBetween(plans.last.pin!, end),
+      lessThan(1),
+      reason: 'snapped to the junction',
+    );
+    expect(find.text('Tap the map where you’re going.'), findsNothing);
+    await tester.tap(drive);
+    await pumpUntil(tester, find.byType(LevelSuggestion));
+    expect(find.byType(LevelPicker<DriveLevel>), findsOneWidget);
+    expect(
+      find.text(streets[route.edges.last.streetId]!.name),
+      findsWidgets,
+      reason: 'the destination is the junction’s street',
+    );
+  });
+
+  testWidgets('the Drive tab’s drives: the one waiting to be gone through, '
+      'the week’s goal, the two drives to pick and Past drives', (
+    tester,
+  ) async {
+    final pack = SqlitePackRepository.open(AppConfig.fixturePackAsset);
+    final nodes = pack.junctionNodes().values.toList();
+    final street = pack.roadGraph()!.edges.first.streetId!;
+    pack.close();
+    final log = DriveLogDao(db);
+    for (var i = 0; i < 3; i++) {
+      final at = now.subtract(Duration(hours: 3 - i));
+      await log.save(
+        DriveRow(
+          id: 'd$i',
+          startedAt: at.subtract(const Duration(minutes: 20)),
+          endedAt: at,
+          level: DriveLevel.quiet,
+          goal: 'own',
+          startNode: nodes.first,
+          targetNode: nodes.last,
+          targetStreet: street,
+          outcome: DriveOutcome.arrived,
+          drivenM: 2000,
+          credited: 0,
+          failed: 0,
+          fixes: 0,
+          gpsGaps: 0,
+          longestGapS: 0,
+          recoveries: 0,
+          rescued: false,
+          mostHelp: DriveLevel.quiet,
+        ),
+        '',
+        decisions: [
+          DriveDecisionRow(
+            driveId: 'd$i',
+            seq: 0,
+            at: at,
+            itemKey: 'J:n1:n2:n3',
+            planned: true,
+            ok: true,
+            level: DriveLevel.quiet,
+            help: NavHelp.none,
+            recentHelp: false,
+            hesitated: false,
+            keyTurn: true,
+          ),
+        ],
+      );
+    }
+    await pumpDrive(tester, at: Routes.driveTab);
+    await pumpUntil(tester, find.text('Pick your two drives'));
+    expect(find.text('Drives'), findsOneWidget);
+    expect(find.text('Your drive is waiting'), findsOneWidget);
+    expect(find.text('This week’s goal is done.'), findsOneWidget);
+    expect(find.text('Past drives'), findsOneWidget);
+    expect(find.text('3 drives'), findsOneWidget);
+    await tester.ensureVisible(find.text('Not this week'));
+    await tester.pump();
+    await tapThrough(tester, find.text('Not this week'));
+    expect(find.text('Pick your two drives'), findsNothing);
   });
 
   testWidgets('the preview plays the route and its key turns, then Recite: '
@@ -711,7 +861,7 @@ class _Track extends LocationService {
   int sent = 0;
 
   @override
-  Future<LocationResult> locate() async => Located(here);
+  Future<LocationResult> locate({bool ask = true}) async => Located(here);
 
   @override
   Stream<DriveFix> track({required String title, required String text}) {

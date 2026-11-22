@@ -1,8 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pindoro/core/database/settings_dao.dart';
+import 'package:pindoro/core/location.dart';
 import 'package:pindoro/features/learning/data/drive_log.dart';
+import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/personal_landmarks.dart';
 import 'package:pindoro/features/learning/data/route_book.dart';
+import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
@@ -69,6 +73,113 @@ final navHistoryProvider =
         failures: failures,
       );
     });
+
+/// The way navigation plans from [here] to junction [to], from the nearer end of the road
+/// [here] is on; null off the road graph or with no way there.
+NavPlan? planFrom(
+  RoadGraph graph,
+  LatLng here,
+  int to, {
+  required Map<String, NamedStreet> streets,
+  required List<RouteLandmark> landmarks,
+  required Map<int, int> junctionNodes,
+  required int toleranceKmh,
+}) {
+  final near = graph.edgeNear(here, 4 * LearningConfig.driveSnapM);
+  if (near == null) return null;
+  final from =
+      distanceBetween(here, graph.at(near.from)) <
+          distanceBetween(here, graph.at(near.to))
+      ? near.from
+      : near.to;
+  return planNav(
+    graph,
+    NavCost(streets, toleranceKmh: toleranceKmh),
+    from: from,
+    to: to,
+    streets: streets,
+    landmarks: landmarks,
+    junctionNodes: junctionNodes,
+  );
+}
+
+/// Where the phone is (never asking for location) and the minutes from there to Home and Work
+/// by the way a drive would take; each null when unknown, unset or out of reach.
+final driveHereProvider =
+    FutureProvider.autoDispose<({LatLng? here, int? home, int? work})>((
+      ref,
+    ) async {
+      final located = await ref
+          .watch(locationServiceProvider)
+          .locate(ask: false);
+      if (located is! Located) return (here: null, home: null, work: null);
+      final here = located.position;
+      final places = await ref.watch(drivePlacesProvider.future);
+      final graph = await ref.watch(drivingGraphProvider.future);
+      if (graph == null || (places.home == null && places.work == null)) {
+        return (here: here, home: null, work: null);
+      }
+      final pack = await ref.watch(packRepositoryProvider.future);
+      final streets = await ref.watch(cityStreetsProvider.future);
+      final landmarks = await ref.watch(navLandmarksProvider.future);
+      final settings = await ref.watch(settingsDaoProvider).read();
+      // ponytail: two route plans on the UI isolate; move to an isolate if the tab stutters.
+      int? minutes(DriveTarget? place) {
+        if (place == null) return null;
+        final plan = planFrom(
+          graph,
+          here,
+          place.junction,
+          streets: streets,
+          landmarks: landmarks,
+          junctionNodes: pack.junctionNodes(),
+          toleranceKmh: settings.speedToleranceKmh,
+        );
+        return plan == null ? null : (plan.seconds / 60).ceil();
+      }
+
+      return (
+        here: here,
+        home: minutes(places.home),
+        work: minutes(places.work),
+      );
+    });
+
+/// The junction nearest [at] within [LearningConfig.snapSearchM] that has a road and that
+/// [keep] allows; null when none is that near.
+int? nearestJunction(
+  RoadGraph graph,
+  LatLng at, {
+  bool Function(int junction)? keep,
+}) {
+  int? best;
+  var bestM = LearningConfig.snapSearchM;
+  for (final MapEntry(key: id, value: p) in graph.junctions.entries) {
+    final m = distanceBetween(at, p);
+    if (m <= bestM &&
+        graph.edgesAt(id).isNotEmpty &&
+        (keep?.call(id) ?? true)) {
+      (best, bestM) = (id, m);
+    }
+  }
+  return best;
+}
+
+/// A spot picked on the map as a destination: the nearest junction on a named street.
+DriveDest? destNear(
+  RoadGraph graph,
+  Map<String, NamedStreet> streets,
+  LatLng at,
+) {
+  final j = nearestJunction(
+    graph,
+    at,
+    keep: (j) => streetAt(graph, streets, j) != null,
+  );
+  return j == null
+      ? null
+      : (street: streetAt(graph, streets, j), place: null, junction: j);
+}
 
 /// The raion [at] lies in, among the pack's [districts].
 District? raionAt(List<District> districts, LatLng at) => districts

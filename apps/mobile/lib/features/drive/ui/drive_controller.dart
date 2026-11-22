@@ -333,7 +333,8 @@ class DriveController extends Notifier<DriveState> {
     }
     if (here == null) return null;
     final graph = await ref.hold(drivingGraphProvider.future);
-    if (graph == null) return null;
+    final suggest = await _suggester(here);
+    if (graph == null || suggest == null) return null;
     final streets = await ref.read(cityStreetsProvider.future);
     final pack = await ref.read(packRepositoryProvider.future);
     final now = ref.read(clockProvider)();
@@ -357,7 +358,7 @@ class DriveController extends Notifier<DriveState> {
       final street = streetAt(graph, streets, j);
       if (street == null) continue;
       final target = (junction: j, street: street, place: null);
-      final s = await _suggest(target, here);
+      final s = suggest(target);
       if (s != null &&
           s.turns > 0 &&
           s.yours / s.turns >= LearningConfig.surpriseMinShare) {
@@ -370,70 +371,74 @@ class DriveController extends Notifier<DriveState> {
   /// How many surprise destinations are planned before giving up.
   static const int _surpriseTries = 12;
 
-  Future<DriveSuggestion?> _suggest(DriveTarget target, LatLng here) async {
+  Future<DriveSuggestion?> _suggest(DriveTarget target, LatLng here) async =>
+      (await _suggester(here))?.call(target);
+
+  /// The suggestion for a target from [here], with the graph, cards and history read once
+  /// (Surprise me tries up to [_surpriseTries] targets); null without a road graph.
+  Future<DriveSuggestion? Function(DriveTarget target)?> _suggester(
+    LatLng here,
+  ) async {
     final graph = await ref.hold(drivingGraphProvider.future);
     if (graph == null) return null;
     final pack = await ref.read(packRepositoryProvider.future);
     final streets = await ref.read(cityStreetsProvider.future);
     final settings = await ref.read(settingsDaoProvider).read();
     final landmarks = await ref.hold(navLandmarksProvider.future);
-    final near = graph.edgeNear(here, 4 * LearningConfig.driveSnapM);
-    if (near == null) return null;
-    final from =
-        distanceBetween(here, graph.at(near.from)) <
-            distanceBetween(here, graph.at(near.to))
-        ? near.from
-        : near.to;
-    final plan = planNav(
-      graph,
-      NavCost(streets, toleranceKmh: settings.speedToleranceKmh),
-      from: from,
-      to: target.junction,
-      streets: streets,
-      landmarks: landmarks,
-      junctionNodes: pack.junctionNodes(),
-    );
-    if (plan == null) return null;
     final history = await ref.hold(navHistoryProvider.future);
     final byNode = await ref.hold(junctionsByNodeProvider.future);
     final cards = {
       for (final c in await ref.read(learningDaoProvider).cards())
         if (c.type == CardType.j) c.itemId: c,
     };
-    final raion = raionAt(pack.districts(), graph.at(target.junction));
+    final nodes = pack.junctionNodes();
+    final districts = pack.districts();
     final now = ref.read(clockProvider)();
-    final keys = [for (final d in plan.decisions) d.key];
-    final s = routeSuggestion(
-      keys: keys,
-      cards: cards,
-      history: history.decisions,
-      past: history.past,
-      areaJ: raion == null ? 0 : jCardsIn(raion, cards.values, byNode, graph),
-      now: now,
-    );
     const fsrs = Fsrs();
-    final pips = [for (final key in keys) s.silent.contains(key)];
-    return (
-      level: s.level,
-      yours: pips.where((mine) => mine).length,
-      turns: plan.decisions.length,
-      silent: s.silent,
-      pips: pips,
-      plan: plan,
-      keys: {
-        for (final d in keyDecisions(
-          graph,
-          plan.decisions,
-          silent: s.silent,
-          recall: {
-            for (final key in keys.nonNulls)
-              if (cards[key]?.memory case final m?)
-                key: fsrs.retrievability(m, now),
-          },
-        ))
-          ?d.key,
-      },
-    );
+    return (DriveTarget target) {
+      final plan = planFrom(
+        graph,
+        here,
+        target.junction,
+        streets: streets,
+        landmarks: landmarks,
+        junctionNodes: nodes,
+        toleranceKmh: settings.speedToleranceKmh,
+      );
+      if (plan == null) return null;
+      final raion = raionAt(districts, graph.at(target.junction));
+      final keys = [for (final d in plan.decisions) d.key];
+      final s = routeSuggestion(
+        keys: keys,
+        cards: cards,
+        history: history.decisions,
+        past: history.past,
+        areaJ: raion == null ? 0 : jCardsIn(raion, cards.values, byNode, graph),
+        now: now,
+      );
+      final pips = [for (final key in keys) s.silent.contains(key)];
+      return (
+        level: s.level,
+        yours: pips.where((mine) => mine).length,
+        turns: plan.decisions.length,
+        silent: s.silent,
+        pips: pips,
+        plan: plan,
+        keys: {
+          for (final d in keyDecisions(
+            graph,
+            plan.decisions,
+            silent: s.silent,
+            recall: {
+              for (final key in keys.nonNulls)
+                if (cards[key]?.memory case final m?)
+                  key: fsrs.retrievability(m, now),
+            },
+          ))
+            ?d.key,
+        },
+      );
+    };
   }
 
   /// Start drive: the destination found at setup (or now) and the track, its notification

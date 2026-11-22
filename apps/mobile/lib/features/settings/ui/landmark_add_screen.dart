@@ -13,6 +13,7 @@ import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
+import 'package:pindoro/features/learning/data/nav_data.dart';
 import 'package:pindoro/features/learning/data/personal_landmarks.dart';
 import 'package:pindoro/features/learning/ui/junction_name.dart';
 import 'package:pindoro/features/learning/ui/landmark_glyph.dart';
@@ -22,7 +23,6 @@ import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
-import 'package:pindoro_learning/pindoro_learning.dart';
 
 /// Add a landmark (board V3-32 `landmarkAdd`): a tap on the map, or Here,
 /// snaps to the nearest junction under a small panel; Next opens its name,
@@ -53,17 +53,6 @@ class _LandmarkAddScreenState extends ConsumerState<LandmarkAddScreen> {
     super.dispose();
   }
 
-  /// The junction nearest [at] within the snap radius; null when none.
-  static int? _nearestJunction(RoadGraph graph, LatLng at) {
-    int? best;
-    var bestM = LearningConfig.snapSearchM;
-    for (final MapEntry(key: id, value: p) in graph.junctions.entries) {
-      final m = distanceBetween(at, p);
-      if (m <= bestM && graph.edgesAt(id).isNotEmpty) (best, bestM) = (id, m);
-    }
-    return best;
-  }
-
   /// The edges one can drive in on to [junction].
   static List<RoadEdge> _approaches(RoadGraph graph, int junction) => [
     for (final e in graph.edgesAt(junction))
@@ -72,7 +61,7 @@ class _LandmarkAddScreenState extends ConsumerState<LandmarkAddScreen> {
 
   void _mark(RoadGraph graph, LatLng at) {
     ref.read(feedbackProvider).pinDrop();
-    final junction = _nearestJunction(graph, at);
+    final junction = nearestJunction(graph, at);
     setState(() {
       _spot = at;
       _junction = junction;

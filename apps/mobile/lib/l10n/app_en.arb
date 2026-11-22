@@ -2224,7 +2224,7 @@
   "driveTitle": "Drive",
   "driveTodaysRun": "Today's run",
   "driveSurprise": "Surprise me",
-  "driveSurpriseNote": "A new place on streets you know, 1.5–5 km away",
+  "driveSurpriseNote": "A new place 1.5–5 km away, on a way you mostly know",
   "driveWhereTo": "Where to? A street or a place",
   "driveRuleMap": "No map, no directions",
   "driveRuleMapNote": "Plan it in your head before you set off",
@@ -2706,7 +2706,6 @@
     }
   },
   "pastDriveGone": "This drive's track is no longer kept, or its destination left the city pack.",
-  "meDrives": "Drives",
   "meDrivesCount": "{count, plural, =0{None yet} =1{1 drive} other{{count} drives}}",
   "@meDrivesCount": {
     "placeholders": {
@@ -2857,7 +2856,7 @@
   "driveLevelCoachedNote": "The voice speaks only at the turns you don't know yet.",
   "driveLevelQuietNote": "Silent until a turn goes wrong.",
   "driveLevelOffNote": "No help at all: the drive is only recorded.",
-  "driveYours": "{yours} of {turns} turns are yours",
+  "driveYours": "{yours} of {turns} turns you already know",
   "@driveYours": {
     "placeholders": {
       "yours": {
@@ -2883,7 +2882,6 @@
     }
   },
   "settingsSpeedToleranceNote": "Fines in Georgia start above 15 km/h over the limit.",
-  "meDriveNote": "Guided, coached or on your own",
   "driveSuggestedLead": "Suggested:",
   "driveRunLead": "Today's run:",
   "driveStartsAt": "starts at {level}",
@@ -3071,7 +3069,7 @@
   "drivePlaceNote": "Pick the street or place your drives start and end at. Point to home uses it too.",
   "drivePlaceClear": "Clear",
   "driveNotSet": "Not set",
-  "driveNoSurprise": "Surprise me opens once 70 % of a route’s turns are yours.",
+  "driveNoSurprise": "No surprise yet",
   "driveAboutMin": "about {minutes} min",
   "@driveAboutMin": {
     "placeholders": {
@@ -3688,5 +3686,11 @@
         "type": "int"
       }
     }
-  }
+  },
+  "driveNoSurpriseWhy": "Surprise me picks a place you haven’t driven to, 1.5–5 km away, where you already know at least 7 of every 10 turns on the way. Learn more turns in your sessions, or drive your own routes with less help.",
+  "driveMap": "Choose on the map",
+  "driveMapNote": "Drop a pin where you’re going",
+  "driveMapHint": "Tap the map where you’re going.",
+  "driveMapGo": "Drive here",
+  "driveMapUse": "Use this spot"
 }

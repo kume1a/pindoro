@@ -117,9 +117,38 @@ Set<String> placeForms(String ka, String? en) {
   return {base, transliterate(base), if (en != null) nameBase(en)}..remove('');
 }
 
-/// The [items] [typed] names best, best first and at most [limit]: a fuzzy match, else the
-/// nearest start of a name, within [LearningConfig.fuzzyNameMax]; none under two letters.
-/// [forms] gives an item's names (see [nameForms], [placeForms]).
+/// How far [typed] is from the start of [name] (or all of it), a little more the longer
+/// [name] runs past it.
+double _startDistance(String typed, String name) =>
+    min(
+      nameDistance(
+        typed,
+        name.length > typed.length ? name.substring(0, typed.length) : name,
+      ),
+      nameDistance(typed, name),
+    ) +
+    (name.length - typed.length).abs() / 1000;
+
+/// How well every word of [typed] starts a word of [name], in any order ("kazbegi" for
+/// "aleksandre kazbegis", "chavchavadze ilia"): the mean of each word's best, or 1 when a word
+/// starts none within [LearningConfig.fuzzyNameMax]. A later word costs a little more.
+double _wordsDistance(List<String> typed, List<String> name) {
+  var total = 0.0;
+  for (final t in typed) {
+    var best = 1.0;
+    for (final (i, w) in name.indexed) {
+      best = min(best, _startDistance(t, w) + i / 1000);
+    }
+    if (best > LearningConfig.fuzzyNameMax) return 1;
+    total += best;
+  }
+  return total / typed.length;
+}
+
+/// The [items] [typed] names best, best first and at most [limit]: a fuzzy match of the whole
+/// name or its start, or every typed word starting one of its words, within
+/// [LearningConfig.fuzzyNameMax]; none under two letters. [forms] gives an item's names (see
+/// [nameForms], [placeForms]).
 List<T> searchNames<T>(
   String typed,
   Iterable<T> items,
@@ -128,14 +157,17 @@ List<T> searchNames<T>(
 }) {
   final base = nameBase(typed);
   if (base.length < 2) return const [];
-  final typedForms = _typedForms(base);
+  final typedForms = [
+    for (final t in _typedForms(base)) (whole: t, words: t.split(' ')),
+  ];
   final scored = <(double, int, T)>[];
   for (final (i, item) in items.indexed) {
     final score = [
       for (final t in typedForms)
-        for (final f in forms(item))
-          nameDistance(t, f.length > t.length ? f.substring(0, t.length) : f) +
-              (f.length - t.length).abs() / 1000,
+        for (final f in forms(item)) ...[
+          _startDistance(t.whole, f),
+          _wordsDistance(t.words, f.split(' ')),
+        ],
     ].fold<double>(1, min);
     if (score <= LearningConfig.fuzzyNameMax) scored.add((score, i, item));
   }

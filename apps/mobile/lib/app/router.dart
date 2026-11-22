@@ -4,10 +4,11 @@ import 'package:pindoro/app/tab_shell.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/account/ui/account_screen.dart';
-import 'package:pindoro/features/drive/ui/drive_controller.dart';
+import 'package:pindoro/features/drive/ui/drive_map_screen.dart';
 import 'package:pindoro/features/drive/ui/drive_place_screen.dart';
 import 'package:pindoro/features/drive/ui/drive_preview_screen.dart';
 import 'package:pindoro/features/drive/ui/drive_screen.dart';
+import 'package:pindoro/features/drive/ui/drive_tab.dart';
 import 'package:pindoro/features/drive/ui/past_drives_screen.dart';
 import 'package:pindoro/features/home/ui/home_screen.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
@@ -44,18 +45,18 @@ Page<void> _fadePage(GoRouterState state, Widget child) =>
     );
 
 /// A player who placed a city, finished a round or left one saved opens
-/// Today (Explore still offers to continue the saved round); anyone else
-/// starts at Welcome.
+/// the Drive tab (Explore still offers to continue the saved round); anyone
+/// else starts at Welcome.
 Future<String> startLocation(AppDatabase db) async {
   final progress = ProgressDao(db);
   final played =
       await progress.hasPlayed() ||
       await progress.resumableRound(DateTime.now()) != null;
-  return played ? Routes.today : Routes.welcome;
+  return played ? Routes.driveTab : Routes.welcome;
 }
 
-/// The tabs (Today, Explore, Progress, Me) share a [TabShell]; every other
-/// route sits on the root navigator, over the bottom navigation.
+/// The tabs (Drive, Today, Explore, Progress, Me) share a [TabShell]; every
+/// other route sits on the root navigator, over the bottom navigation.
 GoRouter buildRouter(String initialLocation) {
   // ponytail: one per tab, as long as the router (the app) lives.
   final scroll = [for (var i = 0; i < TabShell.tabs; i++) ScrollController()];
@@ -84,6 +85,7 @@ GoRouter buildRouter(String initialLocation) {
         navigatorContainerBuilder: (_, shell, children) =>
             FadeIndexedStack(index: shell.currentIndex, children: children),
         branches: [
+          tab(TabShell.drive, Routes.driveTab, (_) => const DriveTab()),
           tab(TabShell.today, Routes.today, (_) => const TodayScreen()),
           tab(
             TabShell.explore,
@@ -178,8 +180,12 @@ GoRouter buildRouter(String initialLocation) {
       ),
       GoRoute(
         path: Routes.drive,
-        builder: (_, state) => DriveScreen(
-          to: state.uri.queryParameters['to'] == 'run' ? DriveTo.run : null,
+        builder: (_, state) => DriveScreen.route(state),
+      ),
+      GoRoute(
+        path: Routes.driveMap,
+        builder: (_, state) => DriveMapScreen(
+          place: state.uri.queryParameters.containsKey('place'),
         ),
       ),
       GoRoute(

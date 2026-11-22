@@ -59,22 +59,22 @@ void main() {
   });
 
   test('welcome until a round is saved or finished or a city placed, then '
-      'Today', () async {
+      'the Drive tab', () async {
     expect(await startLocation(db), Routes.welcome);
     final id = await round(['a']);
     expect(
       await startLocation(db),
-      Routes.today,
+      Routes.driveTab,
       reason: 'Explore offers to continue the saved round once opened',
     );
     await progress.finishRound(id);
-    expect(await startLocation(db), Routes.today);
+    expect(await startLocation(db), Routes.driveTab);
   });
 
-  test('a new player who placed a city opens on Today', () async {
+  test('a new player who placed a city opens on the Drive tab', () async {
     await LearningDao(db).markPlaced('tbilisi', DateTime(2026));
     expect(await progress.hasPlayed(), isTrue);
-    expect(await startLocation(db), Routes.today);
+    expect(await startLocation(db), Routes.driveTab);
   });
 
   test('a finished round keeps its first finish time', () async {

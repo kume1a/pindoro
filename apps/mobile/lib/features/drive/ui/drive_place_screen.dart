@@ -9,6 +9,7 @@ import 'package:pindoro/core/location.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/drive/ui/destination_search.dart';
+import 'package:pindoro/features/drive/ui/drive_map_screen.dart';
 import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/learning/ui/drive_labels.dart';
@@ -83,7 +84,16 @@ class DrivePlaceScreen extends ConsumerWidget {
               ),
             ],
           ),
-        DestinationSearch(here: here, onPick: (dest) => unawaited(pick(dest))),
+        DestinationSearch(
+          here: here,
+          onPick: (dest) => unawaited(pick(dest)),
+          quick: [
+            ChooseOnMapRow(
+              place: true,
+              onPick: (dest) => unawaited(pick(dest)),
+            ),
+          ],
+        ),
       ],
     );
   }

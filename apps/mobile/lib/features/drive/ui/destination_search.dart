@@ -30,18 +30,22 @@ final _findablesProvider = FutureProvider.autoDispose<List<_Findable>>((
 });
 
 /// Where to (DriveSetup `search`, board V32-10): the search field over the pack's streets and
-/// places; with nothing typed, the [quick] rows (Home, Work, today's run, Surprise me) and the
-/// recent destinations. [here] gives each its distance.
+/// places; with nothing typed, [above], the [quick] rows (today's run, Surprise me), the recent
+/// destinations and [below]. [here] gives each its distance.
 class DestinationSearch extends ConsumerStatefulWidget {
   const DestinationSearch({
     required this.onPick,
+    this.above = const [],
     this.quick = const [],
+    this.below = const [],
     this.here,
     super.key,
   });
 
   final ValueChanged<DriveDest> onPick;
+  final List<Widget> above;
   final List<Widget> quick;
+  final List<Widget> below;
   final LatLng? here;
 
   @override
@@ -123,6 +127,7 @@ class _DestinationSearchState extends ConsumerState<DestinationSearch> {
                   ],
                 )
         else ...[
+          ...widget.above,
           if (widget.quick.isNotEmpty) ListGroup(children: widget.quick),
           if (recents.isNotEmpty) ...[
             SectionTitle(l10n.driveRecent),
@@ -144,6 +149,7 @@ class _DestinationSearchState extends ConsumerState<DestinationSearch> {
               ],
             ),
           ],
+          ...widget.below,
         ],
       ],
     );

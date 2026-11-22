@@ -14,12 +14,11 @@ import 'package:pindoro/features/drive/ui/destination_search.dart';
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
 import 'package:pindoro/features/drive/ui/drive_levels.dart';
 import 'package:pindoro/features/drive/ui/drive_recording_view.dart';
-import 'package:pindoro/features/learning/data/drive_places.dart';
+import 'package:pindoro/features/drive/ui/where_to.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/learning/ui/drive_labels.dart';
 import 'package:pindoro/features/learning/ui/drive_week_card.dart';
 import 'package:pindoro/features/learning/ui/landmark_glyph.dart';
-import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
@@ -28,10 +27,22 @@ import 'package:pindoro_learning/pindoro_learning.dart';
 /// V32-50): pick where to and how much help, drive with the voice by level
 /// and nothing to tap while moving; once parked, the debrief.
 class DriveScreen extends ConsumerStatefulWidget {
-  const DriveScreen({this.to, super.key});
+  const DriveScreen({this.to, this.dest, super.key});
 
-  /// A destination chosen before the screen opened (Today's run).
+  /// [Routes.drive]'s screen: `?to=` a [DriveTo] by name, or a street or place as `extra`.
+  factory DriveScreen.route(GoRouterState state) {
+    final to = DriveTo.values.asNameMap()[state.uri.queryParameters['to']];
+    return DriveScreen(
+      to: to == DriveTo.own ? null : to,
+      dest: state.extra as DriveDest?,
+    );
+  }
+
+  /// A destination chosen before the screen opened (the Drive tab, Today's run).
   final DriveTo? to;
+
+  /// A street or place chosen before the screen opened; wins over [to].
+  final DriveDest? dest;
 
   @override
   ConsumerState<DriveScreen> createState() => _DriveScreenState();
@@ -39,23 +50,30 @@ class DriveScreen extends ConsumerStatefulWidget {
 
 class _DriveScreenState extends ConsumerState<DriveScreen> {
   /// Until the destination given on opening is chosen, after the first frame.
-  late bool _choosing = widget.to != null;
+  late bool _choosing = widget.to != null || widget.dest != null;
 
   @override
   void initState() {
     super.initState();
-    if (widget.to case final to?) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        ref.read(driveControllerProvider.notifier).choose(to);
-        setState(() => _choosing = false);
-      });
-    }
+    if (!_choosing) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final controller = ref.read(driveControllerProvider.notifier);
+      switch ((widget.dest, widget.to)) {
+        case (final dest?, _):
+          controller.pickOwn(dest);
+        case (_, final to?):
+          controller.choose(to);
+        case _:
+      }
+      setState(() => _choosing = false);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    void leave() => context.canPop() ? context.pop() : context.go(Routes.today);
+    void leave() =>
+        context.canPop() ? context.pop() : context.go(Routes.driveTab);
     final state = ref.watch(driveControllerProvider);
     if (_choosing) return const Scaffold();
     return switch (state) {
@@ -67,8 +85,8 @@ class _DriveScreenState extends ConsumerState<DriveScreen> {
   }
 }
 
-/// Where to (DriveSetup `search`): Home, Work, today's run, Surprise me and the
-/// recent destinations, or a street or place searched for.
+/// Where to (DriveSetup `search`), for a new destination from the stopped bar's Route or the
+/// setup's Change: the Drive tab's [WhereTo] choosing in place.
 class _Search extends ConsumerWidget {
   const _Search({required this.setup});
 
@@ -77,34 +95,7 @@ class _Search extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final settings = ref.watch(settingsProvider).value;
     final controller = ref.read(driveControllerProvider.notifier);
-    final run = ref.watch(todayRunProvider).value;
-    final anchors = ref.watch(drivePlacesProvider).value;
-    final graph = ref.watch(drivingGraphProvider).value;
-    final where = PlaceLine(here: setup.here);
-    String name(NamedStreet s) => streetName(s, settings);
-    Widget anchor(DriveTo to, DriveTarget? place) {
-      final home = to == DriveTo.home;
-      return ListRow(
-        leading: RowTile(home ? PindoroGlyph.home : PindoroGlyph.briefcase),
-        title: home ? l10n.driveHome : l10n.driveWork,
-        subtitle: place == null
-            ? (home ? l10n.driveSetHome : l10n.driveSetWork)
-            : [
-                targetName(place, settings),
-                if (graph != null)
-                  where.of(context, ref, graph.at(place.junction)),
-              ].where((s) => s.isNotEmpty).join(' · '),
-        trailing: const PindoroIcon(PindoroGlyph.chevronRight),
-        onTap: place == null
-            ? () => unawaited(
-                context.push(Routes.drivePlaceOf(home ? 'home' : 'work')),
-              )
-            : () => controller.choose(to),
-      );
-    }
-
     return PageScaffold(
       title: l10n.driveTitle,
       children: [
@@ -116,28 +107,10 @@ class _Search extends ConsumerWidget {
               ref.read(locationServiceProvider).openSettings(denied),
             ),
           ),
-        DestinationSearch(
+        WhereTo(
           here: setup.here,
+          onChoose: controller.choose,
           onPick: controller.pickOwn,
-          quick: [
-            anchor(DriveTo.home, anchors?.home),
-            anchor(DriveTo.work, anchors?.work),
-            if (run != null)
-              ListRow(
-                leading: const RowTile(PindoroGlyph.car),
-                title: l10n.driveTodaysRun,
-                subtitle: _runLine(l10n, run, name),
-                trailing: const PindoroIcon(PindoroGlyph.chevronRight),
-                onTap: () => controller.choose(DriveTo.run),
-              ),
-            ListRow(
-              leading: const RowTile(PindoroGlyph.compass),
-              title: l10n.driveSurprise,
-              subtitle: l10n.driveSurpriseNote,
-              trailing: const PindoroIcon(PindoroGlyph.chevronRight),
-              onTap: () => controller.choose(DriveTo.surprise),
-            ),
-          ],
         ),
       ],
     );
@@ -180,7 +153,7 @@ class _Setup extends ConsumerWidget {
       },
     };
     final line = switch ((to, run)) {
-      (DriveTo.run, final run?) => _runLine(l10n, run, name),
+      (DriveTo.run, final run?) => runLine(l10n, run, name),
       _ => [
         if (target != null && graph != null)
           const PlaceLine().of(context, ref, graph.at(target.junction)),
@@ -237,7 +210,11 @@ class _Setup extends ConsumerWidget {
         ),
         if (denied != null || setup.noTarget)
           ListRow(
-            leading: const RowTile(PindoroGlyph.locateOff),
+            leading: RowTile(
+              denied == null && to == DriveTo.surprise
+                  ? PindoroGlyph.info
+                  : PindoroGlyph.locateOff,
+            ),
             title: denied != null
                 ? l10n.driveNoLocation
                 : switch (to) {
@@ -245,6 +222,9 @@ class _Setup extends ConsumerWidget {
                     DriveTo.surprise => l10n.driveNoSurprise,
                     _ => l10n.driveNoTarget,
                   },
+            subtitle: denied == null && to == DriveTo.surprise
+                ? l10n.driveNoSurpriseWhy
+                : null,
             onTap: denied == null
                 ? null
                 : () => unawaited(
@@ -326,14 +306,3 @@ PindoroGlyph _glyph(DriveTo to, DriveTarget? target) => switch (to) {
     null => PindoroGlyph.pin,
   },
 };
-
-/// "Paliashvili St → Tamarashvili St · 2.4 km".
-String _runLine(
-  AppLocalizations l10n,
-  RunToDrive run,
-  String Function(NamedStreet) name,
-) => l10n.todayRunRoute(
-  name(run.ends.fromStreet),
-  name(run.ends.toStreet),
-  formatDistance(run.ends.best.lengthM, l10n),
-);

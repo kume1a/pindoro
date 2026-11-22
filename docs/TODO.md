@@ -232,8 +232,11 @@ and the specs after R5. Fix them in roughly this order.
     - The answer tray has no 1–6 or arrow keys and doesn't move focus to the first choice; the
       goal line's just-met dot doesn't bounce. In the sweep, a tap on a placed label doesn't send
       it back to the tray (another label dropped on its lane does).
-    - Goldens for the new parts (`drive_review`, `answer_tray`) and the StoppedBar's Route
-      button wait for `just goldens`.
+  - **The Drive tab (SPEC §16.23 item 129, 2026-11-22)** was built in the app, not on the canvas:
+    the canvas needs a Drive tab board and the five-tab bar. Home and Work are `StatTile`s (the
+    minutes as the value, else the place's name; "Set your home" when unset), the rest is V32-10's
+    Where to and V32-71's drives moved off Today. Choose on the map is Add landmark's map and
+    panel (V3-32) with a destination's words.
 - Lakes are not named (Protomaps gives them no label point); Lisi Lake is the only one.
 - Left out of the road-class pass, on purpose:
   - A "Your streets" round left half-way is not offered as Continue on Explore (Continue matches
