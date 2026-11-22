@@ -25,6 +25,16 @@ PindoroGlyph landmarkGlyph(String kind) => switch (kind) {
   _ => PindoroGlyph.pin,
 };
 
+/// A landmark's badge on the drive's turn plate: the kinds DriveGlyph draws;
+/// null for the others, which go without a badge.
+DriveGlyphName? landmarkDriveGlyph(String kind) => switch (kind) {
+  'park' => DriveGlyphName.park,
+  'fuel' => DriveGlyphName.fuel,
+  'metro' || 'station' => DriveGlyphName.metro,
+  'shop' || 'mall' || 'supermarket' => DriveGlyphName.shop,
+  _ => null,
+};
+
 /// A landmark kind's name: the player's own (Fuel, Metro, Church, Shop,
 /// Other) and the pack's OSM kinds.
 String landmarkKindName(AppLocalizations l10n, String kind) => switch (kind) {

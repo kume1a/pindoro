@@ -56,5 +56,13 @@ void _withoutKindTests() {
     expect(withoutKind('Ilia Chavchavadze Avenue'), 'Ilia Chavchavadze');
     expect(withoutKind('ილია ჭავჭავაძის გამზირი'), 'ილია ჭავჭავაძის');
     expect(withoutKind('Square'), 'Square');
+    expect(withoutKind('Paliashvili Street'), 'Paliashvili');
+  });
+
+  test('the drive screens shorten the kind of street', () {
+    expect(shortKind('Ilia Chavchavadze Avenue'), 'Ilia Chavchavadze Ave');
+    expect(shortKind('Paliashvili Street'), 'Paliashvili St');
+    expect(shortKind('ილია ჭავჭავაძის გამზირი'), 'ილია ჭავჭავაძის გამზ.');
+    expect(shortKind('Avenueview Road'), 'Avenueview Rd');
   });
 }

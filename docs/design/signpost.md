@@ -128,6 +128,19 @@ Springy and fast: press 80 ms, cards 280 ms, the pin drop 520 ms with one bounce
 The app copies `tokens.json`, `README.md`, `v1-screens.md`, `flutter-handoff.md`, `accessibility.md` and `motion-sound-haptics.md` from here verbatim, so those files say exactly what the app does.
 
 - **Last sync:** app 2.8.1+13, on 2026-11-20. It folded in every token the app had defined for itself (`app.json`: the badge fields, the illustration fills, `color.map.district.started.fill`, the vector basemap `color.map.vector.*` with the map-text colour and one-way arrows, `color.map.poi.*`, `motion.shimmer`, `opacity.shimmer`, `opacity.veil`, `size.plate.name-floor`), the app's own copies of `v1-screens.md` and `flutter-handoff.md`, and the parts and screens listed in the app's `design-gaps.md`: 48 dp buttons and search field, the smaller plate and reveal sheet, the place intro, the retired Junction map and City switcher, the unused Coach mark and reticle, map text, fuel and one-way arrows, the compact area-picker sheet, the round pill, and the app-built TileGrid, SectionTitle, TitledCard, MemoryRow, WeekBars, StreakWeek, MiniTally, AreaMiniMap and SheetHandle.
+- **Added since the last sync:** v3.2 · Navigate and learn, promoted on 2026-11-21 from the screens canvas page of that name (its list of new parts, V32-90). New tokens in `tokens.json`: 25 `color.drive.*` colours (day is the light slot, night the dark slot; the drive screens switch by sun time at the car's position, not by the app theme), the Drive type styles `type.drive.read` (54 dp), `type.drive.district` (64 dp) and `type.drive.primary` (72 dp), and the stopped-controls bar's motion `motion.drive.stopped.*`. New components, all in the Drive group:
+  - TurnPlate: not in the app yet.
+  - DriveBottomBar: not in the app yet.
+  - DistrictChip: not in the app yet.
+  - HeadingDial (with the status dot, the 10 s ring and the speaking bars): not in the app yet.
+  - RecoveryBand: not in the app yet.
+  - RecordingDot: not in the app yet.
+  - StoppedBar: not in the app yet.
+  - LevelPicker: not in the app yet.
+  - LevelSuggestion: not in the app yet.
+  - DriveGlyph: not in the app yet.
+  - SpeedLimitSign: not in the app yet.
+  - CameraBadge: not in the app yet.
 - **Deliberate differences** (the app keeps them; this system does not chase them):
   - The basemap is self-hosted Protomaps vector tiles drawn by MapLibre, credited "© OpenStreetMap contributors, Protomaps". `color.map.basemap.*` stays here as the CARTO fallback for testing overlays; the sections of `v1-screens.md` and `flutter-handoff.md` that still name CARTO and `flutter_map` describe that fallback.
   - The app generates its own Dart from `tokens.json`, so `handoff/pindoro_tokens.dart` is not used.

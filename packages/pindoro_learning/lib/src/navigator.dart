@@ -54,10 +54,13 @@ typedef PassedDecision = ({
   bool recentHelp,
 });
 
-/// What the drive screen shows after a fix or a tick.
+/// What the drive screen shows after a fix or a tick (boards V32-20 to V32-41).
 typedef NavView = ({
   DriveLevel level,
   bool recovering,
+
+  /// Seconds back on a good path while [recovering]: the 10 s ring.
+  double? goodS,
   bool stopped,
   bool arrived,
 
@@ -67,10 +70,35 @@ typedef NavView = ({
   double? headingDeg,
   double speedKmh,
   int? limitKmh,
+
+  /// Over the limit plus the tolerance for [LearningConfig.overspeedHoldS]: the sign pulses.
   bool over,
+
+  /// A camera was warned of and isn't passed yet.
+  bool camera,
   NavDecision? next,
   double? nextInM,
+
+  /// How far before [next] its approach began (the plate shows from the prepare point); null
+  /// before it.
+  double? prepareM,
+
+  /// The decision after [next] when it comes within the prepare reach of it: "then".
+  NavDecision? then,
+
+  /// The first decision of a new route after a wrong turn in Guided.
+  bool newRoute,
+
+  /// The street just turned onto and its heading, until the voice confirms it.
+  ({NamedStreet street, double headingDeg})? turned,
+
+  /// The car's street.
+  NamedStreet? street,
   String? district,
+
+  /// The plan's metres and seconds left.
+  double? leftM,
+  double? leftS,
   NavPlan? plan,
 });
 
@@ -156,6 +184,10 @@ class Navigator {
   bool _guarded = false;
 
   ({DateTime at, NamedStreet street, double headingDeg})? _confirm;
+  ({DateTime at, NamedStreet street, double headingDeg})? _turned;
+  final Map<int, double> _prepareFrom = {};
+  NavPlan? _newRoutePlan;
+  double _cameraUntilM = 0;
   String? _district;
   DateTime? _cueAt;
   double _cueAtM = 0;
@@ -235,12 +267,13 @@ class Navigator {
 
     final kmh = speed * 3.6;
     final limit = edge == null ? null : cost.limitKmh(edge);
-    final over = limit != null && kmh > limit + cost.toleranceKmh;
+    var warned = false;
     var chime = false;
-    if (over) {
+    if (limit != null && kmh > limit + cost.toleranceKmh) {
       final since = _overSince ??= now;
       final chimed = _chimedAt;
-      if (now.difference(since).inSeconds >= LearningConfig.overspeedHoldS &&
+      warned = now.difference(since).inSeconds >= LearningConfig.overspeedHoldS;
+      if (warned &&
           (chimed == null ||
               now.difference(chimed).inSeconds >=
                   LearningConfig.overspeedRepeatS)) {
@@ -264,11 +297,12 @@ class Navigator {
     prompts.sort((a, b) => a.kind.index.compareTo(b.kind.index));
     return (
       view: _view(
+        now: now,
         at: fix.at,
         headingDeg: fix.headingDeg,
-        speedKmh: kmh,
+        speedMps: speed,
         limitKmh: limit,
-        over: over,
+        over: warned,
         stopped: stopped,
         gpsLostS: null,
       ),
@@ -291,9 +325,10 @@ class Navigator {
     }
     return (
       view: _view(
+        now: now,
         at: last?.at,
         headingDeg: last?.headingDeg,
-        speedKmh: 0,
+        speedMps: 0,
         limitKmh: switch (_edgeNow) {
           final e? => cost.limitKmh(e),
           null => null,
@@ -314,32 +349,72 @@ class Navigator {
   }
 
   NavView _view({
+    required DateTime now,
     required LatLng? at,
     required double? headingDeg,
-    required double speedKmh,
+    required double speedMps,
     required int? limitKmh,
     required bool over,
     required bool stopped,
     required int? gpsLostS,
   }) {
     final plan = _plan;
-    final next = plan == null || _nextDecision >= plan.decisions.length
+    final decisions = plan?.decisions ?? const <NavDecision>[];
+    final next = _nextDecision < decisions.length
+        ? decisions[_nextDecision]
+        : null;
+    final after = _nextDecision + 1 < decisions.length
+        ? decisions[_nextDecision + 1]
+        : null;
+    final nextInM = next == null ? null : next.atM - _progressM;
+    final reach = max(
+      LearningConfig.prepareM,
+      LearningConfig.prepareS * speedMps,
+    );
+    // Kept once begun, so the approach bar runs on as the car slows.
+    final prepareM = next == null
         ? null
-        : plan.decisions[_nextDecision];
+        : _prepareFrom[next.index] ??
+              (nextInM! <= reach
+                  ? _prepareFrom[next.index] = max(nextInM, 1)
+                  : null);
+    final turned = _turned;
+    final goodSince = _goodSince;
+    final edge = _edgeNow;
     return (
       level: _level,
       recovering: _recovering,
+      goodS: _recovering && goodSince != null
+          ? now.difference(goodSince).inMilliseconds / 1000
+          : null,
       stopped: stopped,
       arrived: _arrived,
       gpsLostS: gpsLostS,
       at: at,
       headingDeg: headingDeg,
-      speedKmh: speedKmh,
+      speedKmh: speedMps * 3.6,
       limitKmh: limitKmh,
       over: over,
+      camera: _drivenM < _cameraUntilM,
       next: next,
-      nextInM: next == null ? null : next.atM - _progressM,
+      nextInM: nextInM,
+      prepareM: prepareM,
+      then: prepareM != null && after != null && after.atM - next!.atM <= reach
+          ? after
+          : null,
+      newRoute:
+          plan != null &&
+          identical(plan, _newRoutePlan) &&
+          next == decisions.firstOrNull,
+      turned:
+          turned != null &&
+              now.difference(turned.at).inSeconds < LearningConfig.confirmDelayS
+          ? (street: turned.street, headingDeg: turned.headingDeg)
+          : null,
+      street: edge?.streetId == null ? null : streets[edge!.streetId],
       district: _district,
+      leftM: plan == null ? null : plan.route.lengthM - _progressM,
+      leftS: plan == null ? null : _remainingS(),
       plan: plan,
     );
   }
@@ -407,6 +482,7 @@ class Navigator {
     _nextDecision = 0;
     _offFixes = 0;
     _said.clear();
+    _prepareFrom.clear();
   }
 
   /// The car on the plan near where it was: its progress, or null when it is off the plan.
@@ -457,12 +533,17 @@ class Navigator {
         now: now,
         help: help,
       );
-      final spoken = help == NavHelp.guided || help == NavHelp.cue;
-      if (spoken && d.street != null && !inGap) {
+      if (d.street == null || inGap) continue;
+      _turned = (
+        at: now,
+        street: d.street!,
+        headingDeg: leavingBearing(d.exit, d.junction),
+      );
+      if (help == NavHelp.guided || help == NavHelp.cue) {
         _confirm = (
           at: now.add(const Duration(seconds: LearningConfig.confirmDelayS)),
           street: d.street!,
-          headingDeg: leavingBearing(d.exit, d.junction),
+          headingDeg: _turned!.headingDeg,
         );
       }
     }
@@ -580,7 +661,10 @@ class Navigator {
     prompts.add(
       _prompt(PromptKind.recovery, decision: _plan?.decisions.firstOrNull),
     );
-    if (_level == DriveLevel.guided) return;
+    if (_level == DriveLevel.guided) {
+      _newRoutePlan = _plan;
+      return;
+    }
     _recovering = true;
     _goodSince = null;
     _lastRecoveryAt = now;
@@ -713,6 +797,7 @@ class Navigator {
             !_warned.add(c.id)) {
           continue;
         }
+        _cameraUntilM = max(_cameraUntilM, _drivenM + aheadM);
         prompts.add(
           _prompt(
             PromptKind.camera,
