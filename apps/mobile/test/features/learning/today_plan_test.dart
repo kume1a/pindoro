@@ -7,6 +7,7 @@ import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/features/learning/data/cards.dart';
 import 'package:pindoro/features/learning/data/carry_over.dart';
 import 'package:pindoro/features/learning/data/day.dart';
+import 'package:pindoro/features/learning/data/drive_history.dart';
 import 'package:pindoro/features/learning/data/explore.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/route_book.dart';
@@ -40,6 +41,8 @@ void main() {
   late ProviderContainer container;
   // Streets only the curriculum knows: a main road makes its class the taught one.
   var curriculumOnly = <NamedStreet>[];
+  // The player's routes (SPEC §16.23 item 120).
+  var yours = (routes: const <String>{}, streets: const <String>[]);
 
   // Street a has two parts; its card is keyed by the shorter one.
   final a = NamedStreet([_part('a1', 300), _part('a2', 120)]);
@@ -53,6 +56,7 @@ void main() {
 
   setUp(() async {
     curriculumOnly = [];
+    yours = (routes: const <String>{}, streets: const <String>[]);
     db = AppDatabase(NativeDatabase.memory());
     final dao = LearningDao(db);
     for (final id in ['P:a2', 'P:gone']) {
@@ -91,6 +95,7 @@ void main() {
           ),
         ),
         runsProvider.overrideWith((ref) async => const <Run>[]),
+        yourRouteItemsProvider.overrideWith((ref) async => yours),
         curriculumProvider.overrideWith(
           (ref) async => Curriculum(
             streets: [a, b, c, ...curriculumOnly],
@@ -181,6 +186,36 @@ void main() {
       ['P:b1', 'P:c1'],
     );
   });
+
+  test(
+    'a street of the player’s routes comes first, and is never parked',
+    () async {
+      yours = (routes: const {'J:x'}, streets: [c.id]);
+      curriculumOnly = [
+        NamedStreet([_part('main', 900, roadClass: 'primary')]),
+      ];
+      final p = await plan();
+      expect(
+        p.steps.where((s) => s.kind == StepKind.intro).map((s) => s.itemId),
+        ['P:c1', 'P:b1'],
+      );
+      final curriculum = await container.read(curriculumProvider.future);
+      final cards = [
+        CardState(itemId: 'P:c1', phase: CardPhase.review, introAt: now),
+      ];
+      bool reviewed(Iterable<String> mine) => reviewsOf(
+        (_) => true,
+        streets: {
+          for (final s in [a, b, c]) s.id: s,
+        },
+        curriculum: curriculum,
+        cards: cards,
+        yours: mine,
+      )(cards.single);
+      expect(reviewed(const []), isFalse, reason: 'residential waits for main');
+      expect(reviewed([c.id]), isTrue);
+    },
+  );
 
   test('cards are keyed by street, whichever part they were made on', () async {
     final byPart = {

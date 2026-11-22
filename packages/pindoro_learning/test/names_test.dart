@@ -49,6 +49,17 @@ void main() {
     expect(suggestStreet('b', all), isNull);
     expect(suggestStreet('zzzz', all), isNull);
   });
+
+  test('the search lists streets and places by name, best first', () {
+    final all = [barnovi, bakhtrioni, chavchavadze];
+    expect(searchNames('Ba', all, nameForms), [barnovi, bakhtrioni]);
+    expect(searchNames('Bakhtr', all, nameForms), [bakhtrioni]);
+    expect(searchNames('b', all, nameForms), isEmpty);
+    final places = [('ლისის ტბა', 'Lisi Lake'), ('ვაკის პარკი', 'Vake Park')];
+    expect(searchNames('lisi', places, (p) => placeForms(p.$1, p.$2)), [
+      places.first,
+    ]);
+  });
 }
 
 void _withoutKindTests() {

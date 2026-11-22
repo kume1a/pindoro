@@ -9,15 +9,20 @@ import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/clock.dart';
+import 'package:pindoro/core/compass.dart';
 import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/drive_device.dart';
 import 'package:pindoro/core/location.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
+import 'package:pindoro/features/drive/ui/drive_preview_screen.dart';
 import 'package:pindoro/features/drive/ui/drive_screen.dart';
 import 'package:pindoro/features/drive/ui/past_drives_screen.dart';
 import 'package:pindoro/features/learning/data/drive_log.dart';
+import 'package:pindoro/features/learning/data/drive_places.dart';
+import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/map/ui/drive_map.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
@@ -40,6 +45,12 @@ void main() {
   late DateTime clockNow;
   late _Device device;
   final maps = <DriveMap>[];
+  final plans = <PindoroMap>[];
+  late StreamController<double> compass;
+
+  /// The run's start as Home (its OSM node), and its bearing from the end.
+  late int homeNode;
+  late double homeBearing;
 
   setUpAll(() {
     final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
@@ -57,6 +68,11 @@ void main() {
               r.edges.first.streetId != null &&
               r.edges.last.streetId != null,
         );
+    homeNode = repo.junctionNodes()[route.junctions.first]!;
+    homeBearing = bearingDegrees(
+      graph.at(route.junctions.last),
+      graph.at(route.junctions.first),
+    );
     repo.close();
   });
 
@@ -69,6 +85,8 @@ void main() {
     );
     clockNow = now;
     maps.clear();
+    plans.clear();
+    compass = StreamController<double>.broadcast();
     location = _Track(route.lines.first.first);
     device = _Device();
     overrides = [
@@ -76,6 +94,7 @@ void main() {
       clockProvider.overrideWithValue(() => clockNow),
       locationServiceProvider.overrideWithValue(location),
       driveDeviceProvider.overrideWithValue(device),
+      compassProvider.overrideWithValue(compass.stream),
       packRepositoryProvider.overrideWith((ref) async {
         final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
         ref.onDispose(repo.close);
@@ -101,9 +120,10 @@ void main() {
           dueTurns: 0,
         ),
       ),
-      pindoroMapBuilderProvider.overrideWithValue(
-        (_) => const SizedBox.expand(),
-      ),
+      pindoroMapBuilderProvider.overrideWithValue((map) {
+        plans.add(map);
+        return const SizedBox.expand();
+      }),
       driveMapBuilderProvider.overrideWithValue((map) {
         maps.add(map);
         return const SizedBox.expand();
@@ -115,12 +135,29 @@ void main() {
   tearDown(() async {
     container.dispose();
     await db.close();
+    await compass.close();
   });
+
+  /// The setup once its destination is found (or not).
+  Future<DriveSetup> settled() async {
+    for (var i = 0; i < 50; i++) {
+      final s = container.read(driveControllerProvider) as DriveSetup;
+      if (s.target != null || s.noTarget) return s;
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+    return container.read(driveControllerProvider) as DriveSetup;
+  }
+
+  /// The drive controller with today's run chosen.
+  DriveController runController() {
+    container.listen(driveControllerProvider, (_, _) {});
+    return container.read(driveControllerProvider.notifier)
+      ..choose(DriveTo.run);
+  }
 
   test('a drive of today\'s run records in the background, then replays as '
       'its matched path graded against the best route', () async {
-    final controller = container.read(driveControllerProvider.notifier);
-    container.listen(driveControllerProvider, (_, _) {});
+    final controller = runController();
     await controller.start(title: 'Recording', text: 'End it in Pindoro');
     final recording = container.read(driveControllerProvider);
     expect(recording, isA<DriveRecording>());
@@ -169,8 +206,7 @@ void main() {
   });
 
   test('a drive that loses GPS logs its gaps and says so', () async {
-    final controller = container.read(driveControllerProvider.notifier);
-    container.listen(driveControllerProvider, (_, _) {});
+    final controller = runController();
     await controller.start(title: 't', text: 't');
     final lastFix = await location.drive(route, now);
     clockNow = lastFix.add(const Duration(seconds: 130));
@@ -183,8 +219,7 @@ void main() {
   });
 
   test('a double tap on Start or I’m there records and saves once', () async {
-    final controller = container.read(driveControllerProvider.notifier);
-    container.listen(driveControllerProvider, (_, _) {});
+    final controller = runController();
     // The fake's track allows one listener: a second start would throw.
     await Future.wait([
       controller.start(title: 't', text: 't'),
@@ -192,10 +227,7 @@ void main() {
     ]);
     await location.drive(route, now);
     await Future.wait([controller.end(), controller.end()]);
-    final review = container.read(driveControllerProvider) as DriveReview;
-    final saved = review.credited + review.failed;
-    expect(saved, greaterThan(0));
-    expect(await db.select(db.implicitEvidence).get(), hasLength(saved));
+    expect(await db.select(db.implicitEvidence).get(), isNotEmpty);
     expect(await container.read(driveLogDaoProvider).all(), hasLength(1));
   });
 
@@ -203,15 +235,7 @@ void main() {
     'setup finds the destination and suggests a level; today\'s run offers '
     'every level, Off first, another destination one step less at most',
     () async {
-      container.listen(driveControllerProvider, (_, _) {});
-      Future<DriveSetup> settled() async {
-        for (var i = 0; i < 50; i++) {
-          final s = container.read(driveControllerProvider) as DriveSetup;
-          if (s.target != null || s.noTarget) return s;
-          await Future<void>.delayed(const Duration(milliseconds: 20));
-        }
-        return container.read(driveControllerProvider) as DriveSetup;
-      }
+      final controller = runController();
 
       final run = await settled();
       expect(run.target!.junction, route.junctions.last);
@@ -221,8 +245,12 @@ void main() {
       expect(run.chosen, DriveLevel.off);
       expect(run.choices, DriveLevel.values);
 
-      final controller = container.read(driveControllerProvider.notifier);
-      controller.pickOwn(streets[route.edges.last.streetId]!);
+      expect(run.suggestion!.keys, isNotEmpty);
+      controller.pickOwn((
+        street: streets[route.edges.last.streetId]!,
+        place: null,
+        junction: null,
+      ));
       final own = await settled();
       expect(own.chosen, DriveLevel.guided);
       expect(own.choices, [DriveLevel.guided, DriveLevel.coached]);
@@ -236,8 +264,7 @@ void main() {
 
   test('Rescue at Off, while stopped: Guided from there, said once; the '
       'drive logs it, rescued, changing no card and at most Close', () async {
-    final controller = container.read(driveControllerProvider.notifier);
-    container.listen(driveControllerProvider, (_, _) {});
+    final controller = runController();
     await controller.start(title: 't', text: 't');
     expect(
       (container.read(driveControllerProvider) as DriveRecording).level,
@@ -262,8 +289,7 @@ void main() {
 
   test('a Guided drive speaks its turns, logs them as guided and changes no '
       'card', () async {
-    final controller = container.read(driveControllerProvider.notifier);
-    container.listen(driveControllerProvider, (_, _) {});
+    final controller = runController();
     controller.pickLevel(DriveLevel.guided);
     await controller.start(title: 't', text: 't');
     expect(device.screenOn, isTrue);
@@ -279,8 +305,7 @@ void main() {
   });
 
   test('muted, nothing is said', () async {
-    final controller = container.read(driveControllerProvider.notifier);
-    container.listen(driveControllerProvider, (_, _) {});
+    final controller = runController();
     controller.pickLevel(DriveLevel.guided);
     await controller.start(title: 't', text: 't');
     controller.toggleMute();
@@ -330,10 +355,9 @@ void main() {
     expect(() => db.customStatement('DELETE FROM drive'), throwsA(anything));
   });
 
-  test('a level picked while stopped applies at once; leaving Off ends the '
-      'GPS-free test, so no card changes', () async {
-    final controller = container.read(driveControllerProvider.notifier);
-    container.listen(driveControllerProvider, (_, _) {});
+  test('a level picked while stopped applies at once; Quiet’s turns are '
+      'the player’s own', () async {
+    final controller = runController();
     await controller.start(title: 't', text: 't');
     controller.pickDriveLevel(DriveLevel.quiet);
     final quiet = container.read(driveControllerProvider) as DriveRecording;
@@ -341,12 +365,82 @@ void main() {
     expect(device.screenOn, isTrue);
     await location.drive(route, now);
     await controller.end();
-    expect(await db.select(db.implicitEvidence).get(), isEmpty);
+    final decisions = await db.select(db.driveDecisions).get();
+    expect(decisions, isNotEmpty);
+    expect(
+      decisions.every(
+        (d) => d.level == DriveLevel.quiet && d.help == NavHelp.none,
+      ),
+      isTrue,
+    );
     final drive = (await container.read(driveLogDaoProvider).all()).single;
     expect(drive.level, DriveLevel.off, reason: 'the level it started at');
+    expect(drive.mostHelp, DriveLevel.quiet);
   });
 
-  Future<void> pumpDrive(WidgetTester tester) async {
+  test('turns taken on your own review their J cards Good near due; a '
+      'Guided drive reviews none', () async {
+    var controller = runController();
+    await controller.start(title: 't', text: 't');
+    var last = await location.drive(route, now);
+    await controller.end();
+    final keys = {
+      for (final d in await db.select(db.driveDecisions).get()) ?d.itemKey,
+    };
+    expect(keys, isNotEmpty);
+    // Cards for them, a stability ago: recall 0.9, near due.
+    await container.read(learningDaoProvider).putCards([
+      for (final key in keys)
+        CardState(
+          itemId: key,
+          phase: CardPhase.review,
+          memory: Memory(
+            stability: 10,
+            difficulty: 5,
+            lastReview: now.subtract(const Duration(days: 10)),
+          ),
+          dueAt: now,
+          reps: 3,
+          lastRating: Rating.good,
+          introAt: now.subtract(const Duration(days: 20)),
+        ),
+    ]);
+    Future<List<ReviewLogRow>> reviews() => (db.select(
+      db.reviewLogs,
+    )..where((r) => r.source.equalsValue(ReviewSource.drive))).get();
+    Rating rating(ReviewLogRow r) =>
+        Rating.values.firstWhere((x) => x.grade == r.rating);
+
+    container.invalidate(driveControllerProvider);
+    controller = runController()..pickLevel(DriveLevel.guided);
+    clockNow = last.add(const Duration(minutes: 5));
+    await controller.start(title: 't', text: 't');
+    last = await location.drive(route, clockNow);
+    await controller.end();
+    expect(await reviews(), isEmpty);
+
+    container.invalidate(driveControllerProvider);
+    controller = runController()..pickLevel(DriveLevel.quiet);
+    clockNow = last.add(const Duration(minutes: 5));
+    await settled();
+    await controller.start(title: 't', text: 't');
+    await location.drive(route, clockNow);
+    await controller.end();
+    final review = container.read(driveControllerProvider) as DriveReview;
+    final rows = await reviews();
+    expect(rows, isNotEmpty);
+    expect(rows.every((r) => rating(r) == Rating.good), isTrue);
+    expect(review.credited, rows.length);
+    final logged = await db.select(db.driveDecisions).get();
+    expect(logged.where((d) => d.keyTurn), isNotEmpty);
+    expect(logged.where((d) => d.effect == 'good'), hasLength(rows.length));
+    expect(logged.where((d) => d.effect == 'helped'), isNotEmpty);
+  });
+
+  Future<void> pumpDrive(
+    WidgetTester tester, {
+    String at = Routes.driveRun,
+  }) async {
     tester.view
       ..physicalSize = const Size(1080, 2400)
       ..devicePixelRatio = 2.75;
@@ -364,11 +458,24 @@ void main() {
             GlobalWidgetsLocalizations.delegate,
           ],
           routerConfig: GoRouter(
-            initialLocation: Routes.drive,
+            initialLocation: at,
             routes: [
               GoRoute(
                 path: Routes.drive,
-                builder: (_, _) => const DriveScreen(),
+                builder: (_, state) => DriveScreen(
+                  to: state.uri.queryParameters['to'] == 'run'
+                      ? DriveTo.run
+                      : null,
+                ),
+              ),
+              GoRoute(
+                path: Routes.drivePreview,
+                builder: (_, _) => const DrivePreviewScreen(),
+              ),
+              GoRoute(
+                path: Routes.pastDrives,
+                builder: (_, state) =>
+                    PastDrivesScreen(route: state.uri.queryParameters['route']),
               ),
             ],
           ),
@@ -389,7 +496,16 @@ void main() {
   }
 
   testWidgets('the screens: setup with today\'s run at Off, the black '
-      'recording screen, then the review', (tester) async {
+      'recording screen, then the debrief: each turn recalled, then shown, '
+      'the marks, the tier and the streets', (tester) async {
+    await SettingsDao(db).setDrivePlace(
+      encodeDrivePlace((
+        node: homeNode,
+        street: route.edges.first.streetId!,
+        place: null,
+      )),
+      home: true,
+    );
     await pumpDrive(tester);
     expect(find.text('Drive'), findsOneWidget);
     expect(find.textContaining(' → '), findsOneWidget);
@@ -406,9 +522,58 @@ void main() {
     expect(find.byType(StoppedBar), findsNothing);
     expect(maps, isEmpty, reason: 'Off shows no map');
     await tester.runAsync(() => location.park(route.lines.last.last, last!, 3));
-    await pumpUntil(tester, find.text('Done'));
+    await pumpUntil(tester, find.text('Later'));
+    final to = streets[route.edges.last.streetId]!.name;
+    expect(find.text('You’re at $to'), findsOneWidget);
+    await tester.tap(find.text('Go through your drive'));
+    await tester.pump();
+    final forgot = find.text('I don’t remember');
+    final show = find.text('Show me');
+    var recalled = 0;
+    while (forgot.evaluate().isNotEmpty || show.evaluate().isNotEmpty) {
+      await tester.tap(forgot.evaluate().isNotEmpty ? forgot : show);
+      await tester.pump();
+      recalled++;
+      expect(find.byType(ReviewMark), findsOneWidget);
+      final next = find.text('Next turn');
+      await tester.tap(
+        next.evaluate().isNotEmpty ? next : find.text('See the whole drive'),
+      );
+      await tester.pump();
+    }
+    await pumpUntil(tester, find.text('Yellow is the way, blue is yours'));
+    expect(recalled, greaterThan(0));
+    final dao = DriveLogDao(db);
+    final recalls = await tester.runAsync(
+      () => dao.events(DriveEventKind.recall),
+    );
+    expect(recalls, hasLength(recalled));
+    expect(recalls!.every((e) => e.value == null), isTrue);
+    expect(
+      await tester.runAsync(() => dao.events(DriveEventKind.debrief)),
+      hasLength(1),
+    );
+    await tester.tap(find.text('Next'));
+    await tester.pump();
     await settle(tester);
     expect(find.text('Perfect!'), findsOneWidget);
+    await tester.tap(find.text('Next: streets you drove'));
+    await tester.pump();
+    expect(find.text('Streets you drove'), findsOneWidget);
+    // A new destination: once, Point to home with the phone's compass.
+    await tester.tap(find.text('Next: point to home'));
+    await tester.pump();
+    expect(find.text('Point to home'), findsOneWidget);
+    compass.add((homeBearing + 8) % 360);
+    await tester.pump();
+    await tester.tap(find.text('Point here'));
+    await tester.pump();
+    expect(find.byType(DialResultChip), findsOneWidget);
+    expect(find.text('Perfect! · 8° off'), findsOneWidget);
+    final pointed = await tester.runAsync(
+      () => dao.events(DriveEventKind.point),
+    );
+    expect(pointed!.single.value, closeTo(8, 0.5));
     expect(find.text('Done'), findsOneWidget);
   });
 
@@ -443,8 +608,92 @@ void main() {
     await pumpUntil(tester, find.byType(HeadingDial));
     expect(find.byType(HeadingDial), findsOneWidget);
     await tester.tap(find.text('End drive'));
-    await pumpUntil(tester, find.text('Done'));
-    expect(find.text('Done'), findsOneWidget);
+    // Stopped short of the destination: the debrief, on its offer or (with
+    // no turn to go through) the tier.
+    final debrief = find.byWidgetPredicate(
+      (w) => (w is Text && w.data == 'Drive done') || w is RevealSheet,
+    );
+    await pumpUntil(tester, debrief);
+    expect(debrief, findsOneWidget);
+  });
+
+  testWidgets('where to: Home to set, today’s run, Surprise me; a street '
+      'found by name is the destination', (tester) async {
+    await pumpDrive(tester, at: Routes.drive);
+    expect(find.text('Set your home'), findsOneWidget);
+    expect(find.text('Set your work'), findsOneWidget);
+    expect(find.text("Today's run"), findsOneWidget);
+    expect(find.text('Surprise me'), findsOneWidget);
+    final street = streets[route.edges.last.streetId]!;
+    await tester.enterText(find.byType(TextField), street.name);
+    final result = find.descendant(
+      of: find.byType(ListRow),
+      matching: find.text(street.name),
+    );
+    await pumpUntil(tester, result);
+    await tester.tap(result.first);
+    await pumpUntil(tester, find.byType(LevelSuggestion));
+    expect(find.byType(LevelPicker<DriveLevel>), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (w) =>
+            w is PindoroIconButton && w.semanticLabel == 'Change destination',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the preview plays the route and its key turns, then Recite: '
+      'a way tapped at each, right or wrong at once, cards untouched', (
+    tester,
+  ) async {
+    await pumpDrive(tester);
+    await pumpUntil(tester, find.byType(LevelSuggestion));
+    await tester.tap(find.text('Preview'));
+    await pumpUntil(tester, find.text('Your route'));
+    // North-up, the route in yellow with no track yet.
+    expect(plans.last.route!.best, isNotEmpty);
+    expect(plans.last.route!.track, isEmpty);
+    expect(plans.last.bearing, 0);
+    await tester.tap(find.text('Skip'));
+    await tester.pump();
+    expect(find.text('Recite the turns'), findsOneWidget);
+    final dao = DriveLogDao(db);
+    expect(
+      await tester.runAsync(() => dao.events(DriveEventKind.preview)),
+      hasLength(1),
+    );
+    await tester.tap(find.text('Recite the turns'));
+    await tester.pump();
+    await tester.tap(find.byType(ExitButton).first);
+    await tester.pump();
+    expect(find.byType(RevealSheet), findsOneWidget);
+    final recited = await tester.runAsync(
+      () => dao.events(DriveEventKind.recite),
+    );
+    expect(recited, hasLength(1));
+    expect(recited!.single.value, anyOf(0, 1));
+    expect(
+      await tester.runAsync(() => LearningDao(db).log()),
+      isEmpty,
+      reason: 'reciting reviews no card',
+    );
+  });
+
+  testWidgets('Past drives by week: the route, the level, the turns on your '
+      'own and the tier', (tester) async {
+    await tester.runAsync(() async {
+      final controller = runController();
+      await controller.start(title: 't', text: 't');
+      await location.drive(route, now);
+      await controller.end();
+    });
+    await pumpDrive(tester, at: Routes.pastDrives);
+    await pumpUntil(tester, find.text('This week'));
+    expect(find.text('This week'), findsOneWidget);
+    expect(find.byType(TierChip), findsOneWidget);
+    expect(find.textContaining('on your own'), findsOneWidget);
+    expect(find.textContaining('Off'), findsWidgets);
   });
 }
 
@@ -454,7 +703,7 @@ class _Track extends LocationService {
   _Track(this.here);
 
   final LatLng here;
-  final _fixes = StreamController<DriveFix>();
+  var _fixes = StreamController<DriveFix>();
   (String, String)? notice;
   bool cancelled = false;
 
@@ -467,6 +716,7 @@ class _Track extends LocationService {
   @override
   Stream<DriveFix> track({required String title, required String text}) {
     notice = (title, text);
+    _fixes = StreamController<DriveFix>();
     _fixes.onCancel = () => cancelled = true;
     return _fixes.stream;
   }

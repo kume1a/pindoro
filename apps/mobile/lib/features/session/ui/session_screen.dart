@@ -33,13 +33,21 @@ import 'package:pindoro_learning/pindoro_learning.dart';
 /// Session done. Every answer is saved as it comes, so Leave needs no
 /// confirmation.
 class SessionScreen extends ConsumerStatefulWidget {
-  const SessionScreen({super.key, this.placement = false, this.more = false});
+  const SessionScreen({
+    super.key,
+    this.placement = false,
+    this.more = false,
+    this.drill,
+  });
 
   /// The city's placement instead of today's session (SPEC §6.2).
   final bool placement;
 
   /// "Learn 10 more" instead of today's session.
   final bool more;
+
+  /// These cards as relearns instead (a drive's missed turns).
+  final List<String>? drill;
 
   @override
   ConsumerState<SessionScreen> createState() => _SessionScreenState();
@@ -53,7 +61,11 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
     Future.microtask(
       () => ref
           .read(sessionControllerProvider.notifier)
-          .start(placement: widget.placement, more: widget.more),
+          .start(
+            placement: widget.placement,
+            more: widget.more,
+            drill: widget.drill,
+          ),
     );
   }
 

@@ -1,4 +1,3 @@
-import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 import 'package:test/test.dart';
 
@@ -17,33 +16,6 @@ CardState _card({double stability = 60, int daysAgo = 3}) {
     introAt: last.subtract(const Duration(days: 7)),
   );
 }
-
-final _edge = RoadEdge(
-  id: 1,
-  from: 1,
-  to: 2,
-  streetId: null,
-  lengthM: 100,
-  line: const [LatLng(41.7, 44.7), LatLng(41.701, 44.7)],
-);
-
-/// [n] decisions keyed `k0` … `k<n-1>`.
-List<NavDecision> _decisions(int n) => [
-  for (var i = 0; i < n; i++)
-    (
-      index: i,
-      junction: i,
-      approach: null,
-      exit: _edge,
-      turn: null,
-      street: null,
-      newStreet: false,
-      atM: 100.0 * i,
-      key: 'k$i',
-      landmark: null,
-      signals: false,
-    ),
-];
 
 Set<String> _keys(int n) => {for (var i = 0; i < n; i++) 'k$i'};
 
@@ -65,7 +37,7 @@ DriveLevel _suggest({
   List<PastDrive> past = const [],
   int areaJ = 10,
 }) => suggestLevel(
-  decisions: _decisions(20),
+  keys: _keys(20).toList(),
   silent: _keys(silentOf20),
   minRecall: minRecall,
   past: past,
@@ -330,7 +302,7 @@ void _historyTests() {
 
     test('a route\'s suggestion counts its silent decisions', () {
       final s = routeSuggestion(
-        decisions: _decisions(2),
+        keys: const ['k0', 'k1'],
         cards: {'k0': _card()},
         history: {
           'k1': (lastFailure: null, ownDrives: [true, true]),

@@ -11,12 +11,14 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
 import 'package:pindoro/features/drive/ui/drive_levels.dart';
+import 'package:pindoro/features/drive/ui/drive_route_screen.dart';
+import 'package:pindoro/features/learning/ui/drive_labels.dart';
 import 'package:pindoro/features/learning/ui/landmark_glyph.dart';
 import 'package:pindoro/features/map/ui/drive_map.dart';
 import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
-import 'package:pindoro_learning/pindoro_learning.dart';
+import 'package:pindoro_learning/pindoro_learning.dart' hide Navigator;
 
 /// "Now Coached" stays this long after the guard steps in (board V32-31).
 const Duration _guardNotice = Duration(seconds: 4);
@@ -437,6 +439,13 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
       onLevel: () => setState(() => _levelOpen = !_levelOpen),
       endLabel: l10n.driveEnd,
       onEnd: () => unawaited(_controller.end()),
+      // Off is the GPS-free drive: the way there would be help, so only Rescue gives it.
+      routeLabel: r.level == DriveLevel.off ? null : l10n.a11yDriveRoute,
+      onRoute: () => unawaited(
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const DriveRouteScreen()),
+        ),
+      ),
       pickerTitle: l10n.driveLevelRest,
       pickerReason: suggestionReason(l10n, r.to, r.suggestion),
       picker: LevelPicker<DriveLevel>(

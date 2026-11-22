@@ -3,6 +3,7 @@ library;
 
 export 'src/generated/pindoro_tokens.dart';
 export 'src/theme.dart';
+export 'src/widgets/answer_tray.dart';
 export 'src/widgets/badge.dart';
 export 'src/widgets/bearing_dial.dart';
 export 'src/widgets/controls.dart';
@@ -10,6 +11,7 @@ export 'src/widgets/difficulty_card.dart';
 export 'src/widgets/district_map.dart';
 export 'src/widgets/drive.dart';
 export 'src/widgets/drive_glyph.dart';
+export 'src/widgets/drive_review.dart';
 export 'src/widgets/graphics.dart';
 export 'src/widgets/junction.dart';
 export 'src/widgets/map_marks.dart';

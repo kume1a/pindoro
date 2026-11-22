@@ -7,6 +7,7 @@ import 'package:pindoro/core/hold.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/data/cards.dart';
 import 'package:pindoro/features/learning/data/day.dart';
+import 'package:pindoro/features/learning/data/drive_history.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/route_book.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
@@ -224,7 +225,11 @@ class SessionController extends Notifier<SessionState> {
     streets: _streets,
     curriculum: _curriculum,
     cards: cards,
+    yours: _yours,
   );
+
+  /// The streets of the player's routes, never parked (SPEC §16.23 item 120).
+  List<String> _yours = const [];
   late List<(String, String)> _confusions;
   late Map<String, int> _successes;
   late double _memoryBefore;
@@ -282,14 +287,19 @@ class SessionController extends Notifier<SessionState> {
   ({int index, int count}) get round =>
       (index: _round + 1, count: _rounds.length);
 
-  /// Today's session, with [more] "Learn 10 more", or with [placement] the
-  /// city's placement.
-  Future<void> start({bool placement = false, bool more = false}) async {
+  /// Today's session, with [more] "Learn 10 more", with [placement] the
+  /// city's placement, or with [drill] those cards as relearns (a drive's
+  /// missed turns, SPEC §16.23 item 121).
+  Future<void> start({
+    bool placement = false,
+    bool more = false,
+    List<String>? drill,
+  }) async {
     state = const SessionLoading();
     _resetSession();
     // Every read starts before the first await: the screen can go meanwhile.
     final dao = _dao;
-    final planFuture = placement
+    final planFuture = placement || drill != null
         ? null
         : ref.hold((more ? learnMorePlanProvider : todayPlanProvider).future);
     final streetsFuture = ref.read(cityStreetsProvider.future);
@@ -299,6 +309,8 @@ class SessionController extends Notifier<SessionState> {
     final runsFuture = ref.hold(runsProvider.future);
     final graphFuture = ref.hold(drivingGraphProvider.future);
     final asksFuture = ref.hold(asksCardProvider.future);
+    // Learn 10 more restarts in place: the routes read for the day still hold.
+    final yoursFuture = more ? null : ref.hold(yourRouteItemsProvider.future);
     final settingsFuture = ref.read(settingsProvider.future);
     final plan = await planFuture;
     final streets = await streetsFuture;
@@ -308,6 +320,7 @@ class SessionController extends Notifier<SessionState> {
     final runs = await runsFuture;
     final graph = await graphFuture;
     final asks = await asksFuture;
+    final yours = (await yoursFuture)?.streets ?? _yours;
     final cards = await dao.cards();
     final confusions = await dao.confusionPairs();
     final log = await dao.log();
@@ -331,6 +344,12 @@ class SessionController extends Notifier<SessionState> {
       );
     }
     final rounds =
+        switch (drill) {
+          final ids? => [
+            [for (final id in ids) (kind: StepKind.relearn, itemId: id)],
+          ],
+          null => null,
+        } ??
         plan?.rounds ??
         [
           [
@@ -355,6 +374,7 @@ class SessionController extends Notifier<SessionState> {
     _contrasts.addAll(contrasts);
     _cards = {for (final c in cards) c.itemId: c};
     _asks = asks;
+    _yours = yours;
     _confusions = [...confusions];
     _successes = {};
     for (final e in log) {

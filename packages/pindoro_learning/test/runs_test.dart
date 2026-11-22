@@ -157,20 +157,23 @@ void main() {
       isNull,
     );
     final from = vake.graph.at(ends.from);
-    final end = surpriseEnd(
+    final surprises = surpriseEnds(
       graph: vake.graph,
       junctionNodes: vake.nodes,
       knownParts: vake.streets.keys.toSet(),
       from: from,
       seed: 3,
-    )!;
-    expect(
-      distanceBetween(from, vake.graph.at(end)),
-      inInclusiveRange(
-        LearningConfig.randomRunMinM,
-        LearningConfig.randomRunMaxM,
-      ),
     );
+    expect(surprises, isNotEmpty);
+    for (final end in surprises) {
+      expect(
+        distanceBetween(from, vake.graph.at(end)),
+        inInclusiveRange(
+          LearningConfig.randomRunMinM,
+          LearningConfig.randomRunMaxM,
+        ),
+      );
+    }
   });
 
   test('a random pair opens at once, a book run once all its turns are Known, '

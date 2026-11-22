@@ -8,6 +8,7 @@ import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/hold.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/data/cards.dart';
+import 'package:pindoro/features/learning/data/drive_history.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
@@ -59,9 +60,15 @@ Future<Reviews> _openCityReviews(Ref ref) async {
   final asks = ref.hold(asksCardProvider.future);
   final streets = ref.hold(cityStreetsProvider.future);
   final curriculum = ref.hold(curriculumProvider.future);
-  final (a, s, c) = (await asks, await streets, await curriculum);
+  final yours = ref.hold(yourRouteItemsProvider.future);
+  final (a, s, c, y) = (
+    await asks,
+    await streets,
+    await curriculum,
+    (await yours).streets,
+  );
   return (Iterable<CardState> cards) =>
-      reviewsOf(a, streets: s, curriculum: c, cards: cards);
+      reviewsOf(a, streets: s, curriculum: c, cards: cards, yours: y);
 }
 
 /// When the next reminder fires and the streak it names.
@@ -98,9 +105,16 @@ final reminderProvider = FutureProvider<ReminderNotice?>((ref) async {
   final asks = await ref.watch(asksCardProvider.future);
   final streets = await ref.watch(cityStreetsProvider.future);
   final curriculum = await ref.watch(curriculumProvider.future);
+  final yours = await ref.watch(yourRouteItemsProvider.future);
   final all = await ref.read(learningDaoProvider).cards();
   final cards = all.where(
-    reviewsOf(asks, streets: streets, curriculum: curriculum, cards: all),
+    reviewsOf(
+      asks,
+      streets: streets,
+      curriculum: curriculum,
+      cards: all,
+      yours: yours.streets,
+    ),
   );
   final plan = nextReminder(
     streak.metDays,

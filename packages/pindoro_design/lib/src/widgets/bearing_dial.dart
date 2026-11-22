@@ -3,8 +3,11 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:pindoro_core/pindoro_core.dart';
+
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
+import 'graphics.dart';
 
 /// The dial's reference size: every length in the painter spec is at 280 dp.
 const double _reference = 280;
@@ -32,6 +35,8 @@ class BearingDial extends StatefulWidget {
     this.trueBearing,
     this.enabled = true,
     this.animate = false,
+    this.calibrating = false,
+    this.degrees,
   });
 
   final double playerBearing;
@@ -49,6 +54,13 @@ class BearingDial extends StatefulWidget {
   /// The truth and the angle fade in as Check lands; never under reduce
   /// motion.
   final bool animate;
+
+  /// Pointing mode: the compass needs a moment, so your arrow greys out.
+  final bool calibrating;
+
+  /// Pointing mode: the angle between the two ("18°"), drawn on the arc
+  /// once [trueBearing] is set.
+  final String? degrees;
 
   @override
   State<BearingDial> createState() => _BearingDialState();
@@ -84,6 +96,8 @@ class _BearingDialState extends State<BearingDial> {
         reveal: reveal,
         focused: _focused,
         colors: c,
+        calibrating: widget.calibrating,
+        degrees: widget.degrees,
       ),
     );
     return Column(
@@ -163,6 +177,8 @@ class _BearingDialPainter extends CustomPainter {
     required this.reveal,
     required this.focused,
     required this.colors,
+    this.calibrating = false,
+    this.degrees,
   });
 
   final double player;
@@ -172,6 +188,8 @@ class _BearingDialPainter extends CustomPainter {
   final double reveal;
   final bool focused;
   final PindoroColors colors;
+  final bool calibrating;
+  final String? degrees;
 
   static double _rad(double deg) => deg * math.pi / 180;
 
@@ -242,7 +260,10 @@ class _BearingDialPainter extends CustomPainter {
         dashes.addPath(metric.extractPath(d, d + 10 * s), Offset.zero);
       }
     }
-    canvas.drawPath(dashes, stroke(colors.mapPlayerRoute, 6));
+    canvas.drawPath(
+      dashes,
+      stroke(calibrating ? colors.textDisabled : colors.mapPlayerRoute, 6),
+    );
     if (truth != null) {
       canvas.drawArc(
         Rect.fromCircle(center: c, radius: 76 * s),
@@ -253,6 +274,30 @@ class _BearingDialPainter extends CustomPainter {
       );
     }
     canvas.drawCircle(c, 10 * s, Paint()..color = colors.mapPlayerPin);
+    final degrees = this.degrees;
+    if (truth != null && degrees != null) {
+      // On the arc's bisector, over a halo of the face so it reads across
+      // the lines.
+      final at = pt(player + _shorterTurn(player, truth) / 2, 52);
+      for (final paint in [
+        stroke(shown(colors.surfaceRaised), 5)..strokeJoin = StrokeJoin.round,
+        Paint()..color = shown(colors.mapMeasureLine),
+      ]) {
+        final text = TextPainter(
+          text: TextSpan(
+            text: degrees,
+            style: PindoroType.labelMd.copyWith(
+              fontSize: 15 * s,
+              height: 1,
+              fontWeight: FontWeight.w900,
+              foreground: paint,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        text.paint(canvas, at - Offset(text.width / 2, text.height / 2));
+      }
+    }
   }
 
   @override
@@ -261,5 +306,57 @@ class _BearingDialPainter extends CustomPainter {
       old.truth != truth ||
       old.reveal != reveal ||
       old.focused != focused ||
-      old.colors != colors;
+      old.colors != colors ||
+      old.calibrating != calibrating ||
+      old.degrees != degrees;
+}
+
+/// The pointing result under the dial (Bearing dial, pointing mode): a 40 dp
+/// pill in the [tier]'s background with a 2 dp edge in its fill, the tier's
+/// icon and [label] ("Great · 18° off") in its ink.
+class DialResultChip extends StatelessWidget {
+  const DialResultChip({super.key, required this.tier, required this.label});
+
+  final Tier tier;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = PindoroTheme.of(context).tier(tier);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: PindoroSpace.s10),
+      child: DecoratedBox(
+        decoration: ShapeDecoration(
+          color: t.bg,
+          shape: StadiumBorder(
+            side: BorderSide(color: t.fill, width: PindoroStroke.base),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: PindoroSpace.s4,
+            vertical: PindoroSpace.s1,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            spacing: PindoroSpace.s2,
+            children: [
+              PindoroIcon(t.icon, size: 22, color: t.ink, cut: t.bg),
+              Flexible(
+                child: Text(
+                  label,
+                  style: PindoroType.labelLg.copyWith(
+                    fontSize: 17,
+                    height: 22 / 17,
+                    fontWeight: FontWeight.w900,
+                    color: t.ink,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

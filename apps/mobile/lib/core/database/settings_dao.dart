@@ -83,6 +83,17 @@ class SettingsDao extends DatabaseAccessor<AppDatabase>
   Future<void> setSpeedTolerance(int kmh) =>
       _update(UserSettingsCompanion(speedToleranceKmh: Value(kmh)));
 
+  /// Home ([home]) or Work for drives, as `DrivePlace` JSON; null clears it.
+  Future<void> setDrivePlace(String? json, {required bool home}) => _update(
+    home
+        ? UserSettingsCompanion(driveHome: Value(json))
+        : UserSettingsCompanion(driveWork: Value(json)),
+  );
+
+  /// This week's planned drives, as `DrivePlan` JSON.
+  Future<void> setDrivePlan(String json) =>
+      _update(UserSettingsCompanion(drivePlan: Value(json)));
+
   Future<void> setReminder({required bool on}) =>
       _update(UserSettingsCompanion(reminder: Value(on)));
 

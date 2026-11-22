@@ -33,9 +33,16 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                random pairs, `todayRunProvider`), `drivingGraphProvider` (the
                                graph with the moves the player reported as legal: recitals and
                                drives grade on it), the evidence and runs tables, the drive log
-                               (`DriveLogDao`: every drive's summary and its junctions (`drive_decision`) for good, its
-                               track for 90 days;
-                               `pastDrivesProvider`); ui/: the City memory card, junction names), account (AccountApi, AccountDao, BackupSync, the
+                               (`DriveLogDao`: every drive's summary and its junctions (`drive_decision`, with each
+                               one's FSRS effect) for good, its track for 90 days, and the
+                               append-only `drive_event` (preview, recital, debrief, Point to home);
+                               `pastDrivesProvider`), Home and Work for drives (`drivePlacesProvider`,
+                               `resolveDest`), the drive history (`driveHistoryProvider`: routes keyed
+                               by Home, Work, place or street; the weekly goal, frequent routes,
+                               `yourRouteItemsProvider` for your routes first, never parked;
+                               `pendingDebriefProvider`); ui/: the City memory card, junction names,
+                               drive labels (route names, level names and icons), the week's drive
+                               goal card), account (AccountApi, AccountDao, BackupSync, the
                                sign-in screen and Settings group), badges (stats, awards, the
                                shelf tile, the reward sheet and BadgeMoments), home (Explore),
                                setup (welcome, area, difficulty), quiz (Explore round),
@@ -49,20 +56,32 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                crossings drill, a bearing, a route card (RouteView: the
                                turn on the heading-up map, gateway, bridge, connection, landmark) or a
                                recital (RecitalView: typed or drawn A → B, graded with the turns'
-                               evidence and "Report this turn"), with their views over TaskScaffold;
+                               evidence and "Report this turn"), with their views over TaskScaffold
+                               (choices in its docked `AnswerTray`, shown right and wrong before
+                               the reveal);
                                intro (a leech's with its mix-up and note), reveal, Session done,
-                               the placement result), today (the Today tab, "Drive this run today"), memory (the Progress
-                               tab: overview and a district), drive (`/drive`: DriveController and
-                               DriveScreen: setup with the destination, the suggested level and the
-                               LevelPicker, a drive run by pindoro_learning's Navigator at its level
+                               the placement result), today (the Today tab, "Drive this run today", the drives: the one
+                               waiting, the week's goal, the nudge, "Pick your two drives"), memory
+                               (the Progress tab: overview, the drives' week line and route stairs,
+                               and a district), drive (`/drive`, `?to=run`: DriveController and
+                               DriveScreen: Where to (`DestinationSearch`: Home, Work, today's run,
+                               Surprise me, Recent, streets and places), then the destination with
+                               the suggested level and the LevelPicker; `/drive/place` sets Home or
+                               Work; a drive run by pindoro_learning's Navigator at its level
                                (voice by `NavWords`, the speed chime) on `DriveRecordingView`:
                                Guided's live `DriveMap` with the turn plate and bottom bar, Coached
                                and Quiet's dial and Recovery, Off's black screen; day or night by sun
                                time at the car; no input while moving, the stopped bar (Mute, level,
-                               End drive, Off's Rescue) while stopped; arrival ends it), the matched
-                               and graded review with its GPS gaps,
-                               every drive and its decisions logged; Past drives `/drive/past` and
-                               one replayed from its track)
+                               Route: `DriveRouteScreen`'s new destination, End drive, Off's Rescue)
+                               while stopped; arrival ends it), `/drive/preview` (the route
+                               north-up with its numbered key turns, then "Recite the turns");
+                               every decision without help reviews its J card (item 119), every
+                               drive and its decisions logged; the debrief (`DebriefScreen` over
+                               `driveDebriefProvider`: offered for a day, each turn recalled then
+                               shown, the review marks, the tier, the streets and the drill of
+                               missed turns (`/session?drill=`), Point to home); `PlanMapLayout`
+                               is the north-up plan and review map; Past drives `/drive/past` by
+                               week (`?route=` one route's) and one drive's debrief)
 lib/features/quiz/ui/round_controller.dart   Explore round state machine; resumes from round_question + answers;
                                questions are NamedStreets (cityStreetsProvider); retries set round.retry_of;
                                each pin also feeds the learning cards (learnFromExplore)

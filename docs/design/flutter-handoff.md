@@ -392,3 +392,58 @@ Widgets added for v3 (Learn the whole city). Colours come from `PindoroTheme.col
 - **Inputs:** `BadgeId id`, `BadgeState state` (`earned`, `locked`, `retired`), `bool isNew`, `int? progress`, `int? goal` ("1 292 of 1 500").
 - **Build:** the shield (`CustomPainter`: rim `yellow400`, field per badge as tabled in Badge), the glyph as a white `PindoroIcon`. Locked: field `lockedFill`, rim `lockedLip`, `lock` glyph in `lockedIcon`, and a 6 dp bar on `progressTrack` filled `progressDone` when `goal` is set. Retired: the earned look plus a "Retired" pill on `surfaceSunken` with `textSecondary`. Filter out retired badges the player never earned before building the list.
 - **Tokens:** `color.yellow.400`, the field primitives, `color.locked.*`, `color.progress.track`, `color.progress.done`, `color.surface.sunken`, `color.text.secondary`, `color.accent.*` (New pill), `label.sm`.
+
+## 13. v3.2 components (not in the app yet)
+
+Widgets for v3.2 · Navigate and learn's parked screens (drive setup, the route preview, the debrief, Past drives, Progress, Today) and the new answer tray. They use the system tokens and the app theme, follow `MediaQuery.textScalerOf(context)` up to 2.0 and keep 48 dp targets. The driving-screen parts (TurnPlate, DriveBottomBar, DistrictChip, HeadingDial, RecoveryBand, RecordingDot, StoppedBar, LevelPicker, LevelSuggestion, DriveGlyph, SpeedLimitSign, CameraBadge) carry their Flutter notes in their own READMEs. No new tokens.
+
+### AnswerChoices (replaces `Wrap` + `PindoroChip.action`)
+
+- **Inputs:** `String question`, `String meta` ("6 names"), `List<AnswerChoiceData> choices` (`label`, `String? sublabel` for the transliteration), `bool? numbered` (null: on in one column), `AnswerResult? result` (`picked`, `right`), `ValueChanged<int> onConfirm`.
+- **Build:** an `AnswerTray` aligned to the bottom of the question screen's `Stack`, `maxHeight` 45 % of the screen (60 % from text scale 1.6), reporting its height to the map so the camera fits the feature above it. Inside: `SheetHandle`, the ask row (`Wrap`, `PindoroType.titleMd` + `labelMd`), a `Flexible` `SingleChildScrollView` with the choice grid (a `LayoutBuilder` that measures labels with `TextPainter` and picks two columns or one; rows as `IntrinsicHeight` + `Row(crossAxisAlignment: stretch)`), then a full-width `PindoroButton(label: 'Confirm')`, `onPressed` null until a pick. Each `AnswerChoice` has the button's lip and press, a radio key (or a number), `Text(softWrap: true)` with soft hyphens from the city pack, never an ellipsis.
+- **Flow:** tap selects (`selectionClick`); Confirm grades (`mediumImpact`); the choices show right (Great colours, `check`) and the wrong pick (Miss colours, `reroute`) for 600 ms; then the `RevealSheet` replaces the tray with the tier sound and haptic. Peek: animate the tray height on a drag of the handle strip (not `DraggableScrollableSheet`, which can't keep Confirm pinned).
+- **Sweep:** `SweepTray` with `LongPressDraggable<LaneLabel>` labels (tap-to-place too) and `DragTarget<LaneLabel>` sockets in the map's `MarkerLayer`; after Confirm each socket shows Great or Miss and, under a wrong one, the right name as a yellow truth chip.
+- **Tokens:** `surface.overlay`, `surface.raised`, `line.base`, `line.strong`, `primary.*`, `feedback.great.*`, `feedback.miss.*`, `button.disabled.*`, `map.area.*`, `map.region.label.bg`, `map.answer.*`, `radius.2xl`, `radius.lg`, `elevation.2`, `size.button.md`, `title.md`, `label.lg`, `label.md`.
+
+### ReviewMark
+
+- **Inputs:** `MarkKind kind` (`good`, `hard`, `again`, `helped`, `watched`), `MarkSize size` (`list` 32 dp, `map` 28 dp).
+- **Build:** a `Container` with `radius.md`: Good `feedbackGreatFill` + `check` in `.on`; Hard `feedbackGreatBg` with a 3 dp `feedbackGreatFill` inner border + `check` in `.ink`; Again `feedbackMissFill` + `reroute`; Helped `surfaceSunken` with a 2 dp `lineStrong` border + `sound-on`; Watched only a 2 dp `lineStrong` border + `eye` (on the map, a `surfaceRaised` face). On the map add a 2 dp `lineStrong` lip and `shadow.float`.
+- **Semantics:** "On your own", "On your own, slowly", "Missed", "Helped by the voice", "Watched only".
+
+### TurnNumber, start ring and destination flag
+
+- **TurnNumber(n, size, current):** a `StadiumBorder` 32 dp (26 on the map, 32 when current) in `mapMeasureLabel` with w900 tabular figures in `mapMeasureLabelText`; on the map a 3 dp `mapVectorLand` halo.
+- **Start ring:** 18 dp circle, `surfaceRaised` centre, 4 dp `mapMeasureLine` ring. **Flag:** `DriveGlyph('flag', size: 32, color: mapMeasureLabel)` with the pole's foot on the point.
+
+### StepDots
+
+- **Inputs:** `int count`, `int current`. A `Row` of `Expanded` 8 dp segments, 4 dp apart: done `progressDone` with a 2 dp `progressDoneLip` bottom edge, now `progressCurrent`, to come `progressTodo` with a 2 dp `progressTodoBorder`. `Semantics(value: "2 of 5")`. 12 dp tall from text scale 1.6.
+
+### TierChip
+
+- **Inputs:** `DriveTier tier` (`perfect`, `great`, `close`, `miss`, `none`). A 28 dp (min) `StadiumBorder` in `feedback<Tier>Bg` with a 2 dp `feedback<Tier>Fill` side and the label in `labelMd`, `feedback<Tier>Ink`; `none`: no fill, `lineStrong` side, `textSecondary`, "No tier".
+
+### GoalLine
+
+- **Inputs:** `int done`, `int goal`, `String text`. Up to five 12 dp dots (`streakDayDone` / `streakDayEmpty`, 4 dp apart), then `Text.rich` in `labelMd`: the count in `textPrimary` w800, the rest `textSecondary`. One semantics label; dots excluded.
+
+### PlanChecklist
+
+- **Inputs:** `List<PlanItem> items`, `Set<int> picked`, `int limit`, `ValueChanged<Set<int>> onChanged`. ListRow rows (min 64) with a leading 28 dp box (`radius.sm`, 3 dp `lineStrong`; on: `primaryBase` with a white `check`); rows not picked are disabled at the limit, and a tap on one shows "Two picked. Untick one to swap." `Semantics(checked: …)` per row.
+
+### RouteLevelStair
+
+- **Inputs:** `List<MonthLevel> months` (`DateTime month`, `Level? level`). One `Expanded` column per month, 3 dp apart, 48 dp tall: a `primaryBase` bar at 100 / 75 / 50 / 25 % for Guided / Coached / Quiet / Off (top corners `radius.xs`), or a full `progressTrack` column for a month with no drive; month names under it (`DateFormat.MMM`, 11/14 w700, `textSecondary`; every other month from text scale 1.6). One image label with the history in words.
+
+### SuggestionCard
+
+- **Inputs:** `String icon`, `String title`, `String line`, `({String label, VoidCallback onPressed})? action`. The Today card's ready decoration (3 dp `primaryBase` inner border, `elevation.2` `primaryLip` lip) around the info card's row (40 dp `primarySoft` tile, `titleMd` title, `bodySm` line in `textSecondary`), then an optional full-width secondary `PindoroButton`.
+
+### BearingDial, pointing mode
+
+- **Inputs:** add `BearingMode mode` (`drag`, `point`), `double? heading` (from `flutter_compass`, low-passed), `bool locked`, `double? truth`. While pointing, your arrow is the heading; `Point here` locks it and reveals the truth line, the arc and the degrees (a `TextPainter` with a 5 dp `surfaceRaised` stroke under the `mapMeasureLine` fill). Low accuracy greys the arrow (`textDisabled`) and disables Point here; no magnetometer falls back to drag. Result chip: a 40 dp `StadiumBorder` in the tier's bg with a 2 dp fill side, the tier icon and "Great · 18° off". Tiers: 10° Perfect, 25° Great, 45° Close, more Miss.
+
+### Plan and review map (MapOverlays)
+
+- North-up `FlutterMap` on the app's basemap: the route `Polyline(strokeWidth: 7, color: mapRouteLine, borderStrokeWidth: 2, borderColor: mapRouteCasing)`, the track `Polyline(strokeWidth: 4, color: mapPlayerRoute)`, then a `MarkerLayer` with the start ring, the flag, the `TurnNumber`s (route preview) or the `ReviewMark`s (debrief, past drive). The camera fits the route above the sheet.

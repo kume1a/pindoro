@@ -126,6 +126,7 @@ class SettingsScreen extends ConsumerWidget {
           ],
         ),
         SectionTitle(l10n.settingsDriving),
+        const DrivePlacesGroup(),
         SpeedToleranceField(kmh: settings.speedToleranceKmh),
         SectionTitle(l10n.settingsAccount),
         const AccountGroup(),

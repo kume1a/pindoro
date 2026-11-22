@@ -1590,8 +1590,7 @@
     }
   },
   "sessionNameDidYouKnow": "Did you know it?",
-  "sessionNameCheckAsk": "Which name is it?",
-  "sessionNameCheckNote": "Pick the painted street’s name",
+  "sessionNameCheckAsk": "Which street is painted yellow?",
   "sessionNameRight": "It’s {name}.",
   "@sessionNameRight": {
     "placeholders": {
@@ -1626,17 +1625,6 @@
   },
   "sessionSweepPrompt": "Put its lanes in order",
   "sessionSweepHint": "Drag each label onto its lane",
-  "sessionSweepCheck": "Check · {placed} of {total} placed",
-  "@sessionSweepCheck": {
-    "placeholders": {
-      "placed": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
   "sessionSweepResult": "{right} of {total} in the right place.",
   "@sessionSweepResult": {
     "placeholders": {
@@ -2234,12 +2222,10 @@
   },
   "todayRunDrive": "Drive",
   "driveTitle": "Drive",
-  "driveDestination": "Destination",
   "driveTodaysRun": "Today's run",
   "driveSurprise": "Surprise me",
-  "driveMyOwn": "My own",
-  "driveSurpriseNote": "A street you know, 1.5–5 km from where you start",
-  "driveWhereTo": "Where to? A street",
+  "driveSurpriseNote": "A new place on streets you know, 1.5–5 km away",
+  "driveWhereTo": "Where to? A street or a place",
   "driveRuleMap": "No map, no directions",
   "driveRuleMapNote": "Plan it in your head before you set off",
   "driveRuleTrack": "Your track records in the background",
@@ -2276,7 +2262,6 @@
       }
     }
   },
-  "driveDriven": "Driven",
   "driveLonger": "Longer",
   "driveLongerBy": "+{percent} %",
   "@driveLongerBy": {
@@ -2287,27 +2272,7 @@
     }
   },
   "driveUTurnsTile": "U-turns",
-  "driveCredited": "{credited} turns credited · {failed} to practise",
-  "@driveCredited": {
-    "placeholders": {
-      "credited": {
-        "type": "String"
-      },
-      "failed": {
-        "type": "String"
-      }
-    }
-  },
-  "driveUTurnHere": "U-turn here",
   "a11yDriveMap": "Map. Your recorded drive in blue over the best route in yellow.",
-  "driveHesitations": "{count, plural, =1{One hesitation.} other{{count} hesitations.}}",
-  "@driveHesitations": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "memoryModelTitle": "Memory model",
   "memoryModelSubtitle": "How well FSRS predicts you, and its weights",
   "memoryCalibration": "Calibration",
@@ -3092,6 +3057,635 @@
     "placeholders": {
       "district": {
         "type": "String"
+      }
+    }
+  },
+  "driveNoMatch": "No street or place in the city pack by that name.",
+  "driveRecent": "Recent",
+  "driveHome": "Home",
+  "driveWork": "Work",
+  "driveSetHome": "Set your home",
+  "driveSetWork": "Set your work",
+  "drivePlaceHome": "Home for drives",
+  "drivePlaceWork": "Work for drives",
+  "drivePlaceNote": "Pick the street or place your drives start and end at. Point to home uses it too.",
+  "drivePlaceClear": "Clear",
+  "driveNotSet": "Not set",
+  "driveNoSurprise": "Surprise me opens once 70 % of a route’s turns are yours.",
+  "driveAboutMin": "about {minutes} min",
+  "@driveAboutMin": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "driveChangeDest": "Change destination",
+  "driveRouteTitle": "Route",
+  "a11yDriveRoute": "Route and destination",
+  "answerNames": "{count, plural, =1{1 name} other{{count} names}}",
+  "@answerNames": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "answerJunctions": "{count, plural, =1{1 junction} other{{count} junctions}}",
+  "@answerJunctions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "answerPlaces": "{count, plural, =1{1 place} other{{count} places}}",
+  "@answerPlaces": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "answerPickFirst": "Pick a name first.",
+  "answerPickJunction": "Pick the junction",
+  "answerPickPlace": "Pick the place",
+  "answerWhichLane": "Which lane is which?",
+  "answerPlaced": "{placed} of {total} placed",
+  "@answerPlaced": {
+    "placeholders": {
+      "placed": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "answerPlaceAll": "Place every lane first.",
+  "markGood": "On your own",
+  "markHard": "On your own, slowly",
+  "markAgain": "Missed",
+  "markHelped": "Helped by the voice",
+  "markWatched": "Watched only",
+  "markGoodNote": "Counts as Good",
+  "markHardNote": "Counts as Hard",
+  "markAgainNote": "Counts as Again; drilled now",
+  "markHelpedNote": "The voice or the way back led you",
+  "markWatchedNote": "Shown on screen all along",
+  "debriefArrived": "You’re at {place}",
+  "@debriefArrived": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "debriefEnded": "Drive done",
+  "debriefTurnCount": "{count, plural, =1{1 turn} other{{count} turns}}",
+  "@debriefTurnCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "debriefMinutes": "{minutes} min",
+  "@debriefMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "debriefOfferNote": "Go through the turns while they’re fresh: first say what you did, then see it. It waits here for 24 hours.",
+  "debriefGo": "Go through your drive",
+  "debriefLater": "Later",
+  "debriefTurnOf": "Turn {n} of {count} · first say, then see",
+  "@debriefTurnOf": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yDebriefTurns": "Turns of this drive",
+  "a11yStepOf": "{n} of {count}",
+  "@a11yStepOf": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yDebriefTurnMap": "Map. The way you came in blue; once shown, the way you went too, and the good way on in yellow.",
+  "debriefRecallAsk": "At {place}, what did you do?",
+  "@debriefRecallAsk": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "debriefThisJunction": "this junction",
+  "debriefCame": "You came along {street}, heading {direction}.",
+  "@debriefCame": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "debriefCameHeading": "You came heading {direction}.",
+  "@debriefCameHeading": {
+    "placeholders": {
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "debriefTapWhat": "Tap what you did.",
+  "debriefForgot": "I don’t remember",
+  "debriefShow": "Show me",
+  "debriefRemembered": "You remembered it right.",
+  "debriefNotRemembered": "Not quite what happened.",
+  "debriefWent": "You went {turn, select, left{left} right{right} uTurn{back} straight{straight on} other{on}} onto {street}.",
+  "@debriefWent": {
+    "placeholders": {
+      "turn": {
+        "type": "String"
+      },
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "debriefWayWas": "The way was {turn, select, left{left} right{right} uTurn{back} straight{straight on} other{on}} onto {street}.",
+  "@debriefWayWas": {
+    "placeholders": {
+      "turn": {
+        "type": "String"
+      },
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "debriefLinkRoad": "a link road",
+  "debriefInDrill": "In the drill now",
+  "debriefNextTurn": "Next turn",
+  "debriefSeeDrive": "See the whole drive",
+  "debriefYourTurns": "{count, plural, =1{Your turn} other{Your {count} turns}}",
+  "@debriefYourTurns": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "debriefLegend": "Yellow is the way, blue is yours",
+  "debriefRescued": "Rescued on the way, so at most Close.",
+  "debriefLost": "Times lost",
+  "debriefOwn": "{count} on your own",
+  "@debriefOwn": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "debriefMissed": "{count} missed",
+  "@debriefMissed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "debriefHelped": "{count} helped by the voice",
+  "@debriefHelped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "debriefWatched": "{count} watched only",
+  "@debriefWatched": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "debriefTurnsLine": "Turns: {line}",
+  "@debriefTurnsLine": {
+    "placeholders": {
+      "line": {
+        "type": "String"
+      }
+    }
+  },
+  "debriefTryNext": "Next time: try {level}",
+  "@debriefTryNext": {
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "debriefNextStreets": "Next: streets you drove",
+  "debriefSeeTurns": "See the turns",
+  "debriefStreetsTitle": "Streets you drove",
+  "debriefStreetsLine": "{learned} learned · {notYet} not yet",
+  "@debriefStreetsLine": {
+    "placeholders": {
+      "learned": {
+        "type": "int"
+      },
+      "notYet": {
+        "type": "int"
+      }
+    }
+  },
+  "debriefStreetCount": "{count, plural, =1{1 street} other{{count} streets}}",
+  "@debriefStreetCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "debriefLearned": "Learned · {state}",
+  "@debriefLearned": {
+    "placeholders": {
+      "state": {
+        "type": "String"
+      }
+    }
+  },
+  "debriefNotYet": "Not yet",
+  "debriefMissedTurns": "{count, plural, =1{1 missed turn} other{{count} missed turns}}",
+  "@debriefMissedTurns": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "debriefAt": "At {places}",
+  "@debriefAt": {
+    "placeholders": {
+      "places": {
+        "type": "String"
+      }
+    }
+  },
+  "debriefDrill": "Drill it now",
+  "debriefNextPoint": "Next: point to home",
+  "debriefPointTitle": "Point to home",
+  "debriefPointNote": "New destination, so once: hold the phone flat and point its top towards home.",
+  "debriefPointHere": "Point here",
+  "debriefPointCaption": "Your phone: {direction}",
+  "@debriefPointCaption": {
+    "placeholders": {
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "debriefPointCaptionHome": "Your phone: {you} · Home: {home}",
+  "@debriefPointCaptionHome": {
+    "placeholders": {
+      "you": {
+        "type": "String"
+      },
+      "home": {
+        "type": "String"
+      }
+    }
+  },
+  "debriefPointDrag": "Drag the arrow towards home",
+  "debriefDegrees": "{degrees}°",
+  "@debriefDegrees": {
+    "placeholders": {
+      "degrees": {
+        "type": "String"
+      }
+    }
+  },
+  "debriefHomeIs": "Home is {direction} of here, {distance} away.",
+  "@debriefHomeIs": {
+    "placeholders": {
+      "direction": {
+        "type": "String"
+      },
+      "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "pastDrivesThisWeek": "This week",
+  "pastDrivesLastWeek": "Last week",
+  "pastDrivesWeekOf": "Week of {date}",
+  "@pastDrivesWeekOf": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "pastDriveRescued": "Rescued",
+  "pastDriveOwn": "{own} of {total} on your own",
+  "@pastDriveOwn": {
+    "placeholders": {
+      "own": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "pastDriveNoTier": "No tier",
+  "previewButton": "Preview",
+  "previewTitle": "Your route",
+  "a11yPreviewMap": "Map. Your route in yellow, north up, its key turns numbered.",
+  "previewKeyTurns": "{count, plural, =0{No key turns} =1{1 key turn} other{{count} key turns}}",
+  "@previewKeyTurns": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "previewKeyTurnOf": "Key turn {n} of {count}",
+  "@previewKeyTurnOf": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "previewKeyTurn": "key turn {n}",
+  "@previewKeyTurn": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yPreviewTurns": "Key turns",
+  "a11yKeyTurn": "Key turn {n} of {count}: {text}",
+  "@a11yKeyTurn": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      },
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "previewPause": "Pause",
+  "previewPlay": "Play",
+  "previewSkip": "Skip",
+  "previewRecite": "Recite the turns",
+  "previewReciteOf": "Recite the turns · {n} of {count}",
+  "@previewReciteOf": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "previewWhichWay": "{place}: which way?",
+  "@previewWhichWay": {
+    "placeholders": {
+      "place": {
+        "type": "String"
+      }
+    }
+  },
+  "previewRight": "Right: {action}.",
+  "@previewRight": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "previewWrong": "The way is {action}.",
+  "@previewWrong": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "driveWeekTitle": "This week",
+  "driveWeekBack": "Back on track",
+  "driveWeeksDone": "{count, plural, =1{1 week done} other{{count} weeks done}}",
+  "@driveWeeksDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "driveGoalQuiet": "{goal, plural, =1{drive at Quiet or Off} other{drives at Quiet or Off}}",
+  "@driveGoalQuiet": {
+    "placeholders": {
+      "goal": {
+        "type": "int"
+      }
+    }
+  },
+  "driveGoalPlaces": "{goal, plural, =1{new place, without help} other{new places, without help}}",
+  "@driveGoalPlaces": {
+    "placeholders": {
+      "goal": {
+        "type": "int"
+      }
+    }
+  },
+  "driveWeekDone": "This week’s goal is done.",
+  "todayDrives": "Drives",
+  "todayDebriefTitle": "Your drive is waiting",
+  "todayDebriefLine": "Go through its turns while they’re fresh: first say, then see.",
+  "todayPlanned": "Planned: {routes}",
+  "@todayPlanned": {
+    "placeholders": {
+      "routes": {
+        "type": "String"
+      }
+    }
+  },
+  "todayFromDrives": "{count, plural, =1{1 turn from your drives is taught first} other{{count} turns from your drives are taught first}}",
+  "@todayFromDrives": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todayNudge": "{route} can go {level}",
+  "@todayNudge": {
+    "placeholders": {
+      "route": {
+        "type": "String"
+      },
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "todayPickTitle": "Pick your two drives",
+  "todayPickLine": "Two drives at Quiet or Off this week, and one new place reached without help. Which ones?",
+  "todayPickRoute": "{route} at {level}",
+  "@todayPickRoute": {
+    "placeholders": {
+      "route": {
+        "type": "String"
+      },
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "todayPickLimit": "Two picked. Untick one to swap.",
+  "todayPickMore": "{count, plural, =1{Pick 1 more} other{Pick {count} more}}",
+  "@todayPickMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todayPickPlan": "Plan these {count}",
+  "@todayPickPlan": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "todayPickSkip": "Not this week",
+  "progressDrives": "Drives",
+  "progressDrivesNone": "No drives this week yet.",
+  "progressDrivesWeek": "This week: {line}",
+  "@progressDrivesWeek": {
+    "placeholders": {
+      "line": {
+        "type": "String"
+      }
+    }
+  },
+  "progressDrivesFree": "{count, plural, =1{1 drive without help} other{{count} drives without help}}",
+  "@progressDrivesFree": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "progressDrivesPlaces": "{count, plural, =1{1 new place} other{{count} new places}}",
+  "@progressDrivesPlaces": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "progressDrivesOwn": "{percent} % of turns on your own",
+  "@progressDrivesOwn": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "progressRouteDrives": "{count, plural, =1{1 drive} other{{count} drives}}",
+  "@progressRouteDrives": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "progressRouteSince": "{level} since {month}",
+  "@progressRouteSince": {
+    "placeholders": {
+      "level": {
+        "type": "String"
+      },
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "progressRouteIn": "{level} in {month}",
+  "@progressRouteIn": {
+    "placeholders": {
+      "level": {
+        "type": "String"
+      },
+      "month": {
+        "type": "String"
+      }
+    }
+  },
+  "progressRouteFromTo": "{level} from {from} to {to}",
+  "@progressRouteFromTo": {
+    "placeholders": {
+      "level": {
+        "type": "String"
+      },
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yRouteCard": "{route}, {drives, plural, =1{1 drive} other{{drives} drives}}. {history}. Opens its past drives.",
+  "@a11yRouteCard": {
+    "placeholders": {
+      "route": {
+        "type": "String"
+      },
+      "drives": {
+        "type": "int"
+      },
+      "history": {
+        "type": "String"
+      }
+    }
+  },
+  "progressDriveReviews": "{count, plural, =1{Drives reviewed 1 turn this month.} other{Drives reviewed {count} turns this month.}}",
+  "@progressDriveReviews": {
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   }

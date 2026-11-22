@@ -183,8 +183,8 @@ and the specs after R5. Fix them in roughly this order.
       road behind the car, puts no landmark badge at the corner, and dims under a veil while GPS
       is lost (the car stays as it is, no accuracy ring). The north arrow is the DriveGlyph
       compass in a 64 dp disc in the district chip's paint.
-    - The stopped bar has no Route button yet: preview and destination screens come with step 3c.
-      Off's Rescue offer is a card with the text and a 56 dp button, without the rescue glyph.
+    - The stopped bar's Route button is left out at Off (SPEC §16.23 item 128). Off's Rescue offer
+      is a card with the text and a 56 dp button, without the rescue glyph.
     - The district chip is left out when the name is wider than the room (the pack has no short
       names).
     - Roundabout glyphs and "Exit 3 onto" are unused: the road graph doesn't know roundabouts.
@@ -195,6 +195,45 @@ and the specs after R5. Fix them in roughly this order.
     - Coached's speaking bars move in a fixed wave while the voice speaks, not with its level.
     - "Now Coached" is a plate-coloured chip in `type.drive.read` for 4 s.
     - `PindoroButton` gained `large` (56 dp) and `iconOnly`, for the stopped bar.
+  - **Drive setup, Route and learning (M9 steps 3c–5, 2026-11-21)**:
+    - Where to (V32-10 `search`) is a SearchField over the pack's streets and places with the
+      quick rows and Recent as ListRows; there is no "outside the pack" state: an offline app
+      only knows the pack, so a place outside it can't be found at all (item 125's "found but not
+      chosen" needs a geocoder).
+    - Home and Work have their own picker (Settings → Driving and Where to's "Set your home").
+    - The chosen destination is a ListRow with an edit button; the stopped bar's Route opens a
+      parked screen with the destination left and a new one to search.
+    - LevelSuggestion's reason shrinks when it doesn't fit beside the level.
+    - Not logged yet from item 124: each voice prompt, screen states, touches while moving and
+      the names shown.
+  - **Preview, debrief, Past drives, Today and Progress (M9 steps 3c–5, 2026-11-21)**, from the
+    design system's parked parts (synced 2026-11-21); where they differ from boards V32-10 to
+    V32-71 and the parts' READMEs:
+    - The plan and review map is the app's PindoroMap with the route in its answer paint
+      (8 dp with chevrons, not 7 dp), the track a 4 dp solid line, and the start ring, flag,
+      numbers and marks as Flutter widgets over it.
+    - The debrief's offer shows only the start ring and the flag (no track or marks: they'd
+      give the recall away). Each recalled turn is on the north-up map with the way in in
+      cobalt and the ways on as ExitButtons in the sheet, not the canvas's heading-up card.
+      "Show me" replaces the buttons when two ways on share a direction.
+    - The summary keeps the reveal sheet's tier for every drive; only the Past drives list
+      shows "No tier" for Guided. "Next time: try Quiet" has no button (the setup suggests it
+      anyway).
+    - Streets you drove says "Learned · Solid" or "Not yet", without "comes with the secondary
+      roads".
+    - Point to home has no "compass needs a moment" state: `flutter_compass` gives no accuracy
+      here, so the arrow drags until the first heading arrives.
+    - The preview opens from the setup only (not from the stopped bar's Route screen).
+    - Today's nudge ("Home → Work can go Quiet") has no "Try Quiet next time" button: the
+      setup suggests the level anyway. "Pick your two drives" lists the frequent routes at
+      their suggested level (no new places yet) and shows until answered that week.
+    - The route stair takes a month's last drive (SPEC §16.23 item 128), not the README's level
+      most of its drives used.
+    - The answer tray has no 1–6 or arrow keys and doesn't move focus to the first choice; the
+      goal line's just-met dot doesn't bounce. In the sweep, a tap on a placed label doesn't send
+      it back to the tray (another label dropped on its lane does).
+    - Goldens for the new parts (`drive_review`, `answer_tray`) and the StoppedBar's Route
+      button wait for `just goldens`.
 - Lakes are not named (Protomaps gives them no label point); Lisi Lake is the only one.
 - Left out of the road-class pass, on purpose:
   - A "Your streets" round left half-way is not offered as Continue on Explore (Continue matches

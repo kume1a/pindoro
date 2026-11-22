@@ -41,9 +41,10 @@ final navHistoryProvider =
       ({Map<String, DecisionHistory> decisions, List<PastDrive> past})
     >((ref) async {
       final log = ref.watch(driveLogDaoProvider);
+      final learning = ref.watch(learningDaoProvider);
       final drives = await log.all();
       final rows = await log.decisions();
-      final failures = await ref.watch(learningDaoProvider).lastFailures();
+      final failures = await learning.lastFailures();
       return navHistory(
         drives: [
           for (final d in drives)

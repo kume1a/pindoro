@@ -2,11 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/feedback.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/routes.dart';
+import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
+import 'package:pindoro/features/learning/data/drive_places.dart';
+import 'package:pindoro/features/learning/ui/drive_labels.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -175,6 +180,29 @@ class _SpeedToleranceFieldState extends ConsumerState<SpeedToleranceField> {
           ref.read(settingsDaoProvider).setSpeedTolerance(v.round()),
         ),
       ),
+    );
+  }
+}
+
+/// Home and Work for drives (SPEC §16.23 items 120–121), each opening its picker.
+class DrivePlacesGroup extends ConsumerWidget {
+  const DrivePlacesGroup({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final settings = ref.watch(settingsProvider).value;
+    final places = ref.watch(drivePlacesProvider).value;
+    Widget row(bool home, DriveTarget? place) => ListRow(
+      leading: RowTile(home ? PindoroGlyph.home : PindoroGlyph.briefcase),
+      title: home ? l10n.driveHome : l10n.driveWork,
+      subtitle: place == null ? l10n.driveNotSet : targetName(place, settings),
+      trailing: const PindoroIcon(PindoroGlyph.chevronRight),
+      onTap: () =>
+          unawaited(context.push(Routes.drivePlaceOf(home ? 'home' : 'work'))),
+    );
+    return ListGroup(
+      children: [row(true, places?.home), row(false, places?.work)],
     );
   }
 }

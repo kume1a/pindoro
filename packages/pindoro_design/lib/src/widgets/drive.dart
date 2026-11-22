@@ -1270,7 +1270,7 @@ class LevelSuggestion extends StatelessWidget {
                   )
                 else ...[
                   Expanded(child: what),
-                  why,
+                  Flexible(child: why),
                 ],
               ],
             ),
@@ -1395,7 +1395,7 @@ typedef StoppedLevel = ({
 /// The only controls on a driving screen, while the car is stopped
 /// (StoppedBar): the distance [left] and the [arrival] time, Mute, the
 /// [level] chip that opens the [picker] (under its [pickerTitle] and
-/// [pickerReason]), and End drive.
+/// [pickerReason]), Route (the preview and the destination, [routeLabel]) and End drive.
 class StoppedBar extends StatelessWidget {
   const StoppedBar({
     super.key,
@@ -1413,6 +1413,8 @@ class StoppedBar extends StatelessWidget {
     this.picker,
     this.pickerTitle,
     this.pickerReason,
+    this.routeLabel,
+    this.onRoute,
   });
 
   final String semanticsLabel;
@@ -1429,6 +1431,8 @@ class StoppedBar extends StatelessWidget {
   final Widget? picker;
   final String? pickerTitle;
   final String? pickerReason;
+  final String? routeLabel;
+  final VoidCallback? onRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -1544,6 +1548,15 @@ class StoppedBar extends StatelessWidget {
                   open: levelOpen,
                   onTap: onLevel,
                 ),
+                if ((routeLabel, onRoute) case (final label?, final tap?))
+                  PindoroButton(
+                    label: label,
+                    icon: PindoroGlyph.route,
+                    iconOnly: true,
+                    large: true,
+                    variant: PindoroButtonVariant.secondary,
+                    onPressed: tap,
+                  ),
                 Expanded(
                   child: PindoroButton(
                     label: endLabel,

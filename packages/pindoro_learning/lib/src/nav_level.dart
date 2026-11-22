@@ -4,7 +4,6 @@ import 'cards.dart';
 import 'constants.dart';
 import 'drive_log.dart';
 import 'fsrs.dart';
-import 'nav_route.dart';
 import 'stats.dart';
 
 /// What the player's past says about one decision (by its key): when it last failed anywhere
@@ -47,30 +46,29 @@ bool silentEligible(
       own.take(LearningConfig.silentOwnDrives).every((ok) => ok);
 }
 
-/// The level to suggest for a route (SPEC §16.23 item 114) from its [decisions]: by the share
-/// silent-eligible ([silent], by key), Off also needing every card's recall at
+/// The level to suggest for a route (SPEC §16.23 item 114) from its decisions' [keys] (null: a
+/// decision without OSM nodes): by the share silent-eligible ([silent]), Off also needing every card's recall at
 /// [LearningConfig.levelOffMinR] and a Quiet drive on this route with at most one recovery;
 /// Guided while the destination's raion has fewer than [LearningConfig.levelMinAreaJ]
 /// introduced J cards ([areaJ]). Then [past] drives on this route (latest first) step it at
 /// most one level from the last: less help after [LearningConfig.stepDrives] good ones, more
 /// after as many poor ones.
 DriveLevel suggestLevel({
-  required List<NavDecision> decisions,
+  required List<String?> keys,
   required Set<String> silent,
   required double? minRecall,
   required List<PastDrive> past,
   required int areaJ,
 }) {
   if (areaJ < LearningConfig.levelMinAreaJ) return DriveLevel.guided;
-  final keys = {for (final d in decisions) ?d.key};
+  final route = keys.nonNulls.toSet();
   final onRoute = [
     for (final p in past)
-      if (_overlaps(keys, p.decisions)) p,
+      if (_overlaps(route, p.decisions)) p,
   ];
-  final share = decisions.isEmpty
+  final share = keys.isEmpty
       ? 1.0
-      : decisions.where((d) => silent.contains(d.key)).length /
-            decisions.length;
+      : keys.where(silent.contains).length / keys.length;
   final base = switch (share) {
     _
         when share >= LearningConfig.levelOffShare &&
@@ -158,6 +156,10 @@ enum CreditSkip {
 
   /// A habitual corridor credited within [LearningConfig.habitCreditDays].
   habitual,
+
+  /// A miss on a card not in review or not near due, or a success on one without a memory or
+  /// suspended: left to the sessions (SPEC §4).
+  sessionOnly,
 }
 
 /// What a decision taken on a drive does to its J [card] (SPEC §16.23 item 119): a success with
@@ -276,11 +278,11 @@ typedef LoggedDecision = ({
   );
 }
 
-/// The level to suggest for a route's [decisions] (SPEC §16.23 items 113–114) and the
-/// decisions that may stay silent, from the player's J [cards] (by item id), decision
+/// The level to suggest for a route's decisions by their [keys] (SPEC §16.23 items 113–114) and
+/// the decisions that may stay silent, from the player's J [cards] (by item id), decision
 /// [history] (by key), [past] drives and [areaJ].
 ({DriveLevel level, Set<String> silent}) routeSuggestion({
-  required List<NavDecision> decisions,
+  required List<String?> keys,
   required Map<String, CardState> cards,
   required Map<String, DecisionHistory> history,
   required List<PastDrive> past,
@@ -289,19 +291,17 @@ typedef LoggedDecision = ({
   Fsrs fsrs = const Fsrs(),
 }) {
   final silent = {
-    for (final d in decisions)
-      if (d.key case final key?
-          when silentEligible(cards[key], history[key], now, fsrs: fsrs))
-        key,
+    for (final key in keys.nonNulls)
+      if (silentEligible(cards[key], history[key], now, fsrs: fsrs)) key,
   };
   final recalls = [
-    for (final d in decisions)
-      if (cards[d.key]?.memory case final memory?)
+    for (final key in keys)
+      if (cards[key]?.memory case final memory?)
         fsrs.retrievability(memory, now),
   ];
   return (
     level: suggestLevel(
-      decisions: decisions,
+      keys: keys,
       silent: silent,
       minRecall: recalls.isEmpty ? null : recalls.reduce(min),
       past: past,

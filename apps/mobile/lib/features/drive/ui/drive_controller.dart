@@ -9,7 +9,9 @@ import 'package:pindoro/core/drive_device.dart';
 import 'package:pindoro/core/hold.dart';
 import 'package:pindoro/core/location.dart';
 import 'package:pindoro/features/drive/ui/nav_voice.dart';
+import 'package:pindoro/features/learning/data/drive_history.dart';
 import 'package:pindoro/features/learning/data/drive_log.dart';
+import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/nav_data.dart';
 import 'package:pindoro/features/learning/data/route_book.dart';
@@ -19,19 +21,21 @@ import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
+export 'package:pindoro/features/learning/data/drive_places.dart'
+    show DriveDest, DriveTarget;
+
 final driveControllerProvider =
     NotifierProvider.autoDispose<DriveController, DriveState>(
       DriveController.new,
     );
 
-/// Where a drive goes (DriveScreen `setup`).
-enum DriveTo { run, surprise, own }
+/// Where a drive goes (DriveScreen `setup`, board V32-10): today's run, a surprise, Home, Work or
+/// a street or place of the player's own.
+enum DriveTo { run, surprise, home, work, own }
 
-/// The destination: a pack junction on [street].
-typedef DriveTarget = ({int junction, NamedStreet street});
-
-/// The setup's suggestion (SPEC §16.23 items 113–114): the level, and the route's turns that
-/// are the player's ([silent], [yours] of [turns]).
+/// The setup's suggestion (SPEC §16.23 items 113–114, 121): the level, and the route's turns
+/// that are the player's ([silent], [yours] of [turns]); the route planned from here and its key
+/// decisions by key.
 typedef DriveSuggestion = ({
   DriveLevel level,
   int yours,
@@ -40,20 +44,23 @@ typedef DriveSuggestion = ({
 
   /// Each turn on the route, in order: whether it is yours (the setup's pips).
   List<bool> pips,
+  NavPlan plan,
+  Set<String> keys,
 });
 
 sealed class DriveState {
   const DriveState();
 }
 
-/// Choosing where to go: today's run, a surprise or the player's [own]
-/// street. [denied] once location was refused; [noTarget] when nothing
-/// fits the choice. [target] and its [suggestion] once found from where the
-/// player is; [level] once picked (else the suggestion).
+/// Choosing where to go and how much help: no [to] while searching; today's run, a surprise,
+/// Home, Work or the player's [own] street or place. [here] once found, [denied] once location
+/// was refused; [noTarget] when nothing fits the choice. [target] and its [suggestion] once found
+/// from where the player is; [level] once picked (else the suggestion).
 final class DriveSetup extends DriveState {
   const DriveSetup({
-    this.to = DriveTo.run,
+    this.to,
     this.own,
+    this.here,
     this.denied,
     this.noTarget = false,
     this.target,
@@ -61,8 +68,9 @@ final class DriveSetup extends DriveState {
     this.level,
   });
 
-  final DriveTo to;
-  final NamedStreet? own;
+  final DriveTo? to;
+  final DriveDest? own;
+  final LatLng? here;
   final LocationDenied? denied;
   final bool noTarget;
   final DriveTarget? target;
@@ -78,7 +86,7 @@ final class DriveSetup extends DriveState {
           : suggestion?.level ?? DriveLevel.guided);
 
   /// The levels the player may pick (item 114): more help or one step less; any with no
-  /// suggestion, and any on today's run, a route of the player's own turns.
+  /// suggestion, and any on today's run.
   List<DriveLevel> get choices => switch (suggestion) {
     final s? when to != DriveTo.run => levelChoices(s.level),
     _ => DriveLevel.values,
@@ -127,6 +135,8 @@ final class DriveRecording extends DriveState {
   bool get stopped => view?.stopped ?? true;
 
   DriveRecording copyWith({
+    DriveTarget? target,
+    LatLng? destination,
     DriveLevel? level,
     NavView? view,
     bool? muted,
@@ -135,8 +145,8 @@ final class DriveRecording extends DriveState {
     DateTime? guardedAt,
     int? beat,
   }) => DriveRecording(
-    target: target,
-    destination: destination,
+    target: target ?? this.target,
+    destination: destination ?? this.destination,
     to: to,
     startedAt: startedAt,
     level: level ?? this.level,
@@ -153,8 +163,9 @@ final class DriveRecording extends DriveState {
 
 /// The drive graded like a recital (SPEC §5.3): the matched [match] over
 /// the best route, [stoppedM] from the target when it ended short of it,
-/// the turns of the book [credited] and [failed], and the GPS [gaps]; a
-/// [rescued] drive's tier is at most Close (§16.23 item 116).
+/// the J cards it reviewed as a success ([credited]) and as Again ([failed]), and the GPS
+/// [gaps]; a [rescued] drive's tier is at most Close (§16.23 item 116). [id] is the drive's in
+/// the log.
 final class DriveReview extends DriveState {
   const DriveReview({
     required this.target,
@@ -165,6 +176,7 @@ final class DriveReview extends DriveState {
     required this.failed,
     required this.gaps,
     this.rescued = false,
+    this.id,
   });
 
   final DriveTarget target;
@@ -175,6 +187,7 @@ final class DriveReview extends DriveState {
   final int failed;
   final GpsGaps gaps;
   final bool rescued;
+  final String? id;
 
   Tier? get tier => switch (graded?.tier) {
     final t? when rescued && t.index < Tier.close.index => Tier.close,
@@ -184,8 +197,8 @@ final class DriveReview extends DriveState {
 
 /// A drive (SPEC §5.3 drives, §16.23, boards V3-50 and V32-*): pick a destination and the help
 /// suggested for it, drive with the navigator speaking by level, then map-match and grade the
-/// track. A drive at Off is the GPS-free drive: every decision on it is evidence for its J card
-/// (§4); the other levels log their decisions and change no card until M9 step 5.
+/// track. Every decision taken without help reviews its J card (item 119): Good, Hard after a
+/// hesitation, Again when missed; Guided turns, Coached cues and recoveries are exposure only.
 class DriveController extends Notifier<DriveState> {
   StreamSubscription<DriveFix>? _track;
   Timer? _tick;
@@ -198,18 +211,25 @@ class DriveController extends Notifier<DriveState> {
   final List<DriveFix> _fixes = [];
   bool _ending = false;
 
-  /// The drive left Off at some point: it is no longer the GPS-free test.
-  bool _leftOff = false;
+  /// The drive's id in the log, known from setup so the preview's results name it.
+  String _id = newId();
+
+  /// The level with the most help the drive reached (items 122–123).
+  DriveLevel _mostHelp = DriveLevel.off;
   int _speaking = 0;
 
   DriveDevice get _device => ref.read(driveDeviceProvider);
 
+  /// The id the drive about to start will have in the log.
+  String get driveId => _id;
+
   @override
   DriveState build() {
+    final device = _device;
     ref.onDispose(() {
       unawaited(_track?.cancel());
       _tick?.cancel();
-      if (_nav != null) unawaited(_device.stop());
+      if (_nav != null) unawaited(device.stop());
     });
     unawaited(Future.microtask(_prepare));
     return const DriveSetup();
@@ -225,18 +245,25 @@ class DriveController extends Notifier<DriveState> {
     }
   }();
 
+  /// Today's run, Surprise me, Home or Work.
   void choose(DriveTo to) {
     if (state case final DriveSetup s) {
-      state = DriveSetup(to: to, own: s.own);
+      state = DriveSetup(to: to, here: s.here);
       unawaited(_prepare());
     }
   }
 
-  void pickOwn(NamedStreet street) {
-    if (state case DriveSetup()) {
-      state = DriveSetup(to: DriveTo.own, own: street);
+  /// A street or place the player searched for, or a recent destination.
+  void pickOwn(DriveDest dest) {
+    if (state case final DriveSetup s) {
+      state = DriveSetup(to: DriveTo.own, own: dest, here: s.here);
       unawaited(_prepare());
     }
+  }
+
+  /// Back to the search.
+  void clear() {
+    if (state case final DriveSetup s) state = DriveSetup(here: s.here);
   }
 
   /// A level the setup offers (item 114).
@@ -245,6 +272,7 @@ class DriveController extends Notifier<DriveState> {
       state = DriveSetup(
         to: s.to,
         own: s.own,
+        here: s.here,
         target: s.target,
         suggestion: s.suggestion,
         level: level,
@@ -252,34 +280,95 @@ class DriveController extends Notifier<DriveState> {
     }
   }
 
-  /// Finds the setup's destination from where the player is, and the level suggested for the
-  /// route there.
+  /// Finds where the player is and, once a destination is chosen, the target and the level
+  /// suggested for the route there.
   Future<void> _prepare() async {
     final setup = state;
     if (setup is! DriveSetup) return;
-    final here = await ref.read(locationServiceProvider).locate();
+    final located = await ref.read(locationServiceProvider).locate();
     if (!ref.mounted) return;
     bool current() =>
         state is DriveSetup && (state as DriveSetup).sameChoice(setup);
     if (!current()) return;
-    if (here is LocationDenied) {
-      state = DriveSetup(to: setup.to, own: setup.own, denied: here);
+    if (located is LocationDenied) {
+      state = DriveSetup(to: setup.to, own: setup.own, denied: located);
       return;
     }
-    final at = here is Located ? here.position : null;
-    final target = await _target(setup, at);
-    final suggestion = target == null || at == null
-        ? null
-        : await _suggest(target, at);
+    final here = located is Located ? located.position : null;
+    if (setup.to == null) {
+      state = DriveSetup(here: here);
+      return;
+    }
+    final found = await _find(setup, here);
     if (!ref.mounted || !current()) return;
+    final picked = (state as DriveSetup).level;
     state = DriveSetup(
       to: setup.to,
       own: setup.own,
-      noTarget: target == null,
-      target: target,
-      suggestion: suggestion,
+      here: here,
+      noTarget: found == null,
+      target: found?.target,
+      suggestion: found?.suggestion,
+      level: switch (found?.suggestion) {
+        final s? when setup.to != DriveTo.run =>
+          levelChoices(s.level).contains(picked) ? picked : null,
+        _ => picked,
+      },
     );
   }
+
+  /// The setup's destination from [here] and its suggestion; for Surprise me the first new
+  /// destination whose route is [LearningConfig.surpriseMinShare] the player's (item 122).
+  Future<({DriveTarget target, DriveSuggestion? suggestion})?> _find(
+    DriveSetup setup,
+    LatLng? here,
+  ) async {
+    if (setup.to != DriveTo.surprise) {
+      final target = await _target(setup, here);
+      if (target == null) return null;
+      return (
+        target: target,
+        suggestion: here == null ? null : await _suggest(target, here),
+      );
+    }
+    if (here == null) return null;
+    final graph = await ref.hold(drivingGraphProvider.future);
+    if (graph == null) return null;
+    final streets = await ref.read(cityStreetsProvider.future);
+    final pack = await ref.read(packRepositoryProvider.future);
+    final now = ref.read(clockProvider)();
+    final cards = await ref.read(learningDaoProvider).cards();
+    final driven = {
+      for (final d in await ref.read(driveLogDaoProvider).all()) d.targetNode,
+    };
+    final nodes = pack.junctionNodes();
+    for (final j in surpriseEnds(
+      graph: graph,
+      junctionNodes: nodes,
+      knownParts: {
+        for (final c in cards)
+          if (c.type == CardType.p && isKnown(c, now))
+            ...?streets[itemKey(c.itemId)]?.parts.map((p) => p.id),
+      },
+      from: here,
+      seed: now.microsecondsSinceEpoch,
+    ).take(_surpriseTries)) {
+      if (driven.contains(nodes[j])) continue;
+      final street = streetAt(graph, streets, j);
+      if (street == null) continue;
+      final target = (junction: j, street: street, place: null);
+      final s = await _suggest(target, here);
+      if (s != null &&
+          s.turns > 0 &&
+          s.yours / s.turns >= LearningConfig.surpriseMinShare) {
+        return (target: target, suggestion: s);
+      }
+    }
+    return null;
+  }
+
+  /// How many surprise destinations are planned before giving up.
+  static const int _surpriseTries = 12;
 
   Future<DriveSuggestion?> _suggest(DriveTarget target, LatLng here) async {
     final graph = await ref.hold(drivingGraphProvider.future);
@@ -287,6 +376,7 @@ class DriveController extends Notifier<DriveState> {
     final pack = await ref.read(packRepositoryProvider.future);
     final streets = await ref.read(cityStreetsProvider.future);
     final settings = await ref.read(settingsDaoProvider).read();
+    final landmarks = await ref.hold(navLandmarksProvider.future);
     final near = graph.edgeNear(here, 4 * LearningConfig.driveSnapM);
     if (near == null) return null;
     final from =
@@ -300,6 +390,7 @@ class DriveController extends Notifier<DriveState> {
       from: from,
       to: target.junction,
       streets: streets,
+      landmarks: landmarks,
       junctionNodes: pack.junctionNodes(),
     );
     if (plan == null) return null;
@@ -310,21 +401,38 @@ class DriveController extends Notifier<DriveState> {
         if (c.type == CardType.j) c.itemId: c,
     };
     final raion = raionAt(pack.districts(), graph.at(target.junction));
+    final now = ref.read(clockProvider)();
+    final keys = [for (final d in plan.decisions) d.key];
     final s = routeSuggestion(
-      decisions: plan.decisions,
+      keys: keys,
       cards: cards,
       history: history.decisions,
       past: history.past,
       areaJ: raion == null ? 0 : jCardsIn(raion, cards.values, byNode, graph),
-      now: ref.read(clockProvider)(),
+      now: now,
     );
-    final pips = [for (final d in plan.decisions) s.silent.contains(d.key)];
+    const fsrs = Fsrs();
+    final pips = [for (final key in keys) s.silent.contains(key)];
     return (
       level: s.level,
       yours: pips.where((mine) => mine).length,
       turns: plan.decisions.length,
       silent: s.silent,
       pips: pips,
+      plan: plan,
+      keys: {
+        for (final d in keyDecisions(
+          graph,
+          plan.decisions,
+          silent: s.silent,
+          recall: {
+            for (final key in keys.nonNulls)
+              if (cards[key]?.memory case final m?)
+                key: fsrs.retrievability(m, now),
+          },
+        ))
+          ?d.key,
+      },
     );
   }
 
@@ -335,7 +443,7 @@ class DriveController extends Notifier<DriveState> {
 
   Future<void> _start(String title, String text) async {
     final setup = state;
-    if (setup is! DriveSetup) return;
+    if (setup is! DriveSetup || setup.to == null) return;
     final location = ref.read(locationServiceProvider);
     var target = setup.target;
     if (target == null) {
@@ -370,6 +478,7 @@ class DriveController extends Notifier<DriveState> {
     );
     final districts = pack.districts();
     _startLevel = setup.chosen;
+    _mostHelp = _startLevel;
     _suggested = setup.suggestion?.level;
     _nav = Navigator(
       graph: graph,
@@ -387,7 +496,6 @@ class DriveController extends Notifier<DriveState> {
     );
     _fixes.clear();
     _ending = false;
-    _leftOff = false;
     _speaking = 0;
     await _device.start();
     await _device.keepScreenOn(on: _startLevel != DriveLevel.off);
@@ -395,7 +503,7 @@ class DriveController extends Notifier<DriveState> {
     state = DriveRecording(
       target: target,
       destination: graph.at(target.junction),
-      to: setup.to,
+      to: setup.to!,
       startedAt: ref.read(clockProvider)(),
       level: _startLevel,
       choices: setup.choices,
@@ -422,6 +530,11 @@ class DriveController extends Notifier<DriveState> {
     if (u.view.gpsLostS != null || u.prompt != null) _apply(r, u);
   }
 
+  /// The drive reached [level]: the most help so far is kept (items 122–123).
+  void _reached(DriveLevel level) {
+    if (level.index < _mostHelp.index) _mostHelp = level;
+  }
+
   void _apply(DriveRecording r, NavUpdate u) {
     state = r.copyWith(
       view: u.view,
@@ -431,7 +544,7 @@ class DriveController extends Notifier<DriveState> {
           : null,
       beat: u.chime ? r.beat + 1 : null,
     );
-    if (u.view.level != DriveLevel.off) _leftOff = true;
+    _reached(u.view.level);
     if (!r.muted) {
       if (u.prompt case final p?) _say(_words!.words(p, u.view.level));
       if (u.chime) unawaited(_device.chime());
@@ -480,6 +593,7 @@ class DriveController extends Notifier<DriveState> {
       return;
     }
     nav.rescue();
+    _reached(DriveLevel.guided);
     state = r.copyWith(level: DriveLevel.guided, rescued: true);
     unawaited(_device.keepScreenOn(on: true));
     if (!r.muted) _say(_words!.l10n.navRescued);
@@ -504,14 +618,31 @@ class DriveController extends Notifier<DriveState> {
       return;
     }
     nav.setLevel(level);
-    if (level != DriveLevel.off) _leftOff = true;
+    _reached(level);
     state = r.copyWith(level: level);
     unawaited(_device.keepScreenOn(on: level != DriveLevel.off));
   }
 
-  /// End drive: stops the track, matches it to the streets and grades it
-  /// against the best legal route to the destination; at Off saves each
-  /// decision as evidence and the near-due J cards it failed as Again.
+  /// A destination changed while stopped (item 116): the way there from the next fix.
+  Future<void> changeDestination(DriveDest dest) async {
+    final r = state;
+    final nav = _nav;
+    if (r is! DriveRecording || nav == null || !r.stopped) return;
+    final at = r.view?.at;
+    final target = await _target(DriveSetup(to: DriveTo.own, own: dest), at);
+    final graph = await ref.hold(drivingGraphProvider.future);
+    if (target == null || graph == null || !ref.mounted) return;
+    final s = at == null ? null : await _suggest(target, at);
+    if (!ref.mounted || state is! DriveRecording) return;
+    nav.setDestination(target.junction, silent: s?.silent ?? const {});
+    state = (state as DriveRecording).copyWith(
+      target: target,
+      destination: graph.at(target.junction),
+    );
+  }
+
+  /// End drive: stops the track, matches it to the streets, grades it against the best legal
+  /// route to the destination, and reviews each decision's J card by item 119.
   Future<void> end() => _once(_end);
 
   Future<void> _end() async {
@@ -525,6 +656,7 @@ class DriveController extends Notifier<DriveState> {
     final now = ref.read(clockProvider)();
     final graph = (await ref.hold(drivingGraphProvider.future))!;
     final streets = await ref.read(cityStreetsProvider.future);
+    final pack = await ref.read(packRepositoryProvider.future);
     final match = matchDrive(graph, _fixes);
     final (:graded, :stoppedM) = gradeDrive(
       graph,
@@ -533,13 +665,28 @@ class DriveController extends Notifier<DriveState> {
       streets: streets,
     );
     final gpsFree =
-        _startLevel == DriveLevel.off && !recording.rescued && !_leftOff;
-    final evidence = graded == null || !gpsFree
-        ? const <({String itemId, bool ok})>[]
-        : await _saveEvidence(graded, now);
-    final credited = evidence.where((e) => e.ok).length;
-    final failed = evidence.length - credited;
+        _startLevel == DriveLevel.off && _mostHelp == DriveLevel.off;
+    final decisions = gpsFree || nav == null
+        ? (graded == null
+              ? const <PassedDecision>[]
+              : offDriveDecisions(
+                  graph,
+                  graded,
+                  _fixes,
+                  junctionNodes: pack.junctionNodes(),
+                ))
+        : nav.passed;
+    final hesitated = [
+      for (final d in decisions) hesitatedNear(graph, match, d.junction),
+    ];
+    final (:credited, :failed, :effects) = await _credit(
+      decisions,
+      hesitated,
+      now,
+    );
+    final id = _id;
     final review = DriveReview(
+      id: id,
       target: recording.target,
       match: match,
       graded: graded,
@@ -553,22 +700,13 @@ class DriveController extends Notifier<DriveState> {
       recording,
       review,
       endedAt: now,
-      graph: graph,
-      decisions: gpsFree || nav == null
-          ? (graded == null
-                ? const []
-                : offDriveDecisions(
-                    graph,
-                    graded,
-                    _fixes,
-                    junctionNodes: (await ref.read(
-                      packRepositoryProvider.future,
-                    )).junctionNodes(),
-                  ))
-          : nav.passed,
+      decisions: decisions,
+      hesitated: hesitated,
+      effects: effects,
       recoveries: nav?.recoveries ?? 0,
     );
     _nav = null;
+    _id = newId();
     if (!ref.mounted) return;
     state = review;
   }
@@ -576,106 +714,115 @@ class DriveController extends Notifier<DriveState> {
   Future<DriveTarget?> _target(DriveSetup setup, LatLng? here) async {
     final graph = await ref.hold(drivingGraphProvider.future);
     final streets = await ref.read(cityStreetsProvider.future);
-    final pack = await ref.read(packRepositoryProvider.future);
     if (graph == null) return null;
-    DriveTarget? at(int? junction) {
-      final street = graph
-          .edgesAt(junction ?? -1)
-          .map((e) => streets[e.streetId])
-          .nonNulls
-          .firstOrNull;
-      return street == null ? null : (junction: junction!, street: street);
-    }
-
     switch (setup.to) {
+      case null || DriveTo.surprise:
+        return null;
       case DriveTo.run:
         final run = await ref.hold(todayRunProvider.future);
         return run == null
             ? null
-            : (junction: run.ends.to, street: run.ends.toStreet);
-      case DriveTo.surprise:
-        if (here == null) return null;
-        final now = ref.read(clockProvider)();
-        final cards = await ref.read(learningDaoProvider).cards();
-        return at(
-          surpriseEnd(
-            graph: graph,
-            junctionNodes: pack.junctionNodes(),
-            knownParts: {
-              for (final c in cards)
-                if (c.type == CardType.p && isKnown(c, now))
-                  ...?streets[itemKey(c.itemId)]?.parts.map((p) => p.id),
-            },
-            from: here,
-            seed: now.microsecondsSinceEpoch,
-          ),
-        );
+            : (junction: run.ends.to, street: run.ends.toStreet, place: null);
+      case DriveTo.home || DriveTo.work:
+        final places = await ref.hold(drivePlacesProvider.future);
+        return setup.to == DriveTo.home ? places.home : places.work;
       case DriveTo.own:
         final own = setup.own;
-        if (own == null) return null;
-        final ends = {
-          for (final p in own.parts) ...graph.junctionsOfPart(p.id),
-        };
-        final from = here ?? own.parts.first.midpoint;
-        final nearest = ends.fold<int?>(
-          null,
-          (best, j) =>
-              best == null ||
-                  distanceBetween(from, graph.at(j)) <
-                      distanceBetween(from, graph.at(best))
-              ? j
-              : best,
-        );
-        return nearest == null ? null : (junction: nearest, street: own);
+        return own == null
+            ? null
+            : resolveDest(graph, streets, own, here: here);
     }
   }
 
-  /// Saves each decision of the book's J items as evidence, and the
-  /// near-due cards it failed as Again.
-  Future<List<({String itemId, bool ok})>> _saveEvidence(
-    RecitalResult graded,
+  /// Reviews each of [decisions]' J cards by item 119 ([hesitated] alike in order): passes of the
+  /// last [LearningConfig.habitWindowDays] make a habitual corridor, and a card credited today
+  /// (or this week on a corridor) waits. Each decision of the route book taken without help is
+  /// evidence, carded or not (a miss keeps it from going silent, item 113). [effects] holds what
+  /// each did to its card, in order (item 124).
+  Future<({int credited, int failed, List<String?> effects})> _credit(
+    List<PassedDecision> decisions,
+    List<bool> hesitated,
     DateTime now,
   ) async {
-    final pack = await ref.read(packRepositoryProvider.future);
-    final book = await ref.read(routeBookProvider.future);
     final dao = ref.read(learningDaoProvider);
     final cards = {for (final c in await dao.cards()) c.itemId: c};
-    final evidence = recitalEvidence(graded, pack.junctionNodes(), {
-      for (final id in book.questions.keys)
-        if (CardType.ofItem(id) == CardType.j) id,
-    });
-    await dao.saveTest(
-      source: ReviewSource.drive,
-      at: now,
-      evidence: evidence,
-      reviews: [
-        for (final e in evidence)
-          ?implicitReview(
-            cards[e.itemId],
-            ok: e.ok,
-            now: now,
-            source: ReviewSource.drive,
-          ),
-      ],
+    final book = (await ref.read(routeBookProvider.future)).questions;
+    final since = now.subtract(
+      const Duration(days: LearningConfig.habitWindowDays),
     );
-    return evidence;
+    final lastCredited = <String, DateTime>{
+      for (final e in await dao.log(since: since))
+        if (e.source == ReviewSource.drive && e.rating.isSuccess)
+          e.itemId: e.ts,
+    };
+    final passes = <String, List<DateTime>>{};
+    for (final r in await ref.read(driveLogDaoProvider).decisions()) {
+      if (r.itemKey case final key? when r.at.isAfter(since)) {
+        passes.putIfAbsent(key, () => []).add(r.at);
+      }
+    }
+    final evidence = <({String itemId, bool ok})>[];
+    final reviews = <({CardState card, LogEntry log})>[];
+    final effects = List<String?>.filled(decisions.length, null);
+    for (final (i, d) in decisions.indexed) {
+      final key = d.key;
+      final ok = d.ok;
+      if (key == null || ok == null) continue;
+      if (book[key] is TurnQuestion &&
+          d.help == NavHelp.none &&
+          !d.recentHelp) {
+        evidence.add((itemId: key, ok: ok));
+      }
+      final (:review, :skip) = driveReview(
+        cards[key],
+        ok: ok,
+        help: d.help,
+        recentHelp: d.recentHelp,
+        hesitated: hesitated[i],
+        now: now,
+        passes: [...?passes[key], d.at],
+        lastCredited: lastCredited[key],
+      );
+      effects[i] = review?.log.rating.name ?? skip?.name;
+      if (review == null) continue;
+      reviews.add(review);
+      cards[key] = review.card;
+      if (review.log.rating.isSuccess) lastCredited[key] = now;
+    }
+    if (evidence.isNotEmpty || reviews.isNotEmpty) {
+      await dao.saveTest(
+        source: ReviewSource.drive,
+        at: now,
+        evidence: evidence,
+        reviews: reviews,
+      );
+    }
+    final credited = reviews.where((r) => r.log.rating.isSuccess).length;
+    return (
+      credited: credited,
+      failed: reviews.length - credited,
+      effects: effects,
+    );
   }
 
-  /// Writes the drive, its track and its [decisions] (hesitations found on [graph]) to the
-  /// drive log (SPEC §16.23 item 124).
+  /// Writes the drive, its track and its [decisions] ([hesitated] alike in order) to the drive
+  /// log (SPEC §16.23 item 124).
   Future<void> _log(
     DriveRecording recording,
     DriveReview review, {
     required DateTime endedAt,
-    required RoadGraph graph,
     required List<PassedDecision> decisions,
+    required List<bool> hesitated,
+    required List<String?> effects,
     required int recoveries,
   }) async {
     final fixes = List.of(_fixes);
     final pack = await ref.read(packRepositoryProvider.future);
+    final nodes = pack.junctionNodes();
     final match = review.match;
     final graded = review.graded;
-    final id = newId();
+    final keys = recording.suggestion?.keys ?? const <String>{};
+    final id = review.id!;
     await ref
         .read(driveLogDaoProvider)
         .save(
@@ -691,7 +838,9 @@ class DriveController extends Notifier<DriveState> {
                 level: d.level,
                 help: d.help,
                 recentHelp: d.recentHelp,
-                hesitated: hesitatedNear(graph, match, d.junction),
+                hesitated: hesitated[seq],
+                keyTurn: keys.contains(d.key),
+                effect: effects[seq],
               ),
           ],
           DriveRow(
@@ -700,8 +849,10 @@ class DriveController extends Notifier<DriveState> {
             endedAt: endedAt,
             level: _startLevel,
             goal: recording.to.name,
-            targetNode: pack.junctionNodes()[recording.target.junction],
+            targetNode: nodes[recording.target.junction],
             targetStreet: recording.target.street.id,
+            targetPlace: recording.target.place?.id,
+            startNode: nodes[match.path.junctions.firstOrNull],
             outcome: graded == null || review.stoppedM != null
                 ? DriveOutcome.stopped
                 : DriveOutcome.arrived,
@@ -718,10 +869,14 @@ class DriveController extends Notifier<DriveState> {
             suggested: _suggested,
             recoveries: recoveries,
             rescued: recording.rescued,
+            mostHelp: _mostHelp,
           ),
           encodeTrack(fixes),
         );
-    ref.invalidate(pastDrivesProvider);
-    ref.invalidate(navHistoryProvider);
+    ref
+      ..invalidate(pastDrivesProvider)
+      ..invalidate(navHistoryProvider)
+      ..invalidate(driveHistoryProvider)
+      ..invalidate(pendingDebriefProvider);
   }
 }

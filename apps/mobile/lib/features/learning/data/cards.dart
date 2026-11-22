@@ -3,6 +3,7 @@ import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/data/carry_over.dart';
+import 'package:pindoro/features/learning/data/drive_history.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/route_book.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
@@ -159,15 +160,18 @@ final cityCardsProvider = FutureProvider.autoDispose<List<CardState>>((
 
 /// [asks] narrowed to the cards reviewed now: none of a street parked until
 /// its road class is taught (`Curriculum.parkedStreets`), worked out over
-/// [cards]. Parked cards still count everywhere else.
+/// [cards], except the streets of the player's routes ([yours], SPEC §16.23
+/// item 120). Parked cards still count everywhere else.
 AsksCard reviewsOf(
   AsksCard asks, {
   required Map<String, NamedStreet> streets,
   required Curriculum curriculum,
   required Iterable<CardState> cards,
+  Iterable<String> yours = const [],
 }) {
   final parked = curriculum.parkedStreets(
     streetCardsOf(streets, cards.where(asks)),
+    except: yours.toSet(),
   );
   return (CardState card) =>
       asks(card) && !parked.contains(streets[itemKey(card.itemId)]?.id);
@@ -181,11 +185,13 @@ final reviewedCardsProvider = FutureProvider.autoDispose<List<CardState>>((
   final streets = await ref.watch(cityStreetsProvider.future);
   final curriculum = await ref.watch(curriculumProvider.future);
   final cards = await ref.watch(cityCardsProvider.future);
+  final yours = await ref.watch(yourRouteItemsProvider.future);
   final reviews = reviewsOf(
     (_) => true,
     streets: streets,
     curriculum: curriculum,
     cards: cards,
+    yours: yours.streets,
   );
   return cards.where(reviews).toList();
 });
