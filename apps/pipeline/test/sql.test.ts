@@ -451,9 +451,38 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
     ]);
   });
 
-  it("exports the directed graph and the route tables (pack format 6)", async () => {
+  it("reads signed limits, traffic lights and speed cameras for navigation", async () => {
+    expect((await wayEdges(2101)).length).toBeGreaterThan(0);
+    const limits = await sql`
+      SELECT DISTINCT way_id::float8 AS way, maxspeed FROM pipeline.road_edge
+      WHERE way_id IN (2101, 2102, 2103) ORDER BY 1`;
+    expect(limits).toEqual([
+      { way: 2101, maxspeed: 50 },
+      { way: 2102, maxspeed: 20 },
+      { way: 2103, maxspeed: null },
+    ]);
+    expect(
+      await sql`SELECT pipeline.maxspeed_kmh('30 mph') AS mph, pipeline.maxspeed_kmh('none') AS none`,
+    ).toEqual([{ mph: 48, none: null }]);
+    const lit = await sql`
+      SELECT j.node_id::float8 AS node FROM pipeline.junction_signals s
+      JOIN pipeline.junction j USING (id)`;
+    expect(lit).toEqual([{ node: 902 }]);
+    const [edge] = await wayEdges(2101);
+    expect(
+      await sql`SELECT node_id::float8 AS node, maxspeed, direction, edge_id::float8 AS edge
+                FROM pipeline.speed_camera`,
+    ).toEqual([{ node: 915, maxspeed: 50, direction: 90, edge: edge?.id }]);
+  });
+
+  it("exports the directed graph and the route tables (pack format 7)", async () => {
     const db = await exportPack();
-    expect(db.pragma("user_version", { simple: true })).toBe(6);
+    expect(db.pragma("user_version", { simple: true })).toBe(7);
+    expect(db.prepare("SELECT count(*) FROM speed_camera").pluck().get()).toBe(1);
+    expect(db.prepare("SELECT count(*) FROM junction WHERE signals = 1").pluck().get()).toBe(1);
+    expect(
+      db.prepare("SELECT count(*) FROM road_edge WHERE maxspeed IS NOT NULL").pluck().get(),
+    ).toBeGreaterThan(0);
     expect(
       db.prepare("SELECT count(*) FROM road_edge WHERE street_id IS NULL").pluck().get(),
     ).toBeGreaterThan(0);

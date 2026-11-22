@@ -250,6 +250,7 @@ class DriveController extends Notifier<DriveState> {
       outcome: graded == null || stoppedM != null
           ? DriveOutcome.stopped
           : DriveOutcome.arrived,
+      graph: graph,
       match: match,
       graded: graded,
       credited: credited,
@@ -298,12 +299,14 @@ class DriveController extends Notifier<DriveState> {
     return evidence;
   }
 
-  /// Writes the drive and its track to the drive log (SPEC §16.23 item 124)
-  /// and returns its GPS gaps.
+  /// Writes the drive, its track and the junctions it chose at (graded on
+  /// [graph]) to the drive log (SPEC §16.23 item 124) and returns its GPS
+  /// gaps.
   Future<GpsGaps> _log(
     DriveRecording recording, {
     required DateTime endedAt,
     required DriveOutcome outcome,
+    RoadGraph? graph,
     DriveMatch? match,
     RecitalResult? graded,
     int credited = 0,
@@ -312,11 +315,35 @@ class DriveController extends Notifier<DriveState> {
     final fixes = List.of(_fixes);
     final gaps = gpsGaps(fixes, recording.startedAt, endedAt);
     final pack = await ref.read(packRepositoryProvider.future);
+    final id = newId();
+    final decisions = graph == null || match == null || graded == null
+        ? const <PassedDecision>[]
+        : offDriveDecisions(
+            graph,
+            graded,
+            fixes,
+            junctionNodes: pack.junctionNodes(),
+          );
     await ref
         .read(driveLogDaoProvider)
         .save(
+          decisions: [
+            for (final (seq, d) in decisions.indexed)
+              DriveDecisionRow(
+                driveId: id,
+                seq: seq,
+                at: d.at,
+                itemKey: d.key,
+                planned: d.planned,
+                ok: d.ok,
+                level: d.level,
+                help: d.help,
+                recentHelp: d.recentHelp,
+                hesitated: hesitatedNear(graph!, match!, d.junction),
+              ),
+          ],
           DriveRow(
-            id: newId(),
+            id: id,
             startedAt: recording.startedAt,
             endedAt: endedAt,
             level: DriveLevel.off,

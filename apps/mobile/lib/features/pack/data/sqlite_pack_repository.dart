@@ -123,8 +123,34 @@ class SqlitePackRepository implements PackRepository {
               only: r['only'] == 1,
             ),
       ],
+      signals: {
+        if (_hasColumn('junction', 'signals'))
+          for (final r in _db.select(
+            'SELECT id FROM junction WHERE signals = 1',
+          ))
+            r['id'] as int,
+      },
+      cameras: [
+        if (_hasTable('speed_camera'))
+          for (final r in _db.select('SELECT * FROM speed_camera'))
+            (
+              id: r['id'] as int,
+              edgeId: r['edge_id'] as int,
+              at: LatLng(
+                (r['lat'] as num).toDouble(),
+                (r['lon'] as num).toDouble(),
+              ),
+              maxspeedKmh: r['maxspeed'] as int?,
+              directionDeg: (r['direction'] as num?)?.toDouble(),
+            ),
+      ],
     );
   }();
+
+  bool _hasColumn(String table, String column) => _db.select(
+    'SELECT 1 FROM pragma_table_info(?) WHERE name = ?',
+    [table, column],
+  ).isNotEmpty;
 
   @override
   RoadGraph? roadGraph() => _graph;

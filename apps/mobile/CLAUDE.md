@@ -33,7 +33,8 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                random pairs, `todayRunProvider`), `drivingGraphProvider` (the
                                graph with the moves the player reported as legal: recitals and
                                drives grade on it), the evidence and runs tables, the drive log
-                               (`DriveLogDao`: every drive's summary for good, its track for 90 days;
+                               (`DriveLogDao`: every drive's summary and its junctions (`drive_decision`) for good, its
+                               track for 90 days;
                                `pastDrivesProvider`); ui/: the City memory card, junction names), account (AccountApi, AccountDao, BackupSync, the
                                sign-in screen and Settings group), badges (stats, awards, the
                                shelf tile, the reward sheet and BadgeMoments), home (Explore),
@@ -172,7 +173,7 @@ test/drift/                    generated schema helpers + migration test
   Screens call these providers, never `databaseProvider`. Client ids are UUIDv7 (`newId()`).
   `answer` is an append-only log, enforced by the `answer_immutable` trigger; so is `review_log`
   (`review_log_no_update` / `review_log_no_delete`, docs/learning/SPEC.md §2.2), and `drive`
-  (`drive_immutable`; its `drive_track` rows are dropped after 90 days). Changing a table: bump `schemaVersion`, add a migration, run
+  (`drive_immutable`, with `drive_decision`; its `drive_track` rows are dropped after 90 days). Changing a table: bump `schemaVersion`, add a migration, run
   `just gen` (it runs `drift_dev make-migrations`, then build_runner) and commit the new dump in
   `drift_schemas/`. Generated Dart (`*.g.dart`, `database.steps.dart`, `test/drift/**/generated/`)
   is never committed: `just gen` rebuilds it from the dumps, and `just gen-check` fails in CI

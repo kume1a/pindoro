@@ -20,7 +20,9 @@ lib/src/pack/       City/District/Street (pack rows; format 4 adds the curriculu
                     FamilyLink), PackRepository, RoadGraph (junctions, edges with `Oneway` and
                     connectors (no street), turn restrictions, `legalExits`, edge-expanded A*
                     `shortestRoute` to a goal set with the U-turn penalty in `RoutingConfig`,
-                    edgeNear, `allowing` the player's reported moves: app only, not twinned)
+                    edgeNear; Dart only, not twinned: `allowing` the player's reported moves,
+                    `shortestRoute`'s `costOf` and `uTurnCostM` (navigation), format 7's
+                    `RoadEdge.maxspeedKmh`, `signals` and `cameras`)
 ```
 
 ## Rules

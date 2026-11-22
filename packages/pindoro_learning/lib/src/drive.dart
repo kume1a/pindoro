@@ -40,17 +40,17 @@ final class DriveMatch {
 
 /// A fix on an edge driven one way ([forward]: from its `from` junction): what snapping there
 /// costs and the share of the edge behind it.
-typedef _Snap = ({RoadEdge edge, bool forward, double cost, double along});
+typedef EdgeSnap = ({RoadEdge edge, bool forward, double cost, double along});
 
-int _start(_Snap s) => s.forward ? s.edge.from : s.edge.to;
-int _end(_Snap s) => s.forward ? s.edge.to : s.edge.from;
+int _start(EdgeSnap s) => s.forward ? s.edge.from : s.edge.to;
+int _end(EdgeSnap s) => s.forward ? s.edge.to : s.edge.from;
 
 double _angleOff(double a, double b) =>
     (((a - b) % 360 + 540) % 360 - 180).abs();
 
 /// The point of [e]'s line nearest [p]: its distance, the line's heading there and the share of
 /// the line before it.
-({double distM, double headingDeg, double along}) _nearest(
+({double distM, double headingDeg, double along}) nearestOnEdge(
   LatLng p,
   RoadEdge e,
 ) {
@@ -85,9 +85,9 @@ double _angleOff(double a, double b) =>
 
 /// The edges within [LearningConfig.driveSnapM] of [p], each way, costed by distance, heading
 /// off the way driven ([heading], when known) and driving against a one-way.
-List<_Snap> _snaps(RoadGraph graph, LatLng p, double? heading) {
+List<EdgeSnap> edgeSnaps(RoadGraph graph, LatLng p, double? heading) {
   const r = LearningConfig.driveSnapM;
-  final out = <_Snap>[];
+  final out = <EdgeSnap>[];
   for (final e in graph.edges) {
     // A point within r of the edge is at most its length plus 2r from both ends together.
     if (distanceBetween(p, graph.at(e.from)) +
@@ -95,7 +95,7 @@ List<_Snap> _snaps(RoadGraph graph, LatLng p, double? heading) {
         e.lengthM + 2 * r) {
       continue;
     }
-    final n = _nearest(p, e);
+    final n = nearestOnEdge(p, e);
     if (n.distM > r) continue;
     for (final forward in [true, false]) {
       var cost = n.distM;
@@ -121,7 +121,7 @@ List<_Snap> _snaps(RoadGraph graph, LatLng p, double? heading) {
 /// arrived on and the metres from that end.
 Map<int, List<(RoadEdge, double)>> _reach(
   RoadGraph graph,
-  _Snap s,
+  EdgeSnap s,
   double boundM,
 ) {
   final out = <int, List<(RoadEdge, double)>>{};
@@ -148,8 +148,8 @@ Map<int, List<(RoadEdge, double)>> _reach(
 /// near [a] on the network.
 double? _transition(
   RoadGraph graph,
-  _Snap a,
-  _Snap b,
+  EdgeSnap a,
+  EdgeSnap b,
   double straightM,
   Map<int, List<(RoadEdge, double)>> reach,
 ) {
@@ -203,7 +203,7 @@ DriveMatch matchDrive(RoadGraph graph, List<DriveFix> fixes) {
     drivenM += distanceBetween(kept[i - 1].at, kept[i].at);
   }
 
-  final layers = <List<_Snap>>[];
+  final layers = <List<EdgeSnap>>[];
   final at = <LatLng>[];
   for (final (i, f) in kept.indexed) {
     final heading = kept.length < 2
@@ -211,14 +211,14 @@ DriveMatch matchDrive(RoadGraph graph, List<DriveFix> fixes) {
         : i == 0
         ? bearingDegrees(f.at, kept[1].at)
         : bearingDegrees(kept[i - 1].at, f.at);
-    final snaps = _snaps(graph, f.at, heading);
+    final snaps = edgeSnaps(graph, f.at, heading);
     if (snaps.isEmpty) continue;
     layers.add(snaps);
     at.add(f.at);
   }
   final chosen = _viterbi(graph, layers, at);
 
-  final runs = <({_Snap first, _Snap last, LatLng lastAt})>[];
+  final runs = <({EdgeSnap first, EdgeSnap last, LatLng lastAt})>[];
   for (final (i, s) in chosen.indexed) {
     if (runs.lastOrNull case final r?
         when r.last.edge.id == s.edge.id && r.last.forward == s.forward) {
@@ -313,9 +313,9 @@ DriveMatch matchDrive(RoadGraph graph, List<DriveFix> fixes) {
 /// The cheapest snap per fix: emission (the snap's own cost) plus transitions, with a fix the
 /// network can't link to the previous one bridged at the straight distance plus twice
 /// [LearningConfig.driveSnapM] (a GPS jump; the gap is filled with a shortest drive later).
-List<_Snap> _viterbi(
+List<EdgeSnap> _viterbi(
   RoadGraph graph,
-  List<List<_Snap>> layers,
+  List<List<EdgeSnap>> layers,
   List<LatLng> at,
 ) {
   if (layers.isEmpty) return const [];

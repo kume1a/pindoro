@@ -20,6 +20,16 @@ abstract final class RoutingConfig {
 /// or with [only] (`only_*`) the only way on.
 typedef TurnRestriction = ({int fromEdge, int via, int toEdge, bool only});
 
+/// A speed camera on [edgeId] (pack format 7 `speed_camera`): its limit and the heading of the
+/// traffic it checks, when tagged.
+typedef SpeedCamera = ({
+  int id,
+  int edgeId,
+  LatLng at,
+  int? maxspeedKmh,
+  double? directionDeg,
+});
+
 /// A stretch of road between two junctions (pack `road_edge`): of a street,
 /// or with no [streetId] a connector (an unnamed way or a `*_link`).
 class RoadEdge {
@@ -31,6 +41,7 @@ class RoadEdge {
     required this.lengthM,
     required Polyline line,
     this.oneway = Oneway.both,
+    this.maxspeedKmh,
   }) : _line = line,
        _geometry = null;
 
@@ -48,6 +59,7 @@ class RoadEdge {
         -1 => Oneway.backward,
         _ => Oneway.both,
       },
+      maxspeedKmh = r['maxspeed'] as int?,
       _geometry = r['geometry']! as String;
 
   RoadEdge._twoWay(RoadEdge e)
@@ -58,6 +70,7 @@ class RoadEdge {
       lengthM = e.lengthM,
       oneway = Oneway.both,
       _geometry = e._geometry,
+      maxspeedKmh = e.maxspeedKmh,
       _line = e._line;
 
   final int id;
@@ -68,6 +81,10 @@ class RoadEdge {
   final String? streetId;
   final double lengthM;
   final Oneway oneway;
+
+  /// The signed speed limit in km/h (pack format 7); null where none is mapped or in an older
+  /// pack.
+  final int? maxspeedKmh;
   final String? _geometry;
   Polyline? _line;
 
@@ -107,6 +124,8 @@ class RoadGraph {
     this.junctions,
     Iterable<RoadEdge> edges, {
     Iterable<TurnRestriction> restrictions = const [],
+    this.signals = const {},
+    this.cameras = const [],
   }) : edges = List.unmodifiable(edges),
        restrictions = List.unmodifiable(restrictions) {
     for (final e in this.edges) {
@@ -125,6 +144,12 @@ class RoadGraph {
   final Map<int, LatLng> junctions;
   final List<RoadEdge> edges;
   final List<TurnRestriction> restrictions;
+
+  /// Junctions with traffic lights (pack format 7).
+  final Set<int> signals;
+
+  /// The speed cameras on the graph's edges (pack format 7).
+  final List<SpeedCamera> cameras;
   final Map<int, List<RoadEdge>> _at = {};
   final Map<(int, int), _Turn> _turns = {};
 
@@ -149,6 +174,8 @@ class RoadGraph {
             a.$1 == r.fromEdge && a.$2 == r.via && (r.only || a.$3 == r.toEdge),
       ),
     ),
+    signals: signals,
+    cameras: cameras,
   );
 
   /// The edges at [junction], by id.
@@ -193,12 +220,16 @@ class RoadGraph {
   /// the nearest goal as the heuristic, over the edges [allow] keeps. Having
   /// arrived on [approach] restricts the first turn. Ties go to the lower
   /// edge id, then the lower junction id (the start, with no edge, first).
-  /// Null when no goal is reached.
+  /// Null when no goal is reached. [costOf] (Dart only, navigation) prices an
+  /// edge instead of its length, never below it so the heuristic holds, and
+  /// [uTurnCostM] a U-turn.
   Route? shortestRoute(
     int from,
     Set<int> goals, {
     bool Function(RoadEdge edge)? allow,
     RoadEdge? approach,
+    double Function(RoadEdge edge)? costOf,
+    double uTurnCostM = RoutingConfig.uTurnPenaltyM,
   }) {
     // A search between pieces would expand all of [from]'s piece to fail.
     if (!goals.any((g) => connected(from, g))) return null;
@@ -224,7 +255,8 @@ class RoadGraph {
         final next = _State(e, e.other(state.junction));
         if (closed.contains(next)) continue;
         final uTurn = e.id == state.edge?.id;
-        final nc = c + e.lengthM + (uTurn ? RoutingConfig.uTurnPenaltyM : 0);
+        final nc =
+            c + (costOf?.call(e) ?? e.lengthM) + (uTurn ? uTurnCostM : 0);
         if (nc >= (cost[next] ?? double.infinity)) continue;
         cost[next] = nc;
         back[next] = state;
