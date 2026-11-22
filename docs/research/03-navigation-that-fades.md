@@ -16,40 +16,41 @@ Build the feature, but fade guidance per decision, not per route, and keep all a
 
 ## Key findings
 
-| # | Finding | Evidence strength |
-|---|---|---|
-| 1 | When the navigation system automates self-localisation and attention to landmarks, people cannot reverse the route as well; making users tag their own landmarks cut route-reversal errors (3 of 16 users erred, vs 6 and 10 of 16 in the more automated groups) with no cost to the assisted walk (Brügger, Richter & Fabrikant 2019, 64 participants, 14 intersections, Zurich).\[1\] | Moderate (one real-world pedestrian study, low error counts) |
-| 2 | GPS-guided wayfinders travel further, stop more and draw poorer sketch maps than map users or people who walked the route with a guide (Ishikawa et al. 2008, 66 pedestrians).\[2\]\[3\] Navigation-system users build good route memory but poor survey knowledge (Münzer et al. 2006).\[4\] | Strong for the direction of effect; pedestrian-only |
-| 3 | Orientation information (global landmarks, regions, structure) in instructions improves survey knowledge (sketch maps, pointing) without harming wayfinding (Schwering et al. 2017; Löwen, Krukar & Schwering 2019); local features support route knowledge, global features support survey knowledge.\[4\]\[5\] A virtual-reality study by Kuo, Chang & Chu (2022) found that "orientation-based guidance yielded poor navigation performance, similar to the turn-by-turn navigation aids." | Moderate, partly conflicting |
-| 4 | North-up maps support configural (survey) learning; track/heading-up maps support immediate turn decisions and cardinal-direction judgements (Rizzardo & Colle 2013, virtual driving, N = 96 and 192; aerial navigation study in Human Factors, PubMed 22908682).\[6\]\[7\] Forward-up users catch up with practice (time-course study 2023).\[8\] | Moderate (simulator/VR) |
-| 5 | Good landmarks in driver instructions improve navigation and reduce glances compared with distance-to-turn (May & Ross 2006, road trial, 48 drivers; Burnett 1998, 2000). Traffic lights are the most-used driver landmark.\[9\] | Strong for drivers |
-| 6 | Navigation aids impair spatial memory largely by dividing attention (Gardony et al. 2013, 2015).\[10\] | Moderate (VR) |
-| 7 | Voice interactions are not "free": listening to voice messages rated about category 2 on Strayer's 5-point cognitive distraction scale (≈ a phone conversation), composing replies category 3; OEM voice systems averaged 3.34 (range 2.37–4.57) (Strayer et al. 2013–2017, AAA Foundation).\[11\] | Strong |
-| 8 | NHTSA's visual-manual guidelines: single glances ≤ 2 s, total eyes-off-road ≤ 12 s per task, met by 85% of test drivers; the 2016 proposed Phase 2 extended the same limits to portable devices.\[12\]\[13\] | Strong (as a design standard, voluntary) |
-| 9 | ISO 15008:2017 minimum symbol/background contrast: 5:1 night, 3:1 twilight, 3:1 day, 2:1 direct sunlight; legibility literature recommends characters of about 20–24 arcmin (≈ 4.9 mm cap height at 70 cm).\[14\] | Strong (standard) |
-| 10 | In Georgia, the Law on Road Traffic forbids using a mobile communication device while driving unless the driver uses an earpiece or loudspeaker function and both hands stay free for driving; Article 118² of the Code of Administrative Offences sets the fine, raised to 50 GEL from 1 May 2026.\[15\]\[16\] | Strong (primary law), with interpretation gaps for screen viewing |
-| 11 | The "assistance dilemma": too much help hurts learning, too little causes floundering; the right amount depends on the learner's current state (Koedinger & Aleven 2007). No study gives navigation-specific thresholds.\[17\] | Moderate (general); thresholds are Expert judgement |
-| 12 | Habits form over a median of 66 days (range 18–254) and a single missed opportunity did not materially affect habit formation (Lally et al. 2010, 96 participants).\[18\] | Moderate |
-| 13 | London Knowledge students learn ~25,000 streets and 320 runs over about 3–4 years by reciting routes in spaced oral exams; only 39 of 79 trainees in Woollett & Maguire 2011 qualified.\[19\]\[20\]\[21\] No Knowledge app or street-quiz app has a published evaluation. | Strong (descriptive); Weak for app efficacy |
-| 14 | Repeatedly following route guidance did not hurt route knowledge compared with testing from memory with feedback (Sjolund & Kelly 2021, retested after 48 hours); in five virtual-building experiments, testing beat studying only when feedback came before the move, and feedback after a wrong move made performance worse than studying (Kelly, Carpenter & Sjolund 2015). | Weak–Moderate (lab, pedestrian) |
+| #   | Finding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Evidence strength                                                 |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| 1   | When the navigation system automates self-localisation and attention to landmarks, people cannot reverse the route as well; making users tag their own landmarks cut route-reversal errors (3 of 16 users erred, vs 6 and 10 of 16 in the more automated groups) with no cost to the assisted walk (Brügger, Richter & Fabrikant 2019, 64 participants, 14 intersections, Zurich).\[1\]                                                                                                       | Moderate (one real-world pedestrian study, low error counts)      |
+| 2   | GPS-guided wayfinders travel further, stop more and draw poorer sketch maps than map users or people who walked the route with a guide (Ishikawa et al. 2008, 66 pedestrians).\[2\]\[3\] Navigation-system users build good route memory but poor survey knowledge (Münzer et al. 2006).\[4\]                                                                                                                                                                                                 | Strong for the direction of effect; pedestrian-only               |
+| 3   | Orientation information (global landmarks, regions, structure) in instructions improves survey knowledge (sketch maps, pointing) without harming wayfinding (Schwering et al. 2017; Löwen, Krukar & Schwering 2019); local features support route knowledge, global features support survey knowledge.\[4\]\[5\] A virtual-reality study by Kuo, Chang & Chu (2022) found that "orientation-based guidance yielded poor navigation performance, similar to the turn-by-turn navigation aids." | Moderate, partly conflicting                                      |
+| 4   | North-up maps support configural (survey) learning; track/heading-up maps support immediate turn decisions and cardinal-direction judgements (Rizzardo & Colle 2013, virtual driving, N = 96 and 192; aerial navigation study in Human Factors, PubMed 22908682).\[6\]\[7\] Forward-up users catch up with practice (time-course study 2023).\[8\]                                                                                                                                            | Moderate (simulator/VR)                                           |
+| 5   | Good landmarks in driver instructions improve navigation and reduce glances compared with distance-to-turn (May & Ross 2006, road trial, 48 drivers; Burnett 1998, 2000). Traffic lights are the most-used driver landmark.\[9\]                                                                                                                                                                                                                                                              | Strong for drivers                                                |
+| 6   | Navigation aids impair spatial memory largely by dividing attention (Gardony et al. 2013, 2015).\[10\]                                                                                                                                                                                                                                                                                                                                                                                        | Moderate (VR)                                                     |
+| 7   | Voice interactions are not "free": listening to voice messages rated about category 2 on Strayer's 5-point cognitive distraction scale (≈ a phone conversation), composing replies category 3; OEM voice systems averaged 3.34 (range 2.37–4.57) (Strayer et al. 2013–2017, AAA Foundation).\[11\]                                                                                                                                                                                            | Strong                                                            |
+| 8   | NHTSA's visual-manual guidelines: single glances ≤ 2 s, total eyes-off-road ≤ 12 s per task, met by 85% of test drivers; the 2016 proposed Phase 2 extended the same limits to portable devices.\[12\]\[13\]                                                                                                                                                                                                                                                                                  | Strong (as a design standard, voluntary)                          |
+| 9   | ISO 15008:2017 minimum symbol/background contrast: 5:1 night, 3:1 twilight, 3:1 day, 2:1 direct sunlight; legibility literature recommends characters of about 20–24 arcmin (≈ 4.9 mm cap height at 70 cm).\[14\]                                                                                                                                                                                                                                                                             | Strong (standard)                                                 |
+| 10  | In Georgia, the Law on Road Traffic forbids using a mobile communication device while driving unless the driver uses an earpiece or loudspeaker function and both hands stay free for driving; Article 118² of the Code of Administrative Offences sets the fine, raised to 50 GEL from 1 May 2026.\[15\]\[16\]                                                                                                                                                                               | Strong (primary law), with interpretation gaps for screen viewing |
+| 11  | The "assistance dilemma": too much help hurts learning, too little causes floundering; the right amount depends on the learner's current state (Koedinger & Aleven 2007). No study gives navigation-specific thresholds.\[17\]                                                                                                                                                                                                                                                                | Moderate (general); thresholds are Expert judgement               |
+| 12  | Habits form over a median of 66 days (range 18–254) and a single missed opportunity did not materially affect habit formation (Lally et al. 2010, 96 participants).\[18\]                                                                                                                                                                                                                                                                                                                     | Moderate                                                          |
+| 13  | London Knowledge students learn ~25,000 streets and 320 runs over about 3–4 years by reciting routes in spaced oral exams; only 39 of 79 trainees in Woollett & Maguire 2011 qualified.\[19\]\[20\]\[21\] No Knowledge app or street-quiz app has a published evaluation.                                                                                                                                                                                                                     | Strong (descriptive); Weak for app efficacy                       |
+| 14  | Repeatedly following route guidance did not hurt route knowledge compared with testing from memory with feedback (Sjolund & Kelly 2021, retested after 48 hours); in five virtual-building experiments, testing beat studying only when feedback came before the move, and feedback after a wrong move made performance worse than studying (Kelly, Carpenter & Sjolund 2015).                                                                                                                | Weak–Moderate (lab, pedestrian)                                   |
 
 ## Q1. Fading assistance: what to fade, and the ladder
 
 **What the evidence says.**
-- *Automation level matters more than modality.* Brügger et al. (2019) varied who did two jobs: locating yourself (always-on blue dot vs a "GPS on" button showing the dot for 10 s) and allocating attention to landmarks (system pushes a landmark vs the user tags three landmarks of their choice). All groups walked the assisted route equally fast with zero errors. On the unaided reversal, errors were 18% in both self-tagging groups, 37.5% with system landmarks + always-on dot, and 62.5% with system landmarks + on-demand dot, whose users pressed "GPS on" a median of 14 times.\[1\] Lesson: on-demand help alone does not make people learn; they simply ask for it often. What helped was a task that made them attend to the environment.
-- *Quizzing during navigation.* Parush, Ahuvia & Erev (2007) built the original "where are you?" quiz into a navigation aid and argued that constant position display makes users "mindless" of the environment.\[1\]\[22\] The full text was not re-checked for this report; treat the direction as plausible but the size as unknown.
-- *Orientation and landmark content.* Landmark-based instructions improve incidental learning (settled). Orientation information (global landmarks, districts, direction) adds survey knowledge (Schwering et al. 2017; Löwen et al. 2019), though a virtual-reality study (Kuo, Chang & Chu 2022) found orientation-based guidance gave poor later navigation performance, similar to turn-by-turn. Treat orientation cues as useful but not proven for driving.
-- *Error-triggered help.* No controlled study tests a "silent until you go wrong" car navigator. The closest is the Iowa State route-learning work: in Sjolund & Kelly (2021), testing from memory with corrective feedback was no better than following guidance for route knowledge, and in Kelly, Carpenter & Sjolund (2015) testing improved route memory only when feedback about the correct choice came before moving, while feedback after a wrong move made performance worse than studying. Implication: Quiet's recovery voice should fire as soon as a wrong move is detectable, and Pindoro should help just before a likely error (Coached) at decisions the driver does not yet know.
-- *Fading in instruction.* Faded worked examples and the expertise-reversal effect (Renkl; Kalyuga) say guidance that helps novices becomes redundant and even harmful for people who already know the material. That supports fading per decision: a Known decision that still gets a voice prompt is redundant help.
+
+- _Automation level matters more than modality._ Brügger et al. (2019) varied who did two jobs: locating yourself (always-on blue dot vs a "GPS on" button showing the dot for 10 s) and allocating attention to landmarks (system pushes a landmark vs the user tags three landmarks of their choice). All groups walked the assisted route equally fast with zero errors. On the unaided reversal, errors were 18% in both self-tagging groups, 37.5% with system landmarks + always-on dot, and 62.5% with system landmarks + on-demand dot, whose users pressed "GPS on" a median of 14 times.\[1\] Lesson: on-demand help alone does not make people learn; they simply ask for it often. What helped was a task that made them attend to the environment.
+- _Quizzing during navigation._ Parush, Ahuvia & Erev (2007) built the original "where are you?" quiz into a navigation aid and argued that constant position display makes users "mindless" of the environment.\[1\]\[22\] The full text was not re-checked for this report; treat the direction as plausible but the size as unknown.
+- _Orientation and landmark content._ Landmark-based instructions improve incidental learning (settled). Orientation information (global landmarks, districts, direction) adds survey knowledge (Schwering et al. 2017; Löwen et al. 2019), though a virtual-reality study (Kuo, Chang & Chu 2022) found orientation-based guidance gave poor later navigation performance, similar to turn-by-turn. Treat orientation cues as useful but not proven for driving.
+- _Error-triggered help._ No controlled study tests a "silent until you go wrong" car navigator. The closest is the Iowa State route-learning work: in Sjolund & Kelly (2021), testing from memory with corrective feedback was no better than following guidance for route knowledge, and in Kelly, Carpenter & Sjolund (2015) testing improved route memory only when feedback about the correct choice came before moving, while feedback after a wrong move made performance worse than studying. Implication: Quiet's recovery voice should fire as soon as a wrong move is detectable, and Pindoro should help just before a likely error (Coached) at decisions the driver does not yet know.
+- _Fading in instruction._ Faded worked examples and the expertise-reversal effect (Renkl; Kalyuga) say guidance that helps novices becomes redundant and even harmful for people who already know the material. That supports fading per decision: a Known decision that still gets a voice prompt is redundant help.
 
 **Is the three-level ladder right?** Mostly, but the jump from Guided (every decision) to Quiet (error-triggered only) is too big for a route where half the decisions are Known. Use four levels and apply them per decision:
 
-| Level | Voice | Screen | FSRS effect |
-|---|---|---|---|
-| Guided | Every decision, landmark-first, plus one confirmation after each turn | Heading-up map, route line, labels, north indicator | Exposure only |
-| Coached (new) | Only at decisions not silent-eligible; cue without question ("At Vake Park, left onto Chavchavadze"); silent at Known decisions; recovery as in Quiet | Quiet screen | Prompted decisions: exposure; unprompted ones: evidence |
-| Quiet | Silent; recovery voice when a decision fails until back on a good path | Quiet screen (no map) | Unprompted decisions: evidence |
-| Off | None | Recording indicator only | Evidence |
+| Level         | Voice                                                                                                                                                 | Screen                                              | FSRS effect                                             |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------- |
+| Guided        | Every decision, landmark-first, plus one confirmation after each turn                                                                                 | Heading-up map, route line, labels, north indicator | Exposure only                                           |
+| Coached (new) | Only at decisions not silent-eligible; cue without question ("At Vake Park, left onto Chavchavadze"); silent at Known decisions; recovery as in Quiet | Quiet screen                                        | Prompted decisions: exposure; unprompted ones: evidence |
+| Quiet         | Silent; recovery voice when a decision fails until back on a good path                                                                                | Quiet screen (no map)                               | Unprompted decisions: evidence                          |
+| Off           | None                                                                                                                                                  | Recording indicator only                            | Evidence                                                |
 
 Do not add separate "landmark-only" or "orientation-only" levels: those are content choices, used inside Guided and Coached, not steps on the ladder. A "confirm-only" mode (silent unless asked) repeats Brügger's on-demand failure, and asking would need a touch, so leave it out.
 
@@ -58,31 +59,33 @@ Do not add separate "landmark-only" or "orientation-only" levels: those are cont
 **Evidence.** North-up displays give better configural knowledge; track-up gives easier turn decisions and better cardinal-direction judgements. Rizzardo & Colle (2013) found that with glance-limited viewing, a north-up display with a spatial + verbal turn indicator still produced spatial learning, while track-up did not even with long glances.\[6\] Whole-route views help survey knowledge (Ishikawa et al. 2008 attribute part of the GPS deficit to piecemeal, dynamically updated views).\[23\] Every glance at the screen is time not spent on the road and on landmarks (Gardony et al.).\[1\]
 
 **Rules.**
-- *Pre-drive preview (parked):* north-up, whole route, district names, the 3–7 key decisions highlighted with their landmarks. This is where the survey picture gets built.
-- *Guided (moving):* heading-up map for safety and easy turn decisions, with a fixed north arrow, district names and the route line. Show the current and next street names only. No traffic, POIs or clutter.
-- *Coached and Quiet (moving):* no map, no route line, no next-turn, no street labels. Show: (1) a heading arrow with the cardinal letter (e.g. "N"), (2) the current district name in large type (e.g. "Vake"), (3) a small status dot (green = on a good path; amber = recovery active). Dark background. This gives orientation information (which supports survey knowledge) without giving the answer to any card. Do not show the current street name in Quiet: street names are a tested card type, and the screen would answer it.
-- *Recovery (in Coached or Quiet after a failure):* switch to heading-up, next-turn arrow + the street to turn into, until the driver is back within 1.25× of the best route; then fade back to the Quiet screen after 10 s on a good path.
-- *Off:* black screen with a small "recording" indicator. Screen stays on only so the OS keeps the recording alive.
-- *Post-drive review (parked):* north-up, whole track over the best route, each decision coloured.
+
+- _Pre-drive preview (parked):_ north-up, whole route, district names, the 3–7 key decisions highlighted with their landmarks. This is where the survey picture gets built.
+- _Guided (moving):_ heading-up map for safety and easy turn decisions, with a fixed north arrow, district names and the route line. Show the current and next street names only. No traffic, POIs or clutter.
+- _Coached and Quiet (moving):_ no map, no route line, no next-turn, no street labels. Show: (1) a heading arrow with the cardinal letter (e.g. "N"), (2) the current district name in large type (e.g. "Vake"), (3) a small status dot (green = on a good path; amber = recovery active). Dark background. This gives orientation information (which supports survey knowledge) without giving the answer to any card. Do not show the current street name in Quiet: street names are a tested card type, and the screen would answer it.
+- _Recovery (in Coached or Quiet after a failure):_ switch to heading-up, next-turn arrow + the street to turn into, until the driver is back within 1.25× of the best route; then fade back to the Quiet screen after 10 s on a good path.
+- _Off:_ black screen with a small "recording" indicator. Screen stays on only so the OS keeps the recording alive.
+- _Post-drive review (parked):_ north-up, whole track over the best route, each decision coloured.
 
 ## Q3. Voice content, order and frequency
 
 **Evidence.** Drivers navigate better and glance less with good landmarks than with distance-to-turn (May & Ross 2006; Burnett 1998, 2000); good landmarks are permanent, visible, at the decision point, and unique.\[24\]\[25\] Street names are used infrequently as cues and need sign-reading.\[26\] Orientation cues aid survey knowledge (Schwering).\[4\] Voice prompts carry a real cognitive cost (Strayer), so fewer, shorter prompts are better.\[27\]
 
 **Rules.**
-- *Order:* landmark → action → street name. "At Vake Park, turn left onto Chavchavadze Avenue." Distance only when no good landmark exists within 50 m of the junction ("In 200 metres, turn left onto …"). Traffic lights count as a landmark ("At the lights, …").
-- *Timing (urban, ≤ 70 km/h):* one prepare prompt at max(150 m, 10 s) before the junction; one action prompt at max(40 m, 4 s). In Coached, only the prepare prompt unless the driver already passed the last point at which the correct lane can safely be reached. Never more than 2 prompts per decision.
-- *Confirmation:* in Guided, one confirmation 5–10 s after each completed turn: "Chavchavadze Avenue, heading west." In Coached/Quiet, no confirmations (silence is the confirmation; the status dot stays green).
-- *District/cardinal cues:* "Into Vake, heading north" when crossing a district boundary, at most once per 2 km and once per 3 minutes, in Guided and Coached only. In Quiet, the screen carries this.
-- *Length:* ≤ 3 s of speech per prompt; ≤ 8 words except when the street name is long.
-- *Language:* say street names the way locals say them (Georgian pronunciation), because recognition of signs and of local speech is the real-world target.
-- *Does hearing names help the street-name curriculum?* Plausibly a little, as incidental exposure paired with the place, but evidence is thin; the settled finding is that names are poor driving cues. Log name exposure per card (see "What to log") and check whether exposed-but-unreviewed name cards have higher first-review success than unexposed ones.
+
+- _Order:_ landmark → action → street name. "At Vake Park, turn left onto Chavchavadze Avenue." Distance only when no good landmark exists within 50 m of the junction ("In 200 metres, turn left onto …"). Traffic lights count as a landmark ("At the lights, …").
+- _Timing (urban, ≤ 70 km/h):_ one prepare prompt at max(150 m, 10 s) before the junction; one action prompt at max(40 m, 4 s). In Coached, only the prepare prompt unless the driver already passed the last point at which the correct lane can safely be reached. Never more than 2 prompts per decision.
+- _Confirmation:_ in Guided, one confirmation 5–10 s after each completed turn: "Chavchavadze Avenue, heading west." In Coached/Quiet, no confirmations (silence is the confirmation; the status dot stays green).
+- _District/cardinal cues:_ "Into Vake, heading north" when crossing a district boundary, at most once per 2 km and once per 3 minutes, in Guided and Coached only. In Quiet, the screen carries this.
+- _Length:_ ≤ 3 s of speech per prompt; ≤ 8 words except when the street name is long.
+- _Language:_ say street names the way locals say them (Georgian pronunciation), because recognition of signs and of local speech is the real-world target.
+- _Does hearing names help the street-name curriculum?_ Plausibly a little, as incidental exposure paired with the place, but evidence is thin; the settled finding is that names are poor driving cues. Log name exposure per card (see "What to log") and check whether exposed-but-unreviewed name cards have higher first-review success than unexposed ones.
 
 ## Q4. Active learning while driving: almost nothing in the car
 
 **Evidence.** Glance limits are 2 s single and 12 s total per task (NHTSA). Auditory-vocal tasks cost cognitive workload: listening to messages is about category 2 on Strayer's scale, composing a spoken reply category 3, and OEM voice systems averaged 3.34; the AAA studies also found workload stays raised for a while after a voice task ends.\[28\]\[29\] Retrieval ("which way?") is effortful by design: that effort is the learning mechanism and also the distraction. The approach to a junction is the highest-workload moment of urban driving (lane choice, pedestrians, signals). No study shows a safe in-car quiz protocol.
 
-**Judgement.** A "Which way?" question with the answer revealed seconds later should not ship. It invites an answer (a spoken reply is category ~3), it times retrieval to the riskiest moment, and the reveal adds a second prompt. The safer equivalent is Coached's *cue without a question*: the landmark is named well before the junction and the driver acts; no answer is invited, and correctness is judged from the track. If you ever experiment with an explicit anticipation cue ("Next decision: Vake Park"), apply all of these: only in Coached; ≥ 300 m and ≥ 20 s before the junction; speed ≤ 60 km/h; no other junction within 150 m; no recovery active; never two in a row within 60 s; no answer expected; off by default.
+**Judgement.** A "Which way?" question with the answer revealed seconds later should not ship. It invites an answer (a spoken reply is category ~3), it times retrieval to the riskiest moment, and the reveal adds a second prompt. The safer equivalent is Coached's _cue without a question_: the landmark is named well before the junction and the driver acts; no answer is invited, and correctness is judged from the track. If you ever experiment with an explicit anticipation cue ("Next decision: Vake Park"), apply all of these: only in Coached; ≥ 300 m and ≥ 20 s before the junction; speed ≤ 60 km/h; no other junction within 150 m; no recovery active; never two in a row within 60 s; no answer expected; off by default.
 
 **Before the drive (parked, 60–90 s):** north-up whole-route preview; play the route fine-to-coarse; then ask the driver to recite the key decisions aloud or tap them (retrieval with immediate feedback). Mental rehearsal of the route is cheap and safe.
 
@@ -93,10 +96,12 @@ Do not add separate "landmark-only" or "orientation-only" levels: those are cont
 **Basis.** The assistance dilemma (Koedinger & Aleven 2007) says help should depend on the learner's current state; desirable-difficulty work (Bjork) supports making retrieval effortful but successful.\[17\] FSRS at desired retention 0.90 already targets ~90% success. Navigation-specific thresholds do not exist; the values below are expert-judgement defaults to tune.
 
 **Per decision (computed at route start, refreshed after each decision):**
-- *Silent-eligible:* card Known AND retrievability R ≥ 0.85 AND no failure (in-app or in-drive) in the last 14 days.
-- *Coach:* anything else.
+
+- _Silent-eligible:_ card Known AND retrievability R ≥ 0.85 AND no failure (in-app or in-drive) in the last 14 days.
+- _Coach:_ anything else.
 
 **Per route suggestion (share S of silent-eligible decisions; min R over decisions):**
+
 - Off: S ≥ 0.90 AND min R ≥ 0.75 AND at least one Quiet drive on this route (or 80% route overlap) with ≤ 1 recovery.
 - Quiet: S ≥ 0.70.
 - Coached: S ≥ 0.40.
@@ -105,6 +110,7 @@ Do not add separate "landmark-only" or "orientation-only" levels: those are cont
 **Hysteresis.** Suggest one level less help only after 2 consecutive drives at the current level with stretch ≤ 1.25 and ≤ 1 recovery. Suggest one level more help after 2 drives at the level with stretch > 1.60 or ≥ 3 recoveries. Never move more than one level at a time. The driver can always pick more help; picking less help than suggested is allowed for at most one step.
 
 **In-drive frustration guard (automatic, no touch).**
+
 - 2 recoveries within 5 minutes, or a cumulative 3 minutes of added drive time vs the best route → switch the rest of the drive to Coached and say so once ("I'll guide the tricky turns for the rest of this drive").
 - 3 recoveries in a drive at Coached → switch to Guided.
 - In Off: no voice, by design. Offer a parked "Rescue" action: stop, tap once, get Guided to the destination; the drive is logged as "rescued" and decisions after the rescue are excluded.
@@ -116,14 +122,15 @@ Do not add separate "landmark-only" or "orientation-only" levels: those are cont
 **Should a correct unprompted decision count as a success?** Yes, with guards. A real-world retrieval that the driver acted on is a stronger test than a flash card (the testing effect works on retrieval, and here retrieval had consequences). Counting only failures biases intervals downward for cards that are reviewed in real life often.
 
 **Rules.**
+
 - Credit only decisions taken at Coached-silent, Quiet or Off, with no prompt for that decision and no recovery active within the previous 60 s.
 - Grade: correct with no hesitation flag within 150 m before the junction → Good; correct with a hesitation flag → Hard; wrong (illegal or outside 1.25×) → Again (as today). Never Easy.
 - Credit only if the card's current R ≤ 0.92 (due or close to due); otherwise log as "exposure, not reviewed". This avoids inflating stability with trivially easy, too-early reviews.
 - At most one credited review per card per calendar day (keep the first; later failures that day still count).
-- *Habitual corridors:* if a J card has been passed ≥ 3 times in 14 days in the same direction, credit at most one success per 7 days; failures still always count.
-- *Direction and viewpoint:* route knowledge is strongly direction-dependent, so J cards must remain direction-specific (arrive on X at Y). Never credit the reverse direction from a forward success. When a habitual route is overlearned in one direction, schedule its reverse-direction J cards for introduction (they are new cards, not reviews).
-- *Guided decisions:* no credit, no penalty; log as exposure. A wrong move while Guided is logged as a "followed-guidance error", not a memory failure.
-- *Recovery decisions:* decisions made while the recovery voice is active are exposure only.
+- _Habitual corridors:_ if a J card has been passed ≥ 3 times in 14 days in the same direction, credit at most one success per 7 days; failures still always count.
+- _Direction and viewpoint:_ route knowledge is strongly direction-dependent, so J cards must remain direction-specific (arrive on X at Y). Never credit the reverse direction from a forward success. When a habitual route is overlearned in one direction, schedule its reverse-direction J cards for introduction (they are new cards, not reviews).
+- _Guided decisions:_ no credit, no penalty; log as exposure. A wrong move while Guided is logged as a "followed-guidance error", not a memory failure.
+- _Recovery decisions:_ decisions made while the recovery voice is active are exposure only.
 
 ## Q7. Personal routes vs road-class order
 
@@ -134,13 +141,14 @@ Do not add separate "landmark-only" or "orientation-only" levels: those are cont
 ## Q8. Drive-log metrics and progress display
 
 **Measures, ranked by validity for "can drive any A→B without GPS":**
-1. *Unaided decision accuracy* (share of decisions correct without a prompt, at Coached/Quiet/Off). Most direct; already graded per decision.
-2. *Route stretch* on Off drives (≤ 1.03 Perfect … as in recitals). Good summary; sensitive to closed roads and traffic, so use the median of 5.
-3. *New destinations reached at Off* (distinct destination cells, e.g. 300 m grid, first reached GPS-free). Best measure of transfer.
-4. *Recoveries per 10 km* (Quiet/Coached). Direct measure of help needed.
-5. *U-turns per 10 km.* Good error signal, low noise.
-6. *Hesitations per 10 km.* Noisy (traffic, parking searches); report only as a trend.
-7. *Pointing error* at destination (parked, "point to home"): the standard survey-knowledge measure in wayfinding research; collect once per new destination.
+
+1. _Unaided decision accuracy_ (share of decisions correct without a prompt, at Coached/Quiet/Off). Most direct; already graded per decision.
+2. _Route stretch_ on Off drives (≤ 1.03 Perfect … as in recitals). Good summary; sensitive to closed roads and traffic, so use the median of 5.
+3. _New destinations reached at Off_ (distinct destination cells, e.g. 300 m grid, first reached GPS-free). Best measure of transfer.
+4. _Recoveries per 10 km_ (Quiet/Coached). Direct measure of help needed.
+5. _U-turns per 10 km._ Good error signal, low noise.
+6. _Hesitations per 10 km._ Noisy (traffic, parking searches); report only as a trend.
+7. _Pointing error_ at destination (parked, "point to home"): the standard survey-knowledge measure in wayfinding research; collect once per new destination.
 
 **Display without XP.** Competence feedback, not points: (1) a north-up city map that fills in as J cards and streets become Known, coloured by road class; (2) per frequent route, the current ladder level and its history ("Home → Work: Guided in March, Off since June"); (3) a weekly line: "This week: 3 drives without help, 1 new place, 92% of decisions on your own." Keep the Perfect/Great/Close/Miss tiers for drives. No streaks that reset.
 
@@ -149,6 +157,7 @@ Do not add separate "landmark-only" or "orientation-only" levels: those are cont
 **Evidence.** Habit automaticity grows over a median 66 days, with wide variation, and one missed opportunity did not derail it (Lally et al. 2010).\[30\] Implementation intentions ("when I drive to X on Saturday, I'll go GPS-free") reliably increase follow-through.
 
 **Rules.**
+
 - Weekly floor: 2 Off drives per week (keep). Add: 1 drive per week to a destination never reached at Off.
 - Count weeks, not days. One missed week does not break anything; show "back on track" after a miss, never a reset.
 - Planning: on Sunday evening (or the user's chosen day), offer one implementation-intention prompt: pick the two drives this week that will be Off.
@@ -158,17 +167,20 @@ Do not add separate "landmark-only" or "orientation-only" levels: those are cont
 ## Q10. Safety and law
 
 **Georgia (the country), as of November 2026.**
+
 - The Law of Georgia on Road Traffic tells drivers to avoid any action not related to driving and forbids using a mobile communication device while driving. The ban does not apply when the driver uses an earpiece or the loudspeaker (remote) function and has both hands free to drive.\[16\]
 - Article 118² of the Code of Administrative Offences: using a mobile communication device while driving → fine of 50 GEL (raised from 30 GEL by amendments adopted 17 March 2026, in force 1 May 2026).\[31\] Unpaid fines attract a surcharge of double the fine (max 500 GEL), and continued non-payment can lead to a 6-month suspension.\[32\] Reporting on the penalty points is inconsistent (parliamentary coverage said 10 points; a secondary guide lists 15): check the consolidated Code on matsne.gov.ge before quoting it in the app.\[33\]\[34\]
 - The law speaks about phones and hands, not about screens or holders. A phone in a holder with no touches while moving and voice through the car's audio fits the stated exception. Touching the phone while moving, even to dismiss a prompt, risks being "use" outside the exception. Where a holder may be placed (e.g. windscreen) was not checked; tell users not to block the view and to set up before moving.
 - Context: Georgia had 469 road deaths and 8,191 injuries in 2025, according to Interior Ministry figures reported by JAMnews (the highest death toll since 2019; 43% of crashes were in Tbilisi).
 
 **Glance and touch rules.**
+
 - Zero touches while speed > 5 km/h. All in-drive changes (level switches, recovery, frustration guard) are automatic.
 - Any screen element must be readable in one glance ≤ 1.5 s (well under NHTSA's 2 s cap); no feature may need more than one glance per decision.
 - Destination entry, level choice and preview only while parked.
 
 **Text and contrast for a portrait phone at 60–80 cm.**
+
 - Minimum cap height 6 mm (≈ 26 arcmin at 80 cm) for anything read while moving; 8 mm for the one primary item (district name in Quiet; next street in Guided/recovery). In Flutter, with ~0.16 mm per logical pixel and cap height ≈ 0.7 × font size, that is ≈ 54 px and ≈ 71 px font size. Measure on real devices.
 - For Georgian (Mkhedruli) script, which has no capitals, size by x-height: x-height ≥ 4.5 mm.
 - Contrast ≥ 3:1 by day, ≥ 5:1 at night (ISO 15008:2017); aim for 7:1 for text.\[35\] ≤ 3 text items on screen while moving.
