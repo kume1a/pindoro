@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:pindoro_core/pindoro_core.dart';
 
 import 'constants.dart';
+import 'grader.dart';
 import 'route_questions.dart';
 import 'routes.dart';
 
@@ -203,7 +204,7 @@ List<NavLane>? navLanes(NavDecision d) {
       {for (final v in lane.split(';')) _laneDeg[v.trim()] ?? 0.0}.toList(),
   ];
   final turn = turnAngle(approach, d.exit, d.junction);
-  double off(double a) => (((turn - a) % 360 + 540) % 360 - 180).abs();
+  double off(double a) => bearingError(turn, a);
   final best = lanes.expand((l) => l).reduce((a, b) => off(b) < off(a) ? b : a);
   if (off(best) > LearningConfig.laneMatchDeg) return null;
   return [
@@ -218,6 +219,22 @@ double turnAngle(RoadEdge approach, RoadEdge exit, int junction) =>
             540) %
         360 -
     180;
+
+/// The J item id of leaving [junction] on [exit] after [approach], by OSM node ([nodes]); null
+/// without an approach or a node.
+String? junctionKey(
+  Map<int, int> nodes,
+  int junction,
+  RoadEdge? approach,
+  RoadEdge exit,
+) => switch ((
+  nodes[junction],
+  approach == null ? null : nodes[approach.other(junction)],
+  nodes[exit.other(junction)],
+)) {
+  (final node?, final from?, final to?) => RouteIds.junction(node, from, to),
+  _ => null,
+};
 
 /// Whether leaving [junction] on [exit] after [approach] is a decision (SPEC §16.23 item 112):
 /// another legal way on (U-turns aside), and the route enters another named street or another
@@ -270,9 +287,6 @@ List<NavDecision> navDecisions(
     final newStreet = street != null && namedId != null && namedId != street;
     if (namedId != null) street = namedId;
     if (isDecision(graph, j, before, exit, newStreet: newStreet)) {
-      final node = junctionNodes[j];
-      final from = before == null ? null : junctionNodes[before.other(j)];
-      final to = junctionNodes[exit.other(j)];
       out.add((
         index: i,
         junction: j,
@@ -284,9 +298,7 @@ List<NavDecision> navDecisions(
         street: named,
         newStreet: newStreet,
         atM: atM,
-        key: node == null || from == null || to == null
-            ? null
-            : RouteIds.junction(node, from, to),
+        key: junctionKey(junctionNodes, j, before, exit),
         landmark: _landmarkAt(graph.at(j), j, landmarks),
         signals: graph.signals.contains(j),
       ));

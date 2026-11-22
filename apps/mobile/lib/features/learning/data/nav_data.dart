@@ -194,7 +194,8 @@ District? raionAt(List<District> districts, LatLng at) => districts
     .where((d) => d.isRaion && boundaryContains(d.boundary, at))
     .firstOrNull;
 
-/// The smallest district [at] lies in, for district cues and the drive screen.
+/// The smallest district [at] lies in, to tell a destination found by name apart (the drive's
+/// cues use [raionAt]).
 District? districtAt(List<District> districts, LatLng at) {
   District? best;
   for (final d in districts) {
@@ -203,6 +204,9 @@ District? districtAt(List<District> districts, LatLng at) {
   }
   return best;
 }
+
+/// A turn's J item id's junction node (`...:n123:...`).
+final RegExp _turnNode = RegExp(r':n(\d+):');
 
 /// How many introduced J [cards] turn at a junction inside [raion] (item 114's area check),
 /// junctions found by OSM node through [byNode].
@@ -215,7 +219,7 @@ int jCardsIn(
   var count = 0;
   for (final c in cards) {
     if (c.type != CardType.j) continue;
-    final node = RegExp(r':n(\d+):').firstMatch(c.itemId)?.group(1);
+    final node = _turnNode.firstMatch(c.itemId)?.group(1);
     final junction = node == null ? null : byNode[int.parse(node)];
     if (junction == null) continue;
     if (boundaryContains(raion.boundary, graph.at(junction))) count++;

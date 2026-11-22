@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:pindoro_core/pindoro_core.dart';
 
 import 'constants.dart';
+import 'grader.dart';
 import 'recital.dart';
 
 /// A GPS fix of a drive: where, when, and the heading, speed and accuracy the device reported
@@ -44,9 +45,6 @@ typedef EdgeSnap = ({RoadEdge edge, bool forward, double cost, double along});
 
 int _start(EdgeSnap s) => s.forward ? s.edge.from : s.edge.to;
 int _end(EdgeSnap s) => s.forward ? s.edge.to : s.edge.from;
-
-double _angleOff(double a, double b) =>
-    (((a - b) % 360 + 540) % 360 - 180).abs();
 
 /// The point of [e]'s line nearest [p]: its distance, the line's heading there and the share of
 /// the line before it.
@@ -101,7 +99,7 @@ List<EdgeSnap> edgeSnaps(RoadGraph graph, LatLng p, double? heading) {
       var cost = n.distM;
       if (heading != null) {
         final way = forward ? n.headingDeg : (n.headingDeg + 180) % 360;
-        cost += LearningConfig.driveHeadingM * _angleOff(heading, way) / 90;
+        cost += LearningConfig.driveHeadingM * bearingError(heading, way) / 90;
       }
       if (!graph.canDrive(e, forward ? e.from : e.to)) {
         cost += LearningConfig.driveWrongWayM;

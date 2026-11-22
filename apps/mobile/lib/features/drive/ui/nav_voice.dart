@@ -86,9 +86,12 @@ class NavWords {
 
   String arrived(NamedStreet street) => l10n.navArrived(name(street));
 
-  /// A sentence's first letter up (Georgian has no case).
-  static String _capital(String s) =>
-      s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+  /// Rescue's "Guiding you from here".
+  String get rescued => l10n.navRescued;
+
+  /// A sentence's first letter up; Georgian has no case.
+  String _capital(String s) =>
+      georgian || s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 }
 
 /// Navigation's lines said one at a time by [say] (SPEC §16.23 item 117): the phone drops
