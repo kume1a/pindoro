@@ -78,9 +78,10 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                (voice by `NavWords`, the speed chime) on `DriveRecordingView`:
                                Guided's live `DriveMap` with the turn plate and bottom bar, Coached
                                and Quiet's dial and Recovery, Off's black screen; day or night by sun
-                               time at the car; no input while moving, the stopped bar (Mute, level,
-                               Route: `DriveRouteScreen`'s new destination, End drive, Off's Rescue)
-                               while stopped; arrival ends it), `/drive/preview` (the route
+                               time at the car; while moving only Guided's map and Recentre take
+                               touch, the stopped bar (Mute, level, Route: `DriveRouteScreen`'s
+                               Home, Work or a new destination, End drive, Off's Rescue) while
+                               stopped; back does nothing; arrival ends it), `/drive/preview` (the route
                                north-up with its numbered key turns, stepped through with Back and
                                Next, then "Recite the turns");
                                every decision without help reviews its J card (item 119), every
@@ -263,9 +264,13 @@ test/drift/                    generated schema helpers + migration test
   states, question and reveal; Results (`results_data.dart` gathers everything) and the per-answer
   street view.
 - Colour rule: **yellow = truth, cobalt = you, ink = measurement.** Never swap them.
-- The drive's Guided map is `DriveMap` (`drive_map.dart`): heading-up, tilted 32°, following the
-  car, route and car only (no names or landmark icons), no gestures; it comes through
-  `driveMapBuilderProvider`, which drive tests override. The screen shows its attribution.
+- The drive's Guided map is `DriveMap` (`drive_map.dart`): the road ahead up (the navigator's
+  `onRoad`), tilted 32°, the car 70 % down, following it while `follow`; the route (from the car
+  while short of the plan, `toPlan`), the next decision's `turn` arrow (`drive-turn`, its head
+  `drive-turn-head`) and the car only (no names or landmark icons). It drags and pinches at
+  any speed and reports each touch to `onMoved`; the recording view stops following, shows
+  Recentre and follows again after 10 s. It comes through `driveMapBuilderProvider`, which drive
+  tests override. The screen shows its attribution.
 - Screens get the map through `pindoroMapBuilderProvider`; tests override it to capture the
   `PindoroMap` config instead of building the platform view. Explore's city map (`ExploreMap`:
   district fills by City memory, the play area dashed) comes through `exploreMapBuilderProvider`;

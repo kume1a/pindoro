@@ -119,15 +119,7 @@ class LocationService {
             accuracy: LocationAccuracy.bestForNavigation,
           ),
         },
-      ).map(
-        (p) => (
-          at: LatLng(p.latitude, p.longitude),
-          t: p.timestamp,
-          headingDeg: p.heading >= 0 ? p.heading : null,
-          speedMps: p.speed >= 0 ? p.speed : null,
-          accuracyM: p.accuracy >= 0 ? p.accuracy : null,
-        ),
-      );
+      ).map(driveFixOf);
 
   /// The settings page that fixes [denial].
   Future<void> openSettings(LocationDenied denial) async {
@@ -136,6 +128,18 @@ class LocationService {
         : Geolocator.openAppSettings());
   }
 }
+
+/// [p] as a drive fix. Android leaves out a heading, speed or accuracy it didn't measure, which
+/// geolocator reads as 0 (`has*` false); iOS reports them as -1. Either way they're null here:
+/// a 0 would turn the map north at every stop and read as standing still.
+@visibleForTesting
+DriveFix driveFixOf(Position p) => (
+  at: LatLng(p.latitude, p.longitude),
+  t: p.timestamp,
+  headingDeg: p.hasHeading && p.heading >= 0 ? p.heading : null,
+  speedMps: p.hasSpeed && p.speed >= 0 ? p.speed : null,
+  accuracyM: p.hasAccuracy && p.accuracy >= 0 ? p.accuracy : null,
+);
 
 /// Overridden in tests.
 final locationServiceProvider = Provider<LocationService>(

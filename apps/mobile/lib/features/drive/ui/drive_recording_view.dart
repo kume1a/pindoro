@@ -23,10 +23,14 @@ import 'package:pindoro_learning/pindoro_learning.dart' hide Navigator;
 /// "Now Coached" stays this long after the guard steps in (board V32-31).
 const Duration _guardNotice = Duration(seconds: 4);
 
+/// Guided's map goes back to the car this long after the last touch (item 116).
+const Duration _recentreAfter = Duration(seconds: 10);
+
 /// A drive in progress at its level (boards V32-20 to V32-41, SPEC §16.23 items 115–118, 127):
 /// Guided's map between the turn plate and the bottom bar, Coached and Quiet's dial (Recovery
 /// over it after a wrong turn), Off's black screen. Day or night by sun time at the car. Moving,
-/// it takes no input; stopped, the stopped-controls bar rises.
+/// only Guided's map takes touch; stopped, the stopped-controls bar rises. Back does nothing:
+/// End drive ends it.
 class DriveRecordingView extends ConsumerStatefulWidget {
   const DriveRecordingView({super.key, required this.recording});
 
@@ -39,8 +43,20 @@ class DriveRecordingView extends ConsumerStatefulWidget {
 class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
   late final Timer _tick;
   bool _levelOpen = false;
-  NavPlan? _plan;
+
+  /// The route drawn: the plan's, from the car while short of it; made again only when either
+  /// changes.
+  (NavPlan?, LatLng?) _routeFor = (null, null);
   MultiPolyline _route = const [];
+
+  /// The next decision's arrow on the map, made once per decision.
+  (NavPlan?, int?) _turnFor = (null, null);
+  Polyline _turn = const [];
+
+  /// Guided's map follows the car until the player moves it, then again after
+  /// [_recentreAfter] or Recentre.
+  bool _following = true;
+  Timer? _recentre;
 
   @override
   void initState() {
@@ -52,7 +68,19 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
   @override
   void dispose() {
     _tick.cancel();
+    _recentre?.cancel();
     super.dispose();
+  }
+
+  void _moved() {
+    _recentre?.cancel();
+    _recentre = Timer(_recentreAfter, _follow);
+    if (_following) setState(() => _following = false);
+  }
+
+  void _follow() {
+    _recentre?.cancel();
+    if (mounted) setState(() => _following = true);
   }
 
   @override
@@ -62,35 +90,46 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
     final now = ref.read(clockProvider)();
     // An open picker closes unchanged the moment the car moves (item 116).
     if (!r.stopped) _levelOpen = false;
-    if (!identical(view?.plan, _plan)) {
-      _plan = view?.plan;
-      _route = _plan?.route.lines ?? const [];
+    // Until the car is on a road the navigator has no plan: the route picked at setup shows.
+    final plan = view?.plan ?? r.suggestion?.plan;
+    final toPlan = view?.toPlan ?? const <LatLng>[];
+    final routeFor = (plan, toPlan.length > 1 ? toPlan.first : null);
+    if (routeFor != _routeFor) {
+      _routeFor = routeFor;
+      _route = [if (toPlan.length > 1) toPlan, ...?plan?.route.lines];
+    }
+    final next = view?.next;
+    final turnFor = (view?.plan, next?.index);
+    if (turnFor != _turnFor) {
+      _turnFor = turnFor;
+      final p = view?.plan;
+      _turn = p == null || next == null ? const [] : turnArrow(p, next);
     }
     final night = isNight(view?.at ?? r.destination, now);
-    return Theme(
-      data: buildPindoroTheme(night ? Brightness.dark : Brightness.light),
-      child: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle.light,
-        child: Builder(
-          builder: (context) {
-            final c = PindoroTheme.of(context).colors;
-            final settings = ref.watch(settingsProvider).value;
-            return Scaffold(
-              backgroundColor: switch (r.level) {
-                DriveLevel.off => c.driveOffBg,
-                DriveLevel.guided => c.surfaceBase,
-                _ => c.driveQuietBg,
-              },
-              body: AbsorbPointer(
-                absorbing: !r.stopped,
-                child: switch (r.level) {
+    return PopScope(
+      canPop: false,
+      child: Theme(
+        data: buildPindoroTheme(night ? Brightness.dark : Brightness.light),
+        child: AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle.light,
+          child: Builder(
+            builder: (context) {
+              final c = PindoroTheme.of(context).colors;
+              final settings = ref.watch(settingsProvider).value;
+              return Scaffold(
+                backgroundColor: switch (r.level) {
+                  DriveLevel.off => c.driveOffBg,
+                  DriveLevel.guided => c.surfaceBase,
+                  _ => c.driveQuietBg,
+                },
+                body: switch (r.level) {
                   DriveLevel.guided => _guided(context, r, now, settings),
                   DriveLevel.off => _off(context, r, now),
                   _ => _quiet(context, r, now, settings),
                 },
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );
@@ -128,6 +167,8 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
     final then = approaching ? view!.then : null;
     final district = view?.district;
     final mapOf = ref.watch(driveMapBuilderProvider);
+    // The road the car is on straight up; the GPS's own until it is on the plan.
+    final bearing = view?.onRoad?.headingDeg ?? view?.headingDeg;
     final plate = _plate(context, r, settings, arriving: arriving);
     final arrival = _arrival(context, view, now);
     final left = leftM == null ? null : formatDistance(leftM, l10n);
@@ -182,11 +223,14 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
         Positioned.fill(
           child: mapOf(
             DriveMap(
-              at: view?.at,
-              heading: view?.headingDeg,
+              at: view?.onRoad?.at ?? view?.at ?? r.start,
+              heading: bearing,
               route: _route,
+              turn: _turn,
               destination: r.destination,
               lost: lostS != null,
+              follow: _following,
+              onMoved: _moved,
             ),
           ),
         ),
@@ -227,23 +271,30 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
                             : const SizedBox.shrink(),
                       ),
                     ),
-                    _NorthArrow(heading: view?.headingDeg),
+                    _MapButton(
+                      heading: bearing,
+                      onRecentre: _following ? null : _follow,
+                    ),
                   ],
                 ),
               ),
-              const Padding(
+              Padding(
                 padding: EdgeInsets.fromLTRB(
                   PindoroSpace.s4,
                   PindoroSpace.s2,
                   PindoroSpace.s4,
-                  PindoroSpace.s2,
+                  // With no bar under it, clear of the system's gesture area.
+                  PindoroSpace.s2 +
+                      (bottom == null
+                          ? MediaQuery.paddingOf(context).bottom
+                          : 0),
                 ),
-                child: Align(
+                child: const Align(
                   alignment: Alignment.centerLeft,
                   child: MapAttribution(),
                 ),
               ),
-              _rise(context, bottom),
+              _rise(context, r, bottom),
             ],
           ),
         ),
@@ -251,8 +302,9 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
     );
   }
 
-  /// The plate (TurnPlate variants, board V32-20): finding you, arrival, the approach, the street
-  /// just turned onto, or the street alone; none on an unnamed road.
+  /// The turn card (TurnPlate, SPEC §16.23 item 130): finding you, arrival, the next decision
+  /// (the street just turned onto first, unless the next is already close), or the street
+  /// alone; none on an unnamed road.
   TurnPlate? _plate(
     BuildContext context,
     DriveRecording r,
@@ -279,61 +331,53 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
         key: const ValueKey('here'),
         semanticsLabel: '${l10n.driveHere}: ${full(street)}',
         glyph: DriveGlyphName.flag,
-        action: l10n.driveHere,
+        headline: l10n.driveHere,
         street: short(street),
       );
     }
     if (view == null) return null;
     final next = view.next;
-    final prepareM = view.prepareM;
-    if (next != null && prepareM != null) {
+    final turned = view.turned;
+    if (next != null && (view.prepareM != null || turned == null)) {
       final glyph = decisionGlyph(next);
-      final action = decisionAction(l10n, glyph);
+      final action = decisionAction(l10n, glyph, onto: next.street != null);
       final landmark = next.landmark;
       final then = view.then;
-      final String? landmarkLine = view.newRoute
-          ? null
-          : landmark != null
-          ? l10n.navAt(landmarkName(landmark, settings))
-          : next.signals
-          ? l10n.navAtLights
-          : null;
-      final distance = landmarkLine == null && !view.newRoute
-          ? l10n.navIn(
-              formatDistance(
-                math.max(50, ((view.nextInM ?? 0) / 50).round() * 50.0),
-                l10n,
-              ),
-            )
-          : null;
+      final at = landmarkLine(l10n, next, settings);
+      final distance = formatDistance(
+        math.max(50, ((view.nextInM ?? 0) / 50).round() * 50.0),
+        l10n,
+      );
       return TurnPlate(
         key: ValueKey('turn${next.junction}${view.newRoute}'),
         semanticsLabel: [
           if (view.newRoute) l10n.driveNewRoute,
-          ?landmarkLine,
-          ?distance,
+          l10n.navIn(distance),
+          ?at,
           [action, if (next.street case final s?) full(s)].join(' '),
           if (then != null) l10n.driveThen,
         ].join(', '),
         lead: [if (view.newRoute) l10n.driveNewRoute],
-        landmark: landmarkLine,
-        landmarkKind: landmark != null
+        glyph: glyph,
+        headline: distance,
+        street: switch (next.street) {
+          final s? => short(s),
+          null => action,
+        },
+        note: at,
+        noteKind: landmark != null
             ? landmarkDriveGlyph(landmark.kind)
             : next.signals
             ? DriveGlyphName.lights
             : null,
-        distance: distance,
-        glyph: glyph,
-        action: action,
-        street: next.street == null ? null : short(next.street!),
+        lanes: view.prepareM == null ? const [] : navLanes(next) ?? const [],
         then: then == null ? null : decisionGlyph(then),
         thenLabel: l10n.driveThen,
-        approach: ((view.nextInM ?? 0) / prepareM).clamp(0, 1),
       );
     }
-    final street = view.turned?.street ?? view.street;
+    final street = turned?.street ?? view.street;
     if (street == null) return null;
-    final heading = switch (view.turned?.headingDeg) {
+    final heading = switch (turned?.headingDeg) {
       final h? => l10n.driveHeading(l10n.compassWord(compassPointOf(h).name)),
       null => null,
     };
@@ -341,11 +385,11 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
       key: ValueKey('street${street.id}'),
       semanticsLabel: [full(street), ?heading].join(', '),
       street: short(street),
-      secondary: heading,
+      note: heading,
     );
   }
 
-  /// The plate slides down and fades in, a new one replacing the last (TurnPlate motion).
+  /// The card slides down and fades in, a new one replacing the last (TurnPlate motion).
   Widget _plateSwitch(BuildContext context, Widget? plate) {
     final calm = MediaQuery.disableAnimationsOf(context);
     return AnimatedSwitcher(
@@ -357,7 +401,7 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
           : PindoroMotion.durationFast,
       switchInCurve: PindoroMotion.easeDecelerate,
       layoutBuilder: (current, previous) => Stack(
-        alignment: Alignment.topCenter,
+        alignment: Alignment.topLeft,
         children: [...previous, ?current],
       ),
       transitionBuilder: (child, animation) => FadeTransition(
@@ -378,39 +422,43 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
   }
 
   /// The bottom slot: the stopped-controls bar rises 40 dp as it fades in and drops as it
-  /// leaves; only fades under reduce motion (`motion.drive.stopped.*`).
-  Widget _rise(BuildContext context, Widget? child) {
+  /// leaves; only fades under reduce motion (`motion.drive.stopped.*`). Moving, it takes no
+  /// touch, also while the bar is still leaving (item 116).
+  Widget _rise(BuildContext context, DriveRecording r, Widget? child) {
     final calm = MediaQuery.disableAnimationsOf(context);
-    return AnimatedSwitcher(
-      duration: calm
-          ? PindoroMotion.driveStoppedCalm
-          : PindoroMotion.driveStoppedEnter,
-      reverseDuration: calm
-          ? PindoroMotion.driveStoppedCalm
-          : PindoroMotion.driveStoppedExit,
-      switchInCurve: PindoroMotion.driveStoppedEnterEase,
-      switchOutCurve: PindoroMotion.driveStoppedExitEase,
-      layoutBuilder: (current, previous) => Stack(
-        alignment: Alignment.bottomCenter,
-        children: [...previous, ?current],
-      ),
-      transitionBuilder: (child, animation) => FadeTransition(
-        opacity: animation,
-        child: calm
-            ? child
-            : AnimatedBuilder(
-                animation: animation,
-                builder: (context, child) => Transform.translate(
-                  offset: Offset(
-                    0,
-                    PindoroMotion.driveStoppedRise * (1 - animation.value),
+    return AbsorbPointer(
+      absorbing: !r.stopped,
+      child: AnimatedSwitcher(
+        duration: calm
+            ? PindoroMotion.driveStoppedCalm
+            : PindoroMotion.driveStoppedEnter,
+        reverseDuration: calm
+            ? PindoroMotion.driveStoppedCalm
+            : PindoroMotion.driveStoppedExit,
+        switchInCurve: PindoroMotion.driveStoppedEnterEase,
+        switchOutCurve: PindoroMotion.driveStoppedExitEase,
+        layoutBuilder: (current, previous) => Stack(
+          alignment: Alignment.bottomCenter,
+          children: [...previous, ?current],
+        ),
+        transitionBuilder: (child, animation) => FadeTransition(
+          opacity: animation,
+          child: calm
+              ? child
+              : AnimatedBuilder(
+                  animation: animation,
+                  builder: (context, child) => Transform.translate(
+                    offset: Offset(
+                      0,
+                      PindoroMotion.driveStoppedRise * (1 - animation.value),
+                    ),
+                    child: child,
                   ),
                   child: child,
                 ),
-                child: child,
-              ),
+        ),
+        child: child,
       ),
-      child: child,
     );
   }
 
@@ -660,6 +708,7 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
           bottom: 0,
           child: _rise(
             context,
+            r,
             r.stopped ? _stoppedBar(context, r, now) : null,
           ),
         ),
@@ -679,7 +728,7 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
       liveRegion: true,
       label: l10n.a11yRecovering(
         [
-          decisionAction(l10n, glyph),
+          decisionAction(l10n, glyph, onto: street != null),
           if (street != null) streetName(street, settings),
         ].join(' '),
       ),
@@ -730,47 +779,58 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
         left: 0,
         right: 0,
         bottom: 0,
-        child: _rise(context, r.stopped ? _stoppedBar(context, r, now) : null),
+        child: _rise(
+          context,
+          r,
+          r.stopped ? _stoppedBar(context, r, now) : null,
+        ),
       ),
     ],
   );
 }
 
-/// Guided's fixed north arrow, bottom right: a compass turned so its needle
-/// points north on the heading-up map.
-class _NorthArrow extends StatelessWidget {
-  const _NorthArrow({required this.heading});
+/// Guided's round button, bottom right: while the map follows the car, a
+/// compass turned so its needle points north on the heading-up map; once the
+/// player has moved the map, Recentre ([onRecentre]).
+class _MapButton extends StatelessWidget {
+  const _MapButton({required this.heading, this.onRecentre});
 
   final double? heading;
+  final VoidCallback? onRecentre;
 
   static const double _size = 64;
 
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
-    return ExcludeSemantics(
-      child: Container(
-        width: _size,
-        height: _size,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: c.driveSurface,
-          border: Border.all(
-            color: c.driveSurfaceLine,
-            width: PindoroStroke.base,
-          ),
-        ),
-        child: Transform.rotate(
-          angle: -(heading ?? 0) * math.pi / 180,
-          child: DriveGlyph(
-            DriveGlyphName.compass,
-            size: 40,
-            color: c.driveText,
-            cut: c.driveSurface,
-          ),
+    final recentre = onRecentre;
+    Widget glyph(DriveGlyphName name) =>
+        DriveGlyph(name, size: 40, color: c.driveText, cut: c.driveSurface);
+    final disc = Container(
+      width: _size,
+      height: _size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: c.driveSurface,
+        border: Border.all(
+          color: c.driveSurfaceLine,
+          width: PindoroStroke.base,
         ),
       ),
+      child: recentre != null
+          ? glyph(DriveGlyphName.recentre)
+          : Transform.rotate(
+              angle: -(heading ?? 0) * math.pi / 180,
+              child: glyph(DriveGlyphName.compass),
+            ),
     );
+    return recentre == null
+        ? ExcludeSemantics(child: disc)
+        : Tappable(
+            label: context.l10n.a11yRecentre,
+            onTap: recentre,
+            child: disc,
+          );
   }
 }

@@ -30,6 +30,10 @@ local roads = osm2pgsql.define_table({
         { column = 'junction', type = 'text' },
         -- The signed speed limit, for navigation's route times and speed warnings.
         { column = 'maxspeed', type = 'text' },
+        -- Lane arrows (`turn:lanes*`), for navigation's lane guidance before a turn.
+        { column = 'turn_lanes', type = 'text' },
+        { column = 'turn_lanes_forward', type = 'text' },
+        { column = 'turn_lanes_backward', type = 'text' },
         { column = 'bridge', type = 'text' },
         { column = 'bridge_name', type = 'text' },
         -- Comma-separated node ids, for the road graph's junctions (text works on 1.8 and 1.11).
@@ -188,6 +192,9 @@ function osm2pgsql.process_way(object)
             oneway = tags.oneway,
             junction = tags.junction,
             maxspeed = tags.maxspeed,
+            turn_lanes = tags['turn:lanes'],
+            turn_lanes_forward = tags['turn:lanes:forward'],
+            turn_lanes_backward = tags['turn:lanes:backward'],
             bridge = tags.bridge,
             bridge_name = tags['bridge:name'],
             nodes = table.concat(object.nodes, ','),

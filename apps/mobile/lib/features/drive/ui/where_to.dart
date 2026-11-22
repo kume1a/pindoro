@@ -67,11 +67,12 @@ class WhereTo extends ConsumerWidget {
       );
     }
 
+    final scale = MediaQuery.textScalerOf(context).scale(1);
     return DestinationSearch(
       here: here ?? near?.here,
       onPick: onPick,
       above: [
-        TileGrid([
+        TileGrid(columns: scale >= TileGrid.stackAt ? 1 : 2, [
           tile(DriveTo.home, anchors?.home, near?.home),
           tile(DriveTo.work, anchors?.work, near?.work),
         ]),

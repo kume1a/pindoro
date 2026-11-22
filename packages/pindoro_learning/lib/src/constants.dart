@@ -307,6 +307,14 @@ abstract final class LearningConfig {
   /// GPS lost this long: "Still finding you" (the line shows after [gpsGapS]).
   static const int gpsLostSayS = 60;
 
+  /// Guided's map (item 130): the road's way this far ahead of the car is straight up; the
+  /// turn arrow runs from [navArrowBeforeM] before the next decision to [navArrowAfterM] after
+  /// it; a lane's arrow within [laneMatchDeg] of the turn is the one to take.
+  static const double navRoadAheadM = 10;
+  static const double navArrowBeforeM = 35;
+  static const double navArrowAfterM = 20;
+  static const double laneMatchDeg = 60;
+
   /// Drive credit: only while recall is at most [creditMaxR]; Hard after a hesitation within
   /// [hesitationBeforeM] before the junction; none within [noCreditAfterPromptS] of a prompt or
   /// recovery.

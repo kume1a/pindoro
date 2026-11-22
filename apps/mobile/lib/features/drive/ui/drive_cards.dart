@@ -104,7 +104,9 @@ class DriveCards extends ConsumerWidget {
 /// "Pick your two drives" (V32-71): the frequent routes at their suggested level, the first
 /// two ticked; planned for the week, or "Not this week".
 class _PickDrives extends ConsumerStatefulWidget {
-  const _PickDrives({required this.routes, required this.name});
+  /// Keyed by its routes: the ticks are positions in [routes], so a new list starts afresh.
+  _PickDrives({required this.routes, required this.name})
+    : super(key: ValueKey(routes.map((r) => r.route).join('|')));
 
   final List<RouteLevels> routes;
   final String Function(String route) name;

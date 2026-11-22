@@ -67,13 +67,13 @@ class _DestinationSearchState extends ConsumerState<DestinationSearch> {
     final settings = ref.watch(settingsProvider).value;
     final typed = _field.text.trim();
     final recents = ref.watch(recentDestinationsProvider).value ?? const [];
-    final found = typed.isEmpty
-        ? const <_Findable>[]
-        : searchNames(
-            typed,
-            ref.watch(_findablesProvider).value ?? const <_Findable>[],
-            (f) => f.forms,
-          );
+    // Watched from the start, so the names are ready by the first letters.
+    final findables = ref.watch(_findablesProvider).value;
+    // searchNames needs two letters; under that the usual rows stay.
+    final searching = typed.length >= 2;
+    final found = searching && findables != null
+        ? searchNames(typed, findables, (f) => f.forms)
+        : const <_Findable>[];
     final where = PlaceLine(here: widget.here);
     Widget row({
       required PindoroGlyph glyph,
@@ -98,8 +98,10 @@ class _DestinationSearchState extends ConsumerState<DestinationSearch> {
           autocorrect: false,
           onChanged: (_) => setState(() {}),
         ),
-        if (typed.isNotEmpty)
-          found.isEmpty
+        if (searching)
+          findables == null
+              ? const Center(child: LaneLoader())
+              : found.isEmpty
               ? Text(
                   l10n.driveNoMatch,
                   style: PindoroType.bodyMd.copyWith(

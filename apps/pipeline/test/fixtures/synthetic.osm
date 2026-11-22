@@ -11,7 +11,8 @@
     w2006          "Cross Avenue" (primary), ~830 m in each district -> both districts
     w2008          "Edge Lane" (tertiary), ~83 m (17 %) in East -> West only
     w2012 + w2013  "North Road" and "Ridge Road" share node 221   -> a junction (road graph)
-    w2014          "Bridge Road" crosses North Road with no shared node -> no junction there
+    w2014          "Bridge Road" crosses North Road with no shared node -> no junction there;
+                   oneway=-1 with a plain turn:lanes                 -> lanes driving against its nodes
   Places drawn as areas:
     r1004 quarter "შუა" (lat 41.705-41.745, lon 44.705-44.735)              -> neighbourhood
     w114 / w115 neighbourhoods "ტყუპი" around Twin Street w2003            -> only the smaller w114
@@ -25,6 +26,8 @@
     (a connector); w2104 bridge "Test Bridge" 907-908 over the river; n910 fuel "Test Fuel" at 902;
     n911 a statue (a landmark), n912 a plaque (too small to see from a car), n913 a chain pharmacy
     (no landmark) and w2110 "Test Park" (an area, with its outline) off any junction
+  Lane arrows: w2105 turn:lanes:forward (padded) and :backward; w2106 a one-way plain turn:lanes;
+    w2101 a plain turn:lanes on a two-way way (ignored)
   Lane families (w2015-w2022), "ტყის ..." (Forest ...):
     w2015 ტყის ქუჩა north-west, w2021 a second ტყის ქუჩა 6 km south-east
     w2016 ტყის I შესახვევი and w2017 ტყის II ჩიხი beside w2015, w2019 ტყის I შესახვევის I ჩიხი on w2016
@@ -263,6 +266,8 @@
     <nd ref="225"/><nd ref="226"/>
     <tag k="highway" v="residential"/>
     <tag k="name" v="Bridge Road"/>
+    <tag k="oneway" v="-1"/>
+    <tag k="turn:lanes" v="left|through|right"/>
   </way>
 
   <way id="2015" version="1">
@@ -311,6 +316,7 @@
     <tag k="highway" v="secondary"/>
     <tag k="name" v="East Street"/>
     <tag k="maxspeed" v="50"/>
+    <tag k="turn:lanes" v="left|through"/>
   </way>
   <way id="2102" version="1">
     <nd ref="904"/><nd ref="902"/>
@@ -334,12 +340,15 @@
     <nd ref="902"/><nd ref="903"/>
     <tag k="highway" v="secondary"/>
     <tag k="name" v="East Street"/>
+    <tag k="turn:lanes:forward" v=" through|through;right "/>
+    <tag k="turn:lanes:backward" v="left|through"/>
   </way>
   <way id="2106" version="1">
     <nd ref="902"/><nd ref="905"/>
     <tag k="highway" v="residential"/>
     <tag k="name" v="Turn Street"/>
     <tag k="oneway" v="yes"/>
+    <tag k="turn:lanes" v="left;through|right"/>
   </way>
 
   <way id="2110" version="1">

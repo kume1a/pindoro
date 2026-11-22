@@ -112,6 +112,103 @@ final class NavPlan {
     }
     return out;
   }
+
+  /// The route from [fromM] to [toM] metres along it, clamped to it; each edge's metres (its
+  /// `lengthM`, as the plan counts them) spread evenly over its line. Empty past its end.
+  Polyline slice(double fromM, double toM) {
+    final out = <LatLng>[];
+    var startM = 0.0;
+    for (final (i, e) in route.edges.indexed) {
+      final endM = startM + e.lengthM;
+      final a = max(fromM, startM);
+      final b = min(toM, endM);
+      if (a <= b && e.lengthM > 0) {
+        final part = linePart(
+          e.lineFrom(route.junctions[i]),
+          (a - startM) / e.lengthM,
+          (b - startM) / e.lengthM,
+        );
+        // Edges meet at their junction: drop the repeated point.
+        out.addAll(out.isEmpty ? part : part.skip(1));
+      }
+      if (endM >= toM) break;
+      startM = endM;
+    }
+    return out;
+  }
+}
+
+/// [line] from share [from] to share [to] of its length.
+Polyline linePart(Polyline line, double from, double to) {
+  final cum = [0.0];
+  for (var i = 1; i < line.length; i++) {
+    cum.add(cum.last + distanceBetween(line[i - 1], line[i]));
+  }
+  final total = cum.last;
+  LatLng at(double m) {
+    for (var i = 1; i < line.length; i++) {
+      if (cum[i] >= m) {
+        final len = cum[i] - cum[i - 1];
+        final t = len == 0 ? 0.0 : (m - cum[i - 1]) / len;
+        final a = line[i - 1], b = line[i];
+        return LatLng(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t);
+      }
+    }
+    return line.last;
+  }
+
+  final fromM = from * total, toM = to * total;
+  return [
+    at(fromM),
+    for (var i = 1; i < line.length - 1; i++)
+      if (cum[i] > fromM && cum[i] < toM) line[i],
+    if (toM > fromM) at(toM),
+  ];
+}
+
+/// The arrow Guided draws on the map at [d] (SPEC §16.23 item 130): [plan]'s route from
+/// [LearningConfig.navArrowBeforeM] before it to [LearningConfig.navArrowAfterM] after.
+Polyline turnArrow(NavPlan plan, NavDecision d) => plan.slice(
+  d.atM - LearningConfig.navArrowBeforeM,
+  d.atM + LearningConfig.navArrowAfterM,
+);
+
+/// A lane into a junction, left to right (item 130): its painted arrows as turn angles in
+/// degrees (0 straight on, -90 left, 90 right, 180 turning around) and [use], the arrow to take
+/// in it; null when the lane doesn't go the way.
+typedef NavLane = ({List<double> arrowsDeg, double? use});
+
+/// OSM `turn:lanes` values as turn angles; an unmarked lane (`none`, empty) and a merging one
+/// count as straight on.
+const Map<String, double> _laneDeg = {
+  'sharp_left': -135,
+  'left': -90,
+  'slight_left': -45,
+  'through': 0,
+  'slight_right': 45,
+  'right': 90,
+  'sharp_right': 135,
+  'reverse': 180,
+};
+
+/// The lanes into [d]'s junction (its approach's `turn:lanes`), each with the arrow to take:
+/// the painted arrow nearest the turn [d] makes, in every lane that has it. Null when no lanes
+/// are mapped there, or no arrow is within [LearningConfig.laneMatchDeg] of the turn.
+List<NavLane>? navLanes(NavDecision d) {
+  final approach = d.approach;
+  final tagged = approach?.lanesInto(d.junction);
+  if (approach == null || tagged == null) return null;
+  final lanes = [
+    for (final lane in tagged.split('|'))
+      {for (final v in lane.split(';')) _laneDeg[v.trim()] ?? 0.0}.toList(),
+  ];
+  final turn = turnAngle(approach, d.exit, d.junction);
+  double off(double a) => (((turn - a) % 360 + 540) % 360 - 180).abs();
+  final best = lanes.expand((l) => l).reduce((a, b) => off(b) < off(a) ? b : a);
+  if (off(best) > LearningConfig.laneMatchDeg) return null;
+  return [
+    for (final l in lanes) (arrowsDeg: l, use: l.contains(best) ? best : null),
+  ];
 }
 
 /// The turn from [approach] onto [exit] at [junction] in degrees, -180 to 180 (right positive).

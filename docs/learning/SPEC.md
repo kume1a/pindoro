@@ -430,6 +430,7 @@ pindoro_core `ScoringConfig`, not copied):
 | `prepareM`, `prepareS`, `actionM`, `actionS`                            | 150, 10, 40, 4                      |
 | `landmarkAtM`, `confirmDelayS`, `districtCueM`, `districtCueS`          | 50, 6, 2000, 180                    |
 | `gpsLostSayS`                                                           | 60                                  |
+| `navRoadAheadM`, `navArrowBeforeM`, `navArrowAfterM`, `laneMatchDeg`    | 10, 35, 20, 60                      |
 | `creditMaxR`, `hesitationBeforeM`, `noCreditAfterPromptS`               | 0.92, 150, 60                       |
 | `habitPasses`, `habitWindowDays`, `habitCreditDays`                     | 3, 14, 7                            |
 | `keyTurnsMin`, `keyTurnsMax`, `complexWaysOn`                           | 3, 7, 4                             |
@@ -1076,6 +1077,10 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      `driveArriveM`. Off's "Lost? Show the way" becomes Rescue: while stopped, one tap, no question,
      gives Guided to the destination; the drive is marked rescued, its later decisions are watched
      only, and its tier is at most Close. Off records with the screen locked, as GPS-free drives do.
+     The one exception is Guided's map (decided 2026-11-22): it drags and pinches at any speed;
+     while it is off the car a Recentre button takes the north arrow's place, and it goes back to
+     the car 10 s after the last touch. Back does nothing during a drive. With no fix yet, or
+     none for 60 s, the car counts as stopped: its speed is unknown and End drive stays in reach.
 117. **Voice**: landmark, then action, then street ("At Vake Park, turn left onto Chavchavadze
      Avenue"); a distance only when no landmark is within 50 m of the junction; traffic lights
      count as a landmark. A prepare prompt at max(150 m, 10 s) and an action prompt at max(40 m,
@@ -1093,7 +1098,9 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      street name, since those would answer cards. Preview and review are north-up. While moving:
      cap height ≥ 6 mm (≥ 8 mm for the one primary item), at most 3 text items, contrast ≥ 3:1 by
      day and 5:1 at night (text 7:1), a dim night look chosen by sun time at the car's position,
-     whatever the app theme. Quiet is dark by day too; Off is black.
+     whatever the app theme. Quiet is dark by day too; Off is black. Guided is the exception
+     (decided 2026-11-22: its 54 dp plate covered half the map): a turn card in the top left
+     (item 130) and a one-line bottom bar in 26 dp.
 119. **Evidence** (for drives this replaces §4's "correct decisions are logged only"; recitals
      keep it): a decision with no prompt of its own and no recovery in the 60 s before it
      (Coached-silent, Quiet, Off) reviews its J card: Good, or Hard after a hesitation within
@@ -1227,3 +1234,20 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      - The preview is stepped through, not timed (it looked stuck for its 20 s overview): the
        whole route with "Show the turns" and Skip, then each key turn with Back and Next; item
        121's 20 s and 10 s are gone.
+130. **Guided like a car navigator** (2026-11-23, after the player's own navigator):
+     - The turn card sits in the top left, at most 62 % of the screen wide: the turn glyph
+       beside the distance (32 dp), the street to turn onto under them (20 dp; the action when
+       the street has no name), then the landmark line (15 dp) with its badge, and the lanes.
+       "then" is a chip under the card. The card shows the next decision at any distance; the
+       street just turned onto, with its heading, takes its place until the confirmation,
+       unless the next decision is already within the prepare reach.
+     - The map keeps the car on its road and turns the road ahead (`navRoadAheadM`) straight up;
+       off the plan, the GPS position and heading as before. The car sits 70 % down the map,
+       the route drawn from it, and an arrow in the card's colours marks the next decision, from
+       `navArrowBeforeM` before it to `navArrowAfterM` after.
+     - Lanes (pack format 8, OSM `turn:lanes` on the way into the junction): within the prepare
+       reach the card shows each lane's arrows, left to right, the arrow nearest the turn bright
+       in the lanes that have it; none when no lanes are mapped there or no arrow is within
+       `laneMatchDeg` of the turn. An unmarked or merging lane counts as straight on.
+     - The preview's recital names no street before the way is tapped: the street turned onto
+       would give the way.

@@ -13,7 +13,9 @@ import 'package:pindoro/features/drive/ui/drive_controller.dart';
 import 'package:pindoro/features/drive/ui/drive_levels.dart';
 import 'package:pindoro/features/drive/ui/plan_map.dart';
 import 'package:pindoro/features/learning/data/drive_log.dart';
+import 'package:pindoro/features/learning/data/nav_data.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/widgets/tier_reveal.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -39,10 +41,16 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
 
   /// The key turn on show while stepping through (-1: the whole route), or being recited.
   int _at = -1;
-  late final DateTime _opened = ref.read(clockProvider)();
+  late final DateTime _opened;
 
   /// The way tapped at the recited turn; null until tapped.
   Turn? _said;
+
+  @override
+  void initState() {
+    super.initState();
+    _opened = ref.read(clockProvider)();
+  }
 
   String get _driveId => ref.read(driveControllerProvider.notifier).driveId;
 
@@ -126,18 +134,15 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
     final start = setup.here ?? graph.at(route.junctions.first);
     final end = graph.at(target.junction);
 
-    String? landmarkLine(NavDecision d) => switch (d.landmark) {
-      final l? => l10n.navAt(landmarkName(l, settings)),
-      null when d.signals => l10n.navAtLights,
-      null => null,
-    };
-    String action(NavDecision d) => [
-      decisionAction(l10n, decisionGlyph(d)),
-      switch (d.street ?? streets[d.exit.streetId]) {
-        final s? => streetName(s, settings),
-        null => null,
-      },
-    ].nonNulls.join(' ');
+    String? lead(NavDecision d) => landmarkLine(l10n, d, settings);
+    String action(NavDecision d) {
+      final street = d.street ?? streets[d.exit.streetId];
+      return [
+        decisionAction(l10n, decisionGlyph(d), onto: street != null),
+        if (street != null) streetName(street, settings),
+      ].join(' ');
+    }
+
     List<LatLng> around(NavDecision d) => [
       ...?d.approach?.lineFrom(d.approach!.other(d.junction)),
       ...d.exit.lineFrom(d.junction),
@@ -150,7 +155,7 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
     ];
     final summary = [
       formatDistance(route.lengthM, l10n),
-      l10n.driveAboutMin((plan.seconds / 60).ceil()),
+      l10n.driveAboutMin(plan.minutes),
       l10n.previewKeyTurns(keyTurns.length),
     ].join(' · ');
 
@@ -160,6 +165,7 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
         return Scaffold(
           body: PlanMapLayout(
             semanticsLabel: l10n.a11yPreviewMap,
+            top: const PlanMapBack(),
             route: route.lines,
             start: start,
             end: end,
@@ -194,7 +200,7 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
                       semanticsLabel: l10n.a11yPreviewTurns,
                       semanticsValue: l10n.a11yStepOf(_at + 1, keyTurns.length),
                     ),
-                    if (landmarkLine(d) case final line?)
+                    if (lead(d) case final line?)
                       Text(
                         line,
                         style: PindoroType.labelLg.copyWith(
@@ -260,6 +266,7 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
         return Scaffold(
           body: PlanMapLayout(
             semanticsLabel: l10n.a11yPreviewMap,
+            top: const PlanMapBack(),
             route: route.lines,
             start: start,
             end: end,
@@ -287,14 +294,12 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
                                   dimension: 32,
                                   child: Center(child: TurnNumber(i + 1)),
                                 ),
-                                title: landmarkLine(d) ?? action(d),
-                                subtitle: landmarkLine(d) == null
-                                    ? null
-                                    : action(d),
+                                title: lead(d) ?? action(d),
+                                subtitle: lead(d) == null ? null : action(d),
                                 semanticsLabel: l10n.a11yKeyTurn(
                                   i + 1,
                                   keyTurns.length,
-                                  [?landmarkLine(d), action(d)].join(', '),
+                                  [?lead(d), action(d)].join(', '),
                                 ),
                               ),
                           ],
@@ -347,7 +352,12 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
         return Scaffold(
           body: PlanMapLayout(
             semanticsLabel: l10n.a11yPreviewMap,
+            top: const PlanMapBack(),
             route: said == null ? upTo : route.lines,
+            // Before the answer no street is named: the one turned onto would give the way.
+            names: said == null
+                ? MapNames.asking(d.street ?? streets[d.exit.streetId])
+                : MapNames.all,
             start: start,
             end: said == null ? null : end,
             pins: [(graph.at(d.junction), number(index, current: true))],
@@ -363,29 +373,16 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
                           header: true,
                           child: Text(
                             l10n.previewWhichWay(
-                              landmarkLine(d) ?? l10n.previewKeyTurn(index + 1),
+                              lead(d) ?? l10n.previewKeyTurn(index + 1),
                             ),
                             style: PindoroType.titleMd.copyWith(
                               color: c.textPrimary,
                             ),
                           ),
                         ),
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: PindoroSpace.s4,
-                          runSpacing: PindoroSpace.s3,
-                          children: [
-                            for (final turn in Turn.values)
-                              if (exits.containsKey(turn))
-                                ExitButton(
-                                  direction: ExitDirection.values.byName(
-                                    turn.name,
-                                  ),
-                                  selected: false,
-                                  semanticsLabel: exitLabel(l10n, turn),
-                                  onTap: () => _recite(d, turn, exits),
-                                ),
-                          ],
+                        ExitChoices(
+                          turns: exits.keys,
+                          onTap: (turn) => _recite(d, turn, exits),
                         ),
                       ],
                     ),

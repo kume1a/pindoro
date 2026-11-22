@@ -1,8 +1,8 @@
 -- Directed road graph of the pack's streets and their connector ways (SPEC §2.1, §16.7): a junction
 -- is an OSM node two ways share (or one way meets twice), or a way's end; an edge is a way's
--- stretch between two consecutive junctions, carrying the way's one-way rule and bridge. A way
--- whose geometry lost points against its node list (duplicate locations) is skipped, since its
--- points can't be matched to node ids.
+-- stretch between two consecutive junctions, carrying the way's one-way rule, lane arrows and
+-- bridge. A way whose geometry lost points against its node list (duplicate locations) is
+-- skipped, since its points can't be matched to node ids.
 
 CREATE TABLE pipeline.graph_way AS
 WITH way AS (
@@ -14,12 +14,15 @@ WITH way AS (
   SELECT NULL, c.way_id, c.geom FROM pipeline.connector c
 )
 SELECT w.street_key, w.way_id, w.geom, n.nodes,
-       pipeline.oneway(o.oneway, o.junction, o.highway) AS oneway,
+       d.oneway,
        pipeline.maxspeed_kmh(o.maxspeed) AS maxspeed,
+       pipeline.turn_lanes(1, d.oneway, o.turn_lanes, o.turn_lanes_forward) AS lanes_along,
+       pipeline.turn_lanes(-1, d.oneway, o.turn_lanes, o.turn_lanes_backward) AS lanes_against,
        CASE WHEN o.bridge IS NOT NULL AND o.bridge <> 'no' THEN o.way_id END AS bridge_way
 FROM way w
 JOIN osm.roads o ON o.way_id = w.way_id
 CROSS JOIN LATERAL (SELECT string_to_array(o.nodes, ',')::bigint[] AS nodes) n
+CROSS JOIN LATERAL (SELECT pipeline.oneway(o.oneway, o.junction, o.highway) AS oneway) d
 WHERE ST_NPoints(w.geom) = cardinality(n.nodes);
 
 CREATE TABLE pipeline.graph_node AS
@@ -37,7 +40,8 @@ HAVING count(*) > 1 OR bool_or(pos = 1 OR pos = last);
 
 CREATE UNIQUE INDEX ON pipeline.junction (node_id);
 
--- Each way's junction positions in order, paired with the next one.
+-- Each way's junction positions in order, paired with the next one, so every edge runs along its
+-- way's nodes: `lanes` (from → to) are the way's lanes along them, `lanes_back` those against.
 CREATE TABLE pipeline.road_edge AS
 WITH cut AS (
   SELECT n.way_id,
@@ -54,6 +58,8 @@ stretch AS (
          g.way_id,
          g.oneway,
          g.maxspeed,
+         g.lanes_along AS lanes,
+         g.lanes_against AS lanes_back,
          g.bridge_way,
          c.junction AS from_junction,
          c.next_junction AS to_junction,
@@ -69,6 +75,8 @@ SELECT row_number() OVER (ORDER BY street_key, way_id, from_junction, to_junctio
        way_id,
        oneway,
        maxspeed,
+       lanes,
+       lanes_back,
        bridge_way,
        from_junction,
        to_junction,

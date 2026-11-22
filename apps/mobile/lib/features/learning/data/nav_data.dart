@@ -11,6 +11,11 @@ import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
+extension NavPlanMinutes on NavPlan {
+  /// The drive's time in whole minutes, rounded up.
+  int get minutes => (seconds / 60).ceil();
+}
+
 /// The landmarks navigation may name at a junction (SPEC §16.23 item 117): the pack's
 /// junction-item landmarks at their junctions and the player's own, hidden places left out.
 final navLandmarksProvider = FutureProvider.autoDispose<List<RouteLandmark>>((
@@ -138,7 +143,7 @@ final driveHereProvider =
           toleranceKmh: settings.speedToleranceKmh,
           count: 1,
         ).firstOrNull;
-        return plan == null ? null : (plan.seconds / 60).ceil();
+        return plan?.minutes;
       }
 
       return (

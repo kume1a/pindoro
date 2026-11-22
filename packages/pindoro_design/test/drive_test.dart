@@ -101,7 +101,7 @@ void main() {
     );
   });
 
-  testWidgets('a three-figure limit drops to 44 dp to fit the ring', (
+  testWidgets('a three-figure limit drops to 26 dp to fit the ring', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -116,8 +116,8 @@ void main() {
     );
     double size(String text) =>
         tester.widget<Text>(find.text(text)).style!.fontSize!;
-    expect(size('60'), 54);
-    expect(size('110'), 44);
+    expect(size('60'), 32);
+    expect(size('110'), 26);
   });
 
   group('goldens', skip: _goldensSkip, () {
@@ -135,16 +135,26 @@ void main() {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   spacing: 16,
                   children: [
-                    const TurnPlate(
-                      semanticsLabel: 'At Vake Park, left onto Chavchavadze',
-                      landmark: 'At Vake Park',
-                      landmarkKind: DriveGlyphName.park,
-                      glyph: DriveGlyphName.left,
-                      action: 'Left onto',
-                      street: 'Chavchavadze Ave',
-                      then: DriveGlyphName.right,
-                      thenLabel: 'then',
-                      approach: 0.62,
+                    const Align(
+                      alignment: Alignment.topLeft,
+                      child: TurnPlate(
+                        semanticsLabel:
+                            'In 300 m, at Vake Park, left onto Chavchavadze',
+                        glyph: DriveGlyphName.left,
+                        headline: '300 m',
+                        street: 'Chavchavadze Ave',
+                        note: 'At Vake Park',
+                        noteKind: DriveGlyphName.park,
+                        lanes: [
+                          (arrowsDeg: [-90], use: -90),
+                          (arrowsDeg: [-90, 0], use: -90),
+                          (arrowsDeg: [0], use: null),
+                          (arrowsDeg: [0, 90], use: null),
+                          (arrowsDeg: [180], use: null),
+                        ],
+                        then: DriveGlyphName.right,
+                        thenLabel: 'then',
+                      ),
                     ),
                     const DriveBottomBar(
                       semanticsLabel: '3.4 kilometres left',

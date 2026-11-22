@@ -381,13 +381,23 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
       FROM pipeline.street_learning l JOIN pipeline.street s USING (key)
       WHERE s.norm_name = pipeline.normalise_name(${name}) ORDER BY s.key`) as never;
 
-  /** The edges of way `wayId`: their ends' OSM nodes, one-way rule and street. */
+  /** The edges of way `wayId`: their ends' OSM nodes, one-way rule, street and lane arrows. */
   const wayEdges = async (
     wayId: number,
-  ): Promise<{ id: number; from: number; to: number; oneway: number; street: number | null }[]> =>
+  ): Promise<
+    {
+      id: number;
+      from: number;
+      to: number;
+      oneway: number;
+      street: number | null;
+      lanes: string | null;
+      lanes_back: string | null;
+    }[]
+  > =>
     (await sql`
       SELECT e.id::float8 AS id, f.node_id::float8 AS from, t.node_id::float8 AS to, e.oneway,
-             e.street_key::float8 AS street
+             e.street_key::float8 AS street, e.lanes, e.lanes_back
       FROM pipeline.road_edge e
       JOIN pipeline.junction f ON f.id = e.from_junction
       JOIN pipeline.junction t ON t.id = e.to_junction
@@ -475,9 +485,38 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
     ).toEqual([{ node: 915, maxspeed: 50, direction: 90, edge: edge?.id }]);
   });
 
-  it("exports the directed graph and the route tables (pack format 7)", async () => {
+  it("puts a way's lane arrows on its edges by driving direction, never reversed", async () => {
+    const lanes = async (wayId: number): Promise<unknown[]> =>
+      (await wayEdges(wayId)).map((e) => [e.from, e.to, e.lanes, e.lanes_back]);
+    // Edges run along their way's nodes: :forward drives from → to, :backward to → from.
+    expect(await lanes(2105)).toEqual([[902, 903, "through|through;right", "left|through"]]);
+    // A plain turn:lanes: one-way along the nodes, oneway=-1 against them, two-way ignored.
+    expect(await lanes(2106)).toEqual([[902, 905, "left;through|right", null]]);
+    expect(await lanes(2014)).toEqual([[225, 226, null, "left|through|right"]]);
+    expect(await lanes(2101)).toEqual([[901, 902, null, null]]);
+    expect(
+      await sql`
+        SELECT pipeline.turn_lanes(1, 1, ' ', NULL) AS blank,
+               pipeline.turn_lanes(1, 1, 'left', ' right ') AS directional,
+               pipeline.turn_lanes(-1, 1, 'left', NULL) AS other_way`,
+    ).toEqual([{ blank: null, directional: "right", other_way: null }]);
+  });
+
+  it("exports the directed graph and the route tables (pack format 8)", async () => {
     const db = await exportPack();
-    expect(db.pragma("user_version", { simple: true })).toBe(7);
+    expect(db.pragma("user_version", { simple: true })).toBe(8);
+    expect(
+      db
+        .prepare(
+          `SELECT lanes, lanes_back FROM road_edge
+           WHERE coalesce(lanes, lanes_back) IS NOT NULL ORDER BY 1, 2`,
+        )
+        .all(),
+    ).toEqual([
+      { lanes: null, lanes_back: "left|through|right" },
+      { lanes: "left;through|right", lanes_back: null },
+      { lanes: "through|through;right", lanes_back: "left|through" },
+    ]);
     expect(db.prepare("SELECT count(*) FROM speed_camera").pluck().get()).toBe(1);
     expect(db.prepare("SELECT count(*) FROM junction WHERE signals = 1").pluck().get()).toBe(1);
     expect(

@@ -232,4 +232,44 @@ void main() {
     expect(edge.lineFrom(2), line.reversed);
     expect(edge.other(1), 2);
   });
+
+  test(
+    'a pack row reads its lanes, given by the junction they drive toward',
+    () {
+      final row = {
+        'id': 3,
+        'from_junction': 1,
+        'to_junction': 2,
+        'street_id': 's',
+        'length_m': 140.5,
+        'oneway': 1,
+        'geometry': encodePolyline6(const [
+          LatLng(41.7, 44.8),
+          LatLng(41.701, 44.801),
+        ]),
+      };
+      final older = RoadEdge.fromRow(row);
+      expect((older.lanes, older.lanesBack), (null, null));
+      expect(older.lanesInto(2), isNull);
+
+      final edge = RoadEdge.fromRow({
+        ...row,
+        'lanes': 'left|through;right|right',
+        'lanes_back': 'left|through',
+      });
+      expect(edge.lanes, 'left|through;right|right');
+      expect(edge.lanesBack, 'left|through');
+      expect(edge.lanesInto(2), 'left|through;right|right');
+      expect(edge.lanesInto(1), 'left|through');
+      expect(edge.lanesInto(7), isNull);
+
+      final reported = RoadGraph(
+        {1: const LatLng(41.7, 44.8), 2: const LatLng(41.701, 44.801)},
+        [edge],
+      ).allowing(twoWay: {3}).edges.single;
+      expect(reported.oneway, Oneway.both);
+      expect(reported.lanesInto(1), 'left|through');
+      expect(reported.lanesInto(2), 'left|through;right|right');
+    },
+  );
 }

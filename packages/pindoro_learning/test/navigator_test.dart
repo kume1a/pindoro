@@ -413,6 +413,90 @@ void main() {
     expect(nav.onTick(t.add(const Duration(seconds: 61))).prompt, isNull);
   });
 
+  Navigator plainNav(RoadNet net) => Navigator(
+    graph: net.graph(),
+    cost: NavCost(net.byPart, toleranceKmh: 14),
+    destination: g(2, 1),
+    level: DriveLevel.guided,
+    streets: net.byPart,
+  );
+
+  test('no fix yet: lost from the first tick, and stopped, so End drive '
+      'stays within reach', () {
+    final nav = plainNav(_grid());
+    final first = nav.onTick(_t0);
+    expect(first.view.gpsLostS, isNull);
+    expect(first.view.stopped, isTrue);
+    final later = nav.onTick(_t0.add(const Duration(seconds: 11)));
+    expect(later.view.gpsLostS, 11);
+    expect(later.view.stopped, isTrue);
+    final still = nav.onTick(_t0.add(const Duration(seconds: 60)));
+    expect(still.prompt?.kind, PromptKind.stillFinding);
+    expect(nav.onTick(_t0.add(const Duration(seconds: 61))).prompt, isNull);
+  });
+
+  test('lost while moving: moving until lost a minute, then stopped', () {
+    final nav = plainNav(_grid());
+    final fixes = _drive(_rightTurn).take(5).toList();
+    fixes.forEach(nav.onFix);
+    final t = fixes.last.t;
+    expect(
+      nav.onTick(t.add(const Duration(seconds: 11))).view.stopped,
+      isFalse,
+    );
+    expect(nav.onTick(t.add(const Duration(seconds: 60))).view.stopped, isTrue);
+  });
+
+  test('the screens keep the heading driven: a stopped fix\'s 0 (a '
+      'platform\'s "none") or null leaves it', () {
+    final fixes = [
+      for (final (i, f) in _drive(_rightTurn).indexed)
+        if (f.speedMps == 0)
+          (
+            at: f.at,
+            t: f.t,
+            headingDeg: i.isEven ? 0.0 : null,
+            speedMps: 0.0,
+            accuracyM: f.accuracyM,
+          )
+        else
+          f,
+    ];
+    final run = _run(_grid(), fixes, to: g(2, 1), level: DriveLevel.guided);
+    expect(run.view.stopped, isTrue);
+    expect(run.view.headingDeg, closeTo(180, 1));
+  });
+
+  test('the map\'s car sits on its road, the road ahead straight up, '
+      'whatever the GPS drifts', () {
+    final fixes = [
+      for (final f in _drive([_p(50, 8), _p(550, 8)]))
+        (
+          at: f.at,
+          t: f.t,
+          headingDeg: 75.0,
+          speedMps: f.speedMps,
+          accuracyM: f.accuracyM,
+        ),
+    ];
+    final run = _run(_grid(), fixes, to: g(0, 4), level: DriveLevel.guided);
+    final road = run.views[10].onRoad!;
+    final (east, north) = LocalProjection(RoadNet.origin).project(road.at);
+    expect(north, closeTo(0, 0.5));
+    final (fixEast, _) = LocalProjection(RoadNet.origin).project(fixes[10].at);
+    expect(east, closeTo(fixEast, 1));
+    expect(road.headingDeg, closeTo(90, 1));
+    expect(run.views.first.onRoad, isNull);
+    // Short of the plan's first junction, the road there is drawn from the car.
+    final toPlan = run.views[10].toPlan;
+    expect(toPlan.first, road.at);
+    expect(
+      LocalProjection(RoadNet.origin).project(toPlan.last).$1,
+      closeTo(300, 0.5),
+    );
+    expect(run.views[40].toPlan, isEmpty);
+  });
+
   test(
     'a GPS-free drive logs each junction with a choice, the wrong turn too',
     () {

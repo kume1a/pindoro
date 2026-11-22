@@ -245,6 +245,24 @@ and the specs after R5. Fix them in roughly this order.
     - The preview steps (Show the turns, Back, Next) instead of V32-11's Pause and timed play.
     - The StoppedBar lost its grab handle: it suggested a sheet to drag, and there is none. The
       design system's StoppedBar still draws it.
+  - **Guided, compact and movable (SPEC §16.23 items 116, 118 and 130, 2026-11-22/23)**, after
+    test drives, with the player's own navigator as the model; boards V32-01 and V32-20 still
+    draw the full-width 54/72 dp plate:
+    - TurnPlate is a card in the top left (`radius.lg`, at most 62 % of the screen wide): the
+      44 dp glyph beside the distance in `headline.lg`, the street in `title.lg`, a `label.lg`
+      note with a 24 dp badge (the landmark, the heading), the lanes, and "then" as a chip under
+      the card. The approach bar is gone (the distance counts down).
+    - New: `LaneArrows` (`DriveLane`: a lane's arrows as turn angles and the one to take), 28 ×
+      36 dp per lane, the arrow to take in `drive.plate.glyph`, the rest in
+      `drive.plate.text-2` at `opacity.hatch`; and `turnArrowHeadPng`, the head of the turn arrow
+      the map draws at the next decision (line `drive.plate.text` on a `drive.plate` casing).
+    - DriveBottomBar is one line in `headline.md`: the flag, "12:41 · 3.4 km", then the marks.
+      SpeedLimitSign is 64 dp (figures 32, three figures 26) and DistrictChip 48 dp in
+      `headline.md`. Coached, Quiet, Recovery and Off keep `type.drive.*`.
+    - The map drags and pinches at any speed; the north arrow's disc turns into Recentre (the
+      DriveGlyph `recentre`) while it is off the car, and the map returns after 10 s. The car
+      sits on its road, the road ahead straight up, 70 % down the map (map padding), the route
+      drawn from it; until the car is on a road the route picked at setup shows.
 - Lakes are not named (Protomaps gives them no label point); Lisi Lake is the only one.
 - Left out of the road-class pass, on purpose:
   - A "Your streets" round left half-way is not offered as Continue on Explore (Continue matches
@@ -293,6 +311,10 @@ landmarks, recitals and drives) and the curriculum order.
 - Speed data (pack format 7) reads only `maxspeed` and `GE:*` zones: `maxspeed:forward/backward`,
   conditional limits and average-speed sections (`type=enforcement` relations) are left out, and a
   camera tagged `direction=forward/backward` counts as both ways.
+- Lane arrows (pack format 8) come from the `turn:lanes` of the way into a junction, carried on
+  every edge of that way: where a long way crosses minor junctions before the one its lanes are
+  for, a decision there can show them (`laneMatchDeg` drops most such cases). `turn:lanes` on
+  `*_link` approaches and `change:lanes` are not read.
 
 ## Infra / CI
 

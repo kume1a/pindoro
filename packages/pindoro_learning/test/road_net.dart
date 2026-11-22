@@ -32,6 +32,7 @@ class RoadNet {
     double? m,
     Oneway oneway = Oneway.both,
     int? maxspeed,
+    String? lanes,
   }) {
     final line = [at[from]!, at[to]!];
     final e = RoadEdge(
@@ -43,6 +44,7 @@ class RoadNet {
       line: line,
       oneway: oneway,
       maxspeedKmh: maxspeed,
+      lanes: lanes,
     );
     edges.add(e);
     if (street != null) _byStreet.putIfAbsent(street, () => []).add(e);

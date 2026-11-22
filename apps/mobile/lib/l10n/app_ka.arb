@@ -940,5 +940,6 @@
   "driveRouteFastest": "ყველაზე სწრაფი",
   "driveRouteFamiliar": "ყველაზე ნაცნობი",
   "a11yRouteOption": "მარშრუტი {n} / {count}: {line}{picked, select, yes{, არჩეულია} other{}}",
-  "previewShowTurns": "მოსახვევების ჩვენება"
+  "previewShowTurns": "მოსახვევების ჩვენება",
+  "driveTurnBare": "{turn, select, left{მარცხნივ} right{მარჯვნივ} keepLeft{დაიჭირე მარცხენა} keepRight{დაიჭირე მარჯვენა} uTurn{შემობრუნდი} other{პირდაპირ}}"
 }

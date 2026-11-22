@@ -101,7 +101,8 @@ final class DriveSetup extends DriveState {
 /// Driving to [target] (at [destination]) since [startedAt] at [level] (the guard, Rescue and a
 /// pick while stopped change it, among the setup's [choices]); [view] is the
 /// navigator's latest. [speaking] while a prompt is said, [guardedAt] when the guard last
-/// stepped in, [beat] counts the speed chimes (each pulses the sign).
+/// stepped in, [beat] counts the speed chimes (each pulses the sign). [start] is where the
+/// setup found the phone: the map opens there until the first fix.
 final class DriveRecording extends DriveState {
   const DriveRecording({
     required this.target,
@@ -110,6 +111,7 @@ final class DriveRecording extends DriveState {
     required this.startedAt,
     required this.level,
     required this.choices,
+    this.start,
     this.suggestion,
     this.view,
     this.muted = false,
@@ -125,6 +127,7 @@ final class DriveRecording extends DriveState {
   final DateTime startedAt;
   final DriveLevel level;
   final List<DriveLevel> choices;
+  final LatLng? start;
   final DriveSuggestion? suggestion;
   final NavView? view;
   final bool muted;
@@ -154,6 +157,7 @@ final class DriveRecording extends DriveState {
     startedAt: startedAt,
     level: level ?? this.level,
     choices: choices,
+    start: start,
     suggestion: suggestion,
     view: view ?? this.view,
     muted: muted ?? this.muted,
@@ -220,6 +224,7 @@ class DriveController extends Notifier<DriveState> {
   /// The level with the most help the drive reached (items 122–123).
   DriveLevel _mostHelp = DriveLevel.off;
   int _speaking = 0;
+  Future<LocationResult>? _locating;
 
   DriveDevice get _device => ref.read(driveDeviceProvider);
 
@@ -269,6 +274,21 @@ class DriveController extends Notifier<DriveState> {
     if (state case final DriveSetup s) state = DriveSetup(here: s.here);
   }
 
+  /// The same choice again once location was refused (back from the settings).
+  void retry() {
+    if (state case final DriveSetup s when s.denied != null) {
+      state = DriveSetup(to: s.to, own: s.own);
+      unawaited(_prepare());
+    }
+  }
+
+  /// Where the phone is, one ask at a time: the setup's first `_prepare` and a destination
+  /// chosen at once would ask twice, and the second ask fails while the dialog is up.
+  Future<LocationResult> _locate() => _locating ??= ref
+      .read(locationServiceProvider)
+      .locate()
+      .whenComplete(() => _locating = null);
+
   /// A level the setup offers (item 114).
   void pickLevel(DriveLevel level) {
     if (state case final DriveSetup s when s.choices.contains(level)) {
@@ -315,7 +335,7 @@ class DriveController extends Notifier<DriveState> {
   Future<void> _prepare() async {
     final setup = state;
     if (setup is! DriveSetup) return;
-    final located = await ref.read(locationServiceProvider).locate();
+    final located = await _locate();
     if (!ref.mounted) return;
     bool current() =>
         state is DriveSetup && (state as DriveSetup).sameChoice(setup);
@@ -401,11 +421,13 @@ class DriveController extends Notifier<DriveState> {
   /// How many surprise destinations are planned before giving up.
   static const int _surpriseTries = 12;
 
-  /// The route options to [target] from [here] with their suggestions, the quickest first.
+  /// Up to [count] route options to [target] from [here] with their suggestions, the quickest
+  /// first.
   Future<List<DriveSuggestion>> _suggest(
     DriveTarget target,
-    LatLng here,
-  ) async => (await _suggester(here))?.call(target) ?? const [];
+    LatLng here, {
+    int count = LearningConfig.navOptions,
+  }) async => (await _suggester(here))?.call(target, count: count) ?? const [];
 
   /// The route options for a target from [here] (up to `count`, the quickest first), each with
   /// its suggestion; the graph, cards and history read once (Surprise me tries up to
@@ -491,16 +513,17 @@ class DriveController extends Notifier<DriveState> {
   Future<void> _start(String title, String text) async {
     final setup = state;
     if (setup is! DriveSetup || setup.to == null) return;
-    final location = ref.read(locationServiceProvider);
     var target = setup.target;
+    var start = setup.here;
     if (target == null) {
-      final here = await location.locate();
+      final here = await _locate();
       if (!ref.mounted) return;
       if (here is LocationDenied) {
         state = DriveSetup(to: setup.to, own: setup.own, denied: here);
         return;
       }
-      target = await _target(setup, here is Located ? here.position : null);
+      start ??= here is Located ? here.position : null;
+      target = await _target(setup, start);
       if (!ref.mounted) return;
       if (target == null) {
         state = DriveSetup(to: setup.to, own: setup.own, noTarget: true);
@@ -555,9 +578,14 @@ class DriveController extends Notifier<DriveState> {
       startedAt: ref.read(clockProvider)(),
       level: _startLevel,
       choices: setup.choices,
+      start: start,
       suggestion: setup.suggestion,
     );
-    _track = location.track(title: title, text: text).listen(_onFix);
+    _track = ref
+        .read(locationServiceProvider)
+        .track(title: title, text: text)
+        // ponytail: a failing stream shows as GPS lost (the ticks), nothing more to do here.
+        .listen(_onFix, onError: (Object _) {});
     _tick = Timer.periodic(const Duration(seconds: 1), (_) => _onTick());
   }
 
@@ -680,7 +708,9 @@ class DriveController extends Notifier<DriveState> {
     final target = await _target(DriveSetup(to: DriveTo.own, own: dest), at);
     final graph = await ref.hold(drivingGraphProvider.future);
     if (target == null || graph == null || !ref.mounted) return;
-    final s = at == null ? null : (await _suggest(target, at)).firstOrNull;
+    final s = at == null
+        ? null
+        : (await _suggest(target, at, count: 1)).firstOrNull;
     if (!ref.mounted || state is! DriveRecording) return;
     nav.setDestination(target.junction, silent: s?.silent ?? const {});
     state = (state as DriveRecording).copyWith(

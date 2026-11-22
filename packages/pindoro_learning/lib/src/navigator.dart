@@ -68,6 +68,15 @@ typedef NavView = ({
   int? gpsLostS,
   LatLng? at,
   double? headingDeg,
+
+  /// The car on its plan and the way the road runs there ([LearningConfig.navRoadAheadM]
+  /// ahead): Guided's car and bearing, the road ahead straight up (item 130). Null off the
+  /// plan or before its first junction.
+  ({LatLng at, double headingDeg})? onRoad,
+
+  /// The road from the car to the plan's first junction while it is still short of it (the
+  /// plan's route starts there); empty once on the route.
+  Polyline toPlan,
   double speedKmh,
   int? limitKmh,
 
@@ -208,6 +217,16 @@ class Navigator {
   DriveFix? _last;
   DateTime? _stillSaidFor;
 
+  /// The last heading taken while moving: a stopped or crawling fix's heading is noise (or a
+  /// platform's 0 for none), so the screens keep this one.
+  double? _headingDeg;
+
+  /// The first tick, from which a drive with no fix yet counts as GPS lost.
+  DateTime? _firstTick;
+
+  /// Whether the last fix was on the plan.
+  bool _onPlan = false;
+
   DriveLevel get level => _level;
   bool get rescued => _rescued;
   int get recoveries => _recoveries.length;
@@ -246,9 +265,11 @@ class Navigator {
     _drivenM += moved;
     _last = fix;
     final heading = speed > 2 ? fix.headingDeg : null;
+    _headingDeg = heading ?? _headingDeg;
     final prompts = <NavPrompt>[];
 
     final where = _plan == null ? null : _track(fix.at, heading);
+    _onPlan = where != null;
     if (_plan == null) {
       final located = _locate(fix.at, heading);
       if (located != null) _replan(located.edge, located.ahead, located.along);
@@ -317,7 +338,7 @@ class Navigator {
       view: _view(
         now: now,
         at: fix.at,
-        headingDeg: fix.headingDeg,
+        headingDeg: _headingDeg,
         speedMps: speed,
         limitKmh: limit,
         over: warned,
@@ -329,30 +350,32 @@ class Navigator {
     );
   }
 
-  /// Time passing without fixes: the GPS line after [LearningConfig.gpsGapS], "Still finding
-  /// you" once at [LearningConfig.gpsLostSayS].
+  /// Time passing without fixes (since the last one, or the first tick before any): the GPS
+  /// line after [LearningConfig.gpsGapS], "Still finding you" once at
+  /// [LearningConfig.gpsLostSayS]. Before the first fix, and once lost that long, the car
+  /// counts as stopped: its speed is unknown, and End drive must stay within reach.
   NavUpdate onTick(DateTime now) {
     final last = _last;
-    final gapS = last == null ? 0 : now.difference(last.t).inSeconds;
+    final since = last?.t ?? (_firstTick ??= now);
+    final gapS = now.difference(since).inSeconds;
     NavPrompt? prompt;
-    if (last != null &&
-        gapS >= LearningConfig.gpsLostSayS &&
-        _stillSaidFor != last.t) {
-      _stillSaidFor = last.t;
+    if (gapS >= LearningConfig.gpsLostSayS && _stillSaidFor != since) {
+      _stillSaidFor = since;
       prompt = _prompt(PromptKind.stillFinding);
     }
     return (
       view: _view(
         now: now,
         at: last?.at,
-        headingDeg: last?.headingDeg,
+        headingDeg: _headingDeg,
         speedMps: 0,
         limitKmh: switch (_edgeNow) {
           final e? => cost.limitKmh(e),
           null => null,
         },
         over: false,
-        stopped: _stopped(now),
+        stopped:
+            last == null || gapS >= LearningConfig.gpsLostSayS || _stopped(now),
         gpsLostS: gapS > LearningConfig.gpsGapS ? gapS : null,
       ),
       prompt: prompt,
@@ -410,6 +433,8 @@ class Navigator {
       gpsLostS: gpsLostS,
       at: at,
       headingDeg: headingDeg,
+      onRoad: plan != null && _onPlan ? _onRoad(plan) : null,
+      toPlan: plan != null && _onPlan && _index < 0 ? _toPlan() : const [],
       speedKmh: speedMps * 3.6,
       limitKmh: limitKmh,
       over: over,
@@ -434,6 +459,36 @@ class Navigator {
       leftM: plan == null ? null : plan.route.lengthM - _progressM,
       leftS: plan == null ? null : _remainingS(),
       plan: plan,
+    );
+  }
+
+  ({LatLng at, double headingDeg})? _onRoad(NavPlan plan) {
+    final edge = _edgeNow!;
+    if (edge.lengthM <= 0) return null;
+    // Before the plan's first junction the car is on the edge it arrived on.
+    final ahead = _index >= 0
+        ? plan.slice(_progressM, _progressM + LearningConfig.navRoadAheadM)
+        : linePart(
+            edge.lineFrom(_fromNow!),
+            _alongNow / edge.lengthM,
+            min(1, (_alongNow + LearningConfig.navRoadAheadM) / edge.lengthM),
+          );
+    if (ahead.length < 2 || distanceBetween(ahead.first, ahead.last) < 1) {
+      return null;
+    }
+    return (
+      at: ahead.first,
+      headingDeg: bearingDegrees(ahead.first, ahead.last),
+    );
+  }
+
+  Polyline _toPlan() {
+    final edge = _approach!;
+    if (edge.lengthM <= 0) return const [];
+    return linePart(
+      edge.lineFrom(_fromNow!),
+      (_alongNow / edge.lengthM).clamp(0, 1),
+      1,
     );
   }
 

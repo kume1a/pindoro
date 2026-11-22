@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/location.dart';
+import 'package:pindoro/core/navigation.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/drive/ui/destination_search.dart';
@@ -48,7 +48,7 @@ class DrivePlaceScreen extends ConsumerWidget {
             place == null ? null : encodeDrivePlace(place),
             home: home,
           );
-      if (context.mounted) context.pop();
+      if (context.mounted) popIfCurrent(context);
     }
 
     Future<void> pick(DriveDest dest) async {

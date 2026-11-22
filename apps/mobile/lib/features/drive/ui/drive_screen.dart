@@ -16,6 +16,7 @@ import 'package:pindoro/features/drive/ui/drive_levels.dart';
 import 'package:pindoro/features/drive/ui/drive_recording_view.dart';
 import 'package:pindoro/features/drive/ui/plan_map.dart';
 import 'package:pindoro/features/drive/ui/where_to.dart';
+import 'package:pindoro/features/learning/data/nav_data.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/learning/ui/drive_labels.dart';
 import 'package:pindoro/features/learning/ui/drive_week_card.dart';
@@ -53,9 +54,21 @@ class _DriveScreenState extends ConsumerState<DriveScreen> {
   /// Until the destination given on opening is chosen, after the first frame.
   late bool _choosing = widget.to != null || widget.dest != null;
 
+  /// Back from the settings with location allowed: the same choice again.
+  late final AppLifecycleListener _resumed;
+
+  @override
+  void dispose() {
+    _resumed.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
+    _resumed = AppLifecycleListener(
+      onResume: () => ref.read(driveControllerProvider.notifier).retry(),
+    );
     if (!_choosing) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -73,15 +86,16 @@ class _DriveScreenState extends ConsumerState<DriveScreen> {
 
   @override
   Widget build(BuildContext context) {
-    void leave() =>
-        context.canPop() ? context.pop() : context.go(Routes.driveTab);
     final state = ref.watch(driveControllerProvider);
     if (_choosing) return const Scaffold();
     return switch (state) {
       final DriveSetup s when s.to == null => _Search(setup: s),
       final DriveSetup s => _Setup(setup: s),
       final DriveRecording r => DriveRecordingView(recording: r),
-      final DriveReview r => DebriefScreen(id: r.id!, onDone: leave),
+      final DriveReview r => DebriefScreen(
+        id: r.id!,
+        onDone: () => leaveDrive(context),
+      ),
     };
   }
 }
@@ -160,7 +174,7 @@ class _Setup extends ConsumerWidget {
           const PlaceLine().of(context, ref, graph.at(target.junction)),
         if (plan != null) ...[
           formatDistance(plan.route.lengthM, l10n),
-          l10n.driveAboutMin((plan.seconds / 60).ceil()),
+          l10n.driveAboutMin(plan.minutes),
         ],
       ].where((s) => s.isNotEmpty).join(' · '),
     };
@@ -306,19 +320,7 @@ class _Setup extends ConsumerWidget {
         onTap: options.length < 2
             ? null
             : (at) => controller.pickRoute(_nearest(options, at)),
-        top: Padding(
-          padding: const EdgeInsets.symmetric(vertical: PindoroSpace.s2),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: MapControl(
-              glyph: PindoroGlyph.back,
-              semanticLabel: l10n.commonBack,
-              onPressed: () => context.canPop()
-                  ? context.pop()
-                  : context.go(Routes.driveTab),
-            ),
-          ),
-        ),
+        top: const PlanMapBack(),
         bottom: BottomPanel(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -380,7 +382,7 @@ class _RouteOptions extends StatelessWidget {
         for (final (i, o) in options.indexed)
           () {
             final title = [
-              l10n.unitMinutes((o.plan.seconds / 60).ceil()),
+              l10n.unitMinutes(o.plan.minutes),
               formatDistance(o.plan.route.lengthM, l10n),
             ].join(' · ');
             final subtitle = [

@@ -2738,7 +2738,7 @@
       }
     }
   },
-  "navKilometres": "{km} kilometres",
+  "navKilometres": "{km, select, 1{1 kilometre} other{{km} kilometres}}",
   "@navKilometres": {
     "placeholders": {
       "km": {
@@ -3711,5 +3711,13 @@
       }
     }
   },
-  "previewShowTurns": "Show the turns"
+  "previewShowTurns": "Show the turns",
+  "driveTurnBare": "{turn, select, left{Turn left} right{Turn right} keepLeft{Keep left} keepRight{Keep right} uTurn{Turn around} other{Straight on}}",
+  "@driveTurnBare": {
+    "placeholders": {
+      "turn": {
+        "type": "String"
+      }
+    }
+  }
 }

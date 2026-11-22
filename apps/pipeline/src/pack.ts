@@ -8,7 +8,7 @@ import type { Sql } from "postgres";
 import type { CityConfig } from "./config.ts";
 import { isoSeconds, replaceAtomically, writeJson } from "./io.ts";
 
-export const PACK_FORMAT_VERSION = 7;
+export const PACK_FORMAT_VERSION = 8;
 
 // Mirrors docs/pack-format.md exactly; `validate` diffs packs against it.
 export const PACK_DDL = `
@@ -106,7 +106,9 @@ CREATE TABLE road_edge (
   bridge_id     TEXT REFERENCES bridge (id),
   length_m      REAL NOT NULL,
   geometry      TEXT NOT NULL,
-  maxspeed      INTEGER
+  maxspeed      INTEGER,
+  lanes         TEXT,
+  lanes_back    TEXT
 );
 
 CREATE TABLE speed_camera (
@@ -341,7 +343,8 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
   const edges = await sql.unsafe(
     `SELECT e.id::float8 AS id, e.from_junction::float8 AS from_junction,
             e.to_junction::float8 AS to_junction, e.street_key::float8 AS street_key, e.oneway,
-            b.bridge_id, e.length_m, ST_AsGeoJSON(e.geom, 7) AS geojson, e.maxspeed
+            b.bridge_id, e.length_m, ST_AsGeoJSON(e.geom, 7) AS geojson, e.maxspeed,
+            e.lanes, e.lanes_back
      FROM pipeline.road_edge e LEFT JOIN pipeline.edge_bridge b ON b.edge_id = e.id
      WHERE e.id = ANY($1::bigint[]) ORDER BY e.id`,
     [edgeIds],
@@ -477,7 +480,7 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
       for (const { geojson, ...b } of bridges) bridge.run({ ...b, geometry: multiline6(geojson) });
       const edge = db.prepare(
         `INSERT INTO road_edge VALUES (@id, @from_junction, @to_junction, @street_id, @oneway,
-          @bridge_id, @length_m, @geometry, @maxspeed)`,
+          @bridge_id, @length_m, @geometry, @maxspeed, @lanes, @lanes_back)`,
       );
       for (const { street_key, geojson, ...e } of edges) {
         edge.run({

@@ -1,7 +1,11 @@
-# City pack format (v7)
+# City pack format (v8)
 
 A city pack is a read-only SQLite database built by `pipeline` from OpenStreetMap data and
 downloaded by the app. Packs are immutable: a new build gets a new `version` and a new file name.
+
+v8 (2026-11) adds lane arrows for navigation's lane guidance: `road_edge.lanes` and
+`road_edge.lanes_back`, OSM `turn:lanes` values driving from → to and to → from (NULL where OSM has
+none). The app installs v3 to v8; navigation reads them where present.
 
 v7 (2026-11) adds navigation data: `road_edge.maxspeed` (the signed limit in km/h, NULL where OSM has none),
 `junction.signals` (traffic lights within 25 m) and `speed_camera` (OSM speed cameras within 30 m of
@@ -44,7 +48,7 @@ format it supports; v1 packs already on a phone still open.
 
 ```json
 {
-  "format_version": 6,
+  "format_version": 8,
   "city": "tbilisi",
   "name_ka": "თბილისი",
   "name_en": "Tbilisi",
@@ -76,7 +80,7 @@ zone. Street geometry is simplified to 3 m.
 
 ## Schema
 
-`PRAGMA user_version = 6` equals `format_version`.
+`PRAGMA user_version = 8` equals `format_version`.
 
 ```sql
 CREATE TABLE meta (
@@ -175,7 +179,9 @@ CREATE TABLE road_edge (
   bridge_id     TEXT REFERENCES bridge (id),
   length_m      REAL NOT NULL,           -- along the unsimplified way
   geometry      TEXT NOT NULL,           -- polyline6 from from_junction to to_junction
-  maxspeed      INTEGER                  -- km/h from the way's maxspeed (a number or a GE:* zone); NULL: none
+  maxspeed      INTEGER,                 -- km/h from the way's maxspeed (a number or a GE:* zone); NULL: none
+  lanes         TEXT,                    -- lane arrows driving from→to, left to right: `left|through;right|right`
+  lanes_back    TEXT                     -- the same driving to→from; NULL: none mapped that way
 );
 
 CREATE TABLE speed_camera (
@@ -261,6 +267,12 @@ CREATE TABLE chunk_neighbour (
   motorways 1 unless `oneway=no`; `oneway:psv` is ignored. Ways whose geometry lost points against
   their node list are left out. `validate` requires 90 % of the edges in the largest connected
   part.
+- Lane arrows: every edge runs along its way's nodes (from → to), so `lanes` takes the way's
+  `turn:lanes:forward` and `lanes_back` its `turn:lanes:backward`; a plain `turn:lanes` counts
+  for the one direction a one-way way is driven (by the `oneway` rule above, `-1` included:
+  `lanes_back`) and is ignored on a two-way way. Values stay as OSM has them, trimmed (empty →
+  NULL): lanes left to right in the driving direction, `|` between lanes, `;` between a lane's
+  arrows.
 - Turn restrictions: OSM `type=restriction` relations with one `from` way, a `via` node and one
   `to` way (way-via restrictions are left out), `restriction:motorcar` before `restriction`, none
   that `except` cars; one row per pair of edges of those ways meeting at the via junction.

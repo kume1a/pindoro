@@ -39,7 +39,8 @@ class NavWords {
       final rounded = ((m / 50).round() * 50).clamp(50, 950);
       return l10n.navMetres(rounded);
     }
-    return l10n.navKilometres((m / 1000).toStringAsFixed(1));
+    final km = (m / 1000).toStringAsFixed(1);
+    return l10n.navKilometres(km.endsWith('.0') ? km.split('.').first : km);
   }
 
   String _direction(double? heading) => l10n.compassWord(

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
@@ -13,7 +16,7 @@ import 'package:pindoro_design/pindoro_design.dart';
 /// the debrief, a past drive): the [route] in yellow, the [others] (routes not picked) in grey,
 /// the [track] in solid cobalt, the [start] ring, the [end] flag and [pins] (key turns' numbers
 /// or review marks) on their junctions, framed on [frame] (else everything drawn) above what
-/// [bottom] covers; [onTap] hears a tap on the map.
+/// [bottom] covers, with the [names] given (all by default); [onTap] hears a tap on the map.
 class PlanMapLayout extends ConsumerStatefulWidget {
   const PlanMapLayout({
     super.key,
@@ -25,6 +28,7 @@ class PlanMapLayout extends ConsumerStatefulWidget {
     this.end,
     this.pins = const [],
     this.frame,
+    this.names = MapNames.all,
     this.onTap,
     this.top,
     this.bottom,
@@ -39,6 +43,7 @@ class PlanMapLayout extends ConsumerStatefulWidget {
   final LatLng? end;
   final List<(LatLng, Widget)> pins;
   final List<LatLng>? frame;
+  final MapNames names;
   final ValueChanged<LatLng>? onTap;
   final Widget? top;
   final Widget? bottom;
@@ -102,7 +107,7 @@ class _PlanMapLayoutState extends ConsumerState<PlanMapLayout> {
                   ),
                   traces: widget.others,
                   onTap: widget.onTap,
-                  names: MapNames.all,
+                  names: widget.names,
                   onCamera: (p) => _projection.value = p,
                   topInset: insets.top,
                   bottomInset: insets.bottom,
@@ -135,4 +140,27 @@ class _PlanMapLayoutState extends ConsumerState<PlanMapLayout> {
       front: widget.front,
     );
   }
+}
+
+/// Back from a drive screen: to the screen under it, else the Drive tab (a link opened it with
+/// nothing under it).
+void leaveDrive(BuildContext context) =>
+    context.canPop() ? context.pop() : context.go(Routes.driveTab);
+
+/// The plan map's back control, top left ([PlanMapLayout.top]): [leaveDrive].
+class PlanMapBack extends StatelessWidget {
+  const PlanMapBack({super.key});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: PindoroSpace.s2),
+    child: Align(
+      alignment: Alignment.centerLeft,
+      child: MapControl(
+        glyph: PindoroGlyph.back,
+        semanticLabel: context.l10n.commonBack,
+        onPressed: () => leaveDrive(context),
+      ),
+    ),
+  );
 }
