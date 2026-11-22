@@ -88,6 +88,7 @@ _run(
   required DriveLevel level,
   Set<String> silent = const {},
   RoadGraph? graph,
+  Route? prefer,
 }) {
   final nav = Navigator(
     graph: graph ?? net.graph(),
@@ -97,6 +98,7 @@ _run(
     streets: net.byPart,
     junctionNodes: {for (final j in net.at.keys) j: 5000 + j},
     silent: silent,
+    prefer: prefer,
   );
   final prompts = <NavPrompt>[];
   final views = <NavView>[];
@@ -287,6 +289,44 @@ void main() {
     expect(run.prompts, isEmpty);
     expect(run.nav.recoveries, 0);
     expect(run.nav.passed.where((p) => p.ok == false), isEmpty);
+    expect(run.view.arrived, isTrue);
+  });
+
+  test('the route picked at setup is the one guided, not the quickest', () {
+    final net = _grid();
+    final graph = net.graph();
+    final approach = graph
+        .edgesAt(g(0, 0))
+        .firstWhere((e) => e.other(g(0, 0)) == g(0, 1));
+    final quickest = planNav(
+      graph,
+      NavCost(net.byPart, toleranceKmh: 14),
+      from: g(0, 1),
+      to: g(2, 2),
+      approach: approach,
+      streets: net.byPart,
+    )!;
+    // Equal-length ways: pick the one the quickest plan didn't take.
+    final picked = quickest.route.junctions[1] == g(0, 2)
+        ? [g(0, 1), g(1, 1), g(2, 1), g(2, 2)]
+        : [g(0, 1), g(0, 2), g(1, 2), g(2, 2)];
+    final edges = [
+      for (var i = 0; i + 1 < picked.length; i++)
+        graph
+            .edgesAt(picked[i])
+            .firstWhere((e) => e.other(picked[i]) == picked[i + 1]),
+    ];
+    final run = _run(
+      net,
+      _drive([_p(50, 0), for (final j in picked) net.at[j]!]),
+      to: g(2, 2),
+      level: DriveLevel.guided,
+      prefer: Route(picked, edges, edges.fold(0, (s, e) => s + e.lengthM)),
+    );
+    // South first turns at column 1; east first goes straight on there, turning at column 2.
+    final first = run.prompts.firstWhere((p) => p.kind == PromptKind.action);
+    expect(first.decision?.junction, picked[1] == g(1, 1) ? g(0, 1) : g(0, 2));
+    expect(run.view.newRoute, isFalse);
     expect(run.view.arrived, isTrue);
   });
 

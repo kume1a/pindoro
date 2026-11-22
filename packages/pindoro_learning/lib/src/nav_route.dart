@@ -52,15 +52,29 @@ final class NavCost {
   /// A U-turn: the routing penalty's 30 s, at the top speed.
   double get uTurnCostM => 30 * _topKmh / 3.6;
 
-  /// The quickest legal drive from [from] to [to], having arrived on [approach].
-  Route? route(RoadGraph graph, int from, int to, {RoadEdge? approach}) =>
-      graph.shortestRoute(
-        from,
-        {to},
-        approach: approach,
-        costOf: cost,
-        uTurnCostM: uTurnCostM,
-      );
+  /// The quickest legal drive from [from] to [to], having arrived on [approach]; the edges in
+  /// [avoid] cost [LearningConfig.navOptionPenalty] times as much.
+  Route? route(
+    RoadGraph graph,
+    int from,
+    int to, {
+    RoadEdge? approach,
+    Set<int> avoid = const {},
+  }) => graph.shortestRoute(
+    from,
+    {to},
+    approach: approach,
+    costOf: avoid.isEmpty
+        ? cost
+        : (e) =>
+              cost(e) *
+              (avoid.contains(e.id) ? LearningConfig.navOptionPenalty : 1),
+    uTurnCostM: uTurnCostM,
+  );
+
+  /// [route]'s time.
+  double secondsOf(Route route) =>
+      route.edges.fold(0, (sum, e) => sum + seconds(e));
 }
 
 /// A decision on a planned route (SPEC §16.23 item 112): at [junction], arriving on [approach],
@@ -209,19 +223,77 @@ NavPlan? planNav(
   Map<String, NamedStreet> streets = const {},
   List<RouteLandmark> landmarks = const [],
   Map<int, int> junctionNodes = const {},
+}) => planNavOptions(
+  graph,
+  cost,
+  from: from,
+  to: to,
+  approach: approach,
+  streets: streets,
+  landmarks: landmarks,
+  junctionNodes: junctionNodes,
+  count: 1,
+).firstOrNull;
+
+/// Up to [count] drives from junction [from] (arrived on [approach]) to [to], the quickest first
+/// (SPEC §16.23 item 129): each next one the quickest once the roads of the drives so far cost
+/// more, kept when it is not much slower and clearly different (see
+/// [LearningConfig.navOptions]); none when no drive is legal.
+List<NavPlan> planNavOptions(
+  RoadGraph graph,
+  NavCost cost, {
+  required int from,
+  required int to,
+  RoadEdge? approach,
+  Map<String, NamedStreet> streets = const {},
+  List<RouteLandmark> landmarks = const [],
+  Map<int, int> junctionNodes = const {},
+  int count = LearningConfig.navOptions,
 }) {
-  final route = cost.route(graph, from, to, approach: approach);
-  if (route == null) return null;
-  return NavPlan(
-    route,
-    navDecisions(
-      graph,
-      route,
-      approach: approach,
-      streets: streets,
-      landmarks: landmarks,
-      junctionNodes: junctionNodes,
-    ),
-    route.edges.fold(0, (sum, e) => sum + cost.seconds(e)),
-  );
+  final quickest = cost.route(graph, from, to, approach: approach);
+  if (quickest == null) return const [];
+  final kept = [quickest];
+  final avoid = {for (final e in quickest.edges) e.id};
+  final slowest = cost.secondsOf(quickest) * LearningConfig.navOptionMaxSlower;
+  for (
+    var i = 1;
+    i < LearningConfig.navOptionTries && kept.length < count;
+    i++
+  ) {
+    final next = cost.route(graph, from, to, approach: approach, avoid: avoid);
+    final known = avoid.length;
+    avoid.addAll([...?next?.edges.map((e) => e.id)]);
+    if (next == null || avoid.length == known) break;
+    if (cost.secondsOf(next) <= slowest &&
+        kept.every(
+          (k) =>
+              _sharedM(next, k) <=
+              next.lengthM * LearningConfig.navOptionMaxShared,
+        )) {
+      kept.add(next);
+    }
+  }
+  return [
+    for (final route in kept)
+      NavPlan(
+        route,
+        navDecisions(
+          graph,
+          route,
+          approach: approach,
+          streets: streets,
+          landmarks: landmarks,
+          junctionNodes: junctionNodes,
+        ),
+        cost.secondsOf(route),
+      ),
+  ];
+}
+
+/// The length of [a] on edges [b] also takes.
+double _sharedM(Route a, Route b) {
+  final ids = {for (final e in b.edges) e.id};
+  return a.edges
+      .where((e) => ids.contains(e.id))
+      .fold(0, (sum, e) => sum + e.lengthM);
 }

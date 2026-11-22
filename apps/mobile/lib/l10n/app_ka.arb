@@ -893,8 +893,6 @@
   "previewKeyTurn": "მთავარი მოსახვევი {n}",
   "a11yPreviewTurns": "მთავარი მოსახვევები",
   "a11yKeyTurn": "მთავარი მოსახვევი {n} / {count}: {text}",
-  "previewPause": "პაუზა",
-  "previewPlay": "გაგრძელება",
   "previewSkip": "გამოტოვება",
   "previewRecite": "გაიმეორე მოსახვევები",
   "previewReciteOf": "გაიმეორე მოსახვევები · {n} / {count}",
@@ -937,5 +935,10 @@
   "driveMapNote": "დასვი ნიშნული იქ, სადაც მიდიხარ",
   "driveMapHint": "შეეხე რუკას იქ, სადაც მიდიხარ.",
   "driveMapGo": "აქ წასვლა",
-  "driveMapUse": "ამ ადგილის არჩევა"
+  "driveMapUse": "ამ ადგილის არჩევა",
+  "a11yRoutesMap": "რუკა. არჩეული მარშრუტი ყვითლად, დანარჩენი ნაცრისფრად; შეეხე, რომ აირჩიო.",
+  "driveRouteFastest": "ყველაზე სწრაფი",
+  "driveRouteFamiliar": "ყველაზე ნაცნობი",
+  "a11yRouteOption": "მარშრუტი {n} / {count}: {line}{picked, select, yes{, არჩეულია} other{}}",
+  "previewShowTurns": "მოსახვევების ჩვენება"
 }

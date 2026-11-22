@@ -9,20 +9,23 @@ import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// The north-up plan and review map (MapOverlays, v3.2: the route preview, the debrief, a past
-/// drive): the [route] in yellow, the [track] in solid cobalt, the [start] ring, the [end] flag
-/// and [pins] (key turns' numbers or review marks) on their junctions, framed on [frame] (else
-/// everything drawn) above what [bottom] covers.
+/// The north-up plan and review map (MapOverlays, v3.2: the setup's routes, the route preview,
+/// the debrief, a past drive): the [route] in yellow, the [others] (routes not picked) in grey,
+/// the [track] in solid cobalt, the [start] ring, the [end] flag and [pins] (key turns' numbers
+/// or review marks) on their junctions, framed on [frame] (else everything drawn) above what
+/// [bottom] covers; [onTap] hears a tap on the map.
 class PlanMapLayout extends ConsumerStatefulWidget {
   const PlanMapLayout({
     super.key,
     required this.semanticsLabel,
     this.route = const [],
+    this.others = const [],
     this.track = const [],
     this.start,
     this.end,
     this.pins = const [],
     this.frame,
+    this.onTap,
     this.top,
     this.bottom,
     this.front = const [],
@@ -30,11 +33,13 @@ class PlanMapLayout extends ConsumerStatefulWidget {
 
   final String semanticsLabel;
   final MultiPolyline route;
+  final MultiPolyline others;
   final MultiPolyline track;
   final LatLng? start;
   final LatLng? end;
   final List<(LatLng, Widget)> pins;
   final List<LatLng>? frame;
+  final ValueChanged<LatLng>? onTap;
   final Widget? top;
   final Widget? bottom;
   final List<Widget> front;
@@ -61,7 +66,12 @@ class _PlanMapLayoutState extends ConsumerState<PlanMapLayout> {
     final frame =
         widget.frame ??
         [
-          for (final line in [...widget.route, ...widget.track]) ...line,
+          for (final line in [
+            ...widget.route,
+            ...widget.others,
+            ...widget.track,
+          ])
+            ...line,
           ?start,
           ?end,
         ];
@@ -90,6 +100,8 @@ class _PlanMapLayoutState extends ConsumerState<PlanMapLayout> {
                     chip: null,
                     reached: false,
                   ),
+                  traces: widget.others,
+                  onTap: widget.onTap,
                   names: MapNames.all,
                   onCamera: (p) => _projection.value = p,
                   topInset: insets.top,

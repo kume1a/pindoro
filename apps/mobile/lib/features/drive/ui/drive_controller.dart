@@ -54,8 +54,9 @@ sealed class DriveState {
 
 /// Choosing where to go and how much help: no [to] while searching; today's run, a surprise,
 /// Home, Work or the player's [own] street or place. [here] once found, [denied] once location
-/// was refused; [noTarget] when nothing fits the choice. [target] and its [suggestion] once found
-/// from where the player is; [level] once picked (else the suggestion).
+/// was refused; [noTarget] when nothing fits the choice. [target] and the route [options] (the
+/// quickest first, item 129) once found from where the player is, [suggestion] the one picked;
+/// [level] once picked (else the suggestion).
 final class DriveSetup extends DriveState {
   const DriveSetup({
     this.to,
@@ -64,6 +65,7 @@ final class DriveSetup extends DriveState {
     this.denied,
     this.noTarget = false,
     this.target,
+    this.options = const [],
     this.suggestion,
     this.level,
   });
@@ -74,6 +76,7 @@ final class DriveSetup extends DriveState {
   final LocationDenied? denied;
   final bool noTarget;
   final DriveTarget? target;
+  final List<DriveSuggestion> options;
   final DriveSuggestion? suggestion;
   final DriveLevel? level;
 
@@ -274,11 +277,38 @@ class DriveController extends Notifier<DriveState> {
         own: s.own,
         here: s.here,
         target: s.target,
+        options: s.options,
         suggestion: s.suggestion,
         level: level,
       );
     }
   }
+
+  /// One of the setup's route [DriveSetup.options] (item 129); the level suggested follows it.
+  void pickRoute(DriveSuggestion route) {
+    if (state case final DriveSetup s when s.options.contains(route)) {
+      state = DriveSetup(
+        to: s.to,
+        own: s.own,
+        here: s.here,
+        target: s.target,
+        options: s.options,
+        suggestion: route,
+        level: _keptLevel(s.to, route, s.level),
+      );
+    }
+  }
+
+  /// The level picked so far, when [suggestion]'s choices still offer it (any on today's run).
+  static DriveLevel? _keptLevel(
+    DriveTo? to,
+    DriveSuggestion? suggestion,
+    DriveLevel? picked,
+  ) => switch (suggestion) {
+    final s? when to != DriveTo.run =>
+      levelChoices(s.level).contains(picked) ? picked : null,
+    _ => picked,
+  };
 
   /// Finds where the player is and, once a destination is chosen, the target and the level
   /// suggested for the route there.
@@ -301,25 +331,23 @@ class DriveController extends Notifier<DriveState> {
     }
     final found = await _find(setup, here);
     if (!ref.mounted || !current()) return;
-    final picked = (state as DriveSetup).level;
+    final quickest = found?.options.firstOrNull;
     state = DriveSetup(
       to: setup.to,
       own: setup.own,
       here: here,
       noTarget: found == null,
       target: found?.target,
-      suggestion: found?.suggestion,
-      level: switch (found?.suggestion) {
-        final s? when setup.to != DriveTo.run =>
-          levelChoices(s.level).contains(picked) ? picked : null,
-        _ => picked,
-      },
+      options: found?.options ?? const [],
+      suggestion: quickest,
+      level: _keptLevel(setup.to, quickest, (state as DriveSetup).level),
     );
   }
 
-  /// The setup's destination from [here] and its suggestion; for Surprise me the first new
-  /// destination whose route is [LearningConfig.surpriseMinShare] the player's (item 122).
-  Future<({DriveTarget target, DriveSuggestion? suggestion})?> _find(
+  /// The setup's destination from [here] and its route options; for Surprise me the first new
+  /// destination whose quickest route is [LearningConfig.surpriseMinShare] the player's
+  /// (item 122).
+  Future<({DriveTarget target, List<DriveSuggestion> options})?> _find(
     DriveSetup setup,
     LatLng? here,
   ) async {
@@ -328,7 +356,9 @@ class DriveController extends Notifier<DriveState> {
       if (target == null) return null;
       return (
         target: target,
-        suggestion: here == null ? null : await _suggest(target, here),
+        options: here == null
+            ? const <DriveSuggestion>[]
+            : await _suggest(target, here),
       );
     }
     if (here == null) return null;
@@ -358,11 +388,11 @@ class DriveController extends Notifier<DriveState> {
       final street = streetAt(graph, streets, j);
       if (street == null) continue;
       final target = (junction: j, street: street, place: null);
-      final s = suggest(target);
+      final s = suggest(target, count: 1).firstOrNull;
       if (s != null &&
           s.turns > 0 &&
           s.yours / s.turns >= LearningConfig.surpriseMinShare) {
-        return (target: target, suggestion: s);
+        return (target: target, options: suggest(target));
       }
     }
     return null;
@@ -371,14 +401,17 @@ class DriveController extends Notifier<DriveState> {
   /// How many surprise destinations are planned before giving up.
   static const int _surpriseTries = 12;
 
-  Future<DriveSuggestion?> _suggest(DriveTarget target, LatLng here) async =>
-      (await _suggester(here))?.call(target);
-
-  /// The suggestion for a target from [here], with the graph, cards and history read once
-  /// (Surprise me tries up to [_surpriseTries] targets); null without a road graph.
-  Future<DriveSuggestion? Function(DriveTarget target)?> _suggester(
+  /// The route options to [target] from [here] with their suggestions, the quickest first.
+  Future<List<DriveSuggestion>> _suggest(
+    DriveTarget target,
     LatLng here,
-  ) async {
+  ) async => (await _suggester(here))?.call(target) ?? const [];
+
+  /// The route options for a target from [here] (up to `count`, the quickest first), each with
+  /// its suggestion; the graph, cards and history read once (Surprise me tries up to
+  /// [_surpriseTries] targets). Null without a road graph.
+  Future<List<DriveSuggestion> Function(DriveTarget target, {int count})?>
+  _suggester(LatLng here) async {
     final graph = await ref.hold(drivingGraphProvider.future);
     if (graph == null) return null;
     final pack = await ref.read(packRepositoryProvider.future);
@@ -395,25 +428,14 @@ class DriveController extends Notifier<DriveState> {
     final districts = pack.districts();
     final now = ref.read(clockProvider)();
     const fsrs = Fsrs();
-    return (DriveTarget target) {
-      final plan = planFrom(
-        graph,
-        here,
-        target.junction,
-        streets: streets,
-        landmarks: landmarks,
-        junctionNodes: nodes,
-        toleranceKmh: settings.speedToleranceKmh,
-      );
-      if (plan == null) return null;
-      final raion = raionAt(districts, graph.at(target.junction));
+    DriveSuggestion suggestion(NavPlan plan, int areaJ) {
       final keys = [for (final d in plan.decisions) d.key];
       final s = routeSuggestion(
         keys: keys,
         cards: cards,
         history: history.decisions,
         past: history.past,
-        areaJ: raion == null ? 0 : jCardsIn(raion, cards.values, byNode, graph),
+        areaJ: areaJ,
         now: now,
       );
       final pips = [for (final key in keys) s.silent.contains(key)];
@@ -438,6 +460,26 @@ class DriveController extends Notifier<DriveState> {
             ?d.key,
         },
       );
+    }
+
+    return (DriveTarget target, {int count = LearningConfig.navOptions}) {
+      final raion = raionAt(districts, graph.at(target.junction));
+      final areaJ = raion == null
+          ? 0
+          : jCardsIn(raion, cards.values, byNode, graph);
+      return [
+        for (final plan in plansFrom(
+          graph,
+          here,
+          target.junction,
+          streets: streets,
+          landmarks: landmarks,
+          junctionNodes: nodes,
+          toleranceKmh: settings.speedToleranceKmh,
+          count: count,
+        ))
+          suggestion(plan, areaJ),
+      ];
     };
   }
 
@@ -494,6 +536,7 @@ class DriveController extends Notifier<DriveState> {
       landmarks: landmarks,
       junctionNodes: pack.junctionNodes(),
       silent: setup.suggestion?.silent ?? const {},
+      prefer: setup.suggestion?.plan.route,
       districtAt: (p) => switch (raionAt(districts, p)) {
         final d? => georgian ? d.nameKa : (d.nameEn ?? transliterate(d.nameKa)),
         null => null,
@@ -637,7 +680,7 @@ class DriveController extends Notifier<DriveState> {
     final target = await _target(DriveSetup(to: DriveTo.own, own: dest), at);
     final graph = await ref.hold(drivingGraphProvider.future);
     if (target == null || graph == null || !ref.mounted) return;
-    final s = at == null ? null : await _suggest(target, at);
+    final s = at == null ? null : (await _suggest(target, at)).firstOrNull;
     if (!ref.mounted || state is! DriveRecording) return;
     nav.setDestination(target.junction, silent: s?.silent ?? const {});
     state = (state as DriveRecording).copyWith(

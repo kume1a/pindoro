@@ -22,6 +22,7 @@ import 'package:pindoro/features/drive/ui/drive_preview_screen.dart';
 import 'package:pindoro/features/drive/ui/drive_screen.dart';
 import 'package:pindoro/features/drive/ui/drive_tab.dart';
 import 'package:pindoro/features/drive/ui/past_drives_screen.dart';
+import 'package:pindoro/features/drive/ui/plan_map.dart';
 import 'package:pindoro/features/learning/data/drive_log.dart';
 import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
@@ -517,7 +518,7 @@ void main() {
       home: true,
     );
     await pumpDrive(tester);
-    expect(find.text('Drive'), findsOneWidget);
+    expect(find.byType(PlanMapLayout), findsOneWidget);
     expect(find.textContaining(' → '), findsOneWidget);
     expect(find.textContaining('starts at Off'), findsOneWidget);
     expect(find.byType(LevelPicker<DriveLevel>), findsOneWidget);
@@ -590,6 +591,8 @@ void main() {
   testWidgets('Guided: the map and the turn plate while moving; stopped, the '
       'bar rises, and a level picked there applies at once', (tester) async {
     await pumpDrive(tester);
+    await tester.ensureVisible(find.text('Guided'));
+    await tester.pump();
     await tester.tap(find.text('Guided'));
     await tester.pump();
     await tester.tap(find.text('Start drive'));
@@ -793,10 +796,31 @@ void main() {
     expect(find.text('Pick your two drives'), findsNothing);
   });
 
-  testWidgets('the preview plays the route and its key turns, then Recite: '
-      'a way tapped at each, right or wrong at once, cards untouched', (
+  testWidgets('the setup offers the routes there over its map: the fastest '
+      'picked in yellow, the others grey; another picked takes the yellow', (
     tester,
   ) async {
+    await pumpDrive(tester);
+    await pumpUntil(tester, find.text('Fastest'));
+    expect(plans.last.traces, isNotEmpty, reason: 'the other routes');
+    final fastest = plans.last.route!.best;
+    final other = find
+        .descendant(
+          of: find.byType(ListRow),
+          matching: find.textContaining(' min · '),
+        )
+        .at(1);
+    await tester.ensureVisible(other);
+    await tester.pump();
+    await tester.tap(other);
+    await tester.pump();
+    expect(plans.last.route!.best, isNot(equals(fastest)));
+    expect(find.byType(LevelSuggestion), findsOneWidget);
+  });
+
+  testWidgets('the preview: the route, then its key turns stepped through '
+      'with Back and Next, then Recite: a way tapped at each, right or wrong '
+      'at once, cards untouched', (tester) async {
     await pumpDrive(tester);
     await pumpUntil(tester, find.byType(LevelSuggestion));
     await tester.tap(find.text('Preview'));
@@ -805,8 +829,20 @@ void main() {
     expect(plans.last.route!.best, isNotEmpty);
     expect(plans.last.route!.track, isEmpty);
     expect(plans.last.bearing, 0);
-    await tester.tap(find.text('Skip'));
+    await tester.tap(find.text('Show the turns'));
     await tester.pump();
+    final first = tester.widget<Text>(find.textContaining('Key turn 1 of '));
+    final turns = int.parse(first.data!.split(' of ').last);
+    await tester.tap(find.text('Back'));
+    await tester.pump();
+    expect(find.text('Show the turns'), findsOneWidget, reason: 'the route');
+    await tester.tap(find.text('Show the turns'));
+    await tester.pump();
+    for (var i = 0; i < turns; i++) {
+      expect(find.text('Key turn ${i + 1} of $turns'), findsOneWidget);
+      await tester.tap(find.text('Next'));
+      await tester.pump();
+    }
     expect(find.text('Recite the turns'), findsOneWidget);
     final dao = DriveLogDao(db);
     expect(

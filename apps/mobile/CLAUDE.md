@@ -70,8 +70,10 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                places) over `DriveCards` (the drive waiting, the week's goal, the
                                nudge, "Pick your two drives", Past drives); a pick pushes the drive
                                `/drive/go` (`?to=home|work|run|surprise`, a street or place as
-                               `extra`): DriveController and DriveScreen: the destination with
-                               the suggested level and the LevelPicker; `/drive/place` sets Home or
+                               `extra`): DriveController and DriveScreen: the plan map with the
+                               route options (`DriveSetup.options`, `pickRoute`: Fastest, Most
+                               familiar; the Navigator follows the picked one, `prefer`) over the
+                               destination, the suggested level and the LevelPicker; `/drive/place` sets Home or
                                Work; a drive run by pindoro_learning's Navigator at its level
                                (voice by `NavWords`, the speed chime) on `DriveRecordingView`:
                                Guided's live `DriveMap` with the turn plate and bottom bar, Coached
@@ -79,7 +81,8 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                time at the car; no input while moving, the stopped bar (Mute, level,
                                Route: `DriveRouteScreen`'s new destination, End drive, Off's Rescue)
                                while stopped; arrival ends it), `/drive/preview` (the route
-                               north-up with its numbered key turns, then "Recite the turns");
+                               north-up with its numbered key turns, stepped through with Back and
+                               Next, then "Recite the turns");
                                every decision without help reviews its J card (item 119), every
                                drive and its decisions logged; the debrief (`DebriefScreen` over
                                `driveDebriefProvider`: offered for a day, each turn recalled then

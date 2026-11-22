@@ -74,9 +74,9 @@ final navHistoryProvider =
       );
     });
 
-/// The way navigation plans from [here] to junction [to], from the nearer end of the road
-/// [here] is on; null off the road graph or with no way there.
-NavPlan? planFrom(
+/// The ways navigation offers from [here] to junction [to] (up to [count], the quickest first),
+/// from the nearer end of the road [here] is on; none off the road graph or with no way there.
+List<NavPlan> plansFrom(
   RoadGraph graph,
   LatLng here,
   int to, {
@@ -84,15 +84,16 @@ NavPlan? planFrom(
   required List<RouteLandmark> landmarks,
   required Map<int, int> junctionNodes,
   required int toleranceKmh,
+  int count = LearningConfig.navOptions,
 }) {
   final near = graph.edgeNear(here, 4 * LearningConfig.driveSnapM);
-  if (near == null) return null;
+  if (near == null) return const [];
   final from =
       distanceBetween(here, graph.at(near.from)) <
           distanceBetween(here, graph.at(near.to))
       ? near.from
       : near.to;
-  return planNav(
+  return planNavOptions(
     graph,
     NavCost(streets, toleranceKmh: toleranceKmh),
     from: from,
@@ -100,6 +101,7 @@ NavPlan? planFrom(
     streets: streets,
     landmarks: landmarks,
     junctionNodes: junctionNodes,
+    count: count,
   );
 }
 
@@ -126,7 +128,7 @@ final driveHereProvider =
       // ponytail: two route plans on the UI isolate; move to an isolate if the tab stutters.
       int? minutes(DriveTarget? place) {
         if (place == null) return null;
-        final plan = planFrom(
+        final plan = plansFrom(
           graph,
           here,
           place.junction,
@@ -134,7 +136,8 @@ final driveHereProvider =
           landmarks: landmarks,
           junctionNodes: pack.junctionNodes(),
           toleranceKmh: settings.speedToleranceKmh,
-        );
+          count: 1,
+        ).firstOrNull;
         return plan == null ? null : (plan.seconds / 60).ceil();
       }
 

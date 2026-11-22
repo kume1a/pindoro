@@ -3460,8 +3460,6 @@
       }
     }
   },
-  "previewPause": "Pause",
-  "previewPlay": "Play",
   "previewSkip": "Skip",
   "previewRecite": "Recite the turns",
   "previewReciteOf": "Recite the turns · {n} of {count}",
@@ -3692,5 +3690,26 @@
   "driveMapNote": "Drop a pin where you’re going",
   "driveMapHint": "Tap the map where you’re going.",
   "driveMapGo": "Drive here",
-  "driveMapUse": "Use this spot"
+  "driveMapUse": "Use this spot",
+  "a11yRoutesMap": "Map. The picked route in yellow, the others in grey; tap one to pick it.",
+  "driveRouteFastest": "Fastest",
+  "driveRouteFamiliar": "Most familiar",
+  "a11yRouteOption": "Route {n} of {count}: {line}{picked, select, yes{, picked} other{}}",
+  "@a11yRouteOption": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      },
+      "line": {
+        "type": "String"
+      },
+      "picked": {
+        "type": "String"
+      }
+    }
+  },
+  "previewShowTurns": "Show the turns"
 }

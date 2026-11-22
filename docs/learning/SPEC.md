@@ -433,7 +433,9 @@ pindoro_core `ScoringConfig`, not copied):
 | `creditMaxR`, `hesitationBeforeM`, `noCreditAfterPromptS`               | 0.92, 150, 60                       |
 | `habitPasses`, `habitWindowDays`, `habitCreditDays`                     | 3, 14, 7                            |
 | `keyTurnsMin`, `keyTurnsMax`, `complexWaysOn`                           | 3, 7, 4                             |
-| `previewOverviewS`, `previewTurnS`, `debriefOfferHours`                 | 20, 10, 24                          |
+| `debriefOfferHours`                                                     | 24                                  |
+| `navOptions`, `navOptionPenalty`, `navOptionMaxSlower`                  | 3, 1.5, 1.4                         |
+| `navOptionMaxShared`, `navOptionTries`                                  | 0.7, 6                              |
 | `pointPerfectDeg`, `pointGreatDeg`, `pointCloseDeg`                     | 10, 25, 45                          |
 | `yourRouteDrives`, `yourRouteDays`                                      | 2, 14                               |
 | `yourRoutesShare`, `yourRoutesSlowShare`, `yourRoutesSlowRate`          | 0.25, 0.15, 0.80                    |
@@ -1106,8 +1108,8 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      of the day's new cards, with its streets' P cards (the main road it hangs on first). The rest
      keeps the order of §16.19 and §16.22. If City memory grows below 80 % of its earlier rate,
      the cap drops to 15 %.
-121. **Before and after.** Preview (parked, 60–90 s): north-up whole route with district names
-     (about 20 s), then the key decisions with their landmarks (about 10 s each): the ones not
+121. **Before and after.** Preview (parked, stepped through by the player, item 129): north-up
+     whole route with district names, then the key decisions with their landmarks: the ones not
      silent-eligible plus complex junctions and roundabouts, 3 to 7. An optional "Recite the turns"
      follows (feedback at once, exposure only: the turns were just shown). Debrief on arrival
      (offered for 24 h): the key decisions plus every missed or helped one, at most 7, each
@@ -1213,3 +1215,15 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        why. "Yours" reads "you already know" everywhere.
      - Finding where the phone is uses a last known position under 2 minutes old as it is, and
        waits 8 s at most for a new fix (it waited 20 s, the setup's "Finding the way…").
+     - Route options: the setup offers up to `navOptions` routes on a map over its panel, the
+       picked one yellow and the others grey; each with its time, length and the turns you
+       already know, the quickest tagged Fastest and the one with the largest share of known
+       turns Most familiar. A tap on a route or its line picks it, and the suggested level
+       follows it. Each next route is the quickest once the roads of those before cost
+       `navOptionPenalty` times as much, kept at most `navOptionMaxSlower` times the quickest's
+       time and sharing at most `navOptionMaxShared` of its length with each one kept. The drive
+       follows the picked route from where the car joins it; off it, the quickest way as ever.
+       No traffic: times come from road classes and limits only (item 125).
+     - The preview is stepped through, not timed (it looked stuck for its 20 s overview): the
+       whole route with "Show the turns" and Skip, then each key turn with Back and Next; item
+       121's 20 s and 10 s are gone.

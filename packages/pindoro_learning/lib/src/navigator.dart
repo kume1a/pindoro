@@ -141,7 +141,9 @@ class Navigator {
     this.junctionNodes = const {},
     this.silent = const {},
     this.districtAt,
-  }) : _destination = destination,
+    Route? prefer,
+  }) : _prefer = prefer,
+       _destination = destination,
        _level = level,
        _camerasByEdge = _byEdge(graph.cameras);
 
@@ -162,6 +164,10 @@ class Navigator {
   final String? Function(LatLng at)? districtAt;
 
   final Map<int, List<SpeedCamera>> _camerasByEdge;
+
+  /// The route picked at setup (SPEC §16.23 item 129): the first plan follows it from where the
+  /// car joins it; once off it, the quickest way is planned as ever.
+  Route? _prefer;
 
   /// The decisions passed so far, in order.
   final List<PassedDecision> passed = [];
@@ -217,6 +223,7 @@ class Navigator {
   void setDestination(int to, {Set<String> silent = const {}}) {
     _destination = to;
     this.silent = silent;
+    _prefer = null;
     _plan = null;
     _arrived = false;
   }
@@ -475,16 +482,31 @@ class Navigator {
   }
 
   void _replan(RoadEdge edge, int ahead, double along) {
-    final plan = planNav(
-      graph,
-      cost,
-      from: ahead,
-      to: destination,
-      approach: edge,
-      streets: streets,
-      landmarks: landmarks,
-      junctionNodes: junctionNodes,
-    );
+    final preferred = _restOf(_prefer, edge, ahead);
+    _prefer = null;
+    final plan = preferred == null
+        ? planNav(
+            graph,
+            cost,
+            from: ahead,
+            to: destination,
+            approach: edge,
+            streets: streets,
+            landmarks: landmarks,
+            junctionNodes: junctionNodes,
+          )
+        : NavPlan(
+            preferred,
+            navDecisions(
+              graph,
+              preferred,
+              approach: edge,
+              streets: streets,
+              landmarks: landmarks,
+              junctionNodes: junctionNodes,
+            ),
+            cost.secondsOf(preferred),
+          );
     _plan = plan;
     _approach = edge;
     _junctionM = plan?.junctionM ?? const [];
@@ -494,6 +516,25 @@ class Navigator {
     _offFixes = 0;
     _said.clear();
     _prepareFrom.clear();
+  }
+
+  /// [route] from [ahead] on, when the car on [edge] joins it there legally; else null.
+  Route? _restOf(Route? route, RoadEdge edge, int ahead) {
+    if (route == null) return null;
+    final k = route.junctions.indexOf(ahead);
+    if (k < 0 || k >= route.edges.length) return null;
+    final joins = k > 0
+        ? route.edges[k - 1].id == edge.id
+        : graph
+              .legalExits(ahead, approach: edge)
+              .any((e) => e.id == route.edges.first.id);
+    if (!joins) return null;
+    final edges = route.edges.sublist(k);
+    return Route(
+      route.junctions.sublist(k),
+      edges,
+      edges.fold(0, (sum, e) => sum + e.lengthM),
+    );
   }
 
   /// The car on the plan near where it was: its progress, or null when it is off the plan.

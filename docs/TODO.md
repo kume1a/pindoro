@@ -237,6 +237,14 @@ and the specs after R5. Fix them in roughly this order.
     minutes as the value, else the place's name; "Set your home" when unset), the rest is V32-10's
     Where to and V32-71's drives moved off Today. Choose on the map is Add landmark's map and
     panel (V3-32) with a destination's words.
+  - **The setup's routes and the stepped preview (item 129, 2026-11-22)**, built in the app:
+    - The setup is the plan map (routes: the picked one yellow, the others grey) over a panel
+      with the destination, a `ListRow` per route (time · length, Fastest / Most familiar, the
+      turns you know, a tick on the picked one), the level and the rules; V32-10 has no map and
+      one route. The canvas and design system need a route card.
+    - The preview steps (Show the turns, Back, Next) instead of V32-11's Pause and timed play.
+    - The StoppedBar lost its grab handle: it suggested a sheet to drag, and there is none. The
+      design system's StoppedBar still draws it.
 - Lakes are not named (Protomaps gives them no label point); Lisi Lake is the only one.
 - Left out of the road-class pass, on purpose:
   - A "Your streets" round left half-way is not offered as Continue on Explore (Continue matches

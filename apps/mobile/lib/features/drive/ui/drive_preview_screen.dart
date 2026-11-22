@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,12 +22,11 @@ import 'package:pindoro_learning/pindoro_learning.dart';
 
 enum _Phase { play, list, recite }
 
-/// The route preview (board V32-11, SPEC §16.23 item 121), parked only: the whole route
-/// north-up for [LearningConfig.previewOverviewS], then each key turn for
-/// [LearningConfig.previewTurnS] with its landmark and the street it turns onto (Pause and Skip
-/// only); then the key turns listed, Start, and an optional "Recite the turns": the way tapped
-/// at each, right or wrong shown at once. Reciting reviews no card (the turns were just shown);
-/// the preview and each recited turn go in the drive log.
+/// The route preview (board V32-11, SPEC §16.23 items 121 and 129), parked only: the whole route
+/// north-up, then, as the player steps through them (Back, Next), each key turn with its landmark
+/// and the street it turns onto; then the key turns listed, Start, and an optional "Recite the
+/// turns": the way tapped at each, right or wrong shown at once. Reciting reviews no card (the
+/// turns were just shown); the preview and each recited turn go in the drive log.
 class DrivePreviewScreen extends ConsumerStatefulWidget {
   const DrivePreviewScreen({super.key});
 
@@ -37,26 +37,12 @@ class DrivePreviewScreen extends ConsumerStatefulWidget {
 class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
   _Phase _phase = _Phase.play;
 
-  /// The key turn on show while playing (-1: the overview), or being recited.
+  /// The key turn on show while stepping through (-1: the whole route), or being recited.
   int _at = -1;
-  bool _paused = false;
-  Timer? _timer;
   late final DateTime _opened = ref.read(clockProvider)();
 
   /// The way tapped at the recited turn; null until tapped.
   Turn? _said;
-
-  @override
-  void initState() {
-    super.initState();
-    _schedule();
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
 
   String get _driveId => ref.read(driveControllerProvider.notifier).driveId;
 
@@ -72,31 +58,11 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
         ),
   );
 
-  void _schedule() {
-    _timer?.cancel();
-    if (_paused || _phase != _Phase.play) return;
-    _timer = Timer(
-      Duration(
-        seconds: _at < 0
-            ? LearningConfig.previewOverviewS
-            : LearningConfig.previewTurnS,
-      ),
-      () => _advance(_keyTurns().length),
-    );
-  }
-
-  void _advance(int turns) {
-    if (!mounted) return;
-    if (_at + 1 < turns) {
-      setState(() => _at++);
-      _schedule();
-    } else {
-      _toList();
-    }
-  }
+  /// Key turn [at] of [turns] (-1: the whole route); past the last, the list.
+  void _step(int at, int turns) =>
+      at >= turns ? _toList() : setState(() => _at = max(-1, at));
 
   void _toList() {
-    _timer?.cancel();
     if (_phase == _Phase.play) {
       final watched = ref.read(clockProvider)().difference(_opened);
       _log(DriveEventKind.preview, value: watched.inSeconds.toDouble());
@@ -106,19 +72,6 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
       _at = -1;
     });
   }
-
-  void _togglePause() {
-    setState(() => _paused = !_paused);
-    _schedule();
-  }
-
-  List<NavDecision> _keyTurns() => switch (ref.read(driveControllerProvider)) {
-    DriveSetup(suggestion: final s?) => [
-      for (final d in s.plan.decisions)
-        if (s.keys.contains(d.key)) d,
-    ],
-    _ => const [],
-  };
 
   void _recite(NavDecision d, Turn said, Map<Turn, RoadEdge> exits) {
     _log(
@@ -260,25 +213,42 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
                   ],
                   Row(
                     spacing: PindoroSpace.s3,
-                    children: [
-                      Expanded(
-                        child: PindoroButton(
-                          label: _paused ? l10n.previewPlay : l10n.previewPause,
-                          icon: _paused
-                              ? PindoroGlyph.play
-                              : PindoroGlyph.pause,
-                          variant: PindoroButtonVariant.secondary,
-                          onPressed: _togglePause,
-                        ),
-                      ),
-                      Expanded(
-                        child: PindoroButton(
-                          label: l10n.previewSkip,
-                          variant: PindoroButtonVariant.tertiary,
-                          onPressed: _toList,
-                        ),
-                      ),
-                    ],
+                    children: d == null
+                        ? [
+                            Expanded(
+                              child: PindoroButton(
+                                label: l10n.previewShowTurns,
+                                onPressed: keyTurns.isEmpty
+                                    ? null
+                                    : () => _step(0, keyTurns.length),
+                              ),
+                            ),
+                            Expanded(
+                              child: PindoroButton(
+                                label: l10n.previewSkip,
+                                variant: PindoroButtonVariant.tertiary,
+                                onPressed: _toList,
+                              ),
+                            ),
+                          ]
+                        : [
+                            Expanded(
+                              child: PindoroButton(
+                                label: l10n.commonBack,
+                                icon: PindoroGlyph.back,
+                                variant: PindoroButtonVariant.secondary,
+                                onPressed: () =>
+                                    _step(_at - 1, keyTurns.length),
+                              ),
+                            ),
+                            Expanded(
+                              child: PindoroButton(
+                                label: l10n.commonNext,
+                                onPressed: () =>
+                                    _step(_at + 1, keyTurns.length),
+                              ),
+                            ),
+                          ],
                   ),
                 ],
               ),

@@ -8,6 +8,8 @@
     <!-- A GPS-free drive records with the screen locked (geolocator's foreground service). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+    <!-- The foreground service's partial wake lock (enableWakeLock): without it the fixes never start. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <application
         android:label="Pindoro"
         android:name="${applicationName}"

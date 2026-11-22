@@ -14,6 +14,7 @@ import 'package:pindoro/features/drive/ui/destination_search.dart';
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
 import 'package:pindoro/features/drive/ui/drive_levels.dart';
 import 'package:pindoro/features/drive/ui/drive_recording_view.dart';
+import 'package:pindoro/features/drive/ui/plan_map.dart';
 import 'package:pindoro/features/drive/ui/where_to.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/learning/ui/drive_labels.dart';
@@ -163,132 +164,249 @@ class _Setup extends ConsumerWidget {
         ],
       ].where((s) => s.isNotEmpty).join(' · '),
     };
-    return PageScaffold(
-      title: l10n.driveTitle,
-      footer: Row(
-        spacing: PindoroSpace.s3,
-        children: [
-          Expanded(
-            child: PindoroButton(
-              label: l10n.previewButton,
-              variant: PindoroButtonVariant.secondary,
-              onPressed: ready && setup.suggestion != null
-                  ? () => unawaited(context.push(Routes.drivePreview))
-                  : null,
-            ),
+    final footer = Row(
+      spacing: PindoroSpace.s3,
+      children: [
+        Expanded(
+          child: PindoroButton(
+            label: l10n.previewButton,
+            variant: PindoroButtonVariant.secondary,
+            onPressed: ready && setup.suggestion != null
+                ? () => unawaited(context.push(Routes.drivePreview))
+                : null,
           ),
-          Expanded(
-            child: PindoroButton(
-              label: l10n.driveStart,
-              icon: PindoroGlyph.car,
-              onPressed: ready
-                  ? () => unawaited(
-                      controller.start(
-                        title: l10n.driveNotificationTitle,
-                        text: l10n.driveNotificationText,
-                      ),
-                    )
-                  : null,
+        ),
+        Expanded(
+          child: PindoroButton(
+            label: l10n.driveStart,
+            icon: PindoroGlyph.car,
+            onPressed: ready
+                ? () => unawaited(
+                    controller.start(
+                      title: l10n.driveNotificationTitle,
+                      text: l10n.driveNotificationText,
+                    ),
+                  )
+                : null,
+          ),
+        ),
+      ],
+    );
+    final options = setup.options;
+    final chosen = setup.suggestion;
+    final content = <Widget>[
+      ListGroup(
+        children: [
+          ListRow(
+            leading: RowTile(_glyph(to, target)),
+            title: title,
+            subtitle: line.isEmpty ? null : line,
+            trailing: PindoroIconButton(
+              glyph: PindoroGlyph.edit,
+              semanticLabel: l10n.driveChangeDest,
+              onPressed: controller.clear,
             ),
           ),
         ],
       ),
-      children: [
-        ListGroup(
-          children: [
-            ListRow(
-              leading: RowTile(_glyph(to, target)),
-              title: title,
-              subtitle: line.isEmpty ? null : line,
-              trailing: PindoroIconButton(
-                glyph: PindoroGlyph.edit,
-                semanticLabel: l10n.driveChangeDest,
-                onPressed: controller.clear,
-              ),
-            ),
-          ],
+      if (options.length > 1)
+        _RouteOptions(
+          options: options,
+          chosen: chosen,
+          onPick: controller.pickRoute,
         ),
-        if (denied != null || setup.noTarget)
-          ListRow(
-            leading: RowTile(
-              denied == null && to == DriveTo.surprise
-                  ? PindoroGlyph.info
-                  : PindoroGlyph.locateOff,
-            ),
-            title: denied != null
-                ? l10n.driveNoLocation
-                : switch (to) {
-                    DriveTo.run => l10n.driveNoRun,
-                    DriveTo.surprise => l10n.driveNoSurprise,
-                    _ => l10n.driveNoTarget,
-                  },
-            subtitle: denied == null && to == DriveTo.surprise
-                ? l10n.driveNoSurpriseWhy
-                : null,
-            onTap: denied == null
-                ? null
-                : () => unawaited(
-                    ref.read(locationServiceProvider).openSettings(denied),
-                  ),
+      if (denied != null || setup.noTarget)
+        ListRow(
+          leading: RowTile(
+            denied == null && to == DriveTo.surprise
+                ? PindoroGlyph.info
+                : PindoroGlyph.locateOff,
           ),
-        SectionTitle(l10n.driveLevelTitle),
-        if (to == DriveTo.run)
-          LevelSuggestion(
-            lead: l10n.driveRunLead,
-            level: l10n.driveStartsAt(levelLabel(l10n, DriveLevel.off)),
-            reason: l10n.driveEveryLevel,
-          )
-        else if (setup.suggestion case final s?)
-          LevelSuggestion(
-            lead: l10n.driveSuggestedLead,
-            level: levelLabel(l10n, s.level),
-            reason: l10n.driveYours(s.yours, s.turns),
-            yours: s.pips,
-            pipsLabel: l10n.a11yDrivePips(s.turns, s.yours, s.turns - s.yours),
-          )
-        else if (target == null && !setup.noTarget && denied == null)
-          Text(
-            l10n.driveFinding,
-            style: PindoroType.bodyMd.copyWith(
-              color: PindoroTheme.of(context).colors.textSecondary,
-            ),
-          ),
-        LevelPicker<DriveLevel>(
-          steps: levelSteps(l10n, setup.choices),
-          selected: setup.chosen,
-          suggested: to == DriveTo.run ? null : setup.suggestion?.level,
-          suggestedLabel: l10n.driveSuggestedTag,
-          semanticsLabel: l10n.a11yDriveHelp,
-          onChanged: controller.pickLevel,
+          title: denied != null
+              ? l10n.driveNoLocation
+              : switch (to) {
+                  DriveTo.run => l10n.driveNoRun,
+                  DriveTo.surprise => l10n.driveNoSurprise,
+                  _ => l10n.driveNoTarget,
+                },
+          subtitle: denied == null && to == DriveTo.surprise
+              ? l10n.driveNoSurpriseWhy
+              : null,
+          onTap: denied == null
+              ? null
+              : () => unawaited(
+                  ref.read(locationServiceProvider).openSettings(denied),
+                ),
         ),
+      SectionTitle(l10n.driveLevelTitle),
+      if (to == DriveTo.run)
+        LevelSuggestion(
+          lead: l10n.driveRunLead,
+          level: l10n.driveStartsAt(levelLabel(l10n, DriveLevel.off)),
+          reason: l10n.driveEveryLevel,
+        )
+      else if (setup.suggestion case final s?)
+        LevelSuggestion(
+          lead: l10n.driveSuggestedLead,
+          level: levelLabel(l10n, s.level),
+          reason: l10n.driveYours(s.yours, s.turns),
+          yours: s.pips,
+          pipsLabel: l10n.a11yDrivePips(s.turns, s.yours, s.turns - s.yours),
+        )
+      else if (target == null && !setup.noTarget && denied == null)
         Text(
-          levelNote(l10n, setup.chosen),
+          l10n.driveFinding,
           style: PindoroType.bodyMd.copyWith(
             color: PindoroTheme.of(context).colors.textSecondary,
           ),
         ),
-        ListGroup(
-          children: [
-            if (setup.chosen == DriveLevel.off) ...[
-              rule(
-                PindoroGlyph.locateOff,
-                l10n.driveRuleMap,
-                l10n.driveRuleMapNote,
-              ),
-              rule(
-                PindoroGlyph.timer,
-                l10n.driveRuleTrack,
-                l10n.driveRuleTrackNote,
-              ),
-            ],
+      LevelPicker<DriveLevel>(
+        steps: levelSteps(l10n, setup.choices),
+        selected: setup.chosen,
+        suggested: to == DriveTo.run ? null : setup.suggestion?.level,
+        suggestedLabel: l10n.driveSuggestedTag,
+        semanticsLabel: l10n.a11yDriveHelp,
+        onChanged: controller.pickLevel,
+      ),
+      Text(
+        levelNote(l10n, setup.chosen),
+        style: PindoroType.bodyMd.copyWith(
+          color: PindoroTheme.of(context).colors.textSecondary,
+        ),
+      ),
+      ListGroup(
+        children: [
+          if (setup.chosen == DriveLevel.off) ...[
             rule(
-              PindoroGlyph.info,
-              l10n.driveRuleHands,
-              l10n.driveRuleHandsNote,
+              PindoroGlyph.locateOff,
+              l10n.driveRuleMap,
+              l10n.driveRuleMapNote,
+            ),
+            rule(
+              PindoroGlyph.timer,
+              l10n.driveRuleTrack,
+              l10n.driveRuleTrackNote,
             ),
           ],
+          rule(PindoroGlyph.info, l10n.driveRuleHands, l10n.driveRuleHandsNote),
+        ],
+      ),
+      const DriveWeekCard(),
+    ];
+    return Scaffold(
+      body: PlanMapLayout(
+        semanticsLabel: l10n.a11yRoutesMap,
+        route: chosen?.plan.route.lines ?? const [],
+        others: [
+          for (final o in options)
+            if (o != chosen) ...o.plan.route.lines,
+        ],
+        start: setup.here,
+        end: target == null || graph == null ? null : graph.at(target.junction),
+        onTap: options.length < 2
+            ? null
+            : (at) => controller.pickRoute(_nearest(options, at)),
+        top: Padding(
+          padding: const EdgeInsets.symmetric(vertical: PindoroSpace.s2),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: MapControl(
+              glyph: PindoroGlyph.back,
+              semanticLabel: l10n.commonBack,
+              onPressed: () => context.canPop()
+                  ? context.pop()
+                  : context.go(Routes.driveTab),
+            ),
+          ),
         ),
-        const DriveWeekCard(),
+        bottom: BottomPanel(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            spacing: PindoroSpace.s3,
+            children: [
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.sizeOf(context).height * 0.5,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: PindoroSpace.s4,
+                    children: content,
+                  ),
+                ),
+              ),
+              footer,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The option whose route passes nearest [at].
+DriveSuggestion _nearest(List<DriveSuggestion> options, LatLng at) {
+  double off(DriveSuggestion s) =>
+      pointToPolylineDistance(at, s.plan.route.lines).distanceMeters;
+  return options.reduce((a, b) => off(b) < off(a) ? b : a);
+}
+
+/// The route options (SPEC §16.23 item 129) when there is more than one: each one's time and
+/// length, Fastest or Most familiar (the most turns you already know), those turns; the picked
+/// one ticked. A tap picks it; so does a tap on its line on the map.
+class _RouteOptions extends StatelessWidget {
+  const _RouteOptions({
+    required this.options,
+    required this.chosen,
+    required this.onPick,
+  });
+
+  final List<DriveSuggestion> options;
+  final DriveSuggestion? chosen;
+  final ValueChanged<DriveSuggestion> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final c = PindoroTheme.of(context).colors;
+    double known(DriveSuggestion s) => s.turns == 0 ? 0 : s.yours / s.turns;
+    final familiar = options.indexed
+        .reduce((a, b) => known(b.$2) > known(a.$2) ? b : a)
+        .$1;
+    return ListGroup(
+      children: [
+        for (final (i, o) in options.indexed)
+          () {
+            final title = [
+              l10n.unitMinutes((o.plan.seconds / 60).ceil()),
+              formatDistance(o.plan.route.lengthM, l10n),
+            ].join(' · ');
+            final subtitle = [
+              if (i == 0) l10n.driveRouteFastest,
+              if (i == familiar && i != 0) l10n.driveRouteFamiliar,
+              l10n.driveYours(o.yours, o.turns),
+            ].join(' · ');
+            final picked = o == chosen;
+            return ListRow(
+              leading: RowTile(
+                i == 0 ? PindoroGlyph.timer : PindoroGlyph.route,
+              ),
+              title: title,
+              subtitle: subtitle,
+              trailing: picked
+                  ? PindoroIcon(PindoroGlyph.checkCircle, color: c.primaryText)
+                  : null,
+              semanticsLabel: l10n.a11yRouteOption(
+                i + 1,
+                options.length,
+                '$title, $subtitle',
+                picked ? 'yes' : 'no',
+              ),
+              onTap: () => onPick(o),
+            );
+          }(),
       ],
     );
   }

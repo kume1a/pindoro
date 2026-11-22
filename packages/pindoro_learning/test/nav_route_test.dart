@@ -4,11 +4,11 @@ import 'package:test/test.dart';
 
 import 'road_net.dart';
 
-/// A residential side street straight from 1 to 2 (600 m), and the main road round it: 1 → 3
+/// A side street ([sideClass]) straight from 1 to 2 (600 m), and the main road round it: 1 → 3
 /// (secondary, 100 m), 3 → 4 (primary, 600 m, signed [mainLimit]), 4 → 2 (secondary, 100 m).
-RoadNet _bypass({int? mainLimit}) {
+RoadNet _bypass({int? mainLimit, String sideClass = 'residential'}) {
   final net = RoadNet()
-    ..street('side', 'გვერდითი', 'Side')
+    ..street('side', 'გვერდითი', 'Side', roadClass: sideClass)
     ..street('west', 'დასავლეთი', 'West', roadClass: 'secondary')
     ..street('main', 'მთავარი', 'Main', roadClass: 'primary')
     ..street('east', 'აღმოსავლეთი', 'East', roadClass: 'secondary')
@@ -101,6 +101,27 @@ void main() {
       expect(plan.route.junctions, [1, 3, 4, 2]);
       // 200 m at 55 km/h and 600 m at 65 km/h.
       expect(plan.seconds, closeTo(200 / (55 / 3.6) + 600 / (65 / 3.6), 0.1));
+    });
+
+    test('the route options: the quickest first, then a clearly different '
+        'way not much slower; one far slower is left out', () {
+      List<List<int>> options(RoadNet net) => [
+        for (final p in planNavOptions(
+          net.graph(),
+          NavCost(net.byPart, toleranceKmh: 14),
+          from: 1,
+          to: 2,
+          streets: net.byPart,
+        ))
+          p.route.junctions,
+      ];
+      expect(options(_bypass(sideClass: 'tertiary')), [
+        [1, 3, 4, 2],
+        [1, 2],
+      ]);
+      expect(options(_bypass()), [
+        [1, 3, 4, 2],
+      ], reason: 'the residential side street takes 1.9 times as long');
     });
 
     test('a low sign on the main road sends it down the side street', () {

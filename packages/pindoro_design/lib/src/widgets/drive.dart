@@ -1471,19 +1471,6 @@ class StoppedBar extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           spacing: 10,
           children: [
-            Transform.translate(
-              offset: const Offset(0, -PindoroSpace.s1),
-              child: Center(
-                child: Container(
-                  width: 40,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: c.driveSurfaceLine,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
-            ),
             if (levelOpen && picker != null)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
