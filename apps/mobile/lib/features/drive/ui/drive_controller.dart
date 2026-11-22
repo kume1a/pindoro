@@ -202,6 +202,9 @@ final class DriveReview extends DriveState {
   };
 }
 
+/// A fix timed this long before the drive started is a cached location, not the car's.
+const Duration _staleFix = Duration(seconds: 30);
+
 /// A drive (SPEC §5.3 drives, §16.23, boards V3-50 and V32-*): pick a destination and the help
 /// suggested for it, drive with the navigator speaking by level, then map-match and grade the
 /// track. Every decision taken without help reviews its J card (item 119): Good, Hard after a
@@ -223,7 +226,18 @@ class DriveController extends Notifier<DriveState> {
 
   /// The level with the most help the drive reached (items 122–123).
   DriveLevel _mostHelp = DriveLevel.off;
-  int _speaking = 0;
+
+  /// What the drive says, one line at a time; [DriveRecording.speaking] meanwhile.
+  late final SpeechQueue _speech = SpeechQueue(
+    (text) => _device.say(text, _voice),
+    onSpeaking: (on) {
+      if (ref.mounted) _speaking(on: on);
+    },
+  );
+
+  /// The fixes before the destination changed on the way (item 116): the drive is graded from
+  /// there.
+  int _changedAt = 0;
   Future<LocationResult>? _locating;
 
   DriveDevice get _device => ref.read(driveDeviceProvider);
@@ -547,9 +561,15 @@ class DriveController extends Notifier<DriveState> {
       georgian: georgian,
     );
     final districts = pack.districts();
-    _startLevel = setup.chosen;
+    // A level picked while the phone was being found counts; another destination stops here.
+    final current = state;
+    if (!ref.mounted || current is! DriveSetup || !current.sameChoice(setup)) {
+      return;
+    }
+    final suggestion = current.suggestion;
+    _startLevel = current.chosen;
     _mostHelp = _startLevel;
-    _suggested = setup.suggestion?.level;
+    _suggested = suggestion?.level;
     _nav = Navigator(
       graph: graph,
       cost: NavCost(streets, toleranceKmh: settings.speedToleranceKmh),
@@ -558,8 +578,8 @@ class DriveController extends Notifier<DriveState> {
       streets: streets,
       landmarks: landmarks,
       junctionNodes: pack.junctionNodes(),
-      silent: setup.suggestion?.silent ?? const {},
-      prefer: setup.suggestion?.plan.route,
+      silent: suggestion?.silent ?? const {},
+      prefer: suggestion?.plan.route,
       districtAt: (p) => switch (raionAt(districts, p)) {
         final d? => georgian ? d.nameKa : (d.nameEn ?? transliterate(d.nameKa)),
         null => null,
@@ -567,7 +587,8 @@ class DriveController extends Notifier<DriveState> {
     );
     _fixes.clear();
     _ending = false;
-    _speaking = 0;
+    _speech.clear();
+    _changedAt = 0;
     await _device.start();
     await _device.keepScreenOn(on: _startLevel != DriveLevel.off);
     if (!ref.mounted) return;
@@ -577,9 +598,9 @@ class DriveController extends Notifier<DriveState> {
       to: setup.to!,
       startedAt: ref.read(clockProvider)(),
       level: _startLevel,
-      choices: setup.choices,
+      choices: current.choices,
       start: start,
-      suggestion: setup.suggestion,
+      suggestion: suggestion,
     );
     _track = ref
         .read(locationServiceProvider)
@@ -590,8 +611,13 @@ class DriveController extends Notifier<DriveState> {
   }
 
   void _onFix(DriveFix fix) {
-    _fixes.add(fix);
     final r = state;
+    // A location cached from before the drive (iOS can hand one over first) isn't the car's.
+    if (r is DriveRecording &&
+        fix.t.isBefore(r.startedAt.subtract(_staleFix))) {
+      return;
+    }
+    _fixes.add(fix);
     final nav = _nav;
     if (r is! DriveRecording || nav == null) return;
     _apply(r, nav.onFix(fix));
@@ -603,7 +629,7 @@ class DriveController extends Notifier<DriveState> {
     final nav = _nav;
     if (r is! DriveRecording || nav == null) return;
     final u = nav.onTick(ref.read(clockProvider)());
-    if (u.view.gpsLostS != null || u.prompt != null) _apply(r, u);
+    if (u.view.gpsLostS != null || u.prompts.isNotEmpty) _apply(r, u);
   }
 
   /// The drive reached [level]: the most help so far is kept (items 122–123).
@@ -615,14 +641,16 @@ class DriveController extends Notifier<DriveState> {
     state = r.copyWith(
       view: u.view,
       level: u.view.level,
-      guardedAt: u.prompt?.kind == PromptKind.guard
+      guardedAt: u.prompts.any((p) => p.kind == PromptKind.guard)
           ? ref.read(clockProvider)()
           : null,
       beat: u.chime ? r.beat + 1 : null,
     );
     _reached(u.view.level);
     if (!r.muted) {
-      if (u.prompt case final p?) _say(_words!.words(p, u.view.level));
+      for (final p in u.prompts) {
+        unawaited(_speech.add(_words!.words(p, u.view.level), kind: p.kind));
+      }
       if (u.chime) unawaited(_device.chime());
     }
     if (u.view.arrived && !_ending) {
@@ -631,31 +659,22 @@ class DriveController extends Notifier<DriveState> {
     }
   }
 
-  /// Says [text]; [DriveRecording.speaking] while it does (Coached's bars).
-  void _say(String text) => unawaited(_speak(text));
-
-  Future<void> _speak(String text) async {
-    void speaking(bool on) {
-      if (state case final DriveRecording r when r.speaking != on) {
-        state = r.copyWith(speaking: on);
-      }
-    }
-
-    _speaking++;
-    speaking(true);
-    try {
-      await _device.say(text, _voice);
-    } finally {
-      if (--_speaking == 0 && ref.mounted) speaking(false);
+  /// Coached's speaking bars.
+  void _speaking({required bool on}) {
+    if (state case final DriveRecording r when r.speaking != on) {
+      state = r.copyWith(speaking: on);
     }
   }
 
   /// Arrival (item 116): the line said to its end, then the drive ends by itself.
   Future<void> _arrive(DriveRecording r) async {
-    if (!r.muted && r.level != DriveLevel.off) {
-      await _device.say(_words!.arrived(r.target.street), _voice);
+    try {
+      if (!r.muted && r.level != DriveLevel.off) {
+        await _speech.add(_words!.arrived(r.target.street));
+      }
+    } finally {
+      await end();
     }
-    await end();
   }
 
   /// Off's Rescue, while stopped (item 116): Guided from here, said once.
@@ -664,6 +683,7 @@ class DriveController extends Notifier<DriveState> {
     final nav = _nav;
     if (r is! DriveRecording ||
         nav == null ||
+        _ending ||
         !r.stopped ||
         r.level != DriveLevel.off) {
       return;
@@ -672,12 +692,13 @@ class DriveController extends Notifier<DriveState> {
     _reached(DriveLevel.guided);
     state = r.copyWith(level: DriveLevel.guided, rescued: true);
     unawaited(_device.keepScreenOn(on: true));
-    if (!r.muted) _say(_words!.l10n.navRescued);
+    if (!r.muted) unawaited(_speech.add(_words!.l10n.navRescued));
   }
 
-  /// Mute or unmute every prompt, while stopped (item 117).
+  /// Mute or unmute every prompt, while stopped (item 117); muting drops the lines waiting.
   void toggleMute() {
-    if (state case final DriveRecording r when r.stopped) {
+    if (state case final DriveRecording r when r.stopped && !_ending) {
+      if (!r.muted) _speech.clear();
       state = r.copyWith(muted: !r.muted);
     }
   }
@@ -688,6 +709,7 @@ class DriveController extends Notifier<DriveState> {
     final nav = _nav;
     if (r is! DriveRecording ||
         nav == null ||
+        _ending ||
         !r.stopped ||
         level == r.level ||
         !r.choices.contains(level)) {
@@ -703,7 +725,7 @@ class DriveController extends Notifier<DriveState> {
   Future<void> changeDestination(DriveDest dest) async {
     final r = state;
     final nav = _nav;
-    if (r is! DriveRecording || nav == null || !r.stopped) return;
+    if (r is! DriveRecording || nav == null || _ending || !r.stopped) return;
     final at = r.view?.at;
     final target = await _target(DriveSetup(to: DriveTo.own, own: dest), at);
     final graph = await ref.hold(drivingGraphProvider.future);
@@ -711,8 +733,9 @@ class DriveController extends Notifier<DriveState> {
     final s = at == null
         ? null
         : (await _suggest(target, at, count: 1)).firstOrNull;
-    if (!ref.mounted || state is! DriveRecording) return;
+    if (!ref.mounted || state is! DriveRecording || _ending) return;
     nav.setDestination(target.junction, silent: s?.silent ?? const {});
+    _changedAt = _fixes.length;
     state = (state as DriveRecording).copyWith(
       target: target,
       destination: graph.at(target.junction),
@@ -726,9 +749,12 @@ class DriveController extends Notifier<DriveState> {
   Future<void> _end() async {
     final recording = state;
     if (recording is! DriveRecording) return;
+    // The stopped controls go quiet at once: grading and saving take a while.
+    _ending = true;
+    _tick?.cancel();
+    _speech.clear();
     await _track?.cancel();
     _track = null;
-    _tick?.cancel();
     final nav = _nav;
     unawaited(_device.stop());
     final now = ref.read(clockProvider)();
@@ -736,9 +762,11 @@ class DriveController extends Notifier<DriveState> {
     final streets = await ref.read(cityStreetsProvider.future);
     final pack = await ref.read(packRepositoryProvider.future);
     final match = matchDrive(graph, _fixes);
+    // A destination changed on the way is graded from there: the way to the first isn't a
+    // detour. Each turn was judged as it came.
     final (:graded, :stoppedM) = gradeDrive(
       graph,
-      match,
+      _changedAt == 0 ? match : matchDrive(graph, _fixes.sublist(_changedAt)),
       recording.target.junction,
       streets: streets,
     );

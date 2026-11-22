@@ -215,6 +215,36 @@ void main() {
     expect(replay.credited, review.credited);
   });
 
+  test('a destination changed on the way is graded from where it changed: '
+      'the way before it is no detour', () async {
+    final controller = runController();
+    await settled();
+    controller.pickLevel(DriveLevel.quiet);
+    await controller.start(title: 't', text: 't');
+    final half = route.edges.length ~/ 2;
+    final before = route.edges.take(half).toList();
+    final after = route.edges.skip(half).toList();
+    final first = Route(route.junctions.take(half + 1).toList(), before, 0);
+    final stoppedAt = await location.drive(first, now);
+    await location.park(first.lines.last.last, stoppedAt, 3);
+    await controller.changeDestination((
+      street: streets[route.edges.last.streetId]!,
+      place: null,
+      junction: route.junctions.last,
+    ));
+    await location.drive(
+      Route(route.junctions.skip(half).toList(), after, 0),
+      stoppedAt.add(const Duration(seconds: 4)),
+    );
+    await controller.end();
+    final review = container.read(driveControllerProvider) as DriveReview;
+    expect(
+      route.junctions.skip(half - 1),
+      contains(review.graded!.path!.junctions.first),
+    );
+    expect(review.match.path.junctions.first, route.junctions.first);
+  });
+
   test('a drive that loses GPS logs its gaps and says so', () async {
     final controller = runController();
     await controller.start(title: 't', text: 't');

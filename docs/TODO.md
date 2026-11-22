@@ -281,6 +281,15 @@ and the specs after R5. Fix them in roughly this order.
   - Name it, both ends, drills and the other route cards keep their maps as they were (no place
     names, no Street View).
   - The player's own landmarks are not in the map data, so the map never names them.
+- Left out of the navigation review (2026-11-23), on purpose:
+  - Fix accuracy is never checked: Android's "Approximate" and iOS's "Precise: Off" locations
+    navigate, and 80 m fixes can start false recoveries. Needs a setup step (ask for precise
+    location, say why) before the navigator ignores coarse fixes.
+  - End drive map-matches on the UI thread, and `edgeSnaps` scans every road edge per fix: a
+    long drive can freeze End for seconds. A spatial index on `RoadGraph` fixes both this and
+    the navigator's `_locate`.
+  - The drive's district names follow the voice's language; the other screens follow the
+    street-name setting (`districtName`).
 
 ## Designed, not scheduled
 

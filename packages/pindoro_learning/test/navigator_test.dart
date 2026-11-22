@@ -105,7 +105,7 @@ _run(
   var chimes = 0;
   for (final f in fixes) {
     final u = nav.onFix(f);
-    if (u.prompt case final p?) prompts.add(p);
+    prompts.addAll(u.prompts);
     if (u.chime) chimes++;
     views.add(u.view);
   }
@@ -409,8 +409,8 @@ void main() {
     expect(nav.onTick(t.add(const Duration(seconds: 5))).view.gpsLostS, isNull);
     expect(nav.onTick(t.add(const Duration(seconds: 11))).view.gpsLostS, 11);
     final lost = nav.onTick(t.add(const Duration(seconds: 60)));
-    expect(lost.prompt?.kind, PromptKind.stillFinding);
-    expect(nav.onTick(t.add(const Duration(seconds: 61))).prompt, isNull);
+    expect(_kinds(lost.prompts), [PromptKind.stillFinding]);
+    expect(nav.onTick(t.add(const Duration(seconds: 61))).prompts, isEmpty);
   });
 
   Navigator plainNav(RoadNet net) => Navigator(
@@ -431,8 +431,8 @@ void main() {
     expect(later.view.gpsLostS, 11);
     expect(later.view.stopped, isTrue);
     final still = nav.onTick(_t0.add(const Duration(seconds: 60)));
-    expect(still.prompt?.kind, PromptKind.stillFinding);
-    expect(nav.onTick(_t0.add(const Duration(seconds: 61))).prompt, isNull);
+    expect(_kinds(still.prompts), [PromptKind.stillFinding]);
+    expect(nav.onTick(_t0.add(const Duration(seconds: 61))).prompts, isEmpty);
   });
 
   test('lost while moving: moving until lost a minute, then stopped', () {
@@ -537,4 +537,132 @@ void main() {
     final run = _run(net, gapped, to: g(2, 1), level: DriveLevel.quiet);
     expect(run.nav.passed.single.ok, isNull);
   });
+
+  test('prompts due on the same fix all come through: a camera ahead and '
+      "Coached's prepare", () {
+    final net = _grid();
+    final graph = net.graph(
+      cameras: [
+        (
+          id: 9,
+          edgeId: net.edges
+              .firstWhere((e) => e.from == g(0, 1) && e.to == g(0, 2))
+              .id,
+          // 300 m ahead (the warning's reach) as the turn comes within 150 m (the prepare's).
+          at: _p(450, 5),
+          maxspeedKmh: 40,
+          directionDeg: 90,
+        ),
+      ],
+    );
+    final run = _run(
+      net,
+      _drive(_rightTurn),
+      to: g(2, 1),
+      level: DriveLevel.coached,
+      graph: graph,
+    );
+    expect(_kinds(run.prompts), [
+      PromptKind.camera,
+      PromptKind.prepare,
+      PromptKind.confirmation,
+    ]);
+    expect(run.nav.passed.single.help, NavHelp.cue);
+  });
+
+  test('back from a GPS gap further along the plan, the car is still on it; '
+      'the turn in the gap is passed, counting neither way', () {
+    final net = _grid();
+    final graph = net.graph();
+    // East to column 3, right, down to row 4: past more than 3 edges in the gap.
+    final picked = [
+      g(0, 1),
+      g(0, 2),
+      g(0, 3),
+      g(1, 3),
+      g(2, 3),
+      g(3, 3),
+      g(4, 3),
+    ];
+    final edges = [
+      for (var i = 0; i + 1 < picked.length; i++)
+        graph
+            .edgesAt(picked[i])
+            .firstWhere((e) => e.other(picked[i]) == picked[i + 1]),
+    ];
+    final fixes = _drive([_p(50, 0), for (final j in picked) net.at[j]!]);
+    // Lost from 200 m in until half way down row 2 to row 3.
+    final gapped = [...fixes.take(20), ...fixes.skip(20 + (850 + 750) ~/ 8)];
+    final run = _run(
+      net,
+      gapped,
+      to: g(4, 3),
+      level: DriveLevel.quiet,
+      graph: graph,
+      prefer: Route(picked, edges, edges.fold(0, (s, e) => s + e.lengthM)),
+    );
+    final passed = run.nav.passed.single;
+    expect(passed.junction, g(0, 3));
+    expect(passed.ok, isNull);
+    expect(run.nav.recoveries, 0);
+    expect(run.view.arrived, isTrue);
+  });
+
+  test("a stopped car's GPS jitter adds no metres driven", () {
+    final fixes = _drive(_rightTurn);
+    final stop = fixes.last;
+    final jitter = [
+      for (var i = 1; i <= 30; i++)
+        (
+          at: _p(300.0 + (i.isEven ? 3 : -3), -600),
+          t: stop.t.add(Duration(seconds: i)),
+          headingDeg: null,
+          speedMps: 0.0,
+          accuracyM: 5.0,
+        ),
+    ];
+    final still = _run(_grid(), fixes, to: g(2, 1), level: DriveLevel.quiet);
+    final jittered = _run(
+      _grid(),
+      [...fixes, ...jitter],
+      to: g(2, 1),
+      level: DriveLevel.quiet,
+    );
+    expect(jittered.view.drivenM, closeTo(still.view.drivenM, 1e-6));
+  });
+
+  test(
+    'a district crossed at a crawl is cued with the heading driven before',
+    () {
+      final fixes = _drive(_rightTurn);
+      final turn = fixes.indexWhere((f) => f.at.lat < _at(0, 1).lat - 1e-4);
+      // Into the second district at walking pace just past the turn.
+      final crawl = [
+        ...fixes.take(turn),
+        for (final (i, f) in fixes.skip(turn).indexed)
+          (
+            at: f.at,
+            t: f.t,
+            headingDeg: f.headingDeg,
+            speedMps: i < 3 ? 1.0 : f.speedMps,
+            accuracyM: f.accuracyM,
+          ),
+      ];
+      final net = _grid();
+      final nav = Navigator(
+        graph: net.graph(),
+        cost: NavCost(net.byPart, toleranceKmh: 14),
+        destination: g(2, 1),
+        level: DriveLevel.guided,
+        streets: net.byPart,
+        districtAt: (p) => p.lat < _at(0, 1).lat - 1e-4 ? 'South' : 'North',
+      );
+      final cues = [
+        for (final f in crawl)
+          ...nav.onFix(f).prompts.where((p) => p.kind == PromptKind.district),
+      ];
+      expect(cues.single.district, 'South');
+      expect(cues.single.headingDeg, isNotNull);
+    },
+  );
 }

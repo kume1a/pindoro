@@ -114,8 +114,9 @@ typedef NavView = ({
   NavPlan? plan,
 });
 
-/// One step of navigation: the view, at most one prompt, and whether to chime for speed.
-typedef NavUpdate = ({NavView view, NavPrompt? prompt, bool chime});
+/// One step of navigation: the view, the prompts due (most urgent first; each is due once, so
+/// the app says them all), and whether to chime for speed.
+typedef NavUpdate = ({NavView view, List<NavPrompt> prompts, bool chime});
 
 NavPrompt _prompt(
   PromptKind kind, {
@@ -265,13 +266,14 @@ class Navigator {
     final inGap = gapS > LearningConfig.gpsGapS;
     final moved = last == null ? 0.0 : distanceBetween(last.at, fix.at);
     final speed = fix.speedMps ?? (gapS > 0 ? moved / gapS : 0.0);
-    _drivenM += moved;
+    // A stopped fix's move is GPS jitter, not driving.
+    if (speed * 3.6 >= LearningConfig.stoppedKmh) _drivenM += moved;
     _last = fix;
     final heading = speed > 2 ? fix.headingDeg : null;
     _headingDeg = heading ?? _headingDeg;
     final prompts = <NavPrompt>[];
 
-    final where = _plan == null ? null : _track(fix.at, heading);
+    final where = _plan == null ? null : _track(fix.at, heading, wide: inGap);
     _onPlan = where != null;
     if (_plan == null) {
       final located = _locate(fix.at, heading);
@@ -303,7 +305,7 @@ class Navigator {
       );
       _confirm = null;
     }
-    _cueDistrict(fix.at, heading, now, prompts);
+    _cueDistrict(fix.at, _headingDeg, now, prompts);
     final edge = _edgeNow;
     _warnCameras(speed, prompts);
 
@@ -348,7 +350,7 @@ class Navigator {
         stopped: stopped,
         gpsLostS: null,
       ),
-      prompt: prompts.firstOrNull,
+      prompts: prompts,
       chime: chime,
     );
   }
@@ -361,11 +363,8 @@ class Navigator {
     final last = _last;
     final since = last?.t ?? (_firstTick ??= now);
     final gapS = now.difference(since).inSeconds;
-    NavPrompt? prompt;
-    if (gapS >= LearningConfig.gpsLostSayS && _stillSaidFor != since) {
-      _stillSaidFor = since;
-      prompt = _prompt(PromptKind.stillFinding);
-    }
+    final still = gapS >= LearningConfig.gpsLostSayS && _stillSaidFor != since;
+    if (still) _stillSaidFor = since;
     return (
       view: _view(
         now: now,
@@ -381,7 +380,7 @@ class Navigator {
             last == null || gapS >= LearningConfig.gpsLostSayS || _stopped(now),
         gpsLostS: gapS > LearningConfig.gpsGapS ? gapS : null,
       ),
-      prompt: prompt,
+      prompts: [if (still) _prompt(PromptKind.stillFinding)],
       chime: false,
     );
   }
@@ -596,12 +595,14 @@ class Navigator {
     );
   }
 
-  /// The car on the plan near where it was: its progress, or null when it is off the plan.
-  double? _track(LatLng p, double? heading) {
+  /// The car on the plan near where it was ([wide]: anywhere further along, after a GPS gap):
+  /// its progress, or null when it is off the plan.
+  double? _track(LatLng p, double? heading, {bool wide = false}) {
     final plan = _plan!;
     final edges = plan.route.edges;
+    final last = wide ? edges.length - 1 : min(_index + 3, edges.length - 1);
     ({int i, double distM, double alongM})? best;
-    for (var i = max(-1, _index); i <= min(_index + 3, edges.length - 1); i++) {
+    for (var i = max(-1, _index); i <= last; i++) {
       final e = i < 0 ? _approach! : edges[i];
       final from = i < 0
           ? _approach!.other(plan.route.junctions.first)

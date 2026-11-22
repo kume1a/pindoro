@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
@@ -35,10 +37,9 @@ class NavWords {
   }
 
   String _distance(double m) {
-    if (m < 1000) {
-      final rounded = ((m / 50).round() * 50).clamp(50, 950);
-      return l10n.navMetres(rounded);
-    }
+    // To 50 m; what rounds to 1000 is said in kilometres.
+    final rounded = (m / 50).round() * 50;
+    if (rounded < 1000) return l10n.navMetres(max(50, rounded));
     final km = (m / 1000).toStringAsFixed(1);
     return l10n.navKilometres(km.endsWith('.0') ? km.split('.').first : km);
   }
@@ -88,4 +89,44 @@ class NavWords {
   /// A sentence's first letter up (Georgian has no case).
   static String _capital(String s) =>
       s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+}
+
+/// Navigation's lines said one at a time by [say] (SPEC §16.23 item 117): the phone drops
+/// (Android) or loses track of (iOS) a line started over another. An action line drops the
+/// lesser ones still waiting (prepare, confirmation, district), stale once the turn is here.
+/// [onSpeaking] while there are lines.
+class SpeechQueue {
+  SpeechQueue(this.say, {required this.onSpeaking});
+
+  final Future<void> Function(String text) say;
+  final void Function(bool speaking) onSpeaking;
+
+  final List<({PromptKind? kind, String text})> _lines = [];
+  Future<void>? _talking;
+
+  /// Says [text] after the lines before it; completes once every line is said.
+  Future<void> add(String text, {PromptKind? kind}) {
+    if (kind == PromptKind.action) {
+      _lines.removeWhere(
+        (l) => (l.kind?.index ?? -1) >= PromptKind.prepare.index,
+      );
+    }
+    _lines.add((kind: kind, text: text));
+    return _talking ??= _talk();
+  }
+
+  /// Drops the lines waiting; the one being said plays on.
+  void clear() => _lines.clear();
+
+  Future<void> _talk() async {
+    onSpeaking(true);
+    try {
+      while (_lines.isNotEmpty) {
+        await say(_lines.removeAt(0).text);
+      }
+    } finally {
+      _talking = null;
+      onSpeaking(false);
+    }
+  }
 }
