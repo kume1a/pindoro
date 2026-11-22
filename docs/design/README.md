@@ -17,21 +17,22 @@ Per-component specs (`project/components/<Name>/README.md`) and the screens canv
 read them from there when building a component or screen. The image assets (icons, logos, mascot,
 app icon, splash) come from the design system's asset store; see `packages/pindoro_design/CLAUDE.md`.
 
+## Keeping the two in sync
+
+The design system's `README.md` (here `signpost.md`) has an "App sync" section: the app version
+last folded in and the deliberate differences. The screens canvas keeps the app as built on its page
+"Current app (Nov 2026)" and a sync log on board C-99. When the app changes ahead of the design,
+the change goes in `docs/TODO.md` under "Changed in the app, not yet on claude.ai", any new token in
+`packages/pindoro_design/tokens/app.json` (empty since the 2026-11-20 sync), and the next sync sends
+both to claude.ai as a `design-gaps.md` plus the token file.
+
 ## Where the app deliberately differs
 
-- **Map stack.** The design system assumes CARTO raster tiles in `flutter_map`. The app uses
+- **Map stack.** The design system's fallback is CARTO raster tiles in `flutter_map`. The app uses
   self-hosted Protomaps vector tiles in MapLibre (`docs/adr/0001-architecture.md`) and the attribution
-  reads "© OpenStreetMap contributors, Protomaps".
-- **Basemap look.** Instead of the design system's grey CARTO look (`color.map.basemap.*`), the
-  vector basemap has a Yandex-like palette: warm land, blue water, green parks, a peach road hierarchy
-  (never yellow: yellow is the answer). Its colours are app-only tokens (`color.map.vector.*`), and
-  so are the landmark icons (`color.map.poi.*`, Maki icons in `pindoro_design/assets/map_icons`). The
-  icons are discs; the basemap draws no text but street and place names on intros and reveals
-  (`color.map.vector.label`, SPEC §16.18).
-- **App-only tokens** live in `packages/pindoro_design/tokens/app.json`: the skeleton shimmer's
-  duration and opacity (`motion.shimmer`, `opacity.shimmer`), which the design system's component
-  CSS (`.pd-skel`) uses without a token, and the badge fields (`color.badge.*`). Drop them there
-  once `tokens.json` gains them.
+  reads "© OpenStreetMap contributors, Protomaps". The vector basemap's palette (`color.map.vector.*`)
+  and landmark icon colours (`color.map.poi.*`, Maki icons in `pindoro_design/assets/map_icons`) are
+  design-system tokens since the 2026-11-20 sync.
 - **Generated Dart.** `lib/src/generated/pindoro_tokens.dart` is generated from both token files by
   `tool/generate_tokens.dart`; the artifact's `handoff/pindoro_tokens.dart` is not used. Type roles
   all carry tabular figures and skip the Noto fallback (the system font covers missing glyphs).

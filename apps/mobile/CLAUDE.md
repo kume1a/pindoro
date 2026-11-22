@@ -32,7 +32,9 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                landmarks' L cards), recital runs (`runsProvider` makes route-book runs and weekly
                                random pairs, `todayRunProvider`), `drivingGraphProvider` (the
                                graph with the moves the player reported as legal: recitals and
-                               drives grade on it), the evidence and runs tables; ui/: the City memory card, junction names), account (AccountApi, AccountDao, BackupSync, the
+                               drives grade on it), the evidence and runs tables, the drive log
+                               (`DriveLogDao`: every drive's summary for good, its track for 90 days;
+                               `pastDrivesProvider`); ui/: the City memory card, junction names), account (AccountApi, AccountDao, BackupSync, the
                                sign-in screen and Settings group), badges (stats, awards, the
                                shelf tile, the reward sheet and BadgeMoments), home (Explore),
                                setup (welcome, area, difficulty), quiz (Explore round),
@@ -51,7 +53,8 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                the placement result), today (the Today tab, "Drive this run today"), memory (the Progress
                                tab: overview and a district), drive (`/drive`: DriveController and
                                DriveScreen: setup, a background recording with no map, the matched
-                               and graded review)
+                               and graded review with its GPS gaps, every drive logged; Past drives
+                               `/drive/past` and one replayed from its track)
 lib/features/quiz/ui/round_controller.dart   Explore round state machine; resumes from round_question + answers;
                                questions are NamedStreets (cityStreetsProvider); retries set round.retry_of;
                                each pin also feeds the learning cards (learnFromExplore)
@@ -87,7 +90,7 @@ test/drift/                    generated schema helpers + migration test
   `/settings`, `/settings/credits`, `/session` (`?placement=1` places, `?more=1` learns 10 more),
   `/progress/district?id=`, `/settings/learning`, `/settings/learning/anchor?which=`,
   `/settings/learning/landmarks`, `/settings/learning/landmarks/add`, `/settings/learning/memory`
-  and `/drive`.
+  `/drive` (from Today's run card and Me), `/drive/past` (from Me) and `/drive/past/one?id=`.
   `startLocation`: a player who placed a city (`learn_city`), finished a round or left one saved
   opens Today (Explore offers to continue the saved round); anyone else gets Welcome, whose Start
   learning leads to Today and its placement. The app is portrait only (Android manifest, iOS
@@ -168,7 +171,8 @@ test/drift/                    generated schema helpers + migration test
   recent streets); `LearningDao` owns the cards, the review log, mix-ups and `learn_city`.
   Screens call these providers, never `databaseProvider`. Client ids are UUIDv7 (`newId()`).
   `answer` is an append-only log, enforced by the `answer_immutable` trigger; so is `review_log`
-  (`review_log_no_update` / `review_log_no_delete`, docs/learning/SPEC.md §2.2). Changing a table: bump `schemaVersion`, add a migration, run
+  (`review_log_no_update` / `review_log_no_delete`, docs/learning/SPEC.md §2.2), and `drive`
+  (`drive_immutable`; its `drive_track` rows are dropped after 90 days). Changing a table: bump `schemaVersion`, add a migration, run
   `just gen` (it runs `drift_dev make-migrations`, then build_runner) and commit the new dump in
   `drift_schemas/`. Generated Dart (`*.g.dart`, `database.steps.dart`, `test/drift/**/generated/`)
   is never committed: `just gen` rebuilds it from the dumps, and `just gen-check` fails in CI

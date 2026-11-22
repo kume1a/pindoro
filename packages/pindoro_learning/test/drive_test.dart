@@ -32,6 +32,7 @@ List<DriveFix> _drive(
       t: start.add(Duration(seconds: fixes.length)),
       headingDeg: (heading + (random.nextDouble() - 0.5) * 10 + 360) % 360,
       speedMps: speed,
+      accuracyM: null,
     ));
   }
 

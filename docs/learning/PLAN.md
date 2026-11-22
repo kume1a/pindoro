@@ -164,3 +164,28 @@ Google Street View can't be used inside the app (SPEC §10, §16.16). The build 
 
 Status: done (2026-11-16). The fit, the calibration and the tier C relief run on the player's own
 log, so the weights and §13's numbers change only once there are real reviews (SPEC §15, §16.17).
+
+## M9 · Navigation that fades
+
+Spec §16.23. Research `docs/research/03-navigation-that-fades.md`. Boards V32-* (canvas page
+"v3.2 · Navigate and learn").
+
+1. Drive log: the append-only drive table, its track (fixes with accuracy) kept 90 days, GPS gaps
+   in the review, Past drives from Me.
+2. Navigation core in pindoro_learning (tests first), the per-decision log table and §16.23's
+   numbers in §13 and `constants.dart`: main-road edge cost (an optional cost on
+   `RoadGraph.shortestRoute`, Dart only, default unchanged), a route's decisions, silent-eligible,
+   the suggested level and its steps, the navigator (per fix: position, next decision, prompts,
+   recovery, guard) and the evidence guards.
+3. Driving screens: setup (destination search, quick destinations, level), preview, Guided,
+   Coached and Quiet, recovery, Off with Rescue, no input above 5 km/h, voice with ducking,
+   screen kept on.
+4. Debrief and review: recall before reveal, the drill, the pointing probe, Past drives.
+5. Learning hooks: success credit, your routes first, reverse J items, the weekly goal, Today and
+   Progress cards.
+
+Accept: a recorded drive replays to the same decisions and evidence; nothing takes input above
+5 km/h; a Guided drive never writes a review.
+
+Status: step 1 done (2026-11-21, schema 23). Past drives is one list, not grouped by week, and
+opens from Me only until Progress has its routes (step 5).

@@ -42,7 +42,10 @@ Use it where it is clearer or more fun, never where it confuses.
 | Miss | Not this time. 1.2 km away. It runs along the river, east of the old bridge. |
 | Mix-up (v3) | Mix-up. You placed 26 May 5th Lane. The 4th is the next lane west, before the bend. |
 | Next review (v3) | Next review in 12 days · Back in this session |
-| Today, ready | Today’s drive. About 20 min · saves as you go |
+| Today, ready | Today’s drive. 3 rounds · saves as you go |
+| Today, done | Today’s goal done. Learn 10 more |
+| Between rounds | Round 1 done. Next round · Done for now |
+| Place intro | New place · 1 of 3. Can’t find it? · Hide Tbilisi Concert Hall? |
 | Catching up | 186 reviews waiting. New streets are paused until you catch up. |
 | Session done | Session done. 19 min · everything due today is cleared |
 | Streak reminder | Your 12-day streak is running on fumes. Today’s session keeps it going. |
@@ -89,7 +92,7 @@ One geometry everywhere: a rounded pin on a 40 × 48 grid: a round head (radius 
 
 ## The map
 
-The basemap is unlabelled and low-saturation (CARTO light_nolabels / dark_nolabels style). Overlays follow one rule: **yellow paint is the truth** (answer street, correct route: `color.map.answer.*`), **cobalt is you** (pin, drawn route: `color.map.player.*`), **ink is measurement** (distance line and chip: `color.map.measure.*`). Districts are outlined when not started, yellow in progress and cobalt when Mastered (`color.map.district.*`); nothing is locked. Never show the answer street before Confirm. In v3 the intro and the reveal also name the streets the player already knows (grey trace, white chip), never the answer; a Mix-up draws the street the pin hit in cobalt, dashed.
+The app draws its own basemap: self-hosted Protomaps vector tiles in MapLibre, in the `color.map.vector.*` palette (peach main roads, never yellow; teal transit, never cobalt), with `color.map.basemap.*` (the CARTO greys) kept as the fallback. Names on the map are the basemap's own map text (`color.map.vector.label`): intros and reveals name every street and place; a street question names places but no streets; a place question names no places and only Known streets. One-way arrows show from z16 in `color.map.vector.oneway`; fuel stations have their own icon. Overlays follow one rule: **yellow paint is the truth** (answer street, correct route: `color.map.answer.*`), **cobalt is you** (pin, drawn route: `color.map.player.*`), **ink is measurement** (distance line and chip: `color.map.measure.*`). Districts are outlined when not started, yellow in progress and cobalt when Mastered (`color.map.district.*`); nothing is locked. Never show the answer street before Confirm. A place on its intro and reveal is yellow too (a dot, or an area place's outline); a Mix-up draws the street the pin hit in cobalt, dashed. Only Explore's map is a live map on a tab; Today's and Progress's small maps are painted.
 
 ## Iconography
 
@@ -106,16 +109,27 @@ Springy and fast: press 80 ms, cards 280 ms, the pin drop 520 ms with one bounce
 ## Layout
 
 - Phone-first, 360 dp reference width; content scales to tablets with a 600 dp max column for sheets and lists.
-- Primary actions sit at the bottom in the thumb zone: Confirm, Next, Continue are full-width 56 dp buttons 26 dp above the safe area.
+- Primary actions sit at the bottom in the thumb zone: Confirm, Next, Continue are full-width 48 dp buttons (`size.button.md`); a map screen's footer ends 12 dp over the safe area. Only ExitButton and the IntroSheet's sound button keep 56 dp (`size.button.lg`).
 - Four tabs in the bottom nav: **Today · Explore · Progress · Me** (see Bottom nav).
-- A v3 session's top bar is Leave · 12-block session bar · time left. The Explore quiz top bar is Leave · 10-step question bar · Fuel; until Fuel exists that slot stays empty (Explore has no points). Today's top bar: city switcher · streak; Explore's: city switcher · settings.
-- Every map screen shows the map attribution chip ("© OpenStreetMap contributors, © CARTO").
+- A v3 session's top bar is Leave · 12-block session bar · the round pill ("Round 1 of 3", only when the day has more than one round; there is no timer). The Explore quiz top bar is Leave · 10-step question bar · Fuel; until Fuel exists that slot stays empty (Explore has no points). Today, Explore and Progress share one top bar: the city's name (no chevron while there is one city) · streak. Settings opens from Me only.
+- Every map screen shows the map attribution chip ("© OpenStreetMap contributors, Protomaps"); a map too small for it carries the same line under it.
 - The MVP screens (welcome, home, city, area, difficulty, quiz, reveal, results with retry, settings), the earlier release plan (R2–R5) and their Flutter notes are in the MVP screens section, kept as a record; v3 replaces the learning mechanics of R3–R5.
 - Minimum touch target 48 dp (`size.tap.min`) for everything interactive, including map controls and exit buttons.
 
 ## Files
 
 - `tokens.json`: every token (primitive, semantic, component; light and dark), dot-named for direct mapping to Dart.
-- `handoff/pindoro_tokens.dart`: Dart constants generated from tokens.json (see Flutter handoff).
+- `handoff/pindoro_tokens.dart`: Dart constants generated from tokens.json. Unused by the app, which generates its own Dart from tokens.json (see App sync).
 - Asset groups: **Logos** (wordmark, mark), **App icon** (iOS light/dark/tinted, Android adaptive layers and themed icon, Play Store), **Splash**, **Mascot**, **Icons** (76 SVGs).
 - `components/bundle.css` and `components/bundle.js` only power the previews on this page (web stand-ins for the Flutter widgets); they are not shipped in the app.
+
+## App sync
+
+The app copies `tokens.json`, `README.md`, `v1-screens.md`, `flutter-handoff.md`, `accessibility.md` and `motion-sound-haptics.md` from here verbatim, so those files say exactly what the app does.
+
+- **Last sync:** app 2.8.1+13, on 2026-11-20. It folded in every token the app had defined for itself (`app.json`: the badge fields, the illustration fills, `color.map.district.started.fill`, the vector basemap `color.map.vector.*` with the map-text colour and one-way arrows, `color.map.poi.*`, `motion.shimmer`, `opacity.shimmer`, `opacity.veil`, `size.plate.name-floor`), the app's own copies of `v1-screens.md` and `flutter-handoff.md`, and the parts and screens listed in the app's `design-gaps.md`: 48 dp buttons and search field, the smaller plate and reveal sheet, the place intro, the retired Junction map and City switcher, the unused Coach mark and reticle, map text, fuel and one-way arrows, the compact area-picker sheet, the round pill, and the app-built TileGrid, SectionTitle, TitledCard, MemoryRow, WeekBars, StreakWeek, MiniTally, AreaMiniMap and SheetHandle.
+- **Deliberate differences** (the app keeps them; this system does not chase them):
+  - The basemap is self-hosted Protomaps vector tiles drawn by MapLibre, credited "© OpenStreetMap contributors, Protomaps". `color.map.basemap.*` stays here as the CARTO fallback for testing overlays; the sections of `v1-screens.md` and `flutter-handoff.md` that still name CARTO and `flutter_map` describe that fallback.
+  - The app generates its own Dart from `tokens.json`, so `handoff/pindoro_tokens.dart` is not used.
+- **Next time:** changes made in the app arrive here as a new `design-gaps.md` (every screen and part that changed, with the spec decisions behind them) plus the app's token file. They are folded in the same way: tokens into `tokens.json` with the same names, values and usage; the app's copies of the docs replaced verbatim; each changed part's README and preview updated; new parts added; this section updated with the version and date. For everything not listed there, this system stays the source of truth.
+

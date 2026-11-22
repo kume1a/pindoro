@@ -37,7 +37,7 @@ class DriveScreen extends ConsumerWidget {
     return switch (ref.watch(driveControllerProvider)) {
       final DriveSetup s => _Setup(setup: s),
       final DriveRecording r => _Recording(recording: r),
-      final DriveReview r => _Review(review: r, onDone: leave),
+      final DriveReview r => DriveReviewView(review: r, onDone: leave),
     };
   }
 }
@@ -235,8 +235,6 @@ class _RecordingState extends ConsumerState<_Recording> {
     final settings = ref.watch(settingsProvider).value;
     final recording = widget.recording;
     final elapsed = ref.read(clockProvider)().difference(recording.startedAt);
-    final minutes = elapsed.inMinutes.toString().padLeft(2, '0');
-    final seconds = (elapsed.inSeconds % 60).toString().padLeft(2, '0');
     final target = recording.target.street;
     return PageScaffold(
       showBack: false,
@@ -281,7 +279,7 @@ class _RecordingState extends ConsumerState<_Recording> {
         Semantics(
           liveRegion: false,
           child: Text(
-            '$minutes:$seconds',
+            formatClock(elapsed),
             textAlign: TextAlign.center,
             style: PindoroType.numericXl.copyWith(color: c.textPrimary),
           ),
@@ -306,8 +304,14 @@ class _RecordingState extends ConsumerState<_Recording> {
   }
 }
 
-class _Review extends ConsumerWidget {
-  const _Review({required this.review, required this.onDone});
+/// A drive's review: the track over the best route, the tier, the numbers
+/// and the GPS line; also a past drive's (Past drives).
+class DriveReviewView extends ConsumerWidget {
+  const DriveReviewView({
+    required this.review,
+    required this.onDone,
+    super.key,
+  });
 
   final DriveReview review;
   final VoidCallback onDone;
@@ -341,6 +345,8 @@ class _Review extends ConsumerWidget {
           formatNumber(review.credited),
           formatNumber(review.failed),
         ),
+      if (review.gaps.count > 0)
+        l10n.driveGpsLost(review.gaps.count, formatClock(review.gaps.longest)),
     ].join(' ');
     final lines = match.path.lines;
     final best = graded?.best?.lines ?? const <Polyline>[];

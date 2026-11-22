@@ -198,6 +198,13 @@ abstract final class LearningConfig {
   /// A drive that ends this close to its destination arrived there.
   static const double driveArriveM = 200;
 
+  // Drive log (§16.23)
+  /// No fix for longer than this is a GPS gap ("GPS lost").
+  static const int gpsGapS = 10;
+
+  /// A drive's track stays on the phone this long; its summary stays for good.
+  static const int driveTrackKeepDays = 90;
+
   // Tuning (§12, §16.17)
   /// Calibration bins over predicted recall 0–1, each this wide a share.
   static const int calibrationBins = 10;

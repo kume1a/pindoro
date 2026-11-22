@@ -112,6 +112,7 @@ class LocationService {
           t: p.timestamp,
           headingDeg: p.heading >= 0 ? p.heading : null,
           speedMps: p.speed >= 0 ? p.speed : null,
+          accuracyM: p.accuracy >= 0 ? p.accuracy : null,
         ),
       );
 

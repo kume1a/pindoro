@@ -3,14 +3,16 @@ import 'dart:math';
 import 'package:pindoro_core/pindoro_core.dart';
 
 import 'constants.dart';
+import 'recital.dart';
 
-/// A GPS fix of a drive: where, when, and the heading and speed the device reported (either may
-/// be missing).
+/// A GPS fix of a drive: where, when, and the heading, speed and accuracy the device reported
+/// (any may be missing).
 typedef DriveFix = ({
   LatLng at,
   DateTime t,
   double? headingDeg,
   double? speedMps,
+  double? accuracyM,
 });
 
 /// A drive matched to the road graph (SPEC §5.3 "Drives").
@@ -277,6 +279,34 @@ DriveMatch matchDrive(RoadGraph graph, List<DriveFix> fixes) {
     ],
     hesitations: _hesitations(graph, fixes),
     drivenM: drivenM,
+  );
+}
+
+/// [match] graded like a recital (SPEC §5.3 drives): from its first junction to where it ended
+/// when that is within [LearningConfig.driveArriveM] of [target], else to [target], [stoppedM]
+/// short. Nothing is graded when no fix lay near a road.
+({RecitalResult? graded, double? stoppedM}) gradeDrive(
+  RoadGraph graph,
+  DriveMatch match,
+  int target, {
+  Map<String, NamedStreet> streets = const {},
+}) {
+  final path = match.path;
+  if (path.edges.isEmpty) return (graded: null, stoppedM: null);
+  final stoppedM = distanceBetween(
+    graph.at(path.junctions.last),
+    graph.at(target),
+  );
+  final arrived = stoppedM <= LearningConfig.driveArriveM;
+  return (
+    graded: RecitalGrader.score(
+      graph,
+      path,
+      from: path.junctions.first,
+      to: arrived ? path.junctions.last : target,
+      streets: streets,
+    ),
+    stoppedM: arrived ? null : stoppedM,
   );
 }
 

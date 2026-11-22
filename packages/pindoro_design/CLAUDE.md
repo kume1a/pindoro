@@ -11,7 +11,7 @@ loading `Skeleton`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` inc
 `BearingDial`; the session bar is `QuestionBar` with `height: 14`), v3 route items (`ExitButton`,
 `LandmarkBadge`, `MapLabelChip`, `CarMarker`, `MapTip`), v3
 progress (`MemoryBar`, `MemoryLegend`, `MemoryChart`, `ForecastBars`, `WeekBars`, `MemoryRow`), the streak (`StreakPill`, `StreakCalendar`, `StreakWeek`,
-`StreakFreezeCard`), badges (`BadgeShield`, `BadgeTile`; fields `color.badge.*` in `app.json`),
+`StreakFreezeCard`), badges (`BadgeShield`, `BadgeTile`; fields `color.badge.*`),
 setup components (`SearchField`, `PindoroChip`, `DifficultyCard`, the painted `DistrictMap` and `AreaMiniMap`), `MiniTally`
 and motion (`PindoroPageTransitions`, `CountUp`, `PopIn`, `RiseIn`, `Celebration`, `Wiggle`,
 `Shake`, `FadeIndexedStack`; all calm down under reduce motion). Widgets take their text as
@@ -21,8 +21,8 @@ parameters; strings live in the app.
 
 - `tokens/tokens.json` is the claude.ai design system's file, copied verbatim (never edit it here;
   change it on claude.ai and copy it again). `tokens/app.json` holds app-only tokens in the same
-  format; duplicates of a design-system token fail the generator. Intent lives in
-  `docs/design/*.md`.
+  format (none since the 2026-11-20 sync); duplicates of a design-system token fail the
+  generator. Intent lives in `docs/design/*.md`.
 - `tool/generate_tokens.dart` writes `lib/src/generated/pindoro_tokens.dart`: `PindoroPalette`
   (primitives), `PindoroColors.light` / `.dark` (semantic + component colours, aliases resolved),
   `PindoroSpace.s4`, `PindoroRadius.lg`, `PindoroElevation.e2`, `PindoroSize`, `PindoroStroke`,
@@ -48,7 +48,7 @@ parameters; strings live in the app.
 - Tier → colour + icon: perfect yellow star, great aqua check-circle, close orange target,
   miss red reroute. Map roles: yellow = truth, cobalt = you, ink = measurement.
 - `StreetPlate`: starts at `title.lg`, shrinks 2 dp steps until it fits two lines, floor
-  `size.plate.name-floor` (16, app.json), then wraps — never truncates; its sub-line keeps to
+  `size.plate.name-floor` (16), then wraps — never truncates; its sub-line keeps to
   two lines (a turn card: where to and the question). `RevealSheet` and `IntroSheet` are kept
   short (32 dp badge, `title.lg` label, 12 dp padding) so the map keeps its room (2026-11-17, see
   `docs/TODO.md`).
