@@ -372,69 +372,69 @@ recitals must work without speech.
 Added with §16 (also in `constants.dart`; distances shared with the display tiers are referenced from
 pindoro_core `ScoringConfig`, not copied):
 
-| Name                                                                 | Value                               |
-| -------------------------------------------------------------------- | ----------------------------------- |
-| `coreMinLengthM`                                                     | 150                                 |
-| `groupSize`, `reviewsPerBlock`                                       | 3, 5                                |
-| `retrieval1GapMin`, `retrieval1GapMax`, `retrieval1GapFloor`         | 3, 6, 2 items                       |
-| `learnMoreCount`                                                     | 10                                  |
-| `roundSteps` (a new street counts 3: intro, retrieval 1 and 2)       | 20                                  |
-| `placementSamplePerDistrict`, `placementPassMin`                     | 5, 4                                |
-| `placementPinS` (time estimate per placement pin)                    | 4 s                                 |
-| `nightOwlBefore` (Night owl badge: an answer before this local hour) | 4                                   |
-| `familySweepMinChildren`, `familySweepWindowDays`                    | 3, 2                                |
-| `crossingsPerDay`, `bearingsPerSessionMin`, `bearingsPerSessionMax`  | 1, 1, 3                             |
-| `familySweepMax`, `crossingsMax`, `crossingsTries`                   | 6, 5, 8                             |
-| `crossingsMin` (Known crossings a crossings drill needs)             | 2                                   |
-| `bearingUnlockGridSolid`                                             | 0.50                                |
-| `nameCheckOptions`                                                   | 6                                   |
-| `familyOrphanM`, `familyNearM`                                       | 1500, 500                           |
-| `chunkNeighbourM`                                                    | 50                                  |
-| `nearDueFraction`                                                    | 0.5 (implicit evidence and Explore) |
-| `tierCReliefFactor`                                                  | 1.2                                 |
-| `cityMemoryMilestone`, `maintenanceBadgeDays`                        | 500, 100                            |
-| `bullseyeBadgePerfects`, `onFireBadgeDays`, `explorerBadgeDistricts` | 10, 7, 5                            |
-| `recallWindowDays` (recall rate, §16.18)                             | 30                                  |
-| `chartDailyDays`, `chartWeeks`                                       | 14, 10                              |
-| `uTurnPenaltyM` (pindoro_core `RoutingConfig`, referenced)           | 250                                 |
-| `turnStraightDeg`, `turnUTurnDeg` (a J card's exit directions)       | 30, 150                             |
-| `phase2StableDays`                                                   | 14                                  |
-| `landmarkStructuralM`, `landmarkUniquenessM`                         | 40, 300                             |
-| `recitalLandmarkBonus`, `recitalLandmarkBonusCap`                    | 0.1, 0.3                            |
-| `answerGapCapS`                                                      | 60                                  |
-| `timeEstimateMinSamples`                                             | 50                                  |
-| `migrationDueMinDays`, `migrationDueMaxDays`                         | 1, 7                                |
-| `landmarkNewPerDay`, `relearnMaxPerSession` (§16.18)                 | 3, 2                                |
-| `tRecitalS`, `recitalNewPerDay`                                      | 180 s, 1                            |
-| `runLeadM`, `runMinItems`                                            | 800, 2                              |
-| `randomRunEveryDays`, `randomRunTries`                               | 7, 50                               |
-| `randomRunMinM`, `randomRunMaxM`                                     | 1500, 5000                          |
-| `recitalTurnMismatchM`, `recitalNameWordsMax`, `recitalNameTieSlack` | 200, 5, 0.05                        |
-| `driveSampleM`, `driveSnapM`, `driveHeadingM` (per 90°)              | 20, 35, 20                          |
-| `driveTurnBackM`, `driveWrongWayM`, `driveArriveM`                   | 40, 15, 200                         |
-| `hesitationJunctionM`                                                | 30                                  |
-| `gpsGapS`, `driveTrackKeepDays`                                      | 10, 90                              |
-| `decisionAlikeDeg` (§16.23)                                         | 30°                                 |
-| `navClassKmh`: motorway, trunk, primary, secondary, tertiary         | 110, 90, 65, 55, 40                 |
-| … unclassified, residential, living_street, service; `navConnectorKmh` | 25, 25, 10, 15; 25                |
-| `limitTownKmh`, `limitMotorwayKmh`, `limitLivingStreetKmh`           | 60, 110, 20                         |
-| `speedToleranceKmh` (default), `speedToleranceMaxKmh`                | 14, 20                              |
-| `overspeedHoldS`, `overspeedRepeatS`                                 | 3, 30                               |
-| `cameraWarnM`, `cameraWarnS`, `cameraHeadingDeg`                     | 300, 15, 60                         |
-| `silentMinR`, `silentNoFailDays`, `silentOwnDrives`                  | 0.85, 14, 2                         |
-| `levelOffShare`, `levelOffMinR`, `levelQuietShare`, `levelCoachedShare` | 0.90, 0.75, 0.70, 0.40           |
-| `levelMinAreaJ`, `routeOverlap`                                      | 5, 0.80                             |
-| `stepDrives`, `stepDownStretch`, `stepUpStretch`, `stepUpRecoveries` | 2, 1.25, 1.60, 3                    |
-| `recoveryHoldS`, `guardRecoveries`, `guardWindowS`, `guardLostS`     | 10, 2, 300, 180                     |
-| `guardToGuidedRecoveries`, `stoppedKmh`, `stoppedHoldS`, `navArriveM` | 3, 5, 2, 50                        |
-| `prepareM`, `prepareS`, `actionM`, `actionS`                         | 150, 10, 40, 4                      |
-| `landmarkAtM`, `confirmDelayS`, `districtCueM`, `districtCueS`       | 50, 6, 2000, 180                    |
-| `gpsLostSayS`                                                        | 60                                  |
-| `creditMaxR`, `hesitationBeforeM`, `noCreditAfterPromptS`            | 0.92, 150, 60                       |
-| `habitPasses`, `habitWindowDays`, `habitCreditDays`                  | 3, 14, 7                            |
-| `calibrationBins`, `calibrationTolerance`, `calibrationMinReviews`   | 10, 0.05, 20                        |
-| `fitMinReviews`                                                      | 1000                                |
-| `tierCReliefDays`, `tierCReliefReplayDays`                           | 7, 28                               |
+| Name                                                                    | Value                               |
+| ----------------------------------------------------------------------- | ----------------------------------- |
+| `coreMinLengthM`                                                        | 150                                 |
+| `groupSize`, `reviewsPerBlock`                                          | 3, 5                                |
+| `retrieval1GapMin`, `retrieval1GapMax`, `retrieval1GapFloor`            | 3, 6, 2 items                       |
+| `learnMoreCount`                                                        | 10                                  |
+| `roundSteps` (a new street counts 3: intro, retrieval 1 and 2)          | 20                                  |
+| `placementSamplePerDistrict`, `placementPassMin`                        | 5, 4                                |
+| `placementPinS` (time estimate per placement pin)                       | 4 s                                 |
+| `nightOwlBefore` (Night owl badge: an answer before this local hour)    | 4                                   |
+| `familySweepMinChildren`, `familySweepWindowDays`                       | 3, 2                                |
+| `crossingsPerDay`, `bearingsPerSessionMin`, `bearingsPerSessionMax`     | 1, 1, 3                             |
+| `familySweepMax`, `crossingsMax`, `crossingsTries`                      | 6, 5, 8                             |
+| `crossingsMin` (Known crossings a crossings drill needs)                | 2                                   |
+| `bearingUnlockGridSolid`                                                | 0.50                                |
+| `nameCheckOptions`                                                      | 6                                   |
+| `familyOrphanM`, `familyNearM`                                          | 1500, 500                           |
+| `chunkNeighbourM`                                                       | 50                                  |
+| `nearDueFraction`                                                       | 0.5 (implicit evidence and Explore) |
+| `tierCReliefFactor`                                                     | 1.2                                 |
+| `cityMemoryMilestone`, `maintenanceBadgeDays`                           | 500, 100                            |
+| `bullseyeBadgePerfects`, `onFireBadgeDays`, `explorerBadgeDistricts`    | 10, 7, 5                            |
+| `recallWindowDays` (recall rate, §16.18)                                | 30                                  |
+| `chartDailyDays`, `chartWeeks`                                          | 14, 10                              |
+| `uTurnPenaltyM` (pindoro_core `RoutingConfig`, referenced)              | 250                                 |
+| `turnStraightDeg`, `turnUTurnDeg` (a J card's exit directions)          | 30, 150                             |
+| `phase2StableDays`                                                      | 14                                  |
+| `landmarkStructuralM`, `landmarkUniquenessM`                            | 40, 300                             |
+| `recitalLandmarkBonus`, `recitalLandmarkBonusCap`                       | 0.1, 0.3                            |
+| `answerGapCapS`                                                         | 60                                  |
+| `timeEstimateMinSamples`                                                | 50                                  |
+| `migrationDueMinDays`, `migrationDueMaxDays`                            | 1, 7                                |
+| `landmarkNewPerDay`, `relearnMaxPerSession` (§16.18)                    | 3, 2                                |
+| `tRecitalS`, `recitalNewPerDay`                                         | 180 s, 1                            |
+| `runLeadM`, `runMinItems`                                               | 800, 2                              |
+| `randomRunEveryDays`, `randomRunTries`                                  | 7, 50                               |
+| `randomRunMinM`, `randomRunMaxM`                                        | 1500, 5000                          |
+| `recitalTurnMismatchM`, `recitalNameWordsMax`, `recitalNameTieSlack`    | 200, 5, 0.05                        |
+| `driveSampleM`, `driveSnapM`, `driveHeadingM` (per 90°)                 | 20, 35, 20                          |
+| `driveTurnBackM`, `driveWrongWayM`, `driveArriveM`                      | 40, 15, 200                         |
+| `hesitationJunctionM`                                                   | 30                                  |
+| `gpsGapS`, `driveTrackKeepDays`                                         | 10, 90                              |
+| `decisionAlikeDeg` (§16.23)                                             | 30°                                 |
+| `navClassKmh`: motorway, trunk, primary, secondary, tertiary            | 110, 90, 65, 55, 40                 |
+| … unclassified, residential, living_street, service; `navConnectorKmh`  | 25, 25, 10, 15; 25                  |
+| `limitTownKmh`, `limitMotorwayKmh`, `limitLivingStreetKmh`              | 60, 110, 20                         |
+| `speedToleranceKmh` (default), `speedToleranceMaxKmh`                   | 14, 20                              |
+| `overspeedHoldS`, `overspeedRepeatS`                                    | 3, 30                               |
+| `cameraWarnM`, `cameraWarnS`, `cameraHeadingDeg`                        | 300, 15, 60                         |
+| `silentMinR`, `silentNoFailDays`, `silentOwnDrives`                     | 0.85, 14, 2                         |
+| `levelOffShare`, `levelOffMinR`, `levelQuietShare`, `levelCoachedShare` | 0.90, 0.75, 0.70, 0.40              |
+| `levelMinAreaJ`, `routeOverlap`                                         | 5, 0.80                             |
+| `stepDrives`, `stepDownStretch`, `stepUpStretch`, `stepUpRecoveries`    | 2, 1.25, 1.60, 3                    |
+| `recoveryHoldS`, `guardRecoveries`, `guardWindowS`, `guardLostS`        | 10, 2, 300, 180                     |
+| `guardToGuidedRecoveries`, `stoppedKmh`, `stoppedHoldS`, `navArriveM`   | 3, 5, 2, 50                         |
+| `prepareM`, `prepareS`, `actionM`, `actionS`                            | 150, 10, 40, 4                      |
+| `landmarkAtM`, `confirmDelayS`, `districtCueM`, `districtCueS`          | 50, 6, 2000, 180                    |
+| `gpsLostSayS`                                                           | 60                                  |
+| `creditMaxR`, `hesitationBeforeM`, `noCreditAfterPromptS`               | 0.92, 150, 60                       |
+| `habitPasses`, `habitWindowDays`, `habitCreditDays`                     | 3, 14, 7                            |
+| `calibrationBins`, `calibrationTolerance`, `calibrationMinReviews`      | 10, 0.05, 20                        |
+| `fitMinReviews`                                                         | 1000                                |
+| `tierCReliefDays`, `tierCReliefReplayDays`                              | 7, 28                               |
 
 ## 14. Test vectors (required before UI work)
 
