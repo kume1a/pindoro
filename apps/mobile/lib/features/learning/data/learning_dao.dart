@@ -97,6 +97,27 @@ class LearningDao extends DatabaseAccessor<AppDatabase>
       (row.streetA, row.streetB),
   ];
 
+  /// When each item last failed: an Again in the review log or a wrong decision in the
+  /// evidence (SPEC §16.23 item 113).
+  Future<Map<String, DateTime>> lastFailures() async {
+    final out = <String, DateTime>{};
+    void note(String id, DateTime at) {
+      final seen = out[id];
+      if (seen == null || at.isAfter(seen)) out[id] = at;
+    }
+
+    final again = select(reviewLogs)
+      ..where((l) => l.rating.equals(Rating.again.grade));
+    for (final r in await again.get()) {
+      note(r.itemId, r.ts);
+    }
+    final wrong = select(implicitEvidence)..where((e) => e.outcome.equals(0));
+    for (final e in await wrong.get()) {
+      note(e.itemId, e.ts);
+    }
+    return out;
+  }
+
   /// The review log, oldest first; from [since] when given.
   Future<List<LogEntry>> log({DateTime? since}) async {
     final query = select(reviewLogs)..orderBy([(l) => OrderingTerm.asc(l.id)]);

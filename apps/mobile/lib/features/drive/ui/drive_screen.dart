@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/format.dart';
-import 'package:pindoro/core/google_maps.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/location.dart';
 import 'package:pindoro/core/page_scaffold.dart';
@@ -25,9 +24,11 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
-/// A GPS-free drive (DriveScreen `setup`, `recording`, `review`, board
-/// V3-50): no map and nothing to tap while moving; the track is graded
-/// once parked.
+/// A drive (DriveScreen `setup`, `recording`, `review`; boards V3-50 and
+/// V32-10): pick where to and how much help, drive with the voice by level and
+/// nothing to tap while moving, and the track is graded once parked. The
+/// level screens (V32-20 to V32-41) come with the design system's drive
+/// components.
 class DriveScreen extends ConsumerWidget {
   const DriveScreen({super.key});
 
@@ -160,18 +161,41 @@ class _SetupState extends ConsumerState<_Setup> {
                     ref.read(locationServiceProvider).openSettings(denied),
                   ),
           ),
+        SectionTitle(l10n.driveLevelTitle),
+        SegmentedControl<DriveLevel>(
+          segments: {
+            for (final level in setup.choices) level: levelLabel(l10n, level),
+          },
+          selected: setup.chosen,
+          onChanged: controller.pickLevel,
+        ),
+        Text(
+          [
+            levelNote(l10n, setup.chosen),
+            if (setup.suggestion case final s?)
+              '${l10n.driveSuggested(levelLabel(l10n, s.level))} · '
+                  '${l10n.driveYours(s.yours, s.turns)}'
+            else if (setup.target == null && !setup.noTarget && denied == null)
+              l10n.driveFinding,
+          ].join(' '),
+          style: PindoroType.bodyMd.copyWith(
+            color: PindoroTheme.of(context).colors.textSecondary,
+          ),
+        ),
         ListGroup(
           children: [
-            rule(
-              PindoroGlyph.locateOff,
-              l10n.driveRuleMap,
-              l10n.driveRuleMapNote,
-            ),
-            rule(
-              PindoroGlyph.timer,
-              l10n.driveRuleTrack,
-              l10n.driveRuleTrackNote,
-            ),
+            if (setup.chosen == DriveLevel.off) ...[
+              rule(
+                PindoroGlyph.locateOff,
+                l10n.driveRuleMap,
+                l10n.driveRuleMapNote,
+              ),
+              rule(
+                PindoroGlyph.timer,
+                l10n.driveRuleTrack,
+                l10n.driveRuleTrackNote,
+              ),
+            ],
             rule(
               PindoroGlyph.info,
               l10n.driveRuleHands,
@@ -183,6 +207,22 @@ class _SetupState extends ConsumerState<_Setup> {
     );
   }
 }
+
+/// A drive level's name (SPEC §16.23 item 112).
+String levelLabel(AppLocalizations l10n, DriveLevel level) => switch (level) {
+  DriveLevel.guided => l10n.driveLevelGuided,
+  DriveLevel.coached => l10n.driveLevelCoached,
+  DriveLevel.quiet => l10n.driveLevelQuiet,
+  DriveLevel.off => l10n.driveLevelOff,
+};
+
+/// What a level shows and says, in one sentence (board V32-10).
+String levelNote(AppLocalizations l10n, DriveLevel level) => switch (level) {
+  DriveLevel.guided => l10n.driveLevelGuidedNote,
+  DriveLevel.coached => l10n.driveLevelCoachedNote,
+  DriveLevel.quiet => l10n.driveLevelQuietNote,
+  DriveLevel.off => l10n.driveLevelOffNote,
+};
 
 /// "Paliashvili St → Tamarashvili St · 2.4 km".
 String _runLine(
@@ -219,14 +259,6 @@ class _RecordingState extends ConsumerState<_Recording> {
     super.dispose();
   }
 
-  Future<void> _showTheWay() async {
-    final graph = ref.read(drivingGraphProvider).value;
-    final at = graph?.at(widget.recording.target.junction);
-    await ref.read(driveControllerProvider.notifier).abandon();
-    if (at == null) return;
-    await GoogleMaps.open(GoogleMaps.directions(at));
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -236,26 +268,37 @@ class _RecordingState extends ConsumerState<_Recording> {
     final recording = widget.recording;
     final elapsed = ref.read(clockProvider)().difference(recording.startedAt);
     final target = recording.target.street;
+    final controller = ref.read(driveControllerProvider.notifier);
+    final lostS = recording.view?.gpsLostS;
     return PageScaffold(
       showBack: false,
-      footer: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        spacing: PindoroSpace.s2,
-        children: [
-          PindoroButton(
-            label: l10n.driveEnd,
-            icon: PindoroGlyph.stop,
-            onPressed: () =>
-                unawaited(ref.read(driveControllerProvider.notifier).end()),
-          ),
-          PindoroButton(
-            label: l10n.driveLost,
-            variant: PindoroButtonVariant.tertiary,
-            onPressed: () => unawaited(_showTheWay()),
-          ),
-        ],
-      ),
+      // Controls only while stopped (SPEC §16.23 item 116): moving, the screen takes no input.
+      footer: recording.stopped
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: PindoroSpace.s2,
+              children: [
+                PindoroButton(
+                  label: l10n.driveEnd,
+                  icon: PindoroGlyph.stop,
+                  onPressed: () => unawaited(controller.end()),
+                ),
+                if (recording.level == DriveLevel.off)
+                  PindoroButton(
+                    label: l10n.driveRescue,
+                    variant: PindoroButtonVariant.tertiary,
+                    onPressed: controller.rescue,
+                  )
+                else
+                  PindoroButton(
+                    label: recording.muted ? l10n.driveUnmute : l10n.driveMute,
+                    variant: PindoroButtonVariant.tertiary,
+                    onPressed: controller.toggleMute,
+                  ),
+              ],
+            )
+          : null,
       children: [
         const SizedBox(height: PindoroSpace.s8),
         Row(
@@ -289,6 +332,12 @@ class _RecordingState extends ConsumerState<_Recording> {
           textAlign: TextAlign.center,
           style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
         ),
+        if (lostS != null)
+          Text(
+            l10n.driveGpsFinding,
+            textAlign: TextAlign.center,
+            style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
+          ),
         const SizedBox(height: PindoroSpace.s4),
         ListGroup(
           children: [

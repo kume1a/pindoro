@@ -6,6 +6,7 @@
 	<string>Pindoro uses your location to centre the map on you and to record a GPS-free drive.</string>
 	<key>UIBackgroundModes</key>
 	<array>
+		<string>audio</string>
 		<string>location</string>
 	</array>
 	<key>NSAppTransportSecurity</key>

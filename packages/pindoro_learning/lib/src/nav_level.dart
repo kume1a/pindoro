@@ -209,3 +209,104 @@ bool _sameDay(DateTime a, DateTime b) {
   final x = a.toLocal(), y = b.toLocal();
   return x.year == y.year && x.month == y.month && x.day == y.day;
 }
+
+/// A drive in the log, for [navHistory]: its level, stretch and recoveries.
+typedef LoggedDrive = ({
+  String id,
+  DriveLevel level,
+  double? stretch,
+  int recoveries,
+});
+
+/// A decision in the drive log, for [navHistory].
+typedef LoggedDecision = ({
+  String driveId,
+  String? key,
+  bool? ok,
+  NavHelp help,
+  bool recentHelp,
+  DateTime at,
+});
+
+/// The player's decision history and past drives (latest first) from the drive log ([drives]
+/// latest first, their [decisions]) and the last [failures] elsewhere by item id: a decision
+/// fails at a wrong move, and is taken on the player's own when right with no help.
+({Map<String, DecisionHistory> decisions, List<PastDrive> past}) navHistory({
+  required List<LoggedDrive> drives,
+  required List<LoggedDecision> decisions,
+  Map<String, DateTime> failures = const {},
+}) {
+  final byDrive = <String, List<LoggedDecision>>{};
+  for (final d in decisions) {
+    byDrive.putIfAbsent(d.driveId, () => []).add(d);
+  }
+  final lastFailure = Map.of(failures);
+  final own = <String, List<bool>>{};
+  for (final drive in drives) {
+    for (final d in byDrive[drive.id] ?? const <LoggedDecision>[]) {
+      final key = d.key;
+      final ok = d.ok;
+      if (key == null || ok == null) continue;
+      if (!ok) {
+        final seen = lastFailure[key];
+        if (seen == null || d.at.isAfter(seen)) lastFailure[key] = d.at;
+      }
+      own
+          .putIfAbsent(key, () => [])
+          .add(ok && d.help == NavHelp.none && !d.recentHelp);
+    }
+  }
+  return (
+    decisions: {
+      for (final key in {...lastFailure.keys, ...own.keys})
+        key: (lastFailure: lastFailure[key], ownDrives: own[key] ?? const []),
+    },
+    past: [
+      for (final drive in drives)
+        (
+          level: drive.level,
+          decisions: {
+            for (final d in byDrive[drive.id] ?? const <LoggedDecision>[])
+              ?d.key,
+          },
+          stretch: drive.stretch,
+          recoveries: drive.recoveries,
+        ),
+    ],
+  );
+}
+
+/// The level to suggest for a route's [decisions] (SPEC §16.23 items 113–114) and the
+/// decisions that may stay silent, from the player's J [cards] (by item id), decision
+/// [history] (by key), [past] drives and [areaJ].
+({DriveLevel level, Set<String> silent}) routeSuggestion({
+  required List<NavDecision> decisions,
+  required Map<String, CardState> cards,
+  required Map<String, DecisionHistory> history,
+  required List<PastDrive> past,
+  required int areaJ,
+  required DateTime now,
+  Fsrs fsrs = const Fsrs(),
+}) {
+  final silent = {
+    for (final d in decisions)
+      if (d.key case final key?
+          when silentEligible(cards[key], history[key], now, fsrs: fsrs))
+        key,
+  };
+  final recalls = [
+    for (final d in decisions)
+      if (cards[d.key]?.memory case final memory?)
+        fsrs.retrievability(memory, now),
+  ];
+  return (
+    level: suggestLevel(
+      decisions: decisions,
+      silent: silent,
+      minRecall: recalls.isEmpty ? null : recalls.reduce(min),
+      past: past,
+      areaJ: areaJ,
+    ),
+    silent: silent,
+  );
+}

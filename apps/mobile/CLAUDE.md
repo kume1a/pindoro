@@ -53,9 +53,12 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                intro (a leech's with its mix-up and note), reveal, Session done,
                                the placement result), today (the Today tab, "Drive this run today"), memory (the Progress
                                tab: overview and a district), drive (`/drive`: DriveController and
-                               DriveScreen: setup, a background recording with no map, the matched
-                               and graded review with its GPS gaps, every drive logged; Past drives
-                               `/drive/past` and one replayed from its track)
+                               DriveScreen: setup with the destination and the suggested level, a
+                               drive run by pindoro_learning's Navigator at its level (voice by
+                               `NavWords`, the speed chime, Rescue and Mute only while stopped,
+                               arrival ends it), the matched and graded review with its GPS gaps,
+                               every drive and its decisions logged; Past drives `/drive/past` and
+                               one replayed from its track)
 lib/features/quiz/ui/round_controller.dart   Explore round state machine; resumes from round_question + answers;
                                questions are NamedStreets (cityStreetsProvider); retries set round.retry_of;
                                each pin also feeds the learning cards (learnFromExplore)
@@ -137,6 +140,10 @@ test/drift/                    generated schema helpers + migration test
   the Me tab opens; the tab shell invalidates it); closing a reward sheet marks that badge seen.
   Badge tests override `packStoreProvider` with a temp-dir store; app tests without one get no
   awards.
+- **Driving:** `driveDeviceProvider` (`core/drive_device.dart`): spoken prompts that duck
+  music (iOS playback + duckOthers, Android transient may-duck focus), the speed chime and the
+  screen kept on (`wakelock_plus`); iOS has the `audio` background mode so Off speaks camera
+  warnings with the screen locked. Tests override it.
 - **Hear the name:** `speechProvider` (`core/speech.dart`, `flutter_tts`) reads a new street's name
   in `speechLanguage(name)`; the button shows only when `canSpeakProvider` finds a voice. Tests
   override `speechProvider`.

@@ -94,7 +94,7 @@ class MeScreen extends ConsumerWidget {
         children: [
           ListRow(
             title: l10n.driveTitle,
-            subtitle: l10n.driveRuleMap,
+            subtitle: l10n.meDriveNote,
             leading: const RowTile(PindoroGlyph.route),
             trailing: const PindoroIcon(PindoroGlyph.chevronRight),
             onTap: () => unawaited(context.push(Routes.drive)),

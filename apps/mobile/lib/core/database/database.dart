@@ -80,6 +80,10 @@ class UserSettings extends Table {
   /// The maps' zoom in and out buttons (pinch zooms either way).
   BoolColumn get zoomButtons => boolean().withDefault(const Constant(false))();
 
+  /// "Warn me over the limit by", km/h (SPEC §16.23 item 127; `speedToleranceKmh`).
+  IntColumn get speedToleranceKmh =>
+      integer().withDefault(const Constant(14))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -415,6 +419,12 @@ class Drives extends Table {
   IntColumn get gpsGaps => integer()();
   IntColumn get longestGapS => integer()();
 
+  /// The level suggested at setup (null before navigation), the recoveries and whether Off's
+  /// Rescue was used (SPEC §16.23 items 114–116).
+  TextColumn get suggested => textEnum<DriveLevel>().nullable()();
+  IntColumn get recoveries => integer().withDefault(const Constant(0))();
+  BoolColumn get rescued => boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -491,7 +501,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 24;
+  static const int version = 25;
 
   @override
   int get schemaVersion => version;
@@ -611,6 +621,15 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(schema.driveDecision);
         await m.create(schema.driveDecisionNoUpdate);
         await m.create(schema.driveDecisionNoDelete);
+      },
+      from24To25: (m, schema) async {
+        await m.addColumn(
+          schema.userSettings,
+          schema.userSettings.speedToleranceKmh,
+        );
+        await m.addColumn(schema.drive, schema.drive.suggested);
+        await m.addColumn(schema.drive, schema.drive.recoveries);
+        await m.addColumn(schema.drive, schema.drive.rescued);
       },
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),

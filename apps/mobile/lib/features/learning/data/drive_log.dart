@@ -48,6 +48,9 @@ class DriveLogDao extends DatabaseAccessor<AppDatabase>
     return row == null ? null : decodeTrack(row.track);
   }
 
+  /// Every logged decision of every drive.
+  Future<List<DriveDecisionRow>> decisions() => select(driveDecisions).get();
+
   /// The ids of the drives whose track is still kept.
   Future<Set<String>> tracked() async {
     final ids = selectOnly(driveTracks)..addColumns([driveTracks.driveId]);

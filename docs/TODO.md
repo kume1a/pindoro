@@ -172,9 +172,19 @@ and the specs after R5. Fix them in roughly this order.
 - Accepted divergences: the Home Pit stop card became the Pit stop tab's badge (R4); the cold start
   is a Flutter overlay (about 1.9 s) rather than `FlutterNativeSplash.preserve()` with the wordmark
   on the native splash.
-- Changed in the app, not yet on claude.ai: nothing since the 2026-11-20 sync (the design
-  system's "App sync" section, the canvas's board C-99). List new changes here, and new tokens
-  in `packages/pindoro_design/tokens/app.json`, for the next sync.
+- Changed in the app, not yet on claude.ai, since the 2026-11-20 sync (the design system's "App
+  sync" section, the canvas's board C-99). List new changes here, and new tokens in
+  `packages/pindoro_design/tokens/app.json`, for the next sync.
+  - **Drive setup (2026-11-21):** "Help", a SegmentedControl of the levels on offer, with a line
+    under it ("Coached: the voice speaks only at the turns you don't know yet. Suggested: Guided ·
+    3 of 17 turns are yours"). It stands in for V32-10's LevelPicker and pips. The GPS-free rules
+    show only at Off.
+  - **Recording screen:** End drive, and Rescue (Off) or Mute, only while stopped. A "Keep going,
+    finding you…" line after 10 s without GPS. It stands in for V32-20 to V32-41 until those
+    screens are built.
+  - **Me → Drives:** the first row is now "Drive" ("Guided, coached or on your own").
+  - **Settings → Driving:** "Warn me over the limit by: 14 km/h", a Slider from 0 to 20 with a
+    help line (SPEC §16.23 item 127).
 - Lakes are not named (Protomaps gives them no label point); Lisi Lake is the only one.
 - Left out of the road-class pass, on purpose:
   - A "Your streets" round left half-way is not offered as Continue on Explore (Continue matches
