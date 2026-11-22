@@ -254,18 +254,25 @@ and the specs after R5. Fix them in roughly this order.
       the map draws at the next decision (line `drive.plate.text` on a `drive.plate` casing).
     - DriveBottomBar floats over the map (`radius.xl`, 12 dp in from the edges): "3.4 km",
       "12:41" and "9 min" in `headline.sm` over a 4 dp progress line (`drive.plate.glyph` on
-      `drive.plate.line`). New `DriveCompass` at its left end, a 48 dp square on
-      `drive.plate.line` with a 12 × 32 dp needle (north `drive.sign.ring`, south
-      `drive.plate.text`), the DriveGlyph `recentre` while the map is off the car; stopped, a
-      48 dp `DriveBarButton` (End drive, ✕) at its right end. New `StoppedControls` (Mute, the
-      level chip and Route, the picker in a card above them) sits over the bar while stopped;
+      `drive.plate.line`); stopped, a 48 dp `DriveBarButton` (End drive, ✕) at its right end.
       Coached, Quiet and Off keep StoppedBar.
+    - Buttons at a touch (2026-11-23): new `DriveMapButton`, a 48 dp round on `drive.surface`
+      in a `drive.surface-line` rim, in a right-hand column that pops in (scale + fade,
+      `duration.base`) and goes 10 s after the last touch: routes (new DriveGlyph `routes`, a
+      fork with one dim branch), Mute, the level (its icon) and `DriveCompass` (a 12 × 32 dp
+      needle, north `drive.sign.ring`, south `drive.text`, a hole cut at its pivot) or
+      `DriveRecentre` (the DriveGlyph `recentre` leaning 45° right). New `LevelPickerCard`
+      and `RouteOptions` (rows of minutes, kilometres and "+3 min", a swatch in the line's
+      colour, Change destination under them) over the bar. The canvas's StoppedControls row is
+      gone.
     - New `SpeedNow` (the car's speed on a 64 dp ink disc) beside SpeedLimitSign (64 dp, figures
-      32, three figures 26) in the top right, the camera badge and DistrictChip (now 36 dp in
-      `title.sm`, two centred lines when the name is too wide, never left out) under them.
-      Coached, Quiet, Recovery and Off keep `type.drive.*`.
-    - The map drags and pinches at any speed; the compass turns into Recentre while it is off
-      the car, and the map returns after 10 s. The car sits on its road, the road ahead straight
+      32, three figures 26) in the top right, the camera badge under them. DistrictChip became
+      `StreetChip`: the street driven, a 36 dp pill (`title.sm`, one line, ellipsis) centred
+      above the bar. Coached, Quiet, Recovery and Off keep `type.drive.*`.
+    - LaneArrows to one scale: a lane without a straight arrow bends near the top, its head
+      level with a straight arrow's; with one, its turns branch half way up.
+    - The map drags and pinches at any speed, and returns 10 s after the last touch; the
+      compass turns it north up. The car sits on its road, the road ahead straight
       up, 70 % down the map (map padding), the route drawn ahead of it only (the canvas greys
       the road behind; here it is gone); until the car is on a road the route picked at setup
       shows.

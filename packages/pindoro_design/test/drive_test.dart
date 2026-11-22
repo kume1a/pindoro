@@ -120,63 +120,48 @@ void main() {
     expect(size('110'), 26);
   });
 
-  testWidgets('a long district wraps to two lines in a narrow column; a short '
-      'one keeps to one', (tester) async {
-    for (final name in [
-      'Nadzaladevi District',
-      'Mtatsminda District',
-      'Vedzisi, Kazbegi, Gotua, Saburtalo Street',
-    ]) {
-      await tester.pumpWidget(
-        _host(
-          Align(
-            alignment: Alignment.topRight,
-            child: SizedBox(
-              width: 126,
-              child: Align(
-                alignment: Alignment.topRight,
-                child: DistrictChip(name, semanticsLabel: name),
-              ),
-            ),
-          ),
-        ),
-      );
-      expect(tester.takeException(), isNull, reason: name);
-      expect(find.bySemanticsLabel(name), findsOneWidget);
-      final size = tester.getSize(find.byType(DistrictChip));
-      expect(size.width, lessThanOrEqualTo(126), reason: name);
-      expect(size.height, greaterThan(DistrictChip.height), reason: name);
-    }
+  testWidgets('a long street keeps to one line, cut short in the room it has', (
+    tester,
+  ) async {
+    const name = 'Vedzisi, Kazbegi, Gotua, Saburtalo Street';
     await tester.pumpWidget(
       _host(
-        const Align(
-          alignment: Alignment.topRight,
-          child: DistrictChip('Vake District', semanticsLabel: 'Vake District'),
-        ),
-      ),
-    );
-    expect(
-      tester.getSize(find.byType(DistrictChip)).height,
-      DistrictChip.height,
-    );
-  });
-
-  testWidgets('the compass turns against the heading; moved off the car it '
-      'is Recentre', (tester) async {
-    var recentred = 0;
-    Future<void> pump({VoidCallback? onRecentre}) => tester.pumpWidget(
-      _host(
-        Center(
-          child: DriveCompass(
-            headingDeg: 90,
-            recentreLabel: 'Recentre',
-            onRecentre: onRecentre,
+        const Center(
+          child: SizedBox(
+            width: 200,
+            child: Center(child: StreetChip(name, semanticsLabel: 'On $name')),
           ),
         ),
       ),
     );
-    await pump();
-    expect(find.bySemanticsLabel('Recentre'), findsNothing);
+    expect(tester.takeException(), isNull);
+    expect(find.bySemanticsLabel('On $name'), findsOneWidget);
+    final size = tester.getSize(find.byType(StreetChip));
+    expect(size.width, lessThanOrEqualTo(200));
+    expect(size.height, StreetChip.height);
+  });
+
+  testWidgets('the compass turns against the map\'s bearing and switches on a '
+      'tap; Recentre takes a tap', (tester) async {
+    var taps = 0;
+    var recentred = 0;
+    await tester.pumpWidget(
+      _host(
+        Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DriveCompass(
+                bearingDeg: 90,
+                label: 'North up',
+                onTap: () => taps++,
+              ),
+              DriveRecentre(label: 'Recentre', onTap: () => recentred++),
+            ],
+          ),
+        ),
+      ),
+    );
     final turn = tester.widget<Transform>(
       find.descendant(
         of: find.byType(DriveCompass),
@@ -184,15 +169,42 @@ void main() {
       ),
     );
     expect(turn.transform.getRotation().entry(0, 1), closeTo(1, 1e-9));
-    await pump(onRecentre: () => recentred++);
+    await tester.tap(find.bySemanticsLabel('North up'));
     await tester.tap(find.bySemanticsLabel('Recentre'));
-    expect(recentred, 1);
+    expect((taps, recentred), (1, 1));
+  });
+
+  testWidgets('the routes: a row takes its way; the action under them', (
+    tester,
+  ) async {
+    final picked = <int>[];
+    var changed = 0;
+    await tester.pumpWidget(
+      _host(
+        RouteOptions(
+          semanticsLabel: 'Routes',
+          options: const [
+            (time: '16 min', length: '15.8 km', delta: null),
+            (time: '19 min', length: '14.2 km', delta: '+3 min'),
+          ],
+          nowLabel: 'Now',
+          onPick: picked.add,
+          actionLabel: 'Change destination',
+          onAction: () => changed++,
+        ),
+      ),
+    );
+    await tester.tap(find.text('+3 min'));
+    await tester.tap(find.text('Change destination'));
+    expect(picked, [1]);
+    expect(changed, 1);
+    expect(find.text('Now'), findsOneWidget);
   });
 
   group('goldens', skip: _goldensSkip, () {
     for (final brightness in Brightness.values) {
       testWidgets('drive ${brightness.name}', (tester) async {
-        await tester.binding.setSurfaceSize(const Size(400, 2000));
+        await tester.binding.setSurfaceSize(const Size(400, 2200));
         addTearDown(() => tester.binding.setSurfaceSize(null));
         await tester.pumpWidget(
           _host(
@@ -219,6 +231,7 @@ void main() {
                           (arrowsDeg: [-90, 0], use: -90),
                           (arrowsDeg: [0], use: null),
                           (arrowsDeg: [0, 90], use: null),
+                          (arrowsDeg: [90], use: null),
                           (arrowsDeg: [180], use: null),
                         ],
                         then: DriveGlyphName.right,
@@ -245,25 +258,63 @@ void main() {
                       minutes: '9 min',
                       progress: 0.4,
                       rescued: true,
-                      leading: DriveCompass(
-                        headingDeg: 30,
-                        recentreLabel: 'Recentre',
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      spacing: 8,
+                      children: [
+                        const StreetChip(
+                          'Chavchavadze Ave',
+                          semanticsLabel: 'On Chavchavadze Ave',
+                        ),
+                        DriveMapButton(
+                          label: 'Routes',
+                          onTap: () {},
+                          child: DriveGlyph(
+                            DriveGlyphName.routes,
+                            size: 28,
+                            color: PindoroTheme.of(context).colors.driveText,
+                            cut: PindoroTheme.of(context).colors.driveSurface,
+                          ),
+                        ),
+                        DriveMapButton(
+                          label: 'Mute the voice',
+                          onTap: () {},
+                          child: DriveMapButton.glyph(
+                            context,
+                            PindoroGlyph.soundOn,
+                          ),
+                        ),
+                        DriveCompass(
+                          bearingDeg: 30,
+                          label: 'North up',
+                          onTap: () {},
+                        ),
+                        DriveRecentre(label: 'Recentre', onTap: () {}),
+                      ],
+                    ),
+                    LevelPickerCard(
+                      title: 'Level for the rest of this drive',
+                      reason: '14 of 17',
+                      picker: LevelPicker<_Level>(
+                        steps: _steps(),
+                        selected: _Level.guided,
+                        suggested: _Level.coached,
+                        suggestedLabel: 'Suggested',
+                        onChanged: (_) {},
+                        semanticsLabel: 'Level',
                       ),
                     ),
-                    StoppedControls(
-                      semanticsLabel: 'Controls while stopped',
-                      muted: false,
-                      muteLabel: 'Mute the voice',
-                      onMute: () {},
-                      level: (
-                        icon: PindoroGlyph.map,
-                        label: 'Guided',
-                        semanticsLabel: 'Level: Guided',
-                      ),
-                      levelOpen: false,
-                      onLevel: () {},
-                      routeLabel: 'Route and destination',
-                      onRoute: () {},
+                    RouteOptions(
+                      semanticsLabel: 'Routes',
+                      options: const [
+                        (time: '16 min', length: '15.8 km', delta: null),
+                        (time: '19 min', length: '14.2 km', delta: '+3 min'),
+                      ],
+                      nowLabel: 'Now',
+                      onPick: (_) {},
+                      actionLabel: 'Change destination',
+                      onAction: () {},
                     ),
                     DriveBottomBar(
                       semanticsLabel: '3.4 kilometres left',
@@ -271,11 +322,6 @@ void main() {
                       arrival: '12:41',
                       minutes: '9 min',
                       progress: 0.4,
-                      leading: DriveCompass(
-                        headingDeg: 30,
-                        recentreLabel: 'Recentre',
-                        onRecentre: () {},
-                      ),
                       trailing: DriveBarButton(
                         glyph: PindoroGlyph.close,
                         label: 'End drive',
@@ -330,23 +376,6 @@ void main() {
                     ),
                     const DistrictLine('Nadzaladevi'),
                     const RecoveryBand(),
-                    const Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      spacing: 8,
-                      children: [
-                        DistrictChip('Vake', semanticsLabel: 'Vake'),
-                        SizedBox(
-                          width: 140,
-                          child: Align(
-                            alignment: Alignment.topRight,
-                            child: DistrictChip(
-                              'Nadzaladevi District',
-                              semanticsLabel: 'Nadzaladevi District',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
                     ColoredBox(
                       color: PindoroTheme.of(context).colors.surfaceBase,
                       child: Padding(

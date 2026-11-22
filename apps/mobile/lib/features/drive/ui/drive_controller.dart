@@ -96,6 +96,20 @@ final class DriveSetup extends DriveState {
   };
 
   bool sameChoice(DriveSetup other) => to == other.to && own == other.own;
+
+  /// This setup with [suggestion] and [level] picked.
+  DriveSetup picking(DriveSuggestion? suggestion, DriveLevel? level) =>
+      DriveSetup(
+        to: to,
+        own: own,
+        here: here,
+        denied: denied,
+        noTarget: noTarget,
+        target: target,
+        options: options,
+        suggestion: suggestion,
+        level: level,
+      );
 }
 
 /// Driving to [target] (at [destination]) since [startedAt] at [level] (the guard, Rescue and a
@@ -306,30 +320,14 @@ class DriveController extends Notifier<DriveState> {
   /// A level the setup offers (item 114).
   void pickLevel(DriveLevel level) {
     if (state case final DriveSetup s when s.choices.contains(level)) {
-      state = DriveSetup(
-        to: s.to,
-        own: s.own,
-        here: s.here,
-        target: s.target,
-        options: s.options,
-        suggestion: s.suggestion,
-        level: level,
-      );
+      state = s.picking(s.suggestion, level);
     }
   }
 
   /// One of the setup's route [DriveSetup.options] (item 129); the level suggested follows it.
   void pickRoute(DriveSuggestion route) {
     if (state case final DriveSetup s when s.options.contains(route)) {
-      state = DriveSetup(
-        to: s.to,
-        own: s.own,
-        here: s.here,
-        target: s.target,
-        options: s.options,
-        suggestion: route,
-        level: _keptLevel(s.to, route, s.level),
-      );
+      state = s.picking(route, _keptLevel(s.to, route, s.level));
     }
   }
 
@@ -550,16 +548,7 @@ class DriveController extends Notifier<DriveState> {
     final streets = await ref.read(cityStreetsProvider.future);
     final landmarks = await ref.hold(navLandmarksProvider.future);
     final settings = await ref.read(settingsDaoProvider).read();
-    final georgian =
-        (settings.appLanguage?.name ??
-                PlatformDispatcher.instance.locale.languageCode) ==
-            'ka' &&
-        await _device.canSpeak('ka-GE');
-    _voice = georgian ? 'ka-GE' : 'en-US';
-    _words = NavWords(
-      lookupAppLocalizations(Locale(georgian ? 'ka' : 'en')),
-      georgian: georgian,
-    );
+    final georgian = await _pickVoice(settings);
     final districts = pack.districts();
     // A level picked while the phone was being found counts; another destination stops here.
     final current = state;
@@ -610,6 +599,22 @@ class DriveController extends Notifier<DriveState> {
     _tick = Timer.periodic(const Duration(seconds: 1), (_) => _onTick());
   }
 
+  /// Georgian (names in Georgian letters) when the app speaks Georgian and the phone has a
+  /// Georgian voice, else English (names in Latin letters); true for Georgian.
+  Future<bool> _pickVoice(Settings settings) async {
+    final georgian =
+        (settings.appLanguage?.name ??
+                PlatformDispatcher.instance.locale.languageCode) ==
+            'ka' &&
+        await _device.canSpeak('ka-GE');
+    _voice = georgian ? 'ka-GE' : 'en-US';
+    _words = NavWords(
+      lookupAppLocalizations(Locale(georgian ? 'ka' : 'en')),
+      georgian: georgian,
+    );
+    return georgian;
+  }
+
   void _onFix(DriveFix fix) {
     final r = state;
     // A location cached from before the drive (iOS can hand one over first) isn't the car's.
@@ -632,8 +637,8 @@ class DriveController extends Notifier<DriveState> {
     if (u.view.gpsLostS != null || u.prompts.isNotEmpty) _apply(r, u);
   }
 
-  /// The drive reached [level]: the most help so far is kept (items 122–123).
-  void _reached(DriveLevel level) {
+  /// The drive went to [level]: the most help so far is kept (items 122–123).
+  void _noteHelp(DriveLevel level) {
     if (level.index < _mostHelp.index) _mostHelp = level;
   }
 
@@ -646,7 +651,7 @@ class DriveController extends Notifier<DriveState> {
           : null,
       beat: u.chime ? r.beat + 1 : null,
     );
-    _reached(u.view.level);
+    _noteHelp(u.view.level);
     if (!r.muted) {
       for (final p in u.prompts) {
         unawaited(_speech.add(_words!.words(p, u.view.level), kind: p.kind));
@@ -689,36 +694,45 @@ class DriveController extends Notifier<DriveState> {
       return;
     }
     nav.rescue();
-    _reached(DriveLevel.guided);
+    _noteHelp(DriveLevel.guided);
     state = r.copyWith(level: DriveLevel.guided, rescued: true);
     unawaited(_device.keepScreenOn(on: true));
-    if (!r.muted) unawaited(_speech.add(_words!.l10n.navRescued));
+    if (!r.muted) unawaited(_speech.add(_words!.rescued));
   }
 
-  /// Mute or unmute every prompt, while stopped (item 117); muting drops the lines waiting.
+  /// Mute or unmute every prompt (item 117; Guided's at any speed, item 130); muting drops the
+  /// lines waiting.
   void toggleMute() {
-    if (state case final DriveRecording r when r.stopped && !_ending) {
+    if (state case final DriveRecording r when !_ending) {
       if (!r.muted) _speech.clear();
       state = r.copyWith(muted: !r.muted);
     }
   }
 
-  /// A level picked while stopped applies at once (item 116), among the setup's choices.
+  /// A level picked applies at once (items 116, 130), among the setup's choices.
   void pickDriveLevel(DriveLevel level) {
     final r = state;
     final nav = _nav;
     if (r is! DriveRecording ||
         nav == null ||
         _ending ||
-        !r.stopped ||
         level == r.level ||
         !r.choices.contains(level)) {
       return;
     }
     nav.setLevel(level);
-    _reached(level);
+    _noteHelp(level);
     state = r.copyWith(level: level);
     unawaited(_device.keepScreenOn(on: level != DriveLevel.off));
+  }
+
+  /// The other ways on from the car (item 130's routes); none off the plan.
+  List<NavPlan> routeOptions() =>
+      _ending ? const [] : _nav?.routeOptions() ?? const [];
+
+  /// Drives [option] (one of [routeOptions]) from here, at once.
+  void takeRoute(NavPlan option) {
+    if (!_ending) _nav?.takeRoute(option);
   }
 
   /// A destination changed while stopped (item 116): the way there from the next fix.
@@ -758,33 +772,14 @@ class DriveController extends Notifier<DriveState> {
     final nav = _nav;
     unawaited(_device.stop());
     final now = ref.read(clockProvider)();
-    final graph = (await ref.hold(drivingGraphProvider.future))!;
-    final streets = await ref.read(cityStreetsProvider.future);
-    final pack = await ref.read(packRepositoryProvider.future);
-    final match = matchDrive(graph, _fixes);
-    // A destination changed on the way is graded from there: the way to the first isn't a
-    // detour. Each turn was judged as it came.
-    final (:graded, :stoppedM) = gradeDrive(
-      graph,
-      _changedAt == 0 ? match : matchDrive(graph, _fixes.sublist(_changedAt)),
-      recording.target.junction,
-      streets: streets,
+    final nodes = (await ref.read(
+      packRepositoryProvider.future,
+    )).junctionNodes();
+    final (:match, :graded, :stoppedM, :decisions, :hesitated) = await _grade(
+      recording,
+      nav,
+      nodes,
     );
-    final gpsFree =
-        _startLevel == DriveLevel.off && _mostHelp == DriveLevel.off;
-    final decisions = gpsFree || nav == null
-        ? (graded == null
-              ? const <PassedDecision>[]
-              : offDriveDecisions(
-                  graph,
-                  graded,
-                  _fixes,
-                  junctionNodes: pack.junctionNodes(),
-                ))
-        : nav.passed;
-    final hesitated = [
-      for (final d in decisions) hesitatedNear(graph, match, d.junction),
-    ];
     final (:credited, :failed, :effects) = await _credit(
       decisions,
       hesitated,
@@ -805,6 +800,7 @@ class DriveController extends Notifier<DriveState> {
     await _log(
       recording,
       review,
+      nodes: nodes,
       endedAt: now,
       decisions: decisions,
       hesitated: hesitated,
@@ -815,6 +811,48 @@ class DriveController extends Notifier<DriveState> {
     _id = newId();
     if (!ref.mounted) return;
     state = review;
+  }
+
+  /// The drive's track matched to the streets and graded against the best legal route to the
+  /// destination, and its decisions: the navigator's, or on a GPS-free drive (Off throughout)
+  /// the graded path's; each with whether the car hesitated before it.
+  Future<
+    ({
+      DriveMatch match,
+      RecitalResult? graded,
+      double? stoppedM,
+      List<PassedDecision> decisions,
+      List<bool> hesitated,
+    })
+  >
+  _grade(DriveRecording recording, Navigator? nav, Map<int, int> nodes) async {
+    final graph = (await ref.hold(drivingGraphProvider.future))!;
+    final streets = await ref.read(cityStreetsProvider.future);
+    final match = matchDrive(graph, _fixes);
+    // A destination changed on the way is graded from there: the way to the first isn't a
+    // detour. Each turn was judged as it came.
+    final (:graded, :stoppedM) = gradeDrive(
+      graph,
+      _changedAt == 0 ? match : matchDrive(graph, _fixes.sublist(_changedAt)),
+      recording.target.junction,
+      streets: streets,
+    );
+    final gpsFree =
+        _startLevel == DriveLevel.off && _mostHelp == DriveLevel.off;
+    final decisions = gpsFree || nav == null
+        ? (graded == null
+              ? const <PassedDecision>[]
+              : offDriveDecisions(graph, graded, _fixes, junctionNodes: nodes))
+        : nav.passed;
+    return (
+      match: match,
+      graded: graded,
+      stoppedM: stoppedM,
+      decisions: decisions,
+      hesitated: [
+        for (final d in decisions) hesitatedNear(graph, match, d.junction),
+      ],
+    );
   }
 
   Future<DriveTarget?> _target(DriveSetup setup, LatLng? here) async {
@@ -916,6 +954,7 @@ class DriveController extends Notifier<DriveState> {
   Future<void> _log(
     DriveRecording recording,
     DriveReview review, {
+    required Map<int, int> nodes,
     required DateTime endedAt,
     required List<PassedDecision> decisions,
     required List<bool> hesitated,
@@ -923,8 +962,6 @@ class DriveController extends Notifier<DriveState> {
     required int recoveries,
   }) async {
     final fixes = List.of(_fixes);
-    final pack = await ref.read(packRepositoryProvider.future);
-    final nodes = pack.junctionNodes();
     final match = review.match;
     final graded = review.graded;
     final keys = recording.suggestion?.keys ?? const <String>{};

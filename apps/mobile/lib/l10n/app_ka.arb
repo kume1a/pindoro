@@ -788,7 +788,6 @@
   "a11yRecoveringDot": "ვსწორდებით",
   "a11yRecovering": "ვსწორდებით. შემდეგი: {move}",
   "a11yFindingPosition": "გეძებ",
-  "a11yDistrict": "უბანი: {district}",
   "driveNoMatch": "ამ სახელით ქუჩა ან ადგილი ქალაქის პაკეტში არ არის.",
   "driveRecent": "ბოლოს",
   "driveHome": "სახლი",
@@ -945,5 +944,12 @@
   "a11ySpeedNow": "თქვენი სიჩქარე {kmh} კმ/სთ",
   "settingsDriveMarker": "თქვენი მანქანა რუკაზე",
   "settingsDriveMarkerArrow": "ისარი",
-  "settingsDriveMarkerCar": "მანქანა"
+  "settingsDriveMarkerCar": "მანქანა",
+  "a11yStreetNow": "თქვენ ხართ: {street}",
+  "a11yRoutes": "მარშრუტები",
+  "a11yNorthUp": "ჩრდილოეთი ზემოთ",
+  "a11yHeadingUp": "მიმართულება ზემოთ",
+  "driveRouteNow": "ახლა",
+  "driveRouteSlower": "+{minutes} წთ",
+  "driveRouteFaster": "−{minutes} წთ"
 }

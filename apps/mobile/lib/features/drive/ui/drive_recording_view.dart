@@ -16,6 +16,7 @@ import 'package:pindoro/features/learning/ui/drive_labels.dart';
 import 'package:pindoro/features/learning/ui/landmark_glyph.dart';
 import 'package:pindoro/features/map/ui/drive_map.dart';
 import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
+import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart' hide Navigator;
@@ -23,14 +24,15 @@ import 'package:pindoro_learning/pindoro_learning.dart' hide Navigator;
 /// "Now Coached" stays this long after the guard steps in (board V32-31).
 const Duration _guardNotice = Duration(seconds: 4);
 
-/// Guided's map goes back to the car this long after the last touch (item 116).
+/// Guided's buttons go and its map goes back to the car this long after the last touch
+/// (items 116, 130).
 const Duration _recentreAfter = Duration(seconds: 10);
 
 /// A drive in progress at its level (boards V32-20 to V32-41, SPEC §16.23 items 115–118, 127,
-/// 130): Guided's map under the turn card, the speeds and the floating bar, Coached and Quiet's dial (Recovery
-/// over it after a wrong turn), Off's black screen. Day or night by sun time at the car. Moving,
-/// only Guided's map takes touch; stopped, the stopped-controls bar rises. Back does nothing:
-/// End drive ends it.
+/// 130): Guided's map under the turn card, the speeds, the street and the floating bar, its
+/// buttons popping in at a touch; Coached and Quiet's dial (Recovery over it after a wrong
+/// turn), Off's black screen, their stopped-controls bar rising when stopped. Day or night by
+/// sun time at the car. Back does nothing: End drive ends it.
 class DriveRecordingView extends ConsumerStatefulWidget {
   const DriveRecordingView({super.key, required this.recording});
 
@@ -53,10 +55,18 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
   (NavPlan?, int?) _turnFor = (null, null);
   Polyline _turn = const [];
 
-  /// Guided's map follows the car until the player moves it, then again after
-  /// [_recentreAfter] or Recentre.
+  /// Guided's map follows the car until the player moves it ([_following]); a touch shows its
+  /// buttons ([_revealed]); both go back [_recentreAfter] after the last touch.
   bool _following = true;
-  Timer? _recentre;
+  bool _revealed = false;
+  Timer? _idle;
+
+  /// The compass's choice: north up instead of the road ahead.
+  bool _northUp = false;
+
+  /// The routes overview's other ways on while it is open, and their lines on the map.
+  List<NavPlan>? _options;
+  MultiPolyline _optionLines = const [];
 
   @override
   void initState() {
@@ -68,19 +78,56 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
   @override
   void dispose() {
     _tick.cancel();
-    _recentre?.cancel();
+    _idle?.cancel();
     super.dispose();
   }
 
+  /// A touch anywhere on Guided: its buttons show, until [_recentreAfter] after the last one.
+  void _touched() {
+    _idle?.cancel();
+    _idle = Timer(_recentreAfter, _settle);
+    if (!_revealed) setState(() => _revealed = true);
+  }
+
+  /// The map dragged or pinched: it stays where the player put it.
   void _moved() {
-    _recentre?.cancel();
-    _recentre = Timer(_recentreAfter, _follow);
+    _touched();
     if (_following) setState(() => _following = false);
   }
 
-  void _follow() {
-    _recentre?.cancel();
-    if (mounted) setState(() => _following = true);
+  /// Back to driving: the buttons, the picker and the routes go, the map follows the car.
+  void _settle() {
+    _idle?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _revealed = false;
+      _following = true;
+      _levelOpen = false;
+      _closeRoutes();
+    });
+  }
+
+  /// The routes overview shut, the map back on the car.
+  void _closeRoutes() {
+    if (_options == null) return;
+    _options = null;
+    _optionLines = const [];
+    _following = true;
+  }
+
+  void _toggleRoutes() => setState(() {
+    if (_options != null) return _closeRoutes();
+    final options = _controller.routeOptions();
+    _options = options;
+    _optionLines = [for (final o in options) ...o.route.lines];
+    _levelOpen = false;
+  });
+
+  /// The [i]th of the routes (0 is the route driven now): driven from here.
+  void _takeRoute(int i) {
+    final options = _options;
+    if (options != null && i > 0) _controller.takeRoute(options[i - 1]);
+    _settle();
   }
 
   @override
@@ -88,8 +135,9 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
     final r = widget.recording;
     final view = r.view;
     final now = ref.read(clockProvider)();
-    // An open picker closes unchanged the moment the car moves (item 116).
-    if (!r.stopped) _levelOpen = false;
+    // The stopped bar's picker closes unchanged the moment the car moves (item 116); Guided's
+    // goes with its buttons.
+    if (!r.stopped && r.level != DriveLevel.guided) _levelOpen = false;
     // Until the car is on a road the navigator has no plan: the route picked at setup shows.
     final plan = view?.plan ?? r.suggestion?.plan;
     final toPlan = view?.toPlan ?? const <LatLng>[];
@@ -169,11 +217,11 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
     Settings? settings,
   ) {
     final l10n = context.l10n;
+    final c = PindoroTheme.of(context).colors;
     final view = r.view;
     final lostS = view?.gpsLostS;
     final leftM = view?.leftM;
     final arriving = leftM != null && leftM <= LearningConfig.navArriveM;
-    final district = view?.district;
     final mapOf = ref.watch(driveMapBuilderProvider);
     final arrow =
         (settings?.driveMarker ?? DriveMarker.arrow) == DriveMarker.arrow;
@@ -183,12 +231,14 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
     final arrival = _arrival(context, view, now);
     final left = leftM == null ? null : formatDistance(leftM, l10n);
     final leftS = view?.leftS;
-    final minutes = leftS == null
-        ? null
-        : l10n.unitMinutes(math.max(1, (leftS / 60).ceil()));
     final limit = view?.limitKmh;
     final over = view?.over ?? false;
     final camera = view?.camera ?? false;
+    final options = _options;
+    final street = switch (view?.street) {
+      final s? => streetName(s, settings),
+      null => null,
+    };
     final lostLine = lostS != null && lostS >= LearningConfig.gpsLostSayS
         ? l10n.driveGpsLostFor(formatClock(Duration(seconds: lostS)))
         : null;
@@ -202,18 +252,13 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
           ].join('. '),
       left: left,
       arrival: arrival,
-      minutes: minutes,
+      minutes: leftS == null ? null : _minutes(l10n, leftS),
       progress: view == null || leftM == null
           ? null
           : view.drivenM / math.max(1, view.drivenM + leftM),
       line: lostLine,
       rescued: r.rescued,
-      leading: DriveCompass(
-        headingDeg: bearing ?? 0,
-        recentreLabel: l10n.a11yRecentre,
-        onRecentre: _following ? null : _follow,
-      ),
-      // Stopped only (item 116), like the controls above the bar.
+      // Stopped only (item 116).
       trailing: r.stopped
           ? DriveBarButton(
               glyph: PindoroGlyph.close,
@@ -222,137 +267,275 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
             )
           : null,
     );
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: mapOf(
-            DriveMap(
-              key: ValueKey(arrow),
-              arrow: arrow,
-              at: view?.onRoad?.at ?? view?.at ?? r.start,
-              heading: bearing,
-              route: _route,
-              turn: _turn,
-              destination: r.destination,
-              lost: lostS != null,
-              follow: _following,
-              onMoved: _moved,
+    final level = levelLabel(l10n, r.level);
+    // The right-hand column, bottom up: the compass (Recentre once the map is off the car), the
+    // level, Mute and the routes.
+    final centre = _following && options == null
+        ? DriveCompass(
+            bearingDeg: _northUp ? 0 : bearing ?? 0,
+            label: _northUp ? l10n.a11yHeadingUp : l10n.a11yNorthUp,
+            onTap: () => setState(() => _northUp = !_northUp),
+          )
+        : DriveRecentre(
+            label: l10n.a11yRecentre,
+            onTap: () => setState(() {
+              _following = true;
+              _closeRoutes();
+            }),
+          );
+    final column = [
+      DriveMapButton(
+        label: l10n.a11yRoutes,
+        toggled: options != null,
+        onTap: _toggleRoutes,
+        child: DriveGlyph(
+          DriveGlyphName.routes,
+          size: 28,
+          color: c.driveText,
+          cut: c.driveSurface,
+        ),
+      ),
+      DriveMapButton(
+        label: r.muted ? l10n.driveUnmute : l10n.driveMute,
+        onTap: _controller.toggleMute,
+        child: DriveMapButton.glyph(
+          context,
+          r.muted ? PindoroGlyph.soundOff : PindoroGlyph.soundOn,
+        ),
+      ),
+      DriveMapButton(
+        label: l10n.a11yDriveLevel(level),
+        toggled: _levelOpen,
+        onTap: () => setState(() {
+          _levelOpen = !_levelOpen;
+          _closeRoutes();
+        }),
+        child: DriveMapButton.glyph(context, levelIcon(r.level)),
+      ),
+    ];
+    return Listener(
+      // Every touch counts, the map's and the buttons': none is taken from them.
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => _touched(),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: mapOf(
+              DriveMap(
+                key: ValueKey(arrow),
+                arrow: arrow,
+                at: view?.onRoad?.at ?? view?.at ?? r.start,
+                heading: bearing,
+                route: _route,
+                turn: _turn,
+                destination: r.destination,
+                lost: lostS != null,
+                follow: _following && options == null,
+                northUp: _northUp,
+                alternatives: _optionLines,
+                overview: options != null,
+                onMoved: _moved,
+              ),
             ),
           ),
-        ),
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: _plateSwitch(context, plate),
-        ),
-        if (lostS == null)
-          Positioned(
-            top: MediaQuery.paddingOf(context).top + PindoroSpace.s2,
-            right: PindoroSpace.s3,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              spacing: PindoroSpace.s2,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  spacing: PindoroSpace.s2,
-                  children: [
-                    if (view != null)
-                      SpeedNow(
-                        kmh: view.speedKmh.round(),
-                        semanticsLabel: l10n.a11ySpeedNow(
-                          view.speedKmh.round(),
+          // The routes overview gives the map the card's room.
+          if (options == null)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: _plateSwitch(context, plate),
+            ),
+          if (lostS == null)
+            Positioned(
+              top: MediaQuery.paddingOf(context).top + PindoroSpace.s2,
+              right: PindoroSpace.s3,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                spacing: PindoroSpace.s2,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    spacing: PindoroSpace.s2,
+                    children: [
+                      if (view != null)
+                        SpeedNow(
+                          kmh: view.speedKmh.round(),
+                          semanticsLabel: l10n.a11ySpeedNow(
+                            view.speedKmh.round(),
+                          ),
                         ),
+                      if (limit != null)
+                        SpeedLimitSign(
+                          limit: limit,
+                          over: over,
+                          beat: r.beat,
+                          semanticsLabel: over
+                              ? l10n.a11ySpeedOver(limit)
+                              : l10n.a11ySpeedLimit(limit),
+                        ),
+                    ],
+                  ),
+                  if (camera)
+                    Semantics(
+                      label: l10n.a11yCameraAhead,
+                      child: const CameraBadge(),
+                    ),
+                ],
+              ),
+            ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (options != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: PindoroSpace.s2),
+                    child: _routes(context, r, options),
+                  ),
+                if (_levelOpen)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: PindoroSpace.s2),
+                    child: LevelPickerCard(
+                      title: l10n.driveLevelRest,
+                      reason: suggestionReason(l10n, r.to, r.suggestion),
+                      picker: _levelPicker(context, r),
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    PindoroSpace.s3,
+                    0,
+                    PindoroSpace.s3,
+                    PindoroSpace.s2,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    spacing: PindoroSpace.s2,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Expanded(
+                            child: Align(
+                              alignment: Alignment.bottomLeft,
+                              child: MapAttribution(),
+                            ),
+                          ),
+                          // In the routes overview only Recentre stays, its way out.
+                          if (options == null)
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              spacing: PindoroSpace.s2,
+                              children: [
+                                for (final b in column) _pop(context, b),
+                              ],
+                            ),
+                        ],
                       ),
-                    if (limit != null)
-                      SpeedLimitSign(
-                        limit: limit,
-                        over: over,
-                        beat: r.beat,
-                        semanticsLabel: over
-                            ? l10n.a11ySpeedOver(limit)
-                            : l10n.a11ySpeedLimit(limit),
+                      // The street centred; the compass over the bar's right end.
+                      Row(
+                        spacing: PindoroSpace.s2,
+                        children: [
+                          const SizedBox(width: DriveMapButton.size),
+                          Expanded(
+                            child: Center(
+                              child: street == null
+                                  ? null
+                                  : StreetChip(
+                                      street,
+                                      semanticsLabel: l10n.a11yStreetNow(
+                                        street,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                          _pop(context, centre),
+                        ],
                       ),
-                  ],
+                    ],
+                  ),
                 ),
-                if (camera)
-                  Semantics(
-                    label: l10n.a11yCameraAhead,
-                    child: const CameraBadge(),
-                  ),
-                if (district != null)
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.sizeOf(context).width * 0.35,
-                    ),
-                    child: DistrictChip(
-                      district,
-                      semanticsLabel: l10n.a11yDistrict(district),
-                    ),
-                  ),
+                bar,
               ],
             ),
           ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(
-                  PindoroSpace.s3,
-                  0,
-                  PindoroSpace.s3,
-                  PindoroSpace.s2,
-                ),
-                child: Align(
-                  alignment: Alignment.bottomLeft,
-                  child: MapAttribution(),
-                ),
-              ),
-              _rise(context, r, r.stopped ? _guidedControls(context, r) : null),
-              bar,
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Guided's Mute, level and Route above its bar while stopped (item 130); End drive is the
-  /// bar's button.
-  Widget _guidedControls(BuildContext context, DriveRecording r) {
-    final l10n = context.l10n;
-    final level = levelLabel(l10n, r.level);
-    return Padding(
-      key: const ValueKey('stopped'),
-      padding: const EdgeInsets.only(bottom: PindoroSpace.s2),
-      child: StoppedControls(
-        semanticsLabel: l10n.a11yStoppedControls,
-        muted: r.muted,
-        muteLabel: r.muted ? l10n.driveUnmute : l10n.driveMute,
-        onMute: _controller.toggleMute,
-        level: (
-          icon: levelIcon(r.level),
-          label: level,
-          semanticsLabel: l10n.a11yDriveLevel(level),
-        ),
-        levelOpen: _levelOpen,
-        onLevel: () => setState(() => _levelOpen = !_levelOpen),
-        routeLabel: l10n.a11yDriveRoute,
-        onRoute: () => _openRoute(context),
-        pickerTitle: l10n.driveLevelRest,
-        pickerReason: suggestionReason(l10n, r.to, r.suggestion),
-        picker: _levelPicker(context, r),
+        ],
       ),
     );
   }
 
-  /// The level picker of the stopped controls: a level picked applies at once.
+  /// A Guided button: popping in with a touch, fading out with the rest after it.
+  Widget _pop(BuildContext context, Widget child) {
+    final duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : PindoroMotion.durationBase;
+    return IgnorePointer(
+      ignoring: !_revealed,
+      child: AnimatedOpacity(
+        opacity: _revealed ? 1 : 0,
+        duration: duration,
+        child: AnimatedScale(
+          scale: _revealed ? 1 : 0.6,
+          duration: duration,
+          curve: _revealed
+              ? PindoroMotion.easeOvershoot
+              : PindoroMotion.easeDecelerate,
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  /// "16 min" for [seconds], at least a minute.
+  static String _minutes(AppLocalizations l10n, double seconds) =>
+      l10n.unitMinutes(_wholeMinutes(seconds));
+
+  static int _wholeMinutes(double seconds) =>
+      math.max(1, (seconds / 60).ceil());
+
+  /// The routes overview (item 130): the route driven now, then the other ways on, slower or
+  /// quicker; Change destination while stopped.
+  Widget _routes(
+    BuildContext context,
+    DriveRecording r,
+    List<NavPlan> options,
+  ) {
+    final l10n = context.l10n;
+    final nowS = r.view?.leftS ?? 0;
+    String delta(NavPlan p) {
+      // Between the minutes shown, so "16 min" and "17 min" read "+1 min".
+      final m = _wholeMinutes(p.seconds) - _wholeMinutes(nowS);
+      return m < 0 ? l10n.driveRouteFaster(-m) : l10n.driveRouteSlower(m);
+    }
+
+    return RouteOptions(
+      semanticsLabel: l10n.a11yRoutes,
+      nowLabel: l10n.driveRouteNow,
+      options: [
+        (
+          time: _minutes(l10n, nowS),
+          length: formatDistance(r.view?.leftM ?? 0, l10n),
+          delta: null,
+        ),
+        for (final p in options)
+          (
+            time: _minutes(l10n, p.seconds),
+            length: formatDistance(p.route.lengthM, l10n),
+            delta: delta(p),
+          ),
+      ],
+      onPick: _takeRoute,
+      actionLabel: r.stopped ? l10n.driveChangeDest : null,
+      onAction: r.stopped ? () => _openRoute(context) : null,
+    );
+  }
+
+  /// The level picker (Guided's card, the stopped bar's): a level picked applies at once.
   Widget _levelPicker(BuildContext context, DriveRecording r) {
     final l10n = context.l10n;
     return LevelPicker<DriveLevel>(

@@ -621,8 +621,9 @@ void main() {
     expect(find.text('Done'), findsOneWidget);
   });
 
-  testWidgets('Guided: the map and the turn plate while moving; stopped, the '
-      'bar rises, and a level picked there applies at once', (tester) async {
+  testWidgets('Guided: the map and the turn card while moving, no buttons; '
+      'stopped, End drive, the rest at a touch, and a level picked there '
+      'applies at once', (tester) async {
     await pumpDrive(tester);
     await tester.ensureVisible(find.text('Guided'));
     await tester.pump();
@@ -665,26 +666,21 @@ void main() {
     expect(card.glyph, isNotNull);
     expect(card.headline, matches(RegExp(r'^\d')));
     expect(maps.last.turn, isNotEmpty);
-    // Moving: the bar's compass and numbers, no controls (item 116).
-    expect(find.byType(StoppedControls), findsNothing);
-    expect(find.byType(DriveCompass), findsOneWidget);
+    // Moving: the bar's numbers, no buttons over the map (item 130).
+    expect(find.bySemanticsLabel('North up'), findsNothing);
+    expect(find.bySemanticsLabel('Routes'), findsNothing);
     expect(find.byType(DriveBarButton), findsNothing);
     expect(find.byType(SpeedNow), findsOneWidget);
     await tester.runAsync(
       () => location.park(onPlan.lines.last.last, last!, 3),
     );
-    await pumpUntil(tester, find.byType(StoppedControls));
-    await tester.pump(PindoroMotion.durationSlow);
-    // Stopped: End drive at the bar's end; Mute, the level and Route above it.
+    await pumpUntil(tester, find.bySemanticsLabel('End drive'));
+    // Stopped: End drive at the bar's end; the other buttons at a touch.
     expect(find.byType(DriveBarButton), findsOneWidget);
-    expect(find.bySemanticsLabel('End drive'), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byType(StoppedControls),
-        matching: find.bySemanticsLabel('Route and destination'),
-      ),
-      findsOneWidget,
-    );
+    expect(find.bySemanticsLabel('Mute the voice'), findsNothing);
+    await tester.tapAt(tester.getCenter(find.byType(DriveRecordingView)));
+    await tester.pump();
+    await tester.pump(PindoroMotion.durationBase);
     await tester.tap(find.bySemanticsLabel('Mute the voice'));
     await tester.pump();
     expect(find.bySemanticsLabel('Unmute the voice'), findsOneWidget);
@@ -705,8 +701,9 @@ void main() {
   });
 
   testWidgets('Guided: the map moves at any speed, Recentre or 10 s bring it '
-      'back to the car; back can\'t end the drive; the Route screen closes '
-      'once when the car moves', (tester) async {
+      'back to the car, the compass turns it north up; back can\'t end the '
+      'drive; the routes overview, and its Change destination closes once '
+      'when the car moves', (tester) async {
     await pumpDrive(tester);
     await tester.ensureVisible(find.text('Guided'));
     await tester.pump();
@@ -734,27 +731,59 @@ void main() {
     final last = await tester.runAsync(() => location.drive(first, now));
     await tester.pump();
     await tester.pump(PindoroMotion.durationSlow);
-    expect(find.byType(StoppedControls), findsNothing, reason: 'moving');
+    final street = streets[route.edges.first.streetId]!;
+    expect(
+      find.bySemanticsLabel('On ${street.name}'),
+      findsOneWidget,
+      reason: 'the street driven, above the bar',
+    );
     final recentre = find.bySemanticsLabel('Recentre');
-    expect(recentre, findsNothing);
+    final northUp = find.bySemanticsLabel('North up');
+    expect(northUp, findsNothing, reason: 'no buttons while driving');
     expect(maps.last.follow, isTrue);
+    // A drag: the map stays put, and Recentre pops in where the compass goes.
     maps.last.onMoved!();
     await tester.pump();
+    await tester.pump(PindoroMotion.durationBase);
     expect(maps.last.follow, isFalse);
+    expect(northUp, findsNothing);
     await tester.tap(recentre);
     await tester.pump();
+    await tester.pump(PindoroMotion.durationBase);
     expect(maps.last.follow, isTrue, reason: 'Recentre works while moving');
     expect(recentre, findsNothing);
+    // On the car, the compass: north up, then the road ahead up again.
+    await tester.tap(northUp);
+    await tester.pump();
+    expect(maps.last.northUp, isTrue);
+    await tester.tap(find.bySemanticsLabel('Heading up'));
+    await tester.pump();
+    expect(maps.last.northUp, isFalse);
+    // 10 s after the last touch the buttons go and the map is back on the car.
     maps.last.onMoved!();
     await tester.pump(const Duration(seconds: 9));
     expect(maps.last.follow, isFalse);
     await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+    await tester.pump(PindoroMotion.durationBase);
     expect(maps.last.follow, isTrue, reason: 'back on the car after 10 s');
+    expect(
+      find.bySemanticsLabel('Routes').hitTestable(),
+      findsNothing,
+      reason: 'the buttons go too',
+    );
 
     await tester.runAsync(() => location.park(first.lines.last.last, last!, 3));
-    await pumpUntil(tester, find.byType(StoppedControls));
-    await tester.pump(PindoroMotion.durationSlow);
-    await tester.tap(find.bySemanticsLabel('Route and destination'));
+    await pumpUntil(tester, find.bySemanticsLabel('End drive'));
+    await tester.tapAt(tester.getCenter(find.byType(DriveRecordingView)));
+    await tester.pump();
+    await tester.pump(PindoroMotion.durationBase);
+    await tester.tap(find.bySemanticsLabel('Routes'));
+    await tester.pump();
+    expect(maps.last.overview, isTrue);
+    expect(maps.last.follow, isFalse);
+    expect(find.text('Now'), findsOneWidget, reason: 'the route driven now');
+    await tester.tap(find.text('Change destination'));
     await tester.pump();
     await tester.pump(PindoroMotion.durationSlow);
     expect(find.byType(DriveRouteScreen), findsOneWidget);

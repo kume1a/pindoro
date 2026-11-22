@@ -71,6 +71,13 @@ enum DriveGlyphName {
     '<path d="M24 9l6 15h-12z" fill="currentColor"/>'
     '<path d="M24 39l-6-15h12z" fill="currentColor" opacity="0.35"/>',
   ),
+  routes(
+    '<path d="M24 44V30" stroke-width="7"/>'
+    '<path d="M24 30c0-7 11-8 11-16v-3" stroke-width="6" opacity="0.35"/>'
+    '<circle cx="35" cy="7" r="4.5" fill="currentColor" opacity="0.35"/>'
+    '<path d="M24 30c0-7-11-8-11-16v-3" stroke-width="7"/>'
+    '<circle cx="13" cy="7" r="4.5" fill="currentColor"/>',
+  ),
   park(
     '<path d="M24 5l11 15h-6l9 12H27v11h-6V32H10l9-12h-6z" '
     'fill="currentColor"/>',

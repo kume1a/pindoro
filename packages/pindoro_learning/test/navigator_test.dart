@@ -665,4 +665,44 @@ void main() {
       expect(cues.single.headingDeg, isNotNull);
     },
   );
+
+  test("the routes on from the car leave out the plan's own; taking one "
+      'follows it at once, saying nothing', () {
+    final net = _grid();
+    final nav = Navigator(
+      graph: net.graph(),
+      cost: NavCost(net.byPart, toleranceKmh: 14),
+      destination: g(2, 2),
+      level: DriveLevel.guided,
+      streets: net.byPart,
+    );
+    final fixes = _drive([_p(50, 0), _at(0, 1)]).take(10).toList();
+    final prompts = [for (final f in fixes) ...nav.onFix(f).prompts];
+    final rest = nav.onTick(fixes.last.t).view.plan!.route.edges;
+    final options = nav.routeOptions();
+    expect(options, isNotEmpty);
+    for (final o in options) {
+      expect(o.route.edges.map((e) => e.id), isNot(rest.map((e) => e.id)));
+    }
+    final other = options.first;
+    nav.takeRoute(other);
+    final view = nav.onTick(fixes.last.t).view;
+    expect(
+      view.plan!.route.edges.map((e) => e.id),
+      other.route.edges.map((e) => e.id),
+    );
+    expect(view.newRoute, isFalse);
+    final next = nav.onFix((
+      at: _p(130, 0),
+      t: fixes.last.t.add(const Duration(seconds: 1)),
+      headingDeg: 90,
+      speedMps: 8,
+      accuracyM: 5,
+    ));
+    expect(
+      [...prompts, ...next.prompts].map((p) => p.kind),
+      isNot(contains(PromptKind.recovery)),
+    );
+    expect(nav.recoveries, 0);
+  });
 }

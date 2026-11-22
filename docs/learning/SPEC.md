@@ -1077,9 +1077,10 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      `driveArriveM`. Off's "Lost? Show the way" becomes Rescue: while stopped, one tap, no question,
      gives Guided to the destination; the drive is marked rescued, its later decisions are watched
      only, and its tier is at most Close. Off records with the screen locked, as GPS-free drives do.
-     The one exception is Guided's map (decided 2026-11-22): it drags and pinches at any speed;
-     while it is off the car a Recentre button takes the north arrow's place, and it goes back to
-     the car 10 s after the last touch. Back does nothing during a drive. With no fix yet, or
+     The one exception is Guided (decided 2026-11-22, widened 2026-11-23): its map drags and
+     pinches at any speed, and a touch pops in its buttons (routes, Mute, the level, the compass
+     or Recentre) at any speed; 10 s after the last touch they go and the map is back on the car.
+     End drive and Change destination stay stopped-only. Back does nothing during a drive. With no fix yet, or
      none for 60 s, the car counts as stopped: its speed is unknown and End drive stays in reach.
 117. **Voice**: landmark, then action, then street ("At Vake Park, turn left onto Chavchavadze
      Avenue"); a distance only when no landmark is within 50 m of the junction; traffic lights
@@ -1253,11 +1254,18 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        `laneMatchDeg` of the turn. An unmarked or merging lane counts as straight on.
      - The bar floats over the bottom of the map, rounded: the distance left, the arrival time
        and the minutes left side by side over a line of the drive's progress (metres driven
-       against those left). The compass sits at its left end (a needle, north red; Recentre
-       while the map is off the car). Stopped, End drive (✕) sits at its right end and Mute, the
-       level chip and Route above it; moving, the compass is its only button (item 116).
-       Coached, Quiet and Off keep their stopped bar. The car's speed and the speed sign sit in
-       the top right, the camera badge and a small district chip under them; a district too
-       wide for one line takes two.
+       against those left); stopped, End drive (✕) at its right end. The street the car is on
+       sits in a pill centred above it. The car's speed and the speed sign sit in the top right,
+       the camera badge under them; no district on screen (the voice still cues it).
+     - Buttons (2026-11-23): none while driving. A touch pops in a column on the right, bottom
+       up: the compass (a needle with a hole at its pivot; a tap switches north up and the road
+       ahead up), Recentre in its place while the map is off the car (its arrow leaning 45°
+       right), the level (opening the picker over the bar), Mute and the routes. 10 s after the
+       last touch they go (item 116).
+     - Routes: the map zooms out, north up and flat, to the route ahead and up to two other ways
+       on from the car's next junction (grey), listed over the bar as minutes, kilometres and
+       "+3 min" against the route driven now; a tap drives that way from there at once, silently.
+       Change destination is there while stopped.
+     - Coached, Quiet and Off keep their stopped bar.
      - The preview's recital names no street before the way is tapped: the street turned onto
        would give the way.

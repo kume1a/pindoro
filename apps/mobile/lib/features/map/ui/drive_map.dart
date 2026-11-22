@@ -22,11 +22,13 @@ final driveMapBuilderProvider = Provider<Widget Function(DriveMap map)>(
 /// The Guided drive's live map (board V32-20, SPEC §16.23 items 116, 118, 130):
 /// tilted, following the car at [at] (an arrow laid on the road, or the car
 /// disc: [arrow]) with the road it drives ([heading]) straight up while
-/// [follow], the [route] ahead yellow on its ink casing, the
-/// [turn] arrow at the next decision and the [destination]. No names and no
-/// landmarks. It drags and pinches at any speed, each touch
-/// reported to [onMoved]; the screen stops [follow] and brings it back.
-/// [lost] (GPS lost) dims it. The screen shows the attribution.
+/// [follow] (north up with [northUp]), the [route] ahead yellow on its ink
+/// casing, the [turn] arrow at the next decision and the [destination]. The
+/// [overview] shows the route and the other ways on ([alternatives], grey)
+/// whole, north up and flat. No names and no landmarks. It drags and pinches
+/// at any speed, each touch reported to [onMoved]; the screen stops [follow]
+/// and brings it back. [lost] (GPS lost) dims it. The screen shows the
+/// attribution.
 class DriveMap extends ConsumerStatefulWidget {
   const DriveMap({
     super.key,
@@ -37,6 +39,9 @@ class DriveMap extends ConsumerStatefulWidget {
     this.turn = const [],
     this.lost = false,
     this.follow = true,
+    this.northUp = false,
+    this.alternatives = const [],
+    this.overview = false,
     this.arrow = true,
     this.onMoved,
   });
@@ -50,6 +55,9 @@ class DriveMap extends ConsumerStatefulWidget {
   final Polyline turn;
   final bool lost;
   final bool follow;
+  final bool northUp;
+  final MultiPolyline alternatives;
+  final bool overview;
 
   /// Read once, when the map's layers are made: a change needs a new map (key it).
   final bool arrow;
@@ -64,6 +72,7 @@ class DriveMap extends ConsumerStatefulWidget {
 
 abstract final class _Sources {
   static const String route = 'drive-route';
+  static const String alternatives = 'drive-alternatives';
   static const String car = 'drive-car';
   static const String end = 'drive-end';
   static const String turn = 'drive-turn';
@@ -75,7 +84,9 @@ const String _turnHeadImage = 'drive-turn-head';
 
 class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
   bool _ready = false;
-  double _bearing = 0;
+
+  /// The car's heading: the camera's bearing too, unless north is up.
+  double _heading = 0;
 
   @override
   void styleChanged() => _ready = false;
@@ -85,7 +96,7 @@ class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
   ml.CameraPosition _camera(LatLng at) => ml.CameraPosition(
     target: at.toMapLibre,
     zoom: DriveMap.zoom,
-    bearing: _bearing,
+    bearing: widget.northUp ? 0 : _heading,
     tilt: DriveMap.tilt,
   );
 
@@ -99,25 +110,36 @@ class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
   @override
   void didUpdateWidget(DriveMap old) {
     super.didUpdateWidget(old);
-    _bearing = widget.heading ?? _bearing;
+    _heading = widget.heading ?? _heading;
     if (!_ready) return;
     final moved = widget.at != old.at || widget.heading != old.heading;
+    final leftOverview = old.overview && !widget.overview;
     if (moved) runMapWork(_moveCar);
-    if (moved || (widget.follow && !old.follow)) runMapWork(_moveCamera);
     if (!identical(widget.route, old.route)) runMapWork(_sendRoute);
+    if (!identical(widget.alternatives, old.alternatives)) {
+      runMapWork(_sendAlternatives);
+    }
+    if (widget.overview && !old.overview) runMapWork(_showOverview);
+    if (leftOverview) runMapWork(_carLow);
+    if (moved ||
+        leftOverview ||
+        widget.northUp != old.northUp ||
+        (widget.follow && !old.follow)) {
+      runMapWork(_moveCamera);
+    }
     if (!identical(widget.turn, old.turn)) runMapWork(_sendTurn);
   }
 
   Map<String, dynamic> _carGeoJson() =>
-      pointsGeoJson([?widget.at], properties: {'heading': _bearing});
+      pointsGeoJson([?widget.at], properties: {'heading': _heading});
 
   Future<void> _moveCar() async =>
       mapController?.setGeoJsonSource(_Sources.car, _carGeoJson());
 
-  /// Onto the car, unless the player has moved the map away.
+  /// Onto the car, unless the player has moved the map away or looks at the overview.
   Future<void> _moveCamera() async {
     final at = widget.at;
-    if (!widget.follow || at == null) return;
+    if (!widget.follow || widget.overview || at == null) return;
     await mapController?.animateCamera(
       ml.CameraUpdate.newCameraPosition(_camera(at)),
       duration: PindoroMotion.durationSlow * 2,
@@ -128,6 +150,36 @@ class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
     _Sources.route,
     linesGeoJson(widget.route),
   );
+
+  Future<void> _sendAlternatives() async => mapController?.setGeoJsonSource(
+    _Sources.alternatives,
+    linesGeoJson(widget.alternatives),
+  );
+
+  /// The route, the other ways and the car in view, north up and flat, clear of the speeds
+  /// above and the routes and the bar below.
+  Future<void> _showOverview() async {
+    final c = mapController;
+    final size = mapSize;
+    final points = [
+      for (final line in [...widget.route, ...widget.alternatives]) ...line,
+      ?widget.at,
+    ];
+    if (c == null || size == null || points.isEmpty) return;
+    await c.setPadding();
+    await c.moveCamera(ml.CameraUpdate.bearingTo(0));
+    await c.moveCamera(ml.CameraUpdate.tiltTo(0));
+    await c.animateCamera(
+      ml.CameraUpdate.newLatLngBounds(
+        Bbox.of(points).toMapLibre,
+        left: PindoroSpace.s8,
+        right: PindoroSpace.s8,
+        top: 0.15 * size.height,
+        bottom: 0.5 * size.height,
+      ),
+      duration: PindoroMotion.durationSlow,
+    );
+  }
 
   Map<String, dynamic> _turnLineGeoJson() =>
       linesGeoJson([if (widget.turn.length > 1) widget.turn]);
@@ -167,6 +219,28 @@ class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
         pixelRatio,
       ),
     );
+    // The other ways first, so the route lies over them.
+    await c.addGeoJsonSource(
+      _Sources.alternatives,
+      linesGeoJson(widget.alternatives),
+    );
+    for (final (id, color, width) in [
+      ('casing', colors.drivePlate, 2 * PindoroStroke.answer - 2),
+      ('line', colors.drivePlateText2, PindoroStroke.answer),
+    ]) {
+      await c.addLineLayer(
+        _Sources.alternatives,
+        '${_Sources.alternatives}-$id',
+        ml.LineLayerProperties(
+          lineColor: hexColor(color),
+          lineWidth: width,
+          lineCap: 'round',
+          lineJoin: 'round',
+        ),
+        belowLayerId: NameLayers.lowest,
+        enableInteraction: false,
+      );
+    }
     await c.addGeoJsonSource(_Sources.route, linesGeoJson(widget.route));
     for (final (id, color, width) in [
       ('casing', colors.mapAnswerCasing, 2 * PindoroStroke.answer),

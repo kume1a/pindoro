@@ -77,8 +77,9 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                Work; a drive run by pindoro_learning's Navigator at its level
                                (voice by `NavWords`, the speed chime) on `DriveRecordingView`:
                                Guided's live `DriveMap` with the turn card, the speeds and the
-                               floating bar (the compass at its left; stopped: End drive on the
-                               bar, Mute, the level and Route above it), Coached
+                               floating bar (stopped: End drive on it), the street above it, and
+                               buttons that pop in at a touch (routes overview, Mute, level,
+                               compass or Recentre), Coached
                                and Quiet's dial and Recovery, Off's black screen; day or night by sun
                                time at the car; while moving only Guided's map and Recentre take
                                touch, the stopped bar (Mute, level, Route: `DriveRouteScreen`'s
@@ -270,7 +271,8 @@ test/drift/                    generated schema helpers + migration test
   `onRoad`), tilted 32°, the car 70 % down (`ArrowMark` laid on the road, or `CarMark` by the
   `driveMarker` setting: keyed, as the image is made once), following it while `follow`; the
   route ahead only (from the car while short of the plan, `toPlan`, then the plan sliced from
-  the car), the next decision's `turn` arrow (`drive-turn`, its head
+  the car), `northUp`, the routes `overview` with its `alternatives` (grey), the next
+  decision's `turn` arrow (`drive-turn`, its head
   `drive-turn-head`) and the car only (no names or landmark icons). It drags and pinches at
   any speed and reports each touch to `onMoved`; the recording view stops following, shows
   Recentre and follows again after 10 s. It comes through `driveMapBuilderProvider`, which drive

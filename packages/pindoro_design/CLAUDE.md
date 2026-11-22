@@ -13,10 +13,10 @@ loading `Skeleton`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` inc
 progress (`MemoryBar`, `MemoryLegend`, `MemoryChart`, `ForecastBars`, `WeekBars`, `MemoryRow`), the streak (`StreakPill`, `StreakCalendar`, `StreakWeek`,
 `StreakFreezeCard`), badges (`BadgeShield`, `BadgeTile`; fields `color.badge.*`),
 setup components (`SearchField`, `PindoroChip`, `DifficultyCard`, the painted `DistrictMap` and `AreaMiniMap`), `MiniTally`,
-the drive (v3.2: `DriveGlyph`, `TurnPlate` with `LaneArrows`, `DriveBottomBar` with `DriveCompass` and
-`DriveBarButton`, `SpeedNow`, `SpeedLimitSign`, `CameraBadge`,
-`DistrictChip`, `DistrictLine`, `HeadingDial`, `StatusDot`, `SpeakingBars`, `RecoveryBand`, `RecordingDot`,
-`LevelPicker`, `LevelSuggestion`, `StoppedBar`, Guided's `StoppedControls`; their `color.drive.*` are day in the light theme and night
+the drive (v3.2: `DriveGlyph`, `TurnPlate` with `LaneArrows`, `DriveBottomBar` with
+`DriveBarButton`, Guided's `DriveMapButton` column (`DriveCompass`, `DriveRecentre`), `RouteOptions`,
+`LevelPickerCard`, `StreetChip`, `SpeedNow`, `SpeedLimitSign`, `CameraBadge`, `DistrictLine`, `HeadingDial`, `StatusDot`, `SpeakingBars`, `RecoveryBand`, `RecordingDot`,
+`LevelPicker`, `LevelSuggestion`, `StoppedBar`; their `color.drive.*` are day in the light theme and night
 in the dark one, and drive type ignores the text scale), the v3.2 parked parts in the app theme (`ReviewMark`, `TurnNumber`, `StartRing`,
 `DestinationFlag`, `StepDots`, `TierChip`, `GoalLine`, `PlanChecklist`, `RouteLevelStair`, `SuggestionCard`,
 `DialResultChip` and `BearingDial`'s pointing `calibrating`/`degrees`), the answer trays (`AnswerTray` docked over

@@ -3050,14 +3050,6 @@
     }
   },
   "a11yFindingPosition": "Finding your position",
-  "a11yDistrict": "District: {district}",
-  "@a11yDistrict": {
-    "placeholders": {
-      "district": {
-        "type": "String"
-      }
-    }
-  },
   "driveNoMatch": "No street or place in the city pack by that name.",
   "driveRecent": "Recent",
   "driveHome": "Home",
@@ -3733,5 +3725,48 @@
     "description": "Settings, Driving: how the car shows on the Guided map."
   },
   "settingsDriveMarkerArrow": "Arrow",
-  "settingsDriveMarkerCar": "Car"
+  "settingsDriveMarkerCar": "Car",
+  "a11yStreetNow": "On {street}",
+  "@a11yStreetNow": {
+    "description": "Guided: the street the car is on.",
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yRoutes": "Routes",
+  "@a11yRoutes": {
+    "description": "Guided: the button that shows the route and the other ways on."
+  },
+  "a11yNorthUp": "North up",
+  "@a11yNorthUp": {
+    "description": "Guided: the compass, turning the map north up."
+  },
+  "a11yHeadingUp": "Heading up",
+  "@a11yHeadingUp": {
+    "description": "Guided: the compass, turning the map back to the way driven."
+  },
+  "driveRouteNow": "Now",
+  "@driveRouteNow": {
+    "description": "Guided routes: the route driven now."
+  },
+  "driveRouteSlower": "+{minutes} min",
+  "@driveRouteSlower": {
+    "description": "Guided routes: another way, this much slower.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "driveRouteFaster": "−{minutes} min",
+  "@driveRouteFaster": {
+    "description": "Guided routes: another way, this much quicker.",
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  }
 }

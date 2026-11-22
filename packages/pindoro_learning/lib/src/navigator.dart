@@ -5,11 +5,11 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'constants.dart';
 import 'drive.dart';
 import 'drive_log.dart';
+import 'grader.dart';
 import 'nav_level.dart';
 import 'nav_route.dart';
 import 'recital.dart';
 import 'route_questions.dart';
-import 'routes.dart';
 
 /// What navigation says, most urgent first (SPEC §16.23 items 115, 117, 127): when two come
 /// together the first wins and the other is dropped.
@@ -136,9 +136,6 @@ NavPrompt _prompt(
   limitKmh: limitKmh,
 );
 
-double _angleOff(double a, double b) =>
-    (((a - b) % 360 + 540) % 360 - 180).abs();
-
 /// Navigation to [destination] fed one fix at a time (SPEC §16.23 items 112–117, 127): where the
 /// car is on the plan, the next decision and its prompts by level, a silent new plan after a
 /// move that keeps a good path, recovery after one that doesn't, the frustration guard, district
@@ -257,6 +254,45 @@ class Navigator {
     _rescued = true;
   }
 
+  /// Other ways on from the car (SPEC §16.23 item 130's routes): the quickest drives to the
+  /// destination from its next junction, leaving out the rest of the plan; none off the plan.
+  List<NavPlan> routeOptions() {
+    final plan = _plan;
+    final edge = _edgeNow;
+    if (plan == null || edge == null || !_onPlan) return const [];
+    final rest = [for (final e in plan.route.edges.skip(_index + 1)) e.id];
+    return [
+      for (final option in planNavOptions(
+        graph,
+        cost,
+        from: plan.route.junctions[_index + 1],
+        to: destination,
+        approach: edge,
+        streets: streets,
+        landmarks: landmarks,
+        junctionNodes: junctionNodes,
+      ))
+        if (!_sameIds(option.route.edges, rest)) option,
+    ];
+  }
+
+  /// Drives [option] (one of [routeOptions]) from here on, at once and without a word.
+  void takeRoute(NavPlan option) {
+    final plan = _plan;
+    final edge = _edgeNow;
+    if (plan == null || edge == null) return;
+    _prefer = option.route;
+    _replan(
+      edge,
+      plan.route.junctions[_index + 1],
+      edge.lengthM == 0 ? 1 : _alongNow / edge.lengthM,
+    );
+  }
+
+  static bool _sameIds(List<RoadEdge> edges, List<int> ids) =>
+      edges.length == ids.length &&
+      edges.indexed.every((e) => e.$2.id == ids[e.$1]);
+
   NavUpdate onFix(DriveFix fix) {
     final now = fix.t;
     final last = _last;
@@ -311,22 +347,7 @@ class Navigator {
 
     final kmh = speed * 3.6;
     final limit = edge == null ? null : cost.limitKmh(edge);
-    var warned = false;
-    var chime = false;
-    if (limit != null && kmh > limit + cost.toleranceKmh) {
-      final since = _overSince ??= now;
-      final chimed = _chimedAt;
-      warned = now.difference(since).inSeconds >= LearningConfig.overspeedHoldS;
-      if (warned &&
-          (chimed == null ||
-              now.difference(chimed).inSeconds >=
-                  LearningConfig.overspeedRepeatS)) {
-        chime = true;
-        _chimedAt = now;
-      }
-    } else {
-      _overSince = null;
-    }
+    final (:warned, :chime) = _overspeed(now, kmh, limit);
     if (kmh < LearningConfig.stoppedKmh) {
       _slowSince ??= now;
     } else {
@@ -353,6 +374,26 @@ class Navigator {
       prompts: prompts,
       chime: chime,
     );
+  }
+
+  /// Over [limit] plus the tolerance for [LearningConfig.overspeedHoldS]: [warned], and a
+  /// [chime] then and every [LearningConfig.overspeedRepeatS] while it lasts.
+  ({bool warned, bool chime}) _overspeed(DateTime now, double kmh, int? limit) {
+    if (limit == null || kmh <= limit + cost.toleranceKmh) {
+      _overSince = null;
+      return (warned: false, chime: false);
+    }
+    final since = _overSince ??= now;
+    final chimed = _chimedAt;
+    final warned =
+        now.difference(since).inSeconds >= LearningConfig.overspeedHoldS;
+    final chime =
+        warned &&
+        (chimed == null ||
+            now.difference(chimed).inSeconds >=
+                LearningConfig.overspeedRepeatS);
+    if (chime) _chimedAt = now;
+    return (warned: warned, chime: chime);
   }
 
   /// Time passing without fixes (since the last one, or the first tick before any): the GPS
@@ -611,7 +652,7 @@ class Navigator {
       if (n.distM > LearningConfig.driveSnapM) continue;
       final forward = from == e.from;
       final way = forward ? n.headingDeg : (n.headingDeg + 180) % 360;
-      if (heading != null && _angleOff(heading, way) > 100) continue;
+      if (heading != null && bearingError(heading, way) > 100) continue;
       if (best == null || n.distM < best.distM) {
         best = (
           i: i,
@@ -661,10 +702,11 @@ class Navigator {
     }
   }
 
-  NavHelp _helpAt(NavDecision d) {
+  /// The help a move had: Guided's, a recovery's, Coached's cue at [d] when it was said.
+  NavHelp _helpAt(NavDecision? d) {
     if (_level == DriveLevel.guided || _rescued) return NavHelp.guided;
     if (_recovering) return NavHelp.recovery;
-    if (_said[d.index]?.contains(PromptKind.prepare) ?? false) {
+    if (d != null && (_said[d.index]?.contains(PromptKind.prepare) ?? false)) {
       return NavHelp.cue;
     }
     return NavHelp.none;
@@ -679,19 +721,12 @@ class Navigator {
     required DateTime now,
     required NavHelp help,
   }) {
-    final node = junctionNodes[junction];
-    final from = approach == null
-        ? null
-        : junctionNodes[approach.other(junction)];
-    final to = junctionNodes[exit.other(junction)];
     final recovered = _lastRecoveryAt;
     passed.add((
       junction: junction,
       approach: approach,
       exit: exit,
-      key: node == null || from == null || to == null
-          ? null
-          : RouteIds.junction(node, from, to),
+      key: junctionKey(junctionNodes, junction, approach, exit),
       planned: planned,
       ok: ok,
       at: now,
@@ -750,7 +785,7 @@ class Navigator {
         planned: planned != null,
         ok: ok,
         now: now,
-        help: planned == null ? _helpNow : _helpAt(planned),
+        help: _helpAt(planned),
       );
       break;
     }
@@ -759,12 +794,6 @@ class Navigator {
     if (ok == false) _recover(now, prompts);
     _guard(now, prompts);
   }
-
-  NavHelp get _helpNow => _level == DriveLevel.guided || _rescued
-      ? NavHelp.guided
-      : _recovering
-      ? NavHelp.recovery
-      : NavHelp.none;
 
   /// After a move that lost the good path: Off says nothing, Guided says the new route's first
   /// turn ("New route"), Coached and Quiet recover (item 115).
@@ -905,7 +934,8 @@ class Navigator {
         if (aheadM < 0 ||
             aheadM > reach ||
             (direction != null &&
-                _angleOff(direction, way) > LearningConfig.cameraHeadingDeg) ||
+                bearingError(direction, way) >
+                    LearningConfig.cameraHeadingDeg) ||
             !_warned.add(c.id)) {
           continue;
         }
@@ -958,20 +988,7 @@ List<PassedDecision> offDriveDecisions(
       junction: d.junction,
       approach: d.approach,
       exit: d.exit,
-      key: switch ((
-        junctionNodes[d.junction],
-        d.approach == null
-            ? null
-            : junctionNodes[d.approach!.other(d.junction)],
-        junctionNodes[d.exit.other(d.junction)],
-      )) {
-        (final node?, final from?, final to?) => RouteIds.junction(
-          node,
-          from,
-          to,
-        ),
-        _ => null,
-      },
+      key: junctionKey(junctionNodes, d.junction, d.approach, d.exit),
       planned: isDecision(
         graph,
         d.junction,
