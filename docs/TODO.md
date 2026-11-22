@@ -179,14 +179,10 @@ and the specs after R5. Fix them in roughly this order.
     where they differ from boards V32-20 to V32-41:
     - Recovery shows the next turn's DriveGlyph at 220 dp over the street, not the canvas's
       painted junction with the car on its disc.
-    - The Guided map draws the route yellow on ink and the car as `CarMark`, but doesn't grey the
-      road behind the car, puts no landmark badge at the corner, and dims under a veil while GPS
-      is lost (the car stays as it is, no accuracy ring). The north arrow is the DriveGlyph
-      compass in a 64 dp disc in the district chip's paint.
+    - The Guided map draws the route yellow on ink, puts no landmark badge at the corner, and
+      dims under a veil while GPS is lost (the car stays as it is, no accuracy ring).
     - The stopped bar's Route button is left out at Off (SPEC §16.23 item 128). Off's Rescue offer
       is a card with the text and a 56 dp button, without the rescue glyph.
-    - The district chip is left out when the name is wider than the room (the pack has no short
-      names).
     - Roundabout glyphs and "Exit 3 onto" are unused: the road graph doesn't know roundabouts.
       Forks under 45° use keep left and right.
     - A word wider than the plate's line breaks between letters: Flutter doesn't hyphenate.
@@ -248,7 +244,7 @@ and the specs after R5. Fix them in roughly this order.
   - **Guided, compact and movable (SPEC §16.23 items 116, 118 and 130, 2026-11-22/23)**, after
     test drives, with the player's own navigator as the model; boards V32-01 and V32-20 still
     draw the full-width 54/72 dp plate:
-    - TurnPlate is a card in the top left (`radius.lg`, at most 62 % of the screen wide): the
+    - TurnPlate is a card in the top left (`radius.lg`, at most 55 % of the screen wide): the
       44 dp glyph beside the distance in `headline.lg`, the street in `title.lg`, a `label.lg`
       note with a 24 dp badge (the landmark, the heading), the lanes, and "then" as a chip under
       the card. The approach bar is gone (the distance counts down).
@@ -256,13 +252,26 @@ and the specs after R5. Fix them in roughly this order.
       36 dp per lane, the arrow to take in `drive.plate.glyph`, the rest in
       `drive.plate.text-2` at `opacity.hatch`; and `turnArrowHeadPng`, the head of the turn arrow
       the map draws at the next decision (line `drive.plate.text` on a `drive.plate` casing).
-    - DriveBottomBar is one line in `headline.md`: the flag, "12:41 · 3.4 km", then the marks.
-      SpeedLimitSign is 64 dp (figures 32, three figures 26) and DistrictChip 48 dp in
-      `headline.md`. Coached, Quiet, Recovery and Off keep `type.drive.*`.
-    - The map drags and pinches at any speed; the north arrow's disc turns into Recentre (the
-      DriveGlyph `recentre`) while it is off the car, and the map returns after 10 s. The car
-      sits on its road, the road ahead straight up, 70 % down the map (map padding), the route
-      drawn from it; until the car is on a road the route picked at setup shows.
+    - DriveBottomBar floats over the map (`radius.xl`, 12 dp in from the edges): "3.4 km",
+      "12:41" and "9 min" in `headline.sm` over a 4 dp progress line (`drive.plate.glyph` on
+      `drive.plate.line`). New `DriveCompass` at its left end, a 48 dp square on
+      `drive.plate.line` with a 12 × 32 dp needle (north `drive.sign.ring`, south
+      `drive.plate.text`), the DriveGlyph `recentre` while the map is off the car; stopped, a
+      48 dp `DriveBarButton` (End drive, ✕) at its right end. New `StoppedControls` (Mute, the
+      level chip and Route, the picker in a card above them) sits over the bar while stopped;
+      Coached, Quiet and Off keep StoppedBar.
+    - New `SpeedNow` (the car's speed on a 64 dp ink disc) beside SpeedLimitSign (64 dp, figures
+      32, three figures 26) in the top right, the camera badge and DistrictChip (now 36 dp in
+      `title.sm`, two centred lines when the name is too wide, never left out) under them.
+      Coached, Quiet, Recovery and Off keep `type.drive.*`.
+    - The map drags and pinches at any speed; the compass turns into Recentre while it is off
+      the car, and the map returns after 10 s. The car sits on its road, the road ahead straight
+      up, 70 % down the map (map padding), the route drawn ahead of it only (the canvas greys
+      the road behind; here it is gone); until the car is on a road the route picked at setup
+      shows.
+    - New `ArrowMark`, the car as a navigation arrow (36 × 40 dp, `map.player.pin` with its
+      right half in `map.player.pin-lip`, a 3 dp `map.player.halo` rim), laid flat on the map;
+      the default, with `CarMark` a choice in Settings → Driving.
 - Lakes are not named (Protomaps gives them no label point); Lisi Lake is the only one.
 - Left out of the road-class pass, on purpose:
   - A "Your streets" round left half-way is not offered as Continue on Explore (Continue matches

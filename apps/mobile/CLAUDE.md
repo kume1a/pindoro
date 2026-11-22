@@ -76,7 +76,9 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                destination, the suggested level and the LevelPicker; `/drive/place` sets Home or
                                Work; a drive run by pindoro_learning's Navigator at its level
                                (voice by `NavWords`, the speed chime) on `DriveRecordingView`:
-                               Guided's live `DriveMap` with the turn plate and bottom bar, Coached
+                               Guided's live `DriveMap` with the turn card, the speeds and the
+                               floating bar (the compass at its left; stopped: End drive on the
+                               bar, Mute, the level and Route above it), Coached
                                and Quiet's dial and Recovery, Off's black screen; day or night by sun
                                time at the car; while moving only Guided's map and Recentre take
                                touch, the stopped bar (Mute, level, Route: `DriveRouteScreen`'s
@@ -265,8 +267,10 @@ test/drift/                    generated schema helpers + migration test
   street view.
 - Colour rule: **yellow = truth, cobalt = you, ink = measurement.** Never swap them.
 - The drive's Guided map is `DriveMap` (`drive_map.dart`): the road ahead up (the navigator's
-  `onRoad`), tilted 32°, the car 70 % down, following it while `follow`; the route (from the car
-  while short of the plan, `toPlan`), the next decision's `turn` arrow (`drive-turn`, its head
+  `onRoad`), tilted 32°, the car 70 % down (`ArrowMark` laid on the road, or `CarMark` by the
+  `driveMarker` setting: keyed, as the image is made once), following it while `follow`; the
+  route ahead only (from the car while short of the plan, `toPlan`, then the plan sliced from
+  the car), the next decision's `turn` arrow (`drive-turn`, its head
   `drive-turn-head`) and the car only (no names or landmark icons). It drags and pinches at
   any speed and reports each touch to `onMoved`; the recording view stops following, shows
   Recentre and follows again after 10 s. It comes through `driveMapBuilderProvider`, which drive

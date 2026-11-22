@@ -182,6 +182,45 @@ class CarMark {
   }
 }
 
+/// Guided's car as a navigation arrow (the default): a cobalt arrowhead pointing up, its
+/// right half in the lip shade, in a halo rim, as a 36 × 40 dp PNG centred on its point.
+/// Laid flat on the map, it points along the road.
+class ArrowMark {
+  const ArrowMark(this.colors);
+
+  final PindoroColors colors;
+
+  static const Size size = Size(36, 40);
+
+  Future<Uint8List> toPng(double pixelRatio) {
+    const rim = PindoroStroke.thick;
+    final tip = Offset(size.width / 2, rim);
+    final notch = Offset(size.width / 2, size.height * 0.7);
+    final left = Offset(rim, size.height - rim);
+    final right = Offset(size.width - rim, size.height - rim);
+    Path shape(List<Offset> points) => Path()..addPolygon(points, true);
+    return _png(size, pixelRatio, (canvas) {
+      canvas
+        ..drawPath(
+          shape([tip, right, notch, left]),
+          Paint()
+            ..color = colors.mapPlayerHalo
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2 * rim
+            ..strokeJoin = StrokeJoin.round,
+        )
+        ..drawPath(
+          shape([tip, notch, left]),
+          Paint()..color = colors.mapPlayerPin,
+        )
+        ..drawPath(
+          shape([tip, right, notch]),
+          Paint()..color = colors.mapPlayerPinLip,
+        );
+    });
+  }
+}
+
 /// A basemap landmark (a café, a church, a metro station): a disc in its
 /// category [color] with the Maki [icon] in `color.map.poi.glyph`, rimmed in
 /// the land colour, as a PNG centred on its point. Landmarks never get names.

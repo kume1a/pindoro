@@ -45,6 +45,9 @@ enum StreetNameMode { local, english }
 /// Light, dark, or the device setting (kept Flutter-free for drift's exporter).
 enum ThemePreference { system, light, dark }
 
+/// The car on Guided's map: a navigation arrow or the car disc.
+enum DriveMarker { arrow, car }
+
 /// Single row (id = 1) of local preferences.
 @DataClassName('Settings')
 class UserSettings extends Table {
@@ -91,6 +94,10 @@ class UserSettings extends Table {
   /// This week's planned drives (item 122, "Pick your two drives"), as JSON (`DrivePlan`); null
   /// until the first plan.
   TextColumn get drivePlan => text().nullable()();
+
+  /// The car on Guided's map (SPEC §16.23 item 130).
+  TextColumn get driveMarker =>
+      textEnum<DriveMarker>().withDefault(const Constant('arrow'))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -542,7 +549,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 26;
+  static const int version = 27;
 
   @override
   int get schemaVersion => version;
@@ -685,6 +692,8 @@ class AppDatabase extends _$AppDatabase {
         await m.create(schema.driveEventNoUpdate);
         await m.create(schema.driveEventNoDelete);
       },
+      from26To27: (m, schema) =>
+          m.addColumn(schema.userSettings, schema.userSettings.driveMarker),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

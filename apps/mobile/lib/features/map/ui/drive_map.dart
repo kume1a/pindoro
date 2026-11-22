@@ -20,8 +20,9 @@ final driveMapBuilderProvider = Provider<Widget Function(DriveMap map)>(
 );
 
 /// The Guided drive's live map (board V32-20, SPEC §16.23 items 116, 118, 130):
-/// tilted, following the car at [at] with the road it drives ([heading])
-/// straight up while [follow], the [route] yellow on its ink casing, the
+/// tilted, following the car at [at] (an arrow laid on the road, or the car
+/// disc: [arrow]) with the road it drives ([heading]) straight up while
+/// [follow], the [route] ahead yellow on its ink casing, the
 /// [turn] arrow at the next decision and the [destination]. No names and no
 /// landmarks. It drags and pinches at any speed, each touch
 /// reported to [onMoved]; the screen stops [follow] and brings it back.
@@ -36,6 +37,7 @@ class DriveMap extends ConsumerStatefulWidget {
     this.turn = const [],
     this.lost = false,
     this.follow = true,
+    this.arrow = true,
     this.onMoved,
   });
 
@@ -48,6 +50,9 @@ class DriveMap extends ConsumerStatefulWidget {
   final Polyline turn;
   final bool lost;
   final bool follow;
+
+  /// Read once, when the map's layers are made: a change needs a new map (key it).
+  final bool arrow;
   final VoidCallback? onMoved;
 
   static const double zoom = 16.5;
@@ -156,7 +161,12 @@ class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
       await c.setLayerVisibility(id, false);
     }
     await addBasemapImages(c, colors, pixelRatio);
-    await c.addImage(_carImage, await CarMark(colors).toPng(pixelRatio));
+    await c.addImage(
+      _carImage,
+      await (widget.arrow ? ArrowMark(colors).toPng : CarMark(colors).toPng)(
+        pixelRatio,
+      ),
+    );
     await c.addGeoJsonSource(_Sources.route, linesGeoJson(widget.route));
     for (final (id, color, width) in [
       ('casing', colors.mapAnswerCasing, 2 * PindoroStroke.answer),
@@ -233,14 +243,15 @@ class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
     await c.addSymbolLayer(
       _Sources.car,
       '${_Sources.car}-mark',
-      const ml.SymbolLayerProperties(
+      ml.SymbolLayerProperties(
         iconImage: _carImage,
         iconAllowOverlap: true,
         iconIgnorePlacement: true,
-        iconPitchAlignment: 'viewport',
+        // The arrow lies on the road; the car disc faces the screen.
+        iconPitchAlignment: widget.arrow ? 'map' : 'viewport',
         // Turned by its heading on the map: up while the map follows it, and
         // still the right way once the player has moved the map.
-        iconRotate: ['get', 'heading'],
+        iconRotate: const ['get', 'heading'],
         iconRotationAlignment: 'map',
       ),
       enableInteraction: false,

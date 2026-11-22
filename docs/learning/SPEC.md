@@ -1100,7 +1100,7 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      day and 5:1 at night (text 7:1), a dim night look chosen by sun time at the car's position,
      whatever the app theme. Quiet is dark by day too; Off is black. Guided is the exception
      (decided 2026-11-22: its 54 dp plate covered half the map): a turn card in the top left
-     (item 130) and a one-line bottom bar in 26 dp.
+     and a floating bar in 22 dp (item 130).
 119. **Evidence** (for drives this replaces §4's "correct decisions are logged only"; recitals
      keep it): a decision with no prompt of its own and no recovery in the 60 s before it
      (Coached-silent, Quiet, Off) reviews its J card: Good, or Hard after a hesitation within
@@ -1235,7 +1235,7 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        whole route with "Show the turns" and Skip, then each key turn with Back and Next; item
        121's 20 s and 10 s are gone.
 130. **Guided like a car navigator** (2026-11-23, after the player's own navigator):
-     - The turn card sits in the top left, at most 62 % of the screen wide: the turn glyph
+     - The turn card sits in the top left, at most 55 % of the screen wide: the turn glyph
        beside the distance (32 dp), the street to turn onto under them (20 dp; the action when
        the street has no name), then the landmark line (15 dp) with its badge, and the lanes.
        "then" is a chip under the card. The card shows the next decision at any distance; the
@@ -1243,11 +1243,21 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        unless the next decision is already within the prepare reach.
      - The map keeps the car on its road and turns the road ahead (`navRoadAheadM`) straight up;
        off the plan, the GPS position and heading as before. The car sits 70 % down the map,
-       the route drawn from it, and an arrow in the card's colours marks the next decision, from
-       `navArrowBeforeM` before it to `navArrowAfterM` after.
+       the route drawn ahead of it only (the road driven drops away behind the car), and an
+       arrow in the card's colours marks the next decision, from `navArrowBeforeM` before it to
+       `navArrowAfterM` after. The car is a navigation arrow laid on the road, or the car disc:
+       Settings → Driving, "Your car on the map" (default the arrow).
      - Lanes (pack format 8, OSM `turn:lanes` on the way into the junction): within the prepare
        reach the card shows each lane's arrows, left to right, the arrow nearest the turn bright
        in the lanes that have it; none when no lanes are mapped there or no arrow is within
        `laneMatchDeg` of the turn. An unmarked or merging lane counts as straight on.
+     - The bar floats over the bottom of the map, rounded: the distance left, the arrival time
+       and the minutes left side by side over a line of the drive's progress (metres driven
+       against those left). The compass sits at its left end (a needle, north red; Recentre
+       while the map is off the car). Stopped, End drive (✕) sits at its right end and Mute, the
+       level chip and Route above it; moving, the compass is its only button (item 116).
+       Coached, Quiet and Off keep their stopped bar. The car's speed and the speed sign sit in
+       the top right, the camera badge and a small district chip under them; a district too
+       wide for one line takes two.
      - The preview's recital names no street before the way is tapped: the street turned onto
        would give the way.

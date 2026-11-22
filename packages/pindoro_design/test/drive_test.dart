@@ -120,10 +120,79 @@ void main() {
     expect(size('110'), 26);
   });
 
+  testWidgets('a long district wraps to two lines in a narrow column; a short '
+      'one keeps to one', (tester) async {
+    for (final name in [
+      'Nadzaladevi District',
+      'Mtatsminda District',
+      'Vedzisi, Kazbegi, Gotua, Saburtalo Street',
+    ]) {
+      await tester.pumpWidget(
+        _host(
+          Align(
+            alignment: Alignment.topRight,
+            child: SizedBox(
+              width: 126,
+              child: Align(
+                alignment: Alignment.topRight,
+                child: DistrictChip(name, semanticsLabel: name),
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull, reason: name);
+      expect(find.bySemanticsLabel(name), findsOneWidget);
+      final size = tester.getSize(find.byType(DistrictChip));
+      expect(size.width, lessThanOrEqualTo(126), reason: name);
+      expect(size.height, greaterThan(DistrictChip.height), reason: name);
+    }
+    await tester.pumpWidget(
+      _host(
+        const Align(
+          alignment: Alignment.topRight,
+          child: DistrictChip('Vake District', semanticsLabel: 'Vake District'),
+        ),
+      ),
+    );
+    expect(
+      tester.getSize(find.byType(DistrictChip)).height,
+      DistrictChip.height,
+    );
+  });
+
+  testWidgets('the compass turns against the heading; moved off the car it '
+      'is Recentre', (tester) async {
+    var recentred = 0;
+    Future<void> pump({VoidCallback? onRecentre}) => tester.pumpWidget(
+      _host(
+        Center(
+          child: DriveCompass(
+            headingDeg: 90,
+            recentreLabel: 'Recentre',
+            onRecentre: onRecentre,
+          ),
+        ),
+      ),
+    );
+    await pump();
+    expect(find.bySemanticsLabel('Recentre'), findsNothing);
+    final turn = tester.widget<Transform>(
+      find.descendant(
+        of: find.byType(DriveCompass),
+        matching: find.byType(Transform),
+      ),
+    );
+    expect(turn.transform.getRotation().entry(0, 1), closeTo(1, 1e-9));
+    await pump(onRecentre: () => recentred++);
+    await tester.tap(find.bySemanticsLabel('Recentre'));
+    expect(recentred, 1);
+  });
+
   group('goldens', skip: _goldensSkip, () {
     for (final brightness in Brightness.values) {
       testWidgets('drive ${brightness.name}', (tester) async {
-        await tester.binding.setSurfaceSize(const Size(400, 1780));
+        await tester.binding.setSurfaceSize(const Size(400, 2000));
         addTearDown(() => tester.binding.setSurfaceSize(null));
         await tester.pumpWidget(
           _host(
@@ -156,16 +225,61 @@ void main() {
                         thenLabel: 'then',
                       ),
                     ),
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      spacing: 8,
+                      children: [
+                        CameraBadge(),
+                        SpeedNow(kmh: 72, semanticsLabel: 'Your speed 72'),
+                        SpeedLimitSign(
+                          limit: 60,
+                          over: true,
+                          semanticsLabel: 'Over the speed limit of 60',
+                        ),
+                      ],
+                    ),
                     const DriveBottomBar(
                       semanticsLabel: '3.4 kilometres left',
-                      arrival: '12:41',
                       left: '3.4 km',
+                      arrival: '12:41',
+                      minutes: '9 min',
+                      progress: 0.4,
                       rescued: true,
-                      camera: true,
-                      sign: SpeedLimitSign(
-                        limit: 60,
-                        over: true,
-                        semanticsLabel: 'Over the speed limit of 60',
+                      leading: DriveCompass(
+                        headingDeg: 30,
+                        recentreLabel: 'Recentre',
+                      ),
+                    ),
+                    StoppedControls(
+                      semanticsLabel: 'Controls while stopped',
+                      muted: false,
+                      muteLabel: 'Mute the voice',
+                      onMute: () {},
+                      level: (
+                        icon: PindoroGlyph.map,
+                        label: 'Guided',
+                        semanticsLabel: 'Level: Guided',
+                      ),
+                      levelOpen: false,
+                      onLevel: () {},
+                      routeLabel: 'Route and destination',
+                      onRoute: () {},
+                    ),
+                    DriveBottomBar(
+                      semanticsLabel: '3.4 kilometres left',
+                      left: '3.4 km',
+                      arrival: '12:41',
+                      minutes: '9 min',
+                      progress: 0.4,
+                      leading: DriveCompass(
+                        headingDeg: 30,
+                        recentreLabel: 'Recentre',
+                        onRecentre: () {},
+                      ),
+                      trailing: DriveBarButton(
+                        glyph: PindoroGlyph.close,
+                        label: 'End drive',
+                        onTap: () {},
                       ),
                     ),
                     Wrap(
@@ -216,9 +330,22 @@ void main() {
                     ),
                     const DistrictLine('Nadzaladevi'),
                     const RecoveryBand(),
-                    const Align(
-                      alignment: Alignment.centerLeft,
-                      child: DistrictChip('Vake', semanticsLabel: 'Vake'),
+                    const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      spacing: 8,
+                      children: [
+                        DistrictChip('Vake', semanticsLabel: 'Vake'),
+                        SizedBox(
+                          width: 140,
+                          child: Align(
+                            alignment: Alignment.topRight,
+                            child: DistrictChip(
+                              'Nadzaladevi District',
+                              semanticsLabel: 'Nadzaladevi District',
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     ColoredBox(
                       color: PindoroTheme.of(context).colors.surfaceBase,

@@ -941,5 +941,9 @@
   "driveRouteFamiliar": "ყველაზე ნაცნობი",
   "a11yRouteOption": "მარშრუტი {n} / {count}: {line}{picked, select, yes{, არჩეულია} other{}}",
   "previewShowTurns": "მოსახვევების ჩვენება",
-  "driveTurnBare": "{turn, select, left{მარცხნივ} right{მარჯვნივ} keepLeft{დაიჭირე მარცხენა} keepRight{დაიჭირე მარჯვენა} uTurn{შემობრუნდი} other{პირდაპირ}}"
+  "driveTurnBare": "{turn, select, left{მარცხნივ} right{მარჯვნივ} keepLeft{დაიჭირე მარცხენა} keepRight{დაიჭირე მარჯვენა} uTurn{შემობრუნდი} other{პირდაპირ}}",
+  "a11ySpeedNow": "თქვენი სიჩქარე {kmh} კმ/სთ",
+  "settingsDriveMarker": "თქვენი მანქანა რუკაზე",
+  "settingsDriveMarkerArrow": "ისარი",
+  "settingsDriveMarkerCar": "მანქანა"
 }

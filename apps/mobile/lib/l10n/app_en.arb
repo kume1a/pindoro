@@ -3719,5 +3719,19 @@
         "type": "String"
       }
     }
-  }
+  },
+  "a11ySpeedNow": "Your speed {kmh} km/h",
+  "@a11ySpeedNow": {
+    "placeholders": {
+      "kmh": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsDriveMarker": "Your car on the map",
+  "@settingsDriveMarker": {
+    "description": "Settings, Driving: how the car shows on the Guided map."
+  },
+  "settingsDriveMarkerArrow": "Arrow",
+  "settingsDriveMarkerCar": "Car"
 }

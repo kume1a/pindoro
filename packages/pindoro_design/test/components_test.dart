@@ -365,6 +365,7 @@ void main() {
       ).colors;
       for (final mark in [
         CarMark(colors).toPng,
+        ArrowMark(colors).toPng,
         PoiMark(icon: 'cafe', color: colors.mapPoiFood, colors: colors).toPng,
       ]) {
         final png = await tester.runAsync(() => mark(2));

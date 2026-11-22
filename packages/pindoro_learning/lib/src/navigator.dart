@@ -105,6 +105,9 @@ typedef NavView = ({
   NamedStreet? street,
   String? district,
 
+  /// The metres driven so far: with [leftM], the bar's progress.
+  double drivenM,
+
   /// The plan's metres and seconds left.
   double? leftM,
   double? leftS,
@@ -456,6 +459,7 @@ class Navigator {
           : null,
       street: edge?.streetId == null ? null : streets[edge!.streetId],
       district: _district,
+      drivenM: _drivenM,
       leftM: plan == null ? null : plan.route.lengthM - _progressM,
       leftS: plan == null ? null : _remainingS(),
       plan: plan,
