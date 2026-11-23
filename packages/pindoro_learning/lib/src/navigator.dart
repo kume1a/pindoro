@@ -111,6 +111,9 @@ typedef NavView = ({
   /// The plan's metres and seconds left.
   double? leftM,
   double? leftS,
+
+  /// The destination's side of the road while the car is on that road (item 132).
+  NavSide? side,
   NavPlan? plan,
 });
 
@@ -144,7 +147,7 @@ class Navigator {
   Navigator({
     required this.graph,
     required this.cost,
-    required int destination,
+    required NavStop destination,
     required DriveLevel level,
     this.streets = const {},
     this.landmarks = const [],
@@ -159,8 +162,8 @@ class Navigator {
 
   final RoadGraph graph;
   final NavCost cost;
-  int _destination;
-  int get destination => _destination;
+  NavStop _destination;
+  NavStop get destination => _destination;
 
   /// By part id.
   final Map<String, NamedStreet> streets;
@@ -240,7 +243,7 @@ class Navigator {
 
   /// A destination changed while stopped (item 116), with its route's [silent] decisions: the
   /// next fix plans the way there.
-  void setDestination(int to, {Set<String> silent = const {}}) {
+  void setDestination(NavStop to, {Set<String> silent = const {}}) {
     _destination = to;
     this.silent = silent;
     _prefer = null;
@@ -357,7 +360,7 @@ class Navigator {
     }
     final stopped = _stopped(now);
     if (stopped &&
-        distanceBetween(fix.at, graph.at(destination)) <=
+        distanceBetween(fix.at, destination.pointOn(graph)) <=
             LearningConfig.navArriveM) {
       _arrived = true;
     }
@@ -502,10 +505,20 @@ class Navigator {
       street: edge?.streetId == null ? null : streets[edge!.streetId],
       district: _district,
       drivenM: _drivenM,
-      leftM: plan == null ? null : plan.route.lengthM - _progressM,
+      leftM: plan == null ? null : max(0, plan.endM - _progressM),
       leftS: plan == null ? null : _remainingS(),
+      side: _sideNow(),
       plan: plan,
     );
+  }
+
+  /// The destination's side while the car is on its road, by the way it drives.
+  NavSide? _sideNow() {
+    final stop = _destination;
+    final edge = _edgeNow;
+    final side = stop.side;
+    if (side == null || edge == null || edge.id != stop.edge?.id) return null;
+    return edge.other(_fromNow!) == stop.toward ? side : side.flipped;
   }
 
   ({LatLng at, double headingDeg})? _onRoad(NavPlan plan) {
@@ -531,10 +544,11 @@ class Navigator {
   Polyline _toPlan() {
     final edge = _approach!;
     if (edge.lengthM <= 0) return const [];
+    // The stop may lie on this road, short of the plan's first junction.
     return linePart(
       edge.lineFrom(_fromNow!),
       (_alongNow / edge.lengthM).clamp(0, 1),
-      1,
+      (1 + _plan!.endM / edge.lengthM).clamp(0, 1),
     );
   }
 
@@ -606,7 +620,8 @@ class Navigator {
               landmarks: landmarks,
               junctionNodes: junctionNodes,
             ),
-            cost.secondsOf(preferred),
+            cost.secondsTo(preferred, destination),
+            stop: destination,
           );
     _plan = plan;
     _approach = edge;
@@ -756,7 +771,10 @@ class Navigator {
     final route = plan.route;
     final before = _remainingS();
     bool? ok;
-    for (final k in [_index + 1, _index]) {
+    // Past the stop nothing is judged: the car only comes round to it again.
+    for (final k in [
+      if (_progressM <= plan.endM) ...[_index + 1, _index],
+    ]) {
       if (k < 0 || k >= route.junctions.length) continue;
       final j = route.junctions[k];
       final edge = located.edge;
@@ -772,12 +790,22 @@ class Navigator {
                 keepsGoodPath(
                   edge,
                   approach: approach,
-                  here: graph.shortestRoute(j, {
-                    destination,
-                  }, approach: approach)?.costM,
-                  after: graph.shortestRoute(located.ahead, {
-                    destination,
-                  }, approach: edge)?.costM,
+                  here: graph
+                      .shortestRoute(
+                        j,
+                        destination.goals,
+                        approach: approach,
+                        arriveOn: destination.edge,
+                      )
+                      ?.costM,
+                  after: graph
+                      .shortestRoute(
+                        located.ahead,
+                        destination.goals,
+                        approach: edge,
+                        arriveOn: destination.edge,
+                      )
+                      ?.costM,
                 );
       final planned = plan.decisions.where((d) => d.index == k).firstOrNull;
       _pass(
@@ -847,7 +875,11 @@ class Navigator {
     for (var i = _index + 1; i < plan.route.edges.length; i++) {
       s += cost.seconds(plan.route.edges[i]);
     }
-    return s;
+    // Less the stop's road past it.
+    final last = plan.route.edges.lastOrNull ?? edge;
+    final past = plan.route.lengthM - plan.endM;
+    if (last.lengthM > 0) s -= past / last.lengthM * cost.seconds(last);
+    return max(0, s);
   }
 
   /// The next decision's prepare and action prompts (item 117): every decision in Guided and

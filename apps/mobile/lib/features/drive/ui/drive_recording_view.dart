@@ -119,7 +119,7 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
     if (_options != null) return _closeRoutes();
     final options = _controller.routeOptions();
     _options = options;
-    _optionLines = [for (final o in options) ...o.route.lines];
+    _optionLines = [for (final o in options) ...o.lines];
     _levelOpen = false;
   });
 
@@ -144,7 +144,7 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
     final leftM = view?.leftM;
     // How far along the navigator's plan the car is; null while short of it or before it.
     final doneM = view?.plan != null && leftM != null && toPlan.length < 2
-        ? plan!.route.lengthM - leftM
+        ? plan!.endM - leftM
         : null;
     final routeFor = (
       plan,
@@ -155,10 +155,10 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
       _routeFor = routeFor;
       final ahead = doneM == null
           ? const <LatLng>[]
-          : plan!.slice(doneM, plan.route.lengthM);
+          : plan!.slice(doneM, plan.endM);
       _route = doneM != null
           ? [if (ahead.length > 1) ahead]
-          : [if (toPlan.length > 1) toPlan, ...?plan?.route.lines];
+          : [if (toPlan.length > 1) toPlan, ...?plan?.lines];
     }
     final next = view?.next;
     final turnFor = (view?.plan, next?.index);
@@ -529,7 +529,7 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
         for (final p in options)
           (
             time: _minutes(l10n, p.seconds),
-            length: formatDistance(p.route.lengthM, l10n),
+            length: formatDistance(p.endM, l10n),
             delta: delta(p),
           ),
       ],

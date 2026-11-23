@@ -4,12 +4,15 @@ import 'dart:math' show Point;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
+import 'package:pindoro/core/database/database.dart';
+import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/map/data/geojson.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/data/maplibre_convert.dart';
 import 'package:pindoro/features/map/ui/map_host.dart';
 import 'package:pindoro/features/map/ui/map_work.dart';
 import 'package:pindoro/features/map/ui/poi_icons.dart';
+import 'package:pindoro/features/map/ui/route_layers.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -90,6 +93,10 @@ class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
 
   @override
   void styleChanged() => _ready = false;
+
+  @override
+  bool get englishNames =>
+      ref.read(settingsProvider).value?.streetNames == StreetNameMode.english;
 
   /// On the car, which the [_carLow] padding sets about two thirds down the
   /// screen, the road ahead above it.
@@ -209,10 +216,20 @@ class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
     if (c == null) return;
     final colors = PindoroTheme.of(context).colors;
     final pixelRatio = MediaQuery.devicePixelRatioOf(context);
-    for (final id in [...NameLayers.places, NameLayers.roads, 'pois']) {
-      await c.setLayerVisibility(id, false);
-    }
+    // The icons before their layer shows: tiles laid out without an image keep no icon.
     await addBasemapImages(c, colors, pixelRatio);
+    // A navigator shows every name and place (item 132), not only the landmarks.
+    for (final (id, on) in [
+      (NameLayers.pois, false),
+      (PoiLayers.curated, false),
+      (NameLayers.poisAll, true),
+      (PoiLayers.all, true),
+      (NameLayers.areas, true),
+      (NameLayers.water, true),
+      (NameLayers.roads, true),
+    ]) {
+      await c.setLayerVisibility(id, on);
+    }
     await c.addImage(
       _carImage,
       await (widget.arrow ? ArrowMark(colors).toPng : CarMark(colors).toPng)(
@@ -225,8 +242,8 @@ class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
       linesGeoJson(widget.alternatives),
     );
     for (final (id, color, width) in [
-      ('casing', colors.drivePlate, 2 * PindoroStroke.answer - 2),
-      ('line', colors.drivePlateText2, PindoroStroke.answer),
+      ('casing', colors.drivePlate, routeCasing),
+      ('line', colors.drivePlateText2, routeWidth),
     ]) {
       await c.addLineLayer(
         _Sources.alternatives,
@@ -243,8 +260,13 @@ class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
     }
     await c.addGeoJsonSource(_Sources.route, linesGeoJson(widget.route));
     for (final (id, color, width) in [
-      ('casing', colors.mapAnswerCasing, 2 * PindoroStroke.answer),
-      ('line', colors.mapAnswerLine, 2 * PindoroStroke.answer - 8),
+      // A little wider than the plan map's: the map is tilted.
+      (
+        'casing',
+        colors.mapAnswerCasing,
+        PindoroStroke.answer + 2 * PindoroStroke.base,
+      ),
+      ('line', colors.mapAnswerLine, PindoroStroke.answer),
     ]) {
       await c.addLineLayer(
         _Sources.route,

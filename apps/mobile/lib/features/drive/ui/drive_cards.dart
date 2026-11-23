@@ -34,7 +34,7 @@ class DriveCards extends ConsumerWidget {
     }
     final settings = ref.watch(settingsProvider).value;
     final streets = ref.watch(cityStreetsProvider).value ?? const {};
-    final places = ref.watch(packRepositoryProvider).value?.landmarks() ?? [];
+    final places = ref.watch(packPlacesProvider).value ?? const {};
     final pending = ref.watch(pendingDebriefProvider).value;
     final routes = ref.watch(routeLevelsProvider).value ?? const [];
     final plan = ref.watch(drivePlanProvider);

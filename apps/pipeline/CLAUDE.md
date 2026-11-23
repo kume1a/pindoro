@@ -34,7 +34,7 @@ styles `apps/mobile/assets/map_styles/pindoro_{light,dark}.json`, tiles `infra/t
    (multipolygon + boundary relations kept complete).
 2. `osm2pgsql --output=flex --style=osm2pgsql/pindoro.lua` into schema `osm`: `roads` (with their node ids), `boundaries`,
    `subareas` (parent → child, role subarea), `places`, `road_points` (traffic lights and speed
-   cameras); roads keep `name:etymology`, `maxspeed` and `turn:lanes` (plain, `:forward`,
+   cameras), `named_pois` (every named place to drive to, with its address, hours and contacts); roads keep `name:etymology`, `maxspeed` and `turn:lanes` (plain, `:forward`,
    `:backward`). Lua must run on osm2pgsql 1.8 and 1.11.
 3. `sql/*.sql` in file-name order into schema `pipeline` (recreated each run; inputs in
    `pipeline.params` and `pipeline.neighbourhood_raw`, never string-templated):
@@ -47,7 +47,8 @@ styles `apps/mobile/assets/map_styles/pindoro_{light,dark}.json`, tiles `infra/t
    lights within 25 m and speed cameras within 30 m of an edge) → `80_learning` curriculum data
    (tier, ring round `centre`, bank of `river`, chunk, area raions, chunk neighbours, lane families
    parsed from `name_ka`) →
-   `90_routes` bridges over `river`, junction banks, landmark candidates with their base salience.
+   `90_routes` bridges over `river`, junction banks, landmark candidates with their base salience →
+   `95_pois` every named place in the city (pack `poi`, format 9).
    The build prints the family data check and writes it to `out/<city>/family-check.md`
    (`docs/research/family-check.md` keeps Tbilisi's).
    Then `src/routes.ts` chooses the junction items (20 000 seeded origin–destination routes on

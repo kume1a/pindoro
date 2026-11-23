@@ -2,8 +2,9 @@ import 'dart:async';
 import 'dart:math' as math show max, pi, sin;
 import 'dart:math' show Point;
 
-import 'package:flutter/foundation.dart' show listEquals;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, listEquals;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:pindoro/core/database/database.dart';
@@ -12,6 +13,7 @@ import 'package:pindoro/core/location.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/map/data/geojson.dart';
+import 'package:pindoro/features/map/data/map_places.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/data/maplibre_convert.dart';
 import 'package:pindoro/features/map/ui/map_host.dart';
@@ -36,6 +38,7 @@ abstract final class _MapSources {
   static const String measureLabel = 'measure-label';
   static const String trace = 'trace';
   static const String hitStreet = 'hit-street';
+  static const String placeOutline = 'place-outline';
 }
 
 /// The dotted line from the pin to the nearest point of the street, with its
@@ -83,6 +86,8 @@ class PindoroMap extends ConsumerStatefulWidget {
     this.hit,
     this.morePins = const [],
     this.bearing = 0,
+    this.onPlaceTap,
+    this.placeOutline,
   });
 
   final AreaShape area;
@@ -118,6 +123,12 @@ class PindoroMap extends ConsumerStatefulWidget {
   /// Where the top of the screen faces, degrees clockwise from north: a
   /// turn card drives up the screen.
   final double bearing;
+
+  /// A tap on a place's icon or name in [MapNames.everything] (item 132), in place of [onTap].
+  final ValueChanged<MapPlace>? onPlaceTap;
+
+  /// A picked place's outline (a mall, a park), filled like a picked area.
+  final List<List<Polyline>>? placeOutline;
 
   @override
   ConsumerState<PindoroMap> createState() => _PindoroMapState();
@@ -201,9 +212,39 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     if (mapProjection case final projection?) widget.onCamera?.call(projection);
   }
 
-  void _tapped(Offset at) {
-    if (mapProjection case final projection?) {
-      widget.onTap?.call(projection.toLatLng(at));
+  Future<void> _tapped(Offset at) async {
+    final projection = mapProjection;
+    if (projection == null) return;
+    final spot = projection.toLatLng(at);
+    if (widget.onPlaceTap != null) {
+      final place = await _placeAt(at, spot);
+      if (!mounted) return;
+      if (place != null) return widget.onPlaceTap?.call(place);
+    }
+    widget.onTap?.call(spot);
+  }
+
+  /// The place drawn under a finger at [at] (screen), nearest [spot]; null when none is.
+  Future<MapPlace?> _placeAt(Offset at, LatLng spot) async {
+    final c = mapController;
+    if (c == null) return null;
+    // Android's map counts physical pixels, iOS's points.
+    final scale = defaultTargetPlatform == TargetPlatform.android
+        ? MediaQuery.devicePixelRatioOf(context)
+        : 1.0;
+    try {
+      final features = await c.queryRenderedFeaturesInRect(
+        Rect.fromCenter(
+          center: at * scale,
+          width: PindoroSize.tapMin * scale,
+          height: PindoroSize.tapMin * scale,
+        ),
+        [PoiLayers.all, NameLayers.poisAll],
+        null,
+      );
+      return mapPlaceAt(features, spot);
+    } on PlatformException {
+      return null;
     }
   }
 
@@ -297,7 +338,8 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
         widget.truthPoint != oldWidget.truthPoint ||
         widget.measure != oldWidget.measure ||
         !listEquals(widget.traces, oldWidget.traces) ||
-        !_sameLines(widget.hit, oldWidget.hit)) {
+        !_sameLines(widget.hit, oldWidget.hit) ||
+        !identical(widget.placeOutline, oldWidget.placeOutline)) {
       runMapWork(_syncOverlays);
     }
     if (widget.names != oldWidget.names) runMapWork(_syncNames);
@@ -421,6 +463,31 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       enableInteraction: false,
     );
     if (widget.route != null) await addRouteLayers(c, colors, pixelRatio);
+    await c.addGeoJsonSource(
+      _MapSources.placeOutline,
+      polygonsGeoJson(const []),
+    );
+    await c.addFillLayer(
+      _MapSources.placeOutline,
+      '${_MapSources.placeOutline}-fill',
+      ml.FillLayerProperties(
+        fillColor: hexColor(colors.mapAreaStroke),
+        fillOpacity: PindoroOpacity.area,
+      ),
+      belowLayerId: NameLayers.lowest,
+      enableInteraction: false,
+    );
+    await c.addLineLayer(
+      _MapSources.placeOutline,
+      '${_MapSources.placeOutline}-line',
+      ml.LineLayerProperties(
+        lineColor: hexColor(colors.mapAreaStroke),
+        lineWidth: PindoroStroke.thick,
+        lineJoin: 'round',
+      ),
+      belowLayerId: NameLayers.lowest,
+      enableInteraction: false,
+    );
     await c.addGeoJsonSource(_MapSources.trace, linesGeoJson(const []));
     await c.addLineLayer(
       _MapSources.trace,
@@ -565,12 +632,17 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     _cameraMoved();
     if (await mapStyle case final style?) {
       _baseFilters = {
-        for (final id in [NameLayers.roads, ...NameLayers.places])
+        for (final id in [
+          NameLayers.roads,
+          ...NameLayers.places,
+          NameLayers.poisAll,
+        ])
           id: styleFilter(style, id),
       };
     }
-    await _syncNames();
+    // The icons before every place's layer shows: tiles laid out without an image keep no icon.
     await addBasemapImages(c, colors, pixelRatio);
+    await _syncNames();
   }
 
   /// Shows [PindoroMap.names] through the style's name layers.
@@ -578,14 +650,21 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     final c = mapController;
     if (!_overlaysReady || c == null) return;
     final names = widget.names;
+    final every = names.everyPlace;
+    // Every named place takes the place of the landmarks, icons and names alike.
+    String placesLayer(String id) =>
+        every && id == NameLayers.pois ? NameLayers.poisAll : id;
     for (final (id, filter) in [
       (NameLayers.roads, names.roadFilter(_baseFilters[NameLayers.roads])),
       for (final id in NameLayers.places)
-        (id, names.placeFilter(_baseFilters[id])),
+        (placesLayer(id), names.placeFilter(_baseFilters[placesLayer(id)])),
+      (every ? NameLayers.pois : NameLayers.poisAll, null),
     ]) {
       if (filter != null) await c.setFilter(id, filter);
       await c.setLayerVisibility(id, filter != null);
     }
+    await c.setLayerVisibility(PoiLayers.curated, !every);
+    await c.setLayerVisibility(PoiLayers.all, every);
   }
 
   Future<void> _syncOverlays() async {
@@ -619,6 +698,13 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       measure == null ? pointsGeoJson(const []) : await _measureChip(measure),
     );
     await c.setGeoJsonSource(_MapSources.trace, linesGeoJson(widget.traces));
+    await c.setGeoJsonSource(
+      _MapSources.placeOutline,
+      polygonsGeoJson([
+        for (final polygon in widget.placeOutline ?? const <List<Polyline>>[])
+          (polygon, const {}),
+      ]),
+    );
     await c.setGeoJsonSource(
       _MapSources.hitStreet,
       linesGeoJson(widget.hit ?? const []),

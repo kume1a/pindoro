@@ -43,6 +43,7 @@ class DriveRouteScreen extends ConsumerWidget {
             street: place.street,
             place: place.place,
             junction: place.junction,
+            at: place.at,
           )),
         );
     final home = places?.home;

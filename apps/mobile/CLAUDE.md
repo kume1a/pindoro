@@ -66,15 +66,19 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                and a district), drive (the Drive tab `/drive`, `DriveTab`: `WhereTo`
                                (`DestinationSearch` with Home and Work tiles and their minutes from
                                `driveHereProvider`, today's run, Choose on the map (`/drive/map`,
-                               `DriveMapScreen`: a tap snaps to a named street's junction, pops
-                               with it), Surprise me, Recent, streets and
-                               places) over `DriveCards` (the drive waiting, the week's goal, the
+                               `DriveMapScreen`: every street and place on the map; a tap on a place
+                               picks it with its details (kind, address, hours, Call, Website), a
+                               tap elsewhere drops the pin right there; pops with it), Surprise me,
+                               Recent, streets and every named place (`packPlacesProvider`: the
+                               pack's `poi` and landmarks by id), nearest first) over `DriveCards` (the drive waiting, the week's goal, the
                                nudge, "Pick your two drives", Past drives); a pick pushes the drive
                                `/drive/go` (`?to=home|work|run|surprise`, a street or place as
                                `extra`): DriveController and DriveScreen: the plan map with the
                                route options (`DriveSetup.options`, `pickRoute`: Fastest, Most
                                familiar; the Navigator follows the picked one, `prefer`) over the
-                               destination, the suggested level and the LevelPicker; `/drive/place` sets Home or
+                               destination, the suggested level and the LevelPicker in a short sheet (its handle adds the
+                               rest); a place or pin is a stop by its road (`stopsOf`, item 132),
+                               the routes arriving with it on the right first, then the left; `/drive/place` sets Home or
                                Work; a drive run by pindoro_learning's Navigator at its level
                                (voice by `NavWords`, the speed chime) on `DriveRecordingView`:
                                Guided's live `DriveMap` with the turn card, the speeds and the
@@ -254,7 +258,11 @@ test/drift/                    generated schema helpers + migration test
   questions show places through `MapNames.asking(street)`, whose `placesNot` stems hide a place
   named after the asked street. A place question shows Known streets only, and a drill only its
   own streets. Its landmark icons (the style's `pois` layer) are `poi-<kind>` images, and its
-  always-on `oneway-arrows` (from z16) use the `oneway` image (`onewayArrowPng`). `addBasemapImages`
+  always-on `oneway-arrows` (from z16) use the `oneway` image (`onewayArrowPng`). The navigation maps
+  (`MapNames.everything`: Choose on the map, the setup, Guided) swap `pois` and `poi-names` for
+  `pois-all` and `poi-names-all`, every named place, `poi-other` where `poiIcons` has no icon;
+  there `PindoroMap.onPlaceTap` reports a place tapped (`map_places.dart`: the tiles' feature
+  ids are OSM ids) and `placeOutline` lights one. `addBasemapImages`
   (`features/map/ui/poi_icons.dart`) adds both after the overlays, in `PindoroMap`, the area
   picker and Explore's map. A kind added to the pipeline's `POI_KINDS` needs an entry in
   `poiIcons`.
@@ -277,7 +285,7 @@ test/drift/                    generated schema helpers + migration test
   route ahead only (from the car while short of the plan, `toPlan`, then the plan sliced from
   the car), `northUp`, the routes `overview` with its `alternatives` (grey), the next
   decision's `turn` arrow (`drive-turn`, its head
-  `drive-turn-head`) and the car only (no names or landmark icons). It drags and pinches at
+  `drive-turn-head`), the car, and every street name and named place (item 132). It drags and pinches at
   any speed and reports each touch to `onMoved`; the recording view stops following, shows
   Recentre and follows again after 10 s. It comes through `driveMapBuilderProvider`, which drive
   tests override. The screen shows its attribution.

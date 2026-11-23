@@ -112,6 +112,38 @@ void main() {
     });
   });
 
+  testWidgets('SearchField: a tap outside drops the focus; clearing keeps it', (
+    tester,
+  ) async {
+    final text = TextEditingController(text: 'vake');
+    addTearDown(text.dispose);
+    await tester.pumpWidget(
+      _host(
+        Column(
+          children: [
+            SearchField(
+              controller: text,
+              placeholder: 'Search',
+              clearLabel: 'Clear',
+            ),
+            const SizedBox(height: 200, width: 200),
+          ],
+        ),
+      ),
+    );
+    bool focused() =>
+        tester.widget<TextField>(find.byType(TextField)).focusNode!.hasFocus;
+    await tester.tap(find.byType(TextField));
+    await tester.pump();
+    expect(focused(), isTrue);
+    await tester.tap(find.bySemanticsLabel('Clear'));
+    await tester.pump();
+    expect((text.text, focused()), ('', true));
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pump();
+    expect(focused(), isFalse);
+  });
+
   test('celebrations calm down on repeats', () {
     expect(celebrationFor(Tier.perfect), CelebrationSize.big);
     expect(

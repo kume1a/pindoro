@@ -427,6 +427,7 @@ pindoro_core `ScoringConfig`, not copied):
 | `stepDrives`, `stepDownStretch`, `stepUpStretch`, `stepUpRecoveries`    | 2, 1.25, 1.60, 3                    |
 | `recoveryHoldS`, `guardRecoveries`, `guardWindowS`, `guardLostS`        | 10, 2, 300, 180                     |
 | `guardToGuidedRecoveries`, `stoppedKmh`, `stoppedHoldS`, `navArriveM`   | 3, 5, 2, 50                         |
+| `navStopReachM`, `navStopSideM`, `placeTapNameM` (§16.23 item 132)      | 300, 5, 50                          |
 | `prepareM`, `prepareS`, `actionM`, `actionS`                            | 150, 10, 40, 4                      |
 | `landmarkAtM`, `confirmDelayS`, `districtCueM`, `districtCueS`          | 50, 6, 2000, 180                    |
 | `gpsLostSayS`                                                           | 60                                  |
@@ -1212,9 +1213,9 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        or the app.
      - A pick opens the drive set up on it (destination, level, Preview, Start); its end comes
        back to the tab.
-     - Choose on the map (Where to, and Home and Work's picker): a tap drops the pin on the
-       nearest junction of a named street within `snapSearchM`, named under it; Drive here (Use
-       this spot for Home and Work) takes it. The map opens around where the phone is.
+     - Choose on the map (Where to, and Home and Work's picker): Drive here (Use this spot for
+       Home and Work) takes what a tap picked (item 132 since 2026-11-23). The map opens around
+       where the phone is.
      - The search finds a street or place by any of its words in either script, in any order
        ("kazbegi" for "ალექსანდრე ყაზბეგის გამზირი"), each word within `fuzzyNameMax` of a
        word's start; a whole name still matches as before.
@@ -1279,3 +1280,37 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        the app; else the app's settings). Start stays allowed.
      - Coached and Quiet's district line names the district in the street-names setting, like
        every other screen; the voice's district cue keeps the voice's script (item 117).
+132. **Places, pins anywhere and the side of the road** (2026-11-23, the player mostly drives to
+     places, not streets):
+     - The pack has every named place in the city (pack format 9 `poi`: restaurants, shops,
+       offices and the rest, with OSM's address, opening hours, phone and website). Where to finds
+       them by name or brand as it finds streets (item 129), equal matches nearest the phone
+       first; a place's row reads its kind, district and distance.
+     - The navigation maps show everything: Choose on the map, the setup's routes and Guided's
+       live map name every street and every named place there is (any kind but those no one
+       drives to, a generic icon where the landmark kinds have none). The learning maps keep
+       their names (item 91).
+     - Choose on the map: a tap on a place picks it, lighting its outline when it is an area, in
+       a short sheet with its kind, district, distance and minutes, address (else the road it is
+       by), opening hours as tagged, and Call and Website when mapped. A tap anywhere else drops
+       the pin right there ("Dropped pin"), named by the road it is by; none within
+       `navStopReachM` leaves Drive here off. A place the tiles name without a pack id is the
+       pack's place of that name within `placeTapNameM`, else the tiles' name alone.
+     - A place or a pin is a stop on the road nearest it within `navStopReachM`: the route ends
+       there, not at a junction, and arrival is stopped within `navArriveM` of it. On a two-way
+       road the place is on one side (more than `navStopSideM` off the road's line): the setup
+       offers up to two routes arriving with it on the right (Georgia drives on the right),
+       picked first, and the quickest arriving with it on the left, each row saying the side and
+       the other side's minutes against the first; the picked side holds for every replan, route
+       taken from the routes overview and Rescue. A one-way road goes its way, a place on the
+       road's line from either side. Past the stop nothing is judged: the car only comes round to
+       it. The voice says the side on arrival ("You're here: …, on your right").
+     - The drive's learning keeps the road's end nearer the stop as the destination junction
+       (grading, the route book, Home and Work, recents); the drive log also keeps the spot
+       (`drive.target_lat`, `target_lon`, schema 29), Home and Work too, so a place or pin
+       comes back as itself.
+     - The setup's sheet opens short (the destination, the routes a line each, the level picker,
+       Preview and Start); its handle, tapped or pulled up, adds the suggestion, the level's
+       note, the rules and the week's goal.
+     - The route line is thinner: 6 dp in a 2 dp casing on the plan maps, 8 dp in a 2 dp casing
+       on Guided's tilted map. A tap outside a text field hides the keyboard.

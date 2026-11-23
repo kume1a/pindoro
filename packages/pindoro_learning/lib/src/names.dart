@@ -117,15 +117,42 @@ Set<String> placeForms(String ka, String? en) {
   return {base, transliterate(base), if (en != null) nameBase(en)}..remove('');
 }
 
+/// [nameDistance] when it is within [LearningConfig.fuzzyNameMax], else 1: the search keeps only
+/// those, so it stops at the first row past the limit (a row's least never shrinks).
+double _distanceWithin(String a, String b) {
+  final longest = max(a.length, b.length);
+  if (longest == 0) return 0;
+  final limit = (LearningConfig.fuzzyNameMax * longest).floor();
+  if ((a.length - b.length).abs() > limit) return 1;
+  var row = List<int>.generate(b.length + 1, (j) => j);
+  var next = List<int>.filled(b.length + 1, 0);
+  for (var i = 1; i <= a.length; i++) {
+    next[0] = i;
+    var least = i;
+    for (var j = 1; j <= b.length; j++) {
+      final d = min(
+        min(next[j - 1] + 1, row[j] + 1),
+        row[j - 1] + (a.codeUnitAt(i - 1) == b.codeUnitAt(j - 1) ? 0 : 1),
+      );
+      next[j] = d;
+      if (d < least) least = d;
+    }
+    if (least > limit) return 1;
+    (row, next) = (next, row);
+  }
+  final d = row[b.length];
+  return d > limit ? 1 : d / longest;
+}
+
 /// How far [typed] is from the start of [name] (or all of it), a little more the longer
-/// [name] runs past it.
+/// [name] runs past it; 1 or more past [LearningConfig.fuzzyNameMax].
 double _startDistance(String typed, String name) =>
     min(
-      nameDistance(
+      _distanceWithin(
         typed,
         name.length > typed.length ? name.substring(0, typed.length) : name,
       ),
-      nameDistance(typed, name),
+      _distanceWithin(typed, name),
     ) +
     (name.length - typed.length).abs() / 1000;
 
@@ -161,10 +188,13 @@ List<T> searchNames<T>(
     for (final t in _typedForms(base)) (whole: t, words: t.split(' ')),
   ];
   final scored = <(double, int, T)>[];
+  // Items named alike (a chain's branches) are scored once.
+  final known = <String, double>{};
   for (final (i, item) in items.indexed) {
-    final score = [
-      for (final t in typedForms)
-        for (final f in forms(item)) ...[
+    final names = forms(item);
+    final score = known[names.join('|')] ??= [
+      for (final f in names)
+        for (final t in typedForms) ...[
           _startDistance(t.whole, f),
           _wordsDistance(t.words, f.split(' ')),
         ],

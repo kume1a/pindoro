@@ -446,6 +446,11 @@ class Drives extends Table {
   TextColumn get targetPlace => text().nullable()();
   TextColumn get mostHelp => textEnum<DriveLevel>().nullable()();
 
+  /// The spot driven to, a place's or a pin's (item 132); null for a street or a junction, and
+  /// on drives before schema 29.
+  RealColumn get targetLat => real().nullable()();
+  RealColumn get targetLon => real().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -556,7 +561,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 28;
+  static const int version = 29;
 
   @override
   int get schemaVersion => version;
@@ -703,6 +708,10 @@ class AppDatabase extends _$AppDatabase {
           m.addColumn(schema.userSettings, schema.userSettings.driveMarker),
       from27To28: (m, schema) =>
           m.addColumn(schema.driveEvent, schema.driveEvent.detail),
+      from28To29: (m, schema) async {
+        await m.addColumn(schema.drive, schema.drive.targetLat);
+        await m.addColumn(schema.drive, schema.drive.targetLon);
+      },
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

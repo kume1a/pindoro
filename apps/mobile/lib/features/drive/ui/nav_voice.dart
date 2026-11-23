@@ -103,7 +103,12 @@ class NavWords {
     _ => null,
   };
 
-  String arrived(NamedStreet street) => l10n.navArrived(name(street));
+  /// "You're here", with the side of the road the place is on when it has one (item 132).
+  String arrived(NamedStreet street, {NavSide? side}) => switch (side) {
+    NavSide.right => l10n.navArrivedRight(name(street)),
+    NavSide.left => l10n.navArrivedLeft(name(street)),
+    null => l10n.navArrived(name(street)),
+  };
 
   /// Rescue's "Guiding you from here".
   String get rescued => l10n.navRescued;

@@ -383,6 +383,28 @@ void main() {
                         child: Column(
                           spacing: 8,
                           children: [
+                            ListGroup(
+                              children: [
+                                ListRow(
+                                  dense: true,
+                                  title: '12 min · 3.2 km',
+                                  subtitle: 'Fastest · On your right',
+                                  trailing: PindoroIcon(
+                                    PindoroGlyph.checkCircle,
+                                    color: PindoroTheme.of(
+                                      context,
+                                    ).colors.primaryText,
+                                  ),
+                                  onTap: () {},
+                                ),
+                                ListRow(
+                                  dense: true,
+                                  title: '10 min · 2.9 km',
+                                  subtitle: '−2 min · On your left',
+                                  onTap: () {},
+                                ),
+                              ],
+                            ),
                             LevelSuggestion(
                               lead: 'Suggested:',
                               level: 'Quiet',

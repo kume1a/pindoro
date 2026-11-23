@@ -2,7 +2,7 @@
 
 Flutter design system: generated tokens, `buildPindoroTheme`, `PindoroTheme` extension and the
 Signpost widgets: `PindoroButton`, `StreetPlate`, surfaces (`LipBox`, `ListGroup`, `ListRow`,
-`RowTile`, `StatTile`, `TileGrid`, `TitledCard`, `SheetHandle`), the bottom navigation (`PindoroNavBar`, no counts on tabs), controls
+`RowTile`, `StatTile`, a one-line `ListRow(dense: true)`, `TileGrid`, `TitledCard`, `SheetHandle`), the bottom navigation (`PindoroNavBar`, no counts on tabs), controls
 (`SegmentedControl`, `PindoroToggle`, `PindoroIconButton`, `PindoroDialog`, `LaneLoader`, the
 loading `Skeleton`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` incl. the route's
 `PinMark.endpoint`, `CarMark`, Guided's `ArrowMark`, `glyphPng` and `onewayArrowPng` for map images), the round components (`QuestionBar`,
@@ -12,7 +12,7 @@ loading `Skeleton`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` inc
 `LandmarkBadge`, `MapLabelChip`, `CarMarker`, `MapTip`), v3
 progress (`MemoryBar`, `MemoryLegend`, `MemoryChart`, `ForecastBars`, `WeekBars`, `MemoryRow`), the streak (`StreakPill`, `StreakCalendar`, `StreakWeek`,
 `StreakFreezeCard`), badges (`BadgeShield`, `BadgeTile`; fields `color.badge.*`),
-setup components (`SearchField`, `PindoroChip`, `DifficultyCard`, the painted `DistrictMap` and `AreaMiniMap`), `MiniTally`,
+setup components (`SearchField`, whose keyboard goes at a tap outside it, `PindoroChip`, `DifficultyCard`, the painted `DistrictMap` and `AreaMiniMap`), `MiniTally`,
 the drive (v3.2: `DriveGlyph`, `TurnPlate` with `LaneArrows`, `DriveBottomBar` with
 `DriveBarButton`, Guided's `DriveMapButton` column (`DriveCompass`, `DriveRecentre`), `RouteOptions`,
 `LevelPickerCard`, `StreetChip`, `SpeedNow`, `SpeedLimitSign`, `CameraBadge`, `DistrictLine`, `HeadingDial`, `StatusDot`, `SpeakingBars`, `RecoveryBand`, `RecordingDot`,

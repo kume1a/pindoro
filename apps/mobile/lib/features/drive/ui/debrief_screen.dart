@@ -202,7 +202,7 @@ _Lines _lines(DriveDebrief d, RoadGraph? graph) {
     route: d.review.graded?.best?.lines ?? const [],
     track: track,
     start: track.firstOrNull?.firstOrNull,
-    end: graph?.at(d.review.target.junction),
+    end: graph == null ? null : targetPoint(graph, d.review.target),
   );
 }
 
@@ -866,10 +866,12 @@ class _PointState extends ConsumerState<_Point> {
     final graph = ref.watch(drivingGraphProvider).value;
     final home = ref.watch(drivePlacesProvider).value?.home;
     String word(double b) => l10n.compassWord(compassPointOf(b).name);
-    final here = graph?.at(widget.debrief.review.target.junction);
+    final here = graph == null
+        ? null
+        : targetPoint(graph, widget.debrief.review.target);
     final homeAt = home == null || graph == null
         ? null
-        : graph.at(home.junction);
+        : targetPoint(graph, home);
     final truth = here == null || homeAt == null
         ? null
         : bearingDegrees(here, homeAt);

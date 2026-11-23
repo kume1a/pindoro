@@ -23,6 +23,33 @@ void main() {
     limitKmh: null,
   ), DriveLevel.guided);
 
+  test('arrival says the side of the road the place is on', () {
+    final street = NamedStreet([
+      Street(
+        id: 's',
+        nameKa: 'ვაკე',
+        nameEn: 'Vake Street',
+        roadClass: 'residential',
+        difficulty: Difficulty.easy,
+        lengthM: 100,
+        midpoint: const LatLng(41.7, 44.77),
+        bbox: Bbox.of(const [LatLng(41.7, 44.77)]),
+        geometry: const [
+          [LatLng(41.7, 44.77), LatLng(41.701, 44.77)],
+        ],
+      ),
+    ]);
+    expect(words.arrived(street), "You're here: Vake Street.");
+    expect(
+      words.arrived(street, side: NavSide.left),
+      "You're here: Vake Street, on your left.",
+    );
+    expect(
+      words.arrived(street, side: NavSide.right),
+      contains('on your right'),
+    );
+  });
+
   test('a distance in kilometres is said as people say it', () {
     expect(prepare(1020), contains('In 1 kilometre,'));
     expect(prepare(1520), contains('In 1.5 kilometres'));

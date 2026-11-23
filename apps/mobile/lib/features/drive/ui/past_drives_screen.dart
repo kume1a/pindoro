@@ -18,6 +18,7 @@ import 'package:pindoro/features/learning/data/drive_log.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/learning/ui/drive_labels.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
+import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
@@ -36,7 +37,7 @@ class PastDrivesScreen extends ConsumerWidget {
     final history = ref.watch(driveHistoryProvider).value;
     final settings = ref.watch(settingsProvider).value;
     final streets = ref.watch(cityStreetsProvider).value ?? const {};
-    final places = ref.watch(packRepositoryProvider).value?.landmarks() ?? [];
+    final places = ref.watch(packPlacesProvider).value ?? const {};
     final now = ref.watch(clockProvider)();
     final locale = Localizations.localeOf(context).toLanguageTag();
     final route = this.route;
@@ -189,7 +190,15 @@ final pastDriveProvider = FutureProvider.autoDispose
       return DriveReview(
         id: id,
         rescued: drive.rescued,
-        target: (junction: junction, street: street, place: null),
+        target: (
+          junction: junction,
+          street: street,
+          place: null,
+          at: switch ((drive.targetLat, drive.targetLon)) {
+            (final lat?, final lon?) => LatLng(lat, lon),
+            _ => null,
+          },
+        ),
         match: match,
         graded: graded,
         stoppedM: stoppedM,

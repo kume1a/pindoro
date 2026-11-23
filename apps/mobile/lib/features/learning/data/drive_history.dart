@@ -186,7 +186,7 @@ Future<Set<String>> _homeWorkKeys(Ref ref) async {
         graph,
         cost,
         from: from.junction,
-        to: to.junction,
+        to: NavStop.junction(to.junction),
         streets: streets,
         junctionNodes: pack.junctionNodes(),
       )?.decisions.map((d) => d.key).nonNulls,

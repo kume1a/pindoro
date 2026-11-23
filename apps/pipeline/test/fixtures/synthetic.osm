@@ -26,6 +26,8 @@
     (a connector); w2104 bridge "Test Bridge" 907-908 over the river; n910 fuel "Test Fuel" at 902;
     n911 a statue (a landmark), n912 a plaque (too small to see from a car), n913 a chain pharmacy
     (no landmark) and w2110 "Test Park" (an area, with its outline) off any junction
+  Named places: n916 "Test Kitchen" (a restaurant with its address, hours and contacts), n917 a
+    named bench (no place to drive to), n918 a named shop outside the city
   Lane arrows: w2105 turn:lanes:forward (padded) and :backward; w2106 a one-way plain turn:lanes;
     w2101 a plain turn:lanes on a two-way way (ignored)
   Lane families (w2015-w2022), "ტყის ..." (Forest ...):
@@ -145,6 +147,24 @@
     <tag k="highway" v="speed_camera"/>
     <tag k="maxspeed" v="50"/>
     <tag k="direction" v="E"/>
+  </node>
+  <node id="916" version="1" lat="41.7219" lon="44.7688">
+    <tag k="amenity" v="restaurant"/>
+    <tag k="name" v="Test Kitchen"/>
+    <tag k="name:en" v="Test Kitchen"/>
+    <tag k="addr:street" v="East Street"/>
+    <tag k="addr:housenumber" v="12"/>
+    <tag k="opening_hours" v="Mo-Su 10:00-22:00"/>
+    <tag k="contact:phone" v="+995 32 200 00 00"/>
+    <tag k="website" v="test-kitchen.example"/>
+  </node>
+  <node id="917" version="1" lat="41.7220" lon="44.7689">
+    <tag k="amenity" v="bench"/>
+    <tag k="name" v="Test Bench"/>
+  </node>
+  <node id="918" version="1" lat="41.65" lon="44.75">
+    <tag k="shop" v="bakery"/>
+    <tag k="name" v="Far Bakery"/>
   </node>
   <node id="930" version="1" lat="41.7212" lon="44.7680"/>
   <node id="931" version="1" lat="41.7212" lon="44.7690"/>

@@ -112,6 +112,25 @@ local pois = osm2pgsql.define_table({
     }),
 })
 
+-- Every named place to drive to (SPEC §16.23 item 132): its key and kind (`amenity`,
+-- `restaurant`), brand, address, opening hours and contacts.
+local named_pois = osm2pgsql.define_table({
+    name = 'named_pois',
+    schema = schema,
+    ids = { type = 'any', id_column = 'osm_id', type_column = 'osm_type' },
+    columns = names({
+        { column = 'key', type = 'text', not_null = true },
+        { column = 'kind', type = 'text', not_null = true },
+        { column = 'brand', type = 'text' },
+        { column = 'addr_street', type = 'text' },
+        { column = 'addr_housenumber', type = 'text' },
+        { column = 'opening_hours', type = 'text' },
+        { column = 'phone', type = 'text' },
+        { column = 'website', type = 'text' },
+        { column = 'geom', type = 'geometry', projection = 4326, not_null = true },
+    }),
+})
+
 -- Traffic lights and speed cameras on the roads (navigation: voice landmarks, camera warnings).
 local road_points = osm2pgsql.define_table({
     name = 'road_points',
@@ -154,6 +173,60 @@ local function poi_kind(tags)
     return nil
 end
 
+-- What no one drives to, however named (keep in step with tiles.ts NOT_PLACES).
+local not_places = {
+    amenity = {
+        parking = true, parking_space = true, parking_entrance = true, bicycle_parking = true,
+        motorcycle_parking = true, bench = true, waste_basket = true, waste_disposal = true,
+        recycling = true, vending_machine = true, atm = true, telephone = true, post_box = true,
+        drinking_water = true, toilets = true, shelter = true, taxi = true, clock = true,
+    },
+    leisure = {
+        pitch = true, playground = true, track = true, picnic_table = true, firepit = true,
+        outdoor_seating = true, slipway = true,
+    },
+    tourism = { information = true },
+    shop = { vacant = true },
+    historic = { boundary_stone = true, milestone = true },
+}
+local small_memorials = { plaque = true, blue_plaque = true, stone = true, stolperstein = true }
+local place_keys = { 'amenity', 'shop', 'tourism', 'healthcare', 'office', 'leisure', 'craft', 'historic' }
+
+-- A named place's key and kind, or nil.
+local function named_poi(tags)
+    if not (tags.name or tags.brand) then return nil end
+    if tags.station == 'subway' then return 'railway', 'metro' end
+    if tags.railway == 'station' or tags.railway == 'halt' or tags.public_transport == 'station' then
+        return 'railway', 'station'
+    end
+    if tags.aeroway == 'aerodrome' or tags.aeroway == 'terminal' then return 'aeroway', tags.aeroway end
+    for _, key in ipairs(place_keys) do
+        local kind = tags[key]
+        if kind and kind ~= 'no' and not (not_places[key] and not_places[key][kind])
+            and not (key == 'historic' and kind == 'memorial' and small_memorials[tags.memorial]) then
+            return key, kind
+        end
+    end
+    if tags.place == 'square' then return 'place', 'square' end
+    return nil
+end
+
+local function insert_named_poi(tags, geom)
+    local key, kind = named_poi(tags)
+    if not key then return end
+    named_pois:insert(name_values(tags, {
+        key = key,
+        kind = kind,
+        brand = tags.brand,
+        addr_street = tags['addr:street'],
+        addr_housenumber = tags['addr:housenumber'],
+        opening_hours = tags.opening_hours,
+        phone = tags.phone or tags['contact:phone'],
+        website = tags.website or tags['contact:website'],
+        geom = geom,
+    }))
+end
+
 local function insert_poi(tags, geom)
     local kind = poi_kind(tags)
     if not kind then return end
@@ -180,6 +253,7 @@ function osm2pgsql.process_node(object)
         })
     end
     insert_poi(tags, object:as_point())
+    insert_named_poi(tags, object:as_point())
 end
 
 function osm2pgsql.process_way(object)
@@ -206,6 +280,7 @@ function osm2pgsql.process_way(object)
     end
     if not tags.highway then
         insert_poi(tags, object.is_closed and object:as_polygon() or object:as_linestring())
+        if object.is_closed then insert_named_poi(tags, object:as_polygon()) end
     end
 end
 
@@ -229,7 +304,10 @@ end
 function osm2pgsql.process_relation(object)
     local tags = object.tags
     if tags.type == 'restriction' then return process_restriction(object) end
-    if tags.type == 'multipolygon' then insert_poi(tags, object:as_multipolygon()) end
+    if tags.type == 'multipolygon' then
+        insert_poi(tags, object:as_multipolygon())
+        insert_named_poi(tags, object:as_multipolygon())
+    end
     if tags.type ~= 'boundary' and tags.type ~= 'multipolygon' then return end
     if not (tags.boundary or tags.place) then return end
 

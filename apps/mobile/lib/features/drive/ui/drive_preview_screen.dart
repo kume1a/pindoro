@@ -13,6 +13,7 @@ import 'package:pindoro/features/drive/ui/drive_controller.dart';
 import 'package:pindoro/features/drive/ui/drive_levels.dart';
 import 'package:pindoro/features/drive/ui/plan_map.dart';
 import 'package:pindoro/features/learning/data/drive_log.dart';
+import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/features/learning/data/nav_data.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
@@ -132,7 +133,7 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
     ];
     final route = plan.route;
     final start = setup.here ?? graph.at(route.junctions.first);
-    final end = graph.at(target.junction);
+    final end = targetPoint(graph, target);
 
     String? lead(NavDecision d) => landmarkLine(l10n, d, settings);
     String action(NavDecision d) {
@@ -154,7 +155,7 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
         (graph.at(d.junction), number(i, current: i == _at)),
     ];
     final summary = [
-      formatDistance(route.lengthM, l10n),
+      formatDistance(plan.endM, l10n),
       l10n.driveAboutMin(plan.minutes),
       l10n.previewKeyTurns(keyTurns.length),
     ].join(' · ');
@@ -166,7 +167,7 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
           body: PlanMapLayout(
             semanticsLabel: l10n.a11yPreviewMap,
             top: const PlanMapBack(),
-            route: route.lines,
+            route: plan.lines,
             start: start,
             end: end,
             pins: numbers,
@@ -267,7 +268,7 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
           body: PlanMapLayout(
             semanticsLabel: l10n.a11yPreviewMap,
             top: const PlanMapBack(),
-            route: route.lines,
+            route: plan.lines,
             start: start,
             end: end,
             pins: numbers,
@@ -353,7 +354,7 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
           body: PlanMapLayout(
             semanticsLabel: l10n.a11yPreviewMap,
             top: const PlanMapBack(),
-            route: said == null ? upTo : route.lines,
+            route: said == null ? upTo : plan.lines,
             // Before the answer no street is named: the one turned onto would give the way.
             names: said == null
                 ? MapNames.asking(d.street ?? streets[d.exit.streetId])

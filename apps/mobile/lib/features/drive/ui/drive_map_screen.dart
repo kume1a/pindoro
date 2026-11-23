@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pindoro/core/feedback.dart';
 import 'package:pindoro/core/format.dart';
+import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
@@ -12,17 +13,22 @@ import 'package:pindoro/features/drive/ui/destination_search.dart';
 import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/features/learning/data/nav_data.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
-import 'package:pindoro/features/learning/ui/junction_name.dart';
+import 'package:pindoro/features/learning/ui/landmark_glyph.dart';
+import 'package:pindoro/features/map/data/map_places.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/map_layout.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
+import 'package:pindoro_learning/pindoro_learning.dart' show LearningConfig;
+import 'package:url_launcher/url_launcher.dart';
 
-/// Choose on the map (SPEC §16.23 item 129): a tap drops the pin, snapped to the nearest
-/// junction on a named street, named under it; Drive here (or, for Home and Work, [place]:
-/// Use this spot) pops with it as the destination. Opens around where the phone is.
+/// Choose on the map (SPEC §16.23 items 129, 132): every street and named place on the map; a
+/// tap on a place picks it (its outline lit, its details in the sheet: kind, address, opening
+/// hours, Call and Website), a tap anywhere else drops the pin right there, named by the road it
+/// is by. Drive here (or, for Home and Work, [place]: Use this spot) pops with it as the
+/// destination. Opens around where the phone is.
 class DriveMapScreen extends ConsumerStatefulWidget {
   const DriveMapScreen({this.place = false, super.key});
 
@@ -32,41 +38,57 @@ class DriveMapScreen extends ConsumerStatefulWidget {
   ConsumerState<DriveMapScreen> createState() => _DriveMapScreenState();
 }
 
-class _DriveMapScreenState extends ConsumerState<DriveMapScreen> {
-  LatLng? _spot;
-  DriveDest? _dest;
+/// The spot tapped, the place there if one was, and the destination it makes (null out of a
+/// road's reach).
+typedef _Pick = ({LatLng at, Landmark? place, DriveDest? dest});
 
-  void _mark(RoadGraph graph, Map<String, NamedStreet> streets, LatLng at) {
+class _DriveMapScreenState extends ConsumerState<DriveMapScreen> {
+  _Pick? _pick;
+
+  void _spot(RoadGraph graph, Map<String, NamedStreet> streets, LatLng at) {
     ref.read(feedbackProvider).pinDrop();
-    setState(() {
-      _spot = at;
-      _dest = destNear(graph, streets, at);
-    });
+    setState(
+      () => _pick = (at: at, place: null, dest: destNear(graph, streets, at)),
+    );
+  }
+
+  void _place(
+    RoadGraph graph,
+    Map<String, NamedStreet> streets,
+    Map<String, Landmark> places,
+    MapPlace tapped,
+  ) {
+    ref.read(feedbackProvider).pinDrop();
+    final place = placeOf(tapped, places);
+    final DriveDest dest = (
+      street: null,
+      place: place,
+      junction: null,
+      at: place.at,
+    );
+    setState(
+      () => _pick = (
+        at: place.at,
+        place: place,
+        dest: resolveDest(graph, streets, dest) == null ? null : dest,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final c = PindoroTheme.of(context).colors;
-    final settings = ref.watch(settingsProvider).value;
     final pack = ref.watch(packRepositoryProvider).value;
     final graph = ref.watch(drivingGraphProvider).value;
     final streets = ref.watch(cityStreetsProvider).value;
+    final places = ref.watch(packPlacesProvider).value;
     final here = ref.watch(driveHereProvider).value?.here;
-    if (pack == null || graph == null || streets == null) {
+    if (pack == null || graph == null || streets == null || places == null) {
       return const Scaffold(body: Center(child: LaneLoader()));
     }
     final city = pack.city();
-    final dest = _dest;
-    final junction = dest?.junction;
-    final subtitle = switch ((_spot, junction)) {
-      (null, _) => l10n.driveMapHint,
-      (_, null) => l10n.landmarkNoJunction,
-      (_, final j?) => [
-        junctionName(graph, j, streets, settings) ?? l10n.landmarkSnapped,
-        const PlaceLine().of(context, ref, graph.at(j)),
-      ].where((s) => s.isNotEmpty).join(' · '),
-    };
+    final pick = _pick;
+    final dest = pick?.dest;
     return Scaffold(
       extendBody: true,
       body: Builder(
@@ -74,10 +96,12 @@ class _DriveMapScreenState extends ConsumerState<DriveMapScreen> {
           map: (insets) => ref.watch(pindoroMapBuilderProvider)(
             PindoroMap(
               area: (bbox: city.bbox, boundary: city.boundary),
-              pin: junction == null ? _spot : graph.at(junction),
+              pin: pick?.at,
+              placeOutline: pick?.place?.outline,
               frame: here == null ? null : _around(here),
-              onTap: (at) => _mark(graph, streets, at),
-              names: MapNames.all,
+              onTap: (at) => _spot(graph, streets, at),
+              onPlaceTap: (p) => _place(graph, streets, places, p),
+              names: MapNames.everything,
               topInset: insets.top,
               bottomInset: MediaQuery.paddingOf(body).bottom,
             ),
@@ -101,31 +125,7 @@ class _DriveMapScreenState extends ConsumerState<DriveMapScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           spacing: PindoroSpace.s3,
           children: [
-            Row(
-              spacing: PindoroSpace.s3,
-              children: [
-                const RowTile(PindoroGlyph.pin),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.driveMap,
-                        style: PindoroType.titleMd.copyWith(
-                          color: c.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        subtitle,
-                        style: PindoroType.bodySm.copyWith(
-                          color: c.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            _PickDetails(pick: pick, graph: graph, streets: streets),
             PindoroButton(
               label: widget.place ? l10n.driveMapUse : l10n.driveMapGo,
               icon: widget.place ? null : PindoroGlyph.car,
@@ -137,6 +137,170 @@ class _DriveMapScreenState extends ConsumerState<DriveMapScreen> {
     );
   }
 }
+
+/// What was picked on the map, compact: a place's glyph, name, kind, district, distance and
+/// minutes, then its address (else the road it is by) and opening hours, and Call and Website
+/// when mapped; a pin's road and district; before a tap, the hint.
+class _PickDetails extends ConsumerWidget {
+  const _PickDetails({
+    required this.pick,
+    required this.graph,
+    required this.streets,
+  });
+
+  final _Pick? pick;
+  final RoadGraph graph;
+  final Map<String, NamedStreet> streets;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final c = PindoroTheme.of(context).colors;
+    final settings = ref.watch(settingsProvider).value;
+    final pick = this.pick;
+    final place = pick?.place;
+    final dest = pick?.dest;
+    final target = dest == null ? null : resolveDest(graph, streets, dest);
+    final here = ref.watch(driveHereProvider).value?.here;
+    final minutes = target == null
+        ? null
+        : ref.watch(driveMinutesProvider(target)).value;
+    final road = target == null ? null : streetName(target.street, settings);
+    final title = switch ((pick, place)) {
+      (null, _) => l10n.driveMap,
+      (_, final p?) => placeLabel(p, settings),
+      _ => l10n.driveMapPin,
+    };
+    final summary = pick == null
+        ? l10n.driveMapHint
+        : [
+            if (place != null) placeKindName(l10n, place) else ?road,
+            PlaceLine(here: here).of(context, ref, pick.at),
+            if (minutes != null) l10n.driveAboutMin(minutes),
+            if (dest == null) l10n.driveMapNoRoad,
+          ].where((s) => s.isNotEmpty).join(' · ');
+    final details = place is Poi ? place : null;
+    final address = switch (details) {
+      Poi(street: final s?, housenumber: final n?) => '$s $n',
+      Poi(street: final s?) => s,
+      _ when place != null => road,
+      _ => null,
+    };
+    final phone = phoneLink(details?.phone);
+    final web = webLink(details?.website);
+    Widget line(PindoroGlyph glyph, String text) => Row(
+      spacing: PindoroSpace.s2,
+      children: [
+        PindoroIcon(glyph, size: PindoroSize.iconSm, color: c.textSecondary),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: PindoroType.bodySm.copyWith(color: c.textSecondary),
+          ),
+        ),
+      ],
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      spacing: PindoroSpace.s2,
+      children: [
+        Row(
+          spacing: PindoroSpace.s3,
+          children: [
+            RowTile(place == null ? PindoroGlyph.pin : placeGlyph(place)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: PindoroType.titleMd.copyWith(color: c.textPrimary),
+                  ),
+                  Text(
+                    summary,
+                    style: PindoroType.bodySm.copyWith(color: c.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (address != null) line(PindoroGlyph.pin, address),
+        if (details?.hours case final hours?) line(PindoroGlyph.timer, hours),
+        if (phone != null || web != null)
+          Row(
+            spacing: PindoroSpace.s3,
+            children: [
+              if (phone != null)
+                Expanded(
+                  child: PindoroButton(
+                    label: l10n.placeCall,
+                    variant: PindoroButtonVariant.secondary,
+                    onPressed: () => unawaited(launchUrl(phone)),
+                  ),
+                ),
+              if (web != null)
+                Expanded(
+                  child: PindoroButton(
+                    label: l10n.placeWebsite,
+                    icon: PindoroGlyph.external,
+                    variant: PindoroButtonVariant.secondary,
+                    onPressed: () => unawaited(
+                      launchUrl(web, mode: LaunchMode.externalApplication),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+/// The pack's place for a [tapped] one (item 132): by its OSM id, else the one of its name
+/// within [LearningConfig.placeTapNameM], else the tiles' own name and kind with no details.
+Landmark placeOf(MapPlace tapped, Map<String, Landmark> places) {
+  if (places[tapped.id] case final p?) return p;
+  final name = tapped.name;
+  if (name != null) {
+    for (final p in places.values) {
+      if (p.nameKa == name &&
+          distanceBetween(p.at, tapped.at) <= LearningConfig.placeTapNameM) {
+        return p;
+      }
+    }
+  }
+  return Poi(
+    id: tapped.id ?? '',
+    osmKey: '',
+    kind: tapped.kind,
+    nameKa: name ?? '',
+    nameEn: null,
+    brand: null,
+    at: tapped.at,
+  );
+}
+
+/// A call to the first of OSM's [phone] numbers; null without one.
+Uri? phoneLink(String? phone) => switch (phone?.split(';').first.trim()) {
+  final n? when n.isNotEmpty => Uri(
+    scheme: 'tel',
+    path: n.replaceAll(RegExp(r'[^+\d]'), ''),
+  ),
+  _ => null,
+};
+
+/// The first of OSM's [website]s, https when it names no scheme; null without one.
+Uri? webLink(String? website) => switch (website?.split(';').first.trim()) {
+  final w? when w.isNotEmpty => Uri.tryParse(
+    w.contains('://') ? w : 'https://$w',
+  ),
+  _ => null,
+};
 
 /// "Choose on the map" among Where to's rows: the map, then [onPick] with the spot chosen
 /// ([place]: for Home or Work).

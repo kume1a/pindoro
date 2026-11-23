@@ -368,6 +368,9 @@ class _FakePack implements PackRepository {
   List<Landmark> landmarks() => const [];
 
   @override
+  List<Poi> pois() => const [];
+
+  @override
   List<JunctionItem> junctionItems() => const [];
 
   @override

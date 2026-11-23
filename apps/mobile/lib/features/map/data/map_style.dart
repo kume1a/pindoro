@@ -32,8 +32,18 @@ abstract final class NameLayers {
   /// The layers named with the places: landmarks, neighbourhoods, rivers.
   static const List<String> places = [pois, areas, water];
 
+  /// Every named place's name, for the navigation maps (item 132).
+  static const String poisAll = 'poi-names-all';
+
   /// The lowest name layer in the style: overlay lines go under it.
   static const String lowest = pois;
+}
+
+/// The style's place icons: the landmark kinds ([curated], the game's maps) or every named
+/// place ([all], the navigation maps, SPEC §16.23 item 132).
+abstract final class PoiLayers {
+  static const String curated = 'pois';
+  static const String all = 'pois-all';
 }
 
 /// [style]'s own filter of the layer [id].
@@ -52,10 +62,19 @@ class MapNames {
     this.streets = const {},
     this.places = false,
     this.placesNot = const {},
+    this.everyPlace = false,
   });
 
   /// Every street and place.
   static const all = MapNames(streets: null, places: true);
+
+  /// Every street and every named place there is, not only the landmarks: the navigation maps
+  /// (item 132).
+  static const everything = MapNames(
+    streets: null,
+    places: true,
+    everyPlace: true,
+  );
 
   /// A question's names: places, but none named after [answer], the street
   /// being asked.
@@ -73,6 +92,9 @@ class MapNames {
   /// Lower-case stems no named place may contain: it would name the street
   /// being asked (pindoro_learning `nameStems`).
   final Set<String> placesNot;
+
+  /// Every named place's icon and name in place of the landmarks' (pipeline `pois-all`).
+  final bool everyPlace;
 
   /// The street layer's filter over the style's own [base]; null hides it.
   Object? roadFilter(Object? base) => switch (streets) {
@@ -118,12 +140,14 @@ class MapNames {
   bool operator ==(Object other) =>
       other is MapNames &&
       places == other.places &&
+      everyPlace == other.everyPlace &&
       setEquals(streets, other.streets) &&
       setEquals(placesNot, other.placesNot);
 
   @override
   int get hashCode => Object.hash(
     places,
+    everyPlace,
     streets == null ? null : Object.hashAllUnordered(streets!),
     Object.hashAllUnordered(placesNot),
   );

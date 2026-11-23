@@ -16,11 +16,13 @@ import 'package:pindoro/features/drive/ui/drive_levels.dart';
 import 'package:pindoro/features/drive/ui/drive_recording_view.dart';
 import 'package:pindoro/features/drive/ui/plan_map.dart';
 import 'package:pindoro/features/drive/ui/where_to.dart';
+import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/features/learning/data/nav_data.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/learning/ui/drive_labels.dart';
 import 'package:pindoro/features/learning/ui/drive_week_card.dart';
 import 'package:pindoro/features/learning/ui/landmark_glyph.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
@@ -135,16 +137,29 @@ class _Search extends ConsumerWidget {
   }
 }
 
-/// A destination chosen (DriveSetup `chosen`, `todaysRun`): where to and how
-/// far, the suggested level with its reason, the picker and what the level
-/// does, the week's goal; Preview (V32-11) and Start.
-class _Setup extends ConsumerWidget {
+/// A destination chosen (DriveSetup `chosen`, `todaysRun`): where to and how far, the route
+/// options, the level picker, Preview (V32-11) and Start in a short sheet; pulled up (or its
+/// handle tapped), the suggested level with its reason, what the level does and the week's goal
+/// too (SPEC §16.23 item 132).
+class _Setup extends ConsumerStatefulWidget {
   const _Setup({required this.setup});
 
   final DriveSetup setup;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_Setup> createState() => _SetupState();
+}
+
+class _SetupState extends ConsumerState<_Setup> {
+  bool _more = false;
+
+  void _show({required bool more}) {
+    if (_more != more) setState(() => _more = more);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final setup = widget.setup;
     final l10n = context.l10n;
     final settings = ref.watch(settingsProvider).value;
     final controller = ref.read(driveControllerProvider.notifier);
@@ -165,8 +180,11 @@ class _Setup extends ConsumerWidget {
       _ when target != null => targetName(target, settings),
       DriveTo.surprise => l10n.driveSurprise,
       DriveTo.own => switch (setup.own) {
-        (street: final s?, place: _, junction: _) => name(s),
-        (street: _, place: final p?, junction: _) => placeLabel(p, settings),
+        (street: final s?, place: _, junction: _, at: _) => name(s),
+        (street: _, place: final p?, junction: _, at: _) => placeLabel(
+          p,
+          settings,
+        ),
         _ => l10n.driveTitle,
       },
     };
@@ -174,9 +192,9 @@ class _Setup extends ConsumerWidget {
       (DriveTo.run, final run?) => runLine(l10n, run, name),
       _ => [
         if (target != null && graph != null)
-          const PlaceLine().of(context, ref, graph.at(target.junction)),
+          const PlaceLine().of(context, ref, targetPoint(graph, target)),
         if (plan != null) ...[
-          formatDistance(plan.route.lengthM, l10n),
+          formatDistance(plan.endM, l10n),
           l10n.driveAboutMin(plan.minutes),
         ],
       ].where((s) => s.isNotEmpty).join(' · '),
@@ -211,6 +229,9 @@ class _Setup extends ConsumerWidget {
     );
     final options = setup.options;
     final chosen = setup.suggestion;
+    final secondary = PindoroType.bodyMd.copyWith(
+      color: PindoroTheme.of(context).colors.textSecondary,
+    );
     final content = <Widget>[
       ListGroup(
         children: [
@@ -266,28 +287,11 @@ class _Setup extends ConsumerWidget {
             ref.invalidate(preciseLocationProvider);
           },
         ),
-      SectionTitle(l10n.driveLevelTitle),
-      if (to == DriveTo.run)
-        LevelSuggestion(
-          lead: l10n.driveRunLead,
-          level: l10n.driveStartsAt(levelLabel(l10n, DriveLevel.off)),
-          reason: l10n.driveEveryLevel,
-        )
-      else if (setup.suggestion case final s?)
-        LevelSuggestion(
-          lead: l10n.driveSuggestedLead,
-          level: levelLabel(l10n, s.level),
-          reason: l10n.driveYours(s.yours, s.turns),
-          yours: s.pips,
-          pipsLabel: l10n.a11yDrivePips(s.turns, s.yours, s.turns - s.yours),
-        )
-      else if (target == null && !setup.noTarget && denied == null)
-        Text(
-          l10n.driveFinding,
-          style: PindoroType.bodyMd.copyWith(
-            color: PindoroTheme.of(context).colors.textSecondary,
-          ),
-        ),
+      if (target == null &&
+          !setup.noTarget &&
+          denied == null &&
+          to != DriveTo.run)
+        Text(l10n.driveFinding, style: secondary),
       LevelPicker<DriveLevel>(
         steps: levelSteps(l10n, setup.choices),
         selected: setup.chosen,
@@ -296,41 +300,59 @@ class _Setup extends ConsumerWidget {
         semanticsLabel: l10n.a11yDriveHelp,
         onChanged: controller.pickLevel,
       ),
-      Text(
-        levelNote(l10n, setup.chosen),
-        style: PindoroType.bodyMd.copyWith(
-          color: PindoroTheme.of(context).colors.textSecondary,
-        ),
-      ),
-      ListGroup(
-        children: [
-          if (setup.chosen == DriveLevel.off) ...[
+      if (_more) ...[
+        if (to == DriveTo.run)
+          LevelSuggestion(
+            lead: l10n.driveRunLead,
+            level: l10n.driveStartsAt(levelLabel(l10n, DriveLevel.off)),
+            reason: l10n.driveEveryLevel,
+          )
+        else if (setup.suggestion case final s?)
+          LevelSuggestion(
+            lead: l10n.driveSuggestedLead,
+            level: levelLabel(l10n, s.level),
+            reason: l10n.driveYours(s.yours, s.turns),
+            yours: s.pips,
+            pipsLabel: l10n.a11yDrivePips(s.turns, s.yours, s.turns - s.yours),
+          ),
+        Text(levelNote(l10n, setup.chosen), style: secondary),
+        ListGroup(
+          children: [
+            if (setup.chosen == DriveLevel.off) ...[
+              rule(
+                PindoroGlyph.locateOff,
+                l10n.driveRuleMap,
+                l10n.driveRuleMapNote,
+              ),
+              rule(
+                PindoroGlyph.timer,
+                l10n.driveRuleTrack,
+                l10n.driveRuleTrackNote,
+              ),
+            ],
             rule(
-              PindoroGlyph.locateOff,
-              l10n.driveRuleMap,
-              l10n.driveRuleMapNote,
-            ),
-            rule(
-              PindoroGlyph.timer,
-              l10n.driveRuleTrack,
-              l10n.driveRuleTrackNote,
+              PindoroGlyph.info,
+              l10n.driveRuleHands,
+              l10n.driveRuleHandsNote,
             ),
           ],
-          rule(PindoroGlyph.info, l10n.driveRuleHands, l10n.driveRuleHandsNote),
-        ],
-      ),
-      const DriveWeekCard(),
+        ),
+        const DriveWeekCard(),
+      ],
     ];
     return Scaffold(
       body: PlanMapLayout(
         semanticsLabel: l10n.a11yRoutesMap,
-        route: chosen?.plan.route.lines ?? const [],
+        route: chosen?.plan.lines ?? const [],
         others: [
           for (final o in options)
-            if (o != chosen) ...o.plan.route.lines,
+            if (o != chosen) ...o.plan.lines,
         ],
         start: setup.here,
-        end: target == null || graph == null ? null : graph.at(target.junction),
+        end: target == null || graph == null
+            ? null
+            : targetPoint(graph, target),
+        names: MapNames.everything,
         onTap: options.length < 2
             ? null
             : (at) => controller.pickRoute(_nearest(options, at)),
@@ -341,15 +363,36 @@ class _Setup extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             spacing: PindoroSpace.s3,
             children: [
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.sizeOf(context).height * 0.5,
+              // The handle: a tap or a drag up shows the rest, a drag down hides it again.
+              Semantics(
+                button: true,
+                label: _more ? l10n.a11ySetupLess : l10n.a11ySetupMore,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _show(more: !_more),
+                  onVerticalDragUpdate: (d) => switch (d.delta.dy) {
+                    < 0 => _show(more: true),
+                    > 0 => _show(more: false),
+                    _ => null,
+                  },
+                  child: const Center(child: SheetHandle()),
                 ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    spacing: PindoroSpace.s4,
-                    children: content,
+              ),
+              AnimatedSize(
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : PindoroMotion.durationBase,
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.sizeOf(context).height * 0.5,
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      spacing: PindoroSpace.s3,
+                      children: content,
+                    ),
                   ),
                 ),
               ),
@@ -365,13 +408,15 @@ class _Setup extends ConsumerWidget {
 /// The option whose route passes nearest [at].
 DriveSuggestion _nearest(List<DriveSuggestion> options, LatLng at) {
   double off(DriveSuggestion s) =>
-      pointToPolylineDistance(at, s.plan.route.lines).distanceMeters;
+      pointToPolylineDistance(at, s.plan.lines).distanceMeters;
   return options.reduce((a, b) => off(b) < off(a) ? b : a);
 }
 
-/// The route options (SPEC §16.23 item 129) when there is more than one: each one's time and
-/// length, Fastest or Most familiar (the most turns you already know), those turns; the picked
-/// one ticked. A tap picks it; so does a tap on its line on the map.
+/// The route options (SPEC §16.23 items 129, 132) when there is more than one, a line each: the
+/// time and length, then Fastest (the quickest) or Most familiar (the most turns you already
+/// know), and the side of the road the place is on when the options arrive on both, with the
+/// time against the first option for one on the other side; the picked one ticked. A tap picks
+/// it; so does a tap on its line on the map.
 class _RouteOptions extends StatelessWidget {
   const _RouteOptions({
     required this.options,
@@ -388,36 +433,51 @@ class _RouteOptions extends StatelessWidget {
     final l10n = context.l10n;
     final c = PindoroTheme.of(context).colors;
     double known(DriveSuggestion s) => s.turns == 0 ? 0 : s.yours / s.turns;
-    final familiar = options.indexed
-        .reduce((a, b) => known(b.$2) > known(a.$2) ? b : a)
-        .$1;
+    int best(bool Function(DriveSuggestion a, DriveSuggestion b) better) =>
+        options.indexed.reduce((a, b) => better(b.$2, a.$2) ? b : a).$1;
+    final fastest = best((a, b) => a.plan.seconds < b.plan.seconds);
+    final familiar = best((a, b) => known(a) > known(b));
+    NavSide? side(DriveSuggestion s) => s.plan.stop?.side;
+    final first = options.first;
+    final sides = options.map(side).toSet().length > 1;
     return ListGroup(
       children: [
         for (final (i, o) in options.indexed)
           () {
             final title = [
               l10n.unitMinutes(o.plan.minutes),
-              formatDistance(o.plan.route.lengthM, l10n),
+              formatDistance(o.plan.endM, l10n),
             ].join(' · ');
-            final subtitle = [
-              if (i == 0) l10n.driveRouteFastest,
-              if (i == familiar && i != 0) l10n.driveRouteFamiliar,
-              l10n.driveYours(o.yours, o.turns),
+            final minutes = o.plan.minutes - first.plan.minutes;
+            // The side first: a short row cuts the end off.
+            final tags = [
+              if (sides)
+                side(o) == NavSide.left
+                    ? l10n.driveRouteLeft
+                    : l10n.driveRouteRight,
+              if (sides && side(o) != side(first) && minutes != 0)
+                minutes > 0
+                    ? l10n.driveRouteSlower(minutes)
+                    : l10n.driveRouteFaster(-minutes),
+              if (i == fastest) l10n.driveRouteFastest,
+              if (i == familiar && i != fastest) l10n.driveRouteFamiliar,
             ].join(' · ');
             final picked = o == chosen;
             return ListRow(
-              leading: RowTile(
-                i == 0 ? PindoroGlyph.timer : PindoroGlyph.route,
-              ),
+              dense: true,
               title: title,
-              subtitle: subtitle,
+              subtitle: tags.isEmpty ? null : tags,
               trailing: picked
                   ? PindoroIcon(PindoroGlyph.checkCircle, color: c.primaryText)
                   : null,
               semanticsLabel: l10n.a11yRouteOption(
                 i + 1,
                 options.length,
-                '$title, $subtitle',
+                [
+                  title,
+                  tags,
+                  l10n.driveYours(o.yours, o.turns),
+                ].where((s) => s.isNotEmpty).join(', '),
                 picked ? 'yes' : 'no',
               ),
               onTap: () => onPick(o),
@@ -436,7 +496,7 @@ PindoroGlyph _glyph(DriveTo to, DriveTarget? target) => switch (to) {
   DriveTo.run => PindoroGlyph.car,
   DriveTo.surprise => PindoroGlyph.compass,
   DriveTo.own => switch (target?.place) {
-    final p? => landmarkGlyph(p.kind),
+    final p? => placeGlyph(p),
     null => PindoroGlyph.pin,
   },
 };

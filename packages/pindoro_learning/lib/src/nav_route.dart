@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:pindoro_core/pindoro_core.dart';
 
 import 'constants.dart';
+import 'drive.dart';
 import 'grader.dart';
 import 'route_questions.dart';
 import 'routes.dart';
@@ -58,13 +59,14 @@ final class NavCost {
   Route? route(
     RoadGraph graph,
     int from,
-    int to, {
+    NavStop to, {
     RoadEdge? approach,
     Set<int> avoid = const {},
   }) => graph.shortestRoute(
     from,
-    {to},
+    to.goals,
     approach: approach,
+    arriveOn: to.edge,
     costOf: avoid.isEmpty
         ? cost
         : (e) =>
@@ -76,6 +78,92 @@ final class NavCost {
   /// [route]'s time.
   double secondsOf(Route route) =>
       route.edges.fold(0, (sum, e) => sum + seconds(e));
+
+  /// [route]'s time to [stop], leaving out its road past the stop.
+  double secondsTo(Route route, NavStop stop) {
+    final last = route.edges.lastOrNull;
+    final past = stop.pastM(route.junctions.last);
+    if (last == null || last.lengthM <= 0 || past <= 0) return secondsOf(route);
+    return max(0, secondsOf(route) - past / last.lengthM * seconds(last));
+  }
+}
+
+/// The side of the road a place is on, driving toward it.
+enum NavSide {
+  right,
+  left;
+
+  NavSide get flipped => this == right ? left : right;
+}
+
+/// Where a drive stops (SPEC §16.23 item 132): a [junction], or a point [at] on a road ([edge],
+/// [alongM] from its `from` end) driven toward [toward] (either way the road allows when null),
+/// the place on its [side] then.
+final class NavStop {
+  const NavStop.junction(int this.junction)
+    : edge = null,
+      alongM = 0,
+      toward = null,
+      at = null,
+      side = null;
+
+  const NavStop.onEdge(
+    RoadEdge this.edge, {
+    required this.alongM,
+    required LatLng this.at,
+    this.toward,
+    this.side,
+  }) : junction = null;
+
+  final int? junction;
+  final RoadEdge? edge;
+  final double alongM;
+  final int? toward;
+  final LatLng? at;
+  final NavSide? side;
+
+  /// The junctions a route to it ends at (along [edge] when there is one).
+  Set<int> get goals => switch ((edge, toward)) {
+    (null, _) => {junction!},
+    (_, final t?) => {t},
+    (final e?, null) => {e.from, e.to},
+  };
+
+  /// The metres of [edge] past the stop on a route ending at [end].
+  double pastM(int end) => switch (edge) {
+    null => 0,
+    final e => end == e.to ? e.lengthM - alongM : alongM,
+  };
+
+  LatLng pointOn(RoadGraph graph) => at ?? graph.at(junction!);
+
+  /// The junction the drive's learning keeps for it: the road's end nearer the stop.
+  int get junctionNear =>
+      junction ?? (2 * alongM <= edge!.lengthM ? edge!.from : edge!.to);
+}
+
+/// The stops for a [place] (item 132): on the road nearest it within
+/// [LearningConfig.navStopReachM], one per way the road may be driven with the place on its
+/// side (the right first); one either way when the place is on the road's line; none without a
+/// road in reach.
+List<NavStop> stopsNear(RoadGraph graph, LatLng place) {
+  final e = graph.edgeNear(place, LearningConfig.navStopReachM);
+  if (e == null) return const [];
+  final n = nearestOnEdge(place, e);
+  final at = linePart(e.line, n.along, n.along).first;
+  final alongM = n.along * e.lengthM;
+  if (n.distM <= LearningConfig.navStopSideM) {
+    return [NavStop.onEdge(e, alongM: alongM, at: at)];
+  }
+  // Driving from `from` to `to`, the place is on the right when it bears 0–180° from the road.
+  final forward = (bearingDegrees(at, place) - n.headingDeg) % 360 < 180
+      ? NavSide.right
+      : NavSide.left;
+  return [
+    for (final (toward, side) in [(e.to, forward), (e.from, forward.flipped)])
+      if (graph.canDrive(e, e.other(toward)))
+        NavStop.onEdge(e, alongM: alongM, at: at, toward: toward, side: side),
+  ]..sort((a, b) => a.side!.index.compareTo(b.side!.index));
 }
 
 /// A decision on a planned route (SPEC §16.23 item 112): at [junction], arriving on [approach],
@@ -97,13 +185,24 @@ typedef NavDecision = ({
 });
 
 /// A planned drive: [route] (its first junction where the car is heading), its decisions and
-/// its time.
+/// its time, to [stop] (a junction stop at the route's end when null).
 final class NavPlan {
-  const NavPlan(this.route, this.decisions, this.seconds);
+  const NavPlan(this.route, this.decisions, this.seconds, {this.stop});
 
   final Route route;
   final List<NavDecision> decisions;
   final double seconds;
+  final NavStop? stop;
+
+  /// The stop's metres along [route]: short of its end by the stop's road past it; below 0 when
+  /// the stop is on the road the car is on before the route's first junction.
+  double get endM => route.lengthM - (stop?.pastM(route.junctions.last) ?? 0);
+
+  /// The route drawn up to the stop.
+  MultiPolyline get lines => switch (slice(0, endM)) {
+    final line when line.length > 1 => [line],
+    _ => const [],
+  };
 
   /// Each junction's distance along the route.
   List<double> get junctionM {
@@ -321,13 +420,13 @@ RouteLandmark? _landmarkAt(LatLng at, int j, List<RouteLandmark> landmarks) {
   return best;
 }
 
-/// The quickest drive from junction [from] (arrived on [approach]) to [to], with its decisions;
-/// null when none is legal.
+/// The quickest drive from junction [from] (arrived on [approach]) to stop [to], with its
+/// decisions; null when none is legal.
 NavPlan? planNav(
   RoadGraph graph,
   NavCost cost, {
   required int from,
-  required int to,
+  required NavStop to,
   RoadEdge? approach,
   Map<String, NamedStreet> streets = const {},
   List<RouteLandmark> landmarks = const [],
@@ -352,7 +451,7 @@ List<NavPlan> planNavOptions(
   RoadGraph graph,
   NavCost cost, {
   required int from,
-  required int to,
+  required NavStop to,
   RoadEdge? approach,
   Map<String, NamedStreet> streets = const {},
   List<RouteLandmark> landmarks = const [],
@@ -363,7 +462,8 @@ List<NavPlan> planNavOptions(
   if (quickest == null) return const [];
   final kept = [quickest];
   final avoid = {for (final e in quickest.edges) e.id};
-  final slowest = cost.secondsOf(quickest) * LearningConfig.navOptionMaxSlower;
+  final slowest =
+      cost.secondsTo(quickest, to) * LearningConfig.navOptionMaxSlower;
   for (
     var i = 1;
     i < LearningConfig.navOptionTries && kept.length < count;
@@ -373,7 +473,7 @@ List<NavPlan> planNavOptions(
     final known = avoid.length;
     avoid.addAll([...?next?.edges.map((e) => e.id)]);
     if (next == null || avoid.length == known) break;
-    if (cost.secondsOf(next) <= slowest &&
+    if (cost.secondsTo(next, to) <= slowest &&
         kept.every(
           (k) =>
               _sharedM(next, k) <=
@@ -394,9 +494,38 @@ List<NavPlan> planNavOptions(
           landmarks: landmarks,
           junctionNodes: junctionNodes,
         ),
-        cost.secondsOf(route),
+        cost.secondsTo(route, to),
+        stop: to,
       ),
   ];
+}
+
+/// The drives to a place's [stops] (from [stopsNear]): up to [count] - 1 to the first (the
+/// right side), then the quickest to the second (the left), so the player sees both and picks
+/// (SPEC §16.23 item 132); [planNavOptions] to a lone stop.
+List<NavPlan> planStopOptions(
+  RoadGraph graph,
+  NavCost cost, {
+  required int from,
+  required List<NavStop> stops,
+  Map<String, NamedStreet> streets = const {},
+  List<RouteLandmark> landmarks = const [],
+  Map<int, int> junctionNodes = const {},
+  int count = LearningConfig.navOptions,
+}) {
+  List<NavPlan> plans(NavStop to, int count) => planNavOptions(
+    graph,
+    cost,
+    from: from,
+    to: to,
+    streets: streets,
+    landmarks: landmarks,
+    junctionNodes: junctionNodes,
+    count: count,
+  );
+  if (stops.isEmpty) return const [];
+  if (stops.length == 1 || count < 2) return plans(stops.first, count);
+  return [...plans(stops.first, count - 1), ...plans(stops[1], 1)];
 }
 
 /// The length of [a] on edges [b] also takes.

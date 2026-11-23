@@ -432,7 +432,7 @@ class DriveController extends Notifier<DriveState> {
       if (driven.contains(nodes[j])) continue;
       final street = streetAt(graph, streets, j);
       if (street == null) continue;
-      final target = (junction: j, street: street, place: null);
+      final target = (junction: j, street: street, place: null, at: null);
       final s = suggest(target, count: 1).firstOrNull;
       if (s != null &&
           s.turns > 0 &&
@@ -518,7 +518,7 @@ class DriveController extends Notifier<DriveState> {
         for (final plan in plansFrom(
           graph,
           here,
-          target.junction,
+          stopsOf(graph, target),
           streets: streets,
           landmarks: landmarks,
           junctionNodes: nodes,
@@ -576,7 +576,7 @@ class DriveController extends Notifier<DriveState> {
     _nav = Navigator(
       graph: graph,
       cost: NavCost(streets, toleranceKmh: settings.speedToleranceKmh),
-      destination: target.junction,
+      destination: suggestion?.plan.stop ?? stopsOf(graph, target).first,
       level: _startLevel,
       streets: streets,
       landmarks: landmarks,
@@ -597,7 +597,7 @@ class DriveController extends Notifier<DriveState> {
     if (!ref.mounted) return;
     state = DriveRecording(
       target: target,
-      destination: graph.at(target.junction),
+      destination: targetPoint(graph, target),
       to: setup.to!,
       startedAt: ref.read(clockProvider)(),
       level: _startLevel,
@@ -686,7 +686,7 @@ class DriveController extends Notifier<DriveState> {
     _noteScreen(next);
     if (u.view.arrived && !_ending) {
       _ending = true;
-      unawaited(_arrive(r));
+      unawaited(_arrive(next));
     }
   }
 
@@ -762,7 +762,7 @@ class DriveController extends Notifier<DriveState> {
     try {
       if (!r.muted && r.level != DriveLevel.off) {
         _noteName(r.target.street, heard: true);
-        await _speech.add(_words!.arrived(r.target.street));
+        await _speech.add(_words!.arrived(r.target.street, side: r.view?.side));
       }
     } finally {
       await end();
@@ -835,11 +835,14 @@ class DriveController extends Notifier<DriveState> {
         ? null
         : (await _suggest(target, at, count: 1)).firstOrNull;
     if (!ref.mounted || state is! DriveRecording || _ending) return;
-    nav.setDestination(target.junction, silent: s?.silent ?? const {});
+    nav.setDestination(
+      s?.plan.stop ?? stopsOf(graph, target).first,
+      silent: s?.silent ?? const {},
+    );
     _changedAt = _fixes.length;
     state = (state as DriveRecording).copyWith(
       target: target,
-      destination: graph.at(target.junction),
+      destination: targetPoint(graph, target),
     );
   }
 
@@ -953,7 +956,12 @@ class DriveController extends Notifier<DriveState> {
         final run = await ref.hold(todayRunProvider.future);
         return run == null
             ? null
-            : (junction: run.ends.to, street: run.ends.toStreet, place: null);
+            : (
+                junction: run.ends.to,
+                street: run.ends.toStreet,
+                place: null,
+                at: null,
+              );
       case DriveTo.home || DriveTo.work:
         final places = await ref.hold(drivePlacesProvider.future);
         return setup.to == DriveTo.home ? places.home : places.work;
@@ -1082,6 +1090,8 @@ class DriveController extends Notifier<DriveState> {
             targetNode: nodes[recording.target.junction],
             targetStreet: recording.target.street.id,
             targetPlace: recording.target.place?.id,
+            targetLat: recording.target.at?.lat,
+            targetLon: recording.target.at?.lon,
             startNode: nodes[match.path.junctions.firstOrNull],
             outcome: graded == null || review.stoppedM != null
                 ? DriveOutcome.stopped

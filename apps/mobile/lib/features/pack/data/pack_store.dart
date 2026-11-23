@@ -45,7 +45,7 @@ class PackStore {
     this.timeout = const Duration(seconds: 20),
   }) : _client = client ?? http.Client();
 
-  static const int supportedFormatVersion = 8;
+  static const int supportedFormatVersion = 9;
 
   /// Format 3 packs still install while the server catches up; learning
   /// waits for format 4.

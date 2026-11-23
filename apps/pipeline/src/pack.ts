@@ -8,7 +8,7 @@ import type { Sql } from "postgres";
 import type { CityConfig } from "./config.ts";
 import { isoSeconds, replaceAtomically, writeJson } from "./io.ts";
 
-export const PACK_FORMAT_VERSION = 8;
+export const PACK_FORMAT_VERSION = 9;
 
 // Mirrors docs/pack-format.md exactly; `validate` diffs packs against it.
 export const PACK_DDL = `
@@ -138,6 +138,23 @@ CREATE TABLE landmark (
   lat      REAL NOT NULL,
   lon      REAL NOT NULL,
   outline  TEXT
+);
+
+CREATE TABLE poi (
+  id          TEXT PRIMARY KEY,
+  key         TEXT NOT NULL,
+  kind        TEXT NOT NULL,
+  name_ka     TEXT NOT NULL,
+  name_en     TEXT,
+  brand       TEXT,
+  lat         REAL NOT NULL,
+  lon         REAL NOT NULL,
+  outline     TEXT,
+  street      TEXT,
+  housenumber TEXT,
+  hours       TEXT,
+  phone       TEXT,
+  website     TEXT
 );
 
 CREATE TABLE junction_item (
@@ -398,6 +415,17 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
      FROM pipeline.landmark l WHERE l.id = ANY($1::text[]) ORDER BY l.id`,
     [[...new Set(items.map((i) => i.landmark_id).filter((id) => id !== null))]],
   );
+  // Every named place; a fixture keeps those in its district.
+  const pois = await sql.unsafe(
+    `SELECT p.id, p.key, p.kind, p.name_ka, p.name_en, p.brand, ST_Y(p.geom) AS lat,
+            ST_X(p.geom) AS lon, ST_AsGeoJSON(p.outline, 7) AS outline, p.street, p.housenumber,
+            p.hours, p.phone, p.website
+     FROM pipeline.poi p
+     WHERE $1::text IS NULL
+        OR ST_Contains((SELECT geom FROM pipeline.pack_area WHERE id = $1), p.geom)
+     ORDER BY p.id`,
+    [o.fixture?.districtId ?? null],
+  );
   const families = await sql.unsafe(
     `SELECT f.parent_key::float8 AS parent_key, f.child_key::float8 AS child_key, f.kind, f.n,
             f.orphan::int AS orphan
@@ -503,6 +531,13 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
       );
       for (const { outline, ...l } of landmarks) {
         landmark.run({ ...l, outline: outline === null ? null : multipolygon6(outline) });
+      }
+      const poi = db.prepare(
+        `INSERT INTO poi VALUES (@id, @key, @kind, @name_ka, @name_en, @brand, @lat, @lon,
+          @outline, @street, @housenumber, @hours, @phone, @website)`,
+      );
+      for (const { outline, ...p } of pois) {
+        poi.run({ ...p, outline: outline === null ? null : multipolygon6(outline) });
       }
       const item = db.prepare(
         `INSERT INTO junction_item VALUES (@junction_id, @approach_edge, @exit_edge, @layer, @rank,

@@ -71,63 +71,69 @@ class _SearchFieldState extends State<SearchField> {
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
     final edge = _focus.hasFocus ? c.inputBorderFocus : c.inputBorder;
-    return LipBox(
-      face: c.inputBg,
-      lip: edge,
-      border: edge,
-      radius: PindoroRadius.lg,
-      // 48 dp counting the border and the lip.
-      child: SizedBox(
-        height:
-            PindoroSize.buttonMd - PindoroElevation.e1 - 2 * PindoroStroke.base,
-        child: Row(
-          children: [
-            const SizedBox(width: PindoroSpace.s4),
-            PindoroIcon(widget.glyph, color: c.inputIcon),
-            const SizedBox(width: PindoroSpace.s2),
-            Expanded(
-              child: TextField(
-                controller: widget.controller,
-                focusNode: _focus,
-                onChanged: widget.onChanged,
-                onSubmitted: widget.onSubmitted,
-                textInputAction: widget.textInputAction,
-                textCapitalization: widget.textCapitalization,
-                obscureText: widget.obscureText,
-                autofillHints: widget.autofillHints,
-                autocorrect: widget.autocorrect,
-                enableSuggestions: widget.autocorrect,
-                cursorColor: c.primaryBase,
-                style: PindoroType.bodyLg.copyWith(color: c.inputText),
-                decoration: InputDecoration(
-                  border: InputBorder.none,
-                  isCollapsed: true,
-                  hintText: widget.placeholder,
-                  hintStyle: PindoroType.bodyLg.copyWith(
-                    color: c.inputPlaceholder,
-                  ),
-                ),
-              ),
-            ),
-            if (widget.controller.text.isNotEmpty)
-              Tappable(
-                label: widget.clearLabel,
-                onTap: () {
-                  widget.controller.clear();
-                  widget.onChanged?.call('');
-                },
-                child: SizedBox.square(
-                  dimension: PindoroSize.tapMin,
-                  child: Center(
-                    child: PindoroIcon(
-                      PindoroGlyph.close,
-                      size: PindoroSize.iconSm,
-                      color: c.inputIcon,
+    // The clear button counts as inside: a tap elsewhere hides the keyboard.
+    return TextFieldTapRegion(
+      child: LipBox(
+        face: c.inputBg,
+        lip: edge,
+        border: edge,
+        radius: PindoroRadius.lg,
+        // 48 dp counting the border and the lip.
+        child: SizedBox(
+          height:
+              PindoroSize.buttonMd -
+              PindoroElevation.e1 -
+              2 * PindoroStroke.base,
+          child: Row(
+            children: [
+              const SizedBox(width: PindoroSpace.s4),
+              PindoroIcon(widget.glyph, color: c.inputIcon),
+              const SizedBox(width: PindoroSpace.s2),
+              Expanded(
+                child: TextField(
+                  controller: widget.controller,
+                  focusNode: _focus,
+                  onChanged: widget.onChanged,
+                  onSubmitted: widget.onSubmitted,
+                  onTapOutside: (_) => _focus.unfocus(),
+                  textInputAction: widget.textInputAction,
+                  textCapitalization: widget.textCapitalization,
+                  obscureText: widget.obscureText,
+                  autofillHints: widget.autofillHints,
+                  autocorrect: widget.autocorrect,
+                  enableSuggestions: widget.autocorrect,
+                  cursorColor: c.primaryBase,
+                  style: PindoroType.bodyLg.copyWith(color: c.inputText),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    isCollapsed: true,
+                    hintText: widget.placeholder,
+                    hintStyle: PindoroType.bodyLg.copyWith(
+                      color: c.inputPlaceholder,
                     ),
                   ),
                 ),
               ),
-          ],
+              if (widget.controller.text.isNotEmpty)
+                Tappable(
+                  label: widget.clearLabel,
+                  onTap: () {
+                    widget.controller.clear();
+                    widget.onChanged?.call('');
+                  },
+                  child: SizedBox.square(
+                    dimension: PindoroSize.tapMin,
+                    child: Center(
+                      child: PindoroIcon(
+                        PindoroGlyph.close,
+                        size: PindoroSize.iconSm,
+                        color: c.inputIcon,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
