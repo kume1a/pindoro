@@ -498,9 +498,9 @@ abstract final class RecitalGrader {
         path.junctions.last == to;
     final stretch = !arrived || best == null
         ? null
-        : best.lengthM == 0
+        : best.costM == 0
         ? (path.lengthM == 0 ? 1.0 : double.infinity)
-        : path.lengthM / best.lengthM;
+        : _withUTurns(path) / best.costM;
     final (tier, rating) = _tierOf(illegal == null ? stretch : null, hinted);
     final right = decisions.where((d) => d.correct).length;
     final base = decisions.isEmpty
@@ -546,6 +546,16 @@ abstract final class RecitalGrader {
     }
     return (Tier.perfect, Rating.easy);
   }
+
+  /// [path]'s length with each U-turn weighed as routing weighs it, so the stretch compares it
+  /// with the best route's cost: a way round by a U-turn is never shorter than the best.
+  static double _withUTurns(Route path) =>
+      path.lengthM +
+      RoutingConfig.uTurnPenaltyM *
+          [
+            for (var i = 0; i + 1 < path.edges.length; i++)
+              if (path.edges[i].id == path.edges[i + 1].id) i,
+          ].length;
 
   static IllegalMove? _illegalMove(RoadGraph graph, Route path) {
     for (final (i, e) in path.edges.indexed) {

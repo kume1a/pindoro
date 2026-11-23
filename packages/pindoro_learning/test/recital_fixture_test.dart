@@ -68,7 +68,8 @@ void main() {
           }, approach: out.edges.lastOrNull);
           if (back == null) continue;
           final length = out.lengthM + back.lengthM;
-          final stretch = length / best.lengthM;
+          // A U-turn where the two meet weighs as routing weighs it.
+          final stretch = (out.costM + back.costM) / best.costM;
           if (stretch < 1.255 || stretch > 1.3) continue;
           final detour = Route(
             [...out.junctions, ...back.junctions.skip(1)],

@@ -1282,6 +1282,30 @@ void main() {
     expect(find.byType(LevelSuggestion), findsNothing);
   });
 
+  testWidgets(
+    'the setup plans from the last known fix at once, then again from a fresh '
+    'one that lies more than 50 m away',
+    (tester) async {
+      // The fresh fix: a few junctions along the drive's route.
+      final along = route.lines[route.lines.length ~/ 2].first;
+      location.fresh = along;
+      await pumpDrive(tester);
+      await pumpUntil(tester, find.text('Fastest'));
+      for (var i = 0; i < 20; i++) {
+        final start = plans.last.route?.best.firstOrNull?.firstOrNull;
+        if (start != null && distanceBetween(start, along) < 60) break;
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(
+        distanceBetween(plans.last.route!.best.first.first, along),
+        lessThan(60),
+      );
+    },
+  );
+
   testWidgets('approximate location: the setup says so, and a tap asks for '
       'precise', (tester) async {
     location.approximate = true;
@@ -1398,8 +1422,14 @@ class _Track extends LocationService {
   bool approximate = false;
   int askedPrecise = 0;
 
+  /// What a fresh fix finds; none by default.
+  LatLng? fresh;
+
   @override
   Future<LocationResult> locate({bool ask = true}) async => Located(here);
+
+  @override
+  Future<LatLng?> freshFix() async => fresh;
 
   @override
   Future<bool> precise() async => !approximate;

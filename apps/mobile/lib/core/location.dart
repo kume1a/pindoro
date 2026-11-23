@@ -75,6 +75,19 @@ class LocationService {
         : Located(LatLng(p.latitude, p.longitude));
   }
 
+  /// A new fix, never a remembered one; null when none comes within [waitForFix] (or location
+  /// is off or not allowed). Asks for nothing.
+  Future<LatLng?> freshFix() async {
+    try {
+      final p = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(timeLimit: waitForFix),
+      );
+      return LatLng(p.latitude, p.longitude);
+    } on Object {
+      return null;
+    }
+  }
+
   /// A last known position this recent is used as it is: a new fix can take 20 s indoors.
   static const Duration fresh = Duration(minutes: 2);
 

@@ -319,7 +319,10 @@ void main() {
       );
       expect(r.drivable, isTrue);
       expect(r.path!.junctions, [j(1, 0), j(1, 1), j(2, 1), j(1, 1), j(0, 1)]);
-      expect(r.stretch, closeTo(2, 1e-3));
+      expect(
+        r.stretch,
+        closeTo((400 + RoutingConfig.uTurnPenaltyM) / 200, 1e-3),
+      );
       expect(r.tier, Tier.miss);
     });
 
@@ -481,6 +484,41 @@ void main() {
       );
       expect(capped.score, closeTo(0.8, 1e-9));
     });
+
+    test(
+      'a U-turn weighs RoutingConfig.uTurnPenaltyM in the stretch, as in the best '
+      'route: a short way round by a U-turn is never shorter than the best',
+      () {
+        // No left from A–B into B–Z: turn round at the spur S, or go round by D (400 m).
+        final net = RoadNet()
+          ..street('ab', 'ა', 'A')
+          ..street('bz', 'ბ', 'Z')
+          ..junction(1, 0, 0)
+          ..junction(2, 100, 0)
+          ..junction(3, 125, 0)
+          ..junction(4, 100, 50)
+          ..junction(5, 0, 200)
+          ..edge(1, 1, 2, 'ab', m: 100)
+          ..edge(2, 2, 3, 'ab', m: 25)
+          ..edge(3, 2, 4, 'bz', m: 50)
+          ..edge(4, 1, 5, null, m: 200)
+          ..edge(5, 5, 4, null, m: 200);
+        final g = net.graph(
+          restrictions: [(fromEdge: 1, via: 2, toEdge: 3, only: false)],
+        );
+        final r = RecitalGrader.score(
+          g,
+          _path(g, [1, 2, 3, 2, 4]),
+          from: 1,
+          to: 4,
+        );
+        expect(r.best?.lengthM, 400);
+        expect(
+          r.stretch,
+          closeTo((200 + RoutingConfig.uTurnPenaltyM) / 400, 1e-9),
+        );
+      },
+    );
 
     test('a path that doesn\'t arrive at B is a Miss', () {
       final r = RecitalGrader.score(

@@ -195,8 +195,9 @@ Display tiers keep their colours, icons, sounds and haptics; the XP chip becomes
 3. Viterbi over candidate junctions on the edge-expanded directed graph, allowing up to 2 silent connectors
    of ≤ 150 m each (penalised); output the cheapest legal path through the named streets in order. Costs are
    metres; a U-turn adds `uTurnPenaltyM` and is forbidden on divided roads.
-4. `stretch = length(path) / length(shortest legal A→B)`. Invalid if streets don't meet, a move is illegal
-   (one-way, restriction) or > 2 connectors are needed.
+4. `stretch = cost(path) / cost(shortest legal A→B)`, a cost being the length plus `uTurnPenaltyM` per
+   U-turn (amended 2026-11-23, item 135: a way round by a U-turn is never shorter than the best).
+   Invalid if streets don't meet, a move is illegal (one-way, restriction) or > 2 connectors are needed.
 5. Tier and rating: ≤ 1.03 and no hints → Perfect / Easy; ≤ 1.25 → Great / Good; ≤ 1.60 → Close / Hard;
    beyond or invalid → Miss / Again ("Not drivable" when illegal). A recital typed with next-street
    autocomplete is recognition, so it is capped at Great / Good.
@@ -1365,3 +1366,7 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
 135. **Drive polish after watching simulated drives** (2026-11-23):
      - Traffic keeps right, so a U-turn turns left: the U-turn icon and drive glyph go up the
        right and back down the left.
+     - The route chooser plans at once from where the phone last knew it was (up to 2 min old),
+       asks for a fresh fix meanwhile and plans again from it when it lies more than 50 m away.
+     - A U-turn weighs `uTurnPenaltyM` in the stretch (§5.3 step 4) as it does in the best route:
+       a planned U-turn on a divided avenue no longer makes a drive "shorter than the best".
