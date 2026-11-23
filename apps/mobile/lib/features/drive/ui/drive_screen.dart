@@ -24,6 +24,7 @@ import 'package:pindoro/features/learning/ui/drive_labels.dart';
 import 'package:pindoro/features/learning/ui/drive_week_card.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/data/route_callouts.dart';
+import 'package:pindoro/features/map/ui/widgets/map_sprite.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -442,8 +443,9 @@ List<RouteCard> _cards(AppLocalizations l10n, List<DriveSuggestion> options) {
 
 /// The setup map's marks (item 134): a bubble on each route option (the picked one's minutes
 /// and length, the others' minutes against it) where it runs apart from the rest, and each stop
-/// on the way's numbered pin.
-List<(LatLng, Widget)> _marks(
+/// on the way's numbered pin, each standing on its point by its foot (the tail's tip, the pin's
+/// point); the picked route's bubble on top.
+List<MapMark> _marks(
   BuildContext context,
   List<DriveSuggestion> options,
   DriveSuggestion? chosen,
@@ -451,12 +453,9 @@ List<(LatLng, Widget)> _marks(
 ) {
   final l10n = context.l10n;
   final colors = PindoroTheme.of(context).colors;
-  // Anchored at their foot: the tail's tip, the pin's point.
-  Widget foot(Widget child) =>
-      FractionalTranslation(translation: const Offset(0, -0.5), child: child);
-  // The picked route's bubble first; each next one also clear of those placed.
+  // The picked route's bubble placed first; each next one also clear of those placed.
   final placed = <LatLng>[];
-  final bubbles = <(LatLng, Widget)>[];
+  final bubbles = <MapMark>[];
   for (final o in [?chosen, ...options.where((o) => o != chosen)]) {
     final at = calloutAt(o.plan.lines, [
       for (final other in options)
@@ -464,9 +463,9 @@ List<(LatLng, Widget)> _marks(
     ], placed: placed);
     if (at == null) continue;
     placed.add(at);
-    bubbles.add((
-      at,
-      foot(
+    bubbles.add(
+      MapMark(
+        at,
         o == chosen || chosen == null
             ? RouteCallout([
                 l10n.unitMinutes(o.plan.minutes),
@@ -475,12 +474,17 @@ List<(LatLng, Widget)> _marks(
             : RouteCallout([
                 routeDelta(l10n, o.plan.minutes - chosen.plan.minutes),
               ]),
+        foot: Alignment.bottomCenter,
       ),
-    ));
+    );
   }
   return [
-    ...bubbles,
+    ...bubbles.reversed,
     for (final (i, at) in stops.indexed)
-      (at, foot(PinMark.endpoint('${i + 1}', colors))),
+      MapMark(
+        at,
+        PinMark.endpoint('${i + 1}', colors),
+        foot: Alignment.bottomCenter,
+      ),
   ];
 }

@@ -246,8 +246,13 @@ test/drift/                    generated schema helpers + migration test
 
 ## Map
 
-- Flutter widgets that sit on map points (the sweep's sockets, the crossings' rings, "End 1") go
-  in a `GeoAnchors` over the map, fed by `PindoroMap.onCamera`'s projection.
+- Widgets that only mark map points (the plan map's start ring, flag, turn numbers, review marks,
+  route bubbles and stop pins) go in `PindoroMap.marks` (`MapMark`: the point and the widget's
+  `foot`): each is painted out of sight by a `MapSprite`, pictured after every repaint and drawn
+  by the map as a symbol (source `marks`), so it keeps to the ground while the map moves. Widgets
+  laid over the map trail its camera, so only ones that take touch (the sweep's sockets, the
+  route card's exits, the bridge's tips) or sit on question maps go in a `GeoAnchors`, fed by
+  `PindoroMap.onCamera`'s projection.
 - `PindoroMap`, the area picker and Explore's map share `MapHost` (`map_host.dart`: the controller,
   the style per theme brightness, `mapProjection`); the area levels (`detailAt`, `areaAt`,
   `nearestAreas`) are pure, in `features/map/data/area_levels.dart`.

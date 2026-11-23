@@ -13,3 +13,29 @@ extension MapWork on State {
     }),
   );
 }
+
+/// Runs [work] one call at a time: calls made while it runs fold into one more run right after,
+/// so a fast run of changes never queues up stale frames on the platform channel.
+class SerialWork {
+  SerialWork(this.work);
+
+  final Future<void> Function() work;
+  bool _running = false;
+  bool _again = false;
+
+  Future<void> call() async {
+    if (_running) {
+      _again = true;
+      return;
+    }
+    _running = true;
+    try {
+      do {
+        _again = false;
+        await work();
+      } while (_again);
+    } finally {
+      _running = false;
+    }
+  }
+}

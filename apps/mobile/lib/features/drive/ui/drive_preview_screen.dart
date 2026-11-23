@@ -17,6 +17,7 @@ import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/features/learning/data/nav_data.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
+import 'package:pindoro/features/map/ui/widgets/map_sprite.dart';
 import 'package:pindoro/features/map/ui/widgets/tier_reveal.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -152,7 +153,7 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
         TurnNumber(i + 1, onMap: true, current: current);
     final numbers = [
       for (final (i, d) in keyTurns.indexed)
-        (graph.at(d.junction), number(i, current: i == _at)),
+        MapMark(graph.at(d.junction), number(i, current: i == _at)),
     ];
     final summary = [
       formatDistance(plan.endM, l10n),
@@ -361,7 +362,7 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
                 : MapNames.all,
             start: start,
             end: said == null ? null : end,
-            pins: [(graph.at(d.junction), number(index, current: true))],
+            pins: [MapMark(graph.at(d.junction), number(index, current: true))],
             frame: around(d),
             bottom: said == null
                 ? BottomPanel(

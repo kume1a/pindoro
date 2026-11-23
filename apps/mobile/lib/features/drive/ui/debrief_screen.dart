@@ -20,6 +20,7 @@ import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/learning/ui/drive_labels.dart';
 import 'package:pindoro/features/learning/ui/junction_name.dart';
+import 'package:pindoro/features/map/ui/widgets/map_sprite.dart';
 import 'package:pindoro/features/map/ui/widgets/tier_reveal.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
@@ -250,7 +251,7 @@ Widget _turnMap(
     route: [if (revealed) way],
     frame: [...approach, ...done, ...way],
     pins: [
-      (
+      MapMark(
         graph.at(t.junction),
         revealed && t.mark != null
             ? ReviewMark(_kind(t.mark!), onMap: true)
@@ -544,7 +545,7 @@ class _Review extends ConsumerWidget {
         end: lines.end,
         pins: [
           for (final m in d.marks)
-            (m.at, ReviewMark(_kind(m.mark), onMap: true)),
+            MapMark(m.at, ReviewMark(_kind(m.mark), onMap: true)),
         ],
         bottom: BottomPanel(
           child: Column(
@@ -653,7 +654,7 @@ class _Summary extends ConsumerWidget {
         end: lines.end,
         pins: [
           for (final m in d.marks)
-            (m.at, ReviewMark(_kind(m.mark), onMap: true)),
+            MapMark(m.at, ReviewMark(_kind(m.mark), onMap: true)),
         ],
         front: [
           if (celebration != null && walk)
