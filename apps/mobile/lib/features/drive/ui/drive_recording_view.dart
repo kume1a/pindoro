@@ -357,6 +357,7 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
                 destination: r.destination,
                 via: _viaPoints(r),
                 places: _placesNear(view?.plan),
+                speedKmh: view?.speedKmh ?? 0,
                 lost: lostS != null,
                 follow: _following && options == null,
                 northUp: _northUp,

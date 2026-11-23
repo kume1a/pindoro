@@ -296,7 +296,10 @@ test/drift/                    generated schema helpers + migration test
   the car), `northUp`, the routes `overview` with its `alternatives` (grey), the next
   decision's `turn` arrow (`drive-turn`, its head
   `drive-turn-head`), the car, and every street name and named place (item 132); while it
-  follows the car only the places near the route (`places`, from `placesNear`, item 135). It drags and pinches at
+  follows the car only the places near the route (`places`, from `placesNear`, item 135). On the car a
+  ticker moves the camera every frame (`car_motion.dart`: on along the route at `speedKmh`
+  between fixes, corrections eased) and the car is a Flutter image over the map where the camera
+  centres it; off the car it is the map's `drive-car-mark` symbol. It drags and pinches at
   any speed and reports each touch to `onMoved`; the recording view stops following, shows
   Recentre and follows again after 10 s. It comes through `driveMapBuilderProvider`, which drive
   tests override. The screen shows its attribution.
