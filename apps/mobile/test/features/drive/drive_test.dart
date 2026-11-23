@@ -613,6 +613,47 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets(
+    'a Guided drive\'s result says the voice led the way, not that it was found '
+    'without GPS',
+    (tester) async {
+      await pumpDrive(tester);
+      await tester.tap(find.text('Guided'));
+      await tester.pump();
+      await tester.tap(find.text("Let's go"));
+      await pumpUntil(tester, find.byType(StoppedBar));
+      final last = await tester.runAsync(() => location.drive(route, now));
+      await tester.runAsync(
+        () => location.park(route.lines.last.last, last!, 3),
+      );
+      await pumpUntil(tester, find.text('Later'));
+      await tester.tap(find.text('Go through your drive'));
+      await tester.pump();
+      for (var i = 0; i < 20 && find.text('Next').evaluate().isEmpty; i++) {
+        for (final label in [
+          'I don’t remember',
+          'Show me',
+          'Next turn',
+          'See the whole drive',
+        ]) {
+          if (find.text(label).evaluate().isNotEmpty) {
+            await tester.tap(find.text(label));
+            await tester.pump();
+          }
+        }
+        await pumpUntil(tester, find.text('Next'));
+      }
+      await tester.tap(find.text('Next'));
+      await tester.pump();
+      await settle(tester);
+      expect(
+        find.textContaining('The voice led you all the way.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('without GPS'), findsNothing);
+    },
+  );
+
   testWidgets('the screens: setup with today\'s run at Off, the black '
       'recording screen, then the debrief: each turn recalled, then shown, '
       'the marks, the tier and the streets', (tester) async {
@@ -678,6 +719,7 @@ void main() {
     await tester.pump();
     await settle(tester);
     expect(find.text('Perfect!'), findsOneWidget);
+    expect(find.textContaining('You found it without GPS.'), findsOneWidget);
     await tester.tap(find.text('Next: streets you drove'));
     await tester.pump();
     expect(find.text('Streets you drove'), findsOneWidget);

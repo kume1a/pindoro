@@ -1370,3 +1370,10 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        asks for a fresh fix meanwhile and plans again from it when it lies more than 50 m away.
      - A U-turn weighs `uTurnPenaltyM` in the stretch (§5.3 step 4) as it does in the best route:
        a planned U-turn on a divided avenue no longer makes a drive "shorter than the best".
+     - A drive's result tells how the way was found, by the help its turns had: "You found it on
+       your own." (Off: "…without GPS."), "You found it with help at 2 turns.", or "The voice
+       led you all the way." when every turn was helped. The tier stays by the path (§5.3).
+       "Longer" never shows below 0 %.
+     - Arrival names the place driven to ("You're at Puppet House"), else the street.
+     - The debrief frames each turn around its junction: 150 m of each way in and on, the
+       junction in the middle.

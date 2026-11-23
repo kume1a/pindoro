@@ -2242,6 +2242,16 @@
   "driveNoLocation": "Pindoro needs your location to record the drive.",
   "driveFound": "You found it without GPS.",
   "driveLongWay": "A long way round: the best route is in yellow.",
+  "driveFoundOwn": "You found it on your own.",
+  "driveFoundHelped": "{count, plural, =1{You found it with help at one turn.} other{You found it with help at {count} turns.}}",
+  "@driveFoundHelped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "driveLedAll": "The voice led you all the way.",
   "driveStoppedShort": "You stopped {distance} from {street}.",
   "@driveStoppedShort": {
     "placeholders": {
