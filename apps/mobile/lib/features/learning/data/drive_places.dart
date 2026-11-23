@@ -207,6 +207,11 @@ List<NavStop> stopsOf(RoadGraph graph, DriveTarget target) {
   return stops.isEmpty ? [NavStop.junction(target.junction)] : stops;
 }
 
+/// Where a drive passes a stop on the way (item 134): the first of its [stopsOf], the right
+/// side when the road has two.
+NavStop viaStopOf(RoadGraph graph, DriveTarget target) =>
+    stopsOf(graph, target).first;
+
 /// The destination as the maps mark it: its spot, else its junction.
 LatLng targetPoint(RoadGraph graph, DriveTarget target) =>
     target.at ?? graph.at(target.junction);

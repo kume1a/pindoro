@@ -65,9 +65,11 @@ abstract final class Routes {
 
   static String driveTo(String to) => '$drive?to=$to';
 
-  /// A destination picked on the map; `?place=1` for Home or Work. Pops with a `DriveDest`.
+  /// A destination picked on the map; `?for=place` for Home or Work, `?for=stop` for a stop on
+  /// the way. Pops with a `DriveDest`.
   static const String driveMap = '/drive/map';
-  static const String driveMapPlace = '$driveMap?place=1';
+
+  static String driveMapFor(String pick) => '$driveMap?for=$pick';
 
   /// Home or Work for drives (`?which=home|work`).
   static const String drivePlace = '/drive/place';

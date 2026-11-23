@@ -27,12 +27,12 @@ import 'package:url_launcher/url_launcher.dart';
 /// Choose on the map (SPEC §16.23 items 129, 132): every street and named place on the map; a
 /// tap on a place picks it (its outline lit, its details in the sheet: kind, address, opening
 /// hours, Call and Website), a tap anywhere else drops the pin right there, named by the road it
-/// is by. Drive here (or, for Home and Work, [place]: Use this spot) pops with it as the
-/// destination. Opens around where the phone is.
+/// is by. Drive here pops with it as the destination ([pick]: Use this spot for Home and Work,
+/// Add stop for a stop on the way). Opens around where the phone is.
 class DriveMapScreen extends ConsumerStatefulWidget {
-  const DriveMapScreen({this.place = false, super.key});
+  const DriveMapScreen({this.pick = MapPick.drive, super.key});
 
-  final bool place;
+  final MapPick pick;
 
   @override
   ConsumerState<DriveMapScreen> createState() => _DriveMapScreenState();
@@ -127,8 +127,16 @@ class _DriveMapScreenState extends ConsumerState<DriveMapScreen> {
           children: [
             _PickDetails(pick: pick, graph: graph, streets: streets),
             PindoroButton(
-              label: widget.place ? l10n.driveMapUse : l10n.driveMapGo,
-              icon: widget.place ? null : PindoroGlyph.car,
+              label: switch (widget.pick) {
+                MapPick.drive => l10n.driveMapGo,
+                MapPick.place => l10n.driveMapUse,
+                MapPick.stop => l10n.driveAddStop,
+              },
+              icon: switch (widget.pick) {
+                MapPick.drive => PindoroGlyph.car,
+                MapPick.place => null,
+                MapPick.stop => PindoroGlyph.plus,
+              },
               onPressed: dest == null ? null : () => context.pop(dest),
             ),
           ],
@@ -302,13 +310,21 @@ Uri? webLink(String? website) => switch (website?.split(';').first.trim()) {
   _ => null,
 };
 
+/// What a spot chosen on the map is for: a drive's destination, Home or Work, or a stop on the
+/// way (item 134).
+enum MapPick { drive, place, stop }
+
 /// "Choose on the map" among Where to's rows: the map, then [onPick] with the spot chosen
-/// ([place]: for Home or Work).
+/// for [pick].
 class ChooseOnMapRow extends StatelessWidget {
-  const ChooseOnMapRow({required this.onPick, this.place = false, super.key});
+  const ChooseOnMapRow({
+    required this.onPick,
+    this.pick = MapPick.drive,
+    super.key,
+  });
 
   final ValueChanged<DriveDest> onPick;
-  final bool place;
+  final MapPick pick;
 
   @override
   Widget build(BuildContext context) {
@@ -320,7 +336,9 @@ class ChooseOnMapRow extends StatelessWidget {
       trailing: const PindoroIcon(PindoroGlyph.chevronRight),
       onTap: () => unawaited(() async {
         final dest = await context.push<DriveDest>(
-          place ? Routes.driveMapPlace : Routes.driveMap,
+          pick == MapPick.drive
+              ? Routes.driveMap
+              : Routes.driveMapFor(pick.name),
         );
         if (dest != null) onPick(dest);
       }()),

@@ -34,6 +34,11 @@ List<LevelStep<_Level>> _steps({Set<_Level> disabled = const {}}) => [
     ),
 ];
 
+const List<RouteCard> _cards = [
+  (tag: 'Now', time: '16 min', length: '15.8 km', note: null),
+  (tag: '+3 min', time: '19 min', length: '14.2 km', note: 'On your left'),
+];
+
 void main() {
   testWidgets('the level picker applies a tap at once; a disabled step '
       'says why and changes nothing', (tester) async {
@@ -174,37 +179,48 @@ void main() {
     expect((taps, recentred), (1, 1));
   });
 
-  testWidgets('the routes: a row picks its way, the button takes it; the '
-      'action under them', (tester) async {
+  testWidgets('the routes: a card picks its way, the button takes it; the '
+      'ends: To changes it, a stop goes, Add stop', (tester) async {
     final picked = <int>[];
-    var taken = 0;
-    var changed = 0;
+    final removed = <int>[];
+    var taken = 0, to = 0, added = 0;
     await tester.pumpWidget(
       _host(
         RouteOptions(
           semanticsLabel: 'Routes',
-          options: const [
-            (time: '16 min', length: '15.8 km', delta: null),
-            (time: '19 min', length: '14.2 km', delta: '+3 min'),
-          ],
-          nowLabel: 'Now',
+          ends: RouteEnds(
+            fromLabel: 'From',
+            from: 'Current location',
+            toLabel: 'To',
+            to: 'Tbilisi Mall',
+            stops: const [
+              (label: 'Stop 1', name: 'Nikora', removeLabel: 'Remove Nikora'),
+            ],
+            onRemove: removed.add,
+            onTo: () => to++,
+            addLabel: 'Add stop',
+            onAdd: () => added++,
+          ),
+          cards: _cards,
           onPick: picked.add,
           selected: 1,
           takeLabel: 'Take this route',
           onTake: () => taken++,
-          actionLabel: 'Change destination',
-          onAction: () => changed++,
         ),
       ),
     );
     await tester.tap(find.text('+3 min'));
     await tester.tap(find.text('Take this route'));
-    await tester.tap(find.text('Change destination'));
+    await tester.tap(find.bySemanticsLabel('To Tbilisi Mall'));
+    await tester.tap(find.bySemanticsLabel('Remove Nikora'));
+    await tester.tap(find.text('Add stop'));
     expect(picked, [1]);
-    expect((taken, changed), (1, 1));
-    expect(find.text('Now'), findsOneWidget);
+    expect(removed, [0]);
+    expect((taken, to, added), (1, 1, 1));
     expect(
-      tester.getSemantics(find.bySemanticsLabel('19 min, 14.2 km, +3 min')),
+      tester.getSemantics(
+        find.bySemanticsLabel('+3 min, 19 min, 14.2 km, On your left'),
+      ),
       isSemantics(isSelected: true),
     );
   });
@@ -212,7 +228,7 @@ void main() {
   group('goldens', skip: _goldensSkip, () {
     for (final brightness in Brightness.values) {
       testWidgets('drive ${brightness.name}', (tester) async {
-        await tester.binding.setSurfaceSize(const Size(400, 2200));
+        await tester.binding.setSurfaceSize(const Size(400, 2700));
         addTearDown(() => tester.binding.setSurfaceSize(null));
         await tester.pumpWidget(
           _host(
@@ -315,17 +331,32 @@ void main() {
                     ),
                     RouteOptions(
                       semanticsLabel: 'Routes',
-                      options: const [
-                        (time: '16 min', length: '15.8 km', delta: null),
-                        (time: '19 min', length: '14.2 km', delta: '+3 min'),
-                      ],
-                      nowLabel: 'Now',
+                      ends: const RouteEnds(
+                        fromLabel: 'From',
+                        from: 'Current location',
+                        toLabel: 'To',
+                        to: 'Tbilisi Mall',
+                        stops: [
+                          (
+                            label: 'Stop 1',
+                            name: 'Nikora',
+                            removeLabel: 'Remove Nikora',
+                          ),
+                        ],
+                        addLabel: 'Add stop',
+                      ),
+                      cards: _cards,
                       onPick: (_) {},
                       selected: 1,
                       takeLabel: 'Take this route',
                       onTake: () {},
-                      actionLabel: 'Change destination',
-                      onAction: () {},
+                    ),
+                    const Row(
+                      spacing: 8,
+                      children: [
+                        RouteCallout(['16 min', '15.8 km'], picked: true),
+                        RouteCallout(['+3 min']),
+                      ],
                     ),
                     DriveBottomBar(
                       semanticsLabel: '3.4 kilometres left',

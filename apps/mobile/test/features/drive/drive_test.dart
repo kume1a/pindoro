@@ -26,6 +26,7 @@ import 'package:pindoro/features/drive/ui/drive_screen.dart';
 import 'package:pindoro/features/drive/ui/drive_tab.dart';
 import 'package:pindoro/features/drive/ui/past_drives_screen.dart';
 import 'package:pindoro/features/drive/ui/plan_map.dart';
+import 'package:pindoro/features/drive/ui/route_place_screen.dart';
 import 'package:pindoro/features/learning/data/drive_log.dart';
 import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
@@ -631,7 +632,7 @@ void main() {
     await showMore(tester);
     expect(find.textContaining('starts at Off'), findsOneWidget);
     expect(find.byType(LevelPicker<DriveLevel>), findsOneWidget);
-    await tester.tap(find.text('Start drive'));
+    await tester.tap(find.text("Let's go"));
     await pumpUntil(tester, find.byType(RecordingDot));
     expect(find.bySemanticsLabel('Recording your drive'), findsOneWidget);
     final last = await tester.runAsync(() => location.drive(route, now));
@@ -705,7 +706,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('Guided'));
     await tester.pump();
-    await tester.tap(find.text('Start drive'));
+    await tester.tap(find.text("Let's go"));
     await pumpUntil(tester, find.byType(TurnPlate));
     // The first stretch of the run, then a stop short of the destination.
     final first = Route(route.junctions.take(2).toList(), [
@@ -785,14 +786,14 @@ void main() {
 
   testWidgets('Guided: the map moves at any speed, Recentre or 10 s bring it '
       'back to the car, the compass turns it north up; back can\'t end the '
-      'drive; the routes overview, and its Change destination closes once '
-      'when the car moves', (tester) async {
+      'drive; the routes overview, and its search for a new destination stays '
+      'open while moving (a passenger picks)', (tester) async {
     await pumpDrive(tester);
     await tester.ensureVisible(find.text('Guided'));
     await tester.pump();
     await tester.tap(find.text('Guided'));
     await tester.pump();
-    await tester.tap(find.text('Start drive'));
+    await tester.tap(find.text("Let's go"));
     await pumpUntil(tester, find.byType(DriveRecordingView));
     final scope = tester.widget<PopScope>(
       find.descendant(
@@ -866,19 +867,49 @@ void main() {
     expect(maps.last.overview, isTrue);
     expect(maps.last.follow, isFalse);
     expect(find.text('Now'), findsOneWidget, reason: 'the route driven now');
-    await tester.tap(find.text('Change destination'));
+    await tester.tap(find.bySemanticsLabel(RegExp('^To ')));
     await tester.pump();
     await tester.pump(PindoroMotion.durationSlow);
-    expect(find.byType(DriveRouteScreen), findsOneWidget);
-    // Driving off: every fix and prompt is a state change while the screen leaves.
+    expect(find.byType(RoutePlaceScreen), findsOneWidget);
+    // Driving off: every fix and prompt is a state change; the search stays.
     await tester.runAsync(
       () => location.drive(first, last!.add(const Duration(seconds: 10))),
     );
     for (var i = 0; i < 5; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
-    expect(find.byType(DriveRouteScreen), findsNothing);
+    expect(find.byType(RoutePlaceScreen), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pump();
+    await tester.pump(PindoroMotion.durationSlow);
+    expect(find.byType(RoutePlaceScreen), findsNothing);
     expect(find.byType(DriveRecordingView), findsOneWidget);
+  });
+
+  testWidgets('Coached while moving: a touch shows Route, which opens the '
+      'route with Add stop', (tester) async {
+    await pumpDrive(tester);
+    await tester.ensureVisible(find.text('Coached'));
+    await tester.pump();
+    await tester.tap(find.text('Coached'));
+    await tester.pump();
+    await tester.tap(find.text("Let's go"));
+    await pumpUntil(tester, find.byType(DriveRecordingView));
+    final first = Route(route.junctions.take(2).toList(), [
+      route.edges.first,
+    ], route.edges.first.lengthM);
+    await tester.runAsync(() => location.drive(first, now));
+    await tester.pump();
+    final button = find.bySemanticsLabel('Route and destination');
+    expect(button.hitTestable(), findsNothing, reason: 'none until a touch');
+    await tester.tapAt(tester.getCenter(find.byType(DriveRecordingView)));
+    await tester.pump();
+    await tester.pump(PindoroMotion.durationBase);
+    await tester.tap(button);
+    await tester.pump();
+    await tester.pump(PindoroMotion.durationSlow);
+    expect(find.byType(DriveRouteScreen), findsOneWidget);
+    expect(find.text('Add stop'), findsOneWidget);
   });
 
   testWidgets('the Drive tab: Home and Work to set, today’s run, Surprise '
@@ -899,13 +930,7 @@ void main() {
     await tester.tap(result.first);
     await pumpUntil(tester, suggested);
     expect(find.byType(LevelPicker<DriveLevel>), findsOneWidget);
-    expect(
-      find.byWidgetPredicate(
-        (w) =>
-            w is PindoroIconButton && w.semanticLabel == 'Change destination',
-      ),
-      findsOneWidget,
-    );
+    expect(find.bySemanticsLabel(RegExp('^To ')), findsOneWidget);
   });
 
   testWidgets('the Drive tab: Home set shows the minutes there, and one tap '
@@ -936,7 +961,7 @@ void main() {
     await tester.tap(find.text('Home'));
     await pumpUntil(tester, suggested);
     expect(find.byType(LevelPicker<DriveLevel>), findsOneWidget);
-    expect(find.text('Start drive'), findsOneWidget);
+    expect(find.text("Let's go"), findsOneWidget);
   });
 
   testWidgets('Surprise me with no turns known yet says why there is no '
@@ -945,7 +970,7 @@ void main() {
     await pumpUntil(tester, find.text('No surprise yet'));
     expect(find.text('No surprise yet'), findsOneWidget);
     expect(find.textContaining('7 of every 10 turns'), findsOneWidget);
-    expect(find.text('Start drive'), findsOneWidget);
+    expect(find.text("Let's go"), findsOneWidget);
   });
 
   test('a spot beside a two-way road: the drive offers either side, the right '
@@ -972,6 +997,88 @@ void main() {
     expect((drive.targetLat, drive.targetLon), (beside.lat, beside.lon));
     final recent = await container.read(recentDestinationsProvider.future);
     expect(recent.single.at, beside);
+  });
+
+  test('a stop on the way: added at setup, every route goes through it; on the '
+      'drive it is said as reached, the drive goes on to its end and is '
+      'graded from the stop', () async {
+    final controller = runController();
+    await settled();
+    controller.pickLevel(DriveLevel.guided);
+    final k = [
+      for (var i = 1; i < route.edges.length - 1; i++)
+        if (route.edges[i].streetId != null) i,
+    ][1];
+    final stop = route.junctions[k];
+    await controller.addStop((
+      street: streets[route.edges[k].streetId],
+      place: null,
+      junction: stop,
+      at: null,
+    ));
+    final setup = await settled();
+    expect(setup.via.single.junction, stop);
+    expect(setup.options, isNotEmpty);
+    for (final o in setup.options) {
+      expect(o.plan.route.junctions, contains(stop));
+      expect(o.plan.via, hasLength(1));
+    }
+    await controller.start(title: 't', text: 't');
+    expect(
+      (container.read(driveControllerProvider) as DriveRecording).via,
+      hasLength(1),
+    );
+    final last = await location.drive(route, now);
+    expect(
+      device.said.where((s) => s.startsWith("You've reached your stop")),
+      hasLength(1),
+    );
+    expect(
+      (container.read(driveControllerProvider) as DriveRecording).via,
+      isEmpty,
+    );
+    await location.park(route.lines.last.last, last, 3);
+    for (var i = 0; i < 50; i++) {
+      if (container.read(driveControllerProvider) is DriveReview) break;
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+    final review = container.read(driveControllerProvider) as DriveReview;
+    expect(review.stoppedM, isNull, reason: 'arrived after the stop');
+    final drive = (await container.read(driveLogDaoProvider).all()).single;
+    expect(drive.gradedFrom, greaterThan(0));
+  });
+
+  test('while moving: a stop added and the destination changed take at once, '
+      'the stop kept', () async {
+    final controller = runController();
+    await settled();
+    await controller.start(title: 't', text: 't');
+    final first = Route(route.junctions.take(2).toList(), [
+      route.edges.first,
+    ], route.edges.first.lengthM);
+    await location.drive(first, now);
+    final moving = container.read(driveControllerProvider) as DriveRecording;
+    expect(moving.stopped, isFalse);
+    final street = streets[route.edges.last.streetId]!;
+    await controller.addStop((
+      street: street,
+      place: null,
+      junction: null,
+      at: null,
+    ));
+    expect(
+      (container.read(driveControllerProvider) as DriveRecording).via,
+      hasLength(1),
+    );
+    await controller.changeDestination((
+      street: null,
+      place: null,
+      junction: null,
+      at: beside,
+    ));
+    final changed = container.read(driveControllerProvider) as DriveRecording;
+    expect(changed.target.at, beside);
+    expect(changed.via.single.street, street);
   });
 
   test('Home or Work keeps its spot; one set before spots has none', () {
@@ -1155,8 +1262,8 @@ void main() {
     final fastest = plans.last.route!.best;
     final other = find
         .descendant(
-          of: find.byType(ListRow),
-          matching: find.textContaining(' min · '),
+          of: find.byType(RouteCards),
+          matching: find.textContaining(RegExp(r'^\d+ min$')),
         )
         .at(1);
     await tester.ensureVisible(other);

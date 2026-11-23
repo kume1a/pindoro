@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' show min;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -163,53 +164,54 @@ class _DriveRow extends StatelessWidget {
 /// A past drive replayed from its track on today's graph, with the turns
 /// and GPS gaps it was saved with; null once its track or destination is
 /// gone.
-final pastDriveProvider = FutureProvider.autoDispose
-    .family<DriveReview?, String>((ref, id) async {
-      final dao = ref.watch(driveLogDaoProvider);
-      final drive = await dao.drive(id);
-      final fixes = await dao.track(id);
-      final graph = await ref.watch(drivingGraphProvider.future);
-      final streets = await ref.watch(cityStreetsProvider.future);
-      final byNode = await ref.watch(junctionsByNodeProvider.future);
-      final street = streets[drive?.targetStreet];
-      final junction = byNode[drive?.targetNode];
-      if (drive == null ||
-          fixes == null ||
-          graph == null ||
-          street == null ||
-          junction == null) {
-        return null;
-      }
-      final match = matchDrive(graph, fixes);
-      final (:graded, :stoppedM) = gradeDrive(
-        graph,
-        match,
-        junction,
-        streets: streets,
-      );
-      return DriveReview(
-        id: id,
-        rescued: drive.rescued,
-        target: (
-          junction: junction,
-          street: street,
-          place: null,
-          at: switch ((drive.targetLat, drive.targetLon)) {
-            (final lat?, final lon?) => LatLng(lat, lon),
-            _ => null,
-          },
-        ),
-        match: match,
-        graded: graded,
-        stoppedM: stoppedM,
-        credited: drive.credited,
-        failed: drive.failed,
-        gaps: (
-          count: drive.gpsGaps,
-          longest: Duration(seconds: drive.longestGapS),
-        ),
-      );
-    });
+final pastDriveProvider = FutureProvider.autoDispose.family<DriveReview?, String>((
+  ref,
+  id,
+) async {
+  final dao = ref.watch(driveLogDaoProvider);
+  final drive = await dao.drive(id);
+  final fixes = await dao.track(id);
+  final graph = await ref.watch(drivingGraphProvider.future);
+  final streets = await ref.watch(cityStreetsProvider.future);
+  final byNode = await ref.watch(junctionsByNodeProvider.future);
+  final street = streets[drive?.targetStreet];
+  final junction = byNode[drive?.targetNode];
+  if (drive == null ||
+      fixes == null ||
+      graph == null ||
+      street == null ||
+      junction == null) {
+    return null;
+  }
+  final match = matchDrive(graph, fixes);
+  // Graded from where it was when driven: after a destination change or the last stop.
+  final from = min(drive.gradedFrom ?? 0, fixes.length);
+  final (:graded, :stoppedM) = gradeDrive(
+    graph,
+    from == 0 ? match : matchDrive(graph, fixes.sublist(from)),
+    junction,
+    streets: streets,
+  );
+  return DriveReview(
+    id: id,
+    rescued: drive.rescued,
+    target: (
+      junction: junction,
+      street: street,
+      place: null,
+      at: switch ((drive.targetLat, drive.targetLon)) {
+        (final lat?, final lon?) => LatLng(lat, lon),
+        _ => null,
+      },
+    ),
+    match: match,
+    graded: graded,
+    stoppedM: stoppedM,
+    credited: drive.credited,
+    failed: drive.failed,
+    gaps: (count: drive.gpsGaps, longest: Duration(seconds: drive.longestGapS)),
+  );
+});
 
 /// One past drive (V32-60): its debrief, offered while fresh.
 class PastDriveScreen extends StatelessWidget {

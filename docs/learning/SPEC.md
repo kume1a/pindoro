@@ -428,6 +428,7 @@ pindoro_core `ScoringConfig`, not copied):
 | `recoveryHoldS`, `guardRecoveries`, `guardWindowS`, `guardLostS`        | 10, 2, 300, 180                     |
 | `guardToGuidedRecoveries`, `stoppedKmh`, `stoppedHoldS`, `navArriveM`   | 3, 5, 2, 50                         |
 | `navStopReachM`, `navStopSideM`, `placeTapNameM` (§16.23 item 132)      | 300, 5, 50                          |
+| `navViaMax` (§16.23 item 134)                                           | 5                                   |
 | `prepareM`, `prepareS`, `actionM`, `actionS`                            | 150, 10, 40, 4                      |
 | `landmarkAtM`, `confirmDelayS`, `districtCueM`, `districtCueS`          | 50, 6, 2000, 180                    |
 | `gpsLostSayS`                                                           | 60                                  |
@@ -1081,7 +1082,8 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      The one exception is Guided (decided 2026-11-22, widened 2026-11-23): its map drags and
      pinches at any speed, and a touch pops in its buttons (routes, Mute, the level, the compass
      or Recentre) at any speed; 10 s after the last touch they go and the map is back on the car.
-     End drive and Change destination stay stopped-only. Back does nothing during a drive. With no fix yet, or
+     End drive stays stopped-only; Change destination and Add stop work at any speed (item
+     134). Back does nothing during a drive. With no fix yet, or
      none for 60 s, the car counts as stopped: its speed is unknown and End drive stays in reach.
 117. **Voice**: landmark, then action, then street ("At Vake Park, turn left onto Chavchavadze
      Avenue"); a distance only when no landmark is within 50 m of the junction; traffic lights
@@ -1330,3 +1332,33 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        then.
      - Another way's minutes against the route compared read "Same time" when equal, here and
        in the setup's side rows.
+134. **Stops on the way and a route chooser like the player's navigator** (2026-11-23, after their
+     Yandex Navigator):
+     - A drive may pass up to `navViaMax` stops on the way, in order, each a street, place or pin
+       like a destination; the route runs through each (a place's right side when its road has
+       two), one leg after the other, and every plan, replan, other way on and Rescue keeps them.
+       A stop is reached once the car stopped within `navArriveM` of it or drove past it; the
+       voice says "You've reached your stop: …" (with its side) and the drive goes on. Arrival
+       only counts once no stop is left.
+     - Stops are added and removed at setup and during the drive at any speed (a passenger adds
+       them), as is a new destination: Guided's routes overview and the drive's Route screen
+       show where the route runs (From, each stop with a remove button, To, Add stop). Coached
+       and Quiet show Route for 10 s at a touch while moving; Off adds them only when stopped
+       (its screen stays locked). A stop ahead within the prepare reach and before the next
+       decision takes Guided's turn card (the flag, the distance, its name and side).
+     - Learning: a drive with stops is one drive to the end. Turns are judged as they come; the
+       tier, the stretch and Off's decisions grade the last leg only (from the last stop reached,
+       as after a destination change), and the drive's route starts there. The log keeps where
+       grading began (`drive.graded_from`, schema 30), so Past drives replays the same part.
+     - The setup (amends items 129 and 132): where the route runs on top (From: current
+       location, the stops, To: the destination, Add stop; To and Add stop open the search),
+       then the routes as cards side by side (Fastest, Most familiar, else the side, else
+       Another way; the side and the other side's minutes under them), the picked one cobalt,
+       then the level picker and "Let's go" with Preview beside it. On the map each route has a
+       bubble where it runs apart from the others: the picked one's minutes and length, the
+       others' minutes against it ("+9 min", "Same time"); the stops have numbered pins, here
+       and on Guided's map.
+     - The search for a stop or a new destination is a screen of its own: the field focused with
+       Cancel beside it; with nothing typed, Choose on the map (its button "Add stop" for a
+       stop), Home and Work with the minutes there, and Recent.
+     - Guided's routes overview (amends item 130) shows the routes as the same cards.

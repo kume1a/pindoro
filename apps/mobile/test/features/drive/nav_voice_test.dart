@@ -48,6 +48,12 @@ void main() {
       words.arrived(street, side: NavSide.right),
       contains('on your right'),
     );
+    final stop = (junction: 1, street: street, place: null, at: null);
+    expect(
+      words.reachedStop(stop, side: NavSide.right),
+      "You've reached your stop: Vake Street, on your right.",
+    );
+    expect(words.reachedStop(stop), "You've reached your stop: Vake Street.");
   });
 
   test('a distance in kilometres is said as people say it', () {

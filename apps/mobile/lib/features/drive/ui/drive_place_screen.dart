@@ -89,7 +89,7 @@ class DrivePlaceScreen extends ConsumerWidget {
           onPick: (dest) => unawaited(pick(dest)),
           quick: [
             ChooseOnMapRow(
-              place: true,
+              pick: MapPick.place,
               onPick: (dest) => unawaited(pick(dest)),
             ),
           ],

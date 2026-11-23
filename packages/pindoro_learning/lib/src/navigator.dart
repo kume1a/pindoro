@@ -112,9 +112,16 @@ typedef NavView = ({
   double? leftM,
   double? leftS,
 
-  /// The destination's side of the road while the car is on that road (item 132).
+  /// The next stop's side of the road (the destination's once no stop is left) while the car
+  /// is on that road (items 132, 134).
   NavSide? side,
   NavPlan? plan,
+
+  /// The stop on the way reached with this fix (item 134), for this view only.
+  NavStop? reached,
+
+  /// The metres to the next stop on the way; null without one.
+  double? viaInM,
 });
 
 /// One step of navigation: the view, the prompts due (most urgent first; each is due once, so
@@ -142,13 +149,15 @@ NavPrompt _prompt(
 /// Navigation to [destination] fed one fix at a time (SPEC §16.23 items 112–117, 127): where the
 /// car is on the plan, the next decision and its prompts by level, a silent new plan after a
 /// move that keeps a good path, recovery after one that doesn't, the frustration guard, district
-/// cues, speed and camera warnings, stops and arrival. Times come from the fixes, so it replays.
+/// cues, speed and camera warnings, stops and arrival, through the stops on the way [via] in
+/// order (item 134). Times come from the fixes, so it replays.
 class Navigator {
   Navigator({
     required this.graph,
     required this.cost,
     required NavStop destination,
     required DriveLevel level,
+    List<NavStop> via = const [],
     this.streets = const {},
     this.landmarks = const [],
     this.junctionNodes = const {},
@@ -157,6 +166,7 @@ class Navigator {
     Route? prefer,
   }) : _prefer = prefer,
        _destination = destination,
+       _via = [...via],
        _level = level,
        _camerasByEdge = _byEdge(graph.cameras);
 
@@ -164,6 +174,16 @@ class Navigator {
   final NavCost cost;
   NavStop _destination;
   NavStop get destination => _destination;
+
+  /// The stops on the way not reached yet, in order.
+  List<NavStop> _via;
+  List<NavStop> get via => List.unmodifiable(_via);
+
+  /// Each of the plan's stops on the way, as metres along it.
+  List<double> _viaM = const [];
+
+  /// The stop the route goes to next: the first on the way, else the destination.
+  NavStop get _goal => _via.firstOrNull ?? _destination;
 
   /// By part id.
   final Map<String, NamedStreet> streets;
@@ -241,14 +261,26 @@ class Navigator {
   /// A level chosen while stopped (item 116), at once.
   void setLevel(DriveLevel level) => _level = level;
 
-  /// A destination changed while stopped (item 116), with its route's [silent] decisions: the
-  /// next fix plans the way there.
-  void setDestination(NavStop to, {Set<String> silent = const {}}) {
+  /// A destination changed (items 116, 134), with its route's [silent] decisions and the stops
+  /// on the way when given: the next fix plans the way there.
+  void setDestination(
+    NavStop to, {
+    Set<String> silent = const {},
+    List<NavStop>? via,
+  }) {
     _destination = to;
     this.silent = silent;
+    if (via != null) _via = [...via];
     _prefer = null;
     _plan = null;
     _arrived = false;
+  }
+
+  /// The stops on the way changed (item 134): the next fix plans the way through them.
+  void setVia(List<NavStop> via) {
+    _via = [...via];
+    _prefer = null;
+    _plan = null;
   }
 
   /// Off's Rescue (item 116): Guided to the destination; later decisions are watched only.
@@ -270,6 +302,7 @@ class Navigator {
         cost,
         from: plan.route.junctions[_index + 1],
         to: destination,
+        via: _via,
         approach: edge,
         streets: streets,
         landmarks: landmarks,
@@ -359,7 +392,9 @@ class Navigator {
       _slowSince = null;
     }
     final stopped = _stopped(now);
-    if (stopped &&
+    final reached = _reach(fix.at, stopped: stopped);
+    if (_via.isEmpty &&
+        stopped &&
         distanceBetween(fix.at, destination.pointOn(graph)) <=
             LearningConfig.navArriveM) {
       _arrived = true;
@@ -375,10 +410,34 @@ class Navigator {
         over: warned,
         stopped: stopped,
         gpsLostS: null,
+        reached: reached,
       ),
       prompts: prompts,
       chime: chime,
     );
+  }
+
+  /// The next stop on the way, reached once the car stopped near it or drove past it: dropped
+  /// from [_via] and returned; null otherwise.
+  NavStop? _reach(LatLng at, {required bool stopped}) {
+    final stop = _via.firstOrNull;
+    if (stop == null) return null;
+    final near =
+        stopped &&
+        distanceBetween(at, stop.pointOn(graph)) <= LearningConfig.navArriveM;
+    final aheadM = _viaInM();
+    final past =
+        _onPlan && aheadM != null && aheadM <= -LearningConfig.navArriveM;
+    if (!near && !past) return null;
+    _via.removeAt(0);
+    return stop;
+  }
+
+  /// The metres from the car to the next stop on the way along the plan; null without one.
+  double? _viaInM() {
+    final k = _viaM.length - _via.length;
+    if (_via.isEmpty || k < 0 || k >= _viaM.length) return null;
+    return _viaM[k] - _progressM;
   }
 
   /// Over [limit] plus the tolerance for [LearningConfig.overspeedHoldS]: [warned], and a
@@ -446,6 +505,7 @@ class Navigator {
     required bool over,
     required bool stopped,
     required int? gpsLostS,
+    NavStop? reached,
   }) {
     final plan = _plan;
     final decisions = plan?.decisions ?? const <NavDecision>[];
@@ -509,12 +569,14 @@ class Navigator {
       leftS: plan == null ? null : _remainingS(),
       side: _sideNow(),
       plan: plan,
+      reached: reached,
+      viaInM: _viaInM(),
     );
   }
 
-  /// The destination's side while the car is on its road, by the way it drives.
+  /// The next stop's side while the car is on its road, by the way it drives.
   NavSide? _sideNow() {
-    final stop = _destination;
+    final stop = _goal;
     final edge = _edgeNow;
     final side = stop.side;
     if (side == null || edge == null || edge.id != stop.edge?.id) return null;
@@ -605,6 +667,7 @@ class Navigator {
             cost,
             from: ahead,
             to: destination,
+            via: _via,
             approach: edge,
             streets: streets,
             landmarks: landmarks,
@@ -622,10 +685,12 @@ class Navigator {
             ),
             cost.secondsTo(preferred, destination),
             stop: destination,
+            via: _via,
           );
     _plan = plan;
     _approach = edge;
     _junctionM = plan?.junctionM ?? const [];
+    _viaM = plan?.viaM ?? const [];
     _index = -1;
     _progressM = -(1 - along) * edge.lengthM;
     _nextDecision = 0;
@@ -793,17 +858,17 @@ class Navigator {
                   here: graph
                       .shortestRoute(
                         j,
-                        destination.goals,
+                        _goal.goals,
                         approach: approach,
-                        arriveOn: destination.edge,
+                        arriveOn: _goal.edge,
                       )
                       ?.costM,
                   after: graph
                       .shortestRoute(
                         located.ahead,
-                        destination.goals,
+                        _goal.goals,
                         approach: edge,
-                        arriveOn: destination.edge,
+                        arriveOn: _goal.edge,
                       )
                       ?.costM,
                 );

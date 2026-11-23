@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' show Point;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
@@ -16,6 +17,7 @@ import 'package:pindoro/features/map/ui/route_layers.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
+import 'package:pindoro_learning/pindoro_learning.dart';
 
 /// Builds the Guided map; widget tests override it so no platform view is made.
 final driveMapBuilderProvider = Provider<Widget Function(DriveMap map)>(
@@ -46,6 +48,7 @@ class DriveMap extends ConsumerStatefulWidget {
     this.alternatives = const [],
     this.overview = false,
     this.arrow = true,
+    this.via = const [],
     this.onMoved,
   });
 
@@ -64,6 +67,9 @@ class DriveMap extends ConsumerStatefulWidget {
 
   /// Read once, when the map's layers are made: a change needs a new map (key it).
   final bool arrow;
+
+  /// The stops on the way not reached yet, in order: a numbered pin each (item 134).
+  final List<LatLng> via;
   final VoidCallback? onMoved;
 
   static const double zoom = 17;
@@ -81,12 +87,16 @@ abstract final class _Sources {
   static const String turn = 'drive-turn';
   static const String turnHead = 'drive-turn-head';
   static const String lights = 'drive-lights';
+  static const String via = 'drive-via';
 }
 
 const String _carImage = 'drive-car';
 const String _turnHeadImage = 'drive-turn-head';
 const String _endImage = 'drive-end';
 const String _lightsImage = 'drive-lights';
+
+/// A stop's pin image by its number: `drive-via-1`….
+String _viaImage(int n) => 'drive-via-$n';
 
 /// The basemap's source and its building footprints, raised on Guided's map.
 const String _basemap = 'protomaps';
@@ -170,7 +180,15 @@ class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
       runMapWork(_moveCamera);
     }
     if (!identical(widget.turn, old.turn)) runMapWork(_sendTurn);
+    if (!listEquals(widget.via, old.via)) runMapWork(_sendVia);
   }
+
+  Map<String, dynamic> _viaGeoJson() => labelledPointsGeoJson([
+    for (final (i, at) in widget.via.indexed) (at, {'image': _viaImage(i + 1)}),
+  ]);
+
+  Future<void> _sendVia() async =>
+      mapController?.setGeoJsonSource(_Sources.via, _viaGeoJson());
 
   Map<String, dynamic> _carGeoJson() =>
       pointsGeoJson([?widget.at], properties: {'turn': _heading - _bearing});
@@ -369,6 +387,25 @@ class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
         outline: colors.mapAnswerCasing,
         dot: colors.mapAnswerCasing,
       ).toPng(pixelRatio),
+    );
+    for (var n = 1; n <= LearningConfig.navViaMax; n++) {
+      await c.addImage(
+        _viaImage(n),
+        await PinMark.endpoint('$n', colors).toPng(pixelRatio),
+      );
+    }
+    await c.addGeoJsonSource(_Sources.via, _viaGeoJson());
+    await c.addSymbolLayer(
+      _Sources.via,
+      '${_Sources.via}-pin',
+      ml.SymbolLayerProperties(
+        iconImage: const ['get', 'image'],
+        iconAnchor: 'bottom',
+        iconOffset: [0, PinMark.tipInset * pixelRatio],
+        iconAllowOverlap: true,
+        iconIgnorePlacement: true,
+      ),
+      enableInteraction: false,
     );
     await c.addGeoJsonSource(_Sources.end, pointsGeoJson([widget.destination]));
     await c.addSymbolLayer(

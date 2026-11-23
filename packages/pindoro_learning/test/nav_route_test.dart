@@ -289,6 +289,68 @@ void main() {
     });
   });
 
+  group('stops on the way', () {
+    final net = _cross();
+    final graph = net.graph();
+    final cost = NavCost(net.byPart, toleranceKmh: 14);
+
+    test('through a stop: one route of both legs, the stop metres along it, '
+        'the time of both and the decisions of both', () {
+      // From 1 to 7 through 4: up Column, back down it and on along Row.
+      final plan = planNav(
+        graph,
+        cost,
+        from: 1,
+        to: const NavStop.junction(7),
+        via: const [NavStop.junction(4)],
+        streets: net.byPart,
+      )!;
+      expect(plan.route.junctions, [1, 2, 4, 2, 3, 7]);
+      expect(plan.viaM, [closeTo(200, 0.5)]);
+      expect(plan.seconds, closeTo(cost.secondsOf(plan.route), 1e-6));
+      // Onto Column at 2, and back at 2 onto Row after the stop.
+      expect(plan.decisions.where((d) => d.junction == 2), hasLength(2));
+      final direct = planNav(
+        graph,
+        cost,
+        from: 1,
+        to: const NavStop.junction(7),
+      )!;
+      expect(direct.route.junctions, [1, 2, 3, 7]);
+      expect(direct.viaM, isEmpty);
+    });
+
+    test('a stop on a road: its metres along the route, the next leg going on '
+        'from the end of its road', () {
+      // 20 m south of Row between 2 and 3: on the right driving east.
+      final stop = stopsNear(graph, RoadNet.point(150, -20)).first;
+      final plan = planNav(
+        graph,
+        cost,
+        from: 1,
+        to: const NavStop.junction(5),
+        via: [stop],
+      )!;
+      expect(plan.route.junctions, [1, 2, 3, 2, 5]);
+      expect(plan.viaM, [closeTo(150, 0.5)]);
+    });
+
+    test('the options all go through the stop', () {
+      final options = planNavOptions(
+        graph,
+        cost,
+        from: 1,
+        to: const NavStop.junction(7),
+        via: const [NavStop.junction(4)],
+      );
+      expect(options, isNotEmpty);
+      for (final o in options) {
+        expect(o.route.junctions, contains(4));
+        expect(o.via, [const NavStop.junction(4)]);
+      }
+    });
+  });
+
   group('stops on the road', () {
     final net = _cross();
     final graph = net.graph();

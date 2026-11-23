@@ -307,6 +307,29 @@ and the specs after R5. Fix them in roughly this order.
       over Change destination; "Same time" when the minutes match.
     - Not done here, as they are design-system colours (claude.ai first, if wanted): the
       player's navigator's navy night map and grey turn card.
+  - **Stops on the way and the route chooser (SPEC §16.23 item 134, 2026-11-23)**, built in the
+    app:
+    - `RouteCards`: cards side by side (tag `label.md`, minutes `headline.sm`, length
+      `label.lg`, a `label.sm` note), the picked one a `LipBox` on `primary.base` /
+      `primary.lip` with `primary.on` text, the rest raised; `RouteOptions` (Guided's overview)
+      is now `RouteEnds` + `RouteCards` + Take this route (its Change destination button gone).
+    - `RouteCallout`: a bubble (`radius.md`, `title.sm` then `label.md`) with an 8 dp tail, on
+      `primary.base` for the picked route, `drive.surface` for the others.
+    - `RouteEnds`: a raised `LipBox` of 48 dp lines (a 20 dp mark, a `label.md` label before a
+      `title.sm` name, hairline dividers): From with `locate`, each stop with a numbered
+      `map.route.line` disc and a `close` button, To with `flag` and `chevron-down`, Add stop
+      in `primary.text` with `plus`.
+    - The stop pins are `PinMark.endpoint('1')`…; Choose on the map's button reads Add stop
+      (`plus`) for a stop; the setup's Start is "Let's go" (Preview half its width).
+    - The search for a stop or a destination: `SearchField(autofocus)` with a tertiary Cancel
+      beside it, then Choose on the map, Home and Work rows with a car glyph and the minutes,
+      and Recent.
+    - Coached and Quiet: Route (a `DriveMapButton` with the routes glyph) bottom right at a
+      touch while moving.
+- Stops, left as they are on purpose (item 134, 2026-11-23):
+  - No bubbles on Guided's live map (only on the setup's map).
+  - Stops don't join Recent, and Past drives and the debrief show no stop pins.
+  - A stop is the right side of its road when it has two; no side choice as for a destination.
 - Lakes are not named (Protomaps gives them no label point); Lisi Lake is the only one.
 - Left out of the road-class pass, on purpose:
   - A "Your streets" round left half-way is not offered as Continue on Explore (Continue matches

@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
@@ -108,6 +109,19 @@ class NavWords {
     NavSide.right => l10n.navArrivedRight(name(street)),
     NavSide.left => l10n.navArrivedLeft(name(street)),
     null => l10n.navArrived(name(street)),
+  };
+
+  /// A stop on the way by its place's name, else its street's (item 134).
+  String stopName(DriveTarget stop) => switch (stop.place) {
+    final p? => georgian ? p.nameKa : (p.nameEn ?? transliterate(p.nameKa)),
+    null => name(stop.street),
+  };
+
+  /// "You've reached your stop", with the side of the road it is on when it has one.
+  String reachedStop(DriveTarget stop, {NavSide? side}) => switch (side) {
+    NavSide.right => l10n.navStopRight(stopName(stop)),
+    NavSide.left => l10n.navStopLeft(stopName(stop)),
+    null => l10n.navStop(stopName(stop)),
   };
 
   /// Rescue's "Guiding you from here".

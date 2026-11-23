@@ -74,10 +74,12 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                nudge, "Pick your two drives", Past drives); a pick pushes the drive
                                `/drive/go` (`?to=home|work|run|surprise`, a street or place as
                                `extra`): DriveController and DriveScreen: the plan map with the
-                               route options (`DriveSetup.options`, `pickRoute`: Fastest, Most
-                               familiar; the Navigator follows the picked one, `prefer`) over the
-                               destination, the suggested level and the LevelPicker in a short sheet (its handle adds the
-                               rest); a place or pin is a stop by its road (`stopsOf`, item 132),
+                               route options as cards and their bubbles (`DriveSetup.options`,
+                               `pickRoute`: Fastest, Most familiar; the Navigator follows the picked one,
+                               `prefer`) under where the route runs (`DriveRouteEnds`: From, the stops on
+                               the way `DriveSetup.via`, To, Add stop; item 134), the LevelPicker and
+                               Let's go in a short sheet (its handle adds the rest); a stop or a new
+                               destination is picked on `RoutePlaceScreen`; a place or pin is a stop by its road (`stopsOf`, item 132),
                                the routes arriving with it on the right first, then the left; `/drive/place` sets Home or
                                Work; a drive run by pindoro_learning's Navigator at its level
                                (voice by `NavWords`, the speed chime) on `DriveRecordingView`:
@@ -86,10 +88,11 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                buttons that pop in at a touch (routes overview, Mute, level,
                                compass or Recentre), Coached
                                and Quiet's dial and Recovery, Off's black screen; day or night by sun
-                               time at the car; while moving only Guided's map and Recentre take
-                               touch, the stopped bar (Mute, level, Route: `DriveRouteScreen`'s
-                               Home, Work or a new destination, End drive, Off's Rescue) while
-                               stopped; back does nothing; arrival ends it), `/drive/preview` (the route
+                               time at the car; while moving Guided's map and buttons take touch, and
+                               Coached and Quiet show Route at a touch (`DriveRouteScreen`: the stops
+                               and a new destination at any speed, item 134); the stopped bar (Mute,
+                               level, Route, End drive, Off's Rescue) while stopped; a stop reached is
+                               said and grading restarts there (`drive.graded_from`, schema 30); back does nothing; arrival ends it), `/drive/preview` (the route
                                north-up with its numbered key turns, stepped through with Back and
                                Next, then "Recite the turns");
                                every decision without help reviews its J card (item 119), every

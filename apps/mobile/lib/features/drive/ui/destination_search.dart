@@ -38,8 +38,9 @@ final _findablesProvider = FutureProvider.autoDispose<List<_Findable>>((
 });
 
 /// Where to (DriveSetup `search`, board V32-10): the search field over the pack's streets and
-/// places; with nothing typed, [above], the [quick] rows (today's run, Surprise me), the recent
-/// destinations and [below]. [here] gives each its distance.
+/// places ([placeholder], else Where to; [autofocus] on a screen of its own, [trailing] beside
+/// it: Cancel); with nothing typed, [above], the [quick] rows (today's run, Surprise me), the
+/// recent destinations and [below]. [here] gives each its distance.
 class DestinationSearch extends ConsumerStatefulWidget {
   const DestinationSearch({
     required this.onPick,
@@ -47,6 +48,9 @@ class DestinationSearch extends ConsumerStatefulWidget {
     this.quick = const [],
     this.below = const [],
     this.here,
+    this.placeholder,
+    this.autofocus = false,
+    this.trailing,
     super.key,
   });
 
@@ -55,6 +59,9 @@ class DestinationSearch extends ConsumerStatefulWidget {
   final List<Widget> quick;
   final List<Widget> below;
   final LatLng? here;
+  final String? placeholder;
+  final bool autofocus;
+  final Widget? trailing;
 
   @override
   ConsumerState<DestinationSearch> createState() => _DestinationSearchState();
@@ -129,12 +136,21 @@ class _DestinationSearchState extends ConsumerState<DestinationSearch> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       spacing: PindoroSpace.s4,
       children: [
-        SearchField(
-          controller: _field,
-          placeholder: l10n.driveWhereTo,
-          clearLabel: l10n.commonClear,
-          autocorrect: false,
-          onChanged: (_) => setState(() {}),
+        Row(
+          spacing: PindoroSpace.s2,
+          children: [
+            Expanded(
+              child: SearchField(
+                controller: _field,
+                placeholder: widget.placeholder ?? l10n.driveWhereTo,
+                clearLabel: l10n.commonClear,
+                autocorrect: false,
+                autofocus: widget.autofocus,
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+            ?widget.trailing,
+          ],
         ),
         if (searching)
           findables == null

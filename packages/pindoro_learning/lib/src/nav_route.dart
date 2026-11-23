@@ -54,25 +54,44 @@ final class NavCost {
   /// A U-turn: the routing penalty's 30 s, at the top speed.
   double get uTurnCostM => 30 * _topKmh / 3.6;
 
-  /// The quickest legal drive from [from] to [to], having arrived on [approach]; the edges in
-  /// [avoid] cost [LearningConfig.navOptionPenalty] times as much.
+  /// The quickest legal drive from [from] to [to] through the stops [via] in order (item 134),
+  /// having arrived on [approach]: one leg per stop, each going on from the end of the last
+  /// one's road; the edges in [avoid] cost [LearningConfig.navOptionPenalty] times as much.
   Route? route(
     RoadGraph graph,
     int from,
     NavStop to, {
     RoadEdge? approach,
     Set<int> avoid = const {},
-  }) => graph.shortestRoute(
-    from,
-    to.goals,
-    approach: approach,
-    arriveOn: to.edge,
-    costOf: avoid.isEmpty
-        ? cost
-        : (e) =>
-              cost(e) *
-              (avoid.contains(e.id) ? LearningConfig.navOptionPenalty : 1),
-    uTurnCostM: uTurnCostM,
+    List<NavStop> via = const [],
+  }) {
+    double costOf(RoadEdge e) =>
+        cost(e) * (avoid.contains(e.id) ? LearningConfig.navOptionPenalty : 1);
+    Route? joined;
+    var at = from;
+    var inbound = approach;
+    for (final stop in [...via, to]) {
+      final leg = graph.shortestRoute(
+        at,
+        stop.goals,
+        approach: inbound,
+        arriveOn: stop.edge,
+        costOf: avoid.isEmpty ? cost : costOf,
+        uTurnCostM: uTurnCostM,
+      );
+      if (leg == null) return null;
+      joined = joined == null ? leg : _join(joined, leg);
+      at = leg.junctions.last;
+      inbound = leg.edges.lastOrNull ?? inbound;
+    }
+    return joined;
+  }
+
+  static Route _join(Route a, Route b) => Route(
+    [...a.junctions, ...b.junctions.skip(1)],
+    [...a.edges, ...b.edges],
+    a.lengthM + b.lengthM,
+    costM: a.costM + b.costM,
   );
 
   /// [route]'s time.
@@ -185,18 +204,55 @@ typedef NavDecision = ({
 });
 
 /// A planned drive: [route] (its first junction where the car is heading), its decisions and
-/// its time, to [stop] (a junction stop at the route's end when null).
+/// its time, to [stop] (a junction stop at the route's end when null) through the stops [via]
+/// in order (item 134).
 final class NavPlan {
-  const NavPlan(this.route, this.decisions, this.seconds, {this.stop});
+  const NavPlan(
+    this.route,
+    this.decisions,
+    this.seconds, {
+    this.stop,
+    this.via = const [],
+  });
 
   final Route route;
   final List<NavDecision> decisions;
   final double seconds;
   final NavStop? stop;
+  final List<NavStop> via;
 
   /// The stop's metres along [route]: short of its end by the stop's road past it; below 0 when
   /// the stop is on the road the car is on before the route's first junction.
   double get endM => route.lengthM - (stop?.pastM(route.junctions.last) ?? 0);
+
+  /// Each of [via]'s metres along [route], in order: where the route passes it after the one
+  /// before; 0 for one it never passes (on the road the car is on before the first junction).
+  List<double> get viaM {
+    final at = junctionM;
+    final out = <double>[];
+    var from = 0;
+    for (final v in via) {
+      final before = out.lastOrNull ?? 0;
+      double? found = v.junction != null && v.junction == route.junctions.first
+          ? 0
+          : null;
+      for (var i = from; i < route.edges.length && found == null; i++) {
+        final m = switch (v.edge) {
+          null when route.junctions[i + 1] == v.junction => at[i + 1],
+          null => null,
+          final e when route.edges[i].id == e.id =>
+            at[i] +
+                (route.junctions[i] == e.from
+                    ? v.alongM
+                    : e.lengthM - v.alongM),
+          _ => null,
+        };
+        if (m != null && m >= before) (found, from) = (m, i);
+      }
+      out.add(found ?? before);
+    }
+    return out;
+  }
 
   /// The route drawn up to the stop.
   MultiPolyline get lines => switch (slice(0, endM)) {
@@ -420,13 +476,14 @@ RouteLandmark? _landmarkAt(LatLng at, int j, List<RouteLandmark> landmarks) {
   return best;
 }
 
-/// The quickest drive from junction [from] (arrived on [approach]) to stop [to], with its
-/// decisions; null when none is legal.
+/// The quickest drive from junction [from] (arrived on [approach]) to stop [to] through the
+/// stops [via], with its decisions; null when none is legal.
 NavPlan? planNav(
   RoadGraph graph,
   NavCost cost, {
   required int from,
   required NavStop to,
+  List<NavStop> via = const [],
   RoadEdge? approach,
   Map<String, NamedStreet> streets = const {},
   List<RouteLandmark> landmarks = const [],
@@ -436,6 +493,7 @@ NavPlan? planNav(
   cost,
   from: from,
   to: to,
+  via: via,
   approach: approach,
   streets: streets,
   landmarks: landmarks,
@@ -443,7 +501,8 @@ NavPlan? planNav(
   count: 1,
 ).firstOrNull;
 
-/// Up to [count] drives from junction [from] (arrived on [approach]) to [to], the quickest first
+/// Up to [count] drives from junction [from] (arrived on [approach]) to [to] through [via], the
+/// quickest first
 /// (SPEC §16.23 item 129): each next one the quickest once the roads of the drives so far cost
 /// more, kept when it is not much slower and clearly different (see
 /// [LearningConfig.navOptions]); none when no drive is legal.
@@ -452,13 +511,14 @@ List<NavPlan> planNavOptions(
   NavCost cost, {
   required int from,
   required NavStop to,
+  List<NavStop> via = const [],
   RoadEdge? approach,
   Map<String, NamedStreet> streets = const {},
   List<RouteLandmark> landmarks = const [],
   Map<int, int> junctionNodes = const {},
   int count = LearningConfig.navOptions,
 }) {
-  final quickest = cost.route(graph, from, to, approach: approach);
+  final quickest = cost.route(graph, from, to, approach: approach, via: via);
   if (quickest == null) return const [];
   final kept = [quickest];
   final avoid = {for (final e in quickest.edges) e.id};
@@ -469,7 +529,14 @@ List<NavPlan> planNavOptions(
     i < LearningConfig.navOptionTries && kept.length < count;
     i++
   ) {
-    final next = cost.route(graph, from, to, approach: approach, avoid: avoid);
+    final next = cost.route(
+      graph,
+      from,
+      to,
+      approach: approach,
+      avoid: avoid,
+      via: via,
+    );
     final known = avoid.length;
     avoid.addAll([...?next?.edges.map((e) => e.id)]);
     if (next == null || avoid.length == known) break;
@@ -496,18 +563,20 @@ List<NavPlan> planNavOptions(
         ),
         cost.secondsTo(route, to),
         stop: to,
+        via: via,
       ),
   ];
 }
 
-/// The drives to a place's [stops] (from [stopsNear]): up to [count] - 1 to the first (the
-/// right side), then the quickest to the second (the left), so the player sees both and picks
-/// (SPEC §16.23 item 132); [planNavOptions] to a lone stop.
+/// The drives to a place's [stops] (from [stopsNear]) through [via]: up to [count] - 1 to the
+/// first (the right side), then the quickest to the second (the left), so the player sees both
+/// and picks (SPEC §16.23 item 132); [planNavOptions] to a lone stop.
 List<NavPlan> planStopOptions(
   RoadGraph graph,
   NavCost cost, {
   required int from,
   required List<NavStop> stops,
+  List<NavStop> via = const [],
   Map<String, NamedStreet> streets = const {},
   List<RouteLandmark> landmarks = const [],
   Map<int, int> junctionNodes = const {},
@@ -518,6 +587,7 @@ List<NavPlan> planStopOptions(
     cost,
     from: from,
     to: to,
+    via: via,
     streets: streets,
     landmarks: landmarks,
     junctionNodes: junctionNodes,

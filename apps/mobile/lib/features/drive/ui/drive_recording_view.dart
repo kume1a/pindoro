@@ -12,6 +12,9 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
 import 'package:pindoro/features/drive/ui/drive_levels.dart';
 import 'package:pindoro/features/drive/ui/drive_route_screen.dart';
+import 'package:pindoro/features/drive/ui/route_ends.dart';
+import 'package:pindoro/features/learning/data/drive_places.dart';
+import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/learning/ui/drive_labels.dart';
 import 'package:pindoro/features/learning/ui/landmark_glyph.dart';
 import 'package:pindoro/features/map/ui/drive_map.dart';
@@ -350,6 +353,7 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
                 route: options != null && _picked > 0 ? _pickedLines : _route,
                 turn: _turn,
                 destination: r.destination,
+                via: _viaPoints(r),
                 lost: lostS != null,
                 follow: _following && options == null,
                 northUp: _northUp,
@@ -416,7 +420,7 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
                 if (options != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: PindoroSpace.s2),
-                    child: _routes(context, r, options),
+                    child: _routes(context, r, options, settings),
                   ),
                 if (_levelOpen)
                   Padding(
@@ -519,12 +523,14 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
   static int _wholeMinutes(double seconds) =>
       math.max(1, (seconds / 60).ceil());
 
-  /// The routes overview (items 130, 133): the route driven now, then the other ways on, slower
-  /// or quicker; a row picks a way, Take this route drives it; Change destination while stopped.
+  /// The routes overview (items 130, 133, 134): the stops and the destination, then the route
+  /// driven now and the other ways on, slower or quicker, as cards; a card picks a way, Take this
+  /// route drives it. Add stop and Change destination at any speed.
   Widget _routes(
     BuildContext context,
     DriveRecording r,
     List<NavPlan> options,
+    Settings? settings,
   ) {
     final l10n = context.l10n;
     final nowS = r.view?.leftS ?? 0;
@@ -534,26 +540,26 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
 
     return RouteOptions(
       semanticsLabel: l10n.a11yRoutes,
-      nowLabel: l10n.driveRouteNow,
-      options: [
+      ends: DriveRouteEnds(to: targetName(r.target, settings)),
+      cards: [
         (
+          tag: l10n.driveRouteNow,
           time: _minutes(l10n, nowS),
           length: formatDistance(r.view?.leftM ?? 0, l10n),
-          delta: null,
+          note: null,
         ),
         for (final p in options)
           (
+            tag: delta(p),
             time: _minutes(l10n, p.seconds),
             length: formatDistance(p.endM, l10n),
-            delta: delta(p),
+            note: null,
           ),
       ],
       onPick: (i) => setState(() => _pickRoute(i)),
       selected: _picked,
       takeLabel: _picked > 0 ? l10n.driveTakeRoute : null,
       onTake: _takeRoute,
-      actionLabel: r.stopped ? l10n.driveChangeDest : null,
-      onAction: r.stopped ? () => _openRoute(context) : null,
     );
   }
 
@@ -615,6 +621,32 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
     if (view == null) return null;
     final next = view.next;
     final turned = view.turned;
+    // A stop on the way within the prepare reach and before the next decision (item 134).
+    final stop = r.via.firstOrNull;
+    final stopInM = view.viaInM;
+    if (stop != null &&
+        stopInM != null &&
+        stopInM <= LearningConfig.prepareM &&
+        (view.nextInM == null || stopInM < view.nextInM!)) {
+      final name = targetName(stop, settings);
+      final side = switch (view.side) {
+        NavSide.right => l10n.driveRouteRight,
+        NavSide.left => l10n.driveRouteLeft,
+        null => null,
+      };
+      final distance = formatDistance(
+        math.max(50, (stopInM / 50).round() * 50.0),
+        l10n,
+      );
+      return TurnPlate(
+        key: ValueKey('stop${r.via.length}'),
+        semanticsLabel: [l10n.navIn(distance), name, ?side].join(', '),
+        glyph: DriveGlyphName.flag,
+        headline: distance,
+        street: name,
+        note: side ?? l10n.driveStopN(1),
+      );
+    }
     if (next != null && (view.prepareM != null || turned == null)) {
       final glyph = decisionGlyph(next);
       final action = decisionAction(l10n, glyph, onto: next.street != null);
@@ -665,6 +697,19 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
       note: heading,
     );
   }
+
+  /// The stops on the way not reached yet, as Guided's map marks them; the same list while
+  /// they stay the same, so the map isn't sent them on every fix.
+  List<LatLng> _viaPoints(DriveRecording r) {
+    final graph = ref.watch(drivingGraphProvider).value;
+    if (graph == null || r.via.isEmpty) return const [];
+    if (identical(r.via, _viaFor)) return _via;
+    _viaFor = r.via;
+    return _via = [for (final t in r.via) targetPoint(graph, t)];
+  }
+
+  List<DriveTarget>? _viaFor;
+  List<LatLng> _via = const [];
 
   /// The card slides down and fades in, a new one replacing the last (TurnPlate motion).
   Widget _plateSwitch(BuildContext context, Widget? plate) {
@@ -849,137 +894,160 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
     final guardedAt = r.guardedAt;
     final guarded =
         guardedAt != null && now.difference(guardedAt) < _guardNotice;
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: SafeArea(
-            child: Center(
-              child: recovering
-                  ? _recovery(context, view!, settings)
-                  : Column(
-                      mainAxisSize: MainAxisSize.min,
-                      spacing: 28,
-                      children: [
-                        HeadingDial(
-                          heading: lost ? null : view?.headingDeg,
-                          letter: point == null
-                              ? ''
-                              : l10n.driveCardinal(point.name),
-                          status: status,
-                          semanticsLabel: lost || direction == null
-                              ? l10n.a11yHeadingLost
-                              : district == null
-                              ? l10n.a11yHeading(direction)
-                              : l10n.a11yHeadingIn(direction, district),
-                        ),
-                        if (district != null)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: PindoroSpace.s3,
-                            ),
-                            child: ExcludeSemantics(
-                              child: DistrictLine(district),
-                            ),
+    // A passenger's way in while moving (item 134): a touch shows Route for a while.
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => _touched(),
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: SafeArea(
+              child: Center(
+                child: recovering
+                    ? _recovery(context, view!, settings)
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        spacing: 28,
+                        children: [
+                          HeadingDial(
+                            heading: lost ? null : view?.headingDeg,
+                            letter: point == null
+                                ? ''
+                                : l10n.driveCardinal(point.name),
+                            status: status,
+                            semanticsLabel: lost || direction == null
+                                ? l10n.a11yHeadingLost
+                                : district == null
+                                ? l10n.a11yHeading(direction)
+                                : l10n.a11yHeadingIn(direction, district),
                           ),
-                      ],
+                          if (district != null)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: PindoroSpace.s3,
+                              ),
+                              child: ExcludeSemantics(
+                                child: DistrictLine(district),
+                              ),
+                            ),
+                        ],
+                      ),
+              ),
+            ),
+          ),
+          if (recovering)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Opacity(
+                opacity: goodS == null ? 1 : 0.45,
+                child: const RecoveryBand(),
+              ),
+            ),
+          if (!lost && !r.stopped && limit != null)
+            Positioned(
+              top: top + PindoroSpace.s2,
+              left: PindoroSpace.s3,
+              child: Row(
+                spacing: PindoroSpace.s3,
+                children: [
+                  SpeedLimitSign(
+                    limit: limit,
+                    over: over,
+                    beat: r.beat,
+                    semanticsLabel: over
+                        ? l10n.a11ySpeedOver(limit)
+                        : l10n.a11ySpeedLimit(limit),
+                  ),
+                  if (view?.camera ?? false)
+                    Semantics(
+                      label: l10n.a11yCameraAhead,
+                      child: const CameraBadge(),
                     ),
+                ],
+              ),
             ),
-          ),
-        ),
-        if (recovering)
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Opacity(
-              opacity: goodS == null ? 1 : 0.45,
-              child: const RecoveryBand(),
-            ),
-          ),
-        if (!lost && !r.stopped && limit != null)
-          Positioned(
-            top: top + PindoroSpace.s2,
-            left: PindoroSpace.s3,
+            // The dot's centre sits 24 dp under the inset and 28 dp in.
+            top: top,
+            right: PindoroSpace.s1,
             child: Row(
               spacing: PindoroSpace.s3,
               children: [
-                SpeedLimitSign(
-                  limit: limit,
-                  over: over,
-                  beat: r.beat,
-                  semanticsLabel: over
-                      ? l10n.a11ySpeedOver(limit)
-                      : l10n.a11ySpeedLimit(limit),
+                if (r.level == DriveLevel.coached && r.speaking)
+                  const SpeakingBars(),
+                StatusDot(
+                  status: status,
+                  ring: recovering && goodS != null
+                      ? goodS / LearningConfig.recoveryHoldS
+                      : null,
+                  semanticsLabel: switch (status) {
+                    DriveStatus.good => l10n.a11yOnGoodPath,
+                    DriveStatus.recovering => l10n.a11yRecoveringDot,
+                    DriveStatus.lost => l10n.a11yFindingPosition,
+                  },
                 ),
-                if (view?.camera ?? false)
-                  Semantics(
-                    label: l10n.a11yCameraAhead,
-                    child: const CameraBadge(),
-                  ),
               ],
             ),
           ),
-        Positioned(
-          // The dot's centre sits 24 dp under the inset and 28 dp in.
-          top: top,
-          right: PindoroSpace.s1,
-          child: Row(
-            spacing: PindoroSpace.s3,
-            children: [
-              if (r.level == DriveLevel.coached && r.speaking)
-                const SpeakingBars(),
-              StatusDot(
-                status: status,
-                ring: recovering && goodS != null
-                    ? goodS / LearningConfig.recoveryHoldS
-                    : null,
-                semanticsLabel: switch (status) {
-                  DriveStatus.good => l10n.a11yOnGoodPath,
-                  DriveStatus.recovering => l10n.a11yRecoveringDot,
-                  DriveStatus.lost => l10n.a11yFindingPosition,
-                },
-              ),
-            ],
-          ),
-        ),
-        if (guarded)
-          Positioned(
-            left: PindoroSpace.s3,
-            right: PindoroSpace.s3,
-            bottom: MediaQuery.paddingOf(context).bottom + PindoroSpace.s16,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 18,
-                  vertical: PindoroSpace.s3,
-                ),
-                decoration: BoxDecoration(
-                  color: c.drivePlate,
-                  borderRadius: BorderRadius.circular(PindoroRadius.lg),
-                ),
-                child: Semantics(
-                  liveRegion: true,
-                  child: Text(
-                    l10n.driveNowLevel(levelLabel(l10n, r.level)),
-                    style: PindoroType.driveRead.copyWith(
-                      color: c.drivePlateText,
+          if (guarded)
+            Positioned(
+              left: PindoroSpace.s3,
+              right: PindoroSpace.s3,
+              bottom: MediaQuery.paddingOf(context).bottom + PindoroSpace.s16,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: PindoroSpace.s3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: c.drivePlate,
+                    borderRadius: BorderRadius.circular(PindoroRadius.lg),
+                  ),
+                  child: Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      l10n.driveNowLevel(levelLabel(l10n, r.level)),
+                      style: PindoroType.driveRead.copyWith(
+                        color: c.drivePlateText,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _rise(
+              context,
+              r,
+              r.stopped ? _stoppedBar(context, r, now) : null,
+            ),
           ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: _rise(
-            context,
-            r,
-            r.stopped ? _stoppedBar(context, r, now) : null,
-          ),
-        ),
-      ],
+          if (!r.stopped)
+            Positioned(
+              right: PindoroSpace.s3,
+              bottom: MediaQuery.paddingOf(context).bottom + PindoroSpace.s4,
+              child: _pop(
+                context,
+                DriveMapButton(
+                  label: l10n.a11yDriveRoute,
+                  onTap: () => _openRoute(context),
+                  child: DriveGlyph(
+                    DriveGlyphName.routes,
+                    size: 28,
+                    color: c.driveText,
+                    cut: c.driveSurface,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 

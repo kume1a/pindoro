@@ -300,6 +300,9 @@ abstract final class LearningConfig {
   static const double navStopReachM = 300;
   static const double navStopSideM = 5;
 
+  /// Stops on the way to the destination (item 134): at most this many at once.
+  static const int navViaMax = 5;
+
   /// A place tapped on the map whose tile has no pack id is the pack's place of that name within
   /// this of it (item 132).
   static const double placeTapNameM = 50;

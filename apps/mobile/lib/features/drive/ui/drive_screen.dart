@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' show max;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,19 +11,20 @@ import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/drive/ui/debrief_screen.dart';
-import 'package:pindoro/features/drive/ui/destination_search.dart';
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
 import 'package:pindoro/features/drive/ui/drive_levels.dart';
 import 'package:pindoro/features/drive/ui/drive_recording_view.dart';
 import 'package:pindoro/features/drive/ui/plan_map.dart';
+import 'package:pindoro/features/drive/ui/route_ends.dart';
 import 'package:pindoro/features/drive/ui/where_to.dart';
 import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/features/learning/data/nav_data.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/learning/ui/drive_labels.dart';
 import 'package:pindoro/features/learning/ui/drive_week_card.dart';
-import 'package:pindoro/features/learning/ui/landmark_glyph.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
+import 'package:pindoro/features/map/data/route_callouts.dart';
+import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
@@ -105,8 +107,8 @@ class _DriveScreenState extends ConsumerState<DriveScreen> {
   }
 }
 
-/// Where to (DriveSetup `search`), for a new destination from the stopped bar's Route or the
-/// setup's Change: the Drive tab's [WhereTo] choosing in place.
+/// Where to (DriveSetup `search`), for a drive opened with no destination: the Drive tab's
+/// [WhereTo] choosing in place.
 class _Search extends ConsumerWidget {
   const _Search({required this.setup});
 
@@ -167,7 +169,6 @@ class _SetupState extends ConsumerState<_Setup> {
     final graph = ref.watch(drivingGraphProvider).value;
     final to = setup.to!;
     final target = setup.target;
-    final plan = setup.suggestion?.plan;
     String name(NamedStreet s) => streetName(s, settings);
     final ready = target != null || (to == DriveTo.run && run != null);
     Widget rule(PindoroGlyph glyph, String title, String note) =>
@@ -188,17 +189,6 @@ class _SetupState extends ConsumerState<_Setup> {
         _ => l10n.driveTitle,
       },
     };
-    final line = switch ((to, run)) {
-      (DriveTo.run, final run?) => runLine(l10n, run, name),
-      _ => [
-        if (target != null && graph != null)
-          const PlaceLine().of(context, ref, targetPoint(graph, target)),
-        if (plan != null) ...[
-          formatDistance(plan.endM, l10n),
-          l10n.driveAboutMin(plan.minutes),
-        ],
-      ].where((s) => s.isNotEmpty).join(' · '),
-    };
     final footer = Row(
       spacing: PindoroSpace.s3,
       children: [
@@ -212,8 +202,9 @@ class _SetupState extends ConsumerState<_Setup> {
           ),
         ),
         Expanded(
+          flex: 2,
           child: PindoroButton(
-            label: l10n.driveStart,
+            label: l10n.driveLetsGo,
             icon: PindoroGlyph.car,
             onPressed: ready
                 ? () => unawaited(
@@ -233,25 +224,17 @@ class _SetupState extends ConsumerState<_Setup> {
       color: PindoroTheme.of(context).colors.textSecondary,
     );
     final content = <Widget>[
-      ListGroup(
-        children: [
-          ListRow(
-            leading: RowTile(_glyph(to, target)),
-            title: title,
-            subtitle: line.isEmpty ? null : line,
-            trailing: PindoroIconButton(
-              glyph: PindoroGlyph.edit,
-              semanticLabel: l10n.driveChangeDest,
-              onPressed: controller.clear,
-            ),
-          ),
-        ],
+      DriveRouteEnds(
+        to: switch ((to, run)) {
+          (DriveTo.run, final run?) => runLine(l10n, run, name),
+          _ => title,
+        },
       ),
-      if (options.length > 1)
-        _RouteOptions(
-          options: options,
-          chosen: chosen,
-          onPick: controller.pickRoute,
+      if (options.isNotEmpty)
+        RouteCards(
+          cards: _cards(l10n, options),
+          selected: chosen == null ? 0 : max(0, options.indexOf(chosen)),
+          onPick: (i) => controller.pickRoute(options[i]),
         ),
       if (denied != null || setup.noTarget)
         ListRow(
@@ -352,6 +335,10 @@ class _SetupState extends ConsumerState<_Setup> {
         end: target == null || graph == null
             ? null
             : targetPoint(graph, target),
+        pins: _marks(context, options, chosen, [
+          if (graph != null)
+            for (final v in setup.via) targetPoint(graph, v),
+        ]),
         names: MapNames.everything,
         onTap: options.length < 2
             ? null
@@ -412,88 +399,88 @@ DriveSuggestion _nearest(List<DriveSuggestion> options, LatLng at) {
   return options.reduce((a, b) => off(b) < off(a) ? b : a);
 }
 
-/// The route options (SPEC §16.23 items 129, 132) when there is more than one, a line each: the
-/// time and length, then Fastest (the quickest) or Most familiar (the most turns you already
-/// know), and the side of the road the place is on when the options arrive on both, with the
-/// time against the first option for one on the other side; the picked one ticked. A tap picks
-/// it; so does a tap on its line on the map.
-class _RouteOptions extends StatelessWidget {
-  const _RouteOptions({
-    required this.options,
-    required this.chosen,
-    required this.onPick,
-  });
-
-  final List<DriveSuggestion> options;
-  final DriveSuggestion? chosen;
-  final ValueChanged<DriveSuggestion> onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final c = PindoroTheme.of(context).colors;
-    double known(DriveSuggestion s) => s.turns == 0 ? 0 : s.yours / s.turns;
-    int best(bool Function(DriveSuggestion a, DriveSuggestion b) better) =>
-        options.indexed.reduce((a, b) => better(b.$2, a.$2) ? b : a).$1;
-    final fastest = best((a, b) => a.plan.seconds < b.plan.seconds);
-    final familiar = best((a, b) => known(a) > known(b));
-    NavSide? side(DriveSuggestion s) => s.plan.stop?.side;
-    final first = options.first;
-    final sides = options.map(side).toSet().length > 1;
-    return ListGroup(
-      children: [
-        for (final (i, o) in options.indexed)
-          () {
-            final title = [
-              l10n.unitMinutes(o.plan.minutes),
-              formatDistance(o.plan.endM, l10n),
-            ].join(' · ');
-            final minutes = o.plan.minutes - first.plan.minutes;
-            // The side first: a short row cuts the end off.
-            final tags = [
-              if (sides)
-                side(o) == NavSide.left
-                    ? l10n.driveRouteLeft
-                    : l10n.driveRouteRight,
-              if (sides && side(o) != side(first)) routeDelta(l10n, minutes),
-              if (i == fastest) l10n.driveRouteFastest,
-              if (i == familiar && i != fastest) l10n.driveRouteFamiliar,
-            ].join(' · ');
-            final picked = o == chosen;
-            return ListRow(
-              dense: true,
-              title: title,
-              subtitle: tags.isEmpty ? null : tags,
-              trailing: picked
-                  ? PindoroIcon(PindoroGlyph.checkCircle, color: c.primaryText)
-                  : null,
-              semanticsLabel: l10n.a11yRouteOption(
-                i + 1,
-                options.length,
-                [
-                  title,
-                  tags,
-                  l10n.driveYours(o.yours, o.turns),
-                ].where((s) => s.isNotEmpty).join(', '),
-                picked ? 'yes' : 'no',
-              ),
-              onTap: () => onPick(o),
-            );
-          }(),
-      ],
-    );
-  }
+/// The route options as cards (SPEC §16.23 items 129, 132, 134): each one's time and length
+/// under its tag (Fastest, Most familiar, else its side of the road when the options arrive on
+/// both, else Another way), and under them its side and, on the other side, its time against
+/// the first; a tap picks it, as does a tap on its line on the map.
+List<RouteCard> _cards(AppLocalizations l10n, List<DriveSuggestion> options) {
+  double known(DriveSuggestion s) => s.turns == 0 ? 0 : s.yours / s.turns;
+  int best(bool Function(DriveSuggestion a, DriveSuggestion b) better) =>
+      options.indexed.reduce((a, b) => better(b.$2, a.$2) ? b : a).$1;
+  final fastest = best((a, b) => a.plan.seconds < b.plan.seconds);
+  final familiar = best((a, b) => known(a) > known(b));
+  NavSide? side(DriveSuggestion s) => s.plan.stop?.side;
+  final first = options.first;
+  final sides = options.map(side).toSet().length > 1;
+  return [
+    for (final (i, o) in options.indexed)
+      () {
+        final sideLabel = side(o) == NavSide.left
+            ? l10n.driveRouteLeft
+            : l10n.driveRouteRight;
+        final tag = i == fastest
+            ? l10n.driveRouteFastest
+            : i == familiar
+            ? l10n.driveRouteFamiliar
+            : sides
+            ? sideLabel
+            : l10n.driveRouteOther;
+        final note = [
+          if (sides && tag != sideLabel) sideLabel,
+          if (sides && side(o) != side(first))
+            routeDelta(l10n, o.plan.minutes - first.plan.minutes),
+        ].join(' · ');
+        return (
+          tag: tag,
+          time: l10n.unitMinutes(o.plan.minutes),
+          length: formatDistance(o.plan.endM, l10n),
+          note: note.isEmpty ? null : note,
+        );
+      }(),
+  ];
 }
 
-/// The destination's glyph: Home, Work, the run's car, Surprise me's compass,
-/// a place's kind, else a pin.
-PindoroGlyph _glyph(DriveTo to, DriveTarget? target) => switch (to) {
-  DriveTo.home => PindoroGlyph.home,
-  DriveTo.work => PindoroGlyph.briefcase,
-  DriveTo.run => PindoroGlyph.car,
-  DriveTo.surprise => PindoroGlyph.compass,
-  DriveTo.own => switch (target?.place) {
-    final p? => placeGlyph(p),
-    null => PindoroGlyph.pin,
-  },
-};
+/// The setup map's marks (item 134): a bubble on each route option (the picked one's minutes
+/// and length, the others' minutes against it) where it runs apart from the rest, and each stop
+/// on the way's numbered pin.
+List<(LatLng, Widget)> _marks(
+  BuildContext context,
+  List<DriveSuggestion> options,
+  DriveSuggestion? chosen,
+  List<LatLng> stops,
+) {
+  final l10n = context.l10n;
+  final colors = PindoroTheme.of(context).colors;
+  // Anchored at their foot: the tail's tip, the pin's point.
+  Widget foot(Widget child) =>
+      FractionalTranslation(translation: const Offset(0, -0.5), child: child);
+  // The picked route's bubble first; each next one also clear of those placed.
+  final placed = <LatLng>[];
+  final bubbles = <(LatLng, Widget)>[];
+  for (final o in [?chosen, ...options.where((o) => o != chosen)]) {
+    final at = calloutAt(o.plan.lines, [
+      for (final other in options)
+        if (other != o) ...other.plan.lines,
+    ], placed: placed);
+    if (at == null) continue;
+    placed.add(at);
+    bubbles.add((
+      at,
+      foot(
+        o == chosen || chosen == null
+            ? RouteCallout([
+                l10n.unitMinutes(o.plan.minutes),
+                formatDistance(o.plan.endM, l10n),
+              ], picked: true)
+            : RouteCallout([
+                routeDelta(l10n, o.plan.minutes - chosen.plan.minutes),
+              ]),
+      ),
+    ));
+  }
+  return [
+    ...bubbles,
+    for (final (i, at) in stops.indexed)
+      (at, foot(PinMark.endpoint('${i + 1}', colors))),
+  ];
+}

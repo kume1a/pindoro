@@ -22,6 +22,7 @@ class SearchField extends StatefulWidget {
     this.obscureText = false,
     this.autocorrect = true,
     this.autofillHints,
+    this.autofocus = false,
   });
 
   final TextEditingController controller;
@@ -43,6 +44,9 @@ class SearchField extends StatefulWidget {
 
   /// What the platform may autofill (a username, a password).
   final Iterable<String>? autofillHints;
+
+  /// Focused, keyboard up, as the screen opens (a search screen of its own).
+  final bool autofocus;
 
   @override
   State<SearchField> createState() => _SearchFieldState();
@@ -99,6 +103,7 @@ class _SearchFieldState extends State<SearchField> {
                   textInputAction: widget.textInputAction,
                   textCapitalization: widget.textCapitalization,
                   obscureText: widget.obscureText,
+                  autofocus: widget.autofocus,
                   autofillHints: widget.autofillHints,
                   autocorrect: widget.autocorrect,
                   enableSuggestions: widget.autocorrect,

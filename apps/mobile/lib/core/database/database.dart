@@ -451,6 +451,11 @@ class Drives extends Table {
   RealColumn get targetLat => real().nullable()();
   RealColumn get targetLon => real().nullable()();
 
+  /// The first of its fixes the drive was graded from: where the destination last changed or
+  /// the last stop on the way was reached (items 116, 134); null from the start, and on drives
+  /// before schema 30.
+  IntColumn get gradedFrom => integer().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -561,7 +566,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 29;
+  static const int version = 30;
 
   @override
   int get schemaVersion => version;
@@ -712,6 +717,8 @@ class AppDatabase extends _$AppDatabase {
         await m.addColumn(schema.drive, schema.drive.targetLat);
         await m.addColumn(schema.drive, schema.drive.targetLon);
       },
+      from29To30: (m, schema) =>
+          m.addColumn(schema.drive, schema.drive.gradedFrom),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

@@ -79,13 +79,15 @@ final navHistoryProvider =
       );
     });
 
-/// The ways navigation offers from [here] to the stops [to] (up to [count]: the quickest first,
-/// both sides of the road when a place has two, item 132), from the nearer end of the road
-/// [here] is on; none off the road graph or with no way there.
+/// The ways navigation offers from [here] to the stops [to] through the stops on the way [via]
+/// (up to [count]: the quickest first, both sides of the road when a place has two, items 132,
+/// 134), from the nearer end of the road [here] is on; none off the road graph or with no way
+/// there.
 List<NavPlan> plansFrom(
   RoadGraph graph,
   LatLng here,
   List<NavStop> to, {
+  List<NavStop> via = const [],
   required Map<String, NamedStreet> streets,
   required List<RouteLandmark> landmarks,
   required Map<int, int> junctionNodes,
@@ -104,6 +106,7 @@ List<NavPlan> plansFrom(
     NavCost(streets, toleranceKmh: toleranceKmh),
     from: from,
     stops: to,
+    via: via,
     streets: streets,
     landmarks: landmarks,
     junctionNodes: junctionNodes,
