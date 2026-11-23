@@ -346,8 +346,9 @@ Polyline _toBend(Polyline line) {
   for (var k = 1; k + 1 < line.length; k++) {
     final turn =
         (bearingDegrees(line[k], line[k + 1]) - first + 540) % 360 - 180;
-    if (turn.abs() > LearningConfig.navArrowBendDeg)
+    if (turn.abs() > LearningConfig.navArrowBendDeg) {
       return line.sublist(0, k + 1);
+    }
   }
   return line;
 }
