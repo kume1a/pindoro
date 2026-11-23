@@ -322,12 +322,36 @@ Polyline linePart(Polyline line, double from, double to) {
   ];
 }
 
-/// The arrow Guided draws on the map at [d] (SPEC §16.23 item 130): [plan]'s route from
-/// [LearningConfig.navArrowBeforeM] before it to [LearningConfig.navArrowAfterM] after.
-Polyline turnArrow(NavPlan plan, NavDecision d) => plan.slice(
-  d.atM - LearningConfig.navArrowBeforeM,
-  d.atM + LearningConfig.navArrowAfterM,
-);
+/// The arrow Guided draws on the map at [d] (SPEC §16.23 items 130, 135): [plan]'s route from
+/// [LearningConfig.navArrowBeforeM] before it to [LearningConfig.navArrowAfterM] after, its way
+/// on stopping [LearningConfig.navArrowGapM] short of the next decision and at the first bend
+/// sharper than [LearningConfig.navArrowBendDeg], so it shows one turn only.
+Polyline turnArrow(NavPlan plan, NavDecision d) {
+  final i = plan.decisions.indexOf(d);
+  final after = i < 0 ? null : plan.decisions.elementAtOrNull(i + 1);
+  final endM = min(
+    d.atM + LearningConfig.navArrowAfterM,
+    after == null ? double.infinity : after.atM - LearningConfig.navArrowGapM,
+  );
+  final wayIn = plan.slice(d.atM - LearningConfig.navArrowBeforeM, d.atM);
+  final wayOn = endM <= d.atM ? <LatLng>[] : _toBend(plan.slice(d.atM, endM));
+  return [...wayIn, ...wayOn.skip(wayIn.isEmpty ? 0 : 1)];
+}
+
+/// [line] up to its first point where it turns more than [LearningConfig.navArrowBendDeg]
+/// from the way it set out.
+Polyline _toBend(Polyline line) {
+  if (line.length < 3) return line;
+  final first = bearingDegrees(line[0], line[1]);
+  for (var k = 1; k + 1 < line.length; k++) {
+    final turn =
+        (bearingDegrees(line[k], line[k + 1]) - first + 540) % 360 - 180;
+    if (turn.abs() > LearningConfig.navArrowBendDeg) {
+      return line.sublist(0, k + 1);
+    }
+  }
+  return line;
+}
 
 /// A lane into a junction, left to right (item 130): its painted arrows as turn angles in
 /// degrees (0 straight on, -90 left, 90 right, 180 turning around) and [use], the arrow to take

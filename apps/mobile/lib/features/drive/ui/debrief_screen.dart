@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' show max, min;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -232,6 +233,32 @@ String _streetOf(
   null => l10n.debriefLinkRoad,
 };
 
+/// How far from its junction a turn's map shows each way in or on.
+const double _turnFrameM = 150;
+
+/// What a turn's map frames (item 135): the first [_turnFrameM] of each line from the junction
+/// [at], each point with its mirror through [at], so the junction keeps the map's middle.
+List<LatLng> _aroundTurn(LatLng at, List<Polyline> fromJunction) {
+  final local = LocalProjection(at);
+  double lengthM(Polyline line) => [
+    for (var i = 1; i < line.length; i++) distanceBetween(line[i - 1], line[i]),
+  ].fold(0.0, (a, b) => a + b);
+  return [
+    for (final line in fromJunction)
+      if (line.length > 1)
+        for (final p in linePart(
+          line,
+          0,
+          min(1, _turnFrameM / lengthM(line)),
+        )) ...[
+          p,
+          local.unproject(switch (local.project(p)) {
+            (final x, final y) => (-x, -y),
+          }),
+        ],
+  ];
+}
+
 /// The turn being gone through on the map: the way in (and, revealed, the way taken) in
 /// cobalt, a good way on in yellow.
 Widget _turnMap(
@@ -249,7 +276,11 @@ Widget _turnMap(
     semanticsLabel: context.l10n.a11yDebriefTurnMap,
     track: [approach, if (revealed) done],
     route: [if (revealed) way],
-    frame: [...approach, ...done, ...way],
+    frame: _aroundTurn(graph.at(t.junction), [
+      approach.reversed.toList(),
+      done,
+      way,
+    ]),
     pins: [
       MapMark(
         graph.at(t.junction),
@@ -290,6 +321,9 @@ class _Offer extends ConsumerWidget {
     final c = PindoroTheme.of(context).colors;
     final settings = ref.watch(settingsProvider).value;
     final graph = ref.watch(drivingGraphProvider).value;
+    final place = ref
+        .watch(packPlacesProvider)
+        .value?[debrief.drive.targetPlace];
     final d = debrief;
     final lines = _lines(d, graph);
     final minutes = d.drive.endedAt
@@ -312,7 +346,9 @@ class _Offer extends ConsumerWidget {
                 child: Text(
                   d.drive.outcome == DriveOutcome.arrived
                       ? l10n.debriefArrived(
-                          streetName(d.review.target.street, settings),
+                          place == null
+                              ? streetName(d.review.target.street, settings)
+                              : placeLabel(place, settings),
                         )
                       : l10n.debriefEnded,
                   style: PindoroType.titleLg.copyWith(color: c.textPrimary),
@@ -596,6 +632,21 @@ class _Review extends ConsumerWidget {
 /// The tier and the numbers (V32-50 `summary`, V32-60 one drive): how much longer than the
 /// best route, U-turns, times lost, GPS gaps and the turns; "Next time: try Quiet" when the
 /// route's suggestion stepped down.
+/// How a drive that got there found the way (item 135): on its own (without GPS at Off), with
+/// help at some turns, or led by the voice at every one.
+String _found(AppLocalizations l10n, DriveDebrief d) {
+  final c = d.counts;
+  final helped = c.helped + c.watched;
+  if (helped == 0) {
+    return d.drive.level == DriveLevel.off
+        ? l10n.driveFound
+        : l10n.driveFoundOwn;
+  }
+  return c.own == 0 && c.missed == 0
+      ? l10n.driveLedAll
+      : l10n.driveFoundHelped(helped);
+}
+
 class _Summary extends ConsumerWidget {
   const _Summary({
     required this.debrief,
@@ -630,7 +681,7 @@ class _Summary extends ConsumerWidget {
       else if (tier == Tier.miss)
         l10n.driveLongWay
       else
-        l10n.driveFound,
+        _found(l10n, d),
       if (uTurns > 0) l10n.driveUTurns(uTurns),
       if (d.drive.rescued) l10n.debriefRescued,
       if (review.gaps.count > 0)
@@ -678,7 +729,9 @@ class _Summary extends ConsumerWidget {
                         value: stretch == null
                             ? l10n.progressNoValue
                             : l10n.driveLongerBy(
-                                formatNumber(((stretch - 1) * 100).round()),
+                                formatNumber(
+                                  max(0, ((stretch - 1) * 100).round()),
+                                ),
                               ),
                         glyph: PindoroGlyph.route,
                       ),

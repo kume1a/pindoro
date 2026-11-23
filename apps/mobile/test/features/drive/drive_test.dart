@@ -613,6 +613,47 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  testWidgets(
+    'a Guided drive\'s result says the voice led the way, not that it was found '
+    'without GPS',
+    (tester) async {
+      await pumpDrive(tester);
+      await tester.tap(find.text('Guided'));
+      await tester.pump();
+      await tester.tap(find.text("Let's go"));
+      await pumpUntil(tester, find.byType(StoppedBar));
+      final last = await tester.runAsync(() => location.drive(route, now));
+      await tester.runAsync(
+        () => location.park(route.lines.last.last, last!, 3),
+      );
+      await pumpUntil(tester, find.text('Later'));
+      await tester.tap(find.text('Go through your drive'));
+      await tester.pump();
+      for (var i = 0; i < 20 && find.text('Next').evaluate().isEmpty; i++) {
+        for (final label in [
+          'I don’t remember',
+          'Show me',
+          'Next turn',
+          'See the whole drive',
+        ]) {
+          if (find.text(label).evaluate().isNotEmpty) {
+            await tester.tap(find.text(label));
+            await tester.pump();
+          }
+        }
+        await pumpUntil(tester, find.text('Next'));
+      }
+      await tester.tap(find.text('Next'));
+      await tester.pump();
+      await settle(tester);
+      expect(
+        find.textContaining('The voice led you all the way.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('without GPS'), findsNothing);
+    },
+  );
+
   testWidgets('the screens: setup with today\'s run at Off, the black '
       'recording screen, then the debrief: each turn recalled, then shown, '
       'the marks, the tier and the streets', (tester) async {
@@ -678,6 +719,7 @@ void main() {
     await tester.pump();
     await settle(tester);
     expect(find.text('Perfect!'), findsOneWidget);
+    expect(find.textContaining('You found it without GPS.'), findsOneWidget);
     await tester.tap(find.text('Next: streets you drove'));
     await tester.pump();
     expect(find.text('Streets you drove'), findsOneWidget);
@@ -825,6 +867,11 @@ void main() {
     final northUp = find.bySemanticsLabel('North up');
     expect(northUp, findsNothing, reason: 'no buttons while driving');
     expect(maps.last.follow, isTrue);
+    expect(
+      maps.last.places,
+      isNotNull,
+      reason: 'following, only the places near the route',
+    );
     // A drag: the map stays put, and Recentre pops in where the compass goes.
     maps.last.onMoved!();
     await tester.pump();
@@ -1282,6 +1329,30 @@ void main() {
     expect(find.byType(LevelSuggestion), findsNothing);
   });
 
+  testWidgets(
+    'the setup plans from the last known fix at once, then again from a fresh '
+    'one that lies more than 50 m away',
+    (tester) async {
+      // The fresh fix: a few junctions along the drive's route.
+      final along = route.lines[route.lines.length ~/ 2].first;
+      location.fresh = along;
+      await pumpDrive(tester);
+      await pumpUntil(tester, find.text('Fastest'));
+      for (var i = 0; i < 20; i++) {
+        final start = plans.last.route?.best.firstOrNull?.firstOrNull;
+        if (start != null && distanceBetween(start, along) < 60) break;
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 50)),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(
+        distanceBetween(plans.last.route!.best.first.first, along),
+        lessThan(60),
+      );
+    },
+  );
+
   testWidgets('approximate location: the setup says so, and a tap asks for '
       'precise', (tester) async {
     location.approximate = true;
@@ -1398,8 +1469,14 @@ class _Track extends LocationService {
   bool approximate = false;
   int askedPrecise = 0;
 
+  /// What a fresh fix finds; none by default.
+  LatLng? fresh;
+
   @override
   Future<LocationResult> locate({bool ask = true}) async => Located(here);
+
+  @override
+  Future<LatLng?> freshFix() async => fresh;
 
   @override
   Future<bool> precise() async => !approximate;

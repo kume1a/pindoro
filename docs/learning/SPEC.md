@@ -195,8 +195,9 @@ Display tiers keep their colours, icons, sounds and haptics; the XP chip becomes
 3. Viterbi over candidate junctions on the edge-expanded directed graph, allowing up to 2 silent connectors
    of ≤ 150 m each (penalised); output the cheapest legal path through the named streets in order. Costs are
    metres; a U-turn adds `uTurnPenaltyM` and is forbidden on divided roads.
-4. `stretch = length(path) / length(shortest legal A→B)`. Invalid if streets don't meet, a move is illegal
-   (one-way, restriction) or > 2 connectors are needed.
+4. `stretch = cost(path) / cost(shortest legal A→B)`, a cost being the length plus `uTurnPenaltyM` per
+   U-turn (amended 2026-11-23, item 135: a way round by a U-turn is never shorter than the best).
+   Invalid if streets don't meet, a move is illegal (one-way, restriction) or > 2 connectors are needed.
 5. Tier and rating: ≤ 1.03 and no hints → Perfect / Easy; ≤ 1.25 → Great / Good; ≤ 1.60 → Close / Hard;
    beyond or invalid → Miss / Again ("Not drivable" when illegal). A recital typed with next-street
    autocomplete is recognition, so it is capped at Great / Good.
@@ -433,6 +434,7 @@ pindoro_core `ScoringConfig`, not copied):
 | `landmarkAtM`, `confirmDelayS`, `districtCueM`, `districtCueS`          | 50, 6, 2000, 180                    |
 | `gpsLostSayS`                                                           | 60                                  |
 | `navRoadAheadM`, `navArrowBeforeM`, `navArrowAfterM`, `laneMatchDeg`    | 10, 35, 20, 60                      |
+| `navArrowGapM`, `navArrowBendDeg`                                       | 3, 45                               |
 | `creditMaxR`, `hesitationBeforeM`, `noCreditAfterPromptS`               | 0.92, 150, 60                       |
 | `habitPasses`, `habitWindowDays`, `habitCreditDays`                     | 3, 14, 7                            |
 | `keyTurnsMin`, `keyTurnsMax`, `complexWaysOn`                           | 3, 7, 4                             |
@@ -1362,3 +1364,29 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        Cancel beside it; with nothing typed, Choose on the map (its button "Add stop" for a
        stop), Home and Work with the minutes there, and Recent.
      - Guided's routes overview (amends item 130) shows the routes as the same cards.
+135. **Drive polish after watching simulated drives** (2026-11-23):
+     - Traffic keeps right, so a U-turn turns left: the U-turn icon and drive glyph go up the
+       right and back down the left.
+     - The route chooser plans at once from where the phone last knew it was (up to 2 min old),
+       asks for a fresh fix meanwhile and plans again from it when it lies more than 50 m away.
+     - A U-turn weighs `uTurnPenaltyM` in the stretch (§5.3 step 4) as it does in the best route:
+       a planned U-turn on a divided avenue no longer makes a drive "shorter than the best".
+     - A drive's result tells how the way was found, by the help its turns had: "You found it on
+       your own." (Off: "…without GPS."), "You found it with help at 2 turns.", or "The voice
+       led you all the way." when every turn was helped. The tier stays by the path (§5.3).
+       "Longer" never shows below 0 %.
+     - Arrival names the place driven to ("You're at Puppet House"), else the street.
+     - The debrief frames each turn around its junction: 150 m of each way in and on, the
+       junction in the middle.
+     - Guided's turn arrow shows one turn (amends item 130): its way on stops `navArrowGapM`
+       short of the next decision and at the first bend sharper than `navArrowBendDeg`, so a jog
+       (right, then left at once) no longer draws one arrow over both; the turn card's "then"
+       names the second when it comes within the prepare reach.
+     - While Guided's map follows the car, it keeps only the places within 100 m of the route
+       (amends item 132): far icons and names distracted. Every place comes back in the routes
+       overview and once the map is dragged.
+     - On the car, Guided's map flows: at each fix the camera eases at an even speed, over 1.2 s
+       (a little past the next fix, so it never stops to wait), to where the car will then be on
+       along the route at its speed (slow or off the route, to the fix), turning with the road
+       12 m ahead. The car is drawn over the map where the camera centres it, so it no longer
+       jumps a step each second; moved away or in the overview it is the map's symbol.

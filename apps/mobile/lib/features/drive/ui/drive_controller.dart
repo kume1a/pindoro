@@ -239,6 +239,9 @@ final class DriveReview extends DriveState {
 /// A fix timed this long before the drive started is a cached location, not the car's.
 const Duration _staleFix = Duration(seconds: 30);
 
+/// A fresh fix this far from the one the setup planned from plans again (item 135).
+const double _refineM = 50;
+
 /// A drive (SPEC §5.3 drives, §16.23, boards V3-50 and V32-*): pick a destination and the help
 /// suggested for it, drive with the navigator speaking by level, then map-match and grade the
 /// track. Every decision taken without help reviews its J card (item 119): Good, Hard after a
@@ -274,6 +277,7 @@ class DriveController extends Notifier<DriveState> {
   int _changedAt = 0;
   int? _gradedStart;
   Future<LocationResult>? _locating;
+  Future<LatLng?>? _refining;
 
   /// What the drive said, showed and was touched for (item 124), saved with it; the names
   /// heard or shown so far and the screen shown last.
@@ -392,6 +396,23 @@ class DriveController extends Notifier<DriveState> {
       .locate()
       .whenComplete(() => _locating = null);
 
+  /// A fresh fix, one ask at a time.
+  Future<LatLng?> _freshFix() => _refining ??= ref
+      .read(locationServiceProvider)
+      .freshFix()
+      .whenComplete(() => _refining = null);
+
+  /// The setup planned from [here], where the phone last knew it was (up to two minutes old):
+  /// once [fresh] comes, it plans again from there when that lies more than [_refineM] away
+  /// (item 135).
+  Future<void> _refine(Future<LatLng?> fresh, LatLng here) async {
+    final at = await fresh;
+    if (!ref.mounted || at == null) return;
+    final s = state;
+    if (s is! DriveSetup || s.here != here) return;
+    if (distanceBetween(here, at) > _refineM) await _prepare(at: at);
+  }
+
   /// A level the setup offers (item 114).
   void pickLevel(DriveLevel level) {
     if (state case final DriveSetup s when s.choices.contains(level)) {
@@ -417,12 +438,12 @@ class DriveController extends Notifier<DriveState> {
     _ => picked,
   };
 
-  /// Finds where the player is and, once a destination is chosen, the target and the level
-  /// suggested for the route there.
-  Future<void> _prepare() async {
+  /// Finds where the player is (or takes [at], a fresh fix) and, once a destination is chosen,
+  /// the target and the level suggested for the route there.
+  Future<void> _prepare({LatLng? at}) async {
     final setup = state;
     if (setup is! DriveSetup) return;
-    final located = await _locate();
+    final located = at == null ? await _locate() : Located(at);
     if (!ref.mounted) return;
     bool current() =>
         state is DriveSetup && (state as DriveSetup).sameChoice(setup);
@@ -437,8 +458,15 @@ class DriveController extends Notifier<DriveState> {
       return;
     }
     final here = located is Located ? located.position : null;
+    // Asked now, while the routes are found; weighed once they show.
+    final fresh = here == null || at != null ? null : _freshFix();
+    void refine() {
+      if (fresh != null) unawaited(_refine(fresh, here!));
+    }
+
     if (setup.to == null) {
       state = DriveSetup(via: setup.via, here: here);
+      refine();
       return;
     }
     final found = await _find(setup, here);
@@ -455,6 +483,7 @@ class DriveController extends Notifier<DriveState> {
       suggestion: quickest,
       level: _keptLevel(setup.to, quickest, (state as DriveSetup).level),
     );
+    refine();
   }
 
   /// The setup's destination from [here] and its route options; for Surprise me the first new

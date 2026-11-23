@@ -4,6 +4,22 @@ What each version brings, newest first, for the people who install Pindoro. The 
 workflow puts the section of the version it builds into the SideStore source as its release notes
 and fails when that section is missing, so write it with every version bump.
 
+## 2.18.0
+
+A smoother Guided map
+- The car glides along the road instead of jumping once a second, and the map turns with the road ahead.
+- While the map follows you, only the places along your route show; drag the map or open the routes to see them all.
+- The turn arrow shows one turn at a time, even where the road jogs right and then straight away left.
+- U-turns turn left, as traffic keeps right.
+
+Better results after a drive
+- It says how you found the way: on your own, with help at some turns, or led by the voice all the way.
+- A planned U-turn no longer makes a drive look shorter than the best route.
+- Arriving at a place says its name, and each turn of the debrief is framed around its junction.
+
+Also
+- The route chooser checks where you really are and plans again if you've moved.
+
 ## 2.17.0
 
 Drive to places, not just streets
