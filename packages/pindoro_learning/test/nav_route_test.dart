@@ -247,6 +247,94 @@ void main() {
       );
     });
 
+    test(
+      'a turn with another right after: the arrow stops short of the second',
+      () {
+        // Right off Row into Column, then 10 m on left into Lane (item 135).
+        final jog = RoadNet()
+          ..street('row', 'რიგი', 'Row')
+          ..street('col', 'სვეტი', 'Column')
+          ..street('lane', 'შესახვევი', 'Lane')
+          ..junction(1, 0, 0)
+          ..junction(2, 100, 0)
+          ..junction(3, 100, -10)
+          ..junction(4, 200, -10)
+          ..junction(5, 200, 0)
+          ..junction(6, 100, -100)
+          ..edge(1, 1, 2, 'row')
+          ..edge(2, 2, 5, 'row')
+          ..edge(3, 2, 3, 'col')
+          ..edge(4, 3, 6, 'col')
+          ..edge(5, 3, 4, 'lane');
+        final g = jog.graph();
+        final route = _along(g, [1, 2, 3, 4]);
+        final p = NavPlan(
+          route,
+          navDecisions(g, route, streets: jog.byPart),
+          0,
+        );
+        expect(p.decisions.map((d) => d.junction), [2, 3]);
+        final arrow = turnArrow(p, p.decisions.first);
+        final end = LocalProjection(RoadNet.origin).project(arrow.last);
+        expect(end.$1, closeTo(100, 0.5), reason: 'still on Column');
+        expect(end.$2, closeTo(-10 + LearningConfig.navArrowGapM, 0.5));
+      },
+    );
+
+    test('a way on that bends sharply: the arrow stops at the bend', () {
+      final o = RoadNet.origin;
+      LatLng at(double e, double n) => LocalProjection(o).unproject((e, n));
+      // Right at 2 into a way that runs 6 m south, then bends east.
+      final bend = [at(100, 0), at(100, -6), at(130, -6)];
+      final g = RoadGraph(
+        {1: at(0, 0), 2: at(100, 0), 3: at(130, -6), 4: at(200, 0)},
+        [
+          RoadEdge(
+            id: 1,
+            from: 1,
+            to: 2,
+            streetId: 'a',
+            lengthM: 100,
+            line: [at(0, 0), at(100, 0)],
+          ),
+          RoadEdge(
+            id: 2,
+            from: 2,
+            to: 4,
+            streetId: 'a',
+            lengthM: 100,
+            line: [at(100, 0), at(200, 0)],
+          ),
+          RoadEdge(
+            id: 3,
+            from: 2,
+            to: 3,
+            streetId: 'b',
+            lengthM: 36,
+            line: bend,
+          ),
+        ],
+      );
+      final route = _along(g, [1, 2, 3]);
+      final NavDecision d = (
+        index: 1,
+        junction: 2,
+        approach: route.edges.first,
+        exit: route.edges.last,
+        turn: Turn.right,
+        street: null,
+        newStreet: true,
+        atM: 100,
+        key: null,
+        landmark: null,
+        signals: false,
+      );
+      final p = NavPlan(route, [d], 0);
+      final end = LocalProjection(o).project(turnArrow(p, d).last);
+      expect(end.$1, closeTo(100, 0.5));
+      expect(end.$2, closeTo(-6, 0.5), reason: 'stops at the bend');
+    });
+
     RoadGraph laned(String lanes) {
       final n = _cross();
       final edges = [

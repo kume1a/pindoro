@@ -434,6 +434,7 @@ pindoro_core `ScoringConfig`, not copied):
 | `landmarkAtM`, `confirmDelayS`, `districtCueM`, `districtCueS`          | 50, 6, 2000, 180                    |
 | `gpsLostSayS`                                                           | 60                                  |
 | `navRoadAheadM`, `navArrowBeforeM`, `navArrowAfterM`, `laneMatchDeg`    | 10, 35, 20, 60                      |
+| `navArrowGapM`, `navArrowBendDeg`                                       | 3, 45                               |
 | `creditMaxR`, `hesitationBeforeM`, `noCreditAfterPromptS`               | 0.92, 150, 60                       |
 | `habitPasses`, `habitWindowDays`, `habitCreditDays`                     | 3, 14, 7                            |
 | `keyTurnsMin`, `keyTurnsMax`, `complexWaysOn`                           | 3, 7, 4                             |
@@ -1377,3 +1378,7 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      - Arrival names the place driven to ("You're at Puppet House"), else the street.
      - The debrief frames each turn around its junction: 150 m of each way in and on, the
        junction in the middle.
+     - Guided's turn arrow shows one turn (amends item 130): its way on stops `navArrowGapM`
+       short of the next decision and at the first bend sharper than `navArrowBendDeg`, so a jog
+       (right, then left at once) no longer draws one arrow over both; the turn card's "then"
+       names the second when it comes within the prepare reach.
