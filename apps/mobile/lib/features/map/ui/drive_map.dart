@@ -1,9 +1,8 @@
 import 'dart:async';
-import 'dart:math' show Point, min, pi;
+import 'dart:math' show Point;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:pindoro/core/database/database.dart';
@@ -79,7 +78,8 @@ class DriveMap extends ConsumerStatefulWidget {
   /// item 135); every place shows in the overview, when the map is moved, or when null.
   final Set<int>? places;
 
-  /// The car's speed: on the car, it moves on along [route] at it between fixes (item 135).
+  /// The car's speed: on the car, the map flows on along [route] at it between fixes
+  /// (item 135).
   final double speedKmh;
   final VoidCallback? onMoved;
 
@@ -130,37 +130,22 @@ const double _numbersZoom = 16.5;
 const double _defaultHeightM = 6;
 const double _heightScale = 0.5;
 
-/// A fix's correction (where the car showed against where the fix put it) fades out over this
-/// long on the road, and over [_glideS] off it, where nothing predicts the car.
-const double _easeS = 0.3;
-const double _glideS = 1;
+/// How far ahead each fix sends the camera, at an even speed: a little past the next fix (a
+/// second away), so the camera is still moving when it comes and never stops to wait.
+const Duration _fixEvery = Duration(milliseconds: 1200);
 
-/// The map's bearing follows the road's this much a second (an exponential ease).
-const double _bearingRate = 4;
-
-class _DriveMapState extends ConsumerState<DriveMap>
-    with MapHost<DriveMap>, SingleTickerProviderStateMixin {
+class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
   bool _ready = false;
 
-  /// On the car (item 135): every frame the camera moves on along the road from the last fix
-  /// at the car's speed, and the car is drawn over the map where the camera centres it, still
-  /// on the screen, instead of jumping with each fix as a map symbol.
-  late final Ticker _ticker = createTicker(_tick);
+  /// On the car (item 135): the map eases, at an even speed, to where the car will be at the
+  /// next fix, and the car is drawn over it where the camera centres it, still on the screen,
+  /// instead of jumping a step with each fix as a map symbol.
   bool _onCar = false;
-  LatLng? _fixAt;
-  Polyline _ahead = const [];
-  final Stopwatch _sinceFix = Stopwatch();
-  Duration _lastTick = Duration.zero;
 
-  /// Where the car showed less where the last fix put it, in metres east and north: eased away.
-  Xy _correction = (0, 0);
-  LatLng? _shown;
-  double _shownBearing = 0;
-  bool _cameraBusy = false;
-
-  /// The car drawn over the map: its image and its turn against the map's bearing (degrees).
+  /// The car drawn over the map: its image and its turn against the map's bearing, in degrees
+  /// (kept unwrapped, so it turns the short way).
   Uint8List? _carPng;
-  final ValueNotifier<double> _carTurn = ValueNotifier(0);
+  double _carTurn = 0;
 
   bool get _following => widget.follow && !widget.overview;
 
@@ -180,81 +165,51 @@ class _DriveMapState extends ConsumerState<DriveMap>
       ? (widget.northUp ? 0 : _heading)
       : _bearing;
 
+  /// A new style (day or night) comes without the layers: they, and the car, are set up again
+  /// once it has loaded.
   @override
-  void styleChanged() => _ready = false;
-
-  @override
-  void dispose() {
-    _ticker.dispose();
-    _carTurn.dispose();
-    super.dispose();
+  void styleChanged() {
+    _ready = false;
+    _onCar = false;
   }
 
-  /// A fix: the car moves on from it, the gap to where it showed easing away.
-  void _newFix() {
+  /// On the car, a fix: the camera eases, at an even speed over [_fixEvery], to where the car
+  /// will be by then, on along the road at its speed; slow or off the road, to the fix.
+  Future<void> _glide() async {
     final at = widget.at;
-    if (at == null) return;
-    final shown = _shown;
-    _correction = shown == null ? (0, 0) : LocalProjection(at).project(shown);
-    _fixAt = at;
-    _ahead = [for (final line in widget.route) ...line];
-    _sinceFix
-      ..reset()
-      ..start();
-  }
-
-  void _tick(Duration elapsed) {
-    final fix = _fixAt;
     final c = mapController;
-    if (!_onCar || fix == null || c == null) return;
-    final dt = (elapsed - _lastTick).inMicroseconds / 1e6;
-    _lastTick = elapsed;
-    final t = _sinceFix.elapsedMicroseconds / 1e6;
+    if (at == null || c == null || !_onCar) return;
     final mps = widget.speedKmh / 3.6;
-    final road = mps < 1 ? null : alongRoad(_ahead, mps * min(t, predictMaxS));
-    final fade = 1 - min(1.0, t / (road == null ? _glideS : _easeS));
-    final base = road?.at ?? fix;
-    final at = fade <= 0
-        ? base
-        : LocalProjection(
-            base,
-          ).unproject((_correction.$1 * fade, _correction.$2 * fade));
-    final heading = road?.headingDeg ?? _heading;
-    _shownBearing = turnToward(
-      _shownBearing,
-      widget.northUp ? 0 : heading,
-      dt * _bearingRate,
-    );
-    _shown = at;
-    _carTurn.value = heading - _shownBearing;
-    // One camera move at a time: a frame that finds one still on its way is skipped.
-    if (_cameraBusy) return;
-    _cameraBusy = true;
-    unawaited(
-      c
-          .moveCamera(
-            ml.CameraUpdate.newCameraPosition(
-              ml.CameraPosition(
-                target: at.toMapLibre,
-                zoom: DriveMap.zoom,
-                bearing: _shownBearing,
-                tilt: DriveMap.tilt,
-              ),
-            ),
-          )
-          .whenComplete(() => _cameraBusy = false),
+    final next = mps < 1
+        ? null
+        : alongRoad([
+            for (final line in widget.route) ...line,
+          ], mps * _fixEvery.inMilliseconds / 1000);
+    final heading = next?.headingDeg ?? _heading;
+    final bearing = widget.northUp ? 0.0 : heading;
+    final turn = heading - bearing;
+    setState(() => _carTurn += (turn - _carTurn + 540) % 360 - 180);
+    await c.easeCamera(
+      ml.CameraUpdate.newCameraPosition(
+        ml.CameraPosition(
+          target: (next?.at ?? at).toMapLibre,
+          zoom: DriveMap.zoom,
+          bearing: bearing,
+          tilt: DriveMap.tilt,
+        ),
+      ),
+      duration: _fixEvery,
+      interpolation: ml.CameraAnimationInterpolation.linear,
     );
   }
 
-  /// Eases the camera onto the car, then follows it frame by frame with the car drawn over
-  /// the map; off the car (moved away, the overview) the car is the map's symbol again.
+  /// Eases the camera onto the car and from then on glides with it, the car drawn over the
+  /// map; off the car (moved away, the overview) the car is the map's symbol again.
   Future<void> _followCar() async {
     final c = mapController;
     if (c == null || !_ready) return;
     if (!_following) {
-      _onCar = false;
-      _ticker.stop();
-      setState(() {});
+      if (_onCar) setState(() => _onCar = false);
       await c.setGeoJsonSource(_Sources.car, _carGeoJson());
       await c.setLayerVisibility(_carLayer, true);
       return;
@@ -262,14 +217,11 @@ class _DriveMapState extends ConsumerState<DriveMap>
     if (_onCar) return;
     await _moveCamera();
     if (!mounted || !_following || _onCar) return;
-    _shownBearing = _wantedBearing;
-    _shown = widget.at;
-    _newFix();
-    _onCar = true;
-    _lastTick = Duration.zero;
-    if (!_ticker.isActive) await _ticker.start();
+    setState(() {
+      _onCar = true;
+      _carTurn = 0;
+    });
     await c.setLayerVisibility(_carLayer, false);
-    if (mounted) setState(() {});
   }
 
   @override
@@ -301,7 +253,6 @@ class _DriveMapState extends ConsumerState<DriveMap>
     if (!_ready) return;
     final moved = widget.at != old.at || widget.heading != old.heading;
     final leftOverview = old.overview && !widget.overview;
-    if (moved && _onCar) _newFix();
     if (!_onCar && (moved || _bearing != bearing)) runMapWork(_moveCar);
     if (!identical(widget.route, old.route)) runMapWork(_sendRoute);
     if (!identical(widget.alternatives, old.alternatives)) {
@@ -311,8 +262,8 @@ class _DriveMapState extends ConsumerState<DriveMap>
     if (leftOverview) runMapWork(_carLow);
     if (_following != (old.follow && !old.overview)) {
       runMapWork(_followCar);
-    } else if (!_onCar && _following && moved) {
-      runMapWork(_moveCamera);
+    } else if (_onCar && (moved || widget.northUp != old.northUp)) {
+      runMapWork(_glide);
     }
     if (!identical(widget.turn, old.turn)) runMapWork(_sendTurn);
     if (!listEquals(widget.via, old.via)) runMapWork(_sendVia);
@@ -720,12 +671,9 @@ class _DriveMapState extends ConsumerState<DriveMap>
                   child: IgnorePointer(
                     child: FractionalTranslation(
                       translation: const Offset(-0.5, -0.5),
-                      child: ValueListenableBuilder(
-                        valueListenable: _carTurn,
-                        builder: (context, turn, child) => Transform.rotate(
-                          angle: turn * pi / 180,
-                          child: child,
-                        ),
+                      child: AnimatedRotation(
+                        turns: _carTurn / 360,
+                        duration: _fixEvery,
                         child: Image.memory(
                           _carPng!,
                           scale: MediaQuery.devicePixelRatioOf(context),

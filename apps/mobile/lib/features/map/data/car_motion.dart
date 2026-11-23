@@ -2,10 +2,6 @@ import 'dart:math';
 
 import 'package:pindoro_core/pindoro_core.dart';
 
-/// How long the car keeps moving ahead of its last fix before it waits for the next one: a
-/// fix comes every second, and a car that went on for longer would run past a stop.
-const double predictMaxS = 1.5;
-
 /// How far ahead along the road the car's heading looks, so the map turns into a bend
 /// smoothly instead of at its corner.
 const double headingAheadM = 12;
@@ -34,10 +30,4 @@ LatLng _pointAt(Polyline line, double m) {
     left -= d;
   }
   return line.last;
-}
-
-/// [from] turned towards [to] by at most [share] of the way, the short way round (degrees).
-double turnToward(double from, double to, double share) {
-  final d = (to - from + 540) % 360 - 180;
-  return (from + d * share.clamp(0, 1) + 360) % 360;
 }

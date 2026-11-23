@@ -1385,8 +1385,8 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      - While Guided's map follows the car, it keeps only the places within 100 m of the route
        (amends item 132): far icons and names distracted. Every place comes back in the routes
        overview and once the map is dragged.
-     - On the car, Guided's map moves every frame: between fixes the car goes on along the route
-       at its speed (for at most `predictMaxS`, 1.5 s), each new fix's correction fades over
-       0.3 s (1 s off the route, where it glides from fix to fix), and the map turns with the
-       road 12 m ahead. The car is drawn over the map where the camera centres it, so it no
-       longer jumps a step each second; moved away or in the overview it is the map's symbol.
+     - On the car, Guided's map flows: at each fix the camera eases at an even speed, over 1.2 s
+       (a little past the next fix, so it never stops to wait), to where the car will then be on
+       along the route at its speed (slow or off the route, to the fix), turning with the road
+       12 m ahead. The car is drawn over the map where the camera centres it, so it no longer
+       jumps a step each second; moved away or in the overview it is the map's symbol.

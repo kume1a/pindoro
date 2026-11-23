@@ -26,10 +26,4 @@ void main() {
       expect(alongRoad([at(0, 0)], 10), isNull);
     },
   );
-
-  test('turning toward a heading goes the short way round', () {
-    expect(turnToward(350, 10, 0.5), closeTo(0, 1e-9));
-    expect(turnToward(10, 350, 1), closeTo(350, 1e-9));
-    expect(turnToward(90, 180, 0.5), closeTo(135, 1e-9));
-  });
 }
