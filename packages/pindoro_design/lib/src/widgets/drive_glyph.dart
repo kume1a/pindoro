@@ -18,9 +18,10 @@ enum DriveGlyphName {
     '<path d="M24 43V7" stroke-width="7"/>'
     '<path d="M15 15l9-9 9 9" stroke-width="7"/>',
   ),
+  // Up the right and back down the left: traffic keeps right, so a U-turn turns left.
   uTurn(
-    '<path d="M16 43V18a8 8 0 0 1 16 0v14" stroke-width="7"/>'
-    '<path d="M24 26l8 8 8-8" stroke-width="7"/>',
+    '<path d="M32 43V18a8 8 0 0 0-16 0v14" stroke-width="7"/>'
+    '<path d="M24 26l-8 8-8-8" stroke-width="7"/>',
   ),
   keepLeft(
     '<path d="M30 43V31l8-9V8" stroke-width="6" opacity="0.35"/>'

@@ -326,6 +326,9 @@ and the specs after R5. Fix them in roughly this order.
       and Recent.
     - Coached and Quiet: Route (a `DriveMapButton` with the routes glyph) bottom right at a
       touch while moving.
+  - **Drive polish (SPEC §16.23 item 135, 2026-11-23)**, built in the app:
+    - The `u-turn` icon and DriveGlyph `uTurn` mirrored: up the right, back down the left
+      (traffic keeps right).
 - Stops, left as they are on purpose (item 134, 2026-11-23):
   - No bubbles on Guided's live map (only on the setup's map).
   - Stops don't join Recent, and Past drives and the debrief show no stop pins.

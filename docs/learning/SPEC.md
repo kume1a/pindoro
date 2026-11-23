@@ -1362,3 +1362,6 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        Cancel beside it; with nothing typed, Choose on the map (its button "Add stop" for a
        stop), Home and Work with the minutes there, and Recent.
      - Guided's routes overview (amends item 130) shows the routes as the same cards.
+135. **Drive polish after watching simulated drives** (2026-11-23):
+     - Traffic keeps right, so a U-turn turns left: the U-turn icon and drive glyph go up the
+       right and back down the left.
