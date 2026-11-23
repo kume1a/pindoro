@@ -1,7 +1,7 @@
 name: pindoro
 description: Pindoro - learn a city's streets by dropping pins on an unlabelled map.
 publish_to: none
-version: 2.14.0+19
+version: 2.15.0+20
 
 environment:
   sdk: ^3.10.0

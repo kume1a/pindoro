@@ -202,6 +202,10 @@ abstract final class LearningConfig {
   /// No fix for longer than this is a GPS gap ("GPS lost").
   static const int gpsGapS = 10;
 
+  /// A fix less accurate than this counts as none (Android's "Approximate" and iOS's "Precise:
+  /// Off" locations): no recovery, credit or match from it (item 131).
+  static const double coarseFixM = 50;
+
   /// A drive's track stays on the phone this long; its summary stays for good.
   static const int driveTrackKeepDays = 90;
 

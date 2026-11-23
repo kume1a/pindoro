@@ -951,5 +951,7 @@
   "a11yHeadingUp": "მიმართულება ზემოთ",
   "driveRouteNow": "ახლა",
   "driveRouteSlower": "+{minutes} წთ",
-  "driveRouteFaster": "−{minutes} წთ"
+  "driveRouteFaster": "−{minutes} წთ",
+  "drivePreciseOff": "ზუსტი მდებარეობა გამორთულია",
+  "drivePreciseOffNote": "მიახლოებითი მდებარეობით მოხვევებს ვერ მივყვებით. შეეხეთ ჩასართავად."
 }

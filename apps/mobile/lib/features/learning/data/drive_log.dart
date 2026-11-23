@@ -5,6 +5,16 @@ import 'package:pindoro_learning/pindoro_learning.dart';
 
 part 'drive_log.g.dart';
 
+/// Something a drive said, showed or was touched for (SPEC §16.23 item 124), saved with it as a
+/// `drive_event` row.
+typedef DriveNote = ({
+  DateTime at,
+  DriveEventKind kind,
+  String? itemKey,
+  String? detail,
+  double? value,
+});
+
 /// The drive log (SPEC §16.23 item 124): every drive's summary for good, its track for
 /// [LearningConfig.driveTrackKeepDays].
 @DriftAccessor(tables: [Drives, DriveTracks, DriveDecisions, DriveEvents])
@@ -12,15 +22,30 @@ class DriveLogDao extends DatabaseAccessor<AppDatabase>
     with _$DriveLogDaoMixin {
   DriveLogDao(super.attachedDatabase);
 
-  /// Saves [drive] with its [track] and [decisions], and drops the tracks of drives that ended
-  /// more than [LearningConfig.driveTrackKeepDays] before it.
+  /// Saves [drive] with its [track], [decisions] and [notes], and drops the tracks of drives
+  /// that ended more than [LearningConfig.driveTrackKeepDays] before it.
   Future<void> save(
     DriveRow drive,
     String track, {
     List<DriveDecisionRow> decisions = const [],
+    List<DriveNote> notes = const [],
   }) => transaction(() async {
     await into(drives).insert(drive);
-    await batch((b) => b.insertAll(driveDecisions, decisions));
+    await batch(
+      (b) => b
+        ..insertAll(driveDecisions, decisions)
+        ..insertAll(driveEvents, [
+          for (final n in notes)
+            DriveEventsCompanion.insert(
+              driveId: drive.id,
+              at: n.at,
+              kind: n.kind,
+              itemKey: Value(n.itemKey),
+              detail: Value(n.detail),
+              value: Value(n.value),
+            ),
+        ]),
+    );
     await into(
       driveTracks,
     ).insert(DriveTracksCompanion.insert(driveId: drive.id, track: track));

@@ -170,7 +170,7 @@ class Navigator {
   /// The silent-eligible decisions, by key: Coached says nothing at them.
   Set<String> silent;
 
-  /// The district a point lies in, for cues and the screen.
+  /// The district a point lies in (its id), for cues and the screen; the app names it.
   final String? Function(LatLng at)? districtAt;
 
   final Map<int, List<SpeedCamera>> _camerasByEdge;
@@ -294,6 +294,8 @@ class Navigator {
       edges.indexed.every((e) => e.$2.id == ids[e.$1]);
 
   NavUpdate onFix(DriveFix fix) {
+    // A coarse fix is none (item 131): the car stays where it was last seen.
+    if (isCoarse(fix)) return onTick(fix.t);
     final now = fix.t;
     final last = _last;
     final gapS = last == null

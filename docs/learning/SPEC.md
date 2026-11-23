@@ -413,7 +413,7 @@ pindoro_core `ScoringConfig`, not copied):
 | `driveSampleM`, `driveSnapM`, `driveHeadingM` (per 90°)                 | 20, 35, 20                          |
 | `driveTurnBackM`, `driveWrongWayM`, `driveArriveM`                      | 40, 15, 200                         |
 | `hesitationJunctionM`                                                   | 30                                  |
-| `gpsGapS`, `driveTrackKeepDays`                                         | 10, 90                              |
+| `gpsGapS`, `driveTrackKeepDays`, `coarseFixM` (§16.23 item 131)         | 10, 90, 50                          |
 | `decisionAlikeDeg` (§16.23)                                             | 30°                                 |
 | `navClassKmh`: motorway, trunk, primary, secondary, tertiary            | 110, 90, 65, 55, 40                 |
 | … unclassified, residential, living_street, service; `navConnectorKmh`  | 25, 25, 10, 15; 25                  |
@@ -1269,3 +1269,13 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      - Coached, Quiet and Off keep their stopped bar.
      - The preview's recital names no street before the way is tapped: the street turned onto
        would give the way.
+131. **Precise location and what the screen names** (2026-11-23):
+     - A fix less accurate than `coarseFixM` (Android's "Approximate", iOS's "Precise: Off")
+       counts as no fix: the car stays where it was last seen, no recovery or credit comes from
+       it, the GPS-lost line shows as in a gap, and the match and the GPS gaps leave it out. The
+       track still keeps it, with its accuracy (item 124).
+     - While the phone gives only an approximate location, the setup says so ("Precise location
+       is off") and a tap asks for precise (Android's dialog again, iOS's precise for this use of
+       the app; else the app's settings). Start stays allowed.
+     - Coached and Quiet's district line names the district in the street-names setting, like
+       every other screen; the voice's district cue keeps the voice's script (item 117).

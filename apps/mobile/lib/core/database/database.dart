@@ -497,9 +497,10 @@ class DriveDecisions extends Table {
   Set<Column<Object>> get primaryKey => {driveId, seq};
 }
 
-/// What a drive's preview, recital of the turns, debrief and Point to home found (SPEC §16.23
-/// item 124), append-only: per turn ([itemKey]) or for the drive. A preview's rows carry the id
-/// the drive will have, so they may name a drive never started.
+/// What a drive's preview, recital of the turns, debrief and Point to home found, and what the
+/// drive said, showed and was touched for (SPEC §16.23 item 124), append-only: per turn
+/// ([itemKey]) or for the drive. A preview's rows carry the id the drive will have, so they may
+/// name a drive never started.
 @DataClassName('DriveEventRow')
 class DriveEvents extends Table {
   @override
@@ -512,8 +513,14 @@ class DriveEvents extends Table {
   TextColumn get itemKey => text().nullable()();
 
   /// [DriveEventKind]'s number: seconds watched, 1 right and 0 wrong (null: not remembered),
-  /// the turns gone through, the pointing error in degrees.
+  /// the turns gone through, the pointing error in degrees; a prompt's 1 said and 0 muted; the
+  /// km/h at a touch.
   RealColumn get value => real().nullable()();
+
+  /// [DriveEventKind]'s words: a prompt's kind, the screen shown (its level, then `recovery`,
+  /// `lost` and `stopped` as they apply), a name's `heard` or `shown` (its street part id is
+  /// [itemKey]); null before schema 28.
+  TextColumn get detail => text().nullable()();
 }
 
 @DriftDatabase(
@@ -549,7 +556,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 27;
+  static const int version = 28;
 
   @override
   int get schemaVersion => version;
@@ -694,6 +701,8 @@ class AppDatabase extends _$AppDatabase {
       },
       from26To27: (m, schema) =>
           m.addColumn(schema.userSettings, schema.userSettings.driveMarker),
+      from27To28: (m, schema) =>
+          m.addColumn(schema.driveEvent, schema.driveEvent.detail),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

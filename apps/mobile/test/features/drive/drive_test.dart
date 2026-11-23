@@ -28,6 +28,7 @@ import 'package:pindoro/features/drive/ui/plan_map.dart';
 import 'package:pindoro/features/learning/data/drive_log.dart';
 import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
+import 'package:pindoro/features/learning/data/nav_data.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/drive_map.dart';
@@ -47,6 +48,7 @@ void main() {
   late _Track location;
   late Route route;
   late Map<String, NamedStreet> streets;
+  late List<District> districts;
   final now = DateTime(2026, 11, 16, 9);
   late DateTime clockNow;
   late _Device device;
@@ -65,6 +67,7 @@ void main() {
     final repo = SqlitePackRepository.open(AppConfig.fixturePackAsset);
     final graph = repo.roadGraph()!;
     streets = streetsByPartId(repo.streets());
+    districts = repo.districts();
     final ids = graph.junctions.keys.toList()..sort();
     route =
         [
@@ -342,6 +345,51 @@ void main() {
     final decisions = await db.select(db.driveDecisions).get();
     expect(decisions, isNotEmpty);
     expect(decisions.every((d) => d.help == NavHelp.guided), isTrue);
+  });
+
+  test('a drive logs what it said, the screens it showed, the names heard and '
+      'shown once each, and touches while moving only', () async {
+    final controller = runController();
+    controller.pickLevel(DriveLevel.guided);
+    await controller.start(title: 't', text: 't');
+    // Before the first fix the car counts as stopped: no touch logged.
+    controller.noteTouch();
+    var updates = 0;
+    container.listen(driveControllerProvider, (_, s) {
+      if (s is DriveRecording && ++updates == 20) controller.noteTouch();
+    });
+    final last = await location.drive(route, now);
+    await location.park(route.lines.last.last, last, 4);
+    await controller.end();
+    final dao = container.read(driveLogDaoProvider);
+    final id = (await dao.all()).single.id;
+    final prompts = await dao.events(DriveEventKind.prompt);
+    expect(prompts, isNotEmpty);
+    expect(prompts.every((e) => e.driveId == id && e.value == 1), isTrue);
+    expect(
+      prompts.map((e) => e.detail).toSet(),
+      containsAll([PromptKind.prepare.name, PromptKind.action.name]),
+    );
+    expect(
+      prompts.where((e) => e.detail == PromptKind.action.name),
+      everyElement(predicate<DriveEventRow>((e) => e.itemKey != null)),
+    );
+    final screens = [
+      for (final e in await dao.events(DriveEventKind.screen)) e.detail,
+    ];
+    expect(screens.first, 'guided');
+    expect(screens.last, 'guided stopped');
+    final names = await dao.events(DriveEventKind.name);
+    final shown = names.where((e) => e.detail == 'shown');
+    expect(shown.map((e) => e.itemKey), contains(route.edges.last.streetId));
+    expect(names.where((e) => e.detail == 'heard'), isNotEmpty);
+    expect(
+      names.map((e) => (e.itemKey, e.detail)).toSet(),
+      hasLength(names.length),
+    );
+    final touches = await dao.events(DriveEventKind.touch);
+    expect(touches.single.detail, 'guided');
+    expect(touches.single.value, closeTo(8 * 3.6, 0.5));
   });
 
   test('muted, nothing is said', () async {
@@ -690,6 +738,13 @@ void main() {
     await tester.tap(find.text('Quiet'));
     await pumpUntil(tester, find.byType(HeadingDial));
     expect(find.byType(HeadingDial), findsOneWidget);
+    // The district in the street names' script (Georgian here), the voice's English aside.
+    final district = raionAt(districts, onPlan.lines.last.last);
+    expect(district, isNotNull);
+    expect(
+      tester.widget<DistrictLine>(find.byType(DistrictLine)).name,
+      district!.nameKa,
+    );
     await tester.tap(find.text('End drive'));
     // Stopped short of the destination: the debrief, on its offer or (with
     // no turn to go through) the tier.
@@ -986,6 +1041,25 @@ void main() {
     expect(find.byType(LevelSuggestion), findsOneWidget);
   });
 
+  testWidgets('approximate location: the setup says so, and a tap asks for '
+      'precise', (tester) async {
+    location.approximate = true;
+    await pumpDrive(tester);
+    final off = find.text('Precise location is off');
+    await pumpUntil(tester, off);
+    await tester.ensureVisible(off);
+    await tester.pump();
+    await tester.tap(off);
+    for (var i = 0; i < 10 && off.evaluate().isNotEmpty; i++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pump();
+    }
+    expect(location.askedPrecise, 1);
+    expect(off, findsNothing);
+  });
+
   testWidgets('the preview: the route, then its key turns stepped through '
       'with Back and Next, then Recite: a way tapped at each, right or wrong '
       'at once, cards untouched', (tester) async {
@@ -1070,8 +1144,21 @@ class _Track extends LocationService {
   /// How many fixes [drive] sent.
   int sent = 0;
 
+  /// Approximate location until asked for precise.
+  bool approximate = false;
+  int askedPrecise = 0;
+
   @override
   Future<LocationResult> locate({bool ask = true}) async => Located(here);
+
+  @override
+  Future<bool> precise() async => !approximate;
+
+  @override
+  Future<void> askPrecise() async {
+    askedPrecise++;
+    approximate = false;
+  }
 
   @override
   Stream<DriveFix> track({required String title, required String text}) {

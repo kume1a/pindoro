@@ -121,6 +121,36 @@ class LocationService {
         },
       ).map(driveFixOf);
 
+  /// False while the phone gives only an approximate location (Android's "Approximate", iOS's
+  /// "Precise: Off"); true when it can't tell.
+  Future<bool> precise() async {
+    try {
+      return await Geolocator.getLocationAccuracy() !=
+          LocationAccuracyStatus.reduced;
+    } on Object {
+      return true;
+    }
+  }
+
+  /// Asks for precise location (Android's dialog again; iOS for this use of the app), else
+  /// opens the app's settings, where it's turned on.
+  Future<void> askPrecise() async {
+    try {
+      final status = defaultTargetPlatform == TargetPlatform.iOS
+          ? await Geolocator.requestTemporaryFullAccuracy(
+              purposeKey: 'Navigation',
+            )
+          : await Geolocator.requestPermission().then(
+              (_) => Geolocator.getLocationAccuracy(),
+            );
+      if (status == LocationAccuracyStatus.reduced) {
+        await Geolocator.openAppSettings();
+      }
+    } on Object {
+      await Geolocator.openAppSettings();
+    }
+  }
+
   /// The settings page that fixes [denial].
   Future<void> openSettings(LocationDenied denial) async {
     await (denial is LocationServicesOff
@@ -144,4 +174,10 @@ DriveFix driveFixOf(Position p) => (
 /// Overridden in tests.
 final locationServiceProvider = Provider<LocationService>(
   (ref) => const LocationService(),
+);
+
+/// Whether the phone gives a precise location (SPEC §16.23 item 131); invalidate it after
+/// asking.
+final preciseLocationProvider = FutureProvider.autoDispose<bool>(
+  (ref) => ref.watch(locationServiceProvider).precise(),
 );

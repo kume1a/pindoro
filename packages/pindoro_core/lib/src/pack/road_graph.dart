@@ -1,4 +1,4 @@
-import 'dart:math' show min;
+import 'dart:math' show cos, max, min, pi;
 
 import '../geo/geo.dart';
 import '../geo/polyline6.dart';
@@ -292,7 +292,7 @@ class RoadGraph {
   RoadEdge? edgeNear(LatLng p, double withinM) {
     RoadEdge? best;
     var bestM = withinM;
-    for (final e in edges) {
+    for (final e in edgesNear(p, withinM)) {
       // A point on the edge is at most its length from both ends together,
       // so this skips far edges without decoding their lines.
       if (distanceBetween(p, at(e.from)) + distanceBetween(p, at(e.to)) >
@@ -303,6 +303,50 @@ class RoadGraph {
       if (m <= bestM) (best, bestM) = (e, m);
     }
     return best;
+  }
+
+  /// The edges that may pass within [withinM] of [p], in [edges] order (Dart only, not
+  /// twinned): every edge within it and a few more, without a scan of the whole city.
+  List<RoadEdge> edgesNear(LatLng p, double withinM) {
+    final found = <int>{};
+    for (final cell in _cells(p, withinM)) {
+      found.addAll(_grid[cell] ?? const []);
+    }
+    return [for (final i in found.toList()..sort()) edges[i]];
+  }
+
+  /// [edges]' indices by grid cell. A point on an edge is at most half its length from the
+  /// middle of its ends (its distances to the ends add up to at most its length), so each edge
+  /// sits in the cells around that circle.
+  late final Map<(int, int), List<int>> _grid = () {
+    final grid = <(int, int), List<int>>{};
+    for (final (i, e) in edges.indexed) {
+      final a = at(e.from), b = at(e.to);
+      final mid = LatLng((a.lat + b.lat) / 2, (a.lon + b.lon) / 2);
+      final reachM = max(e.lengthM, distanceBetween(a, b)) / 2 + 1;
+      for (final cell in _cells(mid, reachM)) {
+        (grid[cell] ??= []).add(i);
+      }
+    }
+    return grid;
+  }();
+
+  /// About 220 m of latitude.
+  static const double _cellDeg = 0.002;
+
+  /// The grid cells a circle of [radiusM] around [p] touches.
+  static Iterable<(int, int)> _cells(LatLng p, double radiusM) sync* {
+    final dLat = radiusM / 111320;
+    final dLon = radiusM / (111320 * cos(p.lat * pi / 180));
+    final y0 = ((p.lat - dLat) / _cellDeg).floor();
+    final y1 = ((p.lat + dLat) / _cellDeg).floor();
+    final x0 = ((p.lon - dLon) / _cellDeg).floor();
+    final x1 = ((p.lon + dLon) / _cellDeg).floor();
+    for (var y = y0; y <= y1; y++) {
+      for (var x = x0; x <= x1; x++) {
+        yield (x, y);
+      }
+    }
   }
 
   Route _route(_State end, Map<_State, _State> back, double costM) {

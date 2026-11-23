@@ -11,8 +11,20 @@ enum DriveLevel { guided, coached, quiet, off }
 enum DriveOutcome { arrived, stopped, abandoned }
 
 /// What a drive event records (SPEC §16.23 items 121, 124): the preview watched, a turn recited
-/// before the drive or recalled in the debrief, the debrief gone through, Point to home.
-enum DriveEventKind { preview, recite, recall, debrief, point }
+/// before the drive or recalled in the debrief, the debrief gone through, Point to home; and
+/// during the drive each voice [prompt], each [screen] shown, each [touch] while moving and the
+/// first time each street [name] is heard or shown.
+enum DriveEventKind {
+  preview,
+  recite,
+  recall,
+  debrief,
+  point,
+  prompt,
+  screen,
+  touch,
+  name,
+}
 
 /// A drive's fixes as text for the drive log (SPEC §16.23 item 124): per fix the position (1e-6°)
 /// and time (ms) as deltas, then heading (0.1°), speed (cm/s) and accuracy (dm), each one more
@@ -68,12 +80,17 @@ typedef GpsGaps = ({int count, Duration longest});
 
 /// The stretches of a drive from [start] to [end] with no fix for over [LearningConfig.gpsGapS]
 /// (before the first fix and after the last count too), and the longest of them. A fix older
-/// than one already seen (the cached last position some phones send first) leaves no gap.
+/// than one already seen (the cached last position some phones send first) leaves no gap, and a
+/// coarse one ([isCoarse]) counts as none.
 GpsGaps gpsGaps(List<DriveFix> fixes, DateTime start, DateTime end) {
   var count = 0;
   var longest = Duration.zero;
   var seen = start;
-  for (final t in [for (final f in fixes) f.t, end]) {
+  for (final t in [
+    for (final f in fixes)
+      if (!isCoarse(f)) f.t,
+    end,
+  ]) {
     final gap = t.difference(seen);
     if (gap.inMilliseconds > LearningConfig.gpsGapS * 1000) {
       count++;

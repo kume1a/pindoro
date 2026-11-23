@@ -16,6 +16,9 @@ typedef DriveFix = ({
   double? accuracyM,
 });
 
+/// Whether [f] is too coarse to drive by ([LearningConfig.coarseFixM]); it counts as no fix.
+bool isCoarse(DriveFix f) => (f.accuracyM ?? 0) > LearningConfig.coarseFixM;
+
 /// A drive matched to the road graph (SPEC §5.3 "Drives").
 final class DriveMatch {
   const DriveMatch({
@@ -86,7 +89,7 @@ int _end(EdgeSnap s) => s.forward ? s.edge.to : s.edge.from;
 List<EdgeSnap> edgeSnaps(RoadGraph graph, LatLng p, double? heading) {
   const r = LearningConfig.driveSnapM;
   final out = <EdgeSnap>[];
-  for (final e in graph.edges) {
+  for (final e in graph.edgesNear(p, r)) {
     // A point within r of the edge is at most its length plus 2r from both ends together.
     if (distanceBetween(p, graph.at(e.from)) +
             distanceBetween(p, graph.at(e.to)) >
@@ -186,8 +189,12 @@ double? _transition(
 /// most of them. U-turns are reversals on an edge or at a junction; hesitations are crawls below
 /// [LearningConfig.hesitationKmh] for over [LearningConfig.hesitationS], more than
 /// [LearningConfig.hesitationJunctionM] from a junction (the pack has no traffic signals), the
-/// start and the end aside.
-DriveMatch matchDrive(RoadGraph graph, List<DriveFix> fixes) {
+/// start and the end aside. Coarse fixes ([isCoarse]) are left out.
+DriveMatch matchDrive(RoadGraph graph, List<DriveFix> all) {
+  final fixes = [
+    for (final f in all)
+      if (!isCoarse(f)) f,
+  ];
   final kept = <DriveFix>[];
   for (final f in fixes) {
     if (kept.isEmpty ||
