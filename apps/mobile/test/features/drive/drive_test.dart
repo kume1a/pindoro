@@ -867,6 +867,11 @@ void main() {
     final northUp = find.bySemanticsLabel('North up');
     expect(northUp, findsNothing, reason: 'no buttons while driving');
     expect(maps.last.follow, isTrue);
+    expect(
+      maps.last.places,
+      isNotNull,
+      reason: 'following, only the places near the route',
+    );
     // A drag: the map stays put, and Recentre pops in where the compass goes.
     maps.last.onMoved!();
     await tester.pump();

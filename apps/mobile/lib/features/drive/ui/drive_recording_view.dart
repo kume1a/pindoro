@@ -17,8 +17,10 @@ import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/learning/ui/drive_labels.dart';
 import 'package:pindoro/features/learning/ui/landmark_glyph.dart';
+import 'package:pindoro/features/map/data/route_places.dart';
 import 'package:pindoro/features/map/ui/drive_map.dart';
 import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
+import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -354,6 +356,7 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
                 turn: _turn,
                 destination: r.destination,
                 via: _viaPoints(r),
+                places: _placesNear(view?.plan),
                 lost: lostS != null,
                 follow: _following && options == null,
                 northUp: _northUp,
@@ -710,6 +713,19 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
 
   List<DriveTarget>? _viaFor;
   List<LatLng> _via = const [];
+
+  /// The places near [plan]'s route, which Guided's map keeps while it follows the car
+  /// (item 135); the same set while the plan stays, so the map is sent it once per plan.
+  Set<int>? _placesNear(NavPlan? plan) {
+    final places = ref.watch(packPlacesProvider).value;
+    if (plan == null || places == null) return null;
+    if (identical(plan, _placesFor)) return _places;
+    _placesFor = plan;
+    return _places = placesNear(plan.lines, places.values);
+  }
+
+  NavPlan? _placesFor;
+  Set<int>? _places;
 
   /// The card slides down and fades in, a new one replacing the last (TurnPlate motion).
   Widget _plateSwitch(BuildContext context, Widget? plate) {

@@ -1382,3 +1382,6 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        short of the next decision and at the first bend sharper than `navArrowBendDeg`, so a jog
        (right, then left at once) no longer draws one arrow over both; the turn card's "then"
        names the second when it comes within the prepare reach.
+     - While Guided's map follows the car, it keeps only the places within 100 m of the route
+       (amends item 132): far icons and names distracted. Every place comes back in the routes
+       overview and once the map is dragged.

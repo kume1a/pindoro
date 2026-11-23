@@ -49,3 +49,16 @@ MapPlace? mapPlaceAt(List<Object?> features, LatLng near) {
   }
   return best;
 }
+
+/// The Protomaps feature id a pack id (`osm:n123`) has in the tiles: [osmIdOf]'s inverse; null
+/// for an id that names no OSM element.
+int? featureIdOf(String id) {
+  final m = RegExp(r'^osm:([nwr])(\d+)$').firstMatch(id);
+  if (m == null) return null;
+  final type = switch (m[1]) {
+    'n' => 1,
+    'w' => 2,
+    _ => 3,
+  };
+  return type << 44 | int.parse(m[2]!);
+}

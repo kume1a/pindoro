@@ -295,7 +295,8 @@ test/drift/                    generated schema helpers + migration test
   route ahead only (from the car while short of the plan, `toPlan`, then the plan sliced from
   the car), `northUp`, the routes `overview` with its `alternatives` (grey), the next
   decision's `turn` arrow (`drive-turn`, its head
-  `drive-turn-head`), the car, and every street name and named place (item 132). It drags and pinches at
+  `drive-turn-head`), the car, and every street name and named place (item 132); while it
+  follows the car only the places near the route (`places`, from `placesNear`, item 135). It drags and pinches at
   any speed and reports each touch to `onMoved`; the recording view stops following, shows
   Recentre and follows again after 10 s. It comes through `driveMapBuilderProvider`, which drive
   tests override. The screen shows its attribution.

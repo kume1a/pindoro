@@ -49,6 +49,7 @@ class DriveMap extends ConsumerStatefulWidget {
     this.overview = false,
     this.arrow = true,
     this.via = const [],
+    this.places,
     this.onMoved,
   });
 
@@ -70,6 +71,10 @@ class DriveMap extends ConsumerStatefulWidget {
 
   /// The stops on the way not reached yet, in order: a numbered pin each (item 134).
   final List<LatLng> via;
+
+  /// The tile ids of the places kept while the map follows the car (those near the route,
+  /// item 135); every place shows in the overview, when the map is moved, or when null.
+  final Set<int>? places;
   final VoidCallback? onMoved;
 
   static const double zoom = 17;
@@ -120,6 +125,9 @@ const double _heightScale = 0.5;
 
 class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
   bool _ready = false;
+
+  /// The style's own filters of the every-place layers, which [DriveMap.places] narrows.
+  Map<String, Object?> _placeFilters = const {};
 
   /// The car's heading: the camera's bearing too, unless north is up.
   double _heading = 0;
@@ -181,6 +189,35 @@ class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
     }
     if (!identical(widget.turn, old.turn)) runMapWork(_sendTurn);
     if (!listEquals(widget.via, old.via)) runMapWork(_sendVia);
+    if (_keptPlaces(widget) != _keptPlaces(old)) runMapWork(_sendPlaces);
+  }
+
+  /// The places shown: only [DriveMap.places] while following the car, else all (null).
+  static Set<int>? _keptPlaces(DriveMap m) =>
+      m.follow && !m.overview ? m.places : null;
+
+  /// Narrows the every-place icons and names to [_keptPlaces], or lets them all show again.
+  Future<void> _sendPlaces() async {
+    final c = mapController;
+    if (c == null || !_ready) return;
+    final kept = _keptPlaces(widget);
+    for (final id in [PoiLayers.all, NameLayers.poisAll]) {
+      final base = _placeFilters[id] ?? ['all'];
+      await c.setFilter(
+        id,
+        kept == null
+            ? base
+            : [
+                'all',
+                base,
+                [
+                  'in',
+                  ['id'],
+                  ['literal', kept.toList()],
+                ],
+              ],
+      );
+    }
   }
 
   Map<String, dynamic> _viaGeoJson() => labelledPointsGeoJson([
@@ -432,8 +469,15 @@ class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
       enableInteraction: false,
     );
     await _carLow();
+    if (await mapStyle case final style?) {
+      _placeFilters = {
+        for (final id in [PoiLayers.all, NameLayers.poisAll])
+          id: styleFilter(style, id),
+      };
+    }
     _ready = true;
     await _moveCamera();
+    await _sendPlaces();
   }
 
   /// The city as a navigator shows it: the buildings raised, their house numbers and the
