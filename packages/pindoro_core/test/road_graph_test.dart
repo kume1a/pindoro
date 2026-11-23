@@ -211,6 +211,42 @@ void main() {
     }
   });
 
+  test(
+    'edgesNear holds every edge in range, a bent one too, in edge order',
+    () {
+      final grid = roadGrid(6, skip: {3, 8, 21, 40}).graph;
+      final a = grid.at(0), b = grid.at(1);
+      // A loop out to 300 m north of a short chord.
+      final bent = RoadEdge(
+        id: 999,
+        from: 0,
+        to: 1,
+        streetId: null,
+        lengthM: 2 * 300 + distanceBetween(a, b) + 10,
+        line: [a, LatLng(a.lat + 300 / 111320, a.lon), b],
+      );
+      final graph = RoadGraph(grid.junctions, [...grid.edges, bent]);
+      final random = Random(5);
+      for (var round = 0; round < 300; round++) {
+        final p = LatLng(
+          41.7 - 4 * gridLat + random.nextDouble() * 12 * gridLat,
+          44.8 - 4 * gridLon + random.nextDouble() * 12 * gridLon,
+        );
+        final withinM = 5 + random.nextDouble() * 400;
+        final near = graph.edgesNear(p, withinM);
+        expect(
+          near.map((e) => e.id),
+          orderedEquals([...near.map((e) => e.id)]..sort()),
+        );
+        for (final e in graph.edges) {
+          if (pointToPolylineDistance(p, [e.line]).distanceMeters <= withinM) {
+            expect(near, contains(e), reason: 'round $round, edge ${e.id}');
+          }
+        }
+      }
+    },
+  );
+
   test('the junctions on a street part', () {
     final grid = roadGrid(3).graph;
     expect(grid.junctionsOfPart('row1'), {3, 4, 5});

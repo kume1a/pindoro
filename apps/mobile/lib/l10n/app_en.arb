@@ -3768,5 +3768,13 @@
         "type": "int"
       }
     }
+  },
+  "drivePreciseOff": "Precise location is off",
+  "@drivePreciseOff": {
+    "description": "Drive setup: the phone gives only an approximate location."
+  },
+  "drivePreciseOffNote": "Turns can’t be followed from an approximate location. Tap to turn it on.",
+  "@drivePreciseOffNote": {
+    "description": "Drive setup: why precise location matters, and that a tap asks for it."
   }
 }

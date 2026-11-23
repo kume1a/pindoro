@@ -200,8 +200,6 @@ and the specs after R5. Fix them in roughly this order.
     - The chosen destination is a ListRow with an edit button; the stopped bar's Route opens a
       parked screen with the destination left and a new one to search.
     - LevelSuggestion's reason shrinks when it doesn't fit beside the level.
-    - Not logged yet from item 124: each voice prompt, screen states, touches while moving and
-      the names shown.
   - **Preview, debrief, Past drives, Today and Progress (M9 steps 3c–5, 2026-11-21)**, from the
     design system's parked parts (synced 2026-11-21); where they differ from boards V32-10 to
     V32-71 and the parts' READMEs:
@@ -241,6 +239,8 @@ and the specs after R5. Fix them in roughly this order.
     - The preview steps (Show the turns, Back, Next) instead of V32-11's Pause and timed play.
     - The StoppedBar lost its grab handle: it suggested a sheet to drag, and there is none. The
       design system's StoppedBar still draws it.
+    - With approximate location (item 131) the setup shows a `ListRow` "Precise location is off"
+      (the `locate` glyph, a note on why, a tap asks for precise) under the destination.
   - **Guided, compact and movable (SPEC §16.23 items 116, 118 and 130, 2026-11-22/23)**, after
     test drives, with the player's own navigator as the model; boards V32-01 and V32-20 still
     draw the full-width 54/72 dp plate:
@@ -288,15 +288,12 @@ and the specs after R5. Fix them in roughly this order.
   - Name it, both ends, drills and the other route cards keep their maps as they were (no place
     names, no Street View).
   - The player's own landmarks are not in the map data, so the map never names them.
-- Left out of the navigation review (2026-11-23), on purpose:
-  - Fix accuracy is never checked: Android's "Approximate" and iOS's "Precise: Off" locations
-    navigate, and 80 m fixes can start false recoveries. Needs a setup step (ask for precise
-    location, say why) before the navigator ignores coarse fixes.
-  - End drive map-matches on the UI thread, and `edgeSnaps` scans every road edge per fix: a
-    long drive can freeze End for seconds. A spatial index on `RoadGraph` fixes both this and
-    the navigator's `_locate`.
-  - The drive's district names follow the voice's language; the other screens follow the
-    street-name setting (`districtName`).
+- Navigation, left as it is on purpose (2026-11-23):
+  - End drive still map-matches on the UI thread: with `RoadGraph.edgesNear` (a grid of about
+    220 m cells) 2,000 fixes on a city-sized graph look up their edges in about 10 ms instead of
+    800, so it no longer needs an isolate. Move it to one if long drives still stall End.
+  - A coarse fix (item 131) is dropped, not down-weighted: a phone stuck on approximate location
+    drives with "GPS lost" until precise is turned on.
 
 ## Designed, not scheduled
 
@@ -312,6 +309,8 @@ In the design system but in no release on the canvas Roadmap:
 The v3 learning plan (`docs/learning/PLAN.md`) holds the route work (one-way streets, junctions,
 landmarks, recitals and drives) and the curriculum order.
 
+Both parked by the player on 2026-11-23 until they are designed on claude.ai:
+
 - Accounts beyond one backup (the Roadmap's R5 card: not designed yet). Built without a design
   (2026-11-13), with a recovery code instead of an email reset. Left out on purpose: one phone at
   a time (a sign-in elsewhere signs the old phone out, which then says so; no merging of two
@@ -320,8 +319,8 @@ landmarks, recitals and drives) and the curriculum order.
   cap on the number of accounts or their total backup size; the username and password fields
   lose their screen-reader name once typed in (SearchField's hint), parked with the other
   screen-reader work.
-- A second city, or a Roadmap MVP card that no longer promises "any city or town from
-  OpenStreetMap".
+- A second city (Tbilisi only for now), so the Roadmap MVP card should no longer promise "any
+  city or town from OpenStreetMap": in the design hand-off.
 
 ## Data / pipeline
 

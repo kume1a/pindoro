@@ -8,13 +8,25 @@ import 'package:pindoro_learning/pindoro_learning.dart';
 /// letters with a Georgian voice ([georgian]) and in Latin ones otherwise, turn prompts without
 /// the kind of street.
 class NavWords {
-  const NavWords(this.l10n, {required this.georgian});
+  const NavWords(
+    this.l10n, {
+    required this.georgian,
+    this.districts = const {},
+  });
 
   final AppLocalizations l10n;
   final bool georgian;
 
+  /// The district cues' districts, by id.
+  final Map<String, District> districts;
+
   String name(NamedStreet s) =>
       georgian ? s.name : (s.nameEn ?? transliterate(s.name));
+
+  String _district(String id) => switch (districts[id]) {
+    final d? => georgian ? d.nameKa : (d.nameEn ?? transliterate(d.nameKa)),
+    null => id,
+  };
 
   String _place(RouteLandmark l) =>
       georgian ? l.name : (l.nameEn ?? transliterate(l.name));
@@ -66,7 +78,7 @@ class NavWords {
         _direction(p.headingDeg),
       ),
       PromptKind.district => l10n.navDistrict(
-        p.district!,
+        _district(p.district!),
         _direction(p.headingDeg),
       ),
       PromptKind.guard => l10n.navGuard,
@@ -83,6 +95,13 @@ class NavWords {
     if (p.distanceM case final m?) return l10n.navIn(_distance(m));
     return null;
   }
+
+  /// The street [words] names for [p], if any.
+  static NamedStreet? streetSaid(NavPrompt p) => switch (p.kind) {
+    PromptKind.prepare || PromptKind.recovery => p.decision?.street,
+    PromptKind.confirmation => p.street,
+    _ => null,
+  };
 
   String arrived(NamedStreet street) => l10n.navArrived(name(street));
 

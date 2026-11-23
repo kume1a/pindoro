@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro/features/drive/ui/nav_voice.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
+import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 
 void main() {
@@ -66,5 +67,47 @@ void main() {
     await done;
     expect(most, 1);
     expect(speaking, [true, false]);
+  });
+
+  test('a district cue names its district by id in the voice’s script, and '
+      'says which street it names', () {
+    const vake = District(
+      id: 'r1',
+      kind: DistrictKind.district,
+      osmRelationId: null,
+      nameKa: 'ვაკის რაიონი',
+      nameEn: 'Vake District',
+      center: LatLng(41.7, 44.75),
+      bbox: Bbox(41.69, 44.74, 41.71, 44.76),
+      areaM2: 1,
+      boundary: [],
+    );
+    NavPrompt cue(String id) => (
+      kind: PromptKind.district,
+      decision: null,
+      distanceM: null,
+      street: null,
+      district: id,
+      headingDeg: 90,
+      limitKmh: null,
+    );
+    final l10n = lookupAppLocalizations(const Locale('en'));
+    expect(
+      NavWords(
+        l10n,
+        georgian: false,
+        districts: {'r1': vake},
+      ).words(cue('r1'), DriveLevel.coached),
+      'Into Vake District, heading east.',
+    );
+    expect(
+      NavWords(
+        l10n,
+        georgian: true,
+        districts: {'r1': vake},
+      ).words(cue('r1'), DriveLevel.coached),
+      contains('ვაკის რაიონი'),
+    );
+    expect(NavWords.streetSaid(cue('r1')), isNull);
   });
 }

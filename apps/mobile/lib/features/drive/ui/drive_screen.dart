@@ -67,7 +67,10 @@ class _DriveScreenState extends ConsumerState<DriveScreen> {
   void initState() {
     super.initState();
     _resumed = AppLifecycleListener(
-      onResume: () => ref.read(driveControllerProvider.notifier).retry(),
+      onResume: () {
+        ref.read(driveControllerProvider.notifier).retry();
+        ref.invalidate(preciseLocationProvider);
+      },
     );
     if (!_choosing) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -251,6 +254,17 @@ class _Setup extends ConsumerWidget {
               : () => unawaited(
                   ref.read(locationServiceProvider).openSettings(denied),
                 ),
+        )
+      // Turns can't be followed from an approximate location (item 131).
+      else if (ref.watch(preciseLocationProvider).value == false)
+        ListRow(
+          leading: const RowTile(PindoroGlyph.locate),
+          title: l10n.drivePreciseOff,
+          subtitle: l10n.drivePreciseOffNote,
+          onTap: () async {
+            await ref.read(locationServiceProvider).askPrecise();
+            ref.invalidate(preciseLocationProvider);
+          },
         ),
       SectionTitle(l10n.driveLevelTitle),
       if (to == DriveTo.run)

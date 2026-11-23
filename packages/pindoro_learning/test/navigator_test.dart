@@ -538,6 +538,35 @@ void main() {
     expect(run.nav.passed.single.ok, isNull);
   });
 
+  test('coarse fixes count as none: a wrong turn seen only through them starts '
+      'no recovery and is not judged, and the GPS-lost line shows', () {
+    final net = _grid();
+    final fixes = _drive([_p(50, 0), _at(0, 2), _at(2, 2), _at(2, 1)]);
+    // From before column 1 to well down column 2, the phone gives only approximate fixes.
+    final coarse = [
+      for (final (i, f) in fixes.indexed)
+        i >= 20 && i < 110
+            ? (
+                at: f.at,
+                t: f.t,
+                headingDeg: f.headingDeg,
+                speedMps: f.speedMps,
+                accuracyM: LearningConfig.coarseFixM + 1,
+              )
+            : f,
+    ];
+    final run = _run(net, coarse, to: g(2, 1), level: DriveLevel.quiet);
+    expect(run.prompts.where((p) => p.kind == PromptKind.recovery), isEmpty);
+    expect(run.nav.recoveries, 0);
+    // Only the turn after them is judged.
+    expect(run.nav.passed.map((d) => d.junction), [g(2, 2)]);
+    expect(run.views[40].gpsLostS, isNotNull);
+    expect(isCoarse(coarse[20]), isTrue);
+    expect(gpsGaps(coarse, _t0, coarse.last.t).count, 1);
+    final matched = matchDrive(net.graph(), coarse);
+    expect(matched.drivenM, lessThan(matchDrive(net.graph(), fixes).drivenM));
+  });
+
   test('prompts due on the same fix all come through: a camera ahead and '
       "Coached's prepare", () {
     final net = _grid();

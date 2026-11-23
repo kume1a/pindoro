@@ -4,6 +4,11 @@
 <dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Pindoro uses your location to centre the map on you and to record a GPS-free drive.</string>
+	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
+	<dict>
+		<key>Navigation</key>
+		<string>Pindoro needs your precise location to follow your turns on a drive.</string>
+	</dict>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>

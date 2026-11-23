@@ -116,7 +116,8 @@ final class DriveSetup extends DriveState {
 /// pick while stopped change it, among the setup's [choices]); [view] is the
 /// navigator's latest. [speaking] while a prompt is said, [guardedAt] when the guard last
 /// stepped in, [beat] counts the speed chimes (each pulses the sign). [start] is where the
-/// setup found the phone: the map opens there until the first fix.
+/// setup found the phone: the map opens there until the first fix. [districts] by id name the
+/// view's district.
 final class DriveRecording extends DriveState {
   const DriveRecording({
     required this.target,
@@ -133,6 +134,7 @@ final class DriveRecording extends DriveState {
     this.speaking = false,
     this.guardedAt,
     this.beat = 0,
+    this.districts = const {},
   });
 
   final DriveTarget target;
@@ -149,6 +151,10 @@ final class DriveRecording extends DriveState {
   final bool speaking;
   final DateTime? guardedAt;
   final int beat;
+  final Map<String, District> districts;
+
+  /// The district the car is in.
+  District? get district => districts[view?.district];
 
   /// Controls take input only while stopped (item 116); before the first fix the car hasn't
   /// moved.
@@ -179,6 +185,7 @@ final class DriveRecording extends DriveState {
     speaking: speaking ?? this.speaking,
     guardedAt: guardedAt ?? this.guardedAt,
     beat: beat ?? this.beat,
+    districts: districts,
   );
 }
 
@@ -253,6 +260,12 @@ class DriveController extends Notifier<DriveState> {
   /// there.
   int _changedAt = 0;
   Future<LocationResult>? _locating;
+
+  /// What the drive said, showed and was touched for (item 124), saved with it; the names
+  /// heard or shown so far and the screen shown last.
+  final List<DriveNote> _notes = [];
+  final Set<(String, String)> _named = {};
+  String? _screen;
 
   DriveDevice get _device => ref.read(driveDeviceProvider);
 
@@ -548,8 +561,9 @@ class DriveController extends Notifier<DriveState> {
     final streets = await ref.read(cityStreetsProvider.future);
     final landmarks = await ref.hold(navLandmarksProvider.future);
     final settings = await ref.read(settingsDaoProvider).read();
-    final georgian = await _pickVoice(settings);
     final districts = pack.districts();
+    final districtsById = {for (final d in districts) d.id: d};
+    await _pickVoice(settings, districtsById);
     // A level picked while the phone was being found counts; another destination stops here.
     final current = state;
     if (!ref.mounted || current is! DriveSetup || !current.sameChoice(setup)) {
@@ -569,15 +583,15 @@ class DriveController extends Notifier<DriveState> {
       junctionNodes: pack.junctionNodes(),
       silent: suggestion?.silent ?? const {},
       prefer: suggestion?.plan.route,
-      districtAt: (p) => switch (raionAt(districts, p)) {
-        final d? => georgian ? d.nameKa : (d.nameEn ?? transliterate(d.nameKa)),
-        null => null,
-      },
+      districtAt: (p) => raionAt(districts, p)?.id,
     );
     _fixes.clear();
     _ending = false;
     _speech.clear();
     _changedAt = 0;
+    _notes.clear();
+    _named.clear();
+    _screen = null;
     await _device.start();
     await _device.keepScreenOn(on: _startLevel != DriveLevel.off);
     if (!ref.mounted) return;
@@ -590,6 +604,7 @@ class DriveController extends Notifier<DriveState> {
       choices: current.choices,
       start: start,
       suggestion: suggestion,
+      districts: districtsById,
     );
     _track = ref
         .read(locationServiceProvider)
@@ -600,8 +615,11 @@ class DriveController extends Notifier<DriveState> {
   }
 
   /// Georgian (names in Georgian letters) when the app speaks Georgian and the phone has a
-  /// Georgian voice, else English (names in Latin letters); true for Georgian.
-  Future<bool> _pickVoice(Settings settings) async {
+  /// Georgian voice, else English (names in Latin letters).
+  Future<void> _pickVoice(
+    Settings settings,
+    Map<String, District> districts,
+  ) async {
     final georgian =
         (settings.appLanguage?.name ??
                 PlatformDispatcher.instance.locale.languageCode) ==
@@ -611,8 +629,8 @@ class DriveController extends Notifier<DriveState> {
     _words = NavWords(
       lookupAppLocalizations(Locale(georgian ? 'ka' : 'en')),
       georgian: georgian,
+      districts: districts,
     );
-    return georgian;
   }
 
   void _onFix(DriveFix fix) {
@@ -643,7 +661,7 @@ class DriveController extends Notifier<DriveState> {
   }
 
   void _apply(DriveRecording r, NavUpdate u) {
-    state = r.copyWith(
+    final next = r.copyWith(
       view: u.view,
       level: u.view.level,
       guardedAt: u.prompts.any((p) => p.kind == PromptKind.guard)
@@ -651,16 +669,84 @@ class DriveController extends Notifier<DriveState> {
           : null,
       beat: u.chime ? r.beat + 1 : null,
     );
+    state = next;
     _noteHelp(u.view.level);
-    if (!r.muted) {
-      for (final p in u.prompts) {
-        unawaited(_speech.add(_words!.words(p, u.view.level), kind: p.kind));
-      }
-      if (u.chime) unawaited(_device.chime());
+    for (final p in u.prompts) {
+      _note(
+        DriveEventKind.prompt,
+        itemKey: p.decision?.key,
+        detail: p.kind.name,
+        value: r.muted ? 0 : 1,
+      );
+      if (r.muted) continue;
+      unawaited(_speech.add(_words!.words(p, u.view.level), kind: p.kind));
+      if (NavWords.streetSaid(p) case final s?) _noteName(s, heard: true);
     }
+    if (u.chime && !r.muted) unawaited(_device.chime());
+    _noteScreen(next);
     if (u.view.arrived && !_ending) {
       _ending = true;
       unawaited(_arrive(r));
+    }
+  }
+
+  void _note(
+    DriveEventKind kind, {
+    String? itemKey,
+    String? detail,
+    double? value,
+  }) => _notes.add((
+    at: ref.read(clockProvider)(),
+    kind: kind,
+    itemKey: itemKey,
+    detail: detail,
+    value: value,
+  ));
+
+  /// The first time [street] is heard or shown on this drive.
+  void _noteName(NamedStreet street, {required bool heard}) {
+    final how = heard ? 'heard' : 'shown';
+    if (_named.add((street.id, how))) {
+      _note(DriveEventKind.name, itemKey: street.id, detail: how);
+    }
+  }
+
+  /// The screen [r] shows, when it changed, and the street names on it: Guided's street and
+  /// turn card, a recovery's next street.
+  void _noteScreen(DriveRecording r) {
+    final v = r.view;
+    final screen = [
+      r.level.name,
+      if (v?.recovering ?? false) 'recovery',
+      if (v?.gpsLostS != null) 'lost',
+      if (r.stopped) 'stopped',
+    ].join(' ');
+    if (screen != _screen) {
+      _screen = screen;
+      _note(DriveEventKind.screen, detail: screen);
+    }
+    if (v == null || v.gpsLostS != null) return;
+    final next = v.next;
+    final card = next != null && (v.prepareM != null || v.turned == null)
+        ? next.street
+        : v.turned?.street;
+    for (final s in switch (r.level) {
+      DriveLevel.guided => [v.street, card],
+      _ when v.recovering => [next?.street],
+      _ => const <NamedStreet?>[],
+    }.nonNulls) {
+      _noteName(s, heard: false);
+    }
+  }
+
+  /// A touch on the screen while moving (item 124 expects none; Guided's map allows them).
+  void noteTouch() {
+    if (state case final DriveRecording r when !r.stopped && !_ending) {
+      _note(
+        DriveEventKind.touch,
+        detail: r.level.name,
+        value: r.view?.speedKmh,
+      );
     }
   }
 
@@ -675,6 +761,7 @@ class DriveController extends Notifier<DriveState> {
   Future<void> _arrive(DriveRecording r) async {
     try {
       if (!r.muted && r.level != DriveLevel.off) {
+        _noteName(r.target.street, heard: true);
         await _speech.add(_words!.arrived(r.target.street));
       }
     } finally {
@@ -695,7 +782,7 @@ class DriveController extends Notifier<DriveState> {
     }
     nav.rescue();
     _noteHelp(DriveLevel.guided);
-    state = r.copyWith(level: DriveLevel.guided, rescued: true);
+    _noteScreen(state = r.copyWith(level: DriveLevel.guided, rescued: true));
     unawaited(_device.keepScreenOn(on: true));
     if (!r.muted) unawaited(_speech.add(_words!.rescued));
   }
@@ -722,7 +809,7 @@ class DriveController extends Notifier<DriveState> {
     }
     nav.setLevel(level);
     _noteHelp(level);
-    state = r.copyWith(level: level);
+    _noteScreen(state = r.copyWith(level: level));
     unawaited(_device.keepScreenOn(on: level != DriveLevel.off));
   }
 
@@ -949,8 +1036,8 @@ class DriveController extends Notifier<DriveState> {
     );
   }
 
-  /// Writes the drive, its track and its [decisions] ([hesitated] alike in order) to the drive
-  /// log (SPEC §16.23 item 124).
+  /// Writes the drive, its track, its [decisions] ([hesitated] alike in order) and what it said,
+  /// showed and was touched for to the drive log (SPEC §16.23 item 124).
   Future<void> _log(
     DriveRecording recording,
     DriveReview review, {
@@ -1015,6 +1102,7 @@ class DriveController extends Notifier<DriveState> {
             mostHelp: _mostHelp,
           ),
           encodeTrack(fixes),
+          notes: List.of(_notes),
         );
     ref
       ..invalidate(pastDrivesProvider)

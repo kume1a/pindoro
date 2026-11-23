@@ -35,7 +35,8 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                drives grade on it), the evidence and runs tables, the drive log
                                (`DriveLogDao`: every drive's summary and its junctions (`drive_decision`, with each
                                one's FSRS effect) for good, its track for 90 days, and the
-                               append-only `drive_event` (preview, recital, debrief, Point to home);
+                               append-only `drive_event` (preview, recital, debrief, Point to home;
+                               during the drive its prompts, screens, names and touches);
                                `pastDrivesProvider`), Home and Work for drives (`drivePlacesProvider`,
                                `resolveDest`), the drive history (`driveHistoryProvider`: routes keyed
                                by Home, Work, place or street; the weekly goal, frequent routes,
@@ -179,7 +180,10 @@ test/drift/                    generated schema helpers + migration test
 - **Driving:** `driveDeviceProvider` (`core/drive_device.dart`): spoken prompts that duck
   music (iOS playback + duckOthers, Android transient may-duck focus), the speed chime and the
   screen kept on (`wakelock_plus`); iOS has the `audio` background mode so Off speaks camera
-  warnings with the screen locked. Tests override it.
+  warnings with the screen locked. Tests override it. `preciseLocationProvider` (`core/location.dart`,
+  `LocationService.precise` / `askPrecise`, iOS's `NSLocationTemporaryUsageDescriptionDictionary`
+  key `Navigation`) drives the setup's "Precise location is off"; the navigator drops coarse fixes
+  itself (SPEC §16.23 item 131).
 - **Hear the name:** `speechProvider` (`core/speech.dart`, `flutter_tts`) reads a new street's name
   in `speechLanguage(name)`; the button shows only when `canSpeakProvider` finds a voice. Tests
   override `speechProvider`.

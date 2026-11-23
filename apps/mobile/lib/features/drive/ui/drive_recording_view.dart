@@ -170,27 +170,31 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
     final night = isNight(view?.at ?? r.destination, now);
     return PopScope(
       canPop: false,
-      child: Theme(
-        data: buildPindoroTheme(night ? Brightness.dark : Brightness.light),
-        child: AnnotatedRegion<SystemUiOverlayStyle>(
-          value: SystemUiOverlayStyle.light,
-          child: Builder(
-            builder: (context) {
-              final c = PindoroTheme.of(context).colors;
-              final settings = ref.watch(settingsProvider).value;
-              return Scaffold(
-                backgroundColor: switch (r.level) {
-                  DriveLevel.off => c.driveOffBg,
-                  DriveLevel.guided => c.surfaceBase,
-                  _ => c.driveQuietBg,
-                },
-                body: switch (r.level) {
-                  DriveLevel.guided => _guided(context, r, now, settings),
-                  DriveLevel.off => _off(context, r, now),
-                  _ => _quiet(context, r, now, settings),
-                },
-              );
-            },
+      child: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) => _controller.noteTouch(),
+        child: Theme(
+          data: buildPindoroTheme(night ? Brightness.dark : Brightness.light),
+          child: AnnotatedRegion<SystemUiOverlayStyle>(
+            value: SystemUiOverlayStyle.light,
+            child: Builder(
+              builder: (context) {
+                final c = PindoroTheme.of(context).colors;
+                final settings = ref.watch(settingsProvider).value;
+                return Scaffold(
+                  backgroundColor: switch (r.level) {
+                    DriveLevel.off => c.driveOffBg,
+                    DriveLevel.guided => c.surfaceBase,
+                    _ => c.driveQuietBg,
+                  },
+                  body: switch (r.level) {
+                    DriveLevel.guided => _guided(context, r, now, settings),
+                    DriveLevel.off => _off(context, r, now),
+                    _ => _quiet(context, r, now, settings),
+                  },
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -817,7 +821,10 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
       null => null,
     };
     final direction = point == null ? null : l10n.compassWord(point.name);
-    final district = view?.district;
+    final district = switch (r.district) {
+      final d? => districtName(d, settings),
+      null => null,
+    };
     final goodS = view?.goodS;
     final limit = view?.limitKmh;
     final over = view?.over ?? false;
