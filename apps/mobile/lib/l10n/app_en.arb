@@ -3818,5 +3818,13 @@
         "type": "String"
       }
     }
+  },
+  "driveRouteSame": "Same time",
+  "@driveRouteSame": {
+    "description": "Guided routes and the drive setup: another way, as quick as the one compared."
+  },
+  "driveTakeRoute": "Take this route",
+  "@driveTakeRoute": {
+    "description": "Guided routes: drives the picked route from here."
   }
 }

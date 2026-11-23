@@ -292,6 +292,21 @@ and the specs after R5. Fix them in roughly this order.
     - The navigation maps' generic place icon is Maki's `marker` on a civic disc (`poi-other`).
     - Route lines: 6 dp in a 2 dp casing on the plan maps, 8 dp in a 2 dp casing on Guided's
       map (the canvas draws 8 dp with a 4 dp casing).
+  - **Guided's map like a car navigator's (SPEC §16.23 item 133, 2026-11-23)**, built in the
+    app:
+    - Tilt 55°, zoom 17, the car 75 % down; buildings raised from zoom 15 at half height in
+      `map.vector.building` at the new app-only `opacity.building-raised` (0.5, `app.json`);
+      house numbers in `map.vector.label` from zoom 16.5.
+    - A traffic-light mark on each junction with lights: DriveGlyph `lights` at 24 dp in
+      `drive.plate` with `drive.plate-glyph` lamps (new `driveGlyphPng`).
+    - Route 10 dp in a 2 dp casing, the turn arrow 10 dp in a 3 dp casing; the car (`ArrowMark`,
+      `CarMark`) and the arrow's head drawn 1.5× and facing the screen; the destination a
+      `PinMark` in `map.answer.line` with a `map.answer.casing` lip, rim and dot.
+    - `RouteOptions` gains `selected` (that row on `drive.surface-line`, its swatch
+      `map.answer.line`, the rest `drive.plate-text-2`) and a primary Take this route button
+      over Change destination; "Same time" when the minutes match.
+    - Not done here, as they are design-system colours (claude.ai first, if wanted): the
+      player's navigator's navy night map and grey turn card.
 - Lakes are not named (Protomaps gives them no label point); Lisi Lake is the only one.
 - Left out of the road-class pass, on purpose:
   - A "Your streets" round left half-way is not offered as Continue on Explore (Continue matches

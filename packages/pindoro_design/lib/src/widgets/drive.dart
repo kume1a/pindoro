@@ -1841,9 +1841,11 @@ class _DriveCard extends StatelessWidget {
 /// [delta] against the route driven now ("+3 min"; null for that one).
 typedef RouteOption = ({String time, String length, String? delta});
 
-/// Guided's routes (RouteOptions, SPEC §16.23 item 130): the route driven now ([nowLabel]) and
-/// the other ways on, each a row that takes it ([onPick], by index); [actionLabel] (Change
-/// destination) under them when given. Each way's swatch is its colour on the map.
+/// Guided's routes (RouteOptions, SPEC §16.23 items 130 and 133): the route driven now
+/// ([nowLabel]) and the other ways on, each a row that picks it ([onPick], by index), the
+/// [selected] one lit; [takeLabel] (Take this route) takes it, [actionLabel] (Change
+/// destination) under them when given. Each way's swatch is its colour on the map: the
+/// selected one's yellow, the rest grey.
 class RouteOptions extends StatelessWidget {
   const RouteOptions({
     super.key,
@@ -1851,6 +1853,9 @@ class RouteOptions extends StatelessWidget {
     required this.options,
     required this.nowLabel,
     required this.onPick,
+    this.selected = 0,
+    this.takeLabel,
+    this.onTake,
     this.actionLabel,
     this.onAction,
   });
@@ -1859,6 +1864,9 @@ class RouteOptions extends StatelessWidget {
   final List<RouteOption> options;
   final String nowLabel;
   final void Function(int index) onPick;
+  final int selected;
+  final String? takeLabel;
+  final VoidCallback? onTake;
   final String? actionLabel;
   final VoidCallback? onAction;
 
@@ -1867,12 +1875,21 @@ class RouteOptions extends StatelessWidget {
     final c = PindoroTheme.of(context).colors;
     Widget row(int i, RouteOption o) {
       final now = o.delta == null;
+      final lit = i == selected;
       final words = [o.time, o.length, now ? nowLabel : o.delta!];
       return Tappable(
         label: words.join(', '),
+        selected: lit,
         onTap: () => onPick(i),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: PindoroSpace.s2),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: PindoroSpace.s2,
+            vertical: PindoroSpace.s2,
+          ),
+          decoration: BoxDecoration(
+            color: lit ? c.driveSurfaceLine : null,
+            borderRadius: BorderRadius.circular(PindoroRadius.md),
+          ),
           child: Row(
             spacing: PindoroSpace.s3,
             children: [
@@ -1880,7 +1897,7 @@ class RouteOptions extends StatelessWidget {
                 width: PindoroSpace.s6,
                 height: PindoroStroke.answer,
                 decoration: BoxDecoration(
-                  color: now ? c.mapAnswerLine : c.drivePlateText2,
+                  color: lit ? c.mapAnswerLine : c.drivePlateText2,
                   borderRadius: BorderRadius.circular(PindoroStroke.answer),
                 ),
               ),
@@ -1907,6 +1924,7 @@ class RouteOptions extends StatelessWidget {
       );
     }
 
+    final take = (takeLabel, onTake);
     final action = (actionLabel, onAction);
     return Semantics(
       container: true,
@@ -1918,6 +1936,10 @@ class RouteOptions extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             for (final (i, o) in options.indexed) row(i, o),
+            if (take case (final label?, final tap?)) ...[
+              const SizedBox(height: PindoroSpace.s2),
+              PindoroButton(label: label, onPressed: tap),
+            ],
             if (action case (final label?, final tap?)) ...[
               const SizedBox(height: PindoroSpace.s2),
               PindoroButton(

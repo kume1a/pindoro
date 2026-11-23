@@ -5,7 +5,7 @@ Signpost widgets: `PindoroButton`, `StreetPlate`, surfaces (`LipBox`, `ListGroup
 `RowTile`, `StatTile`, a one-line `ListRow(dense: true)`, `TileGrid`, `TitledCard`, `SheetHandle`), the bottom navigation (`PindoroNavBar`, no counts on tabs), controls
 (`SegmentedControl`, `PindoroToggle`, `PindoroIconButton`, `PindoroDialog`, `LaneLoader`, the
 loading `Skeleton`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` incl. the route's
-`PinMark.endpoint`, `CarMark`, Guided's `ArrowMark`, `glyphPng` and `onewayArrowPng` for map images), the round components (`QuestionBar`,
+`PinMark.endpoint`, `CarMark`, Guided's `ArrowMark`, `glyphPng`, `driveGlyphPng` and `onewayArrowPng` for map images), the round components (`QuestionBar`,
 `Pill`, `MapControl`, `RevealSheet` and its `TierSheetFrame`, `ResultRow`, `TierTally`,
 `CoachBubble`), the v3 session (`StatChip`, `NextReviewChip`, `IntroSheet`, the drills'
 `BearingDial`; the session bar is `QuestionBar` with `height: 14`), v3 route items (`ExitButton`,
@@ -29,7 +29,7 @@ parameters; strings live in the app.
 
 - `tokens/tokens.json` is the claude.ai design system's file, copied verbatim (never edit it here;
   change it on claude.ai and copy it again). `tokens/app.json` holds app-only tokens in the same
-  format (none since the 2026-11-20 sync); duplicates of a design-system token fail the
+  format (only `opacity.building-raised` since the 2026-11-20 sync); duplicates of a design-system token fail the
   generator. Intent lives in `docs/design/*.md`.
 - `tool/generate_tokens.dart` writes `lib/src/generated/pindoro_tokens.dart`: `PindoroPalette`
   (primitives), `PindoroColors.light` / `.dark` (semantic + component colours, aliases resolved),

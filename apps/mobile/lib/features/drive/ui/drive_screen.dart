@@ -455,10 +455,7 @@ class _RouteOptions extends StatelessWidget {
                 side(o) == NavSide.left
                     ? l10n.driveRouteLeft
                     : l10n.driveRouteRight,
-              if (sides && side(o) != side(first) && minutes != 0)
-                minutes > 0
-                    ? l10n.driveRouteSlower(minutes)
-                    : l10n.driveRouteFaster(-minutes),
+              if (sides && side(o) != side(first)) routeDelta(l10n, minutes),
               if (i == fastest) l10n.driveRouteFastest,
               if (i == familiar && i != fastest) l10n.driveRouteFamiliar,
             ].join(' · ');

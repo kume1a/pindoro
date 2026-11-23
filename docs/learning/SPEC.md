@@ -1265,7 +1265,8 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        last touch they go (item 116).
      - Routes: the map zooms out, north up and flat, to the route ahead and up to two other ways
        on from the car's next junction (grey), listed over the bar as minutes, kilometres and
-       "+3 min" against the route driven now; a tap drives that way from there at once, silently.
+       "+3 min" against the route driven now; a tap picks a way and Take this route drives it
+       from there, silently (item 133).
        Change destination is there while stopped.
      - Coached, Quiet and Off keep their stopped bar.
      - The preview's recital names no street before the way is tapped: the street turned onto
@@ -1313,4 +1314,19 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        Preview and Start); its handle, tapped or pulled up, adds the suggestion, the level's
        note, the rules and the week's goal.
      - The route line is thinner: 6 dp in a 2 dp casing on the plan maps, 8 dp in a 2 dp casing
-       on Guided's tilted map. A tap outside a text field hides the keyboard.
+       on Guided's tilted map (10 dp since item 133). A tap outside a text field hides the
+       keyboard.
+133. **Guided's map like a car navigator's, and routes picked before taken** (2026-11-23, after
+     the player's Yandex Navigator at night):
+     - The map tilts to 55° at zoom 17 with the car 75 % down. The buildings stand up from zoom
+       15 (half their mapped height, 6 m where none is mapped, at `opacity.building-raised`),
+       house numbers show from zoom 16.5 and a traffic-light mark stands on every junction with
+       lights (pack format 7 `junction.signals`), giving way where it would cover a name.
+     - The route is 10 dp in a 2 dp casing (amends item 132's 8 dp), the turn arrow as wide in
+       a 3 dp casing, its head and the car 1.5× their marks. The car faces the screen, straight
+       up while the map follows it heading up. The destination is a pin in the route's colours.
+     - Routes overview (amends item 130): a tap on a way picks it, lit yellow on the map and in
+       the list with the rest grey; Take this route drives it from there. Nothing changes until
+       then.
+     - Another way's minutes against the route compared read "Same time" when equal, here and
+       in the setup's side rows.

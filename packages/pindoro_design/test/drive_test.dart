@@ -174,10 +174,10 @@ void main() {
     expect((taps, recentred), (1, 1));
   });
 
-  testWidgets('the routes: a row takes its way; the action under them', (
-    tester,
-  ) async {
+  testWidgets('the routes: a row picks its way, the button takes it; the '
+      'action under them', (tester) async {
     final picked = <int>[];
+    var taken = 0;
     var changed = 0;
     await tester.pumpWidget(
       _host(
@@ -189,16 +189,24 @@ void main() {
           ],
           nowLabel: 'Now',
           onPick: picked.add,
+          selected: 1,
+          takeLabel: 'Take this route',
+          onTake: () => taken++,
           actionLabel: 'Change destination',
           onAction: () => changed++,
         ),
       ),
     );
     await tester.tap(find.text('+3 min'));
+    await tester.tap(find.text('Take this route'));
     await tester.tap(find.text('Change destination'));
     expect(picked, [1]);
-    expect(changed, 1);
+    expect((taken, changed), (1, 1));
     expect(find.text('Now'), findsOneWidget);
+    expect(
+      tester.getSemantics(find.bySemanticsLabel('19 min, 14.2 km, +3 min')),
+      isSemantics(isSelected: true),
+    );
   });
 
   group('goldens', skip: _goldensSkip, () {
@@ -313,6 +321,9 @@ void main() {
                       ],
                       nowLabel: 'Now',
                       onPick: (_) {},
+                      selected: 1,
+                      takeLabel: 'Take this route',
+                      onTake: () {},
                       actionLabel: 'Change destination',
                       onAction: () {},
                     ),

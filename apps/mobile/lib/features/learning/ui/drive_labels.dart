@@ -38,6 +38,13 @@ String routeName(
     },
 ].join(' $routeArrow ');
 
+/// Another way's [minutes] against the one compared: "+3 min", "−2 min" or "Same time".
+String routeDelta(AppLocalizations l10n, int minutes) => switch (minutes) {
+  0 => l10n.driveRouteSame,
+  > 0 => l10n.driveRouteSlower(minutes),
+  _ => l10n.driveRouteFaster(-minutes),
+};
+
 /// A drive level's name (SPEC §16.23 item 112).
 String levelLabel(AppLocalizations l10n, DriveLevel level) => switch (level) {
   DriveLevel.guided => l10n.driveLevelGuided,

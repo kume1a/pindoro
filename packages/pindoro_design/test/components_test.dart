@@ -367,6 +367,13 @@ void main() {
         CarMark(colors).toPng,
         ArrowMark(colors).toPng,
         PoiMark(icon: 'cafe', color: colors.mapPoiFood, colors: colors).toPng,
+        (double ratio) => driveGlyphPng(
+          DriveGlyphName.lights,
+          color: colors.drivePlate,
+          cut: colors.drivePlateGlyph,
+          size: PindoroSize.iconMd,
+          pixelRatio: ratio,
+        ),
       ]) {
         final png = await tester.runAsync(() => mark(2));
         // PNG signature.

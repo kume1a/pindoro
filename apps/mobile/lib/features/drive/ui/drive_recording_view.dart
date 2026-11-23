@@ -64,8 +64,11 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
   /// The compass's choice: north up instead of the road ahead.
   bool _northUp = false;
 
-  /// The routes overview's other ways on while it is open, and their lines on the map.
+  /// The routes overview's other ways on while it is open, the way picked in it (0 the route
+  /// driven now) and their lines on the map: the picked one's yellow, the rest grey.
   List<NavPlan>? _options;
+  int _picked = 0;
+  MultiPolyline _pickedLines = const [];
   MultiPolyline _optionLines = const [];
 
   @override
@@ -111,22 +114,36 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
   void _closeRoutes() {
     if (_options == null) return;
     _options = null;
-    _optionLines = const [];
+    _pickRoute(0);
     _following = true;
   }
 
   void _toggleRoutes() => setState(() {
     if (_options != null) return _closeRoutes();
-    final options = _controller.routeOptions();
-    _options = options;
-    _optionLines = [for (final o in options) ...o.lines];
+    _options = _controller.routeOptions();
+    _pickRoute(0);
     _levelOpen = false;
   });
 
-  /// The [i]th of the routes (0 is the route driven now): driven from here.
-  void _takeRoute(int i) {
+  /// The [i]th of the routes (0 is the route driven now) picked: lit on the map, not driven
+  /// until Take this route.
+  void _pickRoute(int i) {
+    final options = _options ?? const [];
+    _picked = i;
+    _pickedLines = i == 0 ? const [] : options[i - 1].lines;
+    _optionLines = [
+      if (i > 0) ..._route,
+      for (final (j, o) in options.indexed)
+        if (j != i - 1) ...o.lines,
+    ];
+  }
+
+  /// The picked way, driven from here.
+  void _takeRoute() {
     final options = _options;
-    if (options != null && i > 0) _controller.takeRoute(options[i - 1]);
+    if (options != null && _picked > 0) {
+      _controller.takeRoute(options[_picked - 1]);
+    }
     _settle();
   }
 
@@ -330,7 +347,7 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
                 arrow: arrow,
                 at: view?.onRoad?.at ?? view?.at ?? r.start,
                 heading: bearing,
-                route: _route,
+                route: options != null && _picked > 0 ? _pickedLines : _route,
                 turn: _turn,
                 destination: r.destination,
                 lost: lostS != null,
@@ -502,8 +519,8 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
   static int _wholeMinutes(double seconds) =>
       math.max(1, (seconds / 60).ceil());
 
-  /// The routes overview (item 130): the route driven now, then the other ways on, slower or
-  /// quicker; Change destination while stopped.
+  /// The routes overview (items 130, 133): the route driven now, then the other ways on, slower
+  /// or quicker; a row picks a way, Take this route drives it; Change destination while stopped.
   Widget _routes(
     BuildContext context,
     DriveRecording r,
@@ -511,11 +528,9 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
   ) {
     final l10n = context.l10n;
     final nowS = r.view?.leftS ?? 0;
-    String delta(NavPlan p) {
-      // Between the minutes shown, so "16 min" and "17 min" read "+1 min".
-      final m = _wholeMinutes(p.seconds) - _wholeMinutes(nowS);
-      return m < 0 ? l10n.driveRouteFaster(-m) : l10n.driveRouteSlower(m);
-    }
+    // Between the minutes shown, so "16 min" and "17 min" read "+1 min".
+    String delta(NavPlan p) =>
+        routeDelta(l10n, _wholeMinutes(p.seconds) - _wholeMinutes(nowS));
 
     return RouteOptions(
       semanticsLabel: l10n.a11yRoutes,
@@ -533,7 +548,10 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
             delta: delta(p),
           ),
       ],
-      onPick: _takeRoute,
+      onPick: (i) => setState(() => _pickRoute(i)),
+      selected: _picked,
+      takeLabel: _picked > 0 ? l10n.driveTakeRoute : null,
+      onTake: _takeRoute,
       actionLabel: r.stopped ? l10n.driveChangeDest : null,
       onAction: r.stopped ? () => _openRoute(context) : null,
     );
