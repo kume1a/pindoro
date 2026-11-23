@@ -274,6 +274,57 @@ class Landmark {
   final List<List<Polyline>>? outline;
 }
 
+/// Any named place in the city (pack format 9 `poi`), a destination to drive to: [kind] is its
+/// OSM tag value under [osmKey] (`restaurant` under `amenity`), with what OSM says of its address,
+/// opening hours, phone and website.
+class Poi extends Landmark {
+  const Poi({
+    required super.id,
+    required super.kind,
+    required super.nameKa,
+    required super.nameEn,
+    required super.brand,
+    required super.at,
+    required this.osmKey,
+    super.outline,
+    this.street,
+    this.housenumber,
+    this.hours,
+    this.phone,
+    this.website,
+  }) : super(salience: 0);
+
+  factory Poi.fromRow(PackRow r) => Poi(
+    id: r['id']! as String,
+    osmKey: r['key']! as String,
+    kind: r['kind']! as String,
+    nameKa: r['name_ka']! as String,
+    nameEn: r['name_en'] as String?,
+    brand: r['brand'] as String?,
+    at: LatLng(_d(r['lat']), _d(r['lon'])),
+    outline: switch (r['outline']) {
+      final String json => decodeMultipolygon6(json),
+      _ => null,
+    },
+    street: r['street'] as String?,
+    housenumber: r['housenumber'] as String?,
+    hours: r['hours'] as String?,
+    phone: r['phone'] as String?,
+    website: r['website'] as String?,
+  );
+
+  final String osmKey;
+
+  /// OSM `addr:street` and `addr:housenumber`.
+  final String? street;
+  final String? housenumber;
+
+  /// OSM `opening_hours`, as tagged.
+  final String? hours;
+  final String? phone;
+  final String? website;
+}
+
 /// Where a junction item sits in the route layers (SPEC §6.5).
 enum JunctionLayer { skeleton, district, gatewayOut, gatewayIn, bridge }
 

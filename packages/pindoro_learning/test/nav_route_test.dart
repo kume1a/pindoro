@@ -95,7 +95,7 @@ void main() {
         graph,
         NavCost(net.byPart, toleranceKmh: 14),
         from: 1,
-        to: 2,
+        to: const NavStop.junction(2),
         streets: net.byPart,
       )!;
       expect(plan.route.junctions, [1, 3, 4, 2]);
@@ -110,7 +110,7 @@ void main() {
           net.graph(),
           NavCost(net.byPart, toleranceKmh: 14),
           from: 1,
-          to: 2,
+          to: const NavStop.junction(2),
           streets: net.byPart,
         ))
           p.route.junctions,
@@ -130,7 +130,7 @@ void main() {
         net.graph(),
         NavCost(net.byPart, toleranceKmh: 14),
         from: 1,
-        to: 2,
+        to: const NavStop.junction(2),
         streets: net.byPart,
       )!;
       expect(plan.route.junctions, [1, 2]);
@@ -286,6 +286,159 @@ void main() {
     test('no lanes when none are mapped or none goes the way', () {
       expect(navLanes(at3(graph, 7)), isNull);
       expect(navLanes(at3(laned('left|left'), 7)), isNull);
+    });
+  });
+
+  group('stops on the way', () {
+    final net = _cross();
+    final graph = net.graph();
+    final cost = NavCost(net.byPart, toleranceKmh: 14);
+
+    test('through a stop: one route of both legs, the stop metres along it, '
+        'the time of both and the decisions of both', () {
+      // From 1 to 7 through 4: up Column, back down it and on along Row.
+      final plan = planNav(
+        graph,
+        cost,
+        from: 1,
+        to: const NavStop.junction(7),
+        via: const [NavStop.junction(4)],
+        streets: net.byPart,
+      )!;
+      expect(plan.route.junctions, [1, 2, 4, 2, 3, 7]);
+      expect(plan.viaM, [closeTo(200, 0.5)]);
+      expect(plan.seconds, closeTo(cost.secondsOf(plan.route), 1e-6));
+      // Onto Column at 2, and back at 2 onto Row after the stop.
+      expect(plan.decisions.where((d) => d.junction == 2), hasLength(2));
+      final direct = planNav(
+        graph,
+        cost,
+        from: 1,
+        to: const NavStop.junction(7),
+      )!;
+      expect(direct.route.junctions, [1, 2, 3, 7]);
+      expect(direct.viaM, isEmpty);
+    });
+
+    test('a stop on a road: its metres along the route, the next leg going on '
+        'from the end of its road', () {
+      // 20 m south of Row between 2 and 3: on the right driving east.
+      final stop = stopsNear(graph, RoadNet.point(150, -20)).first;
+      final plan = planNav(
+        graph,
+        cost,
+        from: 1,
+        to: const NavStop.junction(5),
+        via: [stop],
+      )!;
+      expect(plan.route.junctions, [1, 2, 3, 2, 5]);
+      expect(plan.viaM, [closeTo(150, 0.5)]);
+    });
+
+    test('the options all go through the stop', () {
+      final options = planNavOptions(
+        graph,
+        cost,
+        from: 1,
+        to: const NavStop.junction(7),
+        via: const [NavStop.junction(4)],
+      );
+      expect(options, isNotEmpty);
+      for (final o in options) {
+        expect(o.route.junctions, contains(4));
+        expect(o.via, [const NavStop.junction(4)]);
+      }
+    });
+  });
+
+  group('stops on the road', () {
+    final net = _cross();
+    final graph = net.graph();
+    final cost = NavCost(net.byPart, toleranceKmh: 14);
+    double east(LatLng p) => LocalProjection(RoadNet.origin).project(p).$1;
+    NavPlan to(NavStop stop, {int from = 1}) =>
+        planNav(graph, cost, from: from, to: stop, streets: net.byPart)!;
+
+    test(
+      'a place beside a two-way road: a stop each way, the right side first',
+      () {
+        // 20 m south of Row between 1 and 2: on the right driving east.
+        final stops = stopsNear(graph, RoadNet.point(50, -20));
+        expect(
+          [for (final s in stops) (s.edge!.id, s.toward, s.side)],
+          [(20, 2, NavSide.right), (20, 1, NavSide.left)],
+        );
+        expect(stops.first.alongM, closeTo(50, 0.5));
+        expect(east(stops.first.at!), closeTo(50, 0.5));
+        expect(stops.first.junctionNear, 1);
+      },
+    );
+
+    test(
+      'on the road line it has no side; a one-way gives its way; none out of '
+      'reach',
+      () {
+        final on = stopsNear(graph, RoadNet.point(50, -3));
+        expect([for (final s in on) (s.toward, s.side)], [(null, null)]);
+        final oneway = RoadNet()
+          ..street('row', 'რიგი', 'Row')
+          ..junction(1, 0, 0)
+          ..junction(2, 100, 0);
+        oneway.edge(20, 1, 2, 'row', oneway: Oneway.backward);
+        expect(
+          [
+            for (final s in stopsNear(oneway.graph(), RoadNet.point(50, -20)))
+              (s.toward, s.side),
+          ],
+          [(1, NavSide.left)],
+        );
+        expect(stopsNear(graph, RoadNet.point(50, -1000)), isEmpty);
+      },
+    );
+
+    test('a plan ends at the stop: its metres, time and line', () {
+      final right = stopsNear(graph, RoadNet.point(50, -20)).first;
+      final plan = to(right);
+      expect(plan.route.junctions, [1, 2]);
+      expect(plan.endM, closeTo(50, 0.5));
+      final row = plan.route.edges.single;
+      expect(plan.seconds, closeTo(cost.seconds(row) / 2, 0.01));
+      expect(east(plan.lines.single.last), closeTo(50, 0.5));
+    });
+
+    test('the left side comes round to arrive driving west', () {
+      final left = stopsNear(graph, RoadNet.point(50, -20))[1];
+      final plan = to(left);
+      expect(plan.route.junctions.last, 1);
+      expect(plan.route.edges.last.id, 20);
+      expect(plan.endM, closeTo(plan.route.lengthM - 50, 0.5));
+    });
+
+    test(
+      'both sides offered, the right first; one side when asked for one',
+      () {
+        final stops = stopsNear(graph, RoadNet.point(50, -20));
+        List<NavSide?> sides({int count = LearningConfig.navOptions}) => [
+          for (final p in planStopOptions(
+            graph,
+            cost,
+            from: 1,
+            stops: stops,
+            streets: net.byPart,
+            count: count,
+          ))
+            p.stop!.side,
+        ];
+        expect(sides(), [NavSide.right, NavSide.left]);
+        expect(sides(count: 1), [NavSide.right]);
+      },
+    );
+
+    test('a stop on the line is reached driving either way, the quicker', () {
+      final on = stopsNear(graph, RoadNet.point(50, -3)).single;
+      expect(to(on).route.junctions, [1, 2]);
+      expect(to(on, from: 3).route.junctions, [3, 2, 1]);
+      expect(to(on, from: 3).endM, closeTo(150, 0.5));
     });
   });
 }

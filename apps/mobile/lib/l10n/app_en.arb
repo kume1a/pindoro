@@ -3776,5 +3776,124 @@
   "drivePreciseOffNote": "Turns can’t be followed from an approximate location. Tap to turn it on.",
   "@drivePreciseOffNote": {
     "description": "Drive setup: why precise location matters, and that a tap asks for it."
+  },
+  "navArrivedRight": "You're here: {street}, on your right.",
+  "@navArrivedRight": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "navArrivedLeft": "You're here: {street}, on your left.",
+  "@navArrivedLeft": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "driveRouteRight": "On your right",
+  "driveRouteLeft": "On your left",
+  "a11ySetupMore": "Show more",
+  "a11ySetupLess": "Show less",
+  "driveMapPin": "Dropped pin",
+  "driveMapNoRoad": "No road near there: tap closer to a road.",
+  "placeCall": "Call",
+  "placeWebsite": "Website",
+  "poiKind": "{kind, select, restaurant{Restaurant} cafe{Café} bar{Bar} pub{Pub} fast_food{Fast food} food_court{Food court} ice_cream{Ice cream} bakery{Bakery} supermarket{Supermarket} convenience{Shop} mall{Mall} department_store{Department store} marketplace{Market} clothes{Clothes} shoes{Shoes} electronics{Electronics} mobile_phone{Phones} hardware{Hardware} doityourself{Hardware} furniture{Furniture} books{Books} florist{Flowers} beauty{Beauty salon} hairdresser{Hairdresser} cosmetics{Cosmetics} jewelry{Jewellery} optician{Optician} alcohol{Drinks} wine{Wine} butcher{Butcher} toys{Toys} pet{Pet shop} gift{Gifts} kiosk{Kiosk} pharmacy{Pharmacy} hospital{Hospital} clinic{Clinic} doctors{Doctor} dentist{Dentist} veterinary{Vet} bank{Bank} bureau_de_change{Exchange} post_office{Post office} fuel{Fuel} car_wash{Car wash} car_repair{Car repair} car{Car dealer} car_parts{Car parts} hotel{Hotel} hostel{Hostel} guest_house{Guest house} museum{Museum} theatre{Theatre} cinema{Cinema} gallery{Gallery} attraction{Sight} viewpoint{Viewpoint} place_of_worship{Church} school{School} kindergarten{Kindergarten} university{University} college{College} library{Library} park{Park} garden{Garden} sports_centre{Sports centre} fitness_centre{Gym} stadium{Stadium} swimming_pool{Swimming pool} police{Police} townhall{Town hall} embassy{Embassy} station{Station} metro{Metro} bus_station{Bus station} aerodrome{Airport} monument{Monument} memorial{Memorial} square{Square} nightclub{Nightclub} travel_agency{Travel agency} company{Office} government{Government office} lawyer{Lawyer} estate_agent{Estate agent} insurance{Insurance} other{}}",
+  "@poiKind": {
+    "description": "A place's kind by its OSM tag value; empty when unknown (poiKey names it then).",
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "poiKey": "{key, select, shop{Shop} amenity{Place} office{Office} craft{Workshop} healthcare{Health care} tourism{Sight} leisure{Leisure} historic{Historic site} other{Place}}",
+  "@poiKey": {
+    "description": "A place's kind by its OSM key, when poiKind has no name for it.",
+    "placeholders": {
+      "key": {
+        "type": "String"
+      }
+    }
+  },
+  "driveRouteSame": "Same time",
+  "@driveRouteSame": {
+    "description": "Guided routes and the drive setup: another way, as quick as the one compared."
+  },
+  "driveTakeRoute": "Take this route",
+  "@driveTakeRoute": {
+    "description": "Guided routes: drives the picked route from here."
+  },
+  "navStop": "You've reached your stop: {stop}.",
+  "@navStop": {
+    "description": "Voice: a stop on the way reached; the drive goes on.",
+    "placeholders": {
+      "stop": {
+        "type": "String"
+      }
+    }
+  },
+  "navStopRight": "You've reached your stop: {stop}, on your right.",
+  "@navStopRight": {
+    "description": "Voice: a stop on the way reached, on the right side of the road.",
+    "placeholders": {
+      "stop": {
+        "type": "String"
+      }
+    }
+  },
+  "navStopLeft": "You've reached your stop: {stop}, on your left.",
+  "@navStopLeft": {
+    "description": "Voice: a stop on the way reached, on the left side of the road.",
+    "placeholders": {
+      "stop": {
+        "type": "String"
+      }
+    }
+  },
+  "driveFromHere": "Current location",
+  "@driveFromHere": {
+    "description": "Route chooser: where the drive starts."
+  },
+  "driveFrom": "From",
+  "@driveFrom": {
+    "description": "Route chooser: the label of where the drive starts."
+  },
+  "driveTo": "To",
+  "@driveTo": {
+    "description": "Route chooser: the label of the destination; a tap changes it."
+  },
+  "driveAddStop": "Add stop",
+  "@driveAddStop": {
+    "description": "Route chooser, Guided routes and the search: add a place to pass on the way."
+  },
+  "driveStopN": "Stop {n}",
+  "@driveStopN": {
+    "description": "Route chooser: the label of the nth stop on the way.",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "a11yRemoveStop": "Remove {stop}",
+  "@a11yRemoveStop": {
+    "description": "Route chooser: removes a stop on the way.",
+    "placeholders": {
+      "stop": {
+        "type": "String"
+      }
+    }
+  },
+  "driveLetsGo": "Let's go",
+  "@driveLetsGo": {
+    "description": "Route chooser: starts the drive on the route picked."
+  },
+  "driveRouteOther": "Another way",
+  "@driveRouteOther": {
+    "description": "Route chooser: a route card that is neither the fastest nor the most familiar."
   }
 }

@@ -295,6 +295,18 @@ abstract final class LearningConfig {
   static const int stoppedHoldS = 2;
   static const double navArriveM = 50;
 
+  /// A destination's stop (item 132): on the road nearest the place within [navStopReachM]; a
+  /// place within [navStopSideM] of that road's line has no side to arrive on.
+  static const double navStopReachM = 300;
+  static const double navStopSideM = 5;
+
+  /// Stops on the way to the destination (item 134): at most this many at once.
+  static const int navViaMax = 5;
+
+  /// A place tapped on the map whose tile has no pack id is the pack's place of that name within
+  /// this of it (item 132).
+  static const double placeTapNameM = 50;
+
   /// Voice: the prepare prompt at the larger of [prepareM] and [prepareS] ahead, the action
   /// prompt at the larger of [actionM] and [actionS].
   static const double prepareM = 150;

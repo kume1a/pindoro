@@ -2,8 +2,11 @@ import 'dart:async';
 import 'dart:math' as math show max, pi, sin;
 import 'dart:math' show Point;
 
-import 'package:flutter/foundation.dart' show listEquals;
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, listEquals;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:pindoro/core/database/database.dart';
@@ -12,6 +15,7 @@ import 'package:pindoro/core/location.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/core/toast.dart';
 import 'package:pindoro/features/map/data/geojson.dart';
+import 'package:pindoro/features/map/data/map_places.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/data/maplibre_convert.dart';
 import 'package:pindoro/features/map/ui/map_host.dart';
@@ -20,6 +24,7 @@ import 'package:pindoro/features/map/ui/poi_icons.dart';
 import 'package:pindoro/features/map/ui/route_layers.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/map_attribution.dart';
+import 'package:pindoro/features/map/ui/widgets/map_sprite.dart';
 import 'package:pindoro/features/map/ui/widgets/map_taps.dart';
 import 'package:pindoro/features/map/ui/widgets/map_zoom_controls.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -36,6 +41,8 @@ abstract final class _MapSources {
   static const String measureLabel = 'measure-label';
   static const String trace = 'trace';
   static const String hitStreet = 'hit-street';
+  static const String placeOutline = 'place-outline';
+  static const String marks = 'marks';
 }
 
 /// The dotted line from the pin to the nearest point of the street, with its
@@ -49,6 +56,9 @@ const double _traceWidth = 6;
 const double _placeFrameM = 200;
 
 const String _pinImage = 'player-pin';
+
+/// How far left of the screen the marks are painted, out of sight, for their pictures.
+const double _offstage = 100000;
 
 /// Builds the game map; widget tests override it so no platform view is made.
 final pindoroMapBuilderProvider = Provider<Widget Function(PindoroMap map)>(
@@ -83,6 +93,9 @@ class PindoroMap extends ConsumerStatefulWidget {
     this.hit,
     this.morePins = const [],
     this.bearing = 0,
+    this.onPlaceTap,
+    this.placeOutline,
+    this.marks = const [],
   });
 
   final AreaShape area;
@@ -118,6 +131,16 @@ class PindoroMap extends ConsumerStatefulWidget {
   /// Where the top of the screen faces, degrees clockwise from north: a
   /// turn card drives up the screen.
   final double bearing;
+
+  /// A tap on a place's icon or name in [MapNames.everything] (item 132), in place of [onTap].
+  final ValueChanged<MapPlace>? onPlaceTap;
+
+  /// A picked place's outline (a mall, a park), filled like a picked area.
+  final List<List<Polyline>>? placeOutline;
+
+  /// Widgets pinned to map points (the plan map's start, flag, numbers and bubbles), drawn by
+  /// the map as its own symbols (a [MapSprite] each), so they keep to the ground as it moves.
+  final List<MapMark> marks;
 
   @override
   ConsumerState<PindoroMap> createState() => _PindoroMapState();
@@ -158,8 +181,16 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
 
   /// The route as the map last got it; null until it got one (per style).
   RouteOverlay? _sentRoute;
-  bool _sendingRoute = false;
-  bool _routeChanged = false;
+  late final _sendRoute = SerialWork(_syncRoute);
+
+  /// Each mark's latest picture, by its index in [PindoroMap.marks].
+  final Map<int, Uint8List> _markPngs = {};
+
+  /// Each picture's map image, added once per style ([_markImages]).
+  final Expando<String> _markIds = Expando();
+  final Set<String> _markImages = {};
+  int _markCount = 0;
+  late final _sendMarks = SerialWork(_syncMarks);
 
   @override
   bool get englishNames =>
@@ -201,9 +232,39 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     if (mapProjection case final projection?) widget.onCamera?.call(projection);
   }
 
-  void _tapped(Offset at) {
-    if (mapProjection case final projection?) {
-      widget.onTap?.call(projection.toLatLng(at));
+  Future<void> _tapped(Offset at) async {
+    final projection = mapProjection;
+    if (projection == null) return;
+    final spot = projection.toLatLng(at);
+    if (widget.onPlaceTap != null) {
+      final place = await _placeAt(at, spot);
+      if (!mounted) return;
+      if (place != null) return widget.onPlaceTap?.call(place);
+    }
+    widget.onTap?.call(spot);
+  }
+
+  /// The place drawn under a finger at [at] (screen), nearest [spot]; null when none is.
+  Future<MapPlace?> _placeAt(Offset at, LatLng spot) async {
+    final c = mapController;
+    if (c == null) return null;
+    // Android's map counts physical pixels, iOS's points.
+    final scale = defaultTargetPlatform == TargetPlatform.android
+        ? MediaQuery.devicePixelRatioOf(context)
+        : 1.0;
+    try {
+      final features = await c.queryRenderedFeaturesInRect(
+        Rect.fromCenter(
+          center: at * scale,
+          width: PindoroSize.tapMin * scale,
+          height: PindoroSize.tapMin * scale,
+        ),
+        [PoiLayers.all, NameLayers.poisAll],
+        null,
+      );
+      return mapPlaceAt(features, spot);
+    } on PlatformException {
+      return null;
     }
   }
 
@@ -297,10 +358,20 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
         widget.truthPoint != oldWidget.truthPoint ||
         widget.measure != oldWidget.measure ||
         !listEquals(widget.traces, oldWidget.traces) ||
-        !_sameLines(widget.hit, oldWidget.hit)) {
+        !_sameLines(widget.hit, oldWidget.hit) ||
+        !identical(widget.placeOutline, oldWidget.placeOutline)) {
       runMapWork(_syncOverlays);
     }
     if (widget.names != oldWidget.names) runMapWork(_syncNames);
+    if (widget.marks.length < oldWidget.marks.length) {
+      _markPngs.removeWhere((i, _) => i >= widget.marks.length);
+    }
+    if (!listEquals(
+      [for (final m in widget.marks) m.at],
+      [for (final m in oldWidget.marks) m.at],
+    )) {
+      runMapWork(_sendMarks.call);
+    }
     final frame = widget.frame;
     final insetsMoved =
         widget.topInset != oldWidget.topInset ||
@@ -312,7 +383,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       unawaited(_fit(_framePoints));
     }
     if (widget.route != oldWidget.route) {
-      runMapWork(_sendRoute);
+      runMapWork(_sendRoute.call);
       if ((widget.route?.reached ?? false) &&
           !(oldWidget.route?.reached ?? false) &&
           !MediaQuery.disableAnimationsOf(context)) {
@@ -421,6 +492,31 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       enableInteraction: false,
     );
     if (widget.route != null) await addRouteLayers(c, colors, pixelRatio);
+    await c.addGeoJsonSource(
+      _MapSources.placeOutline,
+      polygonsGeoJson(const []),
+    );
+    await c.addFillLayer(
+      _MapSources.placeOutline,
+      '${_MapSources.placeOutline}-fill',
+      ml.FillLayerProperties(
+        fillColor: hexColor(colors.mapAreaStroke),
+        fillOpacity: PindoroOpacity.area,
+      ),
+      belowLayerId: NameLayers.lowest,
+      enableInteraction: false,
+    );
+    await c.addLineLayer(
+      _MapSources.placeOutline,
+      '${_MapSources.placeOutline}-line',
+      ml.LineLayerProperties(
+        lineColor: hexColor(colors.mapAreaStroke),
+        lineWidth: PindoroStroke.thick,
+        lineJoin: 'round',
+      ),
+      belowLayerId: NameLayers.lowest,
+      enableInteraction: false,
+    );
     await c.addGeoJsonSource(_MapSources.trace, linesGeoJson(const []));
     await c.addLineLayer(
       _MapSources.trace,
@@ -559,18 +655,37 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
       _pinLayer(PinMark.tipInset),
       enableInteraction: false,
     );
+    _markImages.clear();
+    await c.addGeoJsonSource(_MapSources.marks, pointsGeoJson(const []));
+    await c.addSymbolLayer(
+      _MapSources.marks,
+      _MapSources.marks,
+      const ml.SymbolLayerProperties(
+        iconImage: ['get', 'icon'],
+        iconAllowOverlap: true,
+        iconIgnorePlacement: true,
+        // Later marks over earlier ones, as they were listed.
+        symbolZOrder: 'source',
+      ),
+      enableInteraction: false,
+    );
     _overlaysReady = true;
     await _syncOverlays();
     await _fit(_framePoints);
     _cameraMoved();
     if (await mapStyle case final style?) {
       _baseFilters = {
-        for (final id in [NameLayers.roads, ...NameLayers.places])
+        for (final id in [
+          NameLayers.roads,
+          ...NameLayers.places,
+          NameLayers.poisAll,
+        ])
           id: styleFilter(style, id),
       };
     }
-    await _syncNames();
+    // The icons before every place's layer shows: tiles laid out without an image keep no icon.
     await addBasemapImages(c, colors, pixelRatio);
+    await _syncNames();
   }
 
   /// Shows [PindoroMap.names] through the style's name layers.
@@ -578,14 +693,21 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     final c = mapController;
     if (!_overlaysReady || c == null) return;
     final names = widget.names;
+    final every = names.everyPlace;
+    // Every named place takes the place of the landmarks, icons and names alike.
+    String placesLayer(String id) =>
+        every && id == NameLayers.pois ? NameLayers.poisAll : id;
     for (final (id, filter) in [
       (NameLayers.roads, names.roadFilter(_baseFilters[NameLayers.roads])),
       for (final id in NameLayers.places)
-        (id, names.placeFilter(_baseFilters[id])),
+        (placesLayer(id), names.placeFilter(_baseFilters[placesLayer(id)])),
+      (every ? NameLayers.pois : NameLayers.poisAll, null),
     ]) {
       if (filter != null) await c.setFilter(id, filter);
       await c.setLayerVisibility(id, filter != null);
     }
+    await c.setLayerVisibility(PoiLayers.curated, !every);
+    await c.setLayerVisibility(PoiLayers.all, every);
   }
 
   Future<void> _syncOverlays() async {
@@ -620,31 +742,48 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     );
     await c.setGeoJsonSource(_MapSources.trace, linesGeoJson(widget.traces));
     await c.setGeoJsonSource(
+      _MapSources.placeOutline,
+      polygonsGeoJson([
+        for (final polygon in widget.placeOutline ?? const <List<Polyline>>[])
+          (polygon, const {}),
+      ]),
+    );
+    await c.setGeoJsonSource(
       _MapSources.hitStreet,
       linesGeoJson(widget.hit ?? const []),
     );
     if (widget.route != null) await _sendRoute();
+    await _sendMarks();
   }
 
-  /// Sends the route's changes since the last send. One send at a time:
-  /// changes made meanwhile go out together right after it, so a fast drag
-  /// never queues up stale frames on the platform channel.
-  Future<void> _sendRoute() async {
-    if (_sendingRoute) {
-      _routeChanged = true;
-      return;
+  /// Sends the route's changes since the last send ([_sendRoute] runs it one at a time).
+  Future<void> _syncRoute() async {
+    final route = widget.route;
+    await syncRoute(mapController!, route, _sentRoute, _chipImage);
+    _sentRoute = route;
+  }
+
+  void _gotMark(int index, Uint8List png) {
+    if (!mounted || index >= widget.marks.length) return;
+    _markPngs[index] = png;
+    runMapWork(_sendMarks.call);
+  }
+
+  /// Sends the marks pictured so far, each picture added as an image once.
+  Future<void> _syncMarks() async {
+    final c = mapController;
+    if (!_overlaysReady || c == null) return;
+    final points = <(LatLng, Map<String, dynamic>)>[];
+    for (final (i, m) in widget.marks.indexed) {
+      final png = _markPngs[i];
+      if (png == null) continue;
+      // ponytail: a repainted mark leaves its old image in the style; a few dozen small ones a
+      // screen at most.
+      final id = _markIds[png] ??= 'mark-${_markCount++}';
+      if (_markImages.add(id)) await c.addImage(id, png);
+      points.add((m.at, {'icon': id}));
     }
-    _sendingRoute = true;
-    try {
-      do {
-        _routeChanged = false;
-        final route = widget.route;
-        await syncRoute(mapController!, route, _sentRoute, _chipImage);
-        _sentRoute = route;
-      } while (_routeChanged);
-    } finally {
-      _sendingRoute = false;
-    }
+    await c.setGeoJsonSource(_MapSources.marks, labelledPointsGeoJson(points));
   }
 
   /// The chip's point half-way along the measure line, its image added once
@@ -776,6 +915,26 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
             left: PindoroSpace.s4,
             bottom: widget.bottomInset + MapAttribution.gap,
             child: const MapAttribution(),
+          ),
+          // The marks, painted out of sight for their pictures.
+          Positioned(
+            left: -_offstage,
+            top: 0,
+            child: IgnorePointer(
+              child: ExcludeSemantics(
+                child: Stack(
+                  children: [
+                    for (final (i, m) in widget.marks.indexed)
+                      MapSprite(
+                        foot: m.foot,
+                        pixelRatio: MediaQuery.devicePixelRatioOf(context),
+                        onPng: (png) => _gotMark(i, png),
+                        child: m.child,
+                      ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       );

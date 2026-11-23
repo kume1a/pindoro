@@ -23,7 +23,7 @@ The design system's `README.md` (here `signpost.md`) has an "App sync" section: 
 last folded in and the deliberate differences. The screens canvas keeps the app as built on its page
 "Current app (Nov 2026)" and a sync log on board C-99. When the app changes ahead of the design,
 the change goes in `docs/TODO.md` under "Changed in the app, not yet on claude.ai", any new token in
-`packages/pindoro_design/tokens/app.json` (empty since the 2026-11-20 sync), and the next sync sends
+`packages/pindoro_design/tokens/app.json` (`opacity.building-raised` since 2026-11-23), and the next sync sends
 both to claude.ai as a `design-gaps.md` plus the token file.
 
 ## Where the app deliberately differs

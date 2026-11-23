@@ -446,6 +446,16 @@ class Drives extends Table {
   TextColumn get targetPlace => text().nullable()();
   TextColumn get mostHelp => textEnum<DriveLevel>().nullable()();
 
+  /// The spot driven to, a place's or a pin's (item 132); null for a street or a junction, and
+  /// on drives before schema 29.
+  RealColumn get targetLat => real().nullable()();
+  RealColumn get targetLon => real().nullable()();
+
+  /// The first of its fixes the drive was graded from: where the destination last changed or
+  /// the last stop on the way was reached (items 116, 134); null from the start, and on drives
+  /// before schema 30.
+  IntColumn get gradedFrom => integer().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -556,7 +566,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 28;
+  static const int version = 30;
 
   @override
   int get schemaVersion => version;
@@ -703,6 +713,12 @@ class AppDatabase extends _$AppDatabase {
           m.addColumn(schema.userSettings, schema.userSettings.driveMarker),
       from27To28: (m, schema) =>
           m.addColumn(schema.driveEvent, schema.driveEvent.detail),
+      from28To29: (m, schema) async {
+        await m.addColumn(schema.drive, schema.drive.targetLat);
+        await m.addColumn(schema.drive, schema.drive.targetLon);
+      },
+      from29To30: (m, schema) =>
+          m.addColumn(schema.drive, schema.drive.gradedFrom),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

@@ -279,6 +279,57 @@ and the specs after R5. Fix them in roughly this order.
     - New `ArrowMark`, the car as a navigation arrow (36 × 40 dp, `map.player.pin` with its
       right half in `map.player.pin-lip`, a 3 dp `map.player.halo` rim), laid flat on the map;
       the default, with `CarMark` a choice in Settings → Driving.
+  - **Places, pins anywhere and the side of the road (SPEC §16.23 item 132, 2026-11-23)**, built
+    in the app:
+    - The setup's sheet opens short with a `SheetHandle` (tap or pull up for the suggestion,
+      the level's note, the rules and the week). Its routes are `ListRow(dense: true)`, new:
+      one 48 dp line, the title and the subtitle (the side, "+2 min", Fastest) each cut short
+      past half the row, no tile.
+    - Choose on the map's sheet: the place's `RowTile` glyph, name, "kind · district · km · min",
+      then 16 dp `pin` and `timer` lines for the address and opening hours, and Call and
+      Website as secondary buttons (no phone glyph in the set). A picked area is filled like the
+      area picker's chosen area (`map.area.stroke`).
+    - The navigation maps' generic place icon is Maki's `marker` on a civic disc (`poi-other`).
+    - Route lines: 6 dp in a 2 dp casing on the plan maps, 8 dp in a 2 dp casing on Guided's
+      map (the canvas draws 8 dp with a 4 dp casing).
+  - **Guided's map like a car navigator's (SPEC §16.23 item 133, 2026-11-23)**, built in the
+    app:
+    - Tilt 55°, zoom 17, the car 75 % down; buildings raised from zoom 15 at half height in
+      `map.vector.building` at the new app-only `opacity.building-raised` (0.5, `app.json`);
+      house numbers in `map.vector.label` from zoom 16.5.
+    - A traffic-light mark on each junction with lights: DriveGlyph `lights` at 24 dp in
+      `drive.plate` with `drive.plate-glyph` lamps (new `driveGlyphPng`).
+    - Route 10 dp in a 2 dp casing, the turn arrow 10 dp in a 3 dp casing; the car (`ArrowMark`,
+      `CarMark`) and the arrow's head drawn 1.5× and facing the screen; the destination a
+      `PinMark` in `map.answer.line` with a `map.answer.casing` lip, rim and dot.
+    - `RouteOptions` gains `selected` (that row on `drive.surface-line`, its swatch
+      `map.answer.line`, the rest `drive.plate-text-2`) and a primary Take this route button
+      over Change destination; "Same time" when the minutes match.
+    - Not done here, as they are design-system colours (claude.ai first, if wanted): the
+      player's navigator's navy night map and grey turn card.
+  - **Stops on the way and the route chooser (SPEC §16.23 item 134, 2026-11-23)**, built in the
+    app:
+    - `RouteCards`: cards side by side (tag `label.md`, minutes `headline.sm`, length
+      `label.lg`, a `label.sm` note), the picked one a `LipBox` on `primary.base` /
+      `primary.lip` with `primary.on` text, the rest raised; `RouteOptions` (Guided's overview)
+      is now `RouteEnds` + `RouteCards` + Take this route (its Change destination button gone).
+    - `RouteCallout`: a bubble (`radius.md`, `title.sm` then `label.md`) with an 8 dp tail, on
+      `primary.base` for the picked route, `drive.surface` for the others.
+    - `RouteEnds`: a raised `LipBox` of 48 dp lines (a 20 dp mark, a `label.md` label before a
+      `title.sm` name, hairline dividers): From with `locate`, each stop with a numbered
+      `map.route.line` disc and a `close` button, To with `flag` and `chevron-down`, Add stop
+      in `primary.text` with `plus`.
+    - The stop pins are `PinMark.endpoint('1')`…; Choose on the map's button reads Add stop
+      (`plus`) for a stop; the setup's Start is "Let's go" (Preview half its width).
+    - The search for a stop or a destination: `SearchField(autofocus)` with a tertiary Cancel
+      beside it, then Choose on the map, Home and Work rows with a car glyph and the minutes,
+      and Recent.
+    - Coached and Quiet: Route (a `DriveMapButton` with the routes glyph) bottom right at a
+      touch while moving.
+- Stops, left as they are on purpose (item 134, 2026-11-23):
+  - No bubbles on Guided's live map (only on the setup's map).
+  - Stops don't join Recent, and Past drives and the debrief show no stop pins.
+  - A stop is the right side of its road when it has two; no side choice as for a destination.
 - Lakes are not named (Protomaps gives them no label point); Lisi Lake is the only one.
 - Left out of the road-class pass, on purpose:
   - A "Your streets" round left half-way is not offered as Continue on Explore (Continue matches
@@ -294,6 +345,15 @@ and the specs after R5. Fix them in roughly this order.
     800, so it no longer needs an isolate. Move it to one if long drives still stall End.
   - A coarse fix (item 131) is dropped, not down-weighted: a phone stuck on approximate location
     drives with "GPS lost" until precise is turned on.
+- Places, left as they are on purpose (item 132, 2026-11-23):
+  - Named buildings with no shop, amenity or office tag (a business centre, a residential
+    complex) are not places; nor are OSM addresses without a name.
+  - A tap inside a mall away from its icon drops a pin there (the stop is still by the nearest
+    road); only the icon or its name picks the place.
+  - Opening hours show as OSM tags them ("Mo-Fr 09:00-18:00"), with no "Open now".
+  - The stop is by the road nearest the place, not its entrance (OSM entrances aren't loaded).
+  - The bundled Vake fixture is still format 7 (no `poi`): `just fixture` rebuilds it from the
+    server's live ids.
 
 ## Designed, not scheduled
 

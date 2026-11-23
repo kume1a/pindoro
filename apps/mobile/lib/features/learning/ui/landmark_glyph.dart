@@ -1,6 +1,7 @@
 import 'package:pindoro/core/database/database.dart' show Settings;
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
+import 'package:pindoro_core/pindoro_core.dart' show Landmark, Poi;
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart' show LandmarkQuestion;
 
@@ -23,6 +24,52 @@ PindoroGlyph landmarkGlyph(String kind) => switch (kind) {
   'park' => PindoroGlyph.neighbourhood,
   'fast_food' => PindoroGlyph.flame,
   _ => PindoroGlyph.pin,
+};
+
+/// The icon for any place (item 132): a landmark kind's, else a named place's by its OSM tag
+/// value or key.
+PindoroGlyph placeGlyph(Landmark place) => switch (place) {
+  Poi(:final kind, :final osmKey) => switch (kind) {
+    'restaurant' ||
+    'cafe' ||
+    'bar' ||
+    'pub' ||
+    'food_court' => PindoroGlyph.flame,
+    'place_of_worship' => PindoroGlyph.bell,
+    'pharmacy' || 'clinic' || 'doctors' || 'dentist' => PindoroGlyph.plus,
+    'school' || 'college' || 'kindergarten' || 'library' => PindoroGlyph.book,
+    'hotel' || 'hostel' || 'guest_house' => PindoroGlyph.home,
+    'bank' || 'bureau_de_change' => PindoroGlyph.briefcase,
+    'museum' || 'gallery' || 'theatre' || 'cinema' => PindoroGlyph.star,
+    'car_wash' || 'car_repair' || 'car' || 'car_parts' => PindoroGlyph.car,
+    'bus_station' || 'aerodrome' => PindoroGlyph.route,
+    'garden' ||
+    'sports_centre' ||
+    'fitness_centre' => PindoroGlyph.neighbourhood,
+    _ => switch (landmarkGlyph(kind)) {
+      PindoroGlyph.pin => switch (osmKey) {
+        'shop' => PindoroGlyph.gift,
+        'office' => PindoroGlyph.briefcase,
+        'craft' => PindoroGlyph.wrench,
+        'healthcare' => PindoroGlyph.plus,
+        'tourism' || 'historic' => PindoroGlyph.star,
+        'leisure' => PindoroGlyph.neighbourhood,
+        _ => PindoroGlyph.pin,
+      },
+      final glyph => glyph,
+    },
+  },
+  _ => landmarkGlyph(place.kind),
+};
+
+/// Any place's kind as named (item 132): a named place's by its OSM tag value, else its key; a
+/// landmark's by [landmarkKindName].
+String placeKindName(AppLocalizations l10n, Landmark place) => switch (place) {
+  Poi(:final kind, :final osmKey) => switch (l10n.poiKind(kind)) {
+    '' => l10n.poiKey(osmKey),
+    final name => name,
+  },
+  _ => landmarkKindName(l10n, place.kind),
 };
 
 /// A landmark's badge on the drive's turn plate: the kinds DriveGlyph draws;

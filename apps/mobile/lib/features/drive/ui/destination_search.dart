@@ -15,23 +15,32 @@ import 'package:pindoro_learning/pindoro_learning.dart';
 /// A street or a place of the open pack, with the names it is found by.
 typedef _Findable = ({NamedStreet? street, Landmark? place, Set<String> forms});
 
-/// The pack's streets and named places, each with its names (searched on every keystroke).
+/// The pack's streets and every named place (by its name or brand), each with its names
+/// (searched on every keystroke).
 final _findablesProvider = FutureProvider.autoDispose<List<_Findable>>((
   ref,
 ) async {
   final streets = await ref.watch(cityStreetsProvider.future);
-  final pack = await ref.watch(packRepositoryProvider.future);
+  final places = await ref.watch(packPlacesProvider.future);
   return [
     for (final s in streets.values.toSet())
       (street: s, place: null, forms: nameForms(s)),
-    for (final l in pack.landmarks())
-      (street: null, place: l, forms: placeForms(l.nameKa, l.nameEn)),
+    for (final p in places.values)
+      (
+        street: null,
+        place: p,
+        forms: {
+          ...placeForms(p.nameKa, p.nameEn),
+          if (p.brand case final brand?) ...placeForms(brand, null),
+        },
+      ),
   ];
 });
 
 /// Where to (DriveSetup `search`, board V32-10): the search field over the pack's streets and
-/// places; with nothing typed, [above], the [quick] rows (today's run, Surprise me), the recent
-/// destinations and [below]. [here] gives each its distance.
+/// places ([placeholder], else Where to; [autofocus] on a screen of its own, [trailing] beside
+/// it: Cancel); with nothing typed, [above], the [quick] rows (today's run, Surprise me), the
+/// recent destinations and [below]. [here] gives each its distance.
 class DestinationSearch extends ConsumerStatefulWidget {
   const DestinationSearch({
     required this.onPick,
@@ -39,6 +48,9 @@ class DestinationSearch extends ConsumerStatefulWidget {
     this.quick = const [],
     this.below = const [],
     this.here,
+    this.placeholder,
+    this.autofocus = false,
+    this.trailing,
     super.key,
   });
 
@@ -47,6 +59,9 @@ class DestinationSearch extends ConsumerStatefulWidget {
   final List<Widget> quick;
   final List<Widget> below;
   final LatLng? here;
+  final String? placeholder;
+  final bool autofocus;
+  final Widget? trailing;
 
   @override
   ConsumerState<DestinationSearch> createState() => _DestinationSearchState();
@@ -54,6 +69,28 @@ class DestinationSearch extends ConsumerStatefulWidget {
 
 class _DestinationSearchState extends ConsumerState<DestinationSearch> {
   final _field = TextEditingController();
+
+  /// The findables nearest [DestinationSearch.here] first, so equal matches (a chain's
+  /// branches) come nearest first; sorted once per list and spot.
+  (List<_Findable>, LatLng?, List<_Findable>)? _sorted;
+
+  List<_Findable> _nearestFirst(List<_Findable> all, LatLng? here) {
+    if (_sorted case (
+      final list,
+      final at,
+      final sorted,
+    ) when identical(list, all) && at == here) {
+      return sorted;
+    }
+    double far(_Findable f) => here == null
+        ? 0
+        : distanceBetween(here, f.place?.at ?? _nearestPart(f.street!, here));
+    final byDistance = [for (final f in all) (far(f), f)]
+      ..sort((a, b) => a.$1.compareTo(b.$1));
+    final sorted = [for (final (_, f) in byDistance) f];
+    _sorted = (all, here, sorted);
+    return sorted;
+  }
 
   @override
   void dispose() {
@@ -72,7 +109,11 @@ class _DestinationSearchState extends ConsumerState<DestinationSearch> {
     // searchNames needs two letters; under that the usual rows stay.
     final searching = typed.length >= 2;
     final found = searching && findables != null
-        ? searchNames(typed, findables, (f) => f.forms)
+        ? searchNames(
+            typed,
+            _nearestFirst(findables, widget.here),
+            (f) => f.forms,
+          )
         : const <_Findable>[];
     final where = PlaceLine(here: widget.here);
     Widget row({
@@ -80,10 +121,14 @@ class _DestinationSearchState extends ConsumerState<DestinationSearch> {
       required String title,
       required LatLng at,
       required DriveDest dest,
+      String? kind,
     }) => ListRow(
       leading: RowTile(glyph),
       title: title,
-      subtitle: where.of(context, ref, at),
+      subtitle: [
+        ?kind,
+        where.of(context, ref, at),
+      ].where((s) => s.isNotEmpty).join(' · '),
       trailing: const PindoroIcon(PindoroGlyph.chevronRight),
       onTap: () => widget.onPick(dest),
     );
@@ -91,12 +136,21 @@ class _DestinationSearchState extends ConsumerState<DestinationSearch> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       spacing: PindoroSpace.s4,
       children: [
-        SearchField(
-          controller: _field,
-          placeholder: l10n.driveWhereTo,
-          clearLabel: l10n.commonClear,
-          autocorrect: false,
-          onChanged: (_) => setState(() {}),
+        Row(
+          spacing: PindoroSpace.s2,
+          children: [
+            Expanded(
+              child: SearchField(
+                controller: _field,
+                placeholder: widget.placeholder ?? l10n.driveWhereTo,
+                clearLabel: l10n.commonClear,
+                autocorrect: false,
+                autofocus: widget.autofocus,
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+            ?widget.trailing,
+          ],
         ),
         if (searching)
           findables == null
@@ -116,13 +170,24 @@ class _DestinationSearchState extends ConsumerState<DestinationSearch> {
                           glyph: PindoroGlyph.road,
                           title: streetName(s, settings),
                           at: _nearestPart(s, widget.here),
-                          dest: (street: s, place: null, junction: null),
+                          dest: (
+                            street: s,
+                            place: null,
+                            junction: null,
+                            at: null,
+                          ),
                         ),
                         (street: _, place: final p?, forms: _) => row(
-                          glyph: landmarkGlyph(p.kind),
+                          glyph: placeGlyph(p),
                           title: placeLabel(p, settings),
+                          kind: placeKindName(l10n, p),
                           at: p.at,
-                          dest: (street: null, place: p, junction: null),
+                          dest: (
+                            street: null,
+                            place: p,
+                            junction: null,
+                            at: null,
+                          ),
                         ),
                         _ => const SizedBox.shrink(),
                       },
@@ -139,13 +204,17 @@ class _DestinationSearchState extends ConsumerState<DestinationSearch> {
                   row(
                     glyph: t.place == null
                         ? PindoroGlyph.pin
-                        : landmarkGlyph(t.place!.kind),
+                        : placeGlyph(t.place!),
                     title: targetName(t, settings),
-                    at: t.place?.at ?? _nearestPart(t.street, widget.here),
+                    at:
+                        t.at ??
+                        t.place?.at ??
+                        _nearestPart(t.street, widget.here),
                     dest: (
                       street: t.street,
                       place: t.place,
                       junction: t.junction,
+                      at: t.at,
                     ),
                   ),
               ],

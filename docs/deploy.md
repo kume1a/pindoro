@@ -187,6 +187,11 @@ it by hand to force one). It builds the unsigned IPA on a macOS runner
 SideStore/AltStore `source.json` in the packs volume, at `https://pindoro.example.com/packs/app/`.
 The in-app update offer is Android-only; SideStore shows iOS updates from the source.
 
+What SideStore shows on the app's page comes from `apps/mobile/store/`: `description.txt` (the
+description), `screenshots/*.jpg` (in name order) and `whats_new.md`, whose `## <version>` section
+becomes that version's release notes. Write the section with every version bump: the workflow
+fails without it.
+
 Each friend, once:
 
 1. On the iPhone, install **LocalDevVPN** from the App Store and connect it.

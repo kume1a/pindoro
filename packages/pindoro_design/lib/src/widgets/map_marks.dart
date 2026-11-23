@@ -3,8 +3,10 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../generated/pindoro_tokens.dart';
+import 'drive_glyph.dart';
 import 'graphics.dart';
 
 /// The brand pin: a round head on a short point, on a lip. [halo] adds the
@@ -81,6 +83,29 @@ Future<Uint8List> glyphPng(
   required double pixelRatio,
 }) async {
   final icon = await glyphPicture(glyph, ink: ink, cut: cut);
+  try {
+    return await _png(Size.square(size), pixelRatio, (canvas) {
+      canvas
+        ..scale(size / icon.size.width)
+        ..drawPicture(icon.picture);
+    });
+  } finally {
+    icon.picture.dispose();
+  }
+}
+
+/// [glyph] at [size] dp as a PNG for map symbol layers (Guided's traffic lights).
+Future<Uint8List> driveGlyphPng(
+  DriveGlyphName glyph, {
+  required Color color,
+  required Color cut,
+  required double size,
+  required double pixelRatio,
+}) async {
+  final icon = await vg.loadPicture(
+    SvgStringLoader(driveGlyphSvg(glyph, color: color, cut: cut)),
+    null,
+  );
   try {
     return await _png(Size.square(size), pixelRatio, (canvas) {
       canvas

@@ -2,19 +2,19 @@
 
 Flutter design system: generated tokens, `buildPindoroTheme`, `PindoroTheme` extension and the
 Signpost widgets: `PindoroButton`, `StreetPlate`, surfaces (`LipBox`, `ListGroup`, `ListRow`,
-`RowTile`, `StatTile`, `TileGrid`, `TitledCard`, `SheetHandle`), the bottom navigation (`PindoroNavBar`, no counts on tabs), controls
+`RowTile`, `StatTile`, a one-line `ListRow(dense: true)`, `TileGrid`, `TitledCard`, `SheetHandle`), the bottom navigation (`PindoroNavBar`, no counts on tabs), controls
 (`SegmentedControl`, `PindoroToggle`, `PindoroIconButton`, `PindoroDialog`, `LaneLoader`, the
 loading `Skeleton`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` incl. the route's
-`PinMark.endpoint`, `CarMark`, Guided's `ArrowMark`, `glyphPng` and `onewayArrowPng` for map images), the round components (`QuestionBar`,
+`PinMark.endpoint`, `CarMark`, Guided's `ArrowMark`, `glyphPng`, `driveGlyphPng` and `onewayArrowPng` for map images), the round components (`QuestionBar`,
 `Pill`, `MapControl`, `RevealSheet` and its `TierSheetFrame`, `ResultRow`, `TierTally`,
 `CoachBubble`), the v3 session (`StatChip`, `NextReviewChip`, `IntroSheet`, the drills'
 `BearingDial`; the session bar is `QuestionBar` with `height: 14`), v3 route items (`ExitButton`,
 `LandmarkBadge`, `MapLabelChip`, `CarMarker`, `MapTip`), v3
 progress (`MemoryBar`, `MemoryLegend`, `MemoryChart`, `ForecastBars`, `WeekBars`, `MemoryRow`), the streak (`StreakPill`, `StreakCalendar`, `StreakWeek`,
 `StreakFreezeCard`), badges (`BadgeShield`, `BadgeTile`; fields `color.badge.*`),
-setup components (`SearchField`, `PindoroChip`, `DifficultyCard`, the painted `DistrictMap` and `AreaMiniMap`), `MiniTally`,
+setup components (`SearchField`, whose keyboard goes at a tap outside it and which can `autofocus`, `PindoroChip`, `DifficultyCard`, the painted `DistrictMap` and `AreaMiniMap`), `MiniTally`,
 the drive (v3.2: `DriveGlyph`, `TurnPlate` with `LaneArrows`, `DriveBottomBar` with
-`DriveBarButton`, Guided's `DriveMapButton` column (`DriveCompass`, `DriveRecentre`), `RouteOptions`,
+`DriveBarButton`, Guided's `DriveMapButton` column (`DriveCompass`, `DriveRecentre`), `RouteOptions` (`RouteEnds` over `RouteCards`), the route bubbles `RouteCallout`,
 `LevelPickerCard`, `StreetChip`, `SpeedNow`, `SpeedLimitSign`, `CameraBadge`, `DistrictLine`, `HeadingDial`, `StatusDot`, `SpeakingBars`, `RecoveryBand`, `RecordingDot`,
 `LevelPicker`, `LevelSuggestion`, `StoppedBar`; their `color.drive.*` are day in the light theme and night
 in the dark one, and drive type ignores the text scale), the v3.2 parked parts in the app theme (`ReviewMark`, `TurnNumber`, `StartRing`,
@@ -29,7 +29,7 @@ parameters; strings live in the app.
 
 - `tokens/tokens.json` is the claude.ai design system's file, copied verbatim (never edit it here;
   change it on claude.ai and copy it again). `tokens/app.json` holds app-only tokens in the same
-  format (none since the 2026-11-20 sync); duplicates of a design-system token fail the
+  format (only `opacity.building-raised` since the 2026-11-20 sync); duplicates of a design-system token fail the
   generator. Intent lives in `docs/design/*.md`.
 - `tool/generate_tokens.dart` writes `lib/src/generated/pindoro_tokens.dart`: `PindoroPalette`
   (primitives), `PindoroColors.light` / `.dark` (semantic + component colours, aliases resolved),

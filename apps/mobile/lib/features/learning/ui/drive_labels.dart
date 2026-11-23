@@ -18,7 +18,7 @@ String targetName(DriveTarget t, Settings? settings) => switch (t.place) {
 String routeName(
   AppLocalizations l10n,
   String route, {
-  required List<Landmark> places,
+  required Map<String, Landmark> places,
   required Map<String, NamedStreet> streets,
   required Settings? settings,
 }) => [
@@ -26,9 +26,7 @@ String routeName(
     switch (end) {
       'home' => l10n.driveHome,
       'work' => l10n.driveWork,
-      _ when end.startsWith('p:') => switch (places
-          .where((p) => p.id == end.substring(2))
-          .firstOrNull) {
+      _ when end.startsWith('p:') => switch (places[end.substring(2)]) {
         final p? => placeLabel(p, settings),
         null => end,
       },
@@ -39,6 +37,13 @@ String routeName(
       _ => end,
     },
 ].join(' $routeArrow ');
+
+/// Another way's [minutes] against the one compared: "+3 min", "−2 min" or "Same time".
+String routeDelta(AppLocalizations l10n, int minutes) => switch (minutes) {
+  0 => l10n.driveRouteSame,
+  > 0 => l10n.driveRouteSlower(minutes),
+  _ => l10n.driveRouteFaster(-minutes),
+};
 
 /// A drive level's name (SPEC §16.23 item 112).
 String levelLabel(AppLocalizations l10n, DriveLevel level) => switch (level) {

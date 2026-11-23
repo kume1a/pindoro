@@ -244,7 +244,8 @@ class RoadGraph {
   /// edge id, then the lower junction id (the start, with no edge, first).
   /// Null when no goal is reached. [costOf] (Dart only, navigation) prices an
   /// edge instead of its length, never below it so the heuristic holds, and
-  /// [uTurnCostM] a U-turn.
+  /// [uTurnCostM] a U-turn; with [arriveOn] (Dart only, a stop on that road)
+  /// a goal counts only when reached along it.
   Route? shortestRoute(
     int from,
     Set<int> goals, {
@@ -252,6 +253,7 @@ class RoadGraph {
     RoadEdge? approach,
     double Function(RoadEdge edge)? costOf,
     double uTurnCostM = RoutingConfig.uTurnPenaltyM,
+    RoadEdge? arriveOn,
   }) {
     // A search between pieces would expand all of [from]'s piece to fail.
     if (!goals.any((g) => connected(from, g))) return null;
@@ -269,7 +271,8 @@ class RoadGraph {
       final (_, state) = open.pop();
       if (!closed.add(state)) continue;
       final c = cost[state]!;
-      if (goals.contains(state.junction)) {
+      if (goals.contains(state.junction) &&
+          (arriveOn == null || state.edge?.id == arriveOn.id)) {
         return _route(state, back, c);
       }
       for (final e in legalExits(state.junction, approach: state.edge)) {

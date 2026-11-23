@@ -46,5 +46,13 @@ void main() {
       MapNames(streets: {'a'}, placesNot: {'b'}),
     );
     expect(MapNames.all, isNot(const MapNames()));
+    expect(MapNames.everything, isNot(MapNames.all));
+  });
+
+  test('every place names every street and place, as all names do', () {
+    expect(MapNames.everything.everyPlace, isTrue);
+    expect(MapNames.all.everyPlace, isFalse);
+    expect(MapNames.everything.roadFilter(base), base);
+    expect(MapNames.everything.placeFilter(base), ['all', base]);
   });
 }

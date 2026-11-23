@@ -461,6 +461,34 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
     ]);
   });
 
+  it("keeps every named place in the city with its address, hours and contacts", async () => {
+    const rows = await sql`
+      SELECT id, key, kind, name_ka, brand, street, housenumber, hours, phone, website,
+             ST_GeometryType(outline) AS outline
+      FROM pipeline.poi ORDER BY id`;
+    const ids = rows.map((r) => r.id);
+    expect(rows.find((r) => r.id === "osm:n916")).toMatchObject({
+      key: "amenity",
+      kind: "restaurant",
+      name_ka: "Test Kitchen",
+      street: "East Street",
+      housenumber: "12",
+      hours: "Mo-Su 10:00-22:00",
+      phone: "+995 32 200 00 00",
+      website: "test-kitchen.example",
+      outline: null,
+    });
+    // A brand alone names it; a pharmacy is a place to drive to, unlike a landmark.
+    expect(rows.find((r) => r.id === "osm:n913")).toMatchObject({
+      kind: "pharmacy",
+      name_ka: "TP",
+    });
+    expect(rows.find((r) => r.id === "osm:w2110")).toMatchObject({ outline: "ST_MultiPolygon" });
+    expect(ids).not.toContain("osm:n912");
+    expect(ids).not.toContain("osm:n917");
+    expect(ids).not.toContain("osm:n918");
+  });
+
   it("reads signed limits, traffic lights and speed cameras for navigation", async () => {
     expect((await wayEdges(2101)).length).toBeGreaterThan(0);
     const limits = await sql`
@@ -502,9 +530,14 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
     ).toEqual([{ blank: null, directional: "right", other_way: null }]);
   });
 
-  it("exports the directed graph and the route tables (pack format 8)", async () => {
+  it("exports the directed graph, the route tables and every named place (pack format 9)", async () => {
     const db = await exportPack();
-    expect(db.pragma("user_version", { simple: true })).toBe(8);
+    expect(db.pragma("user_version", { simple: true })).toBe(9);
+    expect(db.prepare("SELECT key, kind, street FROM poi WHERE id = 'osm:n916'").get()).toEqual({
+      key: "amenity",
+      kind: "restaurant",
+      street: "East Street",
+    });
     expect(
       db
         .prepare(

@@ -172,6 +172,18 @@ void main() {
       expect(route.edges, hasLength(2));
     });
 
+    test('arriving on a given road comes round to drive along it', () {
+      final grid = roadGrid(4).graph;
+      final road = grid.edges.firstWhere((e) => e.from == 1 && e.to == 2);
+      // From the east end, 2 lies on the way but not driving east on 1–2.
+      final route = grid.shortestRoute(3, {2}, arriveOn: road)!;
+      expect(route.edges.last, road);
+      expect(route.junctions.sublist(route.junctions.length - 2), [1, 2]);
+      // Already driving along it at its end: nothing left to drive.
+      final there = grid.shortestRoute(2, {2}, approach: road, arriveOn: road)!;
+      expect(there.edges, isEmpty);
+    });
+
     test('keeps to the edges allowed', () {
       final grid = roadGrid(4).graph;
       // Row 0 and column 3 only: around the corner, never across.

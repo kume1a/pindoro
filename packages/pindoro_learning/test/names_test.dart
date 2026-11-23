@@ -61,6 +61,22 @@ void main() {
     ]);
   });
 
+  test("a chain's branches tie and keep the order given (nearest first, as "
+      'the app sorts them); far-off names are left out', () {
+    final places = [
+      ('far', placeForms('ნიკორა', 'Nikora')),
+      ('near', placeForms('ნიკორა', 'Nikora')),
+      ('other', placeForms('კარფური', 'Carrefour')),
+      ('slip', placeForms('ნიკორა XL', null)),
+    ];
+    expect(searchNames('nikora', places, (p) => p.$2).map((p) => p.$1), [
+      'far',
+      'near',
+      'slip',
+    ]);
+    expect(searchNames('nikorra', places, (p) => p.$2), hasLength(3));
+  });
+
   test('the search finds a name by any of its words, in either script, in '
       'any order and with a slip', () {
     final kazbegi = _street(

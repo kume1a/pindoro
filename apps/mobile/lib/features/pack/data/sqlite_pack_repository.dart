@@ -208,6 +208,15 @@ class SqlitePackRepository implements PackRepository {
   ]);
 
   @override
+  List<Poi> pois() => _pois;
+
+  late final List<Poi> _pois = List.unmodifiable([
+    if (_hasTable('poi'))
+      for (final r in _db.select('SELECT * FROM poi ORDER BY id'))
+        Poi.fromRow(r),
+  ]);
+
+  @override
   List<JunctionItem> junctionItems() => _junctionItems;
 
   late final List<JunctionItem> _junctionItems = List.unmodifiable([
@@ -401,6 +410,16 @@ final cityStreetsProvider = FutureProvider<Map<String, NamedStreet>>(
     (await ref.watch(packRepositoryProvider.future)).streets(),
   ),
 );
+
+/// Every place in the active pack by id (`osm:n…`): its named places (format 9), else its
+/// junction items' landmarks.
+final packPlacesProvider = FutureProvider<Map<String, Landmark>>((ref) async {
+  final pack = await ref.watch(packRepositoryProvider.future);
+  return {
+    for (final l in pack.landmarks()) l.id: l,
+    for (final p in pack.pois()) p.id: p,
+  };
+});
 
 /// The active pack's road graph; null for a pack older than format 3.
 final roadGraphProvider = FutureProvider<RoadGraph?>(

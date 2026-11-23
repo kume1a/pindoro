@@ -427,6 +427,8 @@ pindoro_core `ScoringConfig`, not copied):
 | `stepDrives`, `stepDownStretch`, `stepUpStretch`, `stepUpRecoveries`    | 2, 1.25, 1.60, 3                    |
 | `recoveryHoldS`, `guardRecoveries`, `guardWindowS`, `guardLostS`        | 10, 2, 300, 180                     |
 | `guardToGuidedRecoveries`, `stoppedKmh`, `stoppedHoldS`, `navArriveM`   | 3, 5, 2, 50                         |
+| `navStopReachM`, `navStopSideM`, `placeTapNameM` (§16.23 item 132)      | 300, 5, 50                          |
+| `navViaMax` (§16.23 item 134)                                           | 5                                   |
 | `prepareM`, `prepareS`, `actionM`, `actionS`                            | 150, 10, 40, 4                      |
 | `landmarkAtM`, `confirmDelayS`, `districtCueM`, `districtCueS`          | 50, 6, 2000, 180                    |
 | `gpsLostSayS`                                                           | 60                                  |
@@ -1080,7 +1082,8 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      The one exception is Guided (decided 2026-11-22, widened 2026-11-23): its map drags and
      pinches at any speed, and a touch pops in its buttons (routes, Mute, the level, the compass
      or Recentre) at any speed; 10 s after the last touch they go and the map is back on the car.
-     End drive and Change destination stay stopped-only. Back does nothing during a drive. With no fix yet, or
+     End drive stays stopped-only; Change destination and Add stop work at any speed (item
+     134). Back does nothing during a drive. With no fix yet, or
      none for 60 s, the car counts as stopped: its speed is unknown and End drive stays in reach.
 117. **Voice**: landmark, then action, then street ("At Vake Park, turn left onto Chavchavadze
      Avenue"); a distance only when no landmark is within 50 m of the junction; traffic lights
@@ -1212,9 +1215,9 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        or the app.
      - A pick opens the drive set up on it (destination, level, Preview, Start); its end comes
        back to the tab.
-     - Choose on the map (Where to, and Home and Work's picker): a tap drops the pin on the
-       nearest junction of a named street within `snapSearchM`, named under it; Drive here (Use
-       this spot for Home and Work) takes it. The map opens around where the phone is.
+     - Choose on the map (Where to, and Home and Work's picker): Drive here (Use this spot for
+       Home and Work) takes what a tap picked (item 132 since 2026-11-23). The map opens around
+       where the phone is.
      - The search finds a street or place by any of its words in either script, in any order
        ("kazbegi" for "ალექსანდრე ყაზბეგის გამზირი"), each word within `fuzzyNameMax` of a
        word's start; a whole name still matches as before.
@@ -1264,7 +1267,8 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        last touch they go (item 116).
      - Routes: the map zooms out, north up and flat, to the route ahead and up to two other ways
        on from the car's next junction (grey), listed over the bar as minutes, kilometres and
-       "+3 min" against the route driven now; a tap drives that way from there at once, silently.
+       "+3 min" against the route driven now; a tap picks a way and Take this route drives it
+       from there, silently (item 133).
        Change destination is there while stopped.
      - Coached, Quiet and Off keep their stopped bar.
      - The preview's recital names no street before the way is tapped: the street turned onto
@@ -1279,3 +1283,82 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        the app; else the app's settings). Start stays allowed.
      - Coached and Quiet's district line names the district in the street-names setting, like
        every other screen; the voice's district cue keeps the voice's script (item 117).
+132. **Places, pins anywhere and the side of the road** (2026-11-23, the player mostly drives to
+     places, not streets):
+     - The pack has every named place in the city (pack format 9 `poi`: restaurants, shops,
+       offices and the rest, with OSM's address, opening hours, phone and website). Where to finds
+       them by name or brand as it finds streets (item 129), equal matches nearest the phone
+       first; a place's row reads its kind, district and distance.
+     - The navigation maps show everything: Choose on the map, the setup's routes and Guided's
+       live map name every street and every named place there is (any kind but those no one
+       drives to, a generic icon where the landmark kinds have none). The learning maps keep
+       their names (item 91).
+     - Choose on the map: a tap on a place picks it, lighting its outline when it is an area, in
+       a short sheet with its kind, district, distance and minutes, address (else the road it is
+       by), opening hours as tagged, and Call and Website when mapped. A tap anywhere else drops
+       the pin right there ("Dropped pin"), named by the road it is by; none within
+       `navStopReachM` leaves Drive here off. A place the tiles name without a pack id is the
+       pack's place of that name within `placeTapNameM`, else the tiles' name alone.
+     - A place or a pin is a stop on the road nearest it within `navStopReachM`: the route ends
+       there, not at a junction, and arrival is stopped within `navArriveM` of it. On a two-way
+       road the place is on one side (more than `navStopSideM` off the road's line): the setup
+       offers up to two routes arriving with it on the right (Georgia drives on the right),
+       picked first, and the quickest arriving with it on the left, each row saying the side and
+       the other side's minutes against the first; the picked side holds for every replan, route
+       taken from the routes overview and Rescue. A one-way road goes its way, a place on the
+       road's line from either side. Past the stop nothing is judged: the car only comes round to
+       it. The voice says the side on arrival ("You're here: …, on your right").
+     - The drive's learning keeps the road's end nearer the stop as the destination junction
+       (grading, the route book, Home and Work, recents); the drive log also keeps the spot
+       (`drive.target_lat`, `target_lon`, schema 29), Home and Work too, so a place or pin
+       comes back as itself.
+     - The setup's sheet opens short (the destination, the routes a line each, the level picker,
+       Preview and Start); its handle, tapped or pulled up, adds the suggestion, the level's
+       note, the rules and the week's goal.
+     - The route line is thinner: 6 dp in a 2 dp casing on the plan maps, 8 dp in a 2 dp casing
+       on Guided's tilted map (10 dp since item 133). A tap outside a text field hides the
+       keyboard.
+133. **Guided's map like a car navigator's, and routes picked before taken** (2026-11-23, after
+     the player's Yandex Navigator at night):
+     - The map tilts to 55° at zoom 17 with the car 75 % down. The buildings stand up from zoom
+       15 (half their mapped height, 6 m where none is mapped, at `opacity.building-raised`),
+       house numbers show from zoom 16.5 and a traffic-light mark stands on every junction with
+       lights (pack format 7 `junction.signals`), giving way where it would cover a name.
+     - The route is 10 dp in a 2 dp casing (amends item 132's 8 dp), the turn arrow as wide in
+       a 3 dp casing, its head and the car 1.5× their marks. The car faces the screen, straight
+       up while the map follows it heading up. The destination is a pin in the route's colours.
+     - Routes overview (amends item 130): a tap on a way picks it, lit yellow on the map and in
+       the list with the rest grey; Take this route drives it from there. Nothing changes until
+       then.
+     - Another way's minutes against the route compared read "Same time" when equal, here and
+       in the setup's side rows.
+134. **Stops on the way and a route chooser like the player's navigator** (2026-11-23, after their
+     Yandex Navigator):
+     - A drive may pass up to `navViaMax` stops on the way, in order, each a street, place or pin
+       like a destination; the route runs through each (a place's right side when its road has
+       two), one leg after the other, and every plan, replan, other way on and Rescue keeps them.
+       A stop is reached once the car stopped within `navArriveM` of it or drove past it; the
+       voice says "You've reached your stop: …" (with its side) and the drive goes on. Arrival
+       only counts once no stop is left.
+     - Stops are added and removed at setup and during the drive at any speed (a passenger adds
+       them), as is a new destination: Guided's routes overview and the drive's Route screen
+       show where the route runs (From, each stop with a remove button, To, Add stop). Coached
+       and Quiet show Route for 10 s at a touch while moving; Off adds them only when stopped
+       (its screen stays locked). A stop ahead within the prepare reach and before the next
+       decision takes Guided's turn card (the flag, the distance, its name and side).
+     - Learning: a drive with stops is one drive to the end. Turns are judged as they come; the
+       tier, the stretch and Off's decisions grade the last leg only (from the last stop reached,
+       as after a destination change), and the drive's route starts there. The log keeps where
+       grading began (`drive.graded_from`, schema 30), so Past drives replays the same part.
+     - The setup (amends items 129 and 132): where the route runs on top (From: current
+       location, the stops, To: the destination, Add stop; To and Add stop open the search),
+       then the routes as cards side by side (Fastest, Most familiar, else the side, else
+       Another way; the side and the other side's minutes under them), the picked one cobalt,
+       then the level picker and "Let's go" with Preview beside it. On the map each route has a
+       bubble where it runs apart from the others: the picked one's minutes and length, the
+       others' minutes against it ("+9 min", "Same time"); the stops have numbered pins, here
+       and on Guided's map.
+     - The search for a stop or a new destination is a screen of its own: the field focused with
+       Cancel beside it; with nothing typed, Choose on the map (its button "Add stop" for a
+       stop), Home and Work with the minutes there, and Recent.
+     - Guided's routes overview (amends item 130) shows the routes as the same cards.

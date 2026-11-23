@@ -65,6 +65,68 @@ export const POI_KINDS = [
  */
 const DENSE_POI_KINDS = ["restaurant", "cafe", "bar", "pub", "fast_food", "pharmacy", "hotel"];
 
+/**
+ * Kinds that are no place to drive to, left off the navigation maps' every-place layers: land use,
+ * areas and admin labels (Protomaps puts them in `pois` too), and street furniture (the pack skips
+ * the same things in osm2pgsql/pindoro.lua).
+ */
+const NOT_PLACES = [
+  "administrative",
+  "allotments",
+  "apartment",
+  "atm",
+  "bare_rock",
+  "bench",
+  "bicycle_parking",
+  "brownfield",
+  "building",
+  "bus_stop",
+  "commercial",
+  "construction",
+  "drinking_water",
+  "farmland",
+  "forest",
+  "garages",
+  "grass",
+  "greenfield",
+  "industrial",
+  "information",
+  "landfill",
+  "meadow",
+  "military",
+  "motorcycle_parking",
+  "neighborhood",
+  "neighbourhood",
+  "orchard",
+  "outpost",
+  "parking",
+  "payment_terminal",
+  "picnic_table",
+  "pitch",
+  "place",
+  "playground",
+  "post_box",
+  "quarry",
+  "railway",
+  "recycling",
+  "residential",
+  "retail",
+  "sand",
+  "scrub",
+  "shelter",
+  "stop",
+  "taxi",
+  "telephone",
+  "toilets",
+  "vending_machine",
+  "vineyard",
+  "waste_basket",
+  "waste_disposal",
+  "water",
+  "wetland",
+  "wood",
+];
+
 type Mode = "light" | "dark";
 
 /** Most recent Protomaps daily planet build (they are published as YYYYMMDD.pmtiles). */
@@ -183,6 +245,45 @@ const poiLayer = {
   },
 };
 
+/**
+ * Every named place, for the navigation maps (SPEC §16.23 item 132): the landmark kinds as `pois`
+ * shows them, any other named kind (but [NOT_PLACES]) from its own min_zoom, with the
+ * `poi-other` icon when the app has none for it. Hidden until the app switches to it.
+ */
+const allPoiFilter = [
+  "all",
+  ["!", ["in", ["get", "kind"], ["literal", NOT_PLACES]]],
+  ["any", ["in", ["get", "kind"], ["literal", POI_KINDS]], ["has", "name"]],
+  [
+    ">=",
+    ["zoom"],
+    [
+      "-",
+      ["get", "min_zoom"],
+      ["match", ["get", "kind"], POI_KINDS.filter((k) => !DENSE_POI_KINDS.includes(k)), 1, 0],
+    ],
+  ],
+];
+
+const poiAllLayer = {
+  id: "pois-all",
+  type: "symbol",
+  source: "protomaps",
+  "source-layer": "pois",
+  filter: allPoiFilter,
+  layout: {
+    visibility: "none",
+    "icon-image": [
+      "match",
+      ["get", "kind"],
+      POI_KINDS,
+      ["concat", "poi-", ["get", "kind"]],
+      "poi-other",
+    ],
+    "symbol-sort-key": ["get", "min_zoom"],
+  },
+};
+
 /** One-way arrows along the roads, always shown; the app adds the `oneway` image (poi_icons.dart). */
 const onewayLayer = {
   id: "oneway-arrows",
@@ -209,6 +310,7 @@ const NAME = ["coalesce", ["get", "{NAME_KEY}"], ["get", "name"]];
 /** The name layers, bottom to top, hidden until the app shows them (SPEC §16.18, §16.22). */
 export const NAME_LAYERS = {
   pois: "poi-names",
+  poisAll: "poi-names-all",
   areas: "area-names",
   water: "water-names",
   roads: "road-names",
@@ -239,6 +341,24 @@ const nameLayers = (mode: Mode): object[] => {
         "text-font": ["FiraGO Regular"],
         "text-size": 11,
         // Under the icon drawn at the same point, clear of its collision box.
+        "text-anchor": "top",
+        "text-offset": [0, 1.4],
+        "text-max-width": 8,
+      },
+      paint,
+    },
+    {
+      id: NAME_LAYERS.poisAll,
+      type: "symbol",
+      source: "protomaps",
+      "source-layer": "pois",
+      filter: allPoiFilter,
+      layout: {
+        visibility: "none",
+        "symbol-sort-key": ["get", "min_zoom"],
+        "text-field": NAME,
+        "text-font": ["FiraGO Regular"],
+        "text-size": 11,
         "text-anchor": "top",
         "text-offset": [0, 1.4],
         "text-max-width": 8,
@@ -328,6 +448,7 @@ export const mapStyle = (mode: Mode): object => ({
     ...nameLayers(mode),
     // On top: MapLibre places the top layer first, so landmark icons win over names.
     poiLayer,
+    poiAllLayer,
   ],
 });
 

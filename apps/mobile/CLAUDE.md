@@ -66,15 +66,21 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                and a district), drive (the Drive tab `/drive`, `DriveTab`: `WhereTo`
                                (`DestinationSearch` with Home and Work tiles and their minutes from
                                `driveHereProvider`, today's run, Choose on the map (`/drive/map`,
-                               `DriveMapScreen`: a tap snaps to a named street's junction, pops
-                               with it), Surprise me, Recent, streets and
-                               places) over `DriveCards` (the drive waiting, the week's goal, the
+                               `DriveMapScreen`: every street and place on the map; a tap on a place
+                               picks it with its details (kind, address, hours, Call, Website), a
+                               tap elsewhere drops the pin right there; pops with it), Surprise me,
+                               Recent, streets and every named place (`packPlacesProvider`: the
+                               pack's `poi` and landmarks by id), nearest first) over `DriveCards` (the drive waiting, the week's goal, the
                                nudge, "Pick your two drives", Past drives); a pick pushes the drive
                                `/drive/go` (`?to=home|work|run|surprise`, a street or place as
                                `extra`): DriveController and DriveScreen: the plan map with the
-                               route options (`DriveSetup.options`, `pickRoute`: Fastest, Most
-                               familiar; the Navigator follows the picked one, `prefer`) over the
-                               destination, the suggested level and the LevelPicker; `/drive/place` sets Home or
+                               route options as cards and their bubbles (`DriveSetup.options`,
+                               `pickRoute`: Fastest, Most familiar; the Navigator follows the picked one,
+                               `prefer`) under where the route runs (`DriveRouteEnds`: From, the stops on
+                               the way `DriveSetup.via`, To, Add stop; item 134), the LevelPicker and
+                               Let's go in a short sheet (its handle adds the rest); a stop or a new
+                               destination is picked on `RoutePlaceScreen`; a place or pin is a stop by its road (`stopsOf`, item 132),
+                               the routes arriving with it on the right first, then the left; `/drive/place` sets Home or
                                Work; a drive run by pindoro_learning's Navigator at its level
                                (voice by `NavWords`, the speed chime) on `DriveRecordingView`:
                                Guided's live `DriveMap` with the turn card, the speeds and the
@@ -82,10 +88,11 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                buttons that pop in at a touch (routes overview, Mute, level,
                                compass or Recentre), Coached
                                and Quiet's dial and Recovery, Off's black screen; day or night by sun
-                               time at the car; while moving only Guided's map and Recentre take
-                               touch, the stopped bar (Mute, level, Route: `DriveRouteScreen`'s
-                               Home, Work or a new destination, End drive, Off's Rescue) while
-                               stopped; back does nothing; arrival ends it), `/drive/preview` (the route
+                               time at the car; while moving Guided's map and buttons take touch, and
+                               Coached and Quiet show Route at a touch (`DriveRouteScreen`: the stops
+                               and a new destination at any speed, item 134); the stopped bar (Mute,
+                               level, Route, End drive, Off's Rescue) while stopped; a stop reached is
+                               said and grading restarts there (`drive.graded_from`, schema 30); back does nothing; arrival ends it), `/drive/preview` (the route
                                north-up with its numbered key turns, stepped through with Back and
                                Next, then "Recite the turns");
                                every decision without help reviews its J card (item 119), every
@@ -235,12 +242,19 @@ test/drift/                    generated schema helpers + migration test
   (`package_info_plus`); the app root offers the download once per launch and Settings → About
   shows the version. That offer is the Android APK, so iOS skips it: SideStore shows iOS updates
   from the source the iOS release workflow publishes. Bump `version` in `pubspec.yaml` for every
-  build handed out.
+  build handed out, and add its `## <version>` release notes to `store/whats_new.md` (written for
+  the friends who install it; the workflow fails without them). `store/` also holds the
+  SideStore description and screenshots (English street names, no Georgian on screen).
 
 ## Map
 
-- Flutter widgets that sit on map points (the sweep's sockets, the crossings' rings, "End 1") go
-  in a `GeoAnchors` over the map, fed by `PindoroMap.onCamera`'s projection.
+- Widgets that only mark map points (the plan map's start ring, flag, turn numbers, review marks,
+  route bubbles and stop pins) go in `PindoroMap.marks` (`MapMark`: the point and the widget's
+  `foot`): each is painted out of sight by a `MapSprite`, pictured after every repaint and drawn
+  by the map as a symbol (source `marks`), so it keeps to the ground while the map moves. Widgets
+  laid over the map trail its camera, so only ones that take touch (the sweep's sockets, the
+  route card's exits, the bridge's tips) or sit on question maps go in a `GeoAnchors`, fed by
+  `PindoroMap.onCamera`'s projection.
 - `PindoroMap`, the area picker and Explore's map share `MapHost` (`map_host.dart`: the controller,
   the style per theme brightness, `mapProjection`); the area levels (`detailAt`, `areaAt`,
   `nearestAreas`) are pure, in `features/map/data/area_levels.dart`.
@@ -254,7 +268,11 @@ test/drift/                    generated schema helpers + migration test
   questions show places through `MapNames.asking(street)`, whose `placesNot` stems hide a place
   named after the asked street. A place question shows Known streets only, and a drill only its
   own streets. Its landmark icons (the style's `pois` layer) are `poi-<kind>` images, and its
-  always-on `oneway-arrows` (from z16) use the `oneway` image (`onewayArrowPng`). `addBasemapImages`
+  always-on `oneway-arrows` (from z16) use the `oneway` image (`onewayArrowPng`). The navigation maps
+  (`MapNames.everything`: Choose on the map, the setup, Guided) swap `pois` and `poi-names` for
+  `pois-all` and `poi-names-all`, every named place, `poi-other` where `poiIcons` has no icon;
+  there `PindoroMap.onPlaceTap` reports a place tapped (`map_places.dart`: the tiles' feature
+  ids are OSM ids) and `placeOutline` lights one. `addBasemapImages`
   (`features/map/ui/poi_icons.dart`) adds both after the overlays, in `PindoroMap`, the area
   picker and Explore's map. A kind added to the pipeline's `POI_KINDS` needs an entry in
   `poiIcons`.
@@ -277,7 +295,7 @@ test/drift/                    generated schema helpers + migration test
   route ahead only (from the car while short of the plan, `toPlan`, then the plan sliced from
   the car), `northUp`, the routes `overview` with its `alternatives` (grey), the next
   decision's `turn` arrow (`drive-turn`, its head
-  `drive-turn-head`) and the car only (no names or landmark icons). It drags and pinches at
+  `drive-turn-head`), the car, and every street name and named place (item 132). It drags and pinches at
   any speed and reports each touch to `onMoved`; the recording view stops following, shows
   Recentre and follows again after 10 s. It comes through `driveMapBuilderProvider`, which drive
   tests override. The screen shows its attribution.

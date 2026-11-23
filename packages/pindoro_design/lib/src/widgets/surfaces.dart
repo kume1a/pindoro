@@ -333,6 +333,8 @@ class ListGroup extends StatelessWidget {
 
 /// The workhorse row: optional leading tile, `title.md` title, `body.sm`
 /// subtitle, trailing slot. At least 64 dp tall; the whole row is the target.
+/// [dense] keeps it to one 48 dp line: the title, then the subtitle at the
+/// right end, cut short if it must (a route option's time, then its tags).
 class ListRow extends StatelessWidget {
   const ListRow({
     super.key,
@@ -346,6 +348,7 @@ class ListRow extends StatelessWidget {
     this.toggled,
     this.check,
     this.below,
+    this.dense = false,
   });
 
   final String title;
@@ -370,10 +373,30 @@ class ListRow extends StatelessWidget {
   /// Under the subtitle, 6 dp below it (Me's city minibar).
   final Widget? below;
 
+  final bool dense;
+
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
     final enabled = onTap != null || toggled == null;
+    final titleText = Text(
+      title,
+      maxLines: dense ? 1 : null,
+      overflow: dense ? TextOverflow.ellipsis : null,
+      style: PindoroType.titleMd.copyWith(
+        color: enabled ? c.textPrimary : c.textDisabled,
+      ),
+    );
+    final sub = switch (subtitleSpan ?? _span(subtitle)) {
+      final span? => Text.rich(
+        span,
+        maxLines: dense ? 1 : null,
+        overflow: dense ? TextOverflow.ellipsis : null,
+        textAlign: dense ? TextAlign.end : null,
+        style: PindoroType.bodySm.copyWith(color: c.textSecondary),
+      ),
+      null => null,
+    };
     final check = this.check;
     return Semantics(
       container: semanticsLabel != null,
@@ -394,7 +417,9 @@ class ListRow extends StatelessWidget {
           highlightColor: c.surfaceSunken,
           mouseCursor: onTap == null ? null : SystemMouseCursors.click,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 64),
+            constraints: BoxConstraints(
+              minHeight: dense ? PindoroSize.buttonMd : 64,
+            ),
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: PindoroSpace.s4,
@@ -404,32 +429,26 @@ class ListRow extends StatelessWidget {
                 spacing: PindoroSpace.s3,
                 children: [
                   ?leading,
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          title,
-                          style: PindoroType.titleMd.copyWith(
-                            color: enabled ? c.textPrimary : c.textDisabled,
-                          ),
-                        ),
-                        if (subtitleSpan ?? _span(subtitle) case final span?)
-                          Text.rich(
-                            span,
-                            style: PindoroType.bodySm.copyWith(
-                              color: c.textSecondary,
+                  // Dense: the title and the subtitle each cut short past half the row.
+                  if (dense) ...[
+                    Flexible(child: titleText),
+                    Expanded(child: sub ?? const SizedBox.shrink()),
+                  ] else
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          titleText,
+                          ?sub,
+                          if (below case final below?)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: below,
                             ),
-                          ),
-                        if (below case final below?)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: below,
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
                   if (check != null) _CheckBox(check),
                   ?trailing,
                 ],

@@ -36,6 +36,10 @@ const String _bImage = 'route-b-pin';
 /// Chevrons on the best route, every 80 dp (`color.map.route.arrow`).
 const double _chevronSpacing = 80;
 
+/// The best route: a 6 dp line in a 2 dp casing.
+const double routeWidth = PindoroStroke.answer - PindoroStroke.base;
+const double routeCasing = PindoroStroke.answer + PindoroStroke.base;
+
 /// The drawn route: 5 dp dashes 8/7 over a 9 dp halo (`.pd-map-player-route`).
 const double drawnWidth = 5;
 const double drawnHalo = 9;
@@ -96,12 +100,8 @@ Future<void> addRouteLayers(
     await c.addGeoJsonSource(id, pointsGeoJson(const []));
   }
   for (final (id, color, width) in [
-    (
-      'casing',
-      colors.mapRouteCasing,
-      PindoroStroke.answer + 2 * PindoroStroke.base,
-    ),
-    ('line', colors.mapRouteLine, PindoroStroke.answer),
+    ('casing', colors.mapRouteCasing, routeCasing),
+    ('line', colors.mapRouteLine, routeWidth),
   ]) {
     await c.addLineLayer(
       RouteSources.best,
@@ -120,6 +120,8 @@ Future<void> addRouteLayers(
     '${RouteSources.best}-chevrons',
     const ml.SymbolLayerProperties(
       iconImage: _chevron,
+      // The chevron glyph was drawn for the 8 dp line.
+      iconSize: routeWidth / PindoroStroke.answer,
       symbolPlacement: 'line',
       symbolSpacing: _chevronSpacing,
       iconRotationAlignment: 'map',

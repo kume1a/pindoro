@@ -1,7 +1,11 @@
-# City pack format (v8)
+# City pack format (v9)
 
 A city pack is a read-only SQLite database built by `pipeline` from OpenStreetMap data and
 downloaded by the app. Packs are immutable: a new build gets a new `version` and a new file name.
+
+v9 (2026-11) adds `poi`: every named place in the city (restaurants, shops, offices, …) with its
+OSM key and kind, address, opening hours and contacts, for navigation's place search and the map's
+place details. The app installs v3 to v9; navigation reads it where present.
 
 v8 (2026-11) adds lane arrows for navigation's lane guidance: `road_edge.lanes` and
 `road_edge.lanes_back`, OSM `turn:lanes` values driving from → to and to → from (NULL where OSM has
@@ -48,7 +52,7 @@ format it supports; v1 packs already on a phone still open.
 
 ```json
 {
-  "format_version": 8,
+  "format_version": 9,
   "city": "tbilisi",
   "name_ka": "თბილისი",
   "name_en": "Tbilisi",
@@ -80,7 +84,7 @@ zone. Street geometry is simplified to 3 m.
 
 ## Schema
 
-`PRAGMA user_version = 8` equals `format_version`.
+`PRAGMA user_version = 9` equals `format_version`.
 
 ```sql
 CREATE TABLE meta (
@@ -213,6 +217,23 @@ CREATE TABLE landmark (
   outline  TEXT                          -- multipolygon6 of an area (a park, a mall); NULL for a point
 );
 
+CREATE TABLE poi (
+  id          TEXT PRIMARY KEY,          -- 'osm:n<id>', 'osm:w<id>', 'osm:r<id>'
+  key         TEXT NOT NULL,             -- the OSM key it was found by: amenity, shop, office, …
+  kind        TEXT NOT NULL,             -- that key's value: restaurant, bakery, company, …
+  name_ka     TEXT NOT NULL,             -- the name, else the brand
+  name_en     TEXT,
+  brand       TEXT,
+  lat         REAL NOT NULL,             -- a point on its surface
+  lon         REAL NOT NULL,
+  outline     TEXT,                      -- multipolygon6 of an area; NULL for a point
+  street      TEXT,                      -- OSM addr:street
+  housenumber TEXT,                      -- OSM addr:housenumber
+  hours       TEXT,                      -- OSM opening_hours, as tagged
+  phone       TEXT,                      -- OSM phone, else contact:phone
+  website     TEXT                       -- OSM website, else contact:website
+);
+
 CREATE TABLE junction_item (
   junction_id   INTEGER NOT NULL REFERENCES junction (id),
   approach_edge INTEGER NOT NULL REFERENCES road_edge (id),
@@ -284,6 +305,13 @@ CREATE TABLE chunk_neighbour (
   a square) and named bridges; `salience` = 0.30 type + 0.15 brand or name + 0.15 size + 0.10
   wiki + 0.15 uniqueness (one over the same kind within 300 m); an area's `outline` simplified to
   3 m.
+- Places (SPEC §16.23 item 132): every OSM node, closed way or multipolygon with a name or a brand
+  under `amenity`, `shop`, `tourism`, `healthcare`, `office`, `leisure`, `craft` or `historic`
+  (the first of those keys it has), plus stations (`railway`), aerodromes (`aeroway`) and
+  `place=square`, but none that no one drives to (parking, benches, bins, ATMs, toilets,
+  playgrounds, pitches, plaques and the like; `osm2pgsql/pindoro.lua` keeps the list, in step with
+  the map style's); clipped to the city at a point on its surface, an area's `outline` simplified
+  to 3 m.
 - Junction items (`src/routes.ts`, SPEC §6.6): 20 000 origin–destination pairs drawn by street
   length (seeded), each driven by the shortest legal route; every turn with another legal way on
   is a decision `(junction, approach, exit)`. The most driven decisions are taken until they cover
@@ -316,7 +344,7 @@ CREATE TABLE chunk_neighbour (
 district whose id matched a live one (a street that would get a new id stays out, so the fixture
 never holds an id the server's packs don't know), with their road edges, the connectors between
 their junctions and the junctions those use, the restrictions, bridges and junction items on those
-edges and the items' landmarks, and the quarters and neighbourhoods whose centre lies in the district and that still link at
+edges and the items' landmarks, the places in the district, and the quarters and neighbourhoods whose centre lies in the district and that still link at
 least `MIN_AREA_STREETS` (10) of those streets (they link only those). A street whose chunk, or an
 area whose raion, is outside the fixture gets NULL; families and chunk neighbours need both ends in
 it. The app bundles it as

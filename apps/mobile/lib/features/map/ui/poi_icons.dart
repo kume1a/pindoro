@@ -64,6 +64,10 @@ const Map<String, (String, PoiCategory)> poiIcons = {
   'fuel': ('fuel', PoiCategory.transit),
 };
 
+/// Any other named place on the navigation maps (the style's `pois-all`, item 132): Maki's
+/// marker on a civic disc, as `poi-other`.
+const (String, PoiCategory) poiOtherIcon = ('marker', PoiCategory.civic);
+
 /// The image the style's `oneway-arrows` layer draws along one-way roads.
 const String onewayImage = 'oneway';
 
@@ -76,7 +80,10 @@ Future<void> addBasemapImages(
   PindoroColors colors,
   double pixelRatio,
 ) => Future.wait([
-  for (final MapEntry(key: kind, value: (icon, category)) in poiIcons.entries)
+  for (final (kind, (icon, category)) in [
+    for (final MapEntry(:key, :value) in poiIcons.entries) (key, value),
+    ('other', poiOtherIcon),
+  ])
     () async {
       final mark = PoiMark(
         icon: icon,

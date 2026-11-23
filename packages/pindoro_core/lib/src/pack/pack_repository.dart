@@ -41,6 +41,9 @@ abstract interface class PackRepository {
   /// The landmarks the junction items use (format 5); empty for an older pack.
   List<Landmark> landmarks();
 
+  /// Every named place in the city (format 9); empty for an older pack.
+  List<Poi> pois();
+
   /// The turns worth knowing, rank order (format 5); empty for an older pack.
   List<JunctionItem> junctionItems();
 

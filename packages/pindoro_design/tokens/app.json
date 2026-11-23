@@ -1,6 +1,15 @@
 {
   "name": "Pindoro app tokens",
   "meta": {
-    "note": "Tokens the app needs that the claude.ai design system (tokens.json, copied verbatim) does not define yet. Same format as tokens.json (groups of {name, value, usage}, e.g. \"color\": {\"tokens\": [...]}); values may alias tokens.json. When the design system gains one of these, delete it here: the generator fails on duplicates. Empty since the 2026-11-20 sync."
+    "note": "Tokens the app needs that the claude.ai design system (tokens.json, copied verbatim) does not define yet. Same format as tokens.json (groups of {name, value, usage}, e.g. \"color\": {\"tokens\": [...]}); values may alias tokens.json. When the design system gains one of these, delete it here: the generator fails on duplicates."
+  },
+  "opacity": {
+    "tokens": [
+      {
+        "name": "opacity.building-raised",
+        "value": "0.5",
+        "usage": "Guided's raised buildings (color.map.vector.building), as faint as the basemap's flat ones, so the roads between them stay clear."
+      }
+    ]
   }
 }

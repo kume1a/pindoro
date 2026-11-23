@@ -137,18 +137,27 @@ class DriveGlyph extends StatelessWidget {
   final Color cut;
 
   @override
-  Widget build(BuildContext context) {
-    final ink = _hex(color);
-    // Elements without a stroke width are fills only; the root's zero width
-    // keeps them unstroked.
-    final svg =
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" '
-        'fill="none" stroke="$ink" stroke-width="0" stroke-linecap="round" '
-        'stroke-linejoin="round">'
-        '${name.markup.replaceAll('currentColor', ink).replaceAll('CUT', _hex(cut))}'
-        '</svg>';
-    return ExcludeSemantics(
-      child: SvgPicture.string(svg, width: size, height: size),
-    );
-  }
+  Widget build(BuildContext context) => ExcludeSemantics(
+    child: SvgPicture.string(
+      driveGlyphSvg(name, color: color, cut: cut),
+      width: size,
+      height: size,
+    ),
+  );
+}
+
+/// [name]'s SVG on its 48 grid, in [color] with its cut-outs in [cut].
+String driveGlyphSvg(
+  DriveGlyphName name, {
+  required Color color,
+  required Color cut,
+}) {
+  final ink = _hex(color);
+  // Elements without a stroke width are fills only; the root's zero width
+  // keeps them unstroked.
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" '
+      'fill="none" stroke="$ink" stroke-width="0" stroke-linecap="round" '
+      'stroke-linejoin="round">'
+      '${name.markup.replaceAll('currentColor', ink).replaceAll('CUT', _hex(cut))}'
+      '</svg>';
 }

@@ -307,6 +307,9 @@ class _FilteredPack implements PackRepository {
   List<Landmark> landmarks() => _inner.landmarks();
 
   @override
+  List<Poi> pois() => _inner.pois();
+
+  @override
   List<JunctionItem> junctionItems() => _inner.junctionItems();
 
   @override

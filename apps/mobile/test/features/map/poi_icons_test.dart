@@ -28,7 +28,7 @@ void main() {
   }
 
   test('every icon is a bundled Maki SVG', () {
-    for (final (icon, _) in poiIcons.values) {
+    for (final (icon, _) in [...poiIcons.values, poiOtherIcon]) {
       expect(
         File(
           '../../packages/pindoro_design/assets/map_icons/$icon.svg',

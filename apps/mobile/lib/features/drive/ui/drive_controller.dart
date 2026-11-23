@@ -52,15 +52,19 @@ sealed class DriveState {
   const DriveState();
 }
 
+bool _sameVia(List<DriveTarget> a, List<DriveTarget> b) =>
+    a.length == b.length && a.indexed.every((e) => e.$2 == b[e.$1]);
+
 /// Choosing where to go and how much help: no [to] while searching; today's run, a surprise,
 /// Home, Work or the player's [own] street or place. [here] once found, [denied] once location
 /// was refused; [noTarget] when nothing fits the choice. [target] and the route [options] (the
 /// quickest first, item 129) once found from where the player is, [suggestion] the one picked;
-/// [level] once picked (else the suggestion).
+/// [level] once picked (else the suggestion). [via]: the stops on the way, in order (item 134).
 final class DriveSetup extends DriveState {
   const DriveSetup({
     this.to,
     this.own,
+    this.via = const [],
     this.here,
     this.denied,
     this.noTarget = false,
@@ -72,6 +76,7 @@ final class DriveSetup extends DriveState {
 
   final DriveTo? to;
   final DriveDest? own;
+  final List<DriveTarget> via;
   final LatLng? here;
   final LocationDenied? denied;
   final bool noTarget;
@@ -95,13 +100,15 @@ final class DriveSetup extends DriveState {
     _ => DriveLevel.values,
   };
 
-  bool sameChoice(DriveSetup other) => to == other.to && own == other.own;
+  bool sameChoice(DriveSetup other) =>
+      to == other.to && own == other.own && _sameVia(via, other.via);
 
   /// This setup with [suggestion] and [level] picked.
   DriveSetup picking(DriveSuggestion? suggestion, DriveLevel? level) =>
       DriveSetup(
         to: to,
         own: own,
+        via: via,
         here: here,
         denied: denied,
         noTarget: noTarget,
@@ -123,6 +130,7 @@ final class DriveRecording extends DriveState {
     required this.target,
     required this.destination,
     required this.to,
+    this.via = const [],
     required this.startedAt,
     required this.level,
     required this.choices,
@@ -140,6 +148,9 @@ final class DriveRecording extends DriveState {
   final DriveTarget target;
   final LatLng destination;
   final DriveTo to;
+
+  /// The stops on the way not reached yet, in order (item 134).
+  final List<DriveTarget> via;
   final DateTime startedAt;
   final DriveLevel level;
   final List<DriveLevel> choices;
@@ -163,6 +174,7 @@ final class DriveRecording extends DriveState {
   DriveRecording copyWith({
     DriveTarget? target,
     LatLng? destination,
+    List<DriveTarget>? via,
     DriveLevel? level,
     NavView? view,
     bool? muted,
@@ -174,6 +186,7 @@ final class DriveRecording extends DriveState {
     target: target ?? this.target,
     destination: destination ?? this.destination,
     to: to,
+    via: via ?? this.via,
     startedAt: startedAt,
     level: level ?? this.level,
     choices: choices,
@@ -256,9 +269,10 @@ class DriveController extends Notifier<DriveState> {
     },
   );
 
-  /// The fixes before the destination changed on the way (item 116): the drive is graded from
-  /// there.
+  /// The fixes before the destination changed or the last stop on the way was reached (items
+  /// 116, 134): the drive is graded from there, its route starting at [_gradedStart].
   int _changedAt = 0;
+  int? _gradedStart;
   Future<LocationResult>? _locating;
 
   /// What the drive said, showed and was touched for (item 124), saved with it; the names
@@ -297,7 +311,7 @@ class DriveController extends Notifier<DriveState> {
   /// Today's run, Surprise me, Home or Work.
   void choose(DriveTo to) {
     if (state case final DriveSetup s) {
-      state = DriveSetup(to: to, here: s.here);
+      state = DriveSetup(to: to, via: s.via, here: s.here);
       unawaited(_prepare());
     }
   }
@@ -305,21 +319,69 @@ class DriveController extends Notifier<DriveState> {
   /// A street or place the player searched for, or a recent destination.
   void pickOwn(DriveDest dest) {
     if (state case final DriveSetup s) {
-      state = DriveSetup(to: DriveTo.own, own: dest, here: s.here);
+      state = DriveSetup(to: DriveTo.own, own: dest, via: s.via, here: s.here);
       unawaited(_prepare());
     }
-  }
-
-  /// Back to the search.
-  void clear() {
-    if (state case final DriveSetup s) state = DriveSetup(here: s.here);
   }
 
   /// The same choice again once location was refused (back from the settings).
   void retry() {
     if (state case final DriveSetup s when s.denied != null) {
-      state = DriveSetup(to: s.to, own: s.own);
+      state = DriveSetup(to: s.to, own: s.own, via: s.via);
       unawaited(_prepare());
+    }
+  }
+
+  /// A stop on the way (item 134), last before the destination: at setup the routes are found
+  /// again through it; on a drive, at any speed, the way on goes through it from the next fix.
+  Future<void> addStop(DriveDest dest) async {
+    final s = state;
+    final via = switch (s) {
+      DriveSetup(:final via) || DriveRecording(:final via) => via,
+      _ => null,
+    };
+    if (via == null || via.length >= LearningConfig.navViaMax || _ending) {
+      return;
+    }
+    final here = switch (s) {
+      final DriveSetup s => s.here,
+      final DriveRecording r => r.view?.at,
+      _ => null,
+    };
+    final stop = await _target(DriveSetup(to: DriveTo.own, own: dest), here);
+    if (stop == null || !ref.mounted) return;
+    _setVia([...via, stop]);
+  }
+
+  /// Drops the [i]th stop on the way.
+  void removeStop(int i) {
+    final via = switch (state) {
+      DriveSetup(:final via) || DriveRecording(:final via) => via,
+      _ => const <DriveTarget>[],
+    };
+    if (i < 0 || i >= via.length || _ending) return;
+    _setVia([...via]..removeAt(i));
+  }
+
+  void _setVia(List<DriveTarget> via) {
+    switch (state) {
+      case final DriveSetup s:
+        // The level picked holds while the routes are found again.
+        state = DriveSetup(
+          to: s.to,
+          own: s.own,
+          via: via,
+          here: s.here,
+          level: s.level,
+        );
+        unawaited(_prepare());
+      case final DriveRecording r:
+        final graph = ref.read(drivingGraphProvider).value;
+        final nav = _nav;
+        if (graph == null || nav == null) return;
+        nav.setVia([for (final t in via) viaStopOf(graph, t)]);
+        state = r.copyWith(via: via);
+      case DriveReview():
     }
   }
 
@@ -366,12 +428,17 @@ class DriveController extends Notifier<DriveState> {
         state is DriveSetup && (state as DriveSetup).sameChoice(setup);
     if (!current()) return;
     if (located is LocationDenied) {
-      state = DriveSetup(to: setup.to, own: setup.own, denied: located);
+      state = DriveSetup(
+        to: setup.to,
+        own: setup.own,
+        via: setup.via,
+        denied: located,
+      );
       return;
     }
     final here = located is Located ? located.position : null;
     if (setup.to == null) {
-      state = DriveSetup(here: here);
+      state = DriveSetup(via: setup.via, here: here);
       return;
     }
     final found = await _find(setup, here);
@@ -380,6 +447,7 @@ class DriveController extends Notifier<DriveState> {
     state = DriveSetup(
       to: setup.to,
       own: setup.own,
+      via: setup.via,
       here: here,
       noTarget: found == null,
       target: found?.target,
@@ -403,7 +471,7 @@ class DriveController extends Notifier<DriveState> {
         target: target,
         options: here == null
             ? const <DriveSuggestion>[]
-            : await _suggest(target, here),
+            : await _suggest(target, here, via: setup.via),
       );
     }
     if (here == null) return null;
@@ -432,12 +500,12 @@ class DriveController extends Notifier<DriveState> {
       if (driven.contains(nodes[j])) continue;
       final street = streetAt(graph, streets, j);
       if (street == null) continue;
-      final target = (junction: j, street: street, place: null);
+      final target = (junction: j, street: street, place: null, at: null);
       final s = suggest(target, count: 1).firstOrNull;
       if (s != null &&
           s.turns > 0 &&
           s.yours / s.turns >= LearningConfig.surpriseMinShare) {
-        return (target: target, options: suggest(target));
+        return (target: target, options: suggest(target, via: setup.via));
       }
     }
     return null;
@@ -452,12 +520,21 @@ class DriveController extends Notifier<DriveState> {
     DriveTarget target,
     LatLng here, {
     int count = LearningConfig.navOptions,
-  }) async => (await _suggester(here))?.call(target, count: count) ?? const [];
+    List<DriveTarget> via = const [],
+  }) async =>
+      (await _suggester(here))?.call(target, count: count, via: via) ??
+      const [];
 
-  /// The route options for a target from [here] (up to `count`, the quickest first), each with
-  /// its suggestion; the graph, cards and history read once (Surprise me tries up to
-  /// [_surpriseTries] targets). Null without a road graph.
-  Future<List<DriveSuggestion> Function(DriveTarget target, {int count})?>
+  /// The route options for a target from [here] through the stops `via` (up to `count`, the
+  /// quickest first), each with its suggestion; the graph, cards and history read once
+  /// (Surprise me tries up to [_surpriseTries] targets). Null without a road graph.
+  Future<
+    List<DriveSuggestion> Function(
+      DriveTarget target, {
+      int count,
+      List<DriveTarget> via,
+    })?
+  >
   _suggester(LatLng here) async {
     final graph = await ref.hold(drivingGraphProvider.future);
     if (graph == null) return null;
@@ -509,7 +586,11 @@ class DriveController extends Notifier<DriveState> {
       );
     }
 
-    return (DriveTarget target, {int count = LearningConfig.navOptions}) {
+    return (
+      DriveTarget target, {
+      int count = LearningConfig.navOptions,
+      List<DriveTarget> via = const [],
+    }) {
       final raion = raionAt(districts, graph.at(target.junction));
       final areaJ = raion == null
           ? 0
@@ -518,7 +599,8 @@ class DriveController extends Notifier<DriveState> {
         for (final plan in plansFrom(
           graph,
           here,
-          target.junction,
+          stopsOf(graph, target),
+          via: [for (final v in via) viaStopOf(graph, v)],
           streets: streets,
           landmarks: landmarks,
           junctionNodes: nodes,
@@ -576,7 +658,8 @@ class DriveController extends Notifier<DriveState> {
     _nav = Navigator(
       graph: graph,
       cost: NavCost(streets, toleranceKmh: settings.speedToleranceKmh),
-      destination: target.junction,
+      destination: suggestion?.plan.stop ?? stopsOf(graph, target).first,
+      via: [for (final v in current.via) viaStopOf(graph, v)],
       level: _startLevel,
       streets: streets,
       landmarks: landmarks,
@@ -597,8 +680,9 @@ class DriveController extends Notifier<DriveState> {
     if (!ref.mounted) return;
     state = DriveRecording(
       target: target,
-      destination: graph.at(target.junction),
+      destination: targetPoint(graph, target),
       to: setup.to!,
+      via: current.via,
       startedAt: ref.read(clockProvider)(),
       level: _startLevel,
       choices: current.choices,
@@ -683,10 +767,12 @@ class DriveController extends Notifier<DriveState> {
       if (NavWords.streetSaid(p) case final s?) _noteName(s, heard: true);
     }
     if (u.chime && !r.muted) unawaited(_device.chime());
-    _noteScreen(next);
+    // The side as the car came along the stop's road: the new view already looks on.
+    if (u.view.reached != null) _reachStop(next, side: r.view?.side);
+    _noteScreen(state as DriveRecording);
     if (u.view.arrived && !_ending) {
       _ending = true;
-      unawaited(_arrive(r));
+      unawaited(_arrive(next));
     }
   }
 
@@ -757,12 +843,24 @@ class DriveController extends Notifier<DriveState> {
     }
   }
 
+  /// A stop on the way reached (item 134): said, dropped, and the drive graded from here on, as
+  /// after a destination change.
+  void _reachStop(DriveRecording r, {NavSide? side}) {
+    final stop = r.via.firstOrNull;
+    if (stop == null) return;
+    _changedAt = _fixes.length;
+    state = r.copyWith(via: r.via.sublist(1));
+    if (r.muted || r.level == DriveLevel.off) return;
+    if (stop.place == null) _noteName(stop.street, heard: true);
+    unawaited(_speech.add(_words!.reachedStop(stop, side: side)));
+  }
+
   /// Arrival (item 116): the line said to its end, then the drive ends by itself.
   Future<void> _arrive(DriveRecording r) async {
     try {
       if (!r.muted && r.level != DriveLevel.off) {
         _noteName(r.target.street, heard: true);
-        await _speech.add(_words!.arrived(r.target.street));
+        await _speech.add(_words!.arrived(r.target.street, side: r.view?.side));
       }
     } finally {
       await end();
@@ -822,24 +920,28 @@ class DriveController extends Notifier<DriveState> {
     if (!_ending) _nav?.takeRoute(option);
   }
 
-  /// A destination changed while stopped (item 116): the way there from the next fix.
+  /// A destination changed, at any speed (items 116, 134): the way there, through the stops
+  /// still on the way, from the next fix.
   Future<void> changeDestination(DriveDest dest) async {
     final r = state;
     final nav = _nav;
-    if (r is! DriveRecording || nav == null || _ending || !r.stopped) return;
+    if (r is! DriveRecording || nav == null || _ending) return;
     final at = r.view?.at;
     final target = await _target(DriveSetup(to: DriveTo.own, own: dest), at);
     final graph = await ref.hold(drivingGraphProvider.future);
     if (target == null || graph == null || !ref.mounted) return;
     final s = at == null
         ? null
-        : (await _suggest(target, at, count: 1)).firstOrNull;
+        : (await _suggest(target, at, count: 1, via: r.via)).firstOrNull;
     if (!ref.mounted || state is! DriveRecording || _ending) return;
-    nav.setDestination(target.junction, silent: s?.silent ?? const {});
+    nav.setDestination(
+      s?.plan.stop ?? stopsOf(graph, target).first,
+      silent: s?.silent ?? const {},
+    );
     _changedAt = _fixes.length;
     state = (state as DriveRecording).copyWith(
       target: target,
-      destination: graph.at(target.junction),
+      destination: targetPoint(graph, target),
     );
   }
 
@@ -916,11 +1018,15 @@ class DriveController extends Notifier<DriveState> {
     final graph = (await ref.hold(drivingGraphProvider.future))!;
     final streets = await ref.read(cityStreetsProvider.future);
     final match = matchDrive(graph, _fixes);
-    // A destination changed on the way is graded from there: the way to the first isn't a
-    // detour. Each turn was judged as it came.
+    // A destination changed or a stop reached on the way is graded from there: the way to it
+    // isn't a detour. Each turn was judged as it came.
+    final last = _changedAt == 0
+        ? match
+        : matchDrive(graph, _fixes.sublist(_changedAt));
+    _gradedStart = last.path.junctions.firstOrNull;
     final (:graded, :stoppedM) = gradeDrive(
       graph,
-      _changedAt == 0 ? match : matchDrive(graph, _fixes.sublist(_changedAt)),
+      last,
       recording.target.junction,
       streets: streets,
     );
@@ -953,7 +1059,12 @@ class DriveController extends Notifier<DriveState> {
         final run = await ref.hold(todayRunProvider.future);
         return run == null
             ? null
-            : (junction: run.ends.to, street: run.ends.toStreet, place: null);
+            : (
+                junction: run.ends.to,
+                street: run.ends.toStreet,
+                place: null,
+                at: null,
+              );
       case DriveTo.home || DriveTo.work:
         final places = await ref.hold(drivePlacesProvider.future);
         return setup.to == DriveTo.home ? places.home : places.work;
@@ -1082,7 +1193,10 @@ class DriveController extends Notifier<DriveState> {
             targetNode: nodes[recording.target.junction],
             targetStreet: recording.target.street.id,
             targetPlace: recording.target.place?.id,
-            startNode: nodes[match.path.junctions.firstOrNull],
+            targetLat: recording.target.at?.lat,
+            targetLon: recording.target.at?.lon,
+            gradedFrom: _changedAt == 0 ? null : _changedAt,
+            startNode: nodes[_gradedStart],
             outcome: graded == null || review.stoppedM != null
                 ? DriveOutcome.stopped
                 : DriveOutcome.arrived,

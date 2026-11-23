@@ -185,7 +185,9 @@ GoRouter buildRouter(String initialLocation) {
       GoRoute(
         path: Routes.driveMap,
         builder: (_, state) => DriveMapScreen(
-          place: state.uri.queryParameters.containsKey('place'),
+          pick:
+              MapPick.values.asNameMap()[state.uri.queryParameters['for']] ??
+              MapPick.drive,
         ),
       ),
       GoRoute(

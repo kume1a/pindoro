@@ -42,6 +42,7 @@ RoadNet _grid({int? row0Limit}) {
 
 LatLng _p(double east, double north) => RoadNet.point(east, north);
 LatLng _at(int r, int c) => _p(300.0 * c, -300.0 * r);
+double _east(LatLng p) => LocalProjection(RoadNet.origin).project(p).$1;
 
 /// Fixes once a second from [_t0] driving through [points] at [mps], the car stopping
 /// [stopS] seconds at the end.
@@ -89,11 +90,14 @@ _run(
   Set<String> silent = const {},
   RoadGraph? graph,
   Route? prefer,
+  NavStop? stop,
+  List<NavStop> via = const [],
 }) {
   final nav = Navigator(
     graph: graph ?? net.graph(),
     cost: NavCost(net.byPart, toleranceKmh: LearningConfig.speedToleranceKmh),
-    destination: to,
+    destination: stop ?? NavStop.junction(to),
+    via: via,
     level: level,
     streets: net.byPart,
     junctionNodes: {for (final j in net.at.keys) j: 5000 + j},
@@ -273,7 +277,7 @@ void main() {
       net.graph(),
       NavCost(net.byPart, toleranceKmh: 14),
       from: g(0, 1),
-      to: g(2, 2),
+      to: NavStop.junction(g(2, 2)),
       approach: net
           .graph()
           .edgesAt(g(0, 0))
@@ -302,7 +306,7 @@ void main() {
       graph,
       NavCost(net.byPart, toleranceKmh: 14),
       from: g(0, 1),
-      to: g(2, 2),
+      to: NavStop.junction(g(2, 2)),
       approach: approach,
       streets: net.byPart,
     )!;
@@ -399,7 +403,7 @@ void main() {
     final nav = Navigator(
       graph: net.graph(),
       cost: NavCost(net.byPart, toleranceKmh: 14),
-      destination: g(2, 1),
+      destination: NavStop.junction(g(2, 1)),
       level: DriveLevel.guided,
       streets: net.byPart,
     );
@@ -416,7 +420,7 @@ void main() {
   Navigator plainNav(RoadNet net) => Navigator(
     graph: net.graph(),
     cost: NavCost(net.byPart, toleranceKmh: 14),
-    destination: g(2, 1),
+    destination: NavStop.junction(g(2, 1)),
     level: DriveLevel.guided,
     streets: net.byPart,
   );
@@ -681,7 +685,7 @@ void main() {
       final nav = Navigator(
         graph: net.graph(),
         cost: NavCost(net.byPart, toleranceKmh: 14),
-        destination: g(2, 1),
+        destination: NavStop.junction(g(2, 1)),
         level: DriveLevel.guided,
         streets: net.byPart,
         districtAt: (p) => p.lat < _at(0, 1).lat - 1e-4 ? 'South' : 'North',
@@ -701,7 +705,7 @@ void main() {
     final nav = Navigator(
       graph: net.graph(),
       cost: NavCost(net.byPart, toleranceKmh: 14),
-      destination: g(2, 2),
+      destination: NavStop.junction(g(2, 2)),
       level: DriveLevel.guided,
       streets: net.byPart,
     );
@@ -733,5 +737,189 @@ void main() {
       isNot(contains(PromptKind.recovery)),
     );
     expect(nav.recoveries, 0);
+  });
+
+  group('stops on the way', () {
+    final net = _grid();
+    final graph = net.graph();
+
+    test('driven past, a stop is reached once and the drive goes on to the '
+        'destination', () {
+      final run = _run(
+        net,
+        _drive([_p(50, 0), _at(0, 4)]),
+        to: g(0, 4),
+        via: [NavStop.junction(g(0, 2))],
+        graph: graph,
+        level: DriveLevel.guided,
+      );
+      final reached = [
+        for (final (i, v) in run.views.indexed)
+          if (v.reached != null) (i, v.reached!.junction),
+      ];
+      expect(reached, hasLength(1));
+      expect(reached.single.$2, g(0, 2));
+      final before = run.views[10];
+      expect(before.viaInM, closeTo(600 - _east(before.at!), 5));
+      expect(run.views[reached.single.$1].viaInM, isNull);
+      expect(run.nav.via, isEmpty);
+      expect(run.view.arrived, isTrue);
+    });
+
+    test('stopped beside a stop on a road reaches it, not the destination', () {
+      // 20 m south of row 0 between columns 1 and 2: on the right driving east.
+      final stop = stopsNear(graph, _p(400, -20)).first;
+      final run = _run(
+        net,
+        _drive([_p(50, 0), _p(400, 0)]),
+        to: g(0, 4),
+        via: [stop],
+        graph: graph,
+        level: DriveLevel.guided,
+      );
+      expect(run.views.where((v) => v.reached != null), hasLength(1));
+      expect(run.views[40].side, NavSide.right);
+      expect(run.view.arrived, isFalse);
+    });
+
+    test('off the plan before the stop, every new plan still goes through it; '
+        'stopped at the destination first is no arrival', () {
+      final run = _run(
+        net,
+        _drive([_p(50, 0), _at(0, 3), _at(0, 4)]),
+        to: g(0, 4),
+        via: [NavStop.junction(g(2, 2))],
+        graph: graph,
+        level: DriveLevel.guided,
+      );
+      final plans = {for (final v in run.views) ?v.plan};
+      expect(plans.length, greaterThan(1));
+      for (final p in plans) {
+        expect(p.route.junctions, contains(g(2, 2)));
+      }
+      expect(run.views.where((v) => v.reached != null), isEmpty);
+      expect(run.view.arrived, isFalse);
+    });
+
+    test('a stop added on the way: the next plan goes through it', () {
+      final nav = Navigator(
+        graph: graph,
+        cost: NavCost(
+          net.byPart,
+          toleranceKmh: LearningConfig.speedToleranceKmh,
+        ),
+        destination: NavStop.junction(g(0, 4)),
+        level: DriveLevel.guided,
+        streets: net.byPart,
+      );
+      final fixes = _drive([_p(50, 0), _at(0, 4)]);
+      for (final f in fixes.take(10)) {
+        nav.onFix(f);
+      }
+      nav.setVia([NavStop.junction(g(1, 3))]);
+      final plans = [
+        for (final f in fixes.skip(10).take(5)) ?nav.onFix(f).view.plan,
+      ];
+      expect(plans.last.route.junctions, contains(g(1, 3)));
+      expect(nav.via.single.junction, g(1, 3));
+    });
+  });
+
+  group('a stop on the road', () {
+    // 20 m south of row 0 between columns 1 and 2: on the right driving east.
+    final net = _grid();
+    final graph = net.graph();
+    final stops = stopsNear(graph, _p(400, -20));
+    final right = stops.first, left = stops[1];
+    final road = right.edge!;
+
+    test(
+      'the way left ends at the stop, the place on the right once on its road; '
+      'arrival there, not at the junction past it',
+      () {
+        final run = _run(
+          net,
+          _drive([_p(50, 0), _p(400, 0)]),
+          to: g(0, 2),
+          stop: right,
+          graph: graph,
+          level: DriveLevel.guided,
+        );
+        expect(run.view.arrived, isTrue);
+        final early = run.views[10];
+        expect(early.leftM, closeTo(400 - _east(early.at!), 5));
+        expect(early.side, isNull);
+        expect(run.views[40].side, NavSide.right);
+        final past = _run(
+          net,
+          _drive([_p(50, 0), _at(0, 2)]),
+          to: g(0, 2),
+          stop: right,
+          graph: graph,
+          level: DriveLevel.guided,
+        );
+        expect(past.view.arrived, isFalse);
+      },
+    );
+
+    test(
+      'the left side: every plan arrives driving west, after a wrong way too',
+      () {
+        final run = _run(
+          net,
+          _drive([_p(0, -50), _at(1, 0), _at(2, 0)]),
+          to: g(0, 1),
+          stop: left,
+          graph: graph,
+          level: DriveLevel.guided,
+        );
+        final plans = {for (final v in run.views) ?v.plan};
+        expect(plans.length, greaterThan(1));
+        for (final p in plans) {
+          expect(
+            (p.route.junctions.last, p.route.edges.last.id),
+            (g(0, 1), road.id),
+          );
+        }
+      },
+    );
+
+    test(
+      'driven past, nothing is judged: the car comes round to it, no recovery',
+      () {
+        final run = _run(
+          net,
+          _drive([_p(50, 0), _at(0, 2), _at(1, 2)]),
+          to: g(0, 2),
+          stop: right,
+          graph: graph,
+          level: DriveLevel.quiet,
+        );
+        expect(run.nav.recoveries, 0);
+        expect(run.nav.passed.where((p) => p.junction == g(0, 2)), isEmpty);
+        final plan = run.view.plan!;
+        expect(
+          (plan.route.junctions.last, plan.route.edges.last.id),
+          (g(0, 2), road.id),
+        );
+      },
+    );
+
+    test('starting on its road short of it: the gap is all that is left, drawn '
+        'to the stop', () {
+      final run = _run(
+        net,
+        _drive([_p(320, 0), _p(400, 0)]),
+        to: g(0, 2),
+        stop: right,
+        graph: graph,
+        level: DriveLevel.guided,
+      );
+      final view = run.views[1];
+      expect(view.plan!.route.edges, isEmpty);
+      expect(view.leftM, closeTo(400 - _east(view.at!), 2));
+      expect(_east(view.toPlan.last), closeTo(400, 1));
+      expect(run.view.arrived, isTrue);
+    });
   });
 }

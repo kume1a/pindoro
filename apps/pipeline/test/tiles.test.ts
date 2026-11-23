@@ -36,3 +36,13 @@ it("map styles draw text only in the name layers, hidden, with glyphs from the t
     expect(text.every((l) => l.layout?.visibility === "none")).toBe(true);
   }
 });
+
+it("navigation's every-place layer draws a named place of any kind, with a fallback icon", () => {
+  const style = mapStyle("light") as {
+    layers: { id: string; layout?: { "icon-image"?: unknown; visibility?: string } }[];
+  };
+  const all = style.layers.find((l) => l.id === "pois-all");
+  expect(all?.layout?.visibility).toBe("none");
+  expect(JSON.stringify(all?.layout?.["icon-image"])).toContain('"poi-other"');
+  expect(style.layers.at(-1)?.id).toBe("pois-all");
+});

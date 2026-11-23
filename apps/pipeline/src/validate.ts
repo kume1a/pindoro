@@ -18,7 +18,9 @@ const TABLES = [
   "bridge",
   "road_edge",
   "turn_restriction",
+  "speed_camera",
   "landmark",
+  "poi",
   "junction_item",
   "family",
   "chunk_neighbour",
@@ -159,6 +161,38 @@ const boundaryCheck = (db: Pack, cityRow: CityRow | undefined): Check => {
     }
   }
   return check("boundary rings", bad.length === 0, bad.join(", "));
+};
+
+/** Named places (format 9): OSM ids, a name, a point in the city's box, outlines of closed rings. */
+const poiCheck = (db: Pack, cityRow: CityRow | undefined): Check => {
+  const bad: string[] = [];
+  const rows = db.prepare("SELECT id, name_ka, lat, lon, outline FROM poi").all() as {
+    id: string;
+    name_ka: string;
+    lat: number;
+    lon: number;
+    outline: string | null;
+  }[];
+  for (const p of rows) {
+    let ok = /^osm:[nwr]\d+$/.test(p.id) && p.name_ka.trim() !== "";
+    if (cityRow && !inside({ lat: p.lat, lon: p.lon }, cityRow, 0.01)) ok = false;
+    try {
+      if (
+        p.outline &&
+        !(JSON.parse(p.outline) as string[][]).flat().map(decodePolyline6).every(isClosedRing)
+      ) {
+        ok = false;
+      }
+    } catch {
+      ok = false;
+    }
+    if (!ok) bad.push(p.id);
+  }
+  return check(
+    "places",
+    bad.length === 0,
+    bad.length ? bad.slice(0, 5).join(", ") : `${rows.length} places`,
+  );
 };
 
 const orphanCheck = (db: Pack): Check => {
@@ -322,6 +356,7 @@ export const validatePack = (file: string): boolean => {
       streetCheck(db, cityRow),
       boundaryCheck(db, cityRow),
       orphanCheck(db),
+      poiCheck(db, cityRow),
       learningCheck(db, meta),
       ...graphChecks(db),
       routeCheck(db),
