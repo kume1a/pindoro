@@ -1,0 +1,5 @@
+Pindoro teaches you a city's streets, and then drives you through it until you don't need a map.
+
+Learn: see a street's name and drop a pin on a map with no labels. A few minutes a day; each street comes back just before you would forget it.
+
+Drive: search any street or place, pick your route and choose how much help you want. Guided says every turn on a 3D map, Coached speaks only at the turns you don't know yet, Quiet stays silent until a turn goes wrong, and Off only records. Afterwards, go through your turns and see what stuck.

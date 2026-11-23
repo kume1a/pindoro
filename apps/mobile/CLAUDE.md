@@ -242,7 +242,9 @@ test/drift/                    generated schema helpers + migration test
   (`package_info_plus`); the app root offers the download once per launch and Settings → About
   shows the version. That offer is the Android APK, so iOS skips it: SideStore shows iOS updates
   from the source the iOS release workflow publishes. Bump `version` in `pubspec.yaml` for every
-  build handed out.
+  build handed out, and add its `## <version>` release notes to `store/whats_new.md` (written for
+  the friends who install it; the workflow fails without them). `store/` also holds the
+  SideStore description and screenshots (English street names, no Georgian on screen).
 
 ## Map
 

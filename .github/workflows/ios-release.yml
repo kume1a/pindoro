@@ -59,23 +59,45 @@ jobs:
 
       # Version, build, minimum iOS and privacy prompts come from the built Info.plist, so the
       # source always matches the IPA (SideStore refuses an app whose permissions it doesn't list).
+      # The description, the version's release notes and the screenshots come from store/; the
+      # source carries both today's field names and the older ones, for older SideStore builds.
       - name: Package the IPA and its source
         working-directory: apps/mobile
         run: |
           set -euo pipefail
+          base="https://$PUBLIC_HOST/packs/app"
           app=build/ios/iphoneos/Runner.app
           plist=$(plutil -convert json -o - "$app/Info.plist")
+          version=$(jq -r .CFBundleShortVersionString <<< "$plist")
           ipa="pindoro-$(jq -r .CFBundleVersion <<< "$plist").ipa"
+          # This version's section of whats_new.md, without its heading and leading blank lines.
+          notes=$(awk -v head="## $version" '$0 == head { on = 1; next } /^## / { on = 0 } on' \
+            store/whats_new.md | sed '/./,$!d')
+          if [ -z "$notes" ]; then
+            echo "::error file=apps/mobile/store/whats_new.md::No release notes for $version"
+            exit 1
+          fi
           mkdir -p out/Payload
           cp -R "$app" out/Payload/
           (cd out && zip -qry "$ipa" Payload && rm -r Payload)
           cp ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png out/icon.png
-          jq -n --argjson plist "$plist" --arg base "https://$PUBLIC_HOST/packs/app" \
-            --arg ipa "$ipa" --arg date "$(date -u +%F)" --argjson size "$(stat -f%z "out/$ipa")" '
+          for shot in store/screenshots/*.jpg; do
+            name="screenshot-$(basename "$shot")"
+            cp "$shot" "out/$name"
+            jq -n --arg url "$base/$name" \
+              --argjson width "$(sips -g pixelWidth "$shot" | awk '/pixelWidth/ { print $2 }')" \
+              --argjson height "$(sips -g pixelHeight "$shot" | awk '/pixelHeight/ { print $2 }')" \
+              '{ imageURL: $url, width: $width, height: $height }'
+          done | jq -s . > screenshots.json
+          jq -n --argjson plist "$plist" --arg base "$base" \
+            --arg ipa "$ipa" --arg date "$(date -u +%F)" --argjson size "$(stat -f%z "out/$ipa")" \
+            --arg notes "$notes" --rawfile description store/description.txt \
+            --slurpfile shots screenshots.json '
             {
               version: $plist.CFBundleShortVersionString,
               buildVersion: $plist.CFBundleVersion,
               date: $date,
+              localizedDescription: $notes,
               downloadURL: "\($base)/\($ipa)",
               size: $size,
               minOSVersion: $plist.MinimumOSVersion
@@ -88,8 +110,12 @@ jobs:
                   name: "Pindoro",
                   bundleIdentifier: "app.pindoro",
                   developerName: "Pindoro",
-                  localizedDescription: "Learn the streets of a city: see a street name, drop a pin on an unlabelled map.",
+                  subtitle: "Learn a city’s streets, then drive them.",
+                  localizedDescription: ($description | rtrimstr("\n")),
                   iconURL: "\($base)/icon.png",
+                  tintColor: "2F54EB",
+                  screenshots: $shots[0],
+                  screenshotURLs: [$shots[0][].imageURL],
                   versions: [$release],
                   appPermissions: {
                     entitlements: [],
@@ -97,6 +123,7 @@ jobs:
                   },
                   version: $release.version,
                   versionDate: $release.date,
+                  versionDescription: $notes,
                   downloadURL: $release.downloadURL,
                   size: $release.size
                 }],
@@ -123,7 +150,7 @@ jobs:
       - name: Copy into the packs volume
         run: |
           docker run --rm -v pindoro_packs:/packs -v "$PWD/dist:/src:ro" alpine \
-            sh -c 'mkdir -p /packs/app && rm -f /packs/app/pindoro-*.ipa && cp /src/* /packs/app/'
+            sh -c 'mkdir -p /packs/app && rm -f /packs/app/pindoro-*.ipa /packs/app/screenshot-* && cp /src/* /packs/app/'
 
       - name: Check the source is served
         run: curl -fsS -m 10 "https://$PUBLIC_HOST/packs/app/source.json" > /dev/null
