@@ -209,17 +209,7 @@ final pendingDebriefProvider = FutureProvider.autoDispose<String?>((ref) async {
   final turns = debriefTurns([
     for (final r in await log.decisionsOf(latest.id))
       if (r.itemKey case final key?)
-        (
-          seq: r.seq,
-          key: key,
-          mark: turnMark(
-            ok: r.ok,
-            help: r.help,
-            recentHelp: r.recentHelp,
-            hesitated: r.hesitated,
-          ),
-          keyTurn: r.keyTurn,
-        ),
+        (seq: r.seq, key: key, mark: r.mark, keyTurn: r.keyTurn),
   ]);
   return turns.isEmpty ? null : latest.id;
 });
@@ -261,18 +251,14 @@ final routeLevelsProvider = FutureProvider.autoDispose<List<RouteLevels>>((
       for (final d in history.decisions[drive.id] ?? const <DriveDecisionRow>[])
         if (d.planned) d.itemKey,
     ];
-    final target = byNode[drive.targetNode];
-    final raion = target == null || graph == null
-        ? null
-        : raionAt(pack.districts(), graph.at(target));
-    final s = routeSuggestion(
-      keys: keys,
+    final s = suggestionFor(
+      keys,
+      target: byNode[drive.targetNode],
       cards: cards,
-      history: nav.decisions,
-      past: nav.past,
-      areaJ: raion == null || graph == null
-          ? 0
-          : jCardsIn(raion, cards.values, byNode, graph),
+      history: nav,
+      districts: pack.districts(),
+      byNode: byNode,
+      graph: graph,
       now: now,
     );
     out.add((
@@ -303,14 +289,7 @@ final driveWeekLineProvider =
         if (d.startedAt.isBefore(week)) continue;
         any = true;
         for (final r in history.decisions[d.id] ?? const <DriveDecisionRow>[]) {
-          marks.add(
-            turnMark(
-              ok: r.ok,
-              help: r.help,
-              recentHelp: r.recentHelp,
-              hesitated: r.hesitated,
-            ),
-          );
+          marks.add(r.mark);
         }
       }
       if (!any) return null;

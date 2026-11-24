@@ -17,6 +17,7 @@ import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/drive_device.dart';
 import 'package:pindoro/core/location.dart';
 import 'package:pindoro/core/routes.dart';
+import 'package:pindoro/features/drive/ui/debrief_data.dart';
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
 import 'package:pindoro/features/drive/ui/drive_map_screen.dart';
 import 'package:pindoro/features/drive/ui/drive_preview_screen.dart';

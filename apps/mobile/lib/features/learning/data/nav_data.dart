@@ -43,41 +43,44 @@ final navLandmarksProvider = FutureProvider.autoDispose<List<RouteLandmark>>((
   return [...out.values, ...personalRouteLandmarks(mine, pack.junctionNodes())];
 });
 
+/// Each decision's history and the past drives, latest first.
+typedef NavHistory = ({
+  Map<String, DecisionHistory> decisions,
+  List<PastDrive> past,
+});
+
 /// The drive log as navigation's history (SPEC §16.23 items 113–114): each decision's last
 /// failure and drives on the player's own, and the past drives, latest first.
-final navHistoryProvider =
-    FutureProvider.autoDispose<
-      ({Map<String, DecisionHistory> decisions, List<PastDrive> past})
-    >((ref) async {
-      final log = ref.watch(driveLogDaoProvider);
-      final learning = ref.watch(learningDaoProvider);
-      final drives = await log.all();
-      final rows = await log.decisions();
-      final failures = await learning.lastFailures();
-      return navHistory(
-        drives: [
-          for (final d in drives)
-            (
-              id: d.id,
-              level: d.level,
-              stretch: d.stretch,
-              recoveries: d.recoveries,
-            ),
-        ],
-        decisions: [
-          for (final r in rows)
-            (
-              driveId: r.driveId,
-              key: r.itemKey,
-              ok: r.ok,
-              help: r.help,
-              recentHelp: r.recentHelp,
-              at: r.at,
-            ),
-        ],
-        failures: failures,
-      );
-    });
+final navHistoryProvider = FutureProvider.autoDispose<NavHistory>((ref) async {
+  final log = ref.watch(driveLogDaoProvider);
+  final learning = ref.watch(learningDaoProvider);
+  final drives = await log.all();
+  final rows = await log.decisions();
+  final failures = await learning.lastFailures();
+  return navHistory(
+    drives: [
+      for (final d in drives)
+        (
+          id: d.id,
+          level: d.level,
+          stretch: d.stretch,
+          recoveries: d.recoveries,
+        ),
+    ],
+    decisions: [
+      for (final r in rows)
+        (
+          driveId: r.driveId,
+          key: r.itemKey,
+          ok: r.ok,
+          help: r.help,
+          recentHelp: r.recentHelp,
+          at: r.at,
+        ),
+    ],
+    failures: failures,
+  );
+});
 
 /// The ways navigation offers from [here] to the stops [to] through the stops on the way [via]
 /// (up to [count]: the quickest first, both sides of the road when a place has two, items 132,
@@ -219,8 +222,31 @@ District? districtAt(List<District> districts, LatLng at) {
   return best;
 }
 
-/// A turn's J item id's junction node (`...:n123:...`).
-final RegExp _turnNode = RegExp(r':n(\d+):');
+/// The level suggested for a route of decisions [keys] to junction [target] and its silent
+/// turns (SPEC §16.23 items 113–114): from the J [cards] by item id, the [history] and the J
+/// cards in [target]'s raion among the pack's [districts] (junctions by OSM node in [byNode]).
+({DriveLevel level, Set<String> silent}) suggestionFor(
+  List<String?> keys, {
+  required int? target,
+  required Map<String, CardState> cards,
+  required NavHistory history,
+  required List<District> districts,
+  required Map<int, int> byNode,
+  required RoadGraph? graph,
+  required DateTime now,
+}) {
+  final raion = target == null || graph == null
+      ? null
+      : raionAt(districts, graph.at(target));
+  return routeSuggestion(
+    keys: keys,
+    cards: cards,
+    history: history.decisions,
+    past: history.past,
+    areaJ: raion == null ? 0 : jCardsIn(raion, cards.values, byNode, graph!),
+    now: now,
+  );
+}
 
 /// How many introduced J [cards] turn at a junction inside [raion] (item 114's area check),
 /// junctions found by OSM node through [byNode].
@@ -233,8 +259,7 @@ int jCardsIn(
   var count = 0;
   for (final c in cards) {
     if (c.type != CardType.j) continue;
-    final node = _turnNode.firstMatch(c.itemId)?.group(1);
-    final junction = node == null ? null : byNode[int.parse(node)];
+    final junction = byNode[turnNodes(c.itemId)?.node];
     if (junction == null) continue;
     if (boundaryContains(raion.boundary, graph.at(junction))) count++;
   }

@@ -8,6 +8,7 @@ import 'drive_log.dart';
 import 'fsrs.dart';
 import 'nav_level.dart';
 import 'nav_plan.dart';
+import 'nav_view.dart';
 import 'routes.dart';
 
 // What a drive teaches and how it shows (SPEC §16.23 items 119–123).
@@ -168,6 +169,56 @@ Tier pointingTier(double errorDeg) => switch (errorDeg) {
     ),
     skip: null,
   );
+}
+
+/// A drive's [decisions] reviewing their J [cards] by item 119 ([hesitated] alike in order):
+/// [passes] by key over the last [LearningConfig.habitWindowDays] make a habitual corridor, and a
+/// card credited at [lastCredited] waits. Each decision of a route-book turn ([isTurn]) taken
+/// without help is [evidence], carded or not (a miss keeps it from going silent, item 113).
+/// [effects] holds what each decision did to its card, in order (item 124).
+({
+  List<({String itemId, bool ok})> evidence,
+  List<({CardState card, LogEntry log})> reviews,
+  List<String?> effects,
+})
+creditDrive(
+  List<PassedDecision> decisions,
+  List<bool> hesitated, {
+  required Map<String, CardState> cards,
+  required bool Function(String key) isTurn,
+  required Map<String, DateTime> lastCredited,
+  required Map<String, List<DateTime>> passes,
+  required DateTime now,
+}) {
+  final latest = {...cards};
+  final credited = {...lastCredited};
+  final evidence = <({String itemId, bool ok})>[];
+  final reviews = <({CardState card, LogEntry log})>[];
+  final effects = List<String?>.filled(decisions.length, null);
+  for (final (i, d) in decisions.indexed) {
+    final key = d.key;
+    final ok = d.ok;
+    if (key == null || ok == null) continue;
+    if (isTurn(key) && d.help == NavHelp.none && !d.recentHelp) {
+      evidence.add((itemId: key, ok: ok));
+    }
+    final (:review, :skip) = driveReview(
+      latest[key],
+      ok: ok,
+      help: d.help,
+      recentHelp: d.recentHelp,
+      hesitated: hesitated[i],
+      now: now,
+      passes: [...?passes[key], d.at],
+      lastCredited: credited[key],
+    );
+    effects[i] = review?.log.rating.name ?? skip?.name;
+    if (review == null) continue;
+    reviews.add(review);
+    latest[key] = review.card;
+    if (review.log.rating.isSuccess) credited[key] = now;
+  }
+  return (evidence: evidence, reviews: reviews, effects: effects);
 }
 
 /// A drive as the weekly goal, Progress and Today see it (items 120–123): when it started, the

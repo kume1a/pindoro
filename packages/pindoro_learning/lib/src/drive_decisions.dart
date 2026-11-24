@@ -8,6 +8,25 @@ import 'nav_plan.dart';
 import 'nav_view.dart';
 import 'recital.dart';
 
+/// The decisions a drive's cards are reviewed by: the navigator's [passed], unless the drive
+/// was Off throughout ([startLevel] and [mostHelp]) or had no navigator, then the [graded]
+/// path's (item 124).
+List<PassedDecision> reviewedDecisions(
+  RoadGraph graph, {
+  required DriveLevel startLevel,
+  required DriveLevel mostHelp,
+  required List<PassedDecision>? passed,
+  required RecitalResult? graded,
+  required List<DriveFix> fixes,
+  Map<int, int> junctionNodes = const {},
+}) {
+  final gpsFree = startLevel == DriveLevel.off && mostHelp == DriveLevel.off;
+  if (!gpsFree && passed != null) return passed;
+  return graded == null
+      ? const []
+      : offDriveDecisions(graph, graded, fixes, junctionNodes: junctionNodes);
+}
+
 /// The junctions with a way on to choose on a graded GPS-free drive, for the drive log (SPEC
 /// §16.23 item 124): each move with its J item id, whether navigation calls it a decision
 /// (item 112), whether it kept a good path, and the time of the fix nearest the junction. No

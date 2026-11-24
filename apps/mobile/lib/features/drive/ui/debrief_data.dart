@@ -1,8 +1,9 @@
+import 'dart:math' show min;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
-import 'package:pindoro/features/drive/ui/past_drives_screen.dart';
 import 'package:pindoro/features/learning/data/cards.dart';
 import 'package:pindoro/features/learning/data/drive_log.dart';
 import 'package:pindoro/features/learning/data/drive_places.dart';
@@ -66,16 +67,10 @@ final driveDebriefProvider = FutureProvider.autoDispose
 
       RoadEdge? between(int a, int b) =>
           graph.edgesAt(a).where((e) => e.other(a) == b).firstOrNull;
-      TurnMark? markOf(DriveDecisionRow r) => turnMark(
-        ok: r.ok,
-        help: r.help,
-        recentHelp: r.recentHelp,
-        hesitated: r.hesitated,
-      );
       final logged = [
         for (final r in rows)
           if (r.itemKey case final key?)
-            (seq: r.seq, key: key, mark: markOf(r), keyTurn: r.keyTurn),
+            (seq: r.seq, key: key, mark: r.mark, keyTurn: r.keyTurn),
       ];
       final turns = <DebriefTurn>[];
       for (final t in debriefTurns(logged)) {
@@ -101,13 +96,13 @@ final driveDebriefProvider = FutureProvider.autoDispose
           way: t.mark == TurnMark.again ? way : done,
           exits: exitsByTurn(graph, j, approach),
           mark: t.mark,
-          landmark: _landmarkAt(graph, j, landmarks),
+          landmark: landmarkAt(graph, j, landmarks),
         ));
       }
 
       final marks = [
         for (final r in rows)
-          if ((byNode[turnNodes(r.itemKey ?? '')?.node], markOf(r)) case (
+          if ((byNode[turnNodes(r.itemKey ?? '')?.node], r.mark) case (
             final j?,
             final mark?,
           ))
@@ -178,20 +173,17 @@ Future<({DriveLevel level, int yours, int turns})?> _next(
   final history = await ref.watch(navHistoryProvider.future);
   final byNode = await ref.watch(junctionsByNodeProvider.future);
   final pack = await ref.watch(packRepositoryProvider.future);
-  final target = byNode[drive.targetNode];
-  final raion = target == null
-      ? null
-      : raionAt(pack.districts(), graph.at(target));
-  final j = {
-    for (final c in cards.values)
-      if (c.type == CardType.j) c.itemId: c,
-  };
-  final s = routeSuggestion(
-    keys: keys,
-    cards: j,
-    history: history.decisions,
-    past: history.past,
-    areaJ: raion == null ? 0 : jCardsIn(raion, j.values, byNode, graph),
+  final s = suggestionFor(
+    keys,
+    target: byNode[drive.targetNode],
+    cards: {
+      for (final c in cards.values)
+        if (c.type == CardType.j) c.itemId: c,
+    },
+    history: history,
+    districts: pack.districts(),
+    byNode: byNode,
+    graph: graph,
     now: now,
   );
   if (s.level.index <= drive.level.index) return null;
@@ -202,19 +194,53 @@ Future<({DriveLevel level, int yours, int turns})?> _next(
   );
 }
 
-/// The landmark that names junction [j]: one placed at it, else the nearest within
-/// [LearningConfig.landmarkAtM].
-RouteLandmark? _landmarkAt(
-  RoadGraph graph,
-  int j,
-  List<RouteLandmark> landmarks,
-) {
-  RouteLandmark? best;
-  var bestM = LearningConfig.landmarkAtM;
-  for (final l in landmarks) {
-    if (l.junction == j) return l;
-    final m = distanceBetween(graph.at(j), l.at);
-    if (m <= bestM) (best, bestM) = (l, m);
+/// A past drive replayed from its track on today's graph, with the turns
+/// and GPS gaps it was saved with; null once its track or destination is
+/// gone.
+final pastDriveProvider = FutureProvider.autoDispose.family<DriveReview?, String>((
+  ref,
+  id,
+) async {
+  final dao = ref.watch(driveLogDaoProvider);
+  final drive = await dao.drive(id);
+  final fixes = await dao.track(id);
+  final graph = await ref.watch(drivingGraphProvider.future);
+  final streets = await ref.watch(cityStreetsProvider.future);
+  final byNode = await ref.watch(junctionsByNodeProvider.future);
+  final street = streets[drive?.targetStreet];
+  final junction = byNode[drive?.targetNode];
+  if (drive == null ||
+      fixes == null ||
+      graph == null ||
+      street == null ||
+      junction == null) {
+    return null;
   }
-  return best;
-}
+  // Graded from where it was when driven: after a destination change or the last stop.
+  final (:match, :graded, :stoppedM, start: _) = gradeDriveTrack(
+    graph,
+    fixes,
+    junction,
+    from: min(drive.gradedFrom ?? 0, fixes.length),
+    streets: streets,
+  );
+  return DriveReview(
+    id: id,
+    rescued: drive.rescued,
+    target: (
+      junction: junction,
+      street: street,
+      place: null,
+      at: switch ((drive.targetLat, drive.targetLon)) {
+        (final lat?, final lon?) => LatLng(lat, lon),
+        _ => null,
+      },
+    ),
+    match: match,
+    graded: graded,
+    stoppedM: stoppedM,
+    credited: drive.credited,
+    failed: drive.failed,
+    gaps: (count: drive.gpsGaps, longest: Duration(seconds: drive.longestGapS)),
+  );
+});

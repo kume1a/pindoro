@@ -300,6 +300,39 @@ DriveMatch matchDrive(RoadGraph graph, List<DriveFix> all) {
   );
 }
 
+/// A drive's [fixes] matched to the streets ([match]) and graded against the best legal route
+/// to [target] from fix [from] on ([gradeDrive]): a destination changed or a stop reached there,
+/// the way to it is no detour. [start] is the junction the graded stretch starts at.
+({DriveMatch match, RecitalResult? graded, double? stoppedM, int? start})
+gradeDriveTrack(
+  RoadGraph graph,
+  List<DriveFix> fixes,
+  int target, {
+  int from = 0,
+  Map<String, NamedStreet> streets = const {},
+}) {
+  final match = matchDrive(graph, fixes);
+  final stretch = from <= 0 ? match : matchDrive(graph, fixes.sublist(from));
+  final (:graded, :stoppedM) = gradeDrive(
+    graph,
+    stretch,
+    target,
+    streets: streets,
+  );
+  return (
+    match: match,
+    graded: graded,
+    stoppedM: stoppedM,
+    start: stretch.path.junctions.firstOrNull,
+  );
+}
+
+/// A drive's tier: a rescued drive's is at most Close (SPEC §16.23 item 116).
+Tier? driveTier(Tier? graded, {required bool rescued}) => switch (graded) {
+  final t? when rescued && t.index < Tier.close.index => Tier.close,
+  final t => t,
+};
+
 /// [match] graded like a recital (SPEC §5.3 drives): from its first junction to where it ended
 /// when that is within [LearningConfig.driveArriveM] of [target], else to [target], [stoppedM]
 /// short. Nothing is graded when no fix lay near a road.
