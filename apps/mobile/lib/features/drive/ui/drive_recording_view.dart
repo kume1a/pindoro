@@ -8,6 +8,7 @@ import 'package:pindoro/core/clock.dart';
 import 'package:pindoro/core/database/database.dart' show DriveMarker, Settings;
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
+import 'package:pindoro/core/navigation.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
 import 'package:pindoro/features/drive/ui/drive_dial_view.dart';
@@ -196,7 +197,10 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
         child: Theme(
           data: buildPindoroTheme(night ? Brightness.dark : Brightness.light),
           child: AnnotatedRegion<SystemUiOverlayStyle>(
-            value: SystemUiOverlayStyle.light,
+            // Dark icons only over Guided's day map; the other screens are dark.
+            value: r.level == DriveLevel.guided && !night
+                ? SystemUiOverlayStyle.dark
+                : SystemUiOverlayStyle.light,
             child: Builder(
               builder: (context) {
                 final c = PindoroTheme.of(context).colors;
@@ -548,7 +552,12 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
     return LevelPicker<DriveLevel>(
       steps: levelSteps(l10n, r.choices),
       selected: r.level,
-      suggested: r.to == DriveTo.run ? null : r.suggestion?.level,
+      // A new destination's suggestion may lie past the setup's choices: no tag on a lock.
+      suggested: switch (r.suggestion?.level) {
+        final level? when r.to != DriveTo.run && r.choices.contains(level) =>
+          level,
+        _ => null,
+      },
       suggestedLabel: l10n.driveSuggestedTag,
       semanticsLabel: l10n.driveLevelTitle,
       onChanged: (level) {
@@ -559,9 +568,11 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
   }
 
   void _openRoute(BuildContext context) => unawaited(
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const DriveRouteScreen())),
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => inThemeOf(context, const DriveRouteScreen()),
+      ),
+    ),
   );
 
   /// The stops on the way not reached yet, as Guided's map marks them; the same list while

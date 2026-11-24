@@ -145,13 +145,14 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
     final end = targetPoint(graph, target);
 
     String? lead(NavDecision d) => landmarkLine(l10n, d, settings);
-    String action(NavDecision d) {
-      final street = d.street ?? streets[d.exit.streetId];
-      return [
-        decisionAction(l10n, decisionGlyph(d), onto: street != null),
-        if (street != null) streetName(street, settings),
-      ].join(' ');
-    }
+    String action(NavDecision d) => decisionLine(
+      l10n,
+      decisionGlyph(d),
+      switch (d.street ?? streets[d.exit.streetId]) {
+        final s? => streetName(s, settings),
+        null => null,
+      },
+    );
 
     List<LatLng> around(NavDecision d) => [
       ...?d.approach?.lineFrom(d.approach!.other(d.junction)),
@@ -230,40 +231,31 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
                       ),
                     ),
                   ],
-                  Row(
-                    spacing: PindoroSpace.s3,
-                    children: d == null
+                  ButtonRow(
+                    d == null
                         ? [
-                            Expanded(
-                              child: PindoroButton(
-                                label: l10n.previewShowTurns,
-                                onPressed: turns.isEmpty
-                                    ? null
-                                    : () => _step(0, turns.length),
-                              ),
+                            PindoroButton(
+                              label: l10n.previewShowTurns,
+                              onPressed: turns.isEmpty
+                                  ? null
+                                  : () => _step(0, turns.length),
                             ),
-                            Expanded(
-                              child: PindoroButton(
-                                label: l10n.previewSkip,
-                                variant: PindoroButtonVariant.tertiary,
-                                onPressed: _toList,
-                              ),
+                            PindoroButton(
+                              label: l10n.previewSkip,
+                              variant: PindoroButtonVariant.tertiary,
+                              onPressed: _toList,
                             ),
                           ]
                         : [
-                            Expanded(
-                              child: PindoroButton(
-                                label: l10n.commonBack,
-                                icon: PindoroGlyph.back,
-                                variant: PindoroButtonVariant.secondary,
-                                onPressed: () => _step(_at - 1, turns.length),
-                              ),
+                            PindoroButton(
+                              label: l10n.commonBack,
+                              icon: PindoroGlyph.back,
+                              variant: PindoroButtonVariant.secondary,
+                              onPressed: () => _step(_at - 1, turns.length),
                             ),
-                            Expanded(
-                              child: PindoroButton(
-                                label: l10n.commonNext,
-                                onPressed: () => _step(_at + 1, turns.length),
-                              ),
+                            PindoroButton(
+                              label: l10n.commonNext,
+                              onPressed: () => _step(_at + 1, turns.length),
                             ),
                           ],
                   ),

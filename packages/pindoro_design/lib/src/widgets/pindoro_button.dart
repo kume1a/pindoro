@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
@@ -5,6 +7,7 @@ import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
 import 'tappable.dart';
+import 'whole_words.dart';
 
 enum PindoroButtonVariant { primary, secondary, tertiary, reward }
 
@@ -49,8 +52,72 @@ class PindoroButton extends StatefulWidget {
   // app ever uses the design system.
   static VoidCallback? onHeroPress;
 
+  /// The least width that keeps every word of [label] whole at the text scale: its widest
+  /// word, the icon and the padding.
+  double wholeWordsWidth(BuildContext context) {
+    if (iconOnly && icon != null) return large ? PindoroSize.buttonLg : height;
+    final scaler = MediaQuery.textScalerOf(context);
+    var widest = 0.0;
+    for (final word in label.split(RegExp(r'\s+'))) {
+      final painter = TextPainter(
+        text: TextSpan(text: word, style: PindoroType.labelButton),
+        textDirection: Directionality.of(context),
+        textScaler: scaler,
+      )..layout();
+      widest = math.max(widest, painter.width);
+      painter.dispose();
+    }
+    final iconWidth = icon == null ? 0 : PindoroSize.iconMd + PindoroSpace.s2;
+    return widest + iconWidth + 2 * PindoroSpace.s6;
+  }
+
   @override
   State<PindoroButton> createState() => _PindoroButtonState();
+}
+
+/// Buttons side by side, sharing the width by [flex], else in equal shares when a label
+/// would have to break inside a word (a long Georgian word in a narrow share), else stacked
+/// full width in the same order.
+class ButtonRow extends StatelessWidget {
+  const ButtonRow(
+    this.buttons, {
+    super.key,
+    this.flex,
+    this.spacing = PindoroSpace.s3,
+  });
+
+  final List<PindoroButton> buttons;
+  final List<int>? flex;
+  final double spacing;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, box) {
+      final room = box.maxWidth - spacing * (buttons.length - 1);
+      final widths = [for (final b in buttons) b.wholeWordsWidth(context)];
+      bool fits(List<int> flex) {
+        final total = flex.fold(0, (a, b) => a + b);
+        return widths.indexed.every((w) => w.$2 <= room * flex[w.$1] / total);
+      }
+
+      final equal = [for (final _ in buttons) 1];
+      final flex = [?this.flex, equal].firstWhere(fits, orElse: () => const []);
+      if (flex.isEmpty) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          spacing: PindoroSpace.s2,
+          children: buttons,
+        );
+      }
+      return Row(
+        spacing: spacing,
+        children: [
+          for (final (i, b) in buttons.indexed)
+            Expanded(flex: flex[i], child: b),
+        ],
+      );
+    },
+  );
 }
 
 class _PindoroButtonState extends State<PindoroButton> {
@@ -106,10 +173,12 @@ class _PindoroButtonState extends State<PindoroButton> {
     final radius = BorderRadius.circular(PindoroRadius.lg);
     final fullLip = widget.hero ? PindoroElevation.e3 : PindoroElevation.e2;
     final lipHeight = _pressed ? 0.0 : fullLip;
-    final label = Text(
-      widget.label,
-      textAlign: TextAlign.center,
-      style: PindoroType.labelButton.copyWith(color: text),
+    final label = WholeWords(
+      Text(
+        widget.label,
+        textAlign: TextAlign.center,
+        style: PindoroType.labelButton.copyWith(color: text),
+      ),
     );
 
     final height = widget.large ? PindoroSize.buttonLg : PindoroButton.height;

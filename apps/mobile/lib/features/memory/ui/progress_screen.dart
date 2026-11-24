@@ -37,8 +37,9 @@ class ProgressScreen extends ConsumerWidget {
     final scale = MediaQuery.textScalerOf(context).scale(1);
     Future<void> open(String id) => context.push(Routes.progressOf(id));
     return CityTabPage(
-      children: switch (ref.watch(progressProvider)) {
-        AsyncData(value: final p) => () {
+      // A refresh keeps the last values on screen instead of a spinner.
+      children: switch (ref.watch(progressProvider).value) {
+        final p? => () {
           final recall = p.recall;
           final by = p.wholeCityBy;
           final average = (p.forecast.fold(0, (a, b) => a + b) / 14).round();

@@ -23,6 +23,7 @@ class SearchField extends StatefulWidget {
     this.autocorrect = true,
     this.autofillHints,
     this.autofocus = false,
+    this.keepFocus = false,
   });
 
   final TextEditingController controller;
@@ -47,6 +48,10 @@ class SearchField extends StatefulWidget {
 
   /// Focused, keyboard up, as the screen opens (a search screen of its own).
   final bool autofocus;
+
+  /// Stays focused, keyboard up, after a submit: a field typed in again and again (names
+  /// one after another).
+  final bool keepFocus;
 
   @override
   State<SearchField> createState() => _SearchFieldState();
@@ -99,6 +104,8 @@ class _SearchFieldState extends State<SearchField> {
                   focusNode: _focus,
                   onChanged: widget.onChanged,
                   onSubmitted: widget.onSubmitted,
+                  // Without it a submit moves focus on, and the keyboard drops.
+                  onEditingComplete: widget.keepFocus ? () {} : null,
                   onTapOutside: (_) => _focus.unfocus(),
                   textInputAction: widget.textInputAction,
                   textCapitalization: widget.textCapitalization,

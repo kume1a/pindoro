@@ -16,7 +16,7 @@ const Duration answerResultDelay = Duration(milliseconds: 600);
 /// bearing), built with what the top bar, [header] and [body] and the
 /// bottom cover, with [overlays] over it; the [controls] at the bottom (or a
 /// [tray] docked to its edge, AnswerChoices) until the [result] sheet
-/// replaces them.
+/// replaces them; [onDontKnow] adds "I don't know" under the controls.
 class TaskScaffold extends StatelessWidget {
   const TaskScaffold({
     super.key,
@@ -28,6 +28,7 @@ class TaskScaffold extends StatelessWidget {
     this.controls,
     this.tray,
     this.result,
+    this.onDontKnow,
   });
 
   final Widget topBar;
@@ -40,12 +41,29 @@ class TaskScaffold extends StatelessWidget {
   final Widget? controls;
   final Widget? tray;
   final TaskResult? result;
+  final VoidCallback? onDontKnow;
 
   @override
   Widget build(BuildContext context) {
     final map = this.map;
     final result = this.result;
-    final controls = this.controls;
+    final onDontKnow = this.onDontKnow;
+    final controls = switch ((this.controls, onDontKnow)) {
+      (final c?, final dontKnow?) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: PindoroSpace.s1,
+        children: [
+          c,
+          PindoroButton(
+            label: context.l10n.commonDontKnow,
+            variant: PindoroButtonVariant.tertiary,
+            onPressed: dontKnow,
+          ),
+        ],
+      ),
+      (final c, _) => c,
+    };
     final tray = this.tray;
     final bottom =
         result ??

@@ -1,7 +1,8 @@
 # pindoro_design
 
 Flutter design system: generated tokens, `buildPindoroTheme`, `PindoroTheme` extension and the
-Signpost widgets: `PindoroButton`, `StreetPlate`, surfaces (`LipBox`, `ListGroup`, `ListRow`,
+Signpost widgets: `PindoroButton` (with `ButtonRow`: side by side, then even, then stacked),
+`StreetPlate`, surfaces (`LipBox`, `ListGroup`, `ListRow`,
 `RowTile`, `StatTile`, a one-line `ListRow(dense: true)`, `TileGrid`, `TitledCard`, `SheetHandle`), the bottom navigation (`PindoroNavBar`, no counts on tabs), controls
 (`SegmentedControl`, `PindoroToggle`, `PindoroIconButton`, `PindoroDialog`, `LaneLoader`, the
 loading `Skeleton`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` incl. the route's
@@ -53,11 +54,14 @@ parameters; strings live in the app.
 
 - Never uppercase UI strings. FiraGO 400–900 (OFL, `fonts/OFL.txt`) everywhere; every type role
   carries tabular figures.
+- A word never breaks between letters (Georgian words are long and FiraGO's Mkhedruli wide):
+  text in a narrow or shared cell goes through `WholeWords`, which shrinks it until its widest
+  word fits. Buttons, level steps, stat tiles, nav labels, list-row titles and chips already do.
 - Tier → colour + icon: perfect yellow star, great aqua check-circle, close orange target,
   miss red reroute. Map roles: yellow = truth, cobalt = you, ink = measurement.
 - `StreetPlate`: starts at `title.lg`, shrinks 2 dp steps until it fits two lines, floor
   `size.plate.name-floor` (16), then wraps — never truncates; its sub-line keeps to
-  two lines (a turn card: where to and the question). `RevealSheet` and `IntroSheet` are kept
+  two lines, and the compact plate (the reveal) the name to two lines of whole words (a turn card: where to and the question). `RevealSheet` and `IntroSheet` are kept
   short (32 dp badge, `title.lg` label, 12 dp padding) so the map keeps its room (2026-11-17, see
   `docs/TODO.md`).
 - The turn card draws on the real map (the app's `PindoroMap`, heading-up), not a painted junction

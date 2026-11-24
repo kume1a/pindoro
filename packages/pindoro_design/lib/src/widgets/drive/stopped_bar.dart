@@ -56,15 +56,22 @@ class _LevelChip extends StatelessWidget {
             spacing: PindoroSpace.s1,
             children: [
               PindoroIcon(icon, size: PindoroSize.iconSm, color: c.textPrimary),
+              // The name only when it fits whole; the icon tells the level otherwise.
               Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: PindoroType.bodyLg.copyWith(
-                    color: c.textPrimary,
-                    fontWeight: FontWeight.w800,
-                  ),
+                child: LayoutBuilder(
+                  builder: (context, box) {
+                    final text = Text(
+                      label,
+                      maxLines: 1,
+                      style: PindoroType.bodyLg.copyWith(
+                        color: c.textPrimary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    );
+                    return _widthOf(context, text) <= box.maxWidth
+                        ? text
+                        : const SizedBox.shrink();
+                  },
                 ),
               ),
               RotatedBox(
@@ -85,6 +92,19 @@ class _LevelChip extends StatelessWidget {
 
 /// End drive's least width on the [StoppedBar], in square buttons.
 const int _endMinSquares = 2;
+
+/// [text] laid out on one line.
+double _widthOf(BuildContext context, Text text) {
+  final painter = TextPainter(
+    text: TextSpan(text: text.data, style: text.style),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout();
+  final width = painter.width;
+  painter.dispose();
+  return width;
+}
 
 /// The level shown on the [StoppedBar]'s chip.
 typedef StoppedLevel = ({
@@ -211,47 +231,71 @@ class StoppedBar extends StatelessWidget {
                     ),
                     _ => null,
                   };
+                  final mute = PindoroButton(
+                    label: muteLabel,
+                    icon: muted ? PindoroGlyph.soundOff : PindoroGlyph.soundOn,
+                    iconOnly: true,
+                    large: true,
+                    variant: PindoroButtonVariant.secondary,
+                    onPressed: onMute,
+                  );
+                  final chip = _LevelChip(
+                    icon: level.icon,
+                    label: level.label,
+                    semanticsLabel: level.semanticsLabel,
+                    open: levelOpen,
+                    onTap: onLevel,
+                  );
+                  final end = PindoroButton(
+                    label: endLabel,
+                    large: true,
+                    variant: PindoroButtonVariant.secondary,
+                    onPressed: onEnd,
+                  );
                   // End drive keeps room for its words (two lines at worst); the level's
-                  // name gives way to it.
+                  // name gives way to it. Words too long for that room (Georgian) take
+                  // a row of their own instead of breaking.
                   final squares = route == null ? 1 : 2;
+                  final endRoom = _endMinSquares * PindoroSize.buttonLg;
+                  if (end.wholeWordsWidth(context) > endRoom) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      spacing: PindoroSpace.s2,
+                      children: [
+                        Row(
+                          spacing: PindoroSpace.s2,
+                          children: [
+                            mute,
+                            Expanded(
+                              child: Align(
+                                alignment: AlignmentDirectional.centerStart,
+                                child: chip,
+                              ),
+                            ),
+                            ?route,
+                          ],
+                        ),
+                        end,
+                      ],
+                    );
+                  }
                   final chipMax =
                       box.maxWidth -
-                      (squares + _endMinSquares) * PindoroSize.buttonLg -
+                      squares * PindoroSize.buttonLg -
+                      endRoom -
                       (squares + 1) * PindoroSpace.s2;
                   return Row(
                     spacing: PindoroSpace.s2,
                     children: [
-                      PindoroButton(
-                        label: muteLabel,
-                        icon: muted
-                            ? PindoroGlyph.soundOff
-                            : PindoroGlyph.soundOn,
-                        iconOnly: true,
-                        large: true,
-                        variant: PindoroButtonVariant.secondary,
-                        onPressed: onMute,
-                      ),
+                      mute,
                       ConstrainedBox(
                         constraints: BoxConstraints(
                           maxWidth: math.max(0, chipMax),
                         ),
-                        child: _LevelChip(
-                          icon: level.icon,
-                          label: level.label,
-                          semanticsLabel: level.semanticsLabel,
-                          open: levelOpen,
-                          onTap: onLevel,
-                        ),
+                        child: chip,
                       ),
                       ?route,
-                      Expanded(
-                        child: PindoroButton(
-                          label: endLabel,
-                          large: true,
-                          variant: PindoroButtonVariant.secondary,
-                          onPressed: onEnd,
-                        ),
-                      ),
+                      Expanded(child: end),
                     ],
                   );
                 },

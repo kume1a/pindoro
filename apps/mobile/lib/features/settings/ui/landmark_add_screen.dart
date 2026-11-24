@@ -222,10 +222,12 @@ class _LandmarkAddScreenState extends ConsumerState<LandmarkAddScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            l10n.landmarksAdd,
-                            style: PindoroType.titleMd.copyWith(
-                              color: c.textPrimary,
+                          WholeWords(
+                            Text(
+                              l10n.landmarksAdd,
+                              style: PindoroType.titleMd.copyWith(
+                                color: c.textPrimary,
+                              ),
                             ),
                           ),
                           Text(

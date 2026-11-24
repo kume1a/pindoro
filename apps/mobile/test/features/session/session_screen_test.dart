@@ -120,6 +120,7 @@ void main() {
     Drills drills = Drills.none,
     List<List<SessionStep>>? rounds,
     List<List<SessionStep>> more = const [],
+    bool ticking = false,
   }) async {
     tester.platformDispatcher.accessibilityFeaturesTestValue =
         const FakeAccessibilityFeatures(disableAnimations: true);
@@ -134,7 +135,10 @@ void main() {
           databaseProvider.overrideWithValue(db),
           remindersProvider.overrideWithValue(_NoReminders()),
           speechProvider.overrideWithValue(_NoSpeech()),
-          clockProvider.overrideWithValue(() => now),
+          clockProvider.overrideWithValue(
+            () =>
+                ticking ? now = now.add(const Duration(milliseconds: 1)) : now,
+          ),
           exploreMapBuilderProvider.overrideWithValue(
             (_) => const SizedBox.expand(),
           ),
@@ -255,6 +259,33 @@ void main() {
       expect((await dao.card(item(a)))!.phase, CardPhase.review);
     },
   );
+
+  testWidgets('the next review counts whole days from the review, however '
+      'long its save takes', (tester) async {
+    await pump(tester, [
+      (kind: StepKind.intro, itemId: item(a)),
+      (kind: StepKind.retrieval1, itemId: item(a)),
+    ], ticking: true);
+    await tapThrough(tester, find.text('Got it'));
+    await answer(tester, onStreet(a));
+    expect(find.text('Next review in 2 days'), findsOneWidget);
+  });
+
+  testWidgets('"I don’t know" on a pin: a miss with no pin or distance, the '
+      'street shown, back in this session', (tester) async {
+    await pump(tester, [
+      (kind: StepKind.intro, itemId: item(a)),
+      (kind: StepKind.retrieval1, itemId: item(a)),
+    ]);
+    await tapThrough(tester, find.text('Got it'));
+    await tapThrough(tester, find.text('I don’t know'));
+    expect(find.text('Didn’t know'), findsOneWidget);
+    expect(maps.last.truth, a.geometry);
+    expect((maps.last.pin, maps.last.measure), (null, null));
+    expect(find.text('Back in this session'), findsOneWidget);
+    final row = (await dao.log()).single;
+    expect((row.rating, row.distanceM), (Rating.again, null));
+  });
 
   testWidgets('a day in rounds: each ends on its own summary, Next round '
       'goes on, the last offers no more', (tester) async {
@@ -494,6 +525,18 @@ void main() {
       expect((await dao.card('N:${a.id}'))!.phase, CardPhase.review);
     });
 
+    testWidgets('"I don’t know" on a name card shows the name, Again', (
+      tester,
+    ) async {
+      await pump(tester, [(kind: StepKind.review, itemId: 'N:${a.id}')]);
+      await tester.ensureVisible(find.text('I don’t know'));
+      await tapThrough(tester, find.text('I don’t know'));
+      expect(find.text('It’s ${a.name}.'), findsOneWidget);
+      final row = (await dao.log()).single;
+      expect((row.format, row.rating), (ReviewFormat.nameCheck, Rating.again));
+      expect(await dao.confusionPairs(), isEmpty);
+    });
+
     testWidgets('both ends: two pins, Confirm, then how many were right', (
       tester,
     ) async {
@@ -693,6 +736,37 @@ void main() {
         (ReviewFormat.junction, Rating.again),
         (ReviewFormat.junction, Rating.good),
       ]);
+    });
+
+    testWidgets('"I don’t know" on a J card shows the way, Again', (
+      tester,
+    ) async {
+      final q = first<TurnQuestion>();
+      await pump(tester, [(kind: StepKind.review, itemId: q.itemId)]);
+      await tapThrough(tester, find.text('I don’t know'));
+      expect(find.text('Not this one'), findsOneWidget);
+      expect(maps.last.truth, hasLength(2), reason: 'approach and right exit');
+      final row = (await dao.log()).single;
+      expect((row.format, row.rating), (ReviewFormat.junction, Rating.again));
+    });
+
+    testWidgets('a typed street is not carried to the next route card', (
+      tester,
+    ) async {
+      final q = first<ConnectionQuestion>();
+      final next = first<ConnectionQuestion>((o) => o.itemId != q.itemId);
+      await pump(tester, [
+        (kind: StepKind.review, itemId: q.itemId),
+        (kind: StepKind.review, itemId: next.itemId),
+      ]);
+      await tester.enterText(find.byType(TextField), q.to.name);
+      await settle(tester);
+      await tapThrough(tester, find.text('Check'));
+      await tapThrough(tester, find.text('Next'));
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        isEmpty,
+      );
     });
 
     testWidgets('a card missed again and again comes back twice, then waits '

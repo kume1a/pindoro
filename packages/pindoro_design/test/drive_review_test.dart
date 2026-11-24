@@ -233,6 +233,7 @@ void main() {
             caption: 'Your phone: west-north-west',
             semanticsLabel: 'Compass',
             describeBearing: (b) => '$b',
+            northLabel: 'N',
             enabled: false,
             calibrating: calibrating,
             trueBearing: truth,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Route;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/database/database.dart' show Settings;
+import 'package:pindoro/core/dialogs.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
@@ -36,6 +37,7 @@ class RecitalView extends ConsumerStatefulWidget {
     required this.onCheck,
     required this.onReport,
     required this.onNext,
+    required this.onDontKnow,
     this.chip,
   });
 
@@ -51,6 +53,9 @@ class RecitalView extends ConsumerStatefulWidget {
   final VoidCallback onCheck;
   final VoidCallback onReport;
   final Future<void> Function() onNext;
+
+  /// "I don't know": the step graded as a miss, its answer shown.
+  final VoidCallback onDontKnow;
 
   /// The result's next-review chip.
   final Widget? chip;
@@ -123,12 +128,10 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
           ? widget.onCheck
           : null,
     );
-    final controls = Row(
+    final controls = ButtonRow(
+      flex: const [1, 2],
       spacing: PindoroSpace.s2,
-      children: [
-        undo,
-        Expanded(child: check),
-      ],
+      [undo, check],
     );
     if (drawing) {
       return TaskScaffold(
@@ -179,6 +182,7 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
           ],
         ),
         controls: controls,
+        onDontKnow: widget.onDontKnow,
       );
     }
     final match = suggestStreet(_field.text, streets.values.toSet());
@@ -234,6 +238,7 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
               glyph: PindoroGlyph.signpost,
               autocorrect: false,
               textInputAction: TextInputAction.next,
+              keepFocus: true,
               onChanged: (_) => setState(() => _notFound = false),
               onSubmitted: (_) => _add(),
             ),
@@ -260,6 +265,7 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
         ),
       ),
       controls: controls,
+      onDontKnow: widget.onDontKnow,
     );
   }
 
@@ -276,9 +282,10 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
     final path = graded.path;
     final best = graded.best;
     final illegal = graded.illegal;
+    // A way with no name is "a link road", never a blank in the sentence.
     String nameOf(RoadEdge? e) => switch (streets[e?.streetId]) {
       final s? => streetName(s, settings),
-      null => '',
+      null => l10n.debriefLinkRoad,
     };
     final extraM = graded.extraM ?? 0;
     final chip = switch (illegal) {
@@ -396,7 +403,7 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
                     glyph: PindoroGlyph.check,
                   )
                 : Tappable(
-                    onTap: widget.onReport,
+                    onTap: _report,
                     label: l10n.recitalReport,
                     child: StatChip(
                       label: l10n.recitalReport,
@@ -406,6 +413,19 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
         ],
       ),
     );
+  }
+
+  /// Report this turn, once asked: it makes the move legal on this phone for good.
+  Future<void> _report() async {
+    final l10n = context.l10n;
+    final report = await askChoice(
+      context,
+      title: l10n.recitalReportTitle,
+      body: l10n.recitalReportBody,
+      primary: l10n.commonCancel,
+      secondary: l10n.recitalReportConfirm,
+    );
+    if (report && mounted) widget.onReport();
   }
 
   String _stepLabel(AppLocalizations l10n, RecitalStep s, Settings? settings) =>
@@ -418,7 +438,7 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
           landmark,
           settings,
         ),
-        _ => '',
+        _ => l10n.debriefLinkRoad,
       });
 }
 

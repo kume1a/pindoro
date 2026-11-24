@@ -12,6 +12,7 @@ import 'graphics.dart';
 import 'pindoro_button.dart';
 import 'surfaces.dart';
 import 'text_scale.dart';
+import 'whole_words.dart';
 
 /// The parked parts of v3.2 · Navigate and learn (drive setup, the route
 /// preview, the debrief, Past drives, Progress and Today). They use the
@@ -379,7 +380,8 @@ class TierChip extends StatelessWidget {
       null => null,
     };
     return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 28),
+      // Narrow enough to leave a row's title its room: a long label wraps.
+      constraints: const BoxConstraints(minHeight: 28, maxWidth: 96),
       child: DecoratedBox(
         decoration: ShapeDecoration(
           color: style?.bg,
@@ -395,10 +397,13 @@ class TierChip extends StatelessWidget {
           child: Center(
             widthFactor: 1,
             heightFactor: 1,
-            child: Text(
-              label,
-              style: PindoroType.labelMd.copyWith(
-                color: style?.ink ?? c.textSecondary,
+            child: WholeWords(
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: PindoroType.labelMd.copyWith(
+                  color: style?.ink ?? c.textSecondary,
+                ),
               ),
             ),
           ),

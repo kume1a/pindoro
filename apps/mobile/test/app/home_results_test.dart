@@ -131,9 +131,9 @@ void main() {
             AnswersCompanion.insert(
               roundId: id,
               streetId: s.id,
-              pinLat: s.midpoint.lat,
-              pinLon: s.midpoint.lon,
-              distanceM: 42,
+              pinLat: Value(s.midpoint.lat),
+              pinLon: Value(s.midpoint.lon),
+              distanceM: Value(42),
               tier: tier,
               packVersion: 'v1',
             ),

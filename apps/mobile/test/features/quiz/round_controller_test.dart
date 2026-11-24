@@ -84,6 +84,24 @@ void main() {
     );
   });
 
+  test(
+    '"I don’t know" is a Miss with no pin, logged to the cards as Again',
+    () async {
+      final c = container();
+      final controller = c.read(roundControllerProvider.notifier);
+      await controller.start(vake, Difficulty.expert);
+      await controller.dontKnow();
+      final revealed = c.read(roundControllerProvider) as RoundRevealed;
+      expect(revealed.answer.tier, Tier.miss);
+      expect(
+        (revealed.pin, revealed.nearest, revealed.answer.distanceM),
+        (null, null, null),
+      );
+      final log = await LearningDao(db).log();
+      expect((log.single.rating, log.single.distanceM), (Rating.again, null));
+    },
+  );
+
   test('an Explore pin feeds the learning cards (SPEC §16.16): a first-sight '
       'Good makes a known card, a miss is only logged', () async {
     final c = container();

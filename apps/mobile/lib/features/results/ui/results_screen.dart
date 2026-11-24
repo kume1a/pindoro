@@ -116,21 +116,14 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen>
         onPressed: goHome,
       ),
       showBack: false,
-      footer: Row(
-        spacing: PindoroSpace.s3,
-        children: [
-          Expanded(
-            child: PindoroButton(
-              label: secondary.$1,
-              variant: PindoroButtonVariant.secondary,
-              onPressed: secondary.$2,
-            ),
-          ),
-          Expanded(
-            child: PindoroButton(label: primary.$1, onPressed: primary.$2),
-          ),
-        ],
-      ),
+      footer: ButtonRow([
+        PindoroButton(
+          label: secondary.$1,
+          variant: PindoroButtonVariant.secondary,
+          onPressed: secondary.$2,
+        ),
+        PindoroButton(label: primary.$1, onPressed: primary.$2),
+      ]),
       children: [
         if (data.area case final area? when data.shape != null)
           Text(
@@ -249,7 +242,7 @@ class _ResultsScreenState extends ConsumerState<ResultsScreen>
     final a = e.answer;
     final street = e.street;
     final name = street == null ? a.streetId : streetName(street, settings);
-    final distance = formatDistance(a.distanceM, l10n);
+    final distance = answerDistance(l10n, a);
     final word = tierWord(l10n, a.tier);
     final rest = a.tier == Tier.perfect
         ? ' · ${l10n.resultsOnStreet}'

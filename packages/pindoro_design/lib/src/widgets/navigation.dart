@@ -6,6 +6,7 @@ import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
 import 'tappable.dart';
+import 'whole_words.dart';
 
 /// A bottom-nav destination; [semanticLabel] replaces [label] for screen
 /// readers. Tabs carry no counts.
@@ -97,10 +98,12 @@ class _NavItem extends StatelessWidget {
             ),
             child: PindoroIcon(item.glyph, color: ink, cut: pill),
           ),
-          Text(
-            item.label,
-            textAlign: TextAlign.center,
-            style: PindoroType.labelMd.copyWith(color: ink),
+          WholeWords(
+            Text(
+              item.label,
+              textAlign: TextAlign.center,
+              style: PindoroType.labelMd.copyWith(color: ink),
+            ),
           ),
         ],
       ),

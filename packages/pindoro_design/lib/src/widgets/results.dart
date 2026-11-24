@@ -6,6 +6,7 @@ import '../theme.dart';
 import 'graphics.dart';
 import 'reveal.dart';
 import 'surfaces.dart';
+import 'whole_words.dart';
 
 /// One round answer on the results list: tier tile, street name, tier word
 /// and distance. Tapping opens it on the map.
@@ -149,11 +150,13 @@ class TierTally extends StatelessWidget {
                         color: theme.colors.textPrimary,
                       ),
                     ),
-                    Text(
-                      labels[tier]!,
-                      textAlign: TextAlign.center,
-                      style: PindoroType.labelMd.copyWith(
-                        color: theme.tier(tier).ink,
+                    WholeWords(
+                      Text(
+                        labels[tier]!,
+                        textAlign: TextAlign.center,
+                        style: PindoroType.labelMd.copyWith(
+                          color: theme.tier(tier).ink,
+                        ),
                       ),
                     ),
                   ],

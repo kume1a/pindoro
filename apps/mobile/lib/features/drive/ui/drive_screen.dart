@@ -190,32 +190,27 @@ class _SetupState extends ConsumerState<_Setup> {
         _ => l10n.driveTitle,
       },
     };
-    final footer = Row(
-      spacing: PindoroSpace.s3,
-      children: [
-        Expanded(
-          child: PindoroButton(
-            label: l10n.previewButton,
-            variant: PindoroButtonVariant.secondary,
-            onPressed: ready && setup.suggestion != null
-                ? () => unawaited(context.push(Routes.drivePreview))
-                : null,
-          ),
+    final footer = ButtonRow(
+      flex: const [1, 2],
+      [
+        PindoroButton(
+          label: l10n.previewButton,
+          variant: PindoroButtonVariant.secondary,
+          onPressed: ready && setup.suggestion != null
+              ? () => unawaited(context.push(Routes.drivePreview))
+              : null,
         ),
-        Expanded(
-          flex: 2,
-          child: PindoroButton(
-            label: l10n.driveLetsGo,
-            icon: PindoroGlyph.car,
-            onPressed: ready
-                ? () => unawaited(
-                    controller.start(
-                      title: l10n.driveNotificationTitle,
-                      text: l10n.driveNotificationText,
-                    ),
-                  )
-                : null,
-          ),
+        PindoroButton(
+          label: l10n.driveLetsGo,
+          icon: PindoroGlyph.car,
+          onPressed: ready
+              ? () => unawaited(
+                  controller.start(
+                    title: l10n.driveNotificationTitle,
+                    text: l10n.driveNotificationText,
+                  ),
+                )
+              : null,
         ),
       ],
     );

@@ -1024,6 +1024,7 @@ void main() {
             caption: caption,
             semanticsLabel: 'Compass',
             describeBearing: (b) => '$b',
+            northLabel: 'N',
           ),
         );
         await tester.pumpWidget(

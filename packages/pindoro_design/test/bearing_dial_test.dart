@@ -25,6 +25,7 @@ BearingDial _dial({
   caption: 'Your arrow',
   semanticsLabel: 'Compass',
   describeBearing: _word,
+  northLabel: 'N',
 );
 
 /// The dial's centre on screen.

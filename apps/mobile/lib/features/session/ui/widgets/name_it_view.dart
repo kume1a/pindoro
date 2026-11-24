@@ -23,6 +23,7 @@ class NameItView extends ConsumerStatefulWidget {
     required this.topBar,
     required this.onPick,
     required this.onNext,
+    required this.onDontKnow,
     this.chip,
   });
 
@@ -30,6 +31,9 @@ class NameItView extends ConsumerStatefulWidget {
   final Widget topBar;
   final ValueChanged<NamedStreet> onPick;
   final Future<void> Function() onNext;
+
+  /// "I don't know": the step graded as a miss, its answer shown.
+  final VoidCallback onDontKnow;
 
   /// The result's next-review chip.
   final Widget? chip;
@@ -104,22 +108,24 @@ class _NameItViewState extends ConsumerState<NameItView> {
         ],
         confirmLabel: l10n.commonConfirm,
         confirmHint: l10n.answerPickFirst,
-        result: confirmed == null
+        skip: (label: l10n.commonDontKnow, onSkip: widget.onDontKnow),
+        // Not known: only the right one shows.
+        result: confirmed == null && task.result == null
             ? null
-            : (picked: confirmed, right: task.choices.indexOf(street)),
+            : (picked: confirmed ?? -1, right: task.choices.indexOf(street)),
         onConfirm: (i) => unawaited(_confirm(i, task.choices)),
       ),
-      result: switch ((task.result, picked)) {
-        (final tier?, final picked?) => TaskResult(
+      result: switch (task.result) {
+        final tier? => TaskResult(
           resultKey: play.index,
           tier: tier,
           chip: chip,
-          sentence: picked == street
+          sentence: picked == null || picked == street
               ? l10n.sessionNameRight(name)
               : l10n.sessionNameWrong(name, streetName(picked, settings)),
           onNext: onNext,
         ),
-        _ => null,
+        null => null,
       },
     );
   }

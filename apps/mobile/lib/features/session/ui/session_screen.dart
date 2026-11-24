@@ -91,6 +91,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
     });
     final settings = ref.watch(settingsProvider).value;
     final controller = ref.read(sessionControllerProvider.notifier);
+    void dontKnow() => unawaited(controller.dontKnow());
     return switch (ref.watch(sessionControllerProvider)) {
       SessionLoading() => const Scaffold(body: Center(child: LaneLoader())),
       SessionEmpty() => PageScaffold(
@@ -125,6 +126,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           topBar: _topBar(p, controller),
           onPick: (s) => unawaited(controller.pickName(s)),
           onNext: () async => controller.next(),
+          onDontKnow: dontKnow,
           chip: _nextReviewChip(p, (p.task as NameTask).nextReviewDays),
         ),
         ExtentTask(:final nextReviewDays) => EndsView(
@@ -133,6 +135,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           onPin: _dropPin,
           onConfirm: () => _confirm(controller.confirm),
           onNext: () async => controller.next(),
+          onDontKnow: dontKnow,
           chip: _nextReviewChip(p, nextReviewDays),
         ),
         SweepTask() => SweepView(
@@ -141,12 +144,14 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           onPlace: controller.placeLane,
           onCheck: () => _confirm(controller.checkSweep),
           onNext: () async => controller.next(),
+          onDontKnow: dontKnow,
         ),
         CrossingsTask() => CrossingsView(
           play: p,
           topBar: _topBar(p, controller),
           onName: controller.nameCrossing,
           onNext: () async => controller.next(),
+          onDontKnow: dontKnow,
         ),
         BearingTask() => BearingView(
           play: p,
@@ -154,6 +159,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           onTurn: controller.turn,
           onCheck: () => _confirm(controller.checkBearing),
           onNext: () async => controller.next(),
+          onDontKnow: dontKnow,
         ),
         RouteTask(:final nextReviewDays) => RouteView(
           play: p,
@@ -163,6 +169,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           onAnswer: (typed) =>
               _confirm(() => controller.answerRoute(typed: typed)),
           onNext: () async => controller.next(),
+          onDontKnow: dontKnow,
           onHidePlace: () => unawaited(controller.hidePlace()),
           chip: _nextReviewChip(p, nextReviewDays),
         ),
@@ -177,6 +184,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           onCheck: () => _confirm(controller.checkRecital),
           onReport: () => unawaited(controller.reportMove()),
           onNext: () async => controller.next(),
+          onDontKnow: dontKnow,
           chip: _nextReviewChip(p, nextReviewDays),
         ),
         PinTask() => _pin(p, settings, controller),
@@ -212,7 +220,10 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
     final r = p.reveal;
     final hit = r?.hit;
     final days = r?.nextReviewDays;
-    final forgotten = r?.grade.rating == Rating.again;
+    // No grade: "I don't know", a miss.
+    final grade = r?.grade;
+    final tier = grade?.tier ?? Tier.miss;
+    final forgotten = (grade?.rating ?? Grader.notKnown) == Rating.again;
     final placing = p.step.kind == StepKind.placement;
     return PinDropView(
       area: p.area,
@@ -229,7 +240,10 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
           : null,
       skip: placing
           ? (label: l10n.placementSkip, onSkip: controller.skip)
-          : null,
+          : (
+              label: l10n.commonDontKnow,
+              onSkip: () => unawaited(controller.dontKnow()),
+            ),
       onPin: _dropPin,
       onConfirm: () => _confirm(controller.confirm),
       onNext: () async => controller.next(),
@@ -249,17 +263,20 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
       headerChip: r == null || (placing && days == null)
           ? null
           : _nextReviewChip(p, days),
-      celebration: r == null || hit != null
-          ? null
-          : celebrationFor(r.grade.tier),
+      celebration: r == null || hit != null ? null : celebrationFor(tier),
       reveal: r == null
           ? null
           : (
               key: p.index,
-              tier: r.grade.tier,
-              distanceM: r.grade.distanceM,
-              pin: r.pin,
-              nearest: r.nearest,
+              tier: tier,
+              answer: switch ((grade, r.pin, r.nearest)) {
+                (final g?, final pin?, final nearest?) => (
+                  distanceM: g.distanceM,
+                  pin: pin,
+                  nearest: nearest,
+                ),
+                _ => null,
+              },
               chips: [
                 if (hit != null)
                   StatChip(
@@ -271,9 +288,7 @@ class _SessionScreenState extends ConsumerState<SessionScreen> {
                   ),
               ],
               action:
-                  !placing &&
-                      forgotten &&
-                      (hit != null || r.grade.tier == Tier.miss)
+                  !placing && forgotten && (hit != null || tier == Tier.miss)
                   ? l10n.revealGotIt
                   : l10n.commonNext,
             ),

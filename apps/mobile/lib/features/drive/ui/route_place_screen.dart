@@ -15,7 +15,9 @@ import 'package:pindoro_design/pindoro_design.dart';
 /// null when cancelled.
 Future<DriveDest?> pickRoutePlace(BuildContext context, MapPick pick) =>
     Navigator.of(context).push<DriveDest>(
-      MaterialPageRoute(builder: (_) => RoutePlaceScreen(pick: pick)),
+      MaterialPageRoute(
+        builder: (_) => inThemeOf(context, RoutePlaceScreen(pick: pick)),
+      ),
     );
 
 /// Add stop and Change destination (item 134): the search focused, Cancel beside it; with

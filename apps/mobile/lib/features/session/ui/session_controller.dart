@@ -47,10 +47,12 @@ typedef SessionFamily = ({NamedStreet parent, Map<FamilyKind, int> children});
 typedef SessionGuess = ({NamedStreet parent, int knownSiblings});
 
 /// A graded pin, as the reveal shows it.
+/// A pin step answered: its [grade], the [pin] and the street's [nearest] point; all three
+/// null for "I don't know".
 typedef SessionReveal = ({
-  PinGrade grade,
-  LatLng pin,
-  LatLng nearest,
+  PinGrade? grade,
+  LatLng? pin,
+  LatLng? nearest,
 
   /// Null: back in this session (Again).
   int? nextReviewDays,
@@ -132,7 +134,7 @@ final class SessionPlaying extends SessionState {
 
   /// The answer's tier, for its sound and haptic; a Mix-up is a Miss.
   Tier? get resultTier => switch (reveal) {
-    final r? => r.hit == null ? r.grade.tier : Tier.miss,
+    final r? => r.hit == null ? r.grade?.tier ?? Tier.miss : Tier.miss,
     null => task.result,
   };
 
@@ -542,13 +544,15 @@ class SessionController extends Notifier<SessionState> {
     );
   }
 
-  Future<void> _confirmEnds(SessionPlaying p) async {
+  Future<void> _confirmEnds(SessionPlaying p, {bool notKnown = false}) async {
     final task = p.task as ExtentTask;
-    if (task.pins.length < 2) return;
-    final grade = Grader.gradeExtent(
-      pins: (task.pins[0], task.pins[1]),
-      street: p.street,
-    );
+    if (!notKnown && task.pins.length < 2) return;
+    final grade = notKnown
+        ? Grader.extentNotKnown(p.street)
+        : Grader.gradeExtent(
+            pins: (task.pins[0], task.pins[1]),
+            street: p.street,
+          );
     final card = await _review(
       p.step,
       grade.rating,
@@ -566,14 +570,15 @@ class SessionController extends Notifier<SessionState> {
   /// Name it: the pick among the six names (SPEC §5.2, §16.13).
   Future<void> pickName(NamedStreet picked) => _once(() => _pickName(picked));
 
-  Future<void> _pickName(NamedStreet picked) async {
+  /// [picked] null: "I don't know".
+  Future<void> _pickName(NamedStreet? picked) async {
     final p = state;
     if (p is! SessionPlaying || p.answered) return;
     if (p.task case final NameTask t) {
       final right = picked == p.street;
       final card = await _review(
         p.step,
-        Grader.gradeName(knew: right),
+        picked == null ? Grader.notKnown : Grader.gradeName(knew: right),
         tier: right ? Tier.great : Tier.miss,
         format: ReviewFormat.nameCheck,
         mixUp: right ? null : picked,
@@ -608,11 +613,16 @@ class SessionController extends Notifier<SessionState> {
   /// lane Good, else Again and a mixed-up pair (SPEC §7).
   Future<void> checkSweep() => _once(_checkSweep);
 
-  Future<void> _checkSweep() async {
+  /// [notKnown]: nothing placed counts, so every lane is Again.
+  Future<void> _checkSweep({bool notKnown = false}) async {
     final p = state;
     if (p is! SessionPlaying || p.task is! SweepTask) return;
-    final task = p.task as SweepTask;
-    if (task.checked || task.placed.length < task.lanes.length) return;
+    final asked = p.task as SweepTask;
+    if (asked.checked ||
+        (!notKnown && asked.placed.length < asked.lanes.length)) {
+      return;
+    }
+    final task = notKnown ? asked.copyWith(placed: const {}) : asked;
     final markDay = dayMarker(ref, reviews: _reviews);
     final relearn = <String>[];
     for (final lane in task.lanes) {
@@ -685,11 +695,14 @@ class SessionController extends Notifier<SessionState> {
   /// Bearing: Check; only logged (SPEC §7).
   Future<void> checkBearing() => _once(_checkBearing);
 
-  Future<void> _checkBearing() async {
+  Future<void> _checkBearing({bool notKnown = false}) async {
     final p = state;
     if (p is! SessionPlaying || p.task is! BearingTask) return;
     if ((p.task as BearingTask).checked) return;
-    final task = (p.task as BearingTask).copyWith(checked: true);
+    final task = (p.task as BearingTask).copyWith(
+      checked: true,
+      notKnown: notKnown,
+    );
     await _logOnly(
       _cardOf(p.street).itemId,
       Grader.ratingOfTier(task.result!),
@@ -808,9 +821,10 @@ class SessionController extends Notifier<SessionState> {
 
   /// [p] answered with its step's new [card]: a relearn after a miss, and the
   /// days to the next review (null: back in this session).
+  /// Counted from the review itself: a clock read after the saves would cut a day short.
   (SessionPlaying, int?) _reviewed(SessionPlaying p, CardState card) => (
     _answered(p, [if (card.phase == CardPhase.relearning) p.step.itemId]),
-    _nextReviewDays(card, _now(), _sessionSteps(p)),
+    _nextReviewDays(card, card.memory?.lastReview ?? _now(), _sessionSteps(p)),
   );
 
   /// Days to [card]'s next review; null when it comes back in this session of
@@ -891,12 +905,64 @@ class SessionController extends Notifier<SessionState> {
   /// "I don't know this one": the street stays unseen, nothing is logged.
   void skip() {
     final p = state;
-    if (p is! SessionPlaying ||
+    // Not while a Confirm saves: its reveal would land on the next question.
+    if (_saving ||
+        p is! SessionPlaying ||
         p.reveal != null ||
         p.step.kind != StepKind.placement) {
       return;
     }
     _show(_withSweep(p, null), p.index + 1, p.forgotten);
+  }
+
+  /// "I don't know" on any asked step (SPEC §16.24 item 136): a miss, rated Again, with no
+  /// pin, pick or mixed-up pair, and the answer shown at once. A guess first only shows the
+  /// street; placement keeps its own [skip].
+  Future<void> dontKnow() async {
+    final p = state;
+    if (p is! SessionPlaying || p.answered) return;
+    if (p.step.kind == StepKind.placement) return skip();
+    switch (p.task) {
+      case PinTask() when p.guess != null:
+        await _once(() async {
+          await _saveGuess(p.step.itemId, null, _now(), _rtMs(_now()));
+          if (ref.mounted) _show(p.steps, p.index, p.forgotten, guessed: true);
+        });
+      case PinTask():
+        await _once(() async {
+          final card = await _review(
+            p.step,
+            Grader.notKnown,
+            tier: Tier.miss,
+            format: _formatOf(p.step.kind),
+          );
+          if (card == null) return;
+          final (answered, days) = _reviewed(p, card);
+          state = answered.copyWith(
+            reveal: (
+              grade: null,
+              pin: null,
+              nearest: null,
+              nextReviewDays: days,
+              hit: null,
+            ),
+          );
+        });
+      case ExtentTask():
+        await _once(() => _confirmEnds(p, notKnown: true));
+      case NameTask():
+        await _once(() => _pickName(null));
+      case RouteTask():
+        await _once(() => _answerRoute('', notKnown: true));
+      case RecitalTask():
+        await _once(() => _checkRecital(notKnown: true));
+      case SweepTask():
+        await _once(() => _checkSweep(notKnown: true));
+      case CrossingsTask():
+        await _once(() => _nameCrossing(''));
+      case BearingTask():
+        await _once(() => _checkBearing(notKnown: true));
+    }
   }
 
   /// [p]'s steps with the sweep its answer earned right after it.
@@ -911,9 +977,10 @@ class SessionController extends Notifier<SessionState> {
   }
 
   /// A guess is logged as a pretest: no card, no confused pair.
+  /// A guess first ([grade] null: "I don't know"), logged as a pretest only.
   Future<void> _saveGuess(
     String itemId,
-    PinGrade grade,
+    PinGrade? grade,
     DateTime now,
     int rtMs,
   ) {
@@ -923,10 +990,10 @@ class SessionController extends Notifier<SessionState> {
         ts: now,
         itemId: itemId,
         format: ReviewFormat.pretest,
-        rating: grade.rating,
+        rating: grade?.rating ?? Grader.notKnown,
         source: ReviewSource.session,
-        distanceM: grade.distanceM,
-        snapId: grade.snapStreetId,
+        distanceM: grade?.distanceM,
+        snapId: grade?.snapStreetId,
         rtMs: rtMs,
         sessionId: _sessionId,
       ),
@@ -1166,12 +1233,18 @@ class SessionController extends Notifier<SessionState> {
   /// near-due J cards it failed (§4) and adds those J cards to this session.
   Future<void> checkRecital() => _once(_checkRecital);
 
-  Future<void> _checkRecital() async {
+  /// [notKnown]: a Miss with the best route, and no decision hears of it.
+  Future<void> _checkRecital({bool notKnown = false}) async {
     final p = state;
     if (p is! SessionPlaying || p.answered) return;
     if (p.task case final RecitalTask t) {
       final graph = _graph!;
       final graded = switch (t.mode) {
+        _ when notKnown => RecitalGrader.notKnown(
+          graph,
+          from: t.from,
+          to: t.to,
+        ),
         RecitalMode.type => RecitalGrader.grade(
           graph,
           t.steps,
@@ -1341,55 +1414,42 @@ class SessionController extends Notifier<SessionState> {
   Future<void> answerRoute({String typed = ''}) =>
       _once(() => _answerRoute(typed));
 
-  Future<void> _answerRoute(String typed) async {
+  /// [notKnown]: Again whatever was picked, typed or pinned.
+  Future<void> _answerRoute(String typed, {bool notKnown = false}) async {
     final p = state;
     if (p is! SessionPlaying || p.answered) return;
     if (p.task case final RouteTask t) {
       final pin = p.pin;
       bool names(NamedStreet? s) =>
           s != null && typed.trim().isNotEmpty && nameMatches(typed, s);
-      final (rating, format) = switch (t.question) {
-        final TurnQuestion q => (
-          RouteGrader.turn(
-            exitRight: t.choice == q.correct,
-            streetRight: typed.trim().isEmpty ? null : names(q.exitStreet),
-            streetAsked: _knownStreets(_now()).contains(q.exitStreet),
-          ),
-          ReviewFormat.junction,
+      final rating = switch (t.question) {
+        _ when notKnown => Grader.notKnown,
+        final TurnQuestion q => RouteGrader.turn(
+          exitRight: t.choice == q.correct,
+          streetRight: typed.trim().isEmpty ? null : names(q.exitStreet),
+          streetAsked: _knownStreets(_now()).contains(q.exitStreet),
         ),
-        final GatewayQuestion q when pin != null => (
-          RouteGrader.gateway(
-            distanceM: distanceBetween(pin, q.at),
-            streetRight: names(q.exitStreet),
-          ),
-          ReviewFormat.gateway,
+        final GatewayQuestion q when pin != null => RouteGrader.gateway(
+          distanceM: distanceBetween(pin, q.at),
+          streetRight: names(q.exitStreet),
         ),
-        final BridgeQuestion q => (
+        final BridgeQuestion q =>
           t.choice == q.bridge ? Rating.good : Rating.again,
-          ReviewFormat.bridge,
-        ),
-        final ConnectionQuestion q => (
-          names(q.to) ? Rating.good : Rating.again,
-          ReviewFormat.connection,
-        ),
-        final LandmarkQuestion q when q.n == 1 && pin != null => (
+        final ConnectionQuestion q => names(q.to) ? Rating.good : Rating.again,
+        final LandmarkQuestion q when q.n == 1 && pin != null =>
           RouteGrader.point(q.distanceFrom(pin).distanceM).rating,
-          ReviewFormat.landmark,
-        ),
-        final LandmarkQuestion q when q.n > 1 => (
+        final LandmarkQuestion q when q.n > 1 =>
           (q.n == 2 ? t.choice == q.junction : t.choice == q.landmark.name)
               ? Rating.good
               : Rating.again,
-          ReviewFormat.landmark,
-        ),
-        _ => (null, null),
+        _ => null,
       };
-      if (rating == null || format == null) return;
+      if (rating == null) return;
       final card = await _review(
         p.step,
         rating,
         tier: RouteGrader.tierOf(rating),
-        format: format,
+        format: _routeFormat(t.question),
         street: p.street,
       );
       if (card == null) return;
@@ -1533,6 +1593,14 @@ typedef _Answer = ({
   /// The street a mix-up confused it with.
   String? mixUp,
 });
+
+ReviewFormat _routeFormat(RouteQuestion q) => switch (q) {
+  TurnQuestion() => ReviewFormat.junction,
+  GatewayQuestion() => ReviewFormat.gateway,
+  BridgeQuestion() => ReviewFormat.bridge,
+  ConnectionQuestion() => ReviewFormat.connection,
+  LandmarkQuestion() => ReviewFormat.landmark,
+};
 
 ReviewFormat _formatOf(StepKind kind) => switch (kind) {
   StepKind.retrieval1 => ReviewFormat.retrieval1,

@@ -298,31 +298,32 @@ Random fuzzFor(String itemId, DateTime now) {
 /// An Explore answer (SPEC §16.3 item 16): it reviews [card] when the card is due or near due (due
 /// within [LearningConfig.nearDueFraction] of its interval), and a miss on a card in review however
 /// far from due; a first-sight Good or Easy creates the card as known from before, like placement;
-/// anything else is only logged.
+/// anything else is only logged. No [grade] is "I don't know" (item 136): a miss, no pin.
 ({CardState? card, LogEntry log}) exploreAnswer(
   CardState? card, {
   required String itemId,
-  required PinGrade grade,
+  required PinGrade? grade,
   required DateTime now,
   required int rtMs,
   String? sessionId,
 }) {
+  final rating = grade?.rating ?? Grader.notKnown;
   // A suspended leech comes back only through its intro (SPEC §16.13).
   final reviews = card == null
-      ? grade.rating == Rating.good || grade.rating == Rating.easy
+      ? rating == Rating.good || rating == Rating.easy
       : card.phase != CardPhase.suspended &&
             (isNearDue(card, now) ||
-                (grade.rating == Rating.again && _inReview(card, now)));
+                (rating == Rating.again && _inReview(card, now)));
   final applied = applyReview(
     card,
     itemId: itemId,
-    rating: grade.rating,
+    rating: rating,
     now: now,
     format: reviews ? ReviewFormat.explore : ReviewFormat.exploreLog,
     source: ReviewSource.explore,
     sessionId: sessionId,
-    distanceM: grade.distanceM,
-    snapId: grade.snapStreetId,
+    distanceM: grade?.distanceM,
+    snapId: grade?.snapStreetId,
     rtMs: rtMs,
     priorKnown: card == null,
   );

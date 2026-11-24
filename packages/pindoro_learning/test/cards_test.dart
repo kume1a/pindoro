@@ -216,6 +216,25 @@ void main() {
       expect(changesSchedule(missed.log), isFalse);
     });
 
+    test('an Explore "I don’t know" is a miss with no distance', () {
+      final card = rate(
+        null,
+        Rating.good,
+        t0,
+        format: ReviewFormat.retrieval1,
+      ).card;
+      final unknown = exploreAnswer(
+        card,
+        itemId: itemId,
+        grade: null,
+        now: card.dueAt!,
+        rtMs: 5000,
+      );
+      expect(unknown.log.rating, Rating.again);
+      expect(unknown.log.distanceM, isNull);
+      expect(unknown.card?.lapses, 1);
+    });
+
     test('a card far from due is only logged; near or past due it is '
         'reviewed', () {
       final card = rate(

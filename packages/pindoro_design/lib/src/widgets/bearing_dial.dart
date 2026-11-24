@@ -23,7 +23,7 @@ double _normal(double b) => b % 360;
 /// truth shows in yellow with the ink angle between them, and dragging is off.
 /// Bearings are degrees clockwise from north. [describeBearing] names a
 /// bearing for screen readers ("west-north-west"); [semanticsLabel] names the
-/// control ("Compass"); [caption] goes under the dial.
+/// control ("Compass"); [caption] goes under the dial; [northLabel] marks north ("N").
 class BearingDial extends StatefulWidget {
   const BearingDial({
     super.key,
@@ -32,6 +32,7 @@ class BearingDial extends StatefulWidget {
     required this.caption,
     required this.semanticsLabel,
     required this.describeBearing,
+    required this.northLabel,
     this.trueBearing,
     this.enabled = true,
     this.animate = false,
@@ -44,6 +45,7 @@ class BearingDial extends StatefulWidget {
   final String caption;
   final String semanticsLabel;
   final String Function(double bearing) describeBearing;
+  final String northLabel;
 
   /// Null before Check.
   final double? trueBearing;
@@ -98,6 +100,7 @@ class _BearingDialState extends State<BearingDial> {
         colors: c,
         calibrating: widget.calibrating,
         degrees: widget.degrees,
+        northLabel: widget.northLabel,
       ),
     );
     return Column(
@@ -177,6 +180,7 @@ class _BearingDialPainter extends CustomPainter {
     required this.reveal,
     required this.focused,
     required this.colors,
+    required this.northLabel,
     this.calibrating = false,
     this.degrees,
   });
@@ -190,6 +194,7 @@ class _BearingDialPainter extends CustomPainter {
   final PindoroColors colors;
   final bool calibrating;
   final String? degrees;
+  final String northLabel;
 
   static double _rad(double deg) => deg * math.pi / 180;
 
@@ -227,7 +232,7 @@ class _BearingDialPainter extends CustomPainter {
     }
     final north = TextPainter(
       text: TextSpan(
-        text: 'N',
+        text: northLabel,
         style: PindoroType.titleSm.copyWith(
           color: colors.textPrimary,
           fontSize: PindoroType.titleSm.fontSize! * s,
@@ -303,7 +308,8 @@ class _BearingDialPainter extends CustomPainter {
       old.focused != focused ||
       old.colors != colors ||
       old.calibrating != calibrating ||
-      old.degrees != degrees;
+      old.degrees != degrees ||
+      old.northLabel != northLabel;
 }
 
 /// The pointing result under the dial (Bearing dial, pointing mode): a 40 dp

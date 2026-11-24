@@ -63,17 +63,28 @@ String decisionAction(
   AppLocalizations l10n,
   DriveGlyphName glyph, {
   bool onto = true,
-}) {
-  final turn = switch (glyph) {
-    DriveGlyphName.left => 'left',
-    DriveGlyphName.right => 'right',
-    DriveGlyphName.keepLeft => 'keepLeft',
-    DriveGlyphName.keepRight => 'keepRight',
-    DriveGlyphName.uTurn => 'uTurn',
-    _ => 'other',
-  };
-  return onto ? l10n.driveTurn(turn) : l10n.driveTurnBare(turn);
-}
+}) => onto
+    ? l10n.driveTurn(_turnKey(glyph))
+    : l10n.driveTurnBare(_turnKey(glyph));
+
+/// The whole move as a line: "Left onto Chavchavadze Avenue" (one message, so Georgian puts
+/// the street in its case), or "Turn left" onto a street with no name.
+String decisionLine(
+  AppLocalizations l10n,
+  DriveGlyphName glyph,
+  String? street,
+) => street == null
+    ? decisionAction(l10n, glyph, onto: false)
+    : l10n.driveTurnOnto(_turnKey(glyph), street);
+
+String _turnKey(DriveGlyphName glyph) => switch (glyph) {
+  DriveGlyphName.left => 'left',
+  DriveGlyphName.right => 'right',
+  DriveGlyphName.keepLeft => 'keepLeft',
+  DriveGlyphName.keepRight => 'keepRight',
+  DriveGlyphName.uTurn => 'uTurn',
+  _ => 'other',
+};
 
 /// The ways on at a recalled turn (the preview's Recite, the debrief), one ExitButton each, in
 /// [Turn] order; [onTap] hears the way tapped.

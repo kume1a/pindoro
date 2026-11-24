@@ -121,22 +121,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     Future<void> open(String location) async {
       await context.push(location);
-      refreshLearning(ref);
+      if (mounted) refreshLearning(ref);
     }
 
     // Saves [area], then opens [location], once per tap: a double tap would
-    // push two rounds.
+    // push two rounds. The guard ends with the push, not with the screen: a
+    // round left with go never ends its push.
     Future<void> openWith(Area? area, String location) async {
       if (_saving) return;
       _saving = true;
+      Future<void>? opened;
       try {
         if (area != null) {
           await ref.read(settingsDaoProvider).chooseArea(area, cityId: city.id);
         }
-        if (mounted) await open(location);
+        if (mounted) opened = open(location);
       } finally {
         _saving = false;
       }
+      await opened;
     }
 
     Future<void> play(Area area) =>

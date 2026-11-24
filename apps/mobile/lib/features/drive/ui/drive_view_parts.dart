@@ -93,7 +93,10 @@ TurnPlate? turnPlateFor(
         if (view.newRoute) l10n.driveNewRoute,
         l10n.navIn(distance),
         ?at,
-        [action, if (next.street case final s?) full(s)].join(' '),
+        decisionLine(l10n, glyph, switch (next.street) {
+          final s? => full(s),
+          null => null,
+        }),
         if (then != null)
           '${l10n.driveThen} '
               '${decisionAction(l10n, decisionGlyph(then), onto: false)}',

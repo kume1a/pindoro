@@ -1,3 +1,4 @@
+import 'package:pindoro/core/format.dart';
 import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -47,12 +48,13 @@ class NavWords {
         : l10n.navOnto(turn, withoutKind(name(street)));
   }
 
-  String _distance(double m) {
+  /// "In 200 metres", "In 1.5 kilometres": units spelled out for the voice, the figure in the
+  /// language's decimals.
+  String _inDistance(double m) {
     // What rounds to 1000 is said in kilometres.
     final rounded = navRoundedM(m).round();
-    if (rounded < 1000) return l10n.navMetres(rounded);
-    final km = (m / 1000).toStringAsFixed(1);
-    return l10n.navKilometres(km.endsWith('.0') ? km.split('.').first : km);
+    if (rounded < 1000) return l10n.navInMetres(rounded);
+    return l10n.navInKilometres(formatKm(m, l10n));
   }
 
   String _direction(double? heading) => l10n.compassWord(
@@ -91,7 +93,7 @@ class NavWords {
     final d = p.decision;
     if (d?.landmark case final l?) return l10n.navAt(_place(l));
     if (d?.signals ?? false) return l10n.navAtLights;
-    if (p.distanceM case final m?) return l10n.navIn(_distance(m));
+    if (p.distanceM case final m?) return _inDistance(m);
     return null;
   }
 

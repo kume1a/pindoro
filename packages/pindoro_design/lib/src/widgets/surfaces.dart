@@ -4,6 +4,7 @@ import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
 import 'tappable.dart';
+import 'whole_words.dart';
 
 /// A flat face sitting on a solid bottom lip: the system's only depth.
 /// Cards, list groups, chips, pills and buttons are all built from it.
@@ -99,8 +100,10 @@ class StatTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: 2,
         children: [
-          Row(
+          // A label too long for the glyph's line drops under it before it shrinks.
+          Wrap(
             spacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               if (glyph != null)
                 PindoroIcon(
@@ -108,8 +111,8 @@ class StatTile extends StatelessWidget {
                   size: PindoroSize.iconSm,
                   color: glyphColor ?? c.primaryText,
                 ),
-              Flexible(
-                child: Text(
+              WholeWords(
+                Text(
                   label,
                   style: PindoroType.labelMd.copyWith(color: c.textSecondary),
                 ),
@@ -121,9 +124,11 @@ class StatTile extends StatelessWidget {
             style: PindoroType.numericMd.copyWith(color: c.textPrimary),
           ),
           if (caption case final caption?)
-            Text(
-              caption,
-              style: PindoroType.bodySm.copyWith(color: c.textSecondary),
+            WholeWords(
+              Text(
+                caption,
+                style: PindoroType.bodySm.copyWith(color: c.textSecondary),
+              ),
             ),
         ],
       ),
@@ -439,7 +444,7 @@ class ListRow extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          titleText,
+                          WholeWords(titleText),
                           ?sub,
                           if (below case final below?)
                             Padding(

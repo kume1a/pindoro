@@ -138,7 +138,10 @@ ThemeData buildPindoroTheme(Brightness brightness) {
       outlineVariant: c.lineBase,
       inverseSurface: c.surfaceInverse,
       onInverseSurface: c.textInverse,
-      inversePrimary: PindoroPalette.cobalt300,
+      // The toast's action: on the dark toast by day, the light one by night.
+      inversePrimary: brightness == Brightness.dark
+          ? PindoroPalette.cobalt600
+          : PindoroPalette.cobalt300,
       scrim: c.scrim,
       shadow: PindoroPalette.asphalt975,
       // Depth is the solid lip, never Material's tonal tint.

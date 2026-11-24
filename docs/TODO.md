@@ -329,6 +329,46 @@ and the specs after R5. Fix them in roughly this order.
   - **Drive polish (SPEC §16.23 item 135, 2026-11-23)**, built in the app:
     - The `u-turn` icon and DriveGlyph `uTurn` mirrored: up the right, back down the left
       (traffic keeps right).
+  - **UI pass in Georgian (SPEC §16.24, 2026-11-24)**, built in the app:
+    - LevelPicker: a locked step shows `lock` in place of its level icon, the open steps are in
+      `text.primary` (the README's own fix for its flagged 4.3:1), and a tap on a locked step
+      says why at once (the README had a long-press only; players tapped and got nothing).
+    - New `WholeWords`: a word never breaks between letters in buttons, level steps, stat
+      tiles, the tier tally, nav labels, list-row titles, badge names and tier chips; the text
+      shrinks until its widest word fits.
+    - New `ButtonRow`: buttons side by side by their flex, else in equal shares, else stacked,
+      before a label would break (the setup's Preview | Let's go, the preview, results, the
+      place sheet, the recital).
+    - StoppedBar: the level chip shows its name only when it fits whole (icon and chevron
+      otherwise; it showed "…" at Coached and Quiet), and End drive takes a row of its own when
+      its words don't fit beside the buttons (Georgian).
+    - StatTile: its label drops under the glyph before it shrinks. TierChip is at most 96 dp
+      wide. PickerPanel and LevelSuggestion put the reason under the title when both don't fit.
+    - BadgeTile: the New / Retired pill sits under the text, not on the shield's corner (a long
+      pill covered the shield).
+    - The toast's action is `cobalt.600` in the dark theme, as the Toast README says (the theme
+      had `cobalt.300` in both).
+    - "I don't know": a tertiary button under every question's Confirm or Check, in sessions and
+      Explore (answer trays take it as `skip`); the boards need it.
+- Georgian, for a native speaker (2026-11-24 UI pass; the app is English first):
+  - About 45 strings hang a case ending on a name with a hyphen ("{street}-ზე", "-თან", "-ში",
+    "-დან", "-მდე", "-ის", "-ისკენ", "-ისთვის"), which is right only after numbers and Latin
+    names: "გამზირი-ზე" should be "გამზირზე", "ვაკე-ის" "ვაკის", "ნოემბერი-დან" "ნოემბრიდან".
+    The voice says them too (navOnto, navAt). Keys: routeTurnRight/Wrong, routeGatewayResult,
+    routeConnectionAsk/Result, routeLandmarkResult/On, routeTurnAtLandmark, routeBridgeAsk,
+    placeAtJunction, placeOnStreetSentence, recital*Onto, recitalAt (also "-სთან"),
+    recitalNoTurn, sessionLeechContrast, sessionCrossingsFrom, driveStoppedShort, pastDriveTo,
+    pastDrivesWeekOf, driveRescueOffer, navAt, navOnto, driveTurnOnto, debriefCame,
+    debriefWent/WayWas(Onto), todayLearningNext, progressChunkAfter, progressRouteSince/In/
+    FromTo, todayWeekCaughtUp, a11yDistrictMap, a11yExploreMap. Fix by rephrasing so the name
+    stands alone, or by declining names in code.
+  - One word per idea: landmark is "ღირსშესანიშნაობა" (a sight) in some strings and
+    "ორიენტირი" in others; mastered "დაუფლებული" / "ათვისებული"; pin "პინი" / "ქინძისთავი" /
+    "ნიშნული"; turns "მოხვევა" / "მოსახვევი"; formal "თქვენ" in a11ySpeedNow, settingsDriveMarker,
+    a11yStreetNow and drivePreciseOffNote where the app says "შენ".
+  - Smaller: "Retired" ("აღარ გაიცემა") is long for a pill; todayFirstRunSampleCount reads "on
+    5 districts"; "მიმართულებით: ჩრდილოეთით" says the direction twice; markHelped "ხმამ"; the
+    City memory card reads "22 3 216-დან" (the count before "of"); "3 დღის წინ" fixed in code.
 - Stops, left as they are on purpose (item 134, 2026-11-23):
   - No bubbles on Guided's live map (only on the setup's map).
   - Stops don't join Recent, and Past drives and the debrief show no stop pins.

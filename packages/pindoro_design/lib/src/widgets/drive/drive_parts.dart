@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../generated/pindoro_tokens.dart';
 import '../../theme.dart';
+import '../whole_words.dart';
 
 /// Drive type is sized for a glance from the holder, so the system text
 /// scale never changes it.
@@ -63,17 +64,25 @@ class PickerPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       spacing: 6,
       children: [
-        Row(
+        // The reason drops under the title when both don't fit one line.
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
           spacing: PindoroSpace.s2,
+          runSpacing: 2,
           children: [
-            Expanded(
-              child: Text(
+            WholeWords(
+              Text(
                 title ?? '',
                 style: PindoroType.labelLg.copyWith(color: c.driveText),
               ),
             ),
             if (reason case final r?)
-              Text(r, style: PindoroType.labelLg.copyWith(color: c.driveText2)),
+              WholeWords(
+                Text(
+                  r,
+                  style: PindoroType.labelLg.copyWith(color: c.driveText2),
+                ),
+              ),
           ],
         ),
         picker,

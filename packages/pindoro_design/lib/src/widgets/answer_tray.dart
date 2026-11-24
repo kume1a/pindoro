@@ -46,6 +46,7 @@ class AnswerTray extends StatefulWidget {
     required this.onConfirm,
     this.confirmHint,
     this.result,
+    this.skip,
   });
 
   final String question;
@@ -57,7 +58,12 @@ class AnswerTray extends StatefulWidget {
   /// What a screen reader hears on the disabled Confirm ("Pick a name
   /// first.").
   final String? confirmHint;
+
+  /// [AnswerResult.picked] is -1 when the player skipped (only the right one shows).
   final AnswerResult? result;
+
+  /// A way out under Confirm ("I don't know"), until the question is graded.
+  final TraySkip? skip;
 
   @override
   State<AnswerTray> createState() => _AnswerTrayState();
@@ -106,6 +112,7 @@ class _AnswerTrayState extends State<AnswerTray> {
       confirm: _Confirm(
         label: widget.confirmLabel,
         hint: widget.confirmHint,
+        skip: result == null ? widget.skip : null,
         onPressed: selected == null || result != null
             ? null
             : () {
@@ -134,6 +141,7 @@ class SweepTray extends StatelessWidget {
     required this.confirmLabel,
     this.onConfirm,
     this.confirmHint,
+    this.skip,
   });
 
   final String question;
@@ -145,6 +153,9 @@ class SweepTray extends StatelessWidget {
   final String confirmLabel;
   final VoidCallback? onConfirm;
   final String? confirmHint;
+
+  /// A way out under Confirm ("I don't know"), until the sweep is checked.
+  final TraySkip? skip;
 
   @override
   Widget build(BuildContext context) {
@@ -210,6 +221,7 @@ class SweepTray extends StatelessWidget {
         label: confirmLabel,
         hint: confirmHint,
         onPressed: onConfirm,
+        skip: skip,
       ),
     );
   }
@@ -506,18 +518,45 @@ Widget _sized(BuildContext context, Widget child) =>
       );
 
 /// The full-width Confirm, with [hint] for screen readers while it waits.
+/// A tray's way out under its Confirm: its [label] ("I don't know") and [onSkip].
+typedef TraySkip = ({String label, VoidCallback onSkip});
+
 class _Confirm extends StatelessWidget {
-  const _Confirm({required this.label, required this.onPressed, this.hint});
+  const _Confirm({
+    required this.label,
+    required this.onPressed,
+    this.hint,
+    this.skip,
+  });
 
   final String label;
   final String? hint;
   final VoidCallback? onPressed;
+  final TraySkip? skip;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    hint: onPressed == null ? hint : null,
-    child: PindoroButton(label: label, onPressed: onPressed),
-  );
+  Widget build(BuildContext context) {
+    final confirm = Semantics(
+      hint: onPressed == null ? hint : null,
+      child: PindoroButton(label: label, onPressed: onPressed),
+    );
+    return switch (skip) {
+      (:final label, :final onSkip) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: PindoroSpace.s1,
+        children: [
+          confirm,
+          PindoroButton(
+            label: label,
+            variant: PindoroButtonVariant.tertiary,
+            onPressed: onSkip,
+          ),
+        ],
+      ),
+      null => confirm,
+    };
+  }
 }
 
 /// [child] scrolling, its cut edges fading out over [_fade] dp.

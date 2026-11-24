@@ -131,9 +131,10 @@ class Answers extends Table {
   TextColumn get id => text().clientDefault(newId)();
   TextColumn get roundId => text().references(Rounds, #id)();
   TextColumn get streetId => text()();
-  RealColumn get pinLat => real()();
-  RealColumn get pinLon => real()();
-  RealColumn get distanceM => real()();
+  // Null for "I don't know": no pin was dropped (schema 31).
+  RealColumn get pinLat => real().nullable()();
+  RealColumn get pinLon => real().nullable()();
+  RealColumn get distanceM => real().nullable()();
   TextColumn get tier => textEnum<Tier>()();
   TextColumn get packVersion => text()();
   DateTimeColumn get createdAt => dateTime().clientDefault(DateTime.now)();
@@ -566,7 +567,7 @@ class AppDatabase extends _$AppDatabase {
   /// The app opens it with `openDatabase()`, tests in memory.
   AppDatabase(super.e);
 
-  static const int version = 30;
+  static const int version = 31;
 
   @override
   int get schemaVersion => version;
@@ -719,6 +720,9 @@ class AppDatabase extends _$AppDatabase {
       },
       from29To30: (m, schema) =>
           m.addColumn(schema.drive, schema.drive.gradedFrom),
+      // Rebuilds the answer log (its append-only trigger with it): an "I don't know" has
+      // no pin or distance.
+      from30To31: (m, schema) => m.alterTable(TableMigration(schema.answer)),
     ),
     beforeOpen: (_) => customStatement('PRAGMA foreign_keys = ON'),
   );

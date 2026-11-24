@@ -4,6 +4,7 @@ import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
 import 'surfaces.dart';
+import 'whole_words.dart';
 
 /// Street card spec: the name shrinks in 2 dp steps until it fits two lines.
 const double _fontStep = 2;
@@ -11,8 +12,8 @@ const double _fontStep = 2;
 /// Cobalt road-sign plate with a white inner rule, floating over the map.
 /// The name starts at title.lg and shrinks until it fits two lines, down to
 /// [PindoroSize.plateNameFloor]; at the floor it wraps and never truncates.
-/// The sub-line keeps to two lines. [compact] (the reveal) is one line and
-/// may ellipsize.
+/// The sub-line keeps to two lines. [compact] (the reveal) keeps the name to two lines of
+/// whole words: the reveal is where the name is learned, so it is cut only past them.
 class StreetPlate extends StatelessWidget {
   const StreetPlate(
     this.name, {
@@ -67,12 +68,16 @@ class StreetPlate extends StatelessWidget {
             borderRadius: BorderRadius.circular(PindoroRadius.md),
           ),
           child: compact
-              ? Text(
-                  name,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: PindoroType.titleLg.copyWith(color: c.streetCardText),
+              ? WholeWords(
+                  Text(
+                    name,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: PindoroType.titleLg.copyWith(
+                      color: c.streetCardText,
+                    ),
+                  ),
                 )
               : Column(
                   mainAxisSize: MainAxisSize.min,

@@ -104,6 +104,13 @@ String tierWord(AppLocalizations l10n, Tier tier) => switch (tier) {
   Tier.miss => l10n.tierMissWord,
 };
 
+/// An Explore answer's distance ("120 m"), or "Didn't know" when no pin was dropped.
+String answerDistance(AppLocalizations l10n, Answer answer) =>
+    switch (answer.distanceM) {
+      final m? => formatDistance(m, l10n),
+      null => l10n.answerDidntKnow,
+    };
+
 /// A way out of a junction as an action ("Turn left"): an exit button's label.
 String exitLabel(AppLocalizations l10n, Turn turn) => switch (turn) {
   Turn.left => l10n.routeExitLeft,
