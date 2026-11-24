@@ -4,6 +4,31 @@ What each version brings, newest first, for the people who install Pindoro. The 
 workflow puts the section of the version it builds into the SideStore source as its release notes
 and fails when that section is missing, so write it with every version bump.
 
+## 2.19.0
+
+"I don't know" on every question
+- Can't place a street or name a turn? Tap I don't know instead of guessing. It counts as a miss, shows you the answer and brings the street back soon.
+- Works in lessons, reviews, route cards, recitals and Explore rounds.
+
+The route preview shows every turn
+- Step through all the turns of a route, not just the key ones, each turned so the way in points up with the same arrow Guided draws.
+- Recite the turns covers them all too.
+
+Clearer level picker
+- Levels you can't pick yet show a lock; tap one to see why.
+
+Georgian fits better
+- Long Georgian words are never split across lines; buttons stack when they don't fit side by side.
+- Turn instructions read naturally ("turn left onto …"), and the Georgian voice says metres and kilometres in full.
+
+Also
+- The next review date is no longer a day early.
+- Explore keeps working after you leave a round midway.
+- Today and Progress stay on screen while they refresh.
+- Typing a street name in a recital or crossings drill keeps the keyboard open.
+- Report this turn asks before it counts the turn as allowed.
+- Screens opened during a night drive stay dark, and Guided by day keeps a readable status bar.
+
 ## 2.18.0
 
 A smoother Guided map
