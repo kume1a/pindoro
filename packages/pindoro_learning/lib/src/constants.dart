@@ -323,6 +323,42 @@ abstract final class LearningConfig {
   /// GPS lost this long: "Still finding you" (the line shows after [gpsGapS]).
   static const int gpsLostSayS = 60;
 
+  /// The navigator follows a fix's heading above [navHeadingMps]; a fix is on the plan when its
+  /// heading is within [navTrackHeadingDeg] of the plan's way, and [navOffFixes] fixes off it
+  /// judge the move.
+  static const double navHeadingMps = 2;
+  static const double navTrackHeadingDeg = 100;
+  static const int navOffFixes = 2;
+
+  /// A camera ahead is looked for along the car's street up to [cameraHopsMax] edges on, each
+  /// the straightest way on within [navStraightOnDeg].
+  static const int cameraHopsMax = 10;
+  static const double navStraightOnDeg = 45;
+
+  /// A U-turn in a route's time, driven at the top speed.
+  static const int navUTurnS = 30;
+
+  /// A fix timed this long before the drive started is a cached location, not the car's.
+  static const int driveStaleFixS = 30;
+
+  /// A fresh fix this far from the one the setup planned from plans again (item 135).
+  static const double navRefineM = 50;
+
+  /// Routes start on the road nearest the phone within this.
+  static const double navPlanFromM = 4 * driveSnapM;
+
+  /// Surprise me plans up to this many destinations before giving up (item 122).
+  static const int surpriseTries = 12;
+
+  /// A turn this close to straight on is a fork: keep left or right.
+  static const double navForkDeg = 45;
+
+  /// Distances to the next turn or stop are said and shown to this, and at least this.
+  static const double navRoundM = 50;
+
+  /// What a missed turn adds to the debrief's drill estimate.
+  static const int drillTurnS = 20;
+
   /// Guided's map (item 130): the road's way this far ahead of the car is straight up; the
   /// turn arrow runs from [navArrowBeforeM] before the next decision to [navArrowAfterM] after
   /// it, stopping [navArrowGapM] short of the decision after it and where its way on bends more

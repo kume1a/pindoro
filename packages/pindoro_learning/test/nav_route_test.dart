@@ -247,6 +247,24 @@ void main() {
       );
     });
 
+    test('a turn is seen along its way in: from the arrow\'s start, else the '
+        'approach at the route\'s start', () {
+      final p = plan([1, 2, 3, 7]);
+      expect(turnBearing(p, p.decisions.single), closeTo(90, 0.5));
+      final route = _along(graph, [2, 4]);
+      final start = NavPlan(
+        route,
+        navDecisions(
+          graph,
+          route,
+          approach: graph.edgesAt(1).single,
+          streets: net.byPart,
+        ),
+        0,
+      );
+      expect(turnBearing(start, start.decisions.single), closeTo(90, 0.5));
+    });
+
     test(
       'a turn with another right after: the arrow stops short of the second',
       () {
@@ -420,6 +438,21 @@ void main() {
         via: [stop],
       )!;
       expect(plan.route.junctions, [1, 2, 3, 2, 5]);
+      expect(plan.viaM, [closeTo(150, 0.5)]);
+    });
+
+    test('a stop on a road is where the route passes it on its side, not '
+        'the pass the wrong way before', () {
+      final stop = stopsNear(graph, RoadNet.point(150, -20)).first;
+      final plan = planNav(
+        graph,
+        cost,
+        from: 3,
+        to: const NavStop.junction(5),
+        via: [stop],
+      )!;
+      // West to 2 first, back east past the stop, then on to 5.
+      expect(plan.route.junctions.take(3), [3, 2, 3]);
       expect(plan.viaM, [closeTo(150, 0.5)]);
     });
 

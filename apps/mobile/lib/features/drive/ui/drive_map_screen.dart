@@ -10,6 +10,7 @@ import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/drive/ui/destination_search.dart';
+import 'package:pindoro/features/drive/ui/plan_map.dart';
 import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/features/learning/data/nav_data.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
@@ -106,17 +107,7 @@ class _DriveMapScreenState extends ConsumerState<DriveMapScreen> {
               bottomInset: MediaQuery.paddingOf(body).bottom,
             ),
           ),
-          top: Padding(
-            padding: const EdgeInsets.symmetric(vertical: PindoroSpace.s2),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: MapControl(
-                glyph: PindoroGlyph.back,
-                semanticLabel: l10n.commonBack,
-                onPressed: context.pop,
-              ),
-            ),
-          ),
+          top: PlanMapBack(onPressed: context.pop),
         ),
       ),
       bottomNavigationBar: BottomPanel(

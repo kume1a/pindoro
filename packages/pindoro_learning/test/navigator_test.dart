@@ -253,6 +253,41 @@ void main() {
     expect(run.nav.passed[1].recentHelp, isTrue);
   });
 
+  test('a shallow fork taken the wrong way is judged once, as a miss, '
+      'though the car first snapped to the planned branch', () {
+    // A Y-fork 30° wide: the left branch stays within the snap distance of the right one for
+    // its first 70 m, then dead-ends.
+    final net = RoadNet()
+      ..street('s', 'სამხრეთი', 'South')
+      ..street('l', 'მარცხენა', 'Left')
+      ..street('r', 'მარჯვენა', 'Right')
+      ..junction(1, 0, -400)
+      ..junction(2, 0, 0)
+      ..junction(3, -103.5, 386.4)
+      ..junction(4, 103.5, 386.4);
+    net
+      ..edge(1, 1, 2, 's')
+      ..edge(2, 2, 3, 'l')
+      ..edge(3, 2, 4, 'r');
+    for (final level in [DriveLevel.quiet, DriveLevel.guided]) {
+      final run = _run(
+        net,
+        _drive([_p(0, -350), _p(0, 0), _p(-103.5, 386.4)]),
+        to: 4,
+        level: level,
+      );
+      final atFork = run.nav.passed.where((p) => p.junction == 2).toList();
+      expect(atFork, hasLength(1), reason: '$level');
+      expect(atFork.single.ok, isFalse, reason: '$level');
+      expect(atFork.single.exit.id, 2, reason: '$level');
+      expect(
+        run.prompts.where((p) => p.kind == PromptKind.confirmation),
+        isEmpty,
+        reason: '$level',
+      );
+    }
+  });
+
   test('Guided: a wrong turn says the new route, with no recovery', () {
     final net = _grid();
     final run = _run(

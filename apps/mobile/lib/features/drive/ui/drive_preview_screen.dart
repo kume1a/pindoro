@@ -27,10 +27,11 @@ import 'package:pindoro_learning/pindoro_learning.dart';
 enum _Phase { play, list, recite }
 
 /// The route preview (board V32-11, SPEC §16.23 items 121 and 129), parked only: the whole route
-/// north-up, then, as the player steps through them (Back, Next), each key turn with its landmark
-/// and the street it turns onto; then the key turns listed, Start, and an optional "Recite the
-/// turns": the way tapped at each, right or wrong shown at once. Reciting reviews no card (the
-/// turns were just shown); the preview and each recited turn go in the drive log.
+/// north-up, then, as the player steps through them (Back, Next), every turn heading-up with its
+/// arrow, its landmark and the street it turns onto; then the turns listed, Start, and an
+/// optional "Recite the turns": the way tapped at each, right or wrong shown at once. Reciting
+/// reviews no card (the turns were just shown); the preview and each recited turn go in the
+/// drive log.
 class DrivePreviewScreen extends ConsumerStatefulWidget {
   const DrivePreviewScreen({super.key});
 
@@ -41,12 +42,15 @@ class DrivePreviewScreen extends ConsumerStatefulWidget {
 class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
   _Phase _phase = _Phase.play;
 
-  /// The key turn on show while stepping through (-1: the whole route), or being recited.
+  /// The turn on show while stepping through (-1: the whole route), or being recited.
   int _at = -1;
   late final DateTime _opened;
 
   /// The way tapped at the recited turn; null until tapped.
   Turn? _said;
+
+  /// The route stepped through.
+  DriveSuggestion? _shown;
 
   @override
   void initState() {
@@ -68,7 +72,7 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
         ),
   );
 
-  /// Key turn [at] of [turns] (-1: the whole route); past the last, the list.
+  /// Turn [at] of [turns] (-1: the whole route); past the last, the list.
   void _step(int at, int turns) =>
       at >= turns ? _toList() : setState(() => _at = max(-1, at));
 
@@ -127,11 +131,15 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
     final suggestion = setup.suggestion;
     final target = setup.target;
     if (suggestion == null || target == null) return const Scaffold();
+    // Planned again from a fresh fix (item 135): the new route from its start.
+    if (suggestion != _shown) {
+      _shown = suggestion;
+      _phase = _Phase.play;
+      _at = -1;
+      _said = null;
+    }
     final plan = suggestion.plan;
-    final keyTurns = [
-      for (final d in plan.decisions)
-        if (suggestion.keys.contains(d.key)) d,
-    ];
+    final turns = plan.decisions;
     final route = plan.route;
     final start = setup.here ?? graph.at(route.junctions.first);
     final end = targetPoint(graph, target);
@@ -151,19 +159,20 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
     ];
     Widget number(int i, {bool current = false}) =>
         TurnNumber(i + 1, onMap: true, current: current);
+    // The turn on show has its arrow instead: its number would hide the bend.
     final numbers = [
-      for (final (i, d) in keyTurns.indexed)
-        MapMark(graph.at(d.junction), number(i, current: i == _at)),
+      for (final (i, d) in turns.indexed)
+        if (i != _at) MapMark(graph.at(d.junction), number(i)),
     ];
     final summary = [
       formatDistance(plan.endM, l10n),
       l10n.driveAboutMin(plan.minutes),
-      l10n.previewKeyTurns(keyTurns.length),
+      l10n.previewTurns(turns.length),
     ].join(' · ');
 
     switch (_phase) {
       case _Phase.play:
-        final d = _at < 0 ? null : keyTurns[_at];
+        final d = _at < 0 ? null : turns[_at];
         return Scaffold(
           body: PlanMapLayout(
             semanticsLabel: l10n.a11yPreviewMap,
@@ -173,6 +182,8 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
             end: end,
             pins: numbers,
             frame: d == null ? null : around(d),
+            bearing: d == null ? 0 : turnBearing(plan, d),
+            turn: d == null ? const [] : turnArrow(plan, d),
             bottom: BottomPanel(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -196,11 +207,11 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
                     ),
                   ] else ...[
                     StepDots(
-                      count: keyTurns.length,
+                      count: turns.length,
                       current: _at,
-                      line: l10n.previewKeyTurnOf(_at + 1, keyTurns.length),
+                      line: l10n.previewTurnOf(_at + 1, turns.length),
                       semanticsLabel: l10n.a11yPreviewTurns,
-                      semanticsValue: l10n.a11yStepOf(_at + 1, keyTurns.length),
+                      semanticsValue: l10n.a11yStepOf(_at + 1, turns.length),
                     ),
                     if (lead(d) case final line?)
                       Text(
@@ -226,9 +237,9 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
                             Expanded(
                               child: PindoroButton(
                                 label: l10n.previewShowTurns,
-                                onPressed: keyTurns.isEmpty
+                                onPressed: turns.isEmpty
                                     ? null
-                                    : () => _step(0, keyTurns.length),
+                                    : () => _step(0, turns.length),
                               ),
                             ),
                             Expanded(
@@ -245,15 +256,13 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
                                 label: l10n.commonBack,
                                 icon: PindoroGlyph.back,
                                 variant: PindoroButtonVariant.secondary,
-                                onPressed: () =>
-                                    _step(_at - 1, keyTurns.length),
+                                onPressed: () => _step(_at - 1, turns.length),
                               ),
                             ),
                             Expanded(
                               child: PindoroButton(
                                 label: l10n.commonNext,
-                                onPressed: () =>
-                                    _step(_at + 1, keyTurns.length),
+                                onPressed: () => _step(_at + 1, turns.length),
                               ),
                             ),
                           ],
@@ -278,11 +287,8 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 spacing: PindoroSpace.s3,
                 children: [
-                  SectionTitle(
-                    l10n.previewKeyTurns(keyTurns.length),
-                    meta: summary,
-                  ),
-                  if (keyTurns.isNotEmpty)
+                  SectionTitle(l10n.previewTurns(turns.length), meta: summary),
+                  if (turns.isNotEmpty)
                     ConstrainedBox(
                       constraints: BoxConstraints(
                         maxHeight: MediaQuery.sizeOf(context).height * 0.35,
@@ -290,7 +296,7 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
                       child: SingleChildScrollView(
                         child: ListGroup(
                           children: [
-                            for (final (i, d) in keyTurns.indexed)
+                            for (final (i, d) in turns.indexed)
                               ListRow(
                                 leading: SizedBox.square(
                                   dimension: 32,
@@ -298,9 +304,9 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
                                 ),
                                 title: lead(d) ?? action(d),
                                 subtitle: lead(d) == null ? null : action(d),
-                                semanticsLabel: l10n.a11yKeyTurn(
+                                semanticsLabel: l10n.a11yPreviewTurn(
                                   i + 1,
-                                  keyTurns.length,
+                                  turns.length,
                                   [?lead(d), action(d)].join(', '),
                                 ),
                               ),
@@ -308,7 +314,7 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
                         ),
                       ),
                     ),
-                  if (keyTurns.any((d) => _exits(graph, d) != null))
+                  if (turns.any((d) => _exits(graph, d) != null))
                     PindoroButton(
                       label: l10n.previewRecite,
                       variant: PindoroButtonVariant.secondary,
@@ -331,14 +337,14 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
 
       case _Phase.recite:
         final recitable = [
-          for (final d in keyTurns)
+          for (final d in turns)
             if (_exits(graph, d) != null) d,
         ];
         final d = recitable[_at];
         final exits = _exits(graph, d)!;
         final said = _said;
         final right = said != null && exits[said]?.id == d.exit.id;
-        final index = keyTurns.indexOf(d);
+        final index = turns.indexOf(d);
         final upTo = [
           for (var k = 0; k < d.index && k < route.edges.length; k++)
             route.edges[k].lineFrom(route.junctions[k]),
@@ -362,8 +368,14 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
                 : MapNames.all,
             start: start,
             end: said == null ? null : end,
-            pins: [MapMark(graph.at(d.junction), number(index, current: true))],
+            // The arrow only once answered: it would give the way.
+            pins: [
+              if (said == null)
+                MapMark(graph.at(d.junction), number(index, current: true)),
+            ],
             frame: around(d),
+            bearing: turnBearing(plan, d),
+            turn: said == null ? const [] : turnArrow(plan, d),
             bottom: said == null
                 ? BottomPanel(
                     child: Column(
@@ -375,7 +387,7 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
                           header: true,
                           child: Text(
                             l10n.previewWhichWay(
-                              lead(d) ?? l10n.previewKeyTurn(index + 1),
+                              lead(d) ?? l10n.previewTurn(index + 1),
                             ),
                             style: PindoroType.titleMd.copyWith(
                               color: c.textPrimary,

@@ -4,7 +4,8 @@ Pure Dart game logic. **No Flutter imports** — it must run under plain `dart t
 
 ```
 lib/src/geo/        LatLng, LocalProjection, Bbox, pointToPolylineDistance, bearings, compass
-                    points, headingAlong (Dart-only: Street View links), polyline6 (+ Dart-only
+                    points, headingAlong (Dart-only: Street View links), angleDiffDeg and
+                    linePart (Dart-only: navigation), polyline6 (+ Dart-only
                     `encodeInts`/`decodeInts`: the drive log's track), sun (Dart-only:
                     `isNight` by sun elevation, the drive screens' day and night)
 lib/src/scoring/    Difficulty, Tier, ScoringConfig (half-widths, fixed distances, difficulty
@@ -22,7 +23,7 @@ lib/src/pack/       City/District/Street (pack rows; format 4 adds the curriculu
                     connectors (no street), turn restrictions, `legalExits`, edge-expanded A*
                     `shortestRoute` to a goal set with the U-turn penalty in `RoutingConfig`,
                     edgeNear; Dart only, not twinned: `edgesNear` (a grid index, the drive's
-                    snapping), `allowing` the player's reported moves,
+                    snapping) and `edgesWithin` (its edges whose ends are close enough), `allowing` the player's reported moves,
                     `shortestRoute`'s `costOf`, `uTurnCostM` and `arriveOn` (navigation; a stop on a road), format 7's
                     `RoadEdge.maxspeedKmh`, `signals` and `cameras`, format 8's `RoadEdge.lanes`,
                     `lanesBack` and `lanesInto`; format 9's `Poi`, every named place, a

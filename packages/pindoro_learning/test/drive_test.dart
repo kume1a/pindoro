@@ -145,8 +145,46 @@ void main() {
         ]),
       );
       expect(m.hesitations, hasLength(1));
-      expect(distanceBetween(m.hesitations.single, _p(50, 0)), lessThan(1));
+      expect(distanceBetween(m.hesitations.single.at, _p(50, 0)), lessThan(1));
     });
+
+    test(
+      'a hesitation makes the junction after it Hard, not the one before',
+      () {
+        final m = matchDrive(
+          graph,
+          _drive([
+            _go(_p(0, 0), 20),
+            _go(_p(50, 0), 15),
+            _go(_p(100, 0), 15),
+            _go(_p(200, 0), 20),
+            _go(_p(200, -100)),
+          ]),
+        );
+        final crawl = m.hesitations.single.t;
+        PassedDecision passed(int junction, DateTime at) => (
+          junction: junction,
+          approach: null,
+          exit: graph.edgesAt(junction).first,
+          key: null,
+          planned: true,
+          ok: true,
+          at: at,
+          level: DriveLevel.quiet,
+          help: NavHelp.none,
+          recentHelp: false,
+        );
+        const s20 = Duration(seconds: 20);
+        expect(
+          hesitatedNear(graph, m, passed(j(0, 1), crawl.add(s20))),
+          isTrue,
+        );
+        expect(
+          hesitatedNear(graph, m, passed(j(0, 0), crawl.subtract(s20))),
+          isFalse,
+        );
+      },
+    );
 
     test('a short stop is not a hesitation', () {
       final m = matchDrive(

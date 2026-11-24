@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
@@ -50,9 +48,9 @@ class NavWords {
   }
 
   String _distance(double m) {
-    // To 50 m; what rounds to 1000 is said in kilometres.
-    final rounded = (m / 50).round() * 50;
-    if (rounded < 1000) return l10n.navMetres(max(50, rounded));
+    // What rounds to 1000 is said in kilometres.
+    final rounded = navRoundedM(m).round();
+    if (rounded < 1000) return l10n.navMetres(rounded);
     final km = (m / 1000).toStringAsFixed(1);
     return l10n.navKilometres(km.endsWith('.0') ? km.split('.').first : km);
   }

@@ -11,14 +11,11 @@ import 'drive_glyph.dart';
 import 'graphics.dart';
 import 'pindoro_button.dart';
 import 'surfaces.dart';
+import 'text_scale.dart';
 
 /// The parked parts of v3.2 · Navigate and learn (drive setup, the route
 /// preview, the debrief, Past drives, Progress and Today). They use the
 /// system tokens and the app theme, never `color.drive.*`.
-
-/// The text scale (1 at 100 %).
-double _scale(BuildContext context) =>
-    MediaQuery.textScalerOf(context).scale(1);
 
 /// [child] read as an image named [label], or left out when there is none.
 Widget _image(String? label, Widget child) => label == null
@@ -92,7 +89,7 @@ class ReviewMark extends StatelessWidget {
     };
     final side = onMap
         ? 28.0
-        : (32 + (_scale(context) - 1) * 16).clamp(32.0, 48.0);
+        : (32 + (textScaleOf(context) - 1) * 16).clamp(32.0, 48.0);
     final radius = BorderRadius.circular(PindoroRadius.md);
     final mark = Container(
       width: side,
@@ -151,7 +148,7 @@ class TurnNumber extends StatelessWidget {
     final c = theme.colors;
     final side = onMap
         ? (current ? 32.0 : 26.0)
-        : (32 + (_scale(context) - 1) * 20).clamp(32.0, 52.0);
+        : (32 + (textScaleOf(context) - 1) * 20).clamp(32.0, 52.0);
     final figures = Text(
       '$n',
       // On the map the figures keep their size; the list carries the text.
@@ -296,7 +293,7 @@ class StepDots extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
-    final height = _scale(context) >= 1.6 ? 12.0 : 8.0;
+    final height = isLargeText(context) ? 12.0 : 8.0;
     final duration = MediaQuery.disableAnimationsOf(context)
         ? Duration.zero
         : PindoroMotion.durationFast;
@@ -438,7 +435,7 @@ class GoalLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
     final style = PindoroType.labelMd;
-    final dot = _scale(context) >= 1.6 ? 18.0 : 12.0;
+    final dot = isLargeText(context) ? 18.0 : 12.0;
     // The dots centre on the first line when the text wraps.
     final line = MediaQuery.textScalerOf(
       context,
@@ -518,7 +515,7 @@ class PlanChecklist extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
-    final big = _scale(context) >= 1.6;
+    final big = isLargeText(context);
     final full = picked.length >= limit;
     Widget row(int i, PlanItem item) {
       final on = picked.contains(i);
@@ -647,7 +644,7 @@ class RouteLevelStair extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
-    final sparse = _scale(context) >= 1.6;
+    final sparse = isLargeText(context);
     const top = BorderRadius.vertical(top: Radius.circular(PindoroRadius.xs));
     Widget bars(double grown) => SizedBox(
       height: _height,
@@ -770,7 +767,7 @@ class SuggestionCard extends StatelessWidget {
       ),
     );
     final tile = RowTile(glyph);
-    final head = _scale(context) >= 1.6
+    final head = isLargeText(context)
         ? Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             spacing: PindoroSpace.s3,

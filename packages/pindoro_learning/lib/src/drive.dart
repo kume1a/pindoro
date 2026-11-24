@@ -16,6 +16,9 @@ typedef DriveFix = ({
   double? accuracyM,
 });
 
+/// Where and when a drive crawled: the middle of the crawl.
+typedef Hesitation = ({LatLng at, DateTime t});
+
 /// Whether [f] is too coarse to drive by ([LearningConfig.coarseFixM]); it counts as no fix.
 bool isCoarse(DriveFix f) => (f.accuracyM ?? 0) > LearningConfig.coarseFixM;
 
@@ -36,7 +39,7 @@ final class DriveMatch {
 
   /// Where it crawled below [LearningConfig.hesitationKmh] for over
   /// [LearningConfig.hesitationS] away from junctions.
-  final List<LatLng> hesitations;
+  final List<Hesitation> hesitations;
 
   /// The distance driven along the fixes.
   final double drivenM;
@@ -84,18 +87,28 @@ int _end(EdgeSnap s) => s.forward ? s.edge.to : s.edge.from;
   );
 }
 
+/// [nearestOnEdge] on [e] driven away from its junction [from]: the distance, the heading
+/// driven there and the metres of [e] behind it.
+({double distM, double headingDeg, double alongM}) nearestDriven(
+  LatLng p,
+  RoadEdge e,
+  int from,
+) {
+  final n = nearestOnEdge(p, e);
+  final forward = from == e.from;
+  return (
+    distM: n.distM,
+    headingDeg: forward ? n.headingDeg : (n.headingDeg + 180) % 360,
+    alongM: (forward ? n.along : 1 - n.along) * e.lengthM,
+  );
+}
+
 /// The edges within [LearningConfig.driveSnapM] of [p], each way, costed by distance, heading
 /// off the way driven ([heading], when known) and driving against a one-way.
 List<EdgeSnap> edgeSnaps(RoadGraph graph, LatLng p, double? heading) {
   const r = LearningConfig.driveSnapM;
   final out = <EdgeSnap>[];
-  for (final e in graph.edgesNear(p, r)) {
-    // A point within r of the edge is at most its length plus 2r from both ends together.
-    if (distanceBetween(p, graph.at(e.from)) +
-            distanceBetween(p, graph.at(e.to)) >
-        e.lengthM + 2 * r) {
-      continue;
-    }
+  for (final e in graph.edgesWithin(p, r)) {
     final n = nearestOnEdge(p, e);
     if (n.distM > r) continue;
     for (final forward in [true, false]) {
@@ -287,6 +300,39 @@ DriveMatch matchDrive(RoadGraph graph, List<DriveFix> all) {
   );
 }
 
+/// A drive's [fixes] matched to the streets ([match]) and graded against the best legal route
+/// to [target] from fix [from] on ([gradeDrive]): a destination changed or a stop reached there,
+/// the way to it is no detour. [start] is the junction the graded stretch starts at.
+({DriveMatch match, RecitalResult? graded, double? stoppedM, int? start})
+gradeDriveTrack(
+  RoadGraph graph,
+  List<DriveFix> fixes,
+  int target, {
+  int from = 0,
+  Map<String, NamedStreet> streets = const {},
+}) {
+  final match = matchDrive(graph, fixes);
+  final stretch = from <= 0 ? match : matchDrive(graph, fixes.sublist(from));
+  final (:graded, :stoppedM) = gradeDrive(
+    graph,
+    stretch,
+    target,
+    streets: streets,
+  );
+  return (
+    match: match,
+    graded: graded,
+    stoppedM: stoppedM,
+    start: stretch.path.junctions.firstOrNull,
+  );
+}
+
+/// A drive's tier: a rescued drive's is at most Close (SPEC §16.23 item 116).
+Tier? driveTier(Tier? graded, {required bool rescued}) => switch (graded) {
+  final t? when rescued && t.index < Tier.close.index => Tier.close,
+  final t => t,
+};
+
 /// [match] graded like a recital (SPEC §5.3 drives): from its first junction to where it ended
 /// when that is within [LearningConfig.driveArriveM] of [target], else to [target], [stoppedM]
 /// short. Nothing is graded when no fix lay near a road.
@@ -360,7 +406,7 @@ List<EdgeSnap> _viterbi(
   return picked.reversed.toList();
 }
 
-List<LatLng> _hesitations(RoadGraph graph, List<DriveFix> fixes) {
+List<Hesitation> _hesitations(RoadGraph graph, List<DriveFix> fixes) {
   const slowMps = LearningConfig.hesitationKmh / 3.6;
   double? speed(int i) =>
       fixes[i].speedMps ??
@@ -370,7 +416,7 @@ List<LatLng> _hesitations(RoadGraph graph, List<DriveFix> fixes) {
                 max(1, fixes[i].t.difference(fixes[i - 1].t).inMilliseconds) *
                 1000);
   bool slow(int i) => (speed(i) ?? double.infinity) < slowMps;
-  final out = <LatLng>[];
+  final out = <Hesitation>[];
   var i = 0;
   while (i < fixes.length) {
     if (!slow(i)) {
@@ -382,14 +428,16 @@ List<LatLng> _hesitations(RoadGraph graph, List<DriveFix> fixes) {
       j++;
     }
     final crawl = fixes[j].t.difference(fixes[i].t).inSeconds;
-    final where = fixes[(i + j) ~/ 2].at;
+    final middle = fixes[(i + j) ~/ 2];
     if (i > 0 &&
         j < fixes.length - 1 &&
         crawl > LearningConfig.hesitationS &&
         graph.junctions.values.every(
-          (p) => distanceBetween(p, where) > LearningConfig.hesitationJunctionM,
+          (p) =>
+              distanceBetween(p, middle.at) >
+              LearningConfig.hesitationJunctionM,
         )) {
-      out.add(where);
+      out.add((at: middle.at, t: middle.t));
     }
     i = j + 1;
   }

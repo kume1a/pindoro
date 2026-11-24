@@ -1,5 +1,16 @@
 import 'package:flutter/rendering.dart';
 
+/// [path] cut into pieces [dash] long, one every [period] along it.
+Path dashedPath(Path path, {required double dash, required double period}) {
+  final out = Path();
+  for (final metric in path.computeMetrics()) {
+    for (var d = 0.0; d < metric.length; d += period) {
+      out.addPath(metric.extractPath(d, d + dash), Offset.zero);
+    }
+  }
+  return out;
+}
+
 /// A triangle tail for bubbles, pointing down or up.
 class TailPainter extends CustomPainter {
   const TailPainter(this.color, {required this.down});

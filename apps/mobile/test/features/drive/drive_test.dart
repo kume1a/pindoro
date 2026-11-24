@@ -17,6 +17,7 @@ import 'package:pindoro/core/database/settings_dao.dart';
 import 'package:pindoro/core/drive_device.dart';
 import 'package:pindoro/core/location.dart';
 import 'package:pindoro/core/routes.dart';
+import 'package:pindoro/features/drive/ui/debrief_data.dart';
 import 'package:pindoro/features/drive/ui/drive_controller.dart';
 import 'package:pindoro/features/drive/ui/drive_map_screen.dart';
 import 'package:pindoro/features/drive/ui/drive_preview_screen.dart';
@@ -931,6 +932,37 @@ void main() {
     await tester.pump(PindoroMotion.durationSlow);
     expect(find.byType(RoutePlaceScreen), findsNothing);
     expect(find.byType(DriveRecordingView), findsOneWidget);
+
+    // A new destination picked after the overview closed behind the search (10 s after the
+    // last touch) still takes.
+    await tester.tap(find.bySemanticsLabel(RegExp('^To ')));
+    await tester.pump();
+    await tester.pump(PindoroMotion.durationSlow);
+    await tester.pump(const Duration(seconds: 11));
+    expect(
+      find.text('Now', skipOffstage: false),
+      findsNothing,
+      reason: 'the overview closed under the search',
+    );
+    final drive = ProviderScope.containerOf(
+      tester.element(find.byType(DriveRecordingView, skipOffstage: false)),
+    );
+    final newEnd = route.junctions[1];
+    await tester.runAsync(() async {
+      tester
+          .element(find.byType(RoutePlaceScreen))
+          .findAncestorStateOfType<NavigatorState>()!
+          .pop((
+            street: streets[route.edges.first.streetId],
+            place: null,
+            junction: newEnd,
+            at: null,
+          ));
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pump();
+    final recording = drive.read(driveControllerProvider) as DriveRecording;
+    expect(recording.target.junction, newEnd);
   });
 
   testWidgets('Coached while moving: a touch shows Route, which opens the '
@@ -1126,6 +1158,11 @@ void main() {
     final changed = container.read(driveControllerProvider) as DriveRecording;
     expect(changed.target.at, beside);
     expect(changed.via.single.street, street);
+    expect(
+      changed.suggestion,
+      allOf(isNotNull, isNot(moving.suggestion)),
+      reason: 'the new route, its key turns logged as such',
+    );
   });
 
   test('Home or Work keeps its spot; one set before spots has none', () {
@@ -1372,9 +1409,11 @@ void main() {
     expect(off, findsNothing);
   });
 
-  testWidgets('the preview: the route, then its key turns stepped through '
-      'with Back and Next, then Recite: a way tapped at each, right or wrong '
-      'at once, cards untouched', (tester) async {
+  testWidgets('the preview: the route, then every turn stepped through '
+      'heading-up with its arrow, with Back and Next, then Recite: a way '
+      'tapped at each, right or wrong at once, cards untouched', (
+    tester,
+  ) async {
     await pumpDrive(tester);
     await pumpUntil(tester, suggested);
     await tester.tap(find.text('Preview'));
@@ -1383,17 +1422,27 @@ void main() {
     expect(plans.last.route!.best, isNotEmpty);
     expect(plans.last.route!.track, isEmpty);
     expect(plans.last.bearing, 0);
+    final setup =
+        ProviderScope.containerOf(
+              tester.element(find.byType(DrivePreviewScreen)),
+            ).read(driveControllerProvider)
+            as DriveSetup;
+    final plan = setup.suggestion!.plan;
+    final turns = plan.decisions.length;
     await tester.tap(find.text('Show the turns'));
     await tester.pump();
-    final first = tester.widget<Text>(find.textContaining('Key turn 1 of '));
-    final turns = int.parse(first.data!.split(' of ').last);
+    expect(find.text('Turn 1 of $turns'), findsOneWidget, reason: 'every turn');
+    expect(plans.last.bearing, turnBearing(plan, plan.decisions.first));
+    expect(plans.last.route!.turn, isNotEmpty);
     await tester.tap(find.text('Back'));
     await tester.pump();
     expect(find.text('Show the turns'), findsOneWidget, reason: 'the route');
+    expect(plans.last.bearing, 0);
+    expect(plans.last.route!.turn, isEmpty);
     await tester.tap(find.text('Show the turns'));
     await tester.pump();
     for (var i = 0; i < turns; i++) {
-      expect(find.text('Key turn ${i + 1} of $turns'), findsOneWidget);
+      expect(find.text('Turn ${i + 1} of $turns'), findsOneWidget);
       await tester.tap(find.text('Next'));
       await tester.pump();
     }
@@ -1410,10 +1459,12 @@ void main() {
       isEmpty,
       reason: 'a street name on the map would give the way away',
     );
+    expect(plans.last.route!.turn, isEmpty, reason: 'so would the arrow');
     await tester.tap(find.byType(ExitButton).first);
     await tester.pump();
     expect(find.byType(RevealSheet), findsOneWidget);
     expect(plans.last.names, MapNames.all);
+    expect(plans.last.route!.turn, isNotEmpty);
     final recited = await tester.runAsync(
       () => dao.events(DriveEventKind.recite),
     );

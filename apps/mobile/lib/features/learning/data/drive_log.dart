@@ -114,6 +114,16 @@ class DriveLogDao extends DatabaseAccessor<AppDatabase>
   }
 }
 
+extension DriveDecisionMark on DriveDecisionRow {
+  /// The review mark the decision shows (SPEC §16.23 item 121).
+  TurnMark? get mark => turnMark(
+    ok: ok,
+    help: help,
+    recentHelp: recentHelp,
+    hesitated: hesitated,
+  );
+}
+
 final driveLogDaoProvider = Provider<DriveLogDao>(
   (ref) => DriveLogDao(ref.watch(databaseProvider)),
 );

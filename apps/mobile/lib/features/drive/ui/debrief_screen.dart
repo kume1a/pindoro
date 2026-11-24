@@ -847,7 +847,9 @@ class _Streets extends ConsumerWidget {
                 Text(
                   [
                     l10n.debriefAt(missed.join(', ')),
-                    l10n.driveAboutMin((missed.length / 3).ceil()),
+                    l10n.driveAboutMin(
+                      (missed.length * LearningConfig.drillTurnS / 60).ceil(),
+                    ),
                   ].join(' · '),
                   style: PindoroType.bodySm.copyWith(color: c.textSecondary),
                 ),

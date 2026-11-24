@@ -9,9 +9,11 @@ import 'package:pindoro_core/pindoro_core.dart';
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
+import 'painters.dart';
 import 'pindoro_button.dart';
 import 'surfaces.dart';
 import 'tappable.dart';
+import 'text_scale.dart';
 
 /// One answer in an [AnswerTray] (or a label in a [SweepTray]): the name as
 /// the city writes it, and its transliteration when the scripts differ.
@@ -20,12 +22,8 @@ typedef AnswerChoiceData = ({String label, String? sublabel});
 /// A graded question: the index picked and the right one.
 typedef AnswerResult = ({int picked, int right});
 
-/// The text scale (1 at 100 %).
-double _scale(BuildContext context) =>
-    MediaQuery.textScalerOf(context).scale(1);
-
 /// The tray's share of the screen's height (60 % from 160 % text).
-double _maxShare(BuildContext context) => _scale(context) >= 1.6 ? 0.6 : 0.45;
+double _maxShare(BuildContext context) => isLargeText(context) ? 0.6 : 0.45;
 
 /// The edge a scrolling list fades out over.
 const double _fade = 28;
@@ -48,7 +46,6 @@ class AnswerTray extends StatefulWidget {
     required this.onConfirm,
     this.confirmHint,
     this.result,
-    this.numbered,
   });
 
   final String question;
@@ -61,9 +58,6 @@ class AnswerTray extends StatefulWidget {
   /// first.").
   final String? confirmHint;
   final AnswerResult? result;
-
-  /// Null: numbered only in one column.
-  final bool? numbered;
 
   @override
   State<AnswerTray> createState() => _AnswerTrayState();
@@ -87,7 +81,6 @@ class _AnswerTrayState extends State<AnswerTray> {
       meta: widget.meta,
       list: _ChoiceGrid(
         labels: [for (final c in widget.choices) c.label],
-        numbered: widget.numbered,
         builder: (i, numbered) {
           final state = switch (result) {
             (picked: _, right: final r) when r == i => _ChoiceState.right,
@@ -331,50 +324,44 @@ class SweepSocket extends StatelessWidget {
       );
     }
 
-    return Semantics(
-      button: true,
+    return Tappable(
       label: semanticsLabel,
       onTap: onTap,
-      excludeSemantics: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: PindoroSpace.s1,
-            vertical: PindoroSpace.s2,
-          ),
-          child: DragTarget<int>(
-            onWillAcceptWithDetails: (_) => onAccept != null,
-            onAcceptWithDetails: (d) => onAccept?.call(d.data),
-            builder: (context, hovering, _) => Column(
-              mainAxisSize: MainAxisSize.min,
-              spacing: PindoroSpace.s1,
-              children: [
-                pill(hovering.isNotEmpty),
-                if (right == false && truth != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: PindoroSpace.s2,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: c.mapAnswerLine,
-                      borderRadius: BorderRadius.circular(PindoroRadius.full),
-                      border: Border.all(
-                        color: c.mapAnswerCasing,
-                        width: PindoroStroke.base,
-                      ),
-                    ),
-                    child: Text(
-                      truth,
-                      style: PindoroType.labelMd.copyWith(
-                        color: c.mapAnswerCasing,
-                      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: PindoroSpace.s1,
+          vertical: PindoroSpace.s2,
+        ),
+        child: DragTarget<int>(
+          onWillAcceptWithDetails: (_) => onAccept != null,
+          onAcceptWithDetails: (d) => onAccept?.call(d.data),
+          builder: (context, hovering, _) => Column(
+            mainAxisSize: MainAxisSize.min,
+            spacing: PindoroSpace.s1,
+            children: [
+              pill(hovering.isNotEmpty),
+              if (right == false && truth != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: PindoroSpace.s2,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: c.mapAnswerLine,
+                    borderRadius: BorderRadius.circular(PindoroRadius.full),
+                    border: Border.all(
+                      color: c.mapAnswerCasing,
+                      width: PindoroStroke.base,
                     ),
                   ),
-              ],
-            ),
+                  child: Text(
+                    truth,
+                    style: PindoroType.labelMd.copyWith(
+                      color: c.mapAnswerCasing,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
@@ -619,17 +606,24 @@ class _ChoiceGrid extends StatelessWidget {
       textScaler: scaler,
       textDirection: TextDirection.ltr,
     );
+    double widthOf(String text) {
+      final p = painter(text)..layout();
+      final width = p.width;
+      p.dispose();
+      return width;
+    }
+
     for (final word in label.split(RegExp(r'\s+'))) {
       // A word may break at its soft hyphens, each piece with its hyphen.
       final pieces = word.split('­');
       for (final (i, piece) in pieces.indexed) {
         final shown = i < pieces.length - 1 ? '$piece-' : piece;
-        if ((painter(shown)..layout()).width > width) return false;
+        if (widthOf(shown) > width) return false;
       }
     }
-    final lines = (painter(
-      label,
-    )..layout(maxWidth: width)).computeLineMetrics().length;
+    final whole = painter(label)..layout(maxWidth: width);
+    final lines = whole.computeLineMetrics().length;
+    whole.dispose();
     return lines <= 3;
   }
 
@@ -704,6 +698,13 @@ class _AnswerChoiceState extends State<_AnswerChoice> {
 
   void _press(bool down) {
     if (widget.onTap != null) setState(() => _pressed = down);
+  }
+
+  @override
+  void didUpdateWidget(_AnswerChoice old) {
+    super.didUpdateWidget(old);
+    // Disabled mid-press (graded): its release never comes.
+    if (widget.onTap == null) _pressed = false;
   }
 
   @override
@@ -930,12 +931,7 @@ class _DashedEdge extends CustomPainter {
           Radius.circular(r),
         ),
       );
-    final dashes = Path();
-    for (final metric in edge.computeMetrics()) {
-      for (var d = 0.0; d < metric.length; d += 10) {
-        dashes.addPath(metric.extractPath(d, d + 6), Offset.zero);
-      }
-    }
+    final dashes = dashedPath(edge, dash: 6, period: 10);
     canvas.drawPath(
       dashes,
       Paint()

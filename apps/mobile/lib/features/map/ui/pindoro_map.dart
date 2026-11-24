@@ -379,6 +379,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     if (truthMoved ||
         widget.truthPoint != oldWidget.truthPoint ||
         (frame != null && !listEquals(frame, oldWidget.frame)) ||
+        widget.bearing != oldWidget.bearing ||
         (insetsMoved && _framed)) {
       unawaited(_fit(_framePoints));
     }
@@ -533,27 +534,15 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     );
     await c.addGeoJsonSource(_MapSources.truthStreet, linesGeoJson(const []));
     // Yellow paint over an ink casing: on light maps the casing carries contrast.
-    for (final (id, color, width) in [
-      (
-        'casing',
+    await addCasedLine(
+      c,
+      _MapSources.truthStreet,
+      casing: (
         colors.mapAnswerCasing,
         PindoroStroke.answer + 2 * PindoroStroke.base,
       ),
-      ('line', colors.mapAnswerLine, PindoroStroke.answer),
-    ]) {
-      await c.addLineLayer(
-        _MapSources.truthStreet,
-        '${_MapSources.truthStreet}-$id',
-        ml.LineLayerProperties(
-          lineColor: hexColor(color),
-          lineWidth: width,
-          lineCap: 'round',
-          lineJoin: 'round',
-        ),
-        belowLayerId: NameLayers.lowest,
-        enableInteraction: false,
-      );
-    }
+      line: (colors.mapAnswerLine, PindoroStroke.answer),
+    );
     await c.addGeoJsonSource(_MapSources.hitStreet, linesGeoJson(const []));
     for (final (id, color, width, dash) in [
       ('halo', colors.mapPlayerHalo, drawnHalo, null),

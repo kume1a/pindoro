@@ -3419,17 +3419,17 @@
   "pastDriveNoTier": "No tier",
   "previewButton": "Preview",
   "previewTitle": "Your route",
-  "a11yPreviewMap": "Map. Your route in yellow, north up, its key turns numbered.",
-  "previewKeyTurns": "{count, plural, =0{No key turns} =1{1 key turn} other{{count} key turns}}",
-  "@previewKeyTurns": {
+  "a11yPreviewMap": "Map. Your route in yellow, its turns numbered.",
+  "previewTurns": "{count, plural, =0{No turns} =1{1 turn} other{{count} turns}}",
+  "@previewTurns": {
     "placeholders": {
       "count": {
         "type": "int"
       }
     }
   },
-  "previewKeyTurnOf": "Key turn {n} of {count}",
-  "@previewKeyTurnOf": {
+  "previewTurnOf": "Turn {n} of {count}",
+  "@previewTurnOf": {
     "placeholders": {
       "n": {
         "type": "int"
@@ -3439,17 +3439,17 @@
       }
     }
   },
-  "previewKeyTurn": "key turn {n}",
-  "@previewKeyTurn": {
+  "previewTurn": "turn {n}",
+  "@previewTurn": {
     "placeholders": {
       "n": {
         "type": "int"
       }
     }
   },
-  "a11yPreviewTurns": "Key turns",
-  "a11yKeyTurn": "Key turn {n} of {count}: {text}",
-  "@a11yKeyTurn": {
+  "a11yPreviewTurns": "Turns",
+  "a11yPreviewTurn": "Turn {n} of {count}: {text}",
+  "@a11yPreviewTurn": {
     "placeholders": {
       "n": {
         "type": "int"

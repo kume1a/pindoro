@@ -28,17 +28,14 @@ class DriveRouteEnds extends ConsumerWidget {
       DriveSetup(:final via) || DriveRecording(:final via) => via,
       DriveReview() => const <DriveTarget>[],
     };
+    // Only the controller after the search: this widget may be gone by then (Guided's routes
+    // overview closes 10 s after the last touch).
     void choose(MapPick pick) => unawaited(() async {
       final dest = await pickRoutePlace(context, pick);
       if (dest == null) return;
-      if (pick == MapPick.stop) return controller.addStop(dest);
-      switch (ref.read(driveControllerProvider)) {
-        case DriveSetup():
-          controller.pickOwn(dest);
-        case DriveRecording():
-          await controller.changeDestination(dest);
-        case DriveReview():
-      }
+      await (pick == MapPick.stop
+          ? controller.addStop(dest)
+          : controller.goTo(dest));
     }());
     return RouteEnds(
       fromLabel: l10n.driveFrom,
