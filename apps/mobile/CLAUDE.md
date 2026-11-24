@@ -93,8 +93,9 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                and a new destination at any speed, item 134); the stopped bar (Mute,
                                level, Route, End drive, Off's Rescue) while stopped; a stop reached is
                                said and grading restarts there (`drive.graded_from`, schema 30); back does nothing; arrival ends it), `/drive/preview` (the route
-                               north-up with its numbered key turns, stepped through with Back and
-                               Next, then "Recite the turns");
+                               north-up with its numbered turns, then every turn heading-up with
+                               its arrow, stepped through with Back and Next, then "Recite the
+                               turns");
                                every decision without help reviews its J card (item 119), every
                                drive and its decisions logged; the debrief (`DebriefScreen` over
                                `driveDebriefProvider`: offered for a day, each turn recalled then
@@ -295,7 +296,7 @@ test/drift/                    generated schema helpers + migration test
   route ahead only (from the car while short of the plan, `toPlan`, then the plan sliced from
   the car), `northUp`, the routes `overview` with its `alternatives` (grey), the next
   decision's `turn` arrow (`drive-turn`, its head
-  `drive-turn-head`), the car, and every street name and named place (item 132); while it
+  `drive-turn-head`; `addTurnArrow` in `route_layers.dart`, which the preview's arrow shares), the car, and every street name and named place (item 132); while it
   follows the car only the places near the route (`places`, from `placesNear`, item 135). On the car each
   fix eases the camera linearly over a second to where the car will be next (`car_motion.dart`
   `alongRoad` at `speedKmh`), and the car is a Flutter image over the map where the camera

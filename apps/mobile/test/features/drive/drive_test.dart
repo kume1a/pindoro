@@ -1409,9 +1409,11 @@ void main() {
     expect(off, findsNothing);
   });
 
-  testWidgets('the preview: the route, then its key turns stepped through '
-      'with Back and Next, then Recite: a way tapped at each, right or wrong '
-      'at once, cards untouched', (tester) async {
+  testWidgets('the preview: the route, then every turn stepped through '
+      'heading-up with its arrow, with Back and Next, then Recite: a way '
+      'tapped at each, right or wrong at once, cards untouched', (
+    tester,
+  ) async {
     await pumpDrive(tester);
     await pumpUntil(tester, suggested);
     await tester.tap(find.text('Preview'));
@@ -1420,17 +1422,27 @@ void main() {
     expect(plans.last.route!.best, isNotEmpty);
     expect(plans.last.route!.track, isEmpty);
     expect(plans.last.bearing, 0);
+    final setup =
+        ProviderScope.containerOf(
+              tester.element(find.byType(DrivePreviewScreen)),
+            ).read(driveControllerProvider)
+            as DriveSetup;
+    final plan = setup.suggestion!.plan;
+    final turns = plan.decisions.length;
     await tester.tap(find.text('Show the turns'));
     await tester.pump();
-    final first = tester.widget<Text>(find.textContaining('Key turn 1 of '));
-    final turns = int.parse(first.data!.split(' of ').last);
+    expect(find.text('Turn 1 of $turns'), findsOneWidget, reason: 'every turn');
+    expect(plans.last.bearing, turnBearing(plan, plan.decisions.first));
+    expect(plans.last.route!.turn, isNotEmpty);
     await tester.tap(find.text('Back'));
     await tester.pump();
     expect(find.text('Show the turns'), findsOneWidget, reason: 'the route');
+    expect(plans.last.bearing, 0);
+    expect(plans.last.route!.turn, isEmpty);
     await tester.tap(find.text('Show the turns'));
     await tester.pump();
     for (var i = 0; i < turns; i++) {
-      expect(find.text('Key turn ${i + 1} of $turns'), findsOneWidget);
+      expect(find.text('Turn ${i + 1} of $turns'), findsOneWidget);
       await tester.tap(find.text('Next'));
       await tester.pump();
     }
@@ -1447,10 +1459,12 @@ void main() {
       isEmpty,
       reason: 'a street name on the map would give the way away',
     );
+    expect(plans.last.route!.turn, isEmpty, reason: 'so would the arrow');
     await tester.tap(find.byType(ExitButton).first);
     await tester.pump();
     expect(find.byType(RevealSheet), findsOneWidget);
     expect(plans.last.names, MapNames.all);
+    expect(plans.last.route!.turn, isNotEmpty);
     final recited = await tester.runAsync(
       () => dao.events(DriveEventKind.recite),
     );

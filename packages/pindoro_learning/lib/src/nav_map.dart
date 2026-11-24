@@ -5,6 +5,7 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'constants.dart';
 import 'grader.dart';
 import 'nav_plan.dart';
+import 'route_questions.dart';
 
 /// The arrow Guided draws on the map at [d] (SPEC §16.23 items 130, 135): [plan]'s route from
 /// [LearningConfig.navArrowBeforeM] before it to [LearningConfig.navArrowAfterM] after, its way
@@ -20,6 +21,20 @@ Polyline turnArrow(NavPlan plan, NavDecision d) {
   final wayIn = plan.slice(d.atM - LearningConfig.navArrowBeforeM, d.atM);
   final wayOn = endM <= d.atM ? <LatLng>[] : _toBend(plan.slice(d.atM, endM));
   return [...wayIn, ...wayOn.skip(wayIn.isEmpty ? 0 : 1)];
+}
+
+/// The way [plan] drives into [d], degrees from north: from where its [turnArrow] starts to the
+/// junction, so a map turned to it shows the arrow coming straight up. With no way in drawn
+/// (the route's start): the approach's heading, else the way on's.
+double turnBearing(NavPlan plan, NavDecision d) {
+  final wayIn = plan.slice(d.atM - LearningConfig.navArrowBeforeM, d.atM);
+  if (wayIn.length > 1 && distanceBetween(wayIn.first, wayIn.last) > 1) {
+    return bearingDegrees(wayIn.first, wayIn.last);
+  }
+  return switch (d.approach) {
+    final a? => arrivingBearing(a, d.junction),
+    null => leavingBearing(d.exit, d.junction),
+  };
 }
 
 /// [line] up to its first point where it turns more than [LearningConfig.navArrowBendDeg]

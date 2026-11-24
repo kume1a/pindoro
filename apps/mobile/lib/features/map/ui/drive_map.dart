@@ -96,14 +96,12 @@ abstract final class _Sources {
   static const String car = 'drive-car';
   static const String end = 'drive-end';
   static const String turn = 'drive-turn';
-  static const String turnHead = 'drive-turn-head';
   static const String lights = 'drive-lights';
   static const String via = 'drive-via';
 }
 
 const String _carImage = 'drive-car';
 const String _carLayer = 'drive-car-mark';
-const String _turnHeadImage = 'drive-turn-head';
 const String _endImage = 'drive-end';
 const String _lightsImage = 'drive-lights';
 
@@ -358,27 +356,10 @@ class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
     );
   }
 
-  Map<String, dynamic> _turnLineGeoJson() =>
-      linesGeoJson([if (widget.turn.length > 1) widget.turn]);
-
-  /// The arrow's head on its end, turned the way the arrow points.
-  Map<String, dynamic> _turnHeadGeoJson() {
-    final turn = widget.turn;
-    return turn.length < 2
-        ? pointsGeoJson(const [])
-        : pointsGeoJson(
-            [turn.last],
-            properties: {
-              'heading': bearingDegrees(turn[turn.length - 2], turn.last),
-            },
-          );
-  }
-
   Future<void> _sendTurn() async {
     final c = mapController;
     if (c == null) return;
-    await c.setGeoJsonSource(_Sources.turn, _turnLineGeoJson());
-    await c.setGeoJsonSource(_Sources.turnHead, _turnHeadGeoJson());
+    await sendTurnArrow(c, _Sources.turn, widget.turn);
   }
 
   Future<void> _addLayers() async {
@@ -428,36 +409,14 @@ class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
       line: (colors.mapAnswerLine, _routeWidth),
     );
     // The turn arrow, in the plate's colours over the route, as wide as it.
-    await c.addGeoJsonSource(_Sources.turn, _turnLineGeoJson());
-    await addCasedLine(
+    await addTurnArrow(
       c,
-      _Sources.turn,
-      casing: (colors.drivePlate, _routeWidth + 2 * PindoroStroke.thick),
-      line: (colors.drivePlateText, _routeWidth),
+      colors,
+      source: _Sources.turn,
+      width: _routeWidth,
+      pixelRatio: pixelRatio * _markScale,
     );
-    await c.addImage(
-      _turnHeadImage,
-      await turnArrowHeadPng(
-        fill: colors.drivePlateText,
-        casing: colors.drivePlate,
-        pixelRatio: pixelRatio * _markScale,
-      ),
-    );
-    await c.addGeoJsonSource(_Sources.turnHead, _turnHeadGeoJson());
-    await c.addSymbolLayer(
-      _Sources.turnHead,
-      '${_Sources.turnHead}-mark',
-      const ml.SymbolLayerProperties(
-        iconImage: _turnHeadImage,
-        iconAnchor: 'bottom',
-        iconAllowOverlap: true,
-        iconIgnorePlacement: true,
-        iconPitchAlignment: 'map',
-        iconRotate: ['get', 'heading'],
-        iconRotationAlignment: 'map',
-      ),
-      enableInteraction: false,
-    );
+    await _sendTurn();
     // The destination: a pin standing on it, in the route's colours.
     await c.addImage(
       _endImage,

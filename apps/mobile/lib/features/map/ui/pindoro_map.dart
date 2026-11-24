@@ -379,6 +379,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
     if (truthMoved ||
         widget.truthPoint != oldWidget.truthPoint ||
         (frame != null && !listEquals(frame, oldWidget.frame)) ||
+        widget.bearing != oldWidget.bearing ||
         (insetsMoved && _framed)) {
       unawaited(_fit(_framePoints));
     }

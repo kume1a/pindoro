@@ -1105,7 +1105,8 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      no recovery; Off says nothing (decided 2026-11-21, board V32-21).
 118. **Screens**: Quiet and Coached are dark, with a heading arrow and its cardinal letter, the
      district name and a status dot (on a good path, recovering); no map, route, next turn or
-     street name, since those would answer cards. Preview and review are north-up. While moving:
+     street name, since those would answer cards. Review and the preview's whole route are
+     north-up; the preview's turns are heading-up (item 121). While moving:
      cap height ≥ 6 mm (≥ 8 mm for the one primary item), at most 3 text items, contrast ≥ 3:1 by
      day and 5:1 at night (text 7:1), a dim night look chosen by sun time at the car's position,
      whatever the app theme. Quiet is dark by day too; Off is black. Guided is the exception
@@ -1126,9 +1127,12 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      keeps the order of §16.19 and §16.22. If City memory grows below 80 % of its earlier rate,
      the cap drops to 15 %.
 121. **Before and after.** Preview (parked, stepped through by the player, item 129): north-up
-     whole route with district names, then the key decisions with their landmarks: the ones not
-     silent-eligible plus complex junctions and roundabouts, 3 to 7. An optional "Recite the turns"
-     follows (feedback at once, exposure only: the turns were just shown). Debrief on arrival
+     whole route with district names, then every decision with its landmark, the map turned so
+     the way in runs up the screen and Guided's turn arrow on it (decided 2026-11-24: the key
+     decisions alone left most of a route's turns unseen). An optional "Recite the turns"
+     follows (feedback at once, exposure only: the turns were just shown), heading-up too, the
+     arrow only once the way is tapped. The key decisions (the ones not silent-eligible plus
+     complex junctions and roundabouts, 3 to 7) mark the drive log and the debrief. Debrief on arrival
      (offered for 24 h): the key decisions plus every missed or helped one, at most 7, each
      recalled before it's shown; missed turns join a short drill as relearns; once per new
      destination, "Point to home" with the compass (tiers at 10°, 25°, 45°), logged as the
@@ -1242,7 +1246,7 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        follows the picked route from where the car joins it; off it, the quickest way as ever.
        No traffic: times come from road classes and limits only (item 125).
      - The preview is stepped through, not timed (it looked stuck for its 20 s overview): the
-       whole route with "Show the turns" and Skip, then each key turn with Back and Next; item
+       whole route with "Show the turns" and Skip, then each turn with Back and Next; item
        121's 20 s and 10 s are gone.
 130. **Guided like a car navigator** (2026-11-23, after the player's own navigator):
      - The turn card sits in the top left, at most 55 % of the screen wide: the turn glyph

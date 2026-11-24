@@ -11,10 +11,11 @@ import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// The north-up plan and review map (MapOverlays, v3.2: the setup's routes, the route preview,
-/// the debrief, a past drive): the [route] in yellow, the [others] (routes not picked) in grey,
-/// the [track] in solid cobalt, the [start] ring, the [end] flag and [pins] (key turns' numbers,
-/// review marks, the routes' bubbles), all drawn by the map itself, framed on [frame] (else everything drawn) above what
+/// The plan and review map (MapOverlays, v3.2: the setup's routes, the route preview, the
+/// debrief, a past drive), north-up unless turned to [bearing]: the [route] in yellow with a
+/// [turn] arrow over it, the [others] (routes not picked) in grey, the [track] in solid cobalt,
+/// the [start] ring, the [end] flag and [pins] (turns' numbers, review marks, the routes'
+/// bubbles), all drawn by the map itself, framed on [frame] (else everything drawn) above what
 /// [bottom] covers, with the [names] given (all by default); [onTap] hears a tap on the map.
 class PlanMapLayout extends ConsumerWidget {
   const PlanMapLayout({
@@ -27,6 +28,8 @@ class PlanMapLayout extends ConsumerWidget {
     this.end,
     this.pins = const [],
     this.frame,
+    this.bearing = 0,
+    this.turn = const [],
     this.names = MapNames.all,
     this.onTap,
     this.top,
@@ -36,6 +39,8 @@ class PlanMapLayout extends ConsumerWidget {
 
   final String semanticsLabel;
   final MultiPolyline route;
+  final double bearing;
+  final Polyline turn;
   final MultiPolyline others;
   final MultiPolyline track;
   final LatLng? start;
@@ -70,12 +75,14 @@ class PlanMapLayout extends ConsumerWidget {
                 PindoroMap(
                   area: (bbox: city.bbox, boundary: city.boundary),
                   frame: frame,
+                  bearing: bearing,
                   route: (
                     a: null,
                     b: null,
                     drawn: const [],
                     track: track,
                     best: route,
+                    turn: turn,
                     chip: null,
                     reached: false,
                   ),

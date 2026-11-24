@@ -10,14 +10,15 @@ import 'package:pindoro_design/pindoro_design.dart';
 /// A route on the map (a recital, a drive): A (none on a drive's plan map,
 /// which marks its ends itself), B (null until the route reached it), the
 /// route drawn so far (cobalt dashes), a drive's [track] (solid cobalt), the
-/// best route (yellow, with chevrons) and a [chip] over a spot on it.
-/// [reached] pops B once.
+/// best route (yellow, with chevrons), a [turn] arrow over it (the preview's) and a [chip] over
+/// a spot on it. [reached] pops B once.
 typedef RouteOverlay = ({
   LatLng? a,
   LatLng? b,
   MultiPolyline drawn,
   MultiPolyline track,
   MultiPolyline best,
+  Polyline turn,
   ({LatLng at, String label})? chip,
   bool reached,
 });
@@ -27,6 +28,7 @@ abstract final class RouteSources {
   static const String best = 'route-best';
   static const String drawn = 'route-drawn';
   static const String track = 'route-track';
+  static const String turn = 'route-turn';
   static const String a = 'route-a';
   static const String b = 'route-b';
   static const String chip = 'route-chip';
@@ -67,7 +69,7 @@ ml.SymbolLayerProperties endpointLayer(
 );
 
 /// Adds the route sources, images and layers, bottom to top: the best route,
-/// the drawn route, A and B, and the chip.
+/// its turn arrow, the drawn route, A and B, and the chip.
 /// Overlays never take taps (see PindoroMap).
 Future<void> addRouteLayers(
   ml.MapLibreMapController c,
@@ -123,6 +125,13 @@ Future<void> addRouteLayers(
       iconIgnorePlacement: true,
     ),
     enableInteraction: false,
+  );
+  await addTurnArrow(
+    c,
+    colors,
+    source: RouteSources.turn,
+    width: routeWidth,
+    pixelRatio: pixelRatio,
   );
   await c.addLineLayer(
     RouteSources.drawn,
@@ -215,6 +224,10 @@ Future<void> syncRoute(
       await c.setGeoJsonSource(key, linesGeoJson(value));
     }
   }
+  final turn = now?.turn ?? const [];
+  if (before == null || !identical(turn, before.turn)) {
+    await sendTurnArrow(c, RouteSources.turn, turn);
+  }
   final points = <String, LatLng?>{
     RouteSources.a: now?.a,
     RouteSources.b: now?.b,
@@ -240,6 +253,70 @@ Future<void> syncRoute(
             ),
     );
   }
+}
+
+/// A turn arrow (Guided's, the preview's): its line on [source], [width] wide in the drive
+/// plate's colours, and its head on `$source-head`, drawn at [pixelRatio] and turned the way the
+/// arrow points. Empty until [sendTurnArrow].
+Future<void> addTurnArrow(
+  ml.MapLibreMapController c,
+  PindoroColors colors, {
+  required String source,
+  required double width,
+  required double pixelRatio,
+}) async {
+  final head = '$source-head';
+  await c.addGeoJsonSource(source, linesGeoJson(const []));
+  await addCasedLine(
+    c,
+    source,
+    casing: (colors.drivePlate, width + 2 * PindoroStroke.thick),
+    line: (colors.drivePlateText, width),
+  );
+  await c.addImage(
+    head,
+    await turnArrowHeadPng(
+      fill: colors.drivePlateText,
+      casing: colors.drivePlate,
+      pixelRatio: pixelRatio,
+    ),
+  );
+  await c.addGeoJsonSource(head, pointsGeoJson(const []));
+  await c.addSymbolLayer(
+    head,
+    '$head-mark',
+    ml.SymbolLayerProperties(
+      iconImage: head,
+      iconAnchor: 'bottom',
+      iconAllowOverlap: true,
+      iconIgnorePlacement: true,
+      iconPitchAlignment: 'map',
+      iconRotate: const ['get', 'heading'],
+      iconRotationAlignment: 'map',
+    ),
+    enableInteraction: false,
+  );
+}
+
+/// Draws [turn] as the arrow added on [source] (none under two points).
+Future<void> sendTurnArrow(
+  ml.MapLibreMapController c,
+  String source,
+  Polyline turn,
+) async {
+  final drawn = turn.length > 1;
+  await c.setGeoJsonSource(source, linesGeoJson([if (drawn) turn]));
+  await c.setGeoJsonSource(
+    '$source-head',
+    drawn
+        ? pointsGeoJson(
+            [turn.last],
+            properties: {
+              'heading': bearingDegrees(turn[turn.length - 2], turn.last),
+            },
+          )
+        : pointsGeoJson(const []),
+  );
 }
 
 /// A line on [source] over a casing: its `-casing` layer ([casing]'s colour and width) under its
