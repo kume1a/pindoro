@@ -47,7 +47,8 @@ String? suggestionReason(
 DriveGlyphName decisionGlyph(NavDecision d) {
   final approach = d.approach;
   final fork =
-      approach != null && turnAngle(approach, d.exit, d.junction).abs() < 45;
+      approach != null &&
+      turnAngle(approach, d.exit, d.junction).abs() < LearningConfig.navForkDeg;
   return switch (d.turn) {
     Turn.left => fork ? DriveGlyphName.keepLeft : DriveGlyphName.left,
     Turn.right => fork ? DriveGlyphName.keepRight : DriveGlyphName.right,

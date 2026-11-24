@@ -638,10 +638,7 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
         NavSide.left => l10n.driveRouteLeft,
         null => null,
       };
-      final distance = formatDistance(
-        math.max(50, (stopInM / 50).round() * 50.0),
-        l10n,
-      );
+      final distance = formatDistance(navRoundedM(stopInM), l10n);
       return TurnPlate(
         key: ValueKey('stop${r.via.length}'),
         semanticsLabel: [l10n.navIn(distance), name, ?side].join(', '),
@@ -657,10 +654,7 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
       final landmark = next.landmark;
       final then = view.then;
       final at = landmarkLine(l10n, next, settings);
-      final distance = formatDistance(
-        math.max(50, ((view.nextInM ?? 0) / 50).round() * 50.0),
-        l10n,
-      );
+      final distance = formatDistance(navRoundedM(view.nextInM ?? 0), l10n);
       return TurnPlate(
         key: ValueKey('turn${next.junction}${view.newRoute}'),
         semanticsLabel: [

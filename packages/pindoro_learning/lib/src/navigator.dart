@@ -128,6 +128,13 @@ typedef NavView = ({
 /// the app says them all), and whether to chime for speed.
 typedef NavUpdate = ({NavView view, List<NavPrompt> prompts, bool chime});
 
+/// [m] to the next turn or stop as it is said and shown: to [LearningConfig.navRoundM], and at
+/// least that.
+double navRoundedM(double m) => max(
+  LearningConfig.navRoundM,
+  (m / LearningConfig.navRoundM).round() * LearningConfig.navRoundM,
+);
+
 NavPrompt _prompt(
   PromptKind kind, {
   NavDecision? decision,
@@ -345,7 +352,9 @@ class Navigator {
     // A stopped fix's move is GPS jitter, not driving.
     if (speed * 3.6 >= LearningConfig.stoppedKmh) _drivenM += moved;
     _last = fix;
-    final heading = speed > 2 ? fix.headingDeg : null;
+    final heading = speed > LearningConfig.navHeadingMps
+        ? fix.headingDeg
+        : null;
     _headingDeg = heading ?? _headingDeg;
     final prompts = <NavPrompt>[];
 
@@ -355,7 +364,9 @@ class Navigator {
       final located = _locate(fix.at, heading);
       if (located != null) _replan(located.edge, located.ahead, located.along);
     } else if (where == null) {
-      if (++_offFixes >= 2) _deviate(fix.at, heading, now, inGap, prompts);
+      if (++_offFixes >= LearningConfig.navOffFixes) {
+        _deviate(fix.at, heading, now, inGap, prompts);
+      }
     } else {
       _offFixes = 0;
       _passFollowed(now, inGap);
@@ -742,7 +753,10 @@ class Navigator {
       if (n.distM > LearningConfig.driveSnapM) continue;
       final forward = from == e.from;
       final way = forward ? n.headingDeg : (n.headingDeg + 180) % 360;
-      if (heading != null && bearingError(heading, way) > 100) continue;
+      if (heading != null &&
+          bearingError(heading, way) > LearningConfig.navTrackHeadingDeg) {
+        continue;
+      }
       if (best == null || n.distM < best.distM) {
         best = (
           i: i,
@@ -1049,7 +1063,11 @@ class Navigator {
       LearningConfig.cameraWarnS * speed,
     );
     var startM = -_alongNow;
-    for (var hop = 0; hop < 10 && startM <= reach; hop++) {
+    for (
+      var hop = 0;
+      hop < LearningConfig.cameraHopsMax && startM <= reach;
+      hop++
+    ) {
       for (final c in _camerasByEdge[edge!.id] ?? const <SpeedCamera>[]) {
         final n = nearestOnEdge(c.at, edge);
         final forward = from == edge.from;
@@ -1082,13 +1100,13 @@ class Navigator {
   }
 
   /// The way on from [junction] after [edge] along the same street, the straightest within
-  /// 45°; null at its end.
+  /// [LearningConfig.navStraightOnDeg]; null at its end.
   RoadEdge? _straightOn(RoadEdge edge, int junction) {
     final street = edge.streetId;
     if (street == null) return null;
     final name = streets[street]?.id ?? street;
     RoadEdge? best;
-    var bestDeg = 45.0;
+    var bestDeg = LearningConfig.navStraightOnDeg;
     for (final e in graph.legalExits(junction, approach: edge)) {
       if (e.id == edge.id || e.streetId == null) continue;
       if ((streets[e.streetId]?.id ?? e.streetId) != name) continue;

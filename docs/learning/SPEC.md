@@ -433,6 +433,10 @@ pindoro_core `ScoringConfig`, not copied):
 | `prepareM`, `prepareS`, `actionM`, `actionS`                            | 150, 10, 40, 4                      |
 | `landmarkAtM`, `confirmDelayS`, `districtCueM`, `districtCueS`          | 50, 6, 2000, 180                    |
 | `gpsLostSayS`                                                           | 60                                  |
+| `navHeadingMps`, `navTrackHeadingDeg`, `navOffFixes`                    | 2, 100°, 2                          |
+| `cameraHopsMax`, `navStraightOnDeg`, `navUTurnS`                        | 10, 45°, 30                         |
+| `driveStaleFixS`, `navRefineM` (item 135), `navPlanFromM`               | 30, 50, 140                         |
+| `surpriseTries`, `navForkDeg`, `navRoundM`, `drillTurnS`                | 12, 45°, 50, 20                     |
 | `navRoadAheadM`, `navArrowBeforeM`, `navArrowAfterM`, `laneMatchDeg`    | 10, 35, 20, 60                      |
 | `navArrowGapM`, `navArrowBendDeg`                                       | 3, 45                               |
 | `creditMaxR`, `hesitationBeforeM`, `noCreditAfterPromptS`               | 0.92, 150, 60                       |

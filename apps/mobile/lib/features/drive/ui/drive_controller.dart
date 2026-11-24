@@ -237,12 +237,6 @@ final class DriveReview extends DriveState {
   };
 }
 
-/// A fix timed this long before the drive started is a cached location, not the car's.
-const Duration _staleFix = Duration(seconds: 30);
-
-/// A fresh fix this far from the one the setup planned from plans again (item 135).
-const double _refineM = 50;
-
 /// A drive (SPEC §5.3 drives, §16.23, boards V3-50 and V32-*): pick a destination and the help
 /// suggested for it, drive with the navigator speaking by level, then map-match and grade the
 /// track. Every decision taken without help reviews its J card (item 119): Good, Hard after a
@@ -422,14 +416,16 @@ class DriveController extends Notifier<DriveState> {
       .whenComplete(() => _refining = null);
 
   /// The setup planned from [here], where the phone last knew it was (up to two minutes old):
-  /// once [fresh] comes, it plans again from there when that lies more than [_refineM] away
+  /// once [fresh] comes, it plans again from there when that lies more than [LearningConfig.navRefineM] away
   /// (item 135).
   Future<void> _refine(Future<LatLng?> fresh, LatLng here) async {
     final at = await fresh;
     if (!ref.mounted || at == null) return;
     final s = state;
     if (s is! DriveSetup || s.here != here) return;
-    if (distanceBetween(here, at) > _refineM) await _prepare(at: at);
+    if (distanceBetween(here, at) > LearningConfig.navRefineM) {
+      await _prepare(at: at);
+    }
   }
 
   /// A level the setup offers (item 114).
@@ -544,7 +540,7 @@ class DriveController extends Notifier<DriveState> {
       },
       from: here,
       seed: now.microsecondsSinceEpoch,
-    ).take(_surpriseTries)) {
+    ).take(LearningConfig.surpriseTries)) {
       if (driven.contains(nodes[j])) continue;
       final street = streetAt(graph, streets, j);
       if (street == null) continue;
@@ -559,9 +555,6 @@ class DriveController extends Notifier<DriveState> {
     return null;
   }
 
-  /// How many surprise destinations are planned before giving up.
-  static const int _surpriseTries = 12;
-
   /// Up to [count] route options to [target] from [here] with their suggestions, the quickest
   /// first.
   Future<List<DriveSuggestion>> _suggest(
@@ -575,7 +568,7 @@ class DriveController extends Notifier<DriveState> {
 
   /// The route options for a target from [here] through the stops `via` (up to `count`, the
   /// quickest first), each with its suggestion; the graph, cards and history read once
-  /// (Surprise me tries up to [_surpriseTries] targets). Null without a road graph.
+  /// (Surprise me tries up to [LearningConfig.surpriseTries] targets). Null without a road graph.
   Future<
     List<DriveSuggestion> Function(
       DriveTarget target, {
@@ -785,7 +778,11 @@ class DriveController extends Notifier<DriveState> {
     final r = state;
     // A location cached from before the drive (iOS can hand one over first) isn't the car's.
     if (r is DriveRecording &&
-        fix.t.isBefore(r.startedAt.subtract(_staleFix))) {
+        fix.t.isBefore(
+          r.startedAt.subtract(
+            const Duration(seconds: LearningConfig.driveStaleFixS),
+          ),
+        )) {
       return;
     }
     _fixes.add(fix);

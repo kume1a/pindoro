@@ -51,8 +51,8 @@ final class NavCost {
 
   double seconds(RoadEdge e) => e.lengthM / (kmh(e) / 3.6);
 
-  /// A U-turn: the routing penalty's 30 s, at the top speed.
-  double get uTurnCostM => 30 * _topKmh / 3.6;
+  /// A U-turn: [LearningConfig.navUTurnS] at the top speed.
+  double get uTurnCostM => LearningConfig.navUTurnS * _topKmh / 3.6;
 
   /// The quickest legal drive from [from] to [to] through the stops [via] in order (item 134),
   /// having arrived on [approach]: one leg per stop, each going on from the end of the last

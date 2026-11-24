@@ -94,7 +94,7 @@ List<NavPlan> plansFrom(
   required int toleranceKmh,
   int count = LearningConfig.navOptions,
 }) {
-  final near = graph.edgeNear(here, 4 * LearningConfig.driveSnapM);
+  final near = graph.edgeNear(here, LearningConfig.navPlanFromM);
   if (near == null) return const [];
   final from =
       distanceBetween(here, graph.at(near.from)) <
