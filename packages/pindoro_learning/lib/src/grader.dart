@@ -162,8 +162,7 @@ typedef ExtentGrade = ({
 });
 
 /// Degrees between two bearings, 0–180.
-double bearingError(double a, double b) =>
-    (((a - b) % 360 + 540) % 360 - 180).abs();
+double bearingError(double a, double b) => angleDiffDeg(b, a).abs();
 
 /// The name check's [LearningConfig.nameCheckOptions] choices (SPEC §5.2): [target], its
 /// [confusable] streets nearest first, then the streets nearest it; one per name, shuffled with

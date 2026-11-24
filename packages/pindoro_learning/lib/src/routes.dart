@@ -13,7 +13,7 @@ enum Turn { left, straight, right, uTurn }
 /// degrees from north: within [LearningConfig.turnStraightDeg] straight on, past
 /// [LearningConfig.turnUTurnDeg] a U-turn.
 Turn turnOf(double approachDeg, double exitDeg) {
-  final d = ((exitDeg - approachDeg) % 360 + 540) % 360 - 180;
+  final d = angleDiffDeg(approachDeg, exitDeg);
   if (d.abs() <= LearningConfig.turnStraightDeg) return Turn.straight;
   if (d.abs() >= LearningConfig.turnUTurnDeg) return Turn.uTurn;
   return d > 0 ? Turn.right : Turn.left;

@@ -1,4 +1,4 @@
-import 'dart:math' show cos, max, min, pi;
+import 'dart:math' show max, min;
 
 import '../geo/geo.dart';
 import '../geo/polyline6.dart';
@@ -295,13 +295,7 @@ class RoadGraph {
   RoadEdge? edgeNear(LatLng p, double withinM) {
     RoadEdge? best;
     var bestM = withinM;
-    for (final e in edgesNear(p, withinM)) {
-      // A point on the edge is at most its length from both ends together,
-      // so this skips far edges without decoding their lines.
-      if (distanceBetween(p, at(e.from)) + distanceBetween(p, at(e.to)) >
-          e.lengthM + 2 * withinM) {
-        continue;
-      }
+    for (final e in edgesWithin(p, withinM)) {
       final m = pointToPolylineDistance(p, [e.line]).distanceMeters;
       if (m <= bestM) (best, bestM) = (e, m);
     }
@@ -317,6 +311,16 @@ class RoadGraph {
     }
     return [for (final i in found.toList()..sort()) edges[i]];
   }
+
+  /// The edges of [edgesNear] whose ends lie close enough for a point within [withinM] of [p]
+  /// (Dart only, not twinned): a point on an edge is at most its length from both ends
+  /// together, so this skips far edges without decoding their lines.
+  Iterable<RoadEdge> edgesWithin(LatLng p, double withinM) =>
+      edgesNear(p, withinM).where(
+        (e) =>
+            distanceBetween(p, at(e.from)) + distanceBetween(p, at(e.to)) <=
+            e.lengthM + 2 * withinM,
+      );
 
   /// [edges]' indices by grid cell. A point on an edge is at most half its length from the
   /// middle of its ends (its distances to the ends add up to at most its length), so each edge
@@ -339,8 +343,9 @@ class RoadGraph {
 
   /// The grid cells a circle of [radiusM] around [p] touches.
   static Iterable<(int, int)> _cells(LatLng p, double radiusM) sync* {
-    final dLat = radiusM / 111320;
-    final dLon = radiusM / (111320 * cos(p.lat * pi / 180));
+    final corner = LocalProjection(p).unproject((radiusM, radiusM));
+    final dLat = corner.lat - p.lat;
+    final dLon = corner.lon - p.lon;
     final y0 = ((p.lat - dLat) / _cellDeg).floor();
     final y1 = ((p.lat + dLat) / _cellDeg).floor();
     final x0 = ((p.lon - dLon) / _cellDeg).floor();

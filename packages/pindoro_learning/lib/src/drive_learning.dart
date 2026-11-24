@@ -7,7 +7,7 @@ import 'constants.dart';
 import 'drive_log.dart';
 import 'fsrs.dart';
 import 'nav_level.dart';
-import 'nav_route.dart';
+import 'nav_plan.dart';
 import 'routes.dart';
 
 // What a drive teaches and how it shows (SPEC §16.23 items 119–123).

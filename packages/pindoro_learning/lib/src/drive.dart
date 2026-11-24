@@ -87,18 +87,28 @@ int _end(EdgeSnap s) => s.forward ? s.edge.to : s.edge.from;
   );
 }
 
+/// [nearestOnEdge] on [e] driven away from its junction [from]: the distance, the heading
+/// driven there and the metres of [e] behind it.
+({double distM, double headingDeg, double alongM}) nearestDriven(
+  LatLng p,
+  RoadEdge e,
+  int from,
+) {
+  final n = nearestOnEdge(p, e);
+  final forward = from == e.from;
+  return (
+    distM: n.distM,
+    headingDeg: forward ? n.headingDeg : (n.headingDeg + 180) % 360,
+    alongM: (forward ? n.along : 1 - n.along) * e.lengthM,
+  );
+}
+
 /// The edges within [LearningConfig.driveSnapM] of [p], each way, costed by distance, heading
 /// off the way driven ([heading], when known) and driving against a one-way.
 List<EdgeSnap> edgeSnaps(RoadGraph graph, LatLng p, double? heading) {
   const r = LearningConfig.driveSnapM;
   final out = <EdgeSnap>[];
-  for (final e in graph.edgesNear(p, r)) {
-    // A point within r of the edge is at most its length plus 2r from both ends together.
-    if (distanceBetween(p, graph.at(e.from)) +
-            distanceBetween(p, graph.at(e.to)) >
-        e.lengthM + 2 * r) {
-      continue;
-    }
+  for (final e in graph.edgesWithin(p, r)) {
     final n = nearestOnEdge(p, e);
     if (n.distM > r) continue;
     for (final forward in [true, false]) {

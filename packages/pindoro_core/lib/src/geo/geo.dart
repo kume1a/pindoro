@@ -205,6 +205,39 @@ double bearingDegrees(LatLng from, LatLng to) {
   return (math.atan2(x, y) * 180 / math.pi + 360) % 360;
 }
 
+/// The turn from bearing [from] to bearing [to] in degrees, -180 to 180, right positive
+/// (Dart-only: navigation).
+double angleDiffDeg(double from, double to) =>
+    ((to - from) % 360 + 540) % 360 - 180;
+
+/// [line] from share [from] to share [to] of its length (Dart-only: navigation).
+Polyline linePart(Polyline line, double from, double to) {
+  final cum = [0.0];
+  for (var i = 1; i < line.length; i++) {
+    cum.add(cum.last + distanceBetween(line[i - 1], line[i]));
+  }
+  final total = cum.last;
+  LatLng at(double m) {
+    for (var i = 1; i < line.length; i++) {
+      if (cum[i] >= m) {
+        final len = cum[i] - cum[i - 1];
+        final t = len == 0 ? 0.0 : (m - cum[i - 1]) / len;
+        final a = line[i - 1], b = line[i];
+        return LatLng(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t);
+      }
+    }
+    return line.last;
+  }
+
+  final fromM = from * total, toM = to * total;
+  return [
+    at(fromM),
+    for (var i = 1; i < line.length - 1; i++)
+      if (cum[i] > fromM && cum[i] < toM) line[i],
+    if (toM > fromM) at(toM),
+  ];
+}
+
 /// Degrees clockwise from north along the segment of [lines] nearest [at], in
 /// the line's own direction.
 double headingAlong(MultiPolyline lines, LatLng at) {

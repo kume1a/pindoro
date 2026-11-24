@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:pindoro_core/pindoro_core.dart';
-import 'package:pindoro_learning/pindoro_learning.dart';
 
 /// Most points of a route weighed for its bubble: long routes are sampled.
 const int _samples = 200;
