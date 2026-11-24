@@ -1,5 +1,8 @@
+import 'dart:ui' show Color;
+
 import 'package:maplibre_gl/maplibre_gl.dart' as ml;
 import 'package:pindoro/features/map/data/geojson.dart';
+import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/data/maplibre_convert.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -99,22 +102,13 @@ Future<void> addRouteLayers(
   for (final id in [RouteSources.a, RouteSources.b, RouteSources.chip]) {
     await c.addGeoJsonSource(id, pointsGeoJson(const []));
   }
-  for (final (id, color, width) in [
-    ('casing', colors.mapRouteCasing, routeCasing),
-    ('line', colors.mapRouteLine, routeWidth),
-  ]) {
-    await c.addLineLayer(
-      RouteSources.best,
-      '${RouteSources.best}-$id',
-      ml.LineLayerProperties(
-        lineColor: hexColor(color),
-        lineWidth: width,
-        lineCap: 'round',
-        lineJoin: 'round',
-      ),
-      enableInteraction: false,
-    );
-  }
+  await addCasedLine(
+    c,
+    RouteSources.best,
+    casing: (colors.mapRouteCasing, routeCasing),
+    line: (colors.mapRouteLine, routeWidth),
+    below: null,
+  );
   await c.addSymbolLayer(
     RouteSources.best,
     '${RouteSources.best}-chevrons',
@@ -244,6 +238,31 @@ Future<void> syncRoute(
               [chip.at],
               properties: {'icon': await chipImage(chip.label)},
             ),
+    );
+  }
+}
+
+/// A line on [source] over a casing: its `-casing` layer ([casing]'s colour and width) under its
+/// `-line` layer, both rounded, under the layer [below] (the basemap's names by default).
+Future<void> addCasedLine(
+  ml.MapLibreMapController c,
+  String source, {
+  required (Color, double) casing,
+  required (Color, double) line,
+  String? below = NameLayers.lowest,
+}) async {
+  for (final (id, (color, width)) in [('casing', casing), ('line', line)]) {
+    await c.addLineLayer(
+      source,
+      '$source-$id',
+      ml.LineLayerProperties(
+        lineColor: hexColor(color),
+        lineWidth: width,
+        lineCap: 'round',
+        lineJoin: 'round',
+      ),
+      belowLayerId: below,
+      enableInteraction: false,
     );
   }
 }

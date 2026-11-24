@@ -113,7 +113,10 @@ void leaveDrive(BuildContext context) =>
 
 /// The plan map's back control, top left ([PlanMapLayout.top]): [leaveDrive].
 class PlanMapBack extends StatelessWidget {
-  const PlanMapBack({super.key});
+  const PlanMapBack({this.onPressed, super.key});
+
+  /// Leaves the drive when null.
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -123,7 +126,7 @@ class PlanMapBack extends StatelessWidget {
       child: MapControl(
         glyph: PindoroGlyph.back,
         semanticLabel: context.l10n.commonBack,
-        onPressed: () => leaveDrive(context),
+        onPressed: onPressed ?? () => leaveDrive(context),
       ),
     ),
   );

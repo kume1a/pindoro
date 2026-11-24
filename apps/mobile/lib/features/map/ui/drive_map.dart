@@ -413,61 +413,28 @@ class _DriveMapState extends ConsumerState<DriveMap> with MapHost<DriveMap> {
       _Sources.alternatives,
       linesGeoJson(widget.alternatives),
     );
-    for (final (id, color, width) in [
-      ('casing', colors.drivePlate, routeCasing),
-      ('line', colors.drivePlateText2, routeWidth),
-    ]) {
-      await c.addLineLayer(
-        _Sources.alternatives,
-        '${_Sources.alternatives}-$id',
-        ml.LineLayerProperties(
-          lineColor: hexColor(color),
-          lineWidth: width,
-          lineCap: 'round',
-          lineJoin: 'round',
-        ),
-        belowLayerId: NameLayers.lowest,
-        enableInteraction: false,
-      );
-    }
+    await addCasedLine(
+      c,
+      _Sources.alternatives,
+      casing: (colors.drivePlate, routeCasing),
+      line: (colors.drivePlateText2, routeWidth),
+    );
     await c.addGeoJsonSource(_Sources.route, linesGeoJson(widget.route));
-    for (final (id, color, width) in [
-      // A band about as wide as the road, in a thin casing; the tilt narrows it ahead.
-      ('casing', colors.mapAnswerCasing, _routeWidth + 2 * PindoroStroke.base),
-      ('line', colors.mapAnswerLine, _routeWidth),
-    ]) {
-      await c.addLineLayer(
-        _Sources.route,
-        '${_Sources.route}-$id',
-        ml.LineLayerProperties(
-          lineColor: hexColor(color),
-          lineWidth: width,
-          lineCap: 'round',
-          lineJoin: 'round',
-        ),
-        belowLayerId: NameLayers.lowest,
-        enableInteraction: false,
-      );
-    }
+    // A band about as wide as the road, in a thin casing; the tilt narrows it ahead.
+    await addCasedLine(
+      c,
+      _Sources.route,
+      casing: (colors.mapAnswerCasing, _routeWidth + 2 * PindoroStroke.base),
+      line: (colors.mapAnswerLine, _routeWidth),
+    );
     // The turn arrow, in the plate's colours over the route, as wide as it.
     await c.addGeoJsonSource(_Sources.turn, _turnLineGeoJson());
-    for (final (id, color, width) in [
-      ('casing', colors.drivePlate, _routeWidth + 2 * PindoroStroke.thick),
-      ('line', colors.drivePlateText, _routeWidth),
-    ]) {
-      await c.addLineLayer(
-        _Sources.turn,
-        '${_Sources.turn}-$id',
-        ml.LineLayerProperties(
-          lineColor: hexColor(color),
-          lineWidth: width,
-          lineCap: 'round',
-          lineJoin: 'round',
-        ),
-        belowLayerId: NameLayers.lowest,
-        enableInteraction: false,
-      );
-    }
+    await addCasedLine(
+      c,
+      _Sources.turn,
+      casing: (colors.drivePlate, _routeWidth + 2 * PindoroStroke.thick),
+      line: (colors.drivePlateText, _routeWidth),
+    );
     await c.addImage(
       _turnHeadImage,
       await turnArrowHeadPng(
