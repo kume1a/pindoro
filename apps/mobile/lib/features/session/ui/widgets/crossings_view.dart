@@ -29,12 +29,16 @@ class CrossingsView extends ConsumerStatefulWidget {
     required this.topBar,
     required this.onName,
     required this.onNext,
+    required this.onDontKnow,
   });
 
   final SessionPlaying play;
   final Widget topBar;
   final Future<void> Function(String typed) onName;
   final Future<void> Function() onNext;
+
+  /// "I don't know": the step graded as a miss, its answer shown.
+  final VoidCallback onDontKnow;
 
   @override
   ConsumerState<CrossingsView> createState() => _CrossingsViewState();
@@ -98,6 +102,7 @@ class _CrossingsViewState extends ConsumerState<CrossingsView> {
 
     final mapOf = ref.watch(pindoroMapBuilderProvider);
     return TaskScaffold(
+      onDontKnow: widget.onDontKnow,
       topBar: widget.topBar,
       map: (insets) => mapOf(
         PindoroMap(
@@ -172,6 +177,7 @@ class _CrossingsViewState extends ConsumerState<CrossingsView> {
             glyph: PindoroGlyph.signpost,
             autocorrect: false,
             textInputAction: TextInputAction.next,
+            keepFocus: true,
             onChanged: (_) => setState(() {}),
             onSubmitted: (_) => _submit(),
           ),

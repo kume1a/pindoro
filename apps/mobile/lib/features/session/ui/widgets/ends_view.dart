@@ -23,6 +23,7 @@ class EndsView extends ConsumerStatefulWidget {
     required this.onPin,
     required this.onConfirm,
     required this.onNext,
+    required this.onDontKnow,
     this.chip,
   });
 
@@ -31,6 +32,9 @@ class EndsView extends ConsumerStatefulWidget {
   final ValueChanged<LatLng> onPin;
   final VoidCallback onConfirm;
   final Future<void> Function() onNext;
+
+  /// "I don't know": the step graded as a miss, its answer shown.
+  final VoidCallback onDontKnow;
   final Widget? chip;
 
   @override
@@ -57,6 +61,7 @@ class _EndsViewState extends ConsumerState<EndsView> {
     final pins = task.pins;
     final mapOf = ref.watch(pindoroMapBuilderProvider);
     return TaskScaffold(
+      onDontKnow: widget.onDontKnow,
       topBar: widget.topBar,
       map: (insets) => mapOf(
         PindoroMap(

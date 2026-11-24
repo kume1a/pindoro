@@ -114,31 +114,39 @@ final class CrossingsTask extends SessionTask {
 }
 
 /// A bearing from the city centre to the step's street: the player's arrow,
-/// then the error once checked.
+/// then the error once checked; a Miss when checked as [notKnown] ("I don't know").
 final class BearingTask extends SessionTask {
   const BearingTask({
     required this.trueBearing,
     required this.distanceM,
     this.bearing = 0,
     this.checked = false,
+    this.notKnown = false,
   });
 
   final double trueBearing;
   final double distanceM;
   final double bearing;
   final bool checked;
+  final bool notKnown;
 
   double get error => bearingError(bearing, trueBearing);
 
   @override
-  Tier? get result => checked ? Grader.gradeBearing(error) : null;
+  Tier? get result => !checked
+      ? null
+      : notKnown
+      ? Tier.miss
+      : Grader.gradeBearing(error);
 
-  BearingTask copyWith({double? bearing, bool? checked}) => BearingTask(
-    trueBearing: trueBearing,
-    distanceM: distanceM,
-    bearing: bearing ?? this.bearing,
-    checked: checked ?? this.checked,
-  );
+  BearingTask copyWith({double? bearing, bool? checked, bool? notKnown}) =>
+      BearingTask(
+        trueBearing: trueBearing,
+        distanceM: distanceM,
+        bearing: bearing ?? this.bearing,
+        checked: checked ?? this.checked,
+        notKnown: notKnown ?? this.notKnown,
+      );
 }
 
 /// A route card (SPEC §3): a turn, a gateway, a bridge, a connection or a

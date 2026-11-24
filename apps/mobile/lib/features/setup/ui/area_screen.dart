@@ -296,175 +296,184 @@ class _AreaScreenState extends ConsumerState<AreaScreen> {
     };
 
     final mapOf = ref.watch(areaPickerMapBuilderProvider);
-    return Scaffold(
-      // The map runs under the sheet, so a taller or shorter sheet never
-      // resizes it; the body gets the sheet's height as its bottom padding.
-      extendBody: true,
-      body: Builder(
-        builder: (body) {
-          final sheet = MediaQuery.paddingOf(body).bottom;
-          return Stack(
-            children: [
-              mapOf(
-                AreaPickerMap(
-                  // A new pack (first download, update) rebuilds the layers.
-                  key: ObjectKey(pack),
-                  districts: districts,
-                  names: names,
-                  picked: mode == AreaMode.districts ? picks : const {},
-                  lastTapped: _lastTapped,
-                  initialBounds: city.bbox,
-                  focus: _focus,
-                  showDistricts: mode == AreaMode.districts,
-                  bottomInset: sheet,
-                  onTap: (at) {
-                    if (mode != AreaMode.districts) return;
-                    if (areaAt(districts, at, _zoom) case final d?) {
-                      _toggle(d.id, names, context);
-                    }
-                  },
-                  onCamera: (center, zoom) {
-                    _center = center;
-                    _zoom = zoom;
-                    // Shapes follow the camera; the nearby chips wait until
-                    // it settles, or they would reshuffle under the drag.
-                    if (mode != AreaMode.districts) setState(() {});
-                  },
-                  onCameraIdle: () => setState(() {}),
-                ),
-              ),
-              if (mode == AreaMode.circle)
-                Positioned.fill(
-                  bottom: sheet,
-                  child: CircleOverlay(
-                    radiusPx: _radiusM / mpp,
-                    label: formatSize(_radiusM, l10n),
-                    onResize: (px) {
-                      final r = _clampRadius(px * mpp);
-                      if (r != _radiusM) {
-                        ref.read(feedbackProvider).tap();
-                        setState(() => _radiusM = r);
-                      }
-                    },
-                  ),
-                ),
-              if (mode == AreaMode.rectangle)
-                Positioned.fill(
-                  bottom: sheet,
-                  child: RectOverlay(
-                    size: Size(_widthM / mpp, _heightM / mpp),
-                    label: formatSides(_widthM, _heightM, l10n),
-                    onResize: (size) {
-                      final w = _clampSide(size.width * mpp);
-                      final h = _clampSide(size.height * mpp);
-                      if (w != _widthM || h != _heightM) {
-                        ref.read(feedbackProvider).tap();
-                        setState(() {
-                          _widthM = w;
-                          _heightM = h;
-                        });
-                      }
-                    },
-                  ),
-                ),
-              SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.all(PindoroSpace.s4),
-                  child: Row(
-                    spacing: PindoroSpace.s3,
-                    children: [
-                      MapControl(
-                        glyph: PindoroGlyph.back,
-                        semanticLabel: l10n.commonBack,
-                        // Opened with go (Results, setup states) it is the
-                        // only page, so back means Home.
-                        onPressed: () => context.canPop()
-                            ? context.pop()
-                            : context.go(Routes.home),
-                      ),
-                      Pill(
-                        label: cityName(context, city),
-                        icon: PindoroGlyph.city,
-                        floating: true,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-      bottomNavigationBar: AreaSheet(
-        modes: {
-          if (districts.isNotEmpty) AreaMode.districts: l10n.areaModeAreas,
-          AreaMode.circle: l10n.areaModeCircle,
-          AreaMode.rectangle: l10n.areaModeRectangle,
-        },
-        mode: mode,
-        onMode: (m) => _switchMode(m, pack),
-        title: title,
-        help: help,
-        count: mode == AreaMode.districts
-            ? areaCountLine(l10n, districts.length, picks, streets)
-            : null,
-        countAction: offline
-            ? PindoroButton(
-                label: l10n.commonTryAgain,
-                variant: PindoroButtonVariant.tertiary,
-                onPressed: () =>
-                    ref.read(offlineVakeProvider.notifier).set(false),
-              )
-            : mode == AreaMode.districts
-            ? PindoroChip.action(
-                label: l10n.areaAllChip(districts.length),
-                onPressed: () => _showAll(names),
-              )
-            : null,
-        content: switch (mode) {
-          AreaMode.districts => SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              spacing: PindoroSpace.s2,
+    // Opened with go (Results, setup states) it is the only page: system back goes Home,
+    // as the on-screen back does, instead of closing the app.
+    return PopScope(
+      canPop: context.canPop(),
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) context.go(Routes.home);
+      },
+      child: Scaffold(
+        // The map runs under the sheet, so a taller or shorter sheet never
+        // resizes it; the body gets the sheet's height as its bottom padding.
+        extendBody: true,
+        body: Builder(
+          builder: (body) {
+            final sheet = MediaQuery.paddingOf(body).bottom;
+            return Stack(
               children: [
-                for (final d in [
-                  ...picked,
-                  ...nearestAreas(
-                    districts,
-                    picks,
-                    here,
-                    detail: detailAt(_zoom),
-                  ).take(_nearbyChips),
-                ])
-                  PindoroChip(
-                    label: names[d.id]!,
-                    selected: picks.contains(d.id),
-                    onPressed: () => _toggle(d.id, names, context),
+                mapOf(
+                  AreaPickerMap(
+                    // A new pack (first download, update) rebuilds the layers.
+                    key: ObjectKey(pack),
+                    districts: districts,
+                    names: names,
+                    picked: mode == AreaMode.districts ? picks : const {},
+                    lastTapped: _lastTapped,
+                    initialBounds: city.bbox,
+                    focus: _focus,
+                    showDistricts: mode == AreaMode.districts,
+                    bottomInset: sheet,
+                    onTap: (at) {
+                      if (mode != AreaMode.districts) return;
+                      if (areaAt(districts, at, _zoom) case final d?) {
+                        _toggle(d.id, names, context);
+                      }
+                    },
+                    onCamera: (center, zoom) {
+                      _center = center;
+                      _zoom = zoom;
+                      // Shapes follow the camera; the nearby chips wait until
+                      // it settles, or they would reshuffle under the drag.
+                      if (mode != AreaMode.districts) setState(() {});
+                    },
+                    onCameraIdle: () => setState(() {}),
                   ),
+                ),
+                if (mode == AreaMode.circle)
+                  Positioned.fill(
+                    bottom: sheet,
+                    child: CircleOverlay(
+                      radiusPx: _radiusM / mpp,
+                      label: formatSize(_radiusM, l10n),
+                      onResize: (px) {
+                        final r = _clampRadius(px * mpp);
+                        if (r != _radiusM) {
+                          ref.read(feedbackProvider).tap();
+                          setState(() => _radiusM = r);
+                        }
+                      },
+                    ),
+                  ),
+                if (mode == AreaMode.rectangle)
+                  Positioned.fill(
+                    bottom: sheet,
+                    child: RectOverlay(
+                      size: Size(_widthM / mpp, _heightM / mpp),
+                      label: formatSides(_widthM, _heightM, l10n),
+                      onResize: (size) {
+                        final w = _clampSide(size.width * mpp);
+                        final h = _clampSide(size.height * mpp);
+                        if (w != _widthM || h != _heightM) {
+                          ref.read(feedbackProvider).tap();
+                          setState(() {
+                            _widthM = w;
+                            _heightM = h;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.all(PindoroSpace.s4),
+                    child: Row(
+                      spacing: PindoroSpace.s3,
+                      children: [
+                        MapControl(
+                          glyph: PindoroGlyph.back,
+                          semanticLabel: l10n.commonBack,
+                          // Opened with go (Results, setup states) it is the
+                          // only page, so back means Home.
+                          onPressed: () => context.canPop()
+                              ? context.pop()
+                              : context.go(Routes.home),
+                        ),
+                        Pill(
+                          label: cityName(context, city),
+                          icon: PindoroGlyph.city,
+                          floating: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
+            );
+          },
+        ),
+        bottomNavigationBar: AreaSheet(
+          modes: {
+            if (districts.isNotEmpty) AreaMode.districts: l10n.areaModeAreas,
+            AreaMode.circle: l10n.areaModeCircle,
+            AreaMode.rectangle: l10n.areaModeRectangle,
+          },
+          mode: mode,
+          onMode: (m) => _switchMode(m, pack),
+          title: title,
+          help: help,
+          count: mode == AreaMode.districts
+              ? areaCountLine(l10n, districts.length, picks, streets)
+              : null,
+          countAction: offline
+              ? PindoroButton(
+                  label: l10n.commonTryAgain,
+                  variant: PindoroButtonVariant.tertiary,
+                  onPressed: () =>
+                      ref.read(offlineVakeProvider.notifier).set(false),
+                )
+              : mode == AreaMode.districts
+              ? PindoroChip.action(
+                  label: l10n.areaAllChip(districts.length),
+                  onPressed: () => _showAll(names),
+                )
+              : null,
+          content: switch (mode) {
+            AreaMode.districts => SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                spacing: PindoroSpace.s2,
+                children: [
+                  for (final d in [
+                    ...picked,
+                    ...nearestAreas(
+                      districts,
+                      picks,
+                      here,
+                      detail: detailAt(_zoom),
+                    ).take(_nearbyChips),
+                  ])
+                    PindoroChip(
+                      label: names[d.id]!,
+                      selected: picks.contains(d.id),
+                      onPressed: () => _toggle(d.id, names, context),
+                    ),
+                ],
+              ),
             ),
+            AreaMode.circle => Slider(
+              value: _radiusM,
+              min: CircleArea.minRadiusM,
+              max: CircleArea.maxRadiusM,
+              divisions:
+                  (CircleArea.maxRadiusM - CircleArea.minRadiusM) ~/
+                  _radiusStepM,
+              label: formatSize(_radiusM, l10n),
+              semanticFormatterCallback: (v) => formatSize(v, l10n),
+              onChanged: (v) {
+                ref.read(feedbackProvider).tap();
+                setState(() => _radiusM = v);
+              },
+            ),
+            AreaMode.rectangle => null,
+          },
+          next: PindoroButton(
+            label: mode == AreaMode.districts && picks.isEmpty
+                ? l10n.areaNoneButton
+                : l10n.commonNext,
+            onPressed: _area() == null ? null : () => _next(pack),
           ),
-          AreaMode.circle => Slider(
-            value: _radiusM,
-            min: CircleArea.minRadiusM,
-            max: CircleArea.maxRadiusM,
-            divisions:
-                (CircleArea.maxRadiusM - CircleArea.minRadiusM) ~/ _radiusStepM,
-            label: formatSize(_radiusM, l10n),
-            semanticFormatterCallback: (v) => formatSize(v, l10n),
-            onChanged: (v) {
-              ref.read(feedbackProvider).tap();
-              setState(() => _radiusM = v);
-            },
-          ),
-          AreaMode.rectangle => null,
-        },
-        next: PindoroButton(
-          label: mode == AreaMode.districts && picks.isEmpty
-              ? l10n.areaNoneButton
-              : l10n.commonNext,
-          onPressed: _area() == null ? null : () => _next(pack),
         ),
       ),
     );

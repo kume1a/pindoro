@@ -13,6 +13,7 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/online.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/toast.dart';
+import 'package:pindoro/features/learning/data/progress.dart';
 import 'package:pindoro/features/map/ui/pin_drop_view.dart';
 import 'package:pindoro/features/quiz/ui/round_controller.dart';
 import 'package:pindoro/features/quiz/ui/setup_states.dart';
@@ -114,7 +115,7 @@ class _QuizScreenState extends ConsumerState<QuizScreen> {
         View.of(context),
         l10n.a11yReveal(
           tierLabel(l10n, answer.tier),
-          formatDistance(answer.distanceM, l10n),
+          answerDistance(l10n, answer),
         ),
         Directionality.of(context),
       ),
@@ -156,9 +157,18 @@ class _RoundView extends ConsumerWidget {
             : (
                 key: answer.id,
                 tier: answer.tier,
-                distanceM: answer.distanceM,
-                pin: revealed.pin,
-                nearest: revealed.nearest,
+                answer: switch ((
+                  answer.distanceM,
+                  revealed.pin,
+                  revealed.nearest,
+                )) {
+                  (final m?, final pin?, final nearest?) => (
+                    distanceM: m,
+                    pin: pin,
+                    nearest: nearest,
+                  ),
+                  _ => null,
+                },
                 chips: [
                   if (answer.tier == Tier.perfect && round.perfects > 1)
                     Pill(label: l10n.revealPerfectRepeat(round.perfects)),
@@ -186,6 +196,10 @@ class _RoundView extends ConsumerWidget {
           feedback.confirm();
           unawaited(controller.confirm());
         },
+        skip: (
+          label: l10n.commonDontKnow,
+          onSkip: () => unawaited(controller.dontKnow()),
+        ),
         onNext: controller.next,
       ),
     );
@@ -207,7 +221,10 @@ class _RoundView extends ConsumerWidget {
       primary: l10n.quizLeaveKeepPlaying,
       secondary: l10n.quizLeaveConfirm,
     );
-    if (leave && context.mounted) context.go(Routes.home);
+    if (!leave || !context.mounted) return;
+    // The answers so far moved cards; go never ends the push that opened the round.
+    refreshLearning(ref);
+    context.go(Routes.home);
   }
 }
 

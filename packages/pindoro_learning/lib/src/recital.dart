@@ -467,6 +467,14 @@ abstract final class RecitalGrader {
     landmarksNamed: (_) => landmarksNamed,
   );
 
+  /// A recital not known (SPEC §16.24 item 136): Miss / Again with the best route to show,
+  /// and no decisions, so no J card hears of it.
+  static RecitalResult notKnown(
+    RoadGraph graph, {
+    required int from,
+    required int to,
+  }) => _invalid(graph.shortestRoute(from, {to}));
+
   static RecitalResult _invalid(Route? best) => RecitalResult(
     best: best,
     path: null,

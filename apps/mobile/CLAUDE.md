@@ -57,9 +57,9 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                crossings drill, a bearing, a route card (RouteView: the
                                turn on the heading-up map, gateway, bridge, connection, landmark) or a
                                recital (RecitalView: typed or drawn A → B, graded with the turns'
-                               evidence and "Report this turn"), with their views over TaskScaffold
+                               evidence and "Report this turn", asked first), with their views over TaskScaffold
                                (choices in its docked `AnswerTray`, shown right and wrong before
-                               the reveal);
+                               the reveal; every step's "I don't know", `dontKnow`, a miss: SPEC §16.24);
                                intro (a leech's with its mix-up and note), reveal, Session done,
                                the placement result), today (the Today tab, "Drive this run today"), memory
                                (the Progress tab: overview, the drives' week line and route stairs,
@@ -105,6 +105,7 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                week (`?route=` one route's) and one drive's debrief)
 lib/features/quiz/ui/round_controller.dart   Explore round state machine; resumes from round_question + answers;
                                questions are NamedStreets (cityStreetsProvider); retries set round.retry_of;
+                               "I don't know" (`dontKnow`) answers with no pin or distance (schema 31);
                                each pin also feeds the learning cards (learnFromExplore)
 lib/features/pack/data/pack_store.dart       catalog download + sha256/size check -> <docs>/packs/<city>/<version>.sqlite (2 kept)
 assets/packs_fixture/          Vake fixture pack (built by `just fixture`, do not edit by hand)

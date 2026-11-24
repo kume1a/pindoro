@@ -147,21 +147,22 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
     return round.id;
   });
 
-  /// Appends one answer to the log (the `answer_immutable` trigger keeps it).
+  /// Appends one answer to the log (the `answer_immutable` trigger keeps it); no [pin] and
+  /// no [distanceM] for "I don't know".
   Future<Answer> recordAnswer({
     required String roundId,
     required String streetId,
-    required LatLng pin,
-    required double distanceM,
+    required LatLng? pin,
+    required double? distanceM,
     required Tier tier,
     required String packVersion,
   }) => into(answers).insertReturning(
     AnswersCompanion.insert(
       roundId: roundId,
       streetId: streetId,
-      pinLat: pin.lat,
-      pinLon: pin.lon,
-      distanceM: distanceM,
+      pinLat: Value(pin?.lat),
+      pinLon: Value(pin?.lon),
+      distanceM: Value(distanceM),
       tier: tier,
       packVersion: packVersion,
     ),
@@ -178,7 +179,7 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
         "CAST(strftime('%H', $column, 'localtime') AS INTEGER)";
     final row = await customSelect(
       'SELECT '
-      '(SELECT COUNT(*) FROM answer) + '
+      '(SELECT COUNT(*) FROM answer WHERE pin_lat IS NOT NULL) + '
       '(SELECT COUNT(*) FROM review_log '
       "WHERE distance_m IS NOT NULL AND source <> 'explore') AS pins, "
       "(SELECT COUNT(*) FROM answer WHERE tier = 'perfect') AS perfects, "
@@ -238,7 +239,7 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
   });
 
   /// The last pin distance of each of [streetIds] in [cityId], from Explore
-  /// (except the round [exceptRoundId]).
+  /// (except the round [exceptRoundId]); none when that answer was "I don't know".
   Future<Map<String, double>> lastDistances(
     String cityId,
     Iterable<String> streetIds, {
@@ -257,10 +258,12 @@ class ProgressDao extends DatabaseAccessor<AppDatabase>
                     : answers.roundId.equals(exceptRoundId).not()),
           )
           ..orderBy([OrderingTerm.asc(answers.createdAt)]);
-    return {
+    // The last answer wins; an "I don't know" has no distance to show.
+    final last = {
       for (final row in await freePlay.get())
         if (row.readTable(answers) case final a) a.streetId: a.distanceM,
     };
+    return {for (final MapEntry(:key, :value) in last.entries) key: ?value};
   }
 
   /// Every day that counted towards the streak, with the Explore round whose

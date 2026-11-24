@@ -11,11 +11,11 @@ import 'package:pindoro_learning/pindoro_learning.dart';
 /// session pin, it reviews a due or nearly due card, creates one for a
 /// first-sight Good or Easy, and is only logged otherwise. Then marks the
 /// day when it counts. Everything it reads from [ref] is taken before the
-/// first await: the round may be left while the pin saves.
+/// first await: the round may be left while the pin saves. No [pin] is "I don't know".
 Future<void> learnFromExplore(
   Ref ref, {
   required NamedStreet street,
-  required LatLng pin,
+  required LatLng? pin,
   required int rtMs,
   required String roundId,
 }) async {
@@ -32,19 +32,21 @@ Future<void> learnFromExplore(
   final successes = (await dao.log())
       .where((e) => e.itemId == itemId && e.rating.isSuccess)
       .length;
-  final grade = Grader.gradePin(
-    pin: pin,
-    target: street,
-    nearby: all,
-    confusable: confusablesOf(
-      street,
-      all,
-      await dao.confusionPairs(),
-      family: curriculum.familyOf(street.id),
-    ),
-    rtMs: rtMs,
-    priorSuccesses: successes,
-  );
+  final grade = pin == null
+      ? null
+      : Grader.gradePin(
+          pin: pin,
+          target: street,
+          nearby: all,
+          confusable: confusablesOf(
+            street,
+            all,
+            await dao.confusionPairs(),
+            family: curriculum.familyOf(street.id),
+          ),
+          rtMs: rtMs,
+          priorSuccesses: successes,
+        );
   final result = exploreAnswer(
     card,
     itemId: itemId,

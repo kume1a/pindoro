@@ -27,9 +27,9 @@ void main() {
           AnswersCompanion.insert(
             roundId: round.id,
             streetId: 'street',
-            pinLat: 41.7,
-            pinLon: 44.75,
-            distanceM: 42,
+            pinLat: Value(41.7),
+            pinLon: Value(44.75),
+            distanceM: Value(42),
             tier: Tier.great,
             packVersion: 'v1',
           ),

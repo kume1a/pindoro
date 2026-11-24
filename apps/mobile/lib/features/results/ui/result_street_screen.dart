@@ -47,12 +47,14 @@ class ResultStreetScreen extends ConsumerWidget {
 
     final previous = step(index, -1);
     final next = step(index, 1);
-    final pin = LatLng(answer.pinLat, answer.pinLon);
-    final nearest = street.nearest(pin).nearestPoint;
+    final pin = switch ((answer.pinLat, answer.pinLon)) {
+      (final lat?, final lon?) => LatLng(lat, lon),
+      _ => null,
+    };
     final name = streetName(street, settings);
     final other = name == street.name ? street.nameEn : street.name;
     final tier = PindoroTheme.of(context).tier(answer.tier);
-    final distance = formatDistance(answer.distanceM, l10n);
+    final distance = answerDistance(l10n, answer);
     void go(int i) => context.pushReplacement(Routes.resultStreet(roundId, i));
 
     return Scaffold(
@@ -65,7 +67,13 @@ class ResultStreetScreen extends ConsumerWidget {
               area: shape,
               pin: pin,
               truth: street.geometry,
-              measure: (from: pin, to: nearest, label: distance),
+              measure: pin == null
+                  ? null
+                  : (
+                      from: pin,
+                      to: street.nearest(pin).nearestPoint,
+                      label: distance,
+                    ),
               names: MapNames.all,
               topInset: insets.top,
               bottomInset: MediaQuery.paddingOf(body).bottom,
@@ -129,25 +137,18 @@ class ResultStreetScreen extends ConsumerWidget {
               [?other, distance].join(' · '),
               style: PindoroType.bodyMd.copyWith(color: c.textSecondary),
             ),
-            Row(
-              spacing: PindoroSpace.s3,
-              children: [
-                Expanded(
-                  child: PindoroButton(
-                    label: l10n.resultsPreviousStreet,
-                    variant: PindoroButtonVariant.secondary,
-                    onPressed: previous == null ? null : () => go(previous),
-                  ),
-                ),
-                Expanded(
-                  child: PindoroButton(
-                    label: l10n.resultsNextStreet,
-                    variant: PindoroButtonVariant.secondary,
-                    onPressed: next == null ? null : () => go(next),
-                  ),
-                ),
-              ],
-            ),
+            ButtonRow([
+              PindoroButton(
+                label: l10n.resultsPreviousStreet,
+                variant: PindoroButtonVariant.secondary,
+                onPressed: previous == null ? null : () => go(previous),
+              ),
+              PindoroButton(
+                label: l10n.resultsNextStreet,
+                variant: PindoroButtonVariant.secondary,
+                onPressed: next == null ? null : () => go(next),
+              ),
+            ]),
             PindoroButton(
               label: l10n.resultsBackToResults,
               onPressed: context.pop,

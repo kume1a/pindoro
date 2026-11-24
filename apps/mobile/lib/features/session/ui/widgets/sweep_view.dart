@@ -26,6 +26,7 @@ class SweepView extends ConsumerStatefulWidget {
     required this.onPlace,
     required this.onCheck,
     required this.onNext,
+    required this.onDontKnow,
   });
 
   final SessionPlaying play;
@@ -35,6 +36,9 @@ class SweepView extends ConsumerStatefulWidget {
   final void Function(String label, String lane) onPlace;
   final VoidCallback onCheck;
   final Future<void> Function() onNext;
+
+  /// "I don't know": the step graded as a miss, its answer shown.
+  final VoidCallback onDontKnow;
 
   @override
   ConsumerState<SweepView> createState() => _SweepViewState();
@@ -160,6 +164,9 @@ class _SweepViewState extends ConsumerState<SweepView> {
         onHold: (i) => setState(() => _held = i),
         confirmLabel: l10n.commonConfirm,
         confirmHint: l10n.answerPlaceAll,
+        skip: tier == null
+            ? (label: l10n.commonDontKnow, onSkip: widget.onDontKnow)
+            : null,
         onConfirm: tier == null && placed.length == task.lanes.length
             ? () => unawaited(_check(play.index))
             : null,

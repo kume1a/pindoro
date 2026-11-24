@@ -3,6 +3,18 @@
   "commonPlay": "Play",
   "commonNext": "Next",
   "commonConfirm": "Confirm",
+  "commonDontKnow": "I don’t know",
+  "@commonDontKnow": {
+    "description": "Under a question's Confirm: shows the answer, counted as a miss."
+  },
+  "answerDidntKnow": "Didn’t know",
+  "@answerDidntKnow": {
+    "description": "In place of the distance for an answer given as I don't know."
+  },
+  "revealDidntKnowSentence": "Here it is. It comes back soon.",
+  "@revealDidntKnowSentence": {
+    "description": "The reveal after I don't know: the street shown, asked again soon."
+  },
   "commonBack": "Back",
   "commonDone": "Done",
   "commonUndo": "Undo",
@@ -1905,6 +1917,14 @@
       }
     }
   },
+  "routeGatewayResultHere": "You join {street} here.",
+  "@routeGatewayResultHere": {
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
   "routeBridgeFrom": "Cross the river from",
   "routeBridgeAsk": "towards {place}: which bridge?",
   "@routeBridgeAsk": {
@@ -2200,6 +2220,9 @@
     }
   },
   "recitalReport": "Wrong? Report this turn",
+  "recitalReportTitle": "Count this move as legal?",
+  "recitalReportBody": "Recitals and drives on this phone will count it as legal from now on. Report it only if the map is wrong here.",
+  "recitalReportConfirm": "Report it",
   "recitalReported": "Reported: it counts as legal from now on",
   "recitalOnBest": "On the best route",
   "recitalDetour": "Legal, but a detour",
@@ -2740,22 +2763,6 @@
       }
     }
   },
-  "navMetres": "{count} metres",
-  "@navMetres": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "navKilometres": "{km, select, 1{1 kilometre} other{{km} kilometres}}",
-  "@navKilometres": {
-    "placeholders": {
-      "km": {
-        "type": "String"
-      }
-    }
-  },
   "navAt": "At {place}",
   "@navAt": {
     "placeholders": {
@@ -2769,6 +2776,24 @@
   "@navIn": {
     "placeholders": {
       "distance": {
+        "type": "String"
+      }
+    }
+  },
+  "navInMetres": "In {count} metres",
+  "@navInMetres": {
+    "description": "Spoken: units in full, never abbreviated.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "navInKilometres": "{km, select, 1{In 1 kilometre} other{In {km} kilometres}}",
+  "@navInKilometres": {
+    "description": "Spoken; km in the language's decimals.",
+    "placeholders": {
+      "km": {
         "type": "String"
       }
     }
@@ -3229,12 +3254,29 @@
       }
     }
   },
+  "debriefWentOnto": "You went onto {street}.",
+  "@debriefWentOnto": {
+    "description": "The way taken when the ways there can't be told apart by direction.",
+    "placeholders": {
+      "street": {
+        "type": "String"
+      }
+    }
+  },
   "debriefWayWas": "The way was {turn, select, left{left} right{right} uTurn{back} straight{straight on} other{on}} onto {street}.",
   "@debriefWayWas": {
     "placeholders": {
       "turn": {
         "type": "String"
       },
+      "street": {
+        "type": "String"
+      }
+    }
+  },
+  "debriefWayWasOnto": "The way was onto {street}.",
+  "@debriefWayWasOnto": {
+    "placeholders": {
       "street": {
         "type": "String"
       }
@@ -3718,6 +3760,18 @@
   "@driveTurnBare": {
     "placeholders": {
       "turn": {
+        "type": "String"
+      }
+    }
+  },
+  "driveTurnOnto": "{turn, select, left{Left onto {street}} right{Right onto {street}} keepLeft{Keep left onto {street}} keepRight{Keep right onto {street}} uTurn{Turn around onto {street}} other{Straight on {street}}}",
+  "@driveTurnOnto": {
+    "description": "A move as one line: the turn and the street it goes onto.",
+    "placeholders": {
+      "turn": {
+        "type": "String"
+      },
+      "street": {
         "type": "String"
       }
     }

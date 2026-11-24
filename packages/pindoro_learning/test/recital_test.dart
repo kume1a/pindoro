@@ -273,6 +273,16 @@ void main() {
       expect(r.extraM, closeTo(0, 0.5));
     });
 
+    test(
+      'a recital not known is a Miss with the best route and no decisions',
+      () {
+        final r = RecitalGrader.notKnown(graph, from: j(0, 0), to: j(2, 3));
+        expect((r.tier, r.rating, r.path), (Tier.miss, Rating.again, null));
+        expect(r.best?.junctions.first, j(0, 0));
+        expect(r.decisions, isEmpty);
+      },
+    );
+
     test('a hinted recital is capped at Great / Good', () {
       final r = RecitalGrader.grade(
         graph,

@@ -30,3 +30,4 @@ export 'src/widgets/streak.dart';
 export 'src/widgets/street_plate.dart';
 export 'src/widgets/surfaces.dart';
 export 'src/widgets/tappable.dart';
+export 'src/widgets/whole_words.dart';

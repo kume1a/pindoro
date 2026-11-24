@@ -127,21 +127,18 @@ final class RoundAsking extends RoundInPlay {
   const RoundAsking(super.round, [super.pin]);
 }
 
+/// The [answer] shown: its [pin] and the street's [nearest] point (the measure line), both
+/// null for "I don't know".
 final class RoundRevealed extends RoundInPlay {
   const RoundRevealed(
     super.round,
-    LatLng super.pin, {
+    super.pin, {
     required this.answer,
     required this.nearest,
   });
 
   final Answer answer;
-
-  /// Closest point of the street to the pin (end of the measure line).
-  final LatLng nearest;
-
-  @override
-  LatLng get pin => super.pin!;
+  final LatLng? nearest;
 }
 
 class RoundController extends Notifier<RoundState> {
@@ -376,24 +373,35 @@ class RoundController extends Notifier<RoundState> {
   /// answer also finishes the round, so a fully answered round is never left
   /// to resume.
   Future<void> confirm() async {
+    if (state case RoundAsking(pin: final pin?)) await _answer(pin);
+  }
+
+  /// "I don't know" (SPEC §16.24 item 136): a Miss with no pin, the street shown.
+  Future<void> dontKnow() async {
+    if (state is RoundAsking) await _answer(null);
+  }
+
+  Future<void> _answer(LatLng? pin) async {
     if (_saving) return;
-    if (state case RoundAsking(:final round, pin: final pin?)) {
+    if (state case RoundAsking(:final round)) {
       _saving = true;
       try {
         final dao = _progress;
         final question = round.question;
-        final nearest = question.street.nearest(pin);
+        final nearest = pin == null ? null : question.street.nearest(pin);
         final rtMs = _now().difference(_askedAt).inMilliseconds;
         final answer = await dao.recordAnswer(
           roundId: round.id,
           streetId: question.id,
           pin: pin,
-          distanceM: nearest.distanceM,
-          tier: scoreAnswer(
-            nearest.distanceM,
-            nearest.part.roadClass,
-            round.difficulty,
-          ),
+          distanceM: nearest?.distanceM,
+          tier: nearest == null
+              ? Tier.miss
+              : scoreAnswer(
+                  nearest.distanceM,
+                  nearest.part.roadClass,
+                  round.difficulty,
+                ),
           packVersion: round.packVersion,
         );
         if (round.isLast) await dao.finishRound(round.id);
@@ -410,7 +418,7 @@ class RoundController extends Notifier<RoundState> {
             round.withAnswer(answer),
             pin,
             answer: answer,
-            nearest: nearest.nearestPoint,
+            nearest: nearest?.nearestPoint,
           );
         }
       } finally {

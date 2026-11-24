@@ -9,6 +9,8 @@ import 'package:pindoro/features/learning/data/runs.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/learning/ui/city_memory_card.dart';
 import 'package:pindoro/features/learning/ui/city_tab_page.dart';
+import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
+import 'package:pindoro/features/pack/ui/pack_pending.dart';
 import 'package:pindoro/features/today/ui/widgets/coming_up.dart';
 import 'package:pindoro/features/today/ui/widgets/first_run.dart';
 import 'package:pindoro/features/today/ui/widgets/today_card.dart';
@@ -32,14 +34,20 @@ class TodayScreen extends ConsumerWidget {
       refreshLearning(ref);
     }
 
+    // No pack open (offline on a first launch): its download and Try again, as Explore
+    // shows, instead of a plan that never comes.
+    final pack = ref.watch(packRepositoryProvider);
+    if (!pack.hasValue) return PackPending(pack: pack);
     final learnCity = ref.watch(learnCityProvider);
     final plan = ref.watch(todayPlanProvider);
     final memory = ref.watch(cityMemoryProvider).value;
+    // A refresh keeps the last values on screen (Riverpod reloads with them): matching
+    // AsyncData alone would blank the tab to a spinner on every return.
     final cards = switch ((learnCity, plan)) {
-      (AsyncData(value: final c), _) when c?.placedAt == null => [
-        FirstRun(onOpen: open),
-      ],
-      (AsyncData(), AsyncData(value: final plan)) => () {
+      (AsyncValue(hasValue: true, value: final c), _)
+          when c?.placedAt == null =>
+        [FirstRun(onOpen: open)],
+      (AsyncValue(hasValue: true), AsyncValue(value: final plan?)) => () {
         // The day's minutes spent with reviews still due is a backlog with
         // nothing to start: done (SPEC §16.2).
         final done = plan.rounds.isEmpty;

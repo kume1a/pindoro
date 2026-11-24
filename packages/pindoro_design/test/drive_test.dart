@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -40,8 +41,8 @@ const List<RouteCard> _cards = [
 ];
 
 void main() {
-  testWidgets('the level picker applies a tap at once; a disabled step '
-      'says why and changes nothing', (tester) async {
+  testWidgets('the level picker applies a tap at once; a locked step shows a '
+      'lock, says why when tapped and changes nothing', (tester) async {
     final picked = <_Level>[];
     await tester.pumpWidget(
       _host(
@@ -56,13 +57,64 @@ void main() {
       ),
     );
     expect(find.text('Suggested'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (w) => w is PindoroIcon && w.glyph == PindoroGlyph.lock,
+      ),
+      findsOneWidget,
+    );
     await tester.tap(find.text('quiet'));
     await tester.tap(find.text('off'));
-    await tester.tap(find.text('guided'));
-    expect(picked, [_Level.quiet]);
-    await tester.longPress(find.text('off'));
     await tester.pumpAndSettle();
     expect(find.text('Two steps past the suggestion'), findsOneWidget);
+    await tester.tap(find.text('guided'));
+    expect(picked, [_Level.quiet]);
+  });
+
+  testWidgets('Georgian level names stay whole words in the 360 dp picker', (
+    tester,
+  ) async {
+    tester.view
+      ..physicalSize = const Size(1080, 2400)
+      ..devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    const names = ['გამყოლი', 'მწვრთნელი', 'ჩუმი', 'გამორთული'];
+    await tester.pumpWidget(
+      _host(
+        Padding(
+          padding: const EdgeInsets.all(PindoroSpace.s4),
+          child: LevelPicker<_Level>(
+            steps: [
+              for (final (i, s) in _steps().indexed)
+                (
+                  value: s.value,
+                  label: names[i],
+                  icon: s.icon,
+                  disabledReason: null,
+                ),
+            ],
+            selected: _Level.guided,
+            suggested: _Level.coached,
+            suggestedLabel: 'გირჩევ',
+            onChanged: (_) {},
+            semanticsLabel: 'დახმარება',
+          ),
+        ),
+      ),
+    );
+    for (final name in names) {
+      final paragraph = tester.renderObject<RenderParagraph>(find.text(name));
+      expect(
+        paragraph
+            .getBoxesForSelection(
+              TextSelection(baseOffset: 0, extentOffset: name.length),
+            )
+            .map((b) => b.top)
+            .toSet(),
+        hasLength(1),
+        reason: '$name on one line',
+      );
+    }
   });
 
   testWidgets('the stopped bar mutes, opens the level and ends the drive', (
@@ -187,6 +239,53 @@ void main() {
       tester.getSize(find.text('End drive')).height,
       lessThanOrEqualTo(2 * style.fontSize! * style.height! + 1),
       reason: 'two lines at most: its words are not broken up',
+    );
+  });
+
+  testWidgets('the stopped bar in Georgian at 360 dp: End drive gets a row of '
+      'its own, every word whole', (tester) async {
+    tester.view
+      ..physicalSize = const Size(1080, 2400)
+      ..devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    const endLabel = 'მგზავრობის დასრულება';
+    await tester.pumpWidget(
+      _host(
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: StoppedBar(
+            semanticsLabel: 'Controls while stopped',
+            left: '3,4 კმ დარჩა',
+            arrival: '12:41',
+            muted: false,
+            muteLabel: 'Mute the voice',
+            onMute: () {},
+            level: (
+              icon: PindoroGlyph.soundOn,
+              label: 'მწვრთნელი',
+              semanticsLabel: 'Level: Coached. Change.',
+            ),
+            levelOpen: false,
+            onLevel: () {},
+            endLabel: endLabel,
+            onEnd: () {},
+            routeLabel: 'Route and destination',
+            onRoute: () {},
+          ),
+        ),
+      ),
+    );
+    final end = find.ancestor(
+      of: find.text(endLabel),
+      matching: find.byType(PindoroButton),
+    );
+    expect(tester.getSize(end).width, 360 - 2 * PindoroSpace.s3);
+    expect(find.text('მწვრთნელი'), findsOneWidget);
+    final style = PindoroType.labelButton;
+    expect(
+      tester.getSize(find.text(endLabel)).height,
+      lessThanOrEqualTo(style.fontSize! * style.height! + 1),
+      reason: 'one line: nothing broken up',
     );
   });
 

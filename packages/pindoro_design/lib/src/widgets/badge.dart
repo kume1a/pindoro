@@ -5,6 +5,7 @@ import '../theme.dart';
 import 'district_map.dart';
 import 'graphics.dart';
 import 'surfaces.dart';
+import 'whole_words.dart';
 
 /// A badge's shield (component Badge): a `color.badge.rim` rim, the coloured
 /// [field] inset in it and one [glyph] in white. [locked] draws the locked
@@ -140,83 +141,65 @@ class BadgeTile extends StatelessWidget {
       container: true,
       label: semanticLabel,
       excludeSemantics: true,
-      child: Stack(
-        children: [
-          // The card fills its slot even when its text is narrower.
-          SizedBox(
-            width: double.infinity,
-            child: LipBox(
-              border: c.lineBase,
-              radius: PindoroRadius.lg,
-              padding: const EdgeInsets.symmetric(
-                horizontal: PindoroSpace.s2,
-                vertical: PindoroSpace.s3,
-              ),
-              child: Column(
-                spacing: 2,
-                children: [
-                  BadgeShield(
-                    glyph: glyph,
-                    field: field,
-                    locked: locked,
-                    size: 56,
-                  ),
-                  const SizedBox(height: PindoroSpace.s1),
-                  _OneWordFits(
-                    Text(
-                      name,
-                      textAlign: TextAlign.center,
-                      style: PindoroType.titleSm.copyWith(
-                        color: locked ? c.textSecondary : c.textPrimary,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    condition,
-                    textAlign: TextAlign.center,
-                    style: PindoroType.bodySm.copyWith(color: c.textSecondary),
-                  ),
-                  if (progress != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: PindoroSpace.s1),
-                      child: Minibar(value: progress),
-                    ),
-                ],
-              ),
-            ),
+      // The card fills its slot even when its text is narrower.
+      child: SizedBox(
+        width: double.infinity,
+        child: LipBox(
+          border: c.lineBase,
+          radius: PindoroRadius.lg,
+          padding: const EdgeInsets.symmetric(
+            horizontal: PindoroSpace.s2,
+            vertical: PindoroSpace.s3,
           ),
-          if (pill case (final label, final face, final ink))
-            PositionedDirectional(
-              top: PindoroSpace.s2,
-              end: PindoroSpace.s2,
-              child: Container(
-                // The design's pill: 1 × 7 dp around label.sm.
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
-                decoration: BoxDecoration(
-                  color: face,
-                  borderRadius: BorderRadius.circular(PindoroRadius.full),
-                ),
-                child: Text(
-                  label,
-                  style: PindoroType.labelSm.copyWith(color: ink),
+          child: Column(
+            spacing: 2,
+            children: [
+              BadgeShield(glyph: glyph, field: field, locked: locked, size: 56),
+              const SizedBox(height: PindoroSpace.s1),
+              WholeWords(
+                Text(
+                  name,
+                  textAlign: TextAlign.center,
+                  style: PindoroType.titleSm.copyWith(
+                    color: locked ? c.textSecondary : c.textPrimary,
+                  ),
                 ),
               ),
-            ),
-        ],
+              Text(
+                condition,
+                textAlign: TextAlign.center,
+                style: PindoroType.bodySm.copyWith(color: c.textSecondary),
+              ),
+              if (progress != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: PindoroSpace.s1),
+                  child: Minibar(value: progress),
+                ),
+              // Under the text, not on the shield: a long pill would cover it.
+              if (pill case (final label, final face, final ink))
+                Container(
+                  // The design's pill: 1 × 7 dp around label.sm.
+                  margin: const EdgeInsets.only(top: PindoroSpace.s1),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: face,
+                    borderRadius: BorderRadius.circular(PindoroRadius.full),
+                  ),
+                  child: WholeWords(
+                    Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: PindoroType.labelSm.copyWith(color: ink),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
-}
-
-/// A one-word [text] shrinks to fit its line instead of breaking mid-word (a
-/// long Georgian name in a narrow tile); names of more words wrap between them.
-class _OneWordFits extends StatelessWidget {
-  const _OneWordFits(this.text);
-
-  final Text text;
-
-  @override
-  Widget build(BuildContext context) => text.data!.trim().contains(' ')
-      ? text
-      : FittedBox(fit: BoxFit.scaleDown, child: text);
 }

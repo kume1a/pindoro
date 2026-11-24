@@ -1398,3 +1398,23 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        along the route at its speed (slow or off the route, to the fix), turning with the road
        12 m ahead. The car is drawn over the map where the camera centres it, so it no longer
        jumps a step each second; moved away or in the overview it is the map's symbol.
+
+### 16.24 A way out of a question (2026-11-24)
+
+136. **"I don't know"** (asked by the player: without it the only way out was a random tap): a
+     tertiary button under Confirm or Check on every asked step, in sessions and Explore, until
+     it is answered. It is a miss, rated Again (`Grader.notKnown`), with no pin, pick, distance
+     or mixed-up pair, and the answer shows at once ("Didn't know", Miss colours):
+     - A pin (P, L1, a gateway): the street or place shown, no measure line; it relearns in
+       the session like any miss. In Explore the answer row has no pin or distance (schema
+       31), Results says "Didn't know", Retry missed takes it, and the badges' pin count
+       skips it.
+     - Both ends: none hit. Name it, a turn, a bridge, L2 and L3: the right one shown. A
+       connection: the street shown, with no multiple choice after it.
+     - A recital: Miss / Again with the best route; no decision is evidence for its J card.
+     - The family sweep: every lane Again. Crossings: that crossing wrong, then the next.
+       A bearing: Miss, logged only.
+     - A guess first logs its pretest as Again and goes on to the intro (a guess never counts).
+       Placement keeps "I don't know this one", which logs nothing.
+137. **"Report this turn" asks first**: it makes a move legal on this phone for good, so it
+     says so and waits for Report it (as "Can't find it?" does).

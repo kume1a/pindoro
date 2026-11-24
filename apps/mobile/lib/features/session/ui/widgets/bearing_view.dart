@@ -19,6 +19,7 @@ class BearingView extends ConsumerWidget {
     required this.onTurn,
     required this.onCheck,
     required this.onNext,
+    required this.onDontKnow,
   });
 
   final SessionPlaying play;
@@ -26,6 +27,9 @@ class BearingView extends ConsumerWidget {
   final ValueChanged<double> onTurn;
   final VoidCallback onCheck;
   final Future<void> Function() onNext;
+
+  /// "I don't know": the step graded as a miss, its answer shown.
+  final VoidCallback onDontKnow;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -37,6 +41,7 @@ class BearingView extends ConsumerWidget {
         l10n.compassWord(compassPointOf(degrees).name);
     final tier = task.result;
     return TaskScaffold(
+      onDontKnow: onDontKnow,
       topBar: topBar,
       header: AskCard(
         title: l10n.sessionBearingAsk(name),
@@ -51,6 +56,7 @@ class BearingView extends ConsumerWidget {
           onChanged: onTurn,
           semanticsLabel: l10n.a11yCompass,
           describeBearing: word,
+          northLabel: l10n.driveCardinal('n'),
           animate: !MediaQuery.disableAnimationsOf(context),
           caption: task.checked
               ? l10n.sessionBearingCaptionTruth(

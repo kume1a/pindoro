@@ -5,6 +5,7 @@ import '../../theme.dart';
 import '../graphics.dart';
 import '../tappable.dart';
 import '../text_scale.dart';
+import '../whole_words.dart';
 import 'drive_parts.dart';
 
 /// One step of a [LevelPicker]: disabled with its [disabledReason].
@@ -16,8 +17,8 @@ typedef LevelStep<T> = ({
 });
 
 /// Four steps of help for a drive (LevelPicker): the [suggested] step wears
-/// a yellow [suggestedLabel] tag; a disabled step says why on long-press. A
-/// tap applies at once. Parked only: it follows the app theme.
+/// a yellow [suggestedLabel] tag; a disabled step shows a lock and says why when
+/// tapped. A tap applies at once. Parked only: it follows the app theme.
 class LevelPicker<T> extends StatelessWidget {
   const LevelPicker({
     super.key,
@@ -119,11 +120,12 @@ class _LevelStepView<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
     final disabled = step.disabledReason != null;
+    // Open steps in full ink, so the locked ones read as greyed out.
     final ink = disabled
         ? c.textDisabled
         : selected
         ? c.primaryText
-        : c.textSecondary;
+        : c.textPrimary;
     final large = isLargeText(context);
     final face = AnimatedContainer(
       duration: PindoroMotion.durationQuick,
@@ -156,17 +158,19 @@ class _LevelStepView<T> extends StatelessWidget {
         spacing: 2,
         children: [
           PindoroIcon(
-            step.icon,
+            disabled ? PindoroGlyph.lock : step.icon,
             size: large ? 32 : 22,
             color: ink,
             cut: selected ? c.surfaceRaised : c.surfaceSunken,
           ),
-          Text(
-            step.label,
-            textAlign: TextAlign.center,
-            style: PindoroType.labelLg.copyWith(
-              color: ink,
-              fontWeight: FontWeight.w800,
+          WholeWords(
+            Text(
+              step.label,
+              textAlign: TextAlign.center,
+              style: PindoroType.labelLg.copyWith(
+                color: ink,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ],
@@ -180,7 +184,8 @@ class _LevelStepView<T> extends StatelessWidget {
       child: disabled
           ? Tooltip(
               message: step.disabledReason,
-              triggerMode: TooltipTriggerMode.longPress,
+              // A tap says why at once: nothing else answers it.
+              triggerMode: TooltipTriggerMode.tap,
               child: face,
             )
           : face,
@@ -287,10 +292,15 @@ class LevelSuggestion extends StatelessWidget {
                       children: [what, why],
                     ),
                   )
-                else ...[
-                  Expanded(child: what),
-                  Flexible(child: why),
-                ],
+                else
+                  // The reason drops under the level when both don't fit one line.
+                  Expanded(
+                    child: Wrap(
+                      spacing: PindoroSpace.s2,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [what, why],
+                    ),
+                  ),
               ],
             ),
           ),

@@ -34,6 +34,7 @@ class RouteView extends ConsumerStatefulWidget {
     required this.onAnswer,
     required this.onNext,
     required this.onHidePlace,
+    required this.onDontKnow,
     this.chip,
   });
 
@@ -47,6 +48,9 @@ class RouteView extends ConsumerStatefulWidget {
 
   /// "Can't find it?" on a pack place's result.
   final VoidCallback onHidePlace;
+
+  /// "I don't know": the step graded as a miss, its answer shown.
+  final VoidCallback onDontKnow;
 
   /// The result's next-review chip.
   final Widget? chip;
@@ -75,7 +79,11 @@ class _RouteViewState extends ConsumerState<RouteView> {
   @override
   void didUpdateWidget(RouteView old) {
     super.didUpdateWidget(old);
-    if (old.play.index != widget.play.index) _confirmed = null;
+    // Route cards in a row share this state: a new card starts blank.
+    if (old.play.index != widget.play.index) {
+      _confirmed = null;
+      _field.clear();
+    }
   }
 
   Future<void> _confirm(int i, Object choice) async {
@@ -98,21 +106,30 @@ class _RouteViewState extends ConsumerState<RouteView> {
           final d? => districtName(d, settings),
           null => l10n.routeCityCentre,
         };
-    String name(NamedStreet? s) => s == null ? '' : streetName(s, settings);
+    // A way with no name is "a link road", never a blank in the sentence.
+    String name(NamedStreet? s) =>
+        s == null ? l10n.debriefLinkRoad : streetName(s, settings);
     final streets = ref.watch(cityStreetsProvider).value ?? const {};
     String junctionAt(int junction) => graph == null
         ? ''
         : junctionName(graph, junction, streets, settings) ?? '';
     final tier = task.result;
-    Widget searchField(String placeholder) => SearchField(
-      controller: _field,
-      placeholder: placeholder,
-      clearLabel: l10n.commonClear,
-      glyph: PindoroGlyph.signpost,
-      autocorrect: false,
-      textInputAction: TextInputAction.done,
-      onChanged: (_) => setState(() {}),
-    );
+    Widget searchField(String placeholder, {bool submits = false}) =>
+        SearchField(
+          controller: _field,
+          placeholder: placeholder,
+          clearLabel: l10n.commonClear,
+          glyph: PindoroGlyph.signpost,
+          autocorrect: false,
+          textInputAction: TextInputAction.done,
+          onChanged: (_) => setState(() {}),
+          // The typed answer alone: Enter checks it, as Check does.
+          onSubmitted: submits
+              ? (text) {
+                  if (text.trim().isNotEmpty) _answer();
+                }
+              : null,
+        );
     final field = searchField(l10n.sessionCrossingsHint);
     Widget confirm(String label, {required bool ready}) =>
         PindoroButton(label: label, onPressed: ready ? _answer : null);
@@ -141,6 +158,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
         final scene = graph == null ? null : _turnScene(graph, q);
         final landmark = q.landmark;
         return TaskScaffold(
+          onDontKnow: widget.onDontKnow,
           topBar: widget.topBar,
           header: StreetPlate(
             name(q.approachStreet),
@@ -240,6 +258,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
       case final GatewayQuestion q:
         final chunk = chunkName(q.chunk);
         return TaskScaffold(
+          onDontKnow: widget.onDontKnow,
           topBar: widget.topBar,
           map: (insets) => map(
             PindoroMap(
@@ -274,18 +293,20 @@ class _RouteViewState extends ConsumerState<RouteView> {
           ),
           result: tier == null
               ? null
-              : result(
-                  l10n.routeGatewayResult(
+              : result(switch (play.pin) {
+                  final pin? => l10n.routeGatewayResult(
                     name(q.exitStreet),
-                    formatDistance(distanceBetween(play.pin!, q.at), l10n),
+                    formatDistance(distanceBetween(pin, q.at), l10n),
                   ),
-                ),
+                  null => l10n.routeGatewayResultHere(name(q.exitStreet)),
+                }),
         );
 
       case final BridgeQuestion q:
         final chosen = task.choice as Bridge?;
         final number = chosen == null ? 0 : q.options.indexOf(chosen) + 1;
         return TaskScaffold(
+          onDontKnow: widget.onDontKnow,
           topBar: widget.topBar,
           map: (insets) => map(
             PindoroMap(
@@ -341,6 +362,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
 
       case final ConnectionQuestion q:
         return TaskScaffold(
+          onDontKnow: widget.onDontKnow,
           topBar: widget.topBar,
           header: AskCard(
             title: l10n.routeConnectionAsk(name(q.street), name(q.from)),
@@ -350,7 +372,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
             mainAxisSize: MainAxisSize.min,
             spacing: PindoroSpace.s2,
             children: [
-              field,
+              searchField(l10n.sessionCrossingsHint, submits: true),
               confirm(l10n.commonCheck, ready: _field.text.trim().isNotEmpty),
             ],
           ),
@@ -370,6 +392,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
         final miss = pin == null ? null : q.distanceFrom(pin);
         final junction = junctionAt(q.junction ?? -1);
         return TaskScaffold(
+          onDontKnow: widget.onDontKnow,
           topBar: widget.topBar,
           map: q.n == 1
               ? (insets) => map(
@@ -442,10 +465,15 @@ class _RouteViewState extends ConsumerState<RouteView> {
                     ],
                     confirmLabel: l10n.commonConfirm,
                     confirmHint: l10n.answerPickFirst,
-                    result: confirmed == null
+                    skip: (
+                      label: l10n.commonDontKnow,
+                      onSkip: widget.onDontKnow,
+                    ),
+                    // Not known: only the right one shows.
+                    result: confirmed == null && tier == null
                         ? null
                         : (
-                            picked: confirmed,
+                            picked: confirmed ?? -1,
                             right: q.n == 2
                                 ? q.junctions.indexOf(q.junction ?? -1)
                                 : q.places.indexWhere(

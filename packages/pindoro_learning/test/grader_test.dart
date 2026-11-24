@@ -250,6 +250,12 @@ void main() {
       expect((none.hits, none.rating), (0, Rating.again));
     });
 
+    test('ends not known: none hit, Again, the ends still there to show', () {
+      final none = Grader.extentNotKnown(long);
+      expect((none.hits, none.rating, none.tier), (0, Rating.again, Tier.miss));
+      expect(none.ends, streetEnds(long));
+    });
+
     test('bearings: 20° Great, 45° Close, else Miss; the error wraps', () {
       expect(bearingError(350, 10), 20);
       expect(Grader.gradeBearing(bearingError(350, 10)), Tier.great);

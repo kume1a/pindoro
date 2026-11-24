@@ -231,30 +231,23 @@ class _PickDetails extends ConsumerWidget {
         if (address != null) line(PindoroGlyph.pin, address),
         if (details?.hours case final hours?) line(PindoroGlyph.timer, hours),
         if (phone != null || web != null)
-          Row(
-            spacing: PindoroSpace.s3,
-            children: [
-              if (phone != null)
-                Expanded(
-                  child: PindoroButton(
-                    label: l10n.placeCall,
-                    variant: PindoroButtonVariant.secondary,
-                    onPressed: () => unawaited(launchUrl(phone)),
-                  ),
+          ButtonRow([
+            if (phone != null)
+              PindoroButton(
+                label: l10n.placeCall,
+                variant: PindoroButtonVariant.secondary,
+                onPressed: () => unawaited(launchUrl(phone)),
+              ),
+            if (web != null)
+              PindoroButton(
+                label: l10n.placeWebsite,
+                icon: PindoroGlyph.external,
+                variant: PindoroButtonVariant.secondary,
+                onPressed: () => unawaited(
+                  launchUrl(web, mode: LaunchMode.externalApplication),
                 ),
-              if (web != null)
-                Expanded(
-                  child: PindoroButton(
-                    label: l10n.placeWebsite,
-                    icon: PindoroGlyph.external,
-                    variant: PindoroButtonVariant.secondary,
-                    onPressed: () => unawaited(
-                      launchUrl(web, mode: LaunchMode.externalApplication),
-                    ),
-                  ),
-                ),
-            ],
-          ),
+              ),
+          ]),
       ],
     );
   }

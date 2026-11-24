@@ -14,15 +14,16 @@ import 'package:pindoro/features/map/ui/widgets/tier_reveal.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-/// A confirmed pin: its tier and distance, where it was and the nearest
-/// point of the street (the measure line), the sheet's [chips] and the
-/// [action] label (Next, Got it, See results).
+/// Where a confirmed pin landed: its distance to the street and the street's nearest point
+/// (the measure line).
+typedef PinAnswer = ({double distanceM, LatLng pin, LatLng nearest});
+
+/// A revealed question: its tier, the pin's [answer] (null for "I don't know"), the
+/// sheet's [chips] and the [action] label (Next, Got it, See results).
 typedef PinReveal = ({
   Object key,
   Tier tier,
-  double distanceM,
-  LatLng pin,
-  LatLng nearest,
+  PinAnswer? answer,
   List<Widget> chips,
   String action,
 });
@@ -86,13 +87,14 @@ class PinDropView extends ConsumerWidget {
   /// The plate's ask row instead of "Drop a pin on".
   final String? prompt;
 
-  /// A tertiary button under Confirm that moves on without an answer
-  /// ("I don't know this one").
+  /// A tertiary button under Confirm for no answer ("I don't know").
   final ({String label, VoidCallback onSkip})? skip;
 
-  /// Space the Confirm button takes at the bottom of the map (for toasts).
+  /// Space Confirm and the [skip] under it take at the bottom of the map (for toasts).
   static double confirmInset(BuildContext context) =>
-      PindoroButton.height + PindoroElevation.e2 + mapActionGap(context);
+      2 * (PindoroButton.height + PindoroElevation.e2) +
+      PindoroSpace.s1 +
+      mapActionGap(context);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -108,13 +110,14 @@ class PinDropView extends ConsumerWidget {
             area: area,
             pin: pin,
             truth: reveal == null ? null : street.geometry,
-            measure: reveal == null || mixUp != null
-                ? null
-                : (
-                    from: reveal.pin,
-                    to: reveal.nearest,
-                    label: formatDistance(reveal.distanceM, l10n),
-                  ),
+            measure: switch (reveal?.answer) {
+              final a? when mixUp == null => (
+                from: a.pin,
+                to: a.nearest,
+                label: formatDistance(a.distanceM, l10n),
+              ),
+              _ => null,
+            },
             onTap: reveal == null
                 ? (at) {
                     onPin(at);
@@ -201,7 +204,10 @@ class PinDropView extends ConsumerWidget {
                     null => null,
                   },
                   headerChip: headerChip,
-                  streetView: streetSpot(street, reveal.nearest),
+                  streetView: streetSpot(
+                    street,
+                    reveal.answer?.nearest ?? street.parts.first.midpoint,
+                  ),
                 ),
               ),
         front: [
@@ -237,9 +243,22 @@ class PinRevealSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final distance = formatDistance(reveal.distanceM, l10n);
+    final answer = reveal.answer;
+    if (answer == null) {
+      return TierRevealSheet(
+        tier: Tier.miss,
+        headerChip: headerChip,
+        label: l10n.answerDidntKnow,
+        sentence: l10n.revealDidntKnowSentence,
+        chips: reveal.chips,
+        action: reveal.action,
+        onNext: onNext,
+        streetView: streetView,
+      );
+    }
+    final distance = formatDistance(answer.distanceM, l10n);
     final direction = l10n.revealMissDirection(
-      compassPoint(reveal.pin, reveal.nearest).name,
+      compassPoint(answer.pin, answer.nearest).name,
     );
     final mixUp = this.mixUp;
     final sentence = switch (reveal.tier) {

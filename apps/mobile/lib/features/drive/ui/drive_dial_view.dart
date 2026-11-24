@@ -238,10 +238,10 @@ class _RecoveryTurn extends StatelessWidget {
     return Semantics(
       liveRegion: true,
       label: l10n.a11yRecovering(
-        [
-          decisionAction(l10n, glyph, onto: street != null),
-          if (street != null) streetName(street, settings),
-        ].join(' '),
+        decisionLine(l10n, glyph, switch (street) {
+          final s? => streetName(s, settings),
+          null => null,
+        }),
       ),
       child: ExcludeSemantics(
         child: AnimatedOpacity(

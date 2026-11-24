@@ -50,18 +50,20 @@ String formatDistance(double metres, AppLocalizations l10n) {
 /// "500 m", "1.5 km", "3 km": an area dimension (one decimal, no ".0").
 String formatSize(double metres, AppLocalizations l10n) {
   if (metres < 999.5) return l10n.unitMetres('${metres.round()}');
-  return l10n.unitKilometres(_km(metres, l10n));
+  return l10n.unitKilometres(formatKm(metres, l10n));
 }
 
 /// "2.6 × 3 km": a rectangle's sides.
 String formatSides(double width, double height, AppLocalizations l10n) =>
-    l10n.unitKilometres('${_km(width, l10n)} × ${_km(height, l10n)}');
+    l10n.unitKilometres('${formatKm(width, l10n)} × ${formatKm(height, l10n)}');
 
 /// "1.3 MB" (one decimal) for a download size.
 String formatMegabytes(int bytes, AppLocalizations l10n) =>
     l10n.unitMegabytes(_decimal('0.0', bytes / 1e6, l10n));
 
-String _km(double metres, AppLocalizations l10n) =>
+/// [metres] as kilometres, one decimal at most and none for whole ones: "1.5", "3" ("1,5"
+/// in Georgian).
+String formatKm(double metres, AppLocalizations l10n) =>
     _decimal('0.#', metres / 1000, l10n);
 
 String _decimal(String pattern, double value, AppLocalizations l10n) =>

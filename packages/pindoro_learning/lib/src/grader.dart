@@ -74,6 +74,13 @@ abstract final class Grader {
   /// Grades a two-pin answer for [street]'s ends (SPEC §5.2): an end counts with a pin within
   /// `max(`[LearningConfig.extentEndMinM]`, `[LearningConfig.extentEndFraction]` × length)`,
   /// whichever pin goes with which end. Both Good (Great), one Hard (Close), none Again (Miss).
+  /// "I don't know" on an asked step (SPEC §16.24 item 136): a miss, rated Again.
+  static const Rating notKnown = Rating.again;
+
+  /// Both ends asked and not known (item 136): none hit.
+  static ExtentGrade extentNotKnown(NamedStreet street) =>
+      (ends: streetEnds(street), hits: 0, tier: Tier.miss, rating: notKnown);
+
   static ExtentGrade gradeExtent({
     required (LatLng, LatLng) pins,
     required NamedStreet street,

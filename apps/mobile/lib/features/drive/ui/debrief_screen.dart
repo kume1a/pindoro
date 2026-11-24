@@ -169,8 +169,16 @@ class _DebriefScreenState extends ConsumerState<DebriefScreen> {
 Turn? _turnOf(Map<Turn, RoadEdge>? exits, RoadEdge edge) =>
     exits?.entries.where((e) => e.value.id == edge.id).firstOrNull?.key;
 
-/// A turn as a word for the sentences: left, right, straight on, back.
-String _turnName(Turn? t) => t?.name ?? 'other';
+/// "You went left onto X", or "You went onto X" when the ways there can't be told apart by
+/// direction ([turn] null).
+String _went(AppLocalizations l10n, Turn? turn, String street) => turn == null
+    ? l10n.debriefWentOnto(street)
+    : l10n.debriefWent(turn.name, street);
+
+/// "The way was left onto X", or "The way was onto X" without a [turn].
+String _wayWas(AppLocalizations l10n, Turn? turn, String street) => turn == null
+    ? l10n.debriefWayWasOnto(street)
+    : l10n.debriefWayWas(turn.name, street);
 
 MarkKind _kind(TurnMark mark) => MarkKind.values.byName(mark.name);
 
@@ -482,13 +490,11 @@ class _Reveal extends ConsumerWidget {
     final sentence = [
       if (said != null)
         said == done ? l10n.debriefRemembered : l10n.debriefNotRemembered,
-      l10n.debriefWent(
-        _turnName(done),
-        _streetOf(l10n, t.done, streets, settings),
-      ),
+      _went(l10n, done, _streetOf(l10n, t.done, streets, settings)),
       if (missed)
-        l10n.debriefWayWas(
-          _turnName(_turnOf(t.exits, t.way)),
+        _wayWas(
+          l10n,
+          _turnOf(t.exits, t.way),
           _streetOf(l10n, t.way, streets, settings),
         ),
     ].join(' ');
@@ -964,6 +970,7 @@ class _PointState extends ConsumerState<_Point> {
           onChanged: (b) => setState(() => _arrow = b),
           semanticsLabel: l10n.a11yCompass,
           describeBearing: word,
+          northLabel: l10n.driveCardinal('n'),
           animate: !MediaQuery.disableAnimationsOf(context),
           degrees: _locked && error != null
               ? l10n.debriefDegrees(formatNumber(error.round()))
