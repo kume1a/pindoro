@@ -106,6 +106,113 @@ void main() {
     );
   });
 
+  testWidgets('the selected level reads as checked, not as unavailable', (
+    tester,
+  ) async {
+    final picked = <_Level>[];
+    await tester.pumpWidget(
+      _host(
+        LevelPicker<_Level>(
+          steps: _steps(),
+          selected: _Level.coached,
+          suggested: _Level.guided,
+          suggestedLabel: 'Suggested',
+          onChanged: picked.add,
+          semanticsLabel: 'How much help on this drive',
+        ),
+      ),
+    );
+    expect(
+      tester.getSemantics(find.bySemanticsLabel(RegExp('^coached'))),
+      isSemantics(
+        hasEnabledState: true,
+        isEnabled: true,
+        hasCheckedState: true,
+        isChecked: true,
+      ),
+    );
+    await tester.tap(find.text('coached'));
+    expect(picked, isEmpty);
+  });
+
+  testWidgets('the stopped bar at 360 dp and 200 % text: End drive keeps its '
+      'words whole, the level gives way, nothing overflows', (tester) async {
+    tester.view
+      ..physicalSize = const Size(1080, 2400)
+      ..devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      _host(
+        Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(2)),
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: StoppedBar(
+                semanticsLabel: 'Controls while stopped',
+                left: '3.4 km left',
+                arrival: 'Arrive 12:41',
+                muted: false,
+                muteLabel: 'Mute the voice',
+                onMute: () {},
+                level: (
+                  icon: PindoroGlyph.soundOn,
+                  label: 'Coached',
+                  semanticsLabel: 'Level: Coached. Change.',
+                ),
+                levelOpen: false,
+                onLevel: () {},
+                endLabel: 'End drive',
+                onEnd: () {},
+                routeLabel: 'Route and destination',
+                onRoute: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final end = find.ancestor(
+      of: find.text('End drive'),
+      matching: find.byType(PindoroButton),
+    );
+    expect(
+      tester.getSize(end).width,
+      greaterThanOrEqualTo(2 * PindoroSize.buttonLg),
+    );
+    final style = PindoroType.labelButton;
+    expect(
+      tester.getSize(find.text('End drive')).height,
+      lessThanOrEqualTo(2 * style.fontSize! * style.height! + 1),
+      reason: 'two lines at most: its words are not broken up',
+    );
+  });
+
+  testWidgets('the heading dial shows no pointer before the first heading', (
+    tester,
+  ) async {
+    Future<void> dial(double? heading) => tester.pumpWidget(
+      _host(
+        HeadingDial(
+          heading: heading,
+          letter: heading == null ? '' : 'E',
+          status: DriveStatus.good,
+          semanticsLabel: 'Heading',
+        ),
+      ),
+    );
+    final pointer = find.descendant(
+      of: find.byType(HeadingDial),
+      matching: find.byType(AnimatedRotation),
+    );
+    await dial(null);
+    expect(pointer, findsNothing);
+    await dial(90);
+    expect(pointer, findsOneWidget);
+  });
+
   testWidgets('a three-figure limit drops to 26 dp to fit the ring', (
     tester,
   ) async {

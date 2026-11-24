@@ -331,50 +331,44 @@ class SweepSocket extends StatelessWidget {
       );
     }
 
-    return Semantics(
-      button: true,
+    return Tappable(
       label: semanticsLabel,
       onTap: onTap,
-      excludeSemantics: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: PindoroSpace.s1,
-            vertical: PindoroSpace.s2,
-          ),
-          child: DragTarget<int>(
-            onWillAcceptWithDetails: (_) => onAccept != null,
-            onAcceptWithDetails: (d) => onAccept?.call(d.data),
-            builder: (context, hovering, _) => Column(
-              mainAxisSize: MainAxisSize.min,
-              spacing: PindoroSpace.s1,
-              children: [
-                pill(hovering.isNotEmpty),
-                if (right == false && truth != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: PindoroSpace.s2,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: c.mapAnswerLine,
-                      borderRadius: BorderRadius.circular(PindoroRadius.full),
-                      border: Border.all(
-                        color: c.mapAnswerCasing,
-                        width: PindoroStroke.base,
-                      ),
-                    ),
-                    child: Text(
-                      truth,
-                      style: PindoroType.labelMd.copyWith(
-                        color: c.mapAnswerCasing,
-                      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: PindoroSpace.s1,
+          vertical: PindoroSpace.s2,
+        ),
+        child: DragTarget<int>(
+          onWillAcceptWithDetails: (_) => onAccept != null,
+          onAcceptWithDetails: (d) => onAccept?.call(d.data),
+          builder: (context, hovering, _) => Column(
+            mainAxisSize: MainAxisSize.min,
+            spacing: PindoroSpace.s1,
+            children: [
+              pill(hovering.isNotEmpty),
+              if (right == false && truth != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: PindoroSpace.s2,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: c.mapAnswerLine,
+                    borderRadius: BorderRadius.circular(PindoroRadius.full),
+                    border: Border.all(
+                      color: c.mapAnswerCasing,
+                      width: PindoroStroke.base,
                     ),
                   ),
-              ],
-            ),
+                  child: Text(
+                    truth,
+                    style: PindoroType.labelMd.copyWith(
+                      color: c.mapAnswerCasing,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
@@ -619,17 +613,24 @@ class _ChoiceGrid extends StatelessWidget {
       textScaler: scaler,
       textDirection: TextDirection.ltr,
     );
+    double widthOf(String text) {
+      final p = painter(text)..layout();
+      final width = p.width;
+      p.dispose();
+      return width;
+    }
+
     for (final word in label.split(RegExp(r'\s+'))) {
       // A word may break at its soft hyphens, each piece with its hyphen.
       final pieces = word.split('­');
       for (final (i, piece) in pieces.indexed) {
         final shown = i < pieces.length - 1 ? '$piece-' : piece;
-        if ((painter(shown)..layout()).width > width) return false;
+        if (widthOf(shown) > width) return false;
       }
     }
-    final lines = (painter(
-      label,
-    )..layout(maxWidth: width)).computeLineMetrics().length;
+    final whole = painter(label)..layout(maxWidth: width);
+    final lines = whole.computeLineMetrics().length;
+    whole.dispose();
     return lines <= 3;
   }
 
@@ -704,6 +705,13 @@ class _AnswerChoiceState extends State<_AnswerChoice> {
 
   void _press(bool down) {
     if (widget.onTap != null) setState(() => _pressed = down);
+  }
+
+  @override
+  void didUpdateWidget(_AnswerChoice old) {
+    super.didUpdateWidget(old);
+    // Disabled mid-press (graded): its release never comes.
+    if (widget.onTap == null) _pressed = false;
   }
 
   @override

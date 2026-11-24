@@ -313,8 +313,8 @@ class _LanePainter extends CustomPainter {
     final Offset tip;
     final Offset from;
     if (deg.abs() >= 150) {
-      // Turning around: up, over to the left and back down.
-      final r = w * 0.22;
+      // Turning around: up, over to the left and back down, the head kept inside the lane.
+      final r = (w / 2 - _head) / 2;
       path
         ..lineTo(knee.dx, h * 0.35)
         ..arcToPoint(
@@ -1025,7 +1025,8 @@ class _HeadingDialState extends State<HeadingDial> {
                     ),
                   ),
                 ),
-                if (!lost) ...[
+                // No pointer before the first heading: north would be a guess.
+                if (!lost && widget.heading != null) ...[
                   Positioned.fill(
                     child: AnimatedRotation(
                       turns: _turns,
@@ -1412,9 +1413,12 @@ class LevelPicker<T> extends StatelessWidget {
             ?s.disabledReason,
             '${i + 1} / ${steps.length}',
           ].join(', '),
-          onTap: s.disabledReason != null || s.value == selected
+          // The selected step stays enabled (read as checked, not unavailable).
+          onTap: s.disabledReason != null
               ? null
-              : () => onChanged(s.value),
+              : () {
+                  if (s.value != selected) onChanged(s.value);
+                },
         ),
       );
     }
@@ -1552,7 +1556,8 @@ class _LevelStepView<T> extends StatelessWidget {
           right: 0,
           child: Center(
             child: Container(
-              height: 18,
+              // Grows with large text instead of clipping it.
+              constraints: const BoxConstraints(minHeight: 18),
               padding: const EdgeInsets.symmetric(horizontal: 6),
               decoration: BoxDecoration(
                 color: c.accentBase,
@@ -1735,11 +1740,15 @@ class _LevelChip extends StatelessWidget {
             spacing: PindoroSpace.s1,
             children: [
               PindoroIcon(icon, size: 20, color: c.textPrimary),
-              Text(
-                label,
-                style: PindoroType.bodyLg.copyWith(
-                  color: c.textPrimary,
-                  fontWeight: FontWeight.w800,
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: PindoroType.bodyLg.copyWith(
+                    color: c.textPrimary,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               RotatedBox(
@@ -2203,6 +2212,9 @@ class RouteOptions extends StatelessWidget {
   );
 }
 
+/// End drive's least width on the [StoppedBar], in square buttons.
+const int _endMinSquares = 2;
+
 /// The level shown on the [StoppedBar]'s chip.
 typedef StoppedLevel = ({
   PindoroGlyph icon,
@@ -2313,42 +2325,66 @@ class StoppedBar extends StatelessWidget {
                   ),
               ],
             ),
-            Row(
-              spacing: PindoroSpace.s2,
-              children: [
-                PindoroButton(
-                  label: muteLabel,
-                  icon: muted ? PindoroGlyph.soundOff : PindoroGlyph.soundOn,
-                  iconOnly: true,
-                  large: true,
-                  variant: PindoroButtonVariant.secondary,
-                  onPressed: onMute,
-                ),
-                _LevelChip(
-                  icon: level.icon,
-                  label: level.label,
-                  semanticsLabel: level.semanticsLabel,
-                  open: levelOpen,
-                  onTap: onLevel,
-                ),
-                if ((routeLabel, onRoute) case (final label?, final tap?))
-                  PindoroButton(
-                    label: label,
-                    icon: PindoroGlyph.route,
-                    iconOnly: true,
-                    large: true,
-                    variant: PindoroButtonVariant.secondary,
-                    onPressed: tap,
-                  ),
-                Expanded(
-                  child: PindoroButton(
-                    label: endLabel,
-                    large: true,
-                    variant: PindoroButtonVariant.secondary,
-                    onPressed: onEnd,
-                  ),
-                ),
-              ],
+            _unscaled(
+              context,
+              LayoutBuilder(
+                builder: (context, box) {
+                  final route = switch ((routeLabel, onRoute)) {
+                    (final label?, final tap?) => PindoroButton(
+                      label: label,
+                      icon: PindoroGlyph.route,
+                      iconOnly: true,
+                      large: true,
+                      variant: PindoroButtonVariant.secondary,
+                      onPressed: tap,
+                    ),
+                    _ => null,
+                  };
+                  // End drive keeps room for its words (two lines at worst); the level's
+                  // name gives way to it.
+                  final squares = route == null ? 1 : 2;
+                  final chipMax =
+                      box.maxWidth -
+                      (squares + _endMinSquares) * PindoroSize.buttonLg -
+                      (squares + 1) * PindoroSpace.s2;
+                  return Row(
+                    spacing: PindoroSpace.s2,
+                    children: [
+                      PindoroButton(
+                        label: muteLabel,
+                        icon: muted
+                            ? PindoroGlyph.soundOff
+                            : PindoroGlyph.soundOn,
+                        iconOnly: true,
+                        large: true,
+                        variant: PindoroButtonVariant.secondary,
+                        onPressed: onMute,
+                      ),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: math.max(0, chipMax),
+                        ),
+                        child: _LevelChip(
+                          icon: level.icon,
+                          label: level.label,
+                          semanticsLabel: level.semanticsLabel,
+                          open: levelOpen,
+                          onTap: onLevel,
+                        ),
+                      ),
+                      ?route,
+                      Expanded(
+                        child: PindoroButton(
+                          label: endLabel,
+                          large: true,
+                          variant: PindoroButtonVariant.secondary,
+                          onPressed: onEnd,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
           ],
         ),

@@ -668,7 +668,9 @@ class _DriveRecordingViewState extends ConsumerState<DriveRecordingView> {
           l10n.navIn(distance),
           ?at,
           [action, if (next.street case final s?) full(s)].join(' '),
-          if (then != null) l10n.driveThen,
+          if (then != null)
+            '${l10n.driveThen} '
+                '${decisionAction(l10n, decisionGlyph(then), onto: false)}',
         ].join(', '),
         lead: [if (view.newRoute) l10n.driveNewRoute],
         glyph: glyph,
