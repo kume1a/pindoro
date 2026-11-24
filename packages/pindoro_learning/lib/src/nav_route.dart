@@ -240,7 +240,9 @@ final class NavPlan {
         final m = switch (v.edge) {
           null when route.junctions[i + 1] == v.junction => at[i + 1],
           null => null,
-          final e when route.edges[i].id == e.id =>
+          final e
+              when route.edges[i].id == e.id &&
+                  (v.toward == null || route.junctions[i + 1] == v.toward) =>
             at[i] +
                 (route.junctions[i] == e.from
                     ? v.alongM

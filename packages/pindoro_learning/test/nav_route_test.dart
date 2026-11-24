@@ -423,6 +423,21 @@ void main() {
       expect(plan.viaM, [closeTo(150, 0.5)]);
     });
 
+    test('a stop on a road is where the route passes it on its side, not '
+        'the pass the wrong way before', () {
+      final stop = stopsNear(graph, RoadNet.point(150, -20)).first;
+      final plan = planNav(
+        graph,
+        cost,
+        from: 3,
+        to: const NavStop.junction(5),
+        via: [stop],
+      )!;
+      // West to 2 first, back east past the stop, then on to 5.
+      expect(plan.route.junctions.take(3), [3, 2, 3]);
+      expect(plan.viaM, [closeTo(150, 0.5)]);
+    });
+
     test('the options all go through the stop', () {
       final options = planNavOptions(
         graph,

@@ -1071,9 +1071,7 @@ class DriveController extends Notifier<DriveState> {
       graded: graded,
       stoppedM: stoppedM,
       decisions: decisions,
-      hesitated: [
-        for (final d in decisions) hesitatedNear(graph, match, d.junction),
-      ],
+      hesitated: [for (final d in decisions) hesitatedNear(graph, match, d)],
     );
   }
 

@@ -224,7 +224,9 @@ class Navigator {
   double _lostS = 0;
   bool _guarded = false;
 
-  ({DateTime at, NamedStreet street, double headingDeg})? _confirm;
+  /// The street to confirm, once the car is clear of the [others] ways on from where it turned.
+  ({DateTime at, NamedStreet street, double headingDeg, List<RoadEdge> others})?
+  _confirm;
   ({DateTime at, NamedStreet street, double headingDeg})? _turned;
   final Map<int, double> _prepareFrom = {};
   NavPlan? _newRoutePlan;
@@ -369,7 +371,13 @@ class Navigator {
       }
     }
     _promptNext(now, speed, prompts);
-    if (_confirm case final c? when !now.isBefore(c.at)) {
+    // Not while the car may yet be on another branch of a shallow fork.
+    if (_confirm case final c?
+        when !now.isBefore(c.at) &&
+            _onPlan &&
+            c.others.every(
+              (e) => nearestOnEdge(fix.at, e).distM > LearningConfig.driveSnapM,
+            )) {
       prompts.add(
         _prompt(
           PromptKind.confirmation,
@@ -779,6 +787,10 @@ class Navigator {
           at: now.add(const Duration(seconds: LearningConfig.confirmDelayS)),
           street: d.street!,
           headingDeg: _turned!.headingDeg,
+          others: [
+            for (final e in graph.edgesAt(d.junction))
+              if (e.id != d.exit.id && e.id != d.approach?.id) e,
+          ],
         );
       }
     }
@@ -873,6 +885,7 @@ class Navigator {
                       ?.costM,
                 );
       final planned = plan.decisions.where((d) => d.index == k).firstOrNull;
+      if (k < route.edges.length) _retractFollowed(j, route.edges[k]);
       _pass(
         j,
         approach,
@@ -888,6 +901,20 @@ class Navigator {
     _lostS += max(0, _remainingS() - before);
     if (ok == false) _recover(now, prompts);
     _guard(now, prompts);
+  }
+
+  /// At a shallow fork the car snaps to the planned branch while still near it on the other:
+  /// that pass of [junction] onto [planned] is taken back, and its street not confirmed.
+  void _retractFollowed(int junction, RoadEdge planned) {
+    final last = passed.lastOrNull;
+    if (last == null ||
+        last.junction != junction ||
+        last.exit.id != planned.id) {
+      return;
+    }
+    passed.removeLast();
+    _turned = null;
+    _confirm = null;
   }
 
   /// After a move that lost the good path: Off says nothing, Guided says the new route's first
@@ -1104,16 +1131,21 @@ List<PassedDecision> offDriveDecisions(
 ];
 
 DateTime _nearestFix(List<DriveFix> fixes, LatLng p) => fixes
+    .where((f) => !isCoarse(f))
     .reduce(
       (a, b) => distanceBetween(b.at, p) < distanceBetween(a.at, p) ? b : a,
     )
     .t;
 
-/// Whether the drive [match] hesitated within [LearningConfig.hesitationBeforeM] of [junction]
-/// (SPEC §16.23 item 119: Hard, not Good).
-bool hesitatedNear(RoadGraph graph, DriveMatch match, int junction) =>
-    match.hesitations.any(
-      (h) =>
-          distanceBetween(h, graph.at(junction)) <=
+/// Whether the drive [match] hesitated within [LearningConfig.hesitationBeforeM] before the
+/// [decision]'s junction (SPEC §16.23 item 119: Hard, not Good).
+bool hesitatedNear(
+  RoadGraph graph,
+  DriveMatch match,
+  PassedDecision decision,
+) => match.hesitations.any(
+  (h) =>
+      !h.t.isAfter(decision.at) &&
+      distanceBetween(h.at, graph.at(decision.junction)) <=
           LearningConfig.hesitationBeforeM,
-    );
+);

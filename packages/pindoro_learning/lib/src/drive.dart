@@ -16,6 +16,9 @@ typedef DriveFix = ({
   double? accuracyM,
 });
 
+/// Where and when a drive crawled: the middle of the crawl.
+typedef Hesitation = ({LatLng at, DateTime t});
+
 /// Whether [f] is too coarse to drive by ([LearningConfig.coarseFixM]); it counts as no fix.
 bool isCoarse(DriveFix f) => (f.accuracyM ?? 0) > LearningConfig.coarseFixM;
 
@@ -36,7 +39,7 @@ final class DriveMatch {
 
   /// Where it crawled below [LearningConfig.hesitationKmh] for over
   /// [LearningConfig.hesitationS] away from junctions.
-  final List<LatLng> hesitations;
+  final List<Hesitation> hesitations;
 
   /// The distance driven along the fixes.
   final double drivenM;
@@ -360,7 +363,7 @@ List<EdgeSnap> _viterbi(
   return picked.reversed.toList();
 }
 
-List<LatLng> _hesitations(RoadGraph graph, List<DriveFix> fixes) {
+List<Hesitation> _hesitations(RoadGraph graph, List<DriveFix> fixes) {
   const slowMps = LearningConfig.hesitationKmh / 3.6;
   double? speed(int i) =>
       fixes[i].speedMps ??
@@ -370,7 +373,7 @@ List<LatLng> _hesitations(RoadGraph graph, List<DriveFix> fixes) {
                 max(1, fixes[i].t.difference(fixes[i - 1].t).inMilliseconds) *
                 1000);
   bool slow(int i) => (speed(i) ?? double.infinity) < slowMps;
-  final out = <LatLng>[];
+  final out = <Hesitation>[];
   var i = 0;
   while (i < fixes.length) {
     if (!slow(i)) {
@@ -382,14 +385,16 @@ List<LatLng> _hesitations(RoadGraph graph, List<DriveFix> fixes) {
       j++;
     }
     final crawl = fixes[j].t.difference(fixes[i].t).inSeconds;
-    final where = fixes[(i + j) ~/ 2].at;
+    final middle = fixes[(i + j) ~/ 2];
     if (i > 0 &&
         j < fixes.length - 1 &&
         crawl > LearningConfig.hesitationS &&
         graph.junctions.values.every(
-          (p) => distanceBetween(p, where) > LearningConfig.hesitationJunctionM,
+          (p) =>
+              distanceBetween(p, middle.at) >
+              LearningConfig.hesitationJunctionM,
         )) {
-      out.add(where);
+      out.add((at: middle.at, t: middle.t));
     }
     i = j + 1;
   }
