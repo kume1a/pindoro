@@ -2,12 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import 'package:pindoro_core/pindoro_core.dart';
 
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
+import 'painters.dart';
 
 /// The dial's reference size: every length in the painter spec is at 280 dp.
 const double _reference = 280;
@@ -254,12 +254,7 @@ class _BearingDialPainter extends CustomPainter {
     final arrow = Path()
       ..moveTo(c.dx, c.dy)
       ..lineTo(pt(player, 100).dx, pt(player, 100).dy);
-    final dashes = Path();
-    for (final metric in arrow.computeMetrics()) {
-      for (var d = 0.0; d < metric.length; d += 18 * s) {
-        dashes.addPath(metric.extractPath(d, d + 10 * s), Offset.zero);
-      }
-    }
+    final dashes = dashedPath(arrow, dash: 10 * s, period: 18 * s);
     canvas.drawPath(
       dashes,
       stroke(calibrating ? colors.textDisabled : colors.mapPlayerRoute, 6),

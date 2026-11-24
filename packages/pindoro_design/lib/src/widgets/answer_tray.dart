@@ -9,9 +9,11 @@ import 'package:pindoro_core/pindoro_core.dart';
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
+import 'painters.dart';
 import 'pindoro_button.dart';
 import 'surfaces.dart';
 import 'tappable.dart';
+import 'text_scale.dart';
 
 /// One answer in an [AnswerTray] (or a label in a [SweepTray]): the name as
 /// the city writes it, and its transliteration when the scripts differ.
@@ -20,12 +22,8 @@ typedef AnswerChoiceData = ({String label, String? sublabel});
 /// A graded question: the index picked and the right one.
 typedef AnswerResult = ({int picked, int right});
 
-/// The text scale (1 at 100 %).
-double _scale(BuildContext context) =>
-    MediaQuery.textScalerOf(context).scale(1);
-
 /// The tray's share of the screen's height (60 % from 160 % text).
-double _maxShare(BuildContext context) => _scale(context) >= 1.6 ? 0.6 : 0.45;
+double _maxShare(BuildContext context) => isLargeText(context) ? 0.6 : 0.45;
 
 /// The edge a scrolling list fades out over.
 const double _fade = 28;
@@ -48,7 +46,6 @@ class AnswerTray extends StatefulWidget {
     required this.onConfirm,
     this.confirmHint,
     this.result,
-    this.numbered,
   });
 
   final String question;
@@ -61,9 +58,6 @@ class AnswerTray extends StatefulWidget {
   /// first.").
   final String? confirmHint;
   final AnswerResult? result;
-
-  /// Null: numbered only in one column.
-  final bool? numbered;
 
   @override
   State<AnswerTray> createState() => _AnswerTrayState();
@@ -87,7 +81,6 @@ class _AnswerTrayState extends State<AnswerTray> {
       meta: widget.meta,
       list: _ChoiceGrid(
         labels: [for (final c in widget.choices) c.label],
-        numbered: widget.numbered,
         builder: (i, numbered) {
           final state = switch (result) {
             (picked: _, right: final r) when r == i => _ChoiceState.right,
@@ -938,12 +931,7 @@ class _DashedEdge extends CustomPainter {
           Radius.circular(r),
         ),
       );
-    final dashes = Path();
-    for (final metric in edge.computeMetrics()) {
-      for (var d = 0.0; d < metric.length; d += 10) {
-        dashes.addPath(metric.extractPath(d, d + 6), Offset.zero);
-      }
-    }
+    final dashes = dashedPath(edge, dash: 6, period: 10);
     canvas.drawPath(
       dashes,
       Paint()
