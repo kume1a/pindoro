@@ -931,6 +931,37 @@ void main() {
     await tester.pump(PindoroMotion.durationSlow);
     expect(find.byType(RoutePlaceScreen), findsNothing);
     expect(find.byType(DriveRecordingView), findsOneWidget);
+
+    // A new destination picked after the overview closed behind the search (10 s after the
+    // last touch) still takes.
+    await tester.tap(find.bySemanticsLabel(RegExp('^To ')));
+    await tester.pump();
+    await tester.pump(PindoroMotion.durationSlow);
+    await tester.pump(const Duration(seconds: 11));
+    expect(
+      find.text('Now', skipOffstage: false),
+      findsNothing,
+      reason: 'the overview closed under the search',
+    );
+    final drive = ProviderScope.containerOf(
+      tester.element(find.byType(DriveRecordingView, skipOffstage: false)),
+    );
+    final newEnd = route.junctions[1];
+    await tester.runAsync(() async {
+      tester
+          .element(find.byType(RoutePlaceScreen))
+          .findAncestorStateOfType<NavigatorState>()!
+          .pop((
+            street: streets[route.edges.first.streetId],
+            place: null,
+            junction: newEnd,
+            at: null,
+          ));
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pump();
+    final recording = drive.read(driveControllerProvider) as DriveRecording;
+    expect(recording.target.junction, newEnd);
   });
 
   testWidgets('Coached while moving: a touch shows Route, which opens the '
@@ -1126,6 +1157,11 @@ void main() {
     final changed = container.read(driveControllerProvider) as DriveRecording;
     expect(changed.target.at, beside);
     expect(changed.via.single.street, street);
+    expect(
+      changed.suggestion,
+      allOf(isNotNull, isNot(moving.suggestion)),
+      reason: 'the new route, its key turns logged as such',
+    );
   });
 
   test('Home or Work keeps its spot; one set before spots has none', () {

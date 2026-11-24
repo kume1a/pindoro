@@ -48,6 +48,9 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
   /// The way tapped at the recited turn; null until tapped.
   Turn? _said;
 
+  /// The route stepped through.
+  DriveSuggestion? _shown;
+
   @override
   void initState() {
     super.initState();
@@ -127,6 +130,13 @@ class _DrivePreviewScreenState extends ConsumerState<DrivePreviewScreen> {
     final suggestion = setup.suggestion;
     final target = setup.target;
     if (suggestion == null || target == null) return const Scaffold();
+    // Planned again from a fresh fix (item 135): the new route from its start.
+    if (suggestion != _shown) {
+      _shown = suggestion;
+      _phase = _Phase.play;
+      _at = -1;
+      _said = null;
+    }
     final plan = suggestion.plan;
     final keyTurns = [
       for (final d in plan.decisions)

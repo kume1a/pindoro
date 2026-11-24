@@ -176,6 +176,7 @@ final class DriveRecording extends DriveState {
     LatLng? destination,
     List<DriveTarget>? via,
     DriveLevel? level,
+    DriveSuggestion? suggestion,
     NavView? view,
     bool? muted,
     bool? rescued,
@@ -191,7 +192,7 @@ final class DriveRecording extends DriveState {
     level: level ?? this.level,
     choices: choices,
     start: start,
-    suggestion: suggestion,
+    suggestion: suggestion ?? this.suggestion,
     view: view ?? this.view,
     muted: muted ?? this.muted,
     rescued: rescued ?? this.rescued,
@@ -276,6 +277,11 @@ class DriveController extends Notifier<DriveState> {
   /// 116, 134): the drive is graded from there, its route starting at [_gradedStart].
   int _changedAt = 0;
   int? _gradedStart;
+
+  /// The key turns of every route driven (the setup's, then each destination change's), logged
+  /// as such (item 121).
+  final Set<String> _keyTurns = {};
+
   Future<LocationResult>? _locating;
   Future<LatLng?>? _refining;
 
@@ -328,6 +334,17 @@ class DriveController extends Notifier<DriveState> {
     }
   }
 
+  /// A destination picked where the route runs: the setup's own, or a change on a drive.
+  Future<void> goTo(DriveDest dest) async {
+    switch (state) {
+      case DriveSetup():
+        pickOwn(dest);
+      case DriveRecording():
+        await changeDestination(dest);
+      case DriveReview():
+    }
+  }
+
   /// The same choice again once location was refused (back from the settings).
   void retry() {
     if (state case final DriveSetup s when s.denied != null) {
@@ -339,33 +356,35 @@ class DriveController extends Notifier<DriveState> {
   /// A stop on the way (item 134), last before the destination: at setup the routes are found
   /// again through it; on a drive, at any speed, the way on goes through it from the next fix.
   Future<void> addStop(DriveDest dest) async {
-    final s = state;
-    final via = switch (s) {
-      DriveSetup(:final via) || DriveRecording(:final via) => via,
-      _ => null,
-    };
-    if (via == null || via.length >= LearningConfig.navViaMax || _ending) {
-      return;
-    }
-    final here = switch (s) {
+    if (!_canAddStop) return;
+    final here = switch (state) {
       final DriveSetup s => s.here,
       final DriveRecording r => r.view?.at,
-      _ => null,
+      DriveReview() => null,
     };
     final stop = await _target(DriveSetup(to: DriveTo.own, own: dest), here);
-    if (stop == null || !ref.mounted) return;
-    _setVia([...via, stop]);
+    // The stops as they are now: one may have been reached meanwhile.
+    if (stop == null || !ref.mounted || !_canAddStop) return;
+    _setVia([..._via, stop]);
   }
 
   /// Drops the [i]th stop on the way.
   void removeStop(int i) {
-    final via = switch (state) {
-      DriveSetup(:final via) || DriveRecording(:final via) => via,
-      _ => const <DriveTarget>[],
-    };
+    final via = _via;
     if (i < 0 || i >= via.length || _ending) return;
     _setVia([...via]..removeAt(i));
   }
+
+  /// The stops on the way now.
+  List<DriveTarget> get _via => switch (state) {
+    DriveSetup(:final via) || DriveRecording(:final via) => via,
+    DriveReview() => const [],
+  };
+
+  bool get _canAddStop =>
+      state is! DriveReview &&
+      _via.length < LearningConfig.navViaMax &&
+      !_ending;
 
   void _setVia(List<DriveTarget> via) {
     switch (state) {
@@ -655,14 +674,25 @@ class DriveController extends Notifier<DriveState> {
       final here = await _locate();
       if (!ref.mounted) return;
       if (here is LocationDenied) {
-        state = DriveSetup(to: setup.to, own: setup.own, denied: here);
+        state = DriveSetup(
+          to: setup.to,
+          own: setup.own,
+          via: setup.via,
+          denied: here,
+        );
         return;
       }
       start ??= here is Located ? here.position : null;
       target = await _target(setup, start);
       if (!ref.mounted) return;
       if (target == null) {
-        state = DriveSetup(to: setup.to, own: setup.own, noTarget: true);
+        state = DriveSetup(
+          to: setup.to,
+          own: setup.own,
+          via: setup.via,
+          here: start,
+          noTarget: true,
+        );
         return;
       }
     }
@@ -680,6 +710,8 @@ class DriveController extends Notifier<DriveState> {
     if (!ref.mounted || current is! DriveSetup || !current.sameChoice(setup)) {
       return;
     }
+    // The target the suggestion was planned to: a fresh fix may have found the setup's again.
+    target = current.target ?? target;
     final suggestion = current.suggestion;
     _startLevel = current.chosen;
     _mostHelp = _startLevel;
@@ -701,6 +733,9 @@ class DriveController extends Notifier<DriveState> {
     _ending = false;
     _speech.clear();
     _changedAt = 0;
+    _keyTurns
+      ..clear()
+      ..addAll(suggestion?.keys ?? const {});
     _notes.clear();
     _named.clear();
     _screen = null;
@@ -968,9 +1003,11 @@ class DriveController extends Notifier<DriveState> {
       silent: s?.silent ?? const {},
     );
     _changedAt = _fixes.length;
+    _keyTurns.addAll(s?.keys ?? const {});
     state = (state as DriveRecording).copyWith(
       target: target,
       destination: targetPoint(graph, target),
+      suggestion: s,
     );
   }
 
@@ -998,33 +1035,37 @@ class DriveController extends Notifier<DriveState> {
       nav,
       nodes,
     );
-    final (:credited, :failed, :effects) = await _credit(
-      decisions,
-      hesitated,
-      now,
-    );
-    final id = _id;
-    final review = DriveReview(
-      id: id,
-      target: recording.target,
-      match: match,
-      graded: graded,
-      stoppedM: stoppedM,
-      credited: credited,
-      failed: failed,
-      gaps: gpsGaps(_fixes, recording.startedAt, now),
-      rescued: recording.rescued,
-    );
-    await _log(
-      recording,
-      review,
-      nodes: nodes,
-      endedAt: now,
-      decisions: decisions,
-      hesitated: hesitated,
-      effects: effects,
-      recoveries: nav?.recoveries ?? 0,
-    );
+    // The cards' reviews and the log land together: a failed save leaves End to try again
+    // without crediting twice.
+    final review = await ref.read(driveLogDaoProvider).transaction(() async {
+      final (:credited, :failed, :effects) = await _credit(
+        decisions,
+        hesitated,
+        now,
+      );
+      final review = DriveReview(
+        id: _id,
+        target: recording.target,
+        match: match,
+        graded: graded,
+        stoppedM: stoppedM,
+        credited: credited,
+        failed: failed,
+        gaps: gpsGaps(_fixes, recording.startedAt, now),
+        rescued: recording.rescued,
+      );
+      await _log(
+        recording,
+        review,
+        nodes: nodes,
+        endedAt: now,
+        decisions: decisions,
+        hesitated: hesitated,
+        effects: effects,
+        recoveries: nav?.recoveries ?? 0,
+      );
+      return review;
+    });
     _nav = null;
     _id = newId();
     if (!ref.mounted) return;
@@ -1189,7 +1230,6 @@ class DriveController extends Notifier<DriveState> {
     final fixes = List.of(_fixes);
     final match = review.match;
     final graded = review.graded;
-    final keys = recording.suggestion?.keys ?? const <String>{};
     final id = review.id!;
     await ref
         .read(driveLogDaoProvider)
@@ -1207,7 +1247,7 @@ class DriveController extends Notifier<DriveState> {
                 help: d.help,
                 recentHelp: d.recentHelp,
                 hesitated: hesitated[seq],
-                keyTurn: keys.contains(d.key),
+                keyTurn: _keyTurns.contains(d.key),
                 effect: effects[seq],
               ),
           ],
