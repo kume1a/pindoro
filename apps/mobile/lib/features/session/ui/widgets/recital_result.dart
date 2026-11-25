@@ -7,8 +7,8 @@ import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/map/ui/question_scaffold.dart';
 import 'package:pindoro/features/session/ui/session_state.dart';
-import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -104,7 +104,7 @@ class RecitalResultView extends StatelessWidget {
         : null;
     final a = graph.at(task.from);
     final b = graph.at(task.to);
-    return TaskScaffold(
+    return QuestionScaffold(
       topBar: topBar,
       header: const SizedBox.shrink(),
       map: (insets) => map(

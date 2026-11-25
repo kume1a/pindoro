@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
+import 'package:pindoro/features/map/ui/question_scaffold.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
-import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -40,7 +40,7 @@ class BearingView extends ConsumerWidget {
     String word(double degrees) =>
         l10n.compassWord(compassPointOf(degrees).name);
     final tier = task.result;
-    return TaskScaffold(
+    return QuestionScaffold(
       onDontKnow: onDontKnow,
       topBar: topBar,
       header: AskCard(

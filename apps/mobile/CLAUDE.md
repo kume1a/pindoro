@@ -57,7 +57,7 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                crossings drill, a bearing, a route card (RouteView: the
                                turn on the heading-up map, gateway, bridge, connection, landmark) or a
                                recital (RecitalView: typed or drawn A → B, graded with the turns'
-                               evidence and "Report this turn", asked first), with their views over TaskScaffold
+                               evidence and "Report this turn", asked first), with their views over QuestionScaffold (`features/map/ui`, shared with the pin screen `PinDropView`)
                                (choices in its docked `AnswerTray`, shown right and wrong before
                                the reveal; every step's "I don't know", `dontKnow`, a miss: SPEC §16.24);
                                intro (a leech's with its mix-up and note), reveal, Session done,

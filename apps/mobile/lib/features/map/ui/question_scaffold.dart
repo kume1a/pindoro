@@ -12,13 +12,13 @@ import 'package:pindoro_design/pindoro_design.dart';
 /// reveal sheet takes over (AnswerChoices).
 const Duration answerResultDelay = Duration(milliseconds: 600);
 
-/// A session task's screen (name, ends, drills): the [map] (none for a
-/// bearing), built with what the top bar, [header] and [body] and the
-/// bottom cover, with [overlays] over it; the [controls] at the bottom (or a
-/// [tray] docked to its edge, AnswerChoices) until the [result] sheet
-/// replaces them; [onDontKnow] adds "I don't know" under the controls.
-class TaskScaffold extends StatelessWidget {
-  const TaskScaffold({
+/// A question's screen (an Explore or session pin, name, ends, drills): the [map] (none for a
+/// bearing), built with what the top bar, [header] and [body] and the bottom cover, with
+/// [overlays] over it; the [controls] at the bottom (or a [tray] docked to its edge,
+/// AnswerChoices) until the [result] sheet replaces them; [onDontKnow] adds "I don't know"
+/// under the controls.
+class QuestionScaffold extends StatelessWidget {
+  const QuestionScaffold({
     super.key,
     required this.topBar,
     required this.header,
@@ -40,7 +40,7 @@ class TaskScaffold extends StatelessWidget {
   final Widget? body;
   final Widget? controls;
   final Widget? tray;
-  final TaskResult? result;
+  final QuestionResult? result;
   final VoidCallback? onDontKnow;
 
   @override
@@ -80,9 +80,8 @@ class TaskScaffold extends StatelessWidget {
           ),
           null => null,
         };
-    final celebration = result == null ? null : celebrationFor(result.tier);
     final front = [
-      if ((result, celebration) case (final r?, final size?))
+      if ((result, result?.celebration) case (final r?, final size?))
         RevealCelebration(revealKey: r.resultKey, size: size),
     ];
     final top = Column(
@@ -120,9 +119,18 @@ class TaskScaffold extends StatelessWidget {
   }
 }
 
+/// What a question shows once answered: its sheet (anew per [resultKey]) and the celebration
+/// over the map.
+abstract class QuestionResult extends StatelessWidget {
+  const QuestionResult({super.key});
+
+  Object get resultKey;
+  CelebrationSize? get celebration;
+}
+
 /// A task's result sheet: the [tier] (its label, or [label]), the
 /// [sentence], the [chip] (next review), any [chips] and Next.
-class TaskResult extends StatelessWidget {
+class TaskResult extends QuestionResult {
   const TaskResult({
     super.key,
     required this.resultKey,
@@ -135,6 +143,7 @@ class TaskResult extends StatelessWidget {
     this.streetView,
   });
 
+  @override
   final Object resultKey;
   final Tier tier;
   final String sentence;
@@ -145,6 +154,9 @@ class TaskResult extends StatelessWidget {
 
   /// Street View beside Next, when the answer is a spot to see.
   final StreetViewSpot? streetView;
+
+  @override
+  CelebrationSize? get celebration => celebrationFor(tier);
 
   @override
   Widget build(BuildContext context) {

@@ -7,13 +7,13 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/ui/junction_name.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/map/ui/question_scaffold.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/route_draw_layer.dart';
 import 'package:pindoro/features/map/ui/widgets/street_entry.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro/features/session/ui/widgets/recital_result.dart';
-import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -156,7 +156,7 @@ class _RecitalViewState extends ConsumerState<RecitalView>
       [undo, check],
     );
     if (drawing) {
-      return TaskScaffold(
+      return QuestionScaffold(
         topBar: widget.topBar,
         header: endpoints,
         map: (insets) => mapBuilder(
@@ -208,7 +208,7 @@ class _RecitalViewState extends ConsumerState<RecitalView>
       );
     }
     final match = suggestStreet(_field.text, streets.values.toSet());
-    return TaskScaffold(
+    return QuestionScaffold(
       topBar: widget.topBar,
       header: endpoints,
       body: Expanded(

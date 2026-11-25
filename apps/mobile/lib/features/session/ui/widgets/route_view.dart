@@ -10,12 +10,12 @@ import 'package:pindoro/features/learning/ui/junction_name.dart';
 import 'package:pindoro/features/learning/ui/landmark_glyph.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/map/ui/question_scaffold.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro/features/session/ui/widgets/cant_find_it_chip.dart';
-import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
 import 'package:pindoro/features/session/ui/widgets/turn_scene.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -154,7 +154,7 @@ class _RouteViewState extends ConsumerState<RouteView>
         final exitWord = exitLabel(l10n, q.correct);
         final scene = graph == null ? null : turnScene(graph, q);
         final landmark = q.landmark;
-        return TaskScaffold(
+        return QuestionScaffold(
           onDontKnow: widget.onDontKnow,
           topBar: widget.topBar,
           header: StreetPlate(
@@ -254,7 +254,7 @@ class _RouteViewState extends ConsumerState<RouteView>
 
       case final GatewayQuestion q:
         final chunk = chunkName(q.chunk);
-        return TaskScaffold(
+        return QuestionScaffold(
           onDontKnow: widget.onDontKnow,
           topBar: widget.topBar,
           map: (insets) => map(
@@ -302,7 +302,7 @@ class _RouteViewState extends ConsumerState<RouteView>
       case final BridgeQuestion q:
         final chosen = task.choice as Bridge?;
         final number = chosen == null ? 0 : q.options.indexOf(chosen) + 1;
-        return TaskScaffold(
+        return QuestionScaffold(
           onDontKnow: widget.onDontKnow,
           topBar: widget.topBar,
           map: (insets) => map(
@@ -358,7 +358,7 @@ class _RouteViewState extends ConsumerState<RouteView>
         );
 
       case final ConnectionQuestion q:
-        return TaskScaffold(
+        return QuestionScaffold(
           onDontKnow: widget.onDontKnow,
           topBar: widget.topBar,
           header: AskCard(
@@ -388,7 +388,7 @@ class _RouteViewState extends ConsumerState<RouteView>
         final revealed = tier != null;
         final miss = pin == null ? null : q.distanceFrom(pin);
         final junction = junctionAt(q.junction ?? -1);
-        return TaskScaffold(
+        return QuestionScaffold(
           onDontKnow: widget.onDontKnow,
           topBar: widget.topBar,
           map: q.n == 1

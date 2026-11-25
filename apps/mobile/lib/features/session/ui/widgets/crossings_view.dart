@@ -7,13 +7,13 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/map/ui/question_scaffold.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/map/ui/widgets/street_entry.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
-import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
@@ -99,7 +99,7 @@ class _CrossingsViewState extends ConsumerState<CrossingsView>
     }
 
     final mapOf = ref.watch(pindoroMapBuilderProvider);
-    return TaskScaffold(
+    return QuestionScaffold(
       onDontKnow: widget.onDontKnow,
       topBar: widget.topBar,
       map: (insets) => mapOf(
