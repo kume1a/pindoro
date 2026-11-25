@@ -27,6 +27,8 @@ export 'src/names.dart';
 export 'src/placement.dart';
 export 'src/planner.dart';
 export 'src/recital.dart';
+export 'src/recital_evidence.dart';
+export 'src/recital_transcript.dart';
 export 'src/route_questions.dart';
 export 'src/routes.dart';
 export 'src/runs.dart';

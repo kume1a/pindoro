@@ -4,6 +4,7 @@ import 'package:pindoro_core/pindoro_core.dart';
 
 import 'constants.dart';
 import 'fsrs.dart';
+import 'names.dart';
 
 /// What a pin answer shows and how it rates (SPEC §5.1).
 class PinGrade {
@@ -226,10 +227,3 @@ Set<String> confusablesOf(
         a,
   };
 }
-
-/// The pipeline's `normalise_name`: lower case, no quotes, single spaces.
-String normaliseName(String raw) => raw
-    .toLowerCase()
-    .replaceAll(RegExp('[«»„“”"\'`]'), '')
-    .replaceAll(RegExp(r'\s+'), ' ')
-    .trim();

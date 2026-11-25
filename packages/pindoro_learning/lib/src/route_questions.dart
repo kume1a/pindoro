@@ -4,8 +4,8 @@ import 'package:pindoro_core/pindoro_core.dart';
 
 import 'cards.dart' show stableSeed;
 import 'curriculum.dart';
-import 'grader.dart';
 import 'map_labels.dart';
+import 'names.dart';
 import 'routes.dart';
 
 /// A landmark a route card can ask about: one from the pack, or the player's own (SPEC §9).

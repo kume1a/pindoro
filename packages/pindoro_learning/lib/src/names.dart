@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:pindoro_core/pindoro_core.dart';
 
 import 'constants.dart';
-import 'grader.dart';
 
 /// Georgian letters in the national romanisation, apostrophes dropped as on
 /// Tbilisi's street signs.
@@ -19,6 +18,14 @@ const Map<String, String> _latin = {
 String transliterate(String text) =>
     text.split('').map((c) => _latin[c] ?? c).join();
 
+final RegExp _quotes = RegExp('[«»„“”"\'`]');
+final RegExp _spaces = RegExp(r'\s+');
+final RegExp _punctuation = RegExp(r'[.,\-–]');
+
+/// The pipeline's `normalise_name`: lower case, no quotes, single spaces.
+String normaliseName(String raw) =>
+    raw.toLowerCase().replaceAll(_quotes, '').replaceAll(_spaces, ' ').trim();
+
 /// Words that say what kind of street it is, in either script; a typed name
 /// is matched without them.
 final RegExp _kindWords = RegExp(
@@ -28,21 +35,25 @@ final RegExp _kindWords = RegExp(
   'ქუჩა|გამზირი|შესახვევი|ჩიხი|გასასვლელი|ხეივანი|მოედანი|აღმართი|დაღმართი|'
   'სანაპირო|გზატკეცილი',
 );
+final RegExp _kindWordsAnyCase = RegExp(
+  _kindWords.pattern,
+  caseSensitive: false,
+);
 
 /// A name as typed names are compared: normalised, without the kind of street
 /// and its punctuation.
 String nameBase(String name) => normaliseName(name)
     .replaceAll(_kindWords, ' ')
-    .replaceAll(RegExp(r'[.,\-–]'), ' ')
-    .replaceAll(RegExp(r'\s+'), ' ')
+    .replaceAll(_punctuation, ' ')
+    .replaceAll(_spaces, ' ')
     .trim();
 
 /// [name] without its kind of street, case kept ("Chavchavadze Avenue" → "Chavchavadze"): how turn
 /// prompts say it (SPEC §16.23 item 117). A name that is only a kind stays whole.
 String withoutKind(String name) {
   final short = name
-      .replaceAll(RegExp(_kindWords.pattern, caseSensitive: false), ' ')
-      .replaceAll(RegExp(r'\s+'), ' ')
+      .replaceAll(_kindWordsAnyCase, ' ')
+      .replaceAll(_spaces, ' ')
       .trim();
   return short.isEmpty ? name : short;
 }
@@ -62,12 +73,14 @@ const Map<String, String> _shortKinds = {
 /// [name] with its kind of street shortened ("Chavchavadze Avenue" → "Chavchavadze Ave"): how
 /// the drive screens show it, so it fits their 54 dp type (board V32-20).
 String shortKind(String name) => name.replaceAllMapped(
-  RegExp(
-    '(?<![\\p{L}])(${_shortKinds.keys.join('|')})(?![\\p{L}])',
-    caseSensitive: false,
-    unicode: true,
-  ),
+  _shortKindWords,
   (m) => _shortKinds[m[1]!.toLowerCase()]!,
+);
+
+final RegExp _shortKindWords = RegExp(
+  '(?<![\\p{L}])(${_shortKinds.keys.join('|')})(?![\\p{L}])',
+  caseSensitive: false,
+  unicode: true,
 );
 
 /// Levenshtein distance over the longer length: 0 same, 1 nothing shared.
@@ -119,7 +132,7 @@ Set<String> placeForms(String ka, String? en) {
 
 /// [nameDistance] when it is within [LearningConfig.fuzzyNameMax], else 1: the search keeps only
 /// those, so it stops at the first row past the limit (a row's least never shrinks).
-double _distanceWithin(String a, String b) {
+double nameDistanceWithin(String a, String b) {
   final longest = max(a.length, b.length);
   if (longest == 0) return 0;
   final limit = (LearningConfig.fuzzyNameMax * longest).floor();
@@ -148,11 +161,11 @@ double _distanceWithin(String a, String b) {
 /// [name] runs past it; 1 or more past [LearningConfig.fuzzyNameMax].
 double _startDistance(String typed, String name) =>
     min(
-      _distanceWithin(
+      nameDistanceWithin(
         typed,
         name.length > typed.length ? name.substring(0, typed.length) : name,
       ),
-      _distanceWithin(typed, name),
+      nameDistanceWithin(typed, name),
     ) +
     (name.length - typed.length).abs() / 1000;
 
