@@ -36,7 +36,7 @@ sealed class RouteQuestion {
   };
 
   /// The rating of an answer (SPEC §5.2): the [choice] picked, the [pin] dropped and the
-  /// [typed] street; a turn asks for its street when the player [known]s it. Null while a
+  /// [typed] street; a turn asks for its street when it is among [known]. Null while a
   /// pin question has no pin.
   Rating? rate({
     Object? choice,
