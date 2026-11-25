@@ -50,6 +50,14 @@ void main() {
     expect(suggestStreet('zzzz', all), isNull);
   });
 
+  test('a suggestion takes a name as far off as nameMatches accepts', () {
+    final street = _street('t', 'თამარაშვილის ქუჩა', 'Tamarashvili Street');
+    // Three letters off twelve: fuzzyNameMax exactly.
+    const typed = 'Tamaraxxxili';
+    expect(nameMatches(typed, street), isTrue);
+    expect(suggestStreet(typed, [street]), street);
+  });
+
   test('the search lists streets and places by name, best first', () {
     final all = [barnovi, bakhtrioni, chavchavadze];
     expect(searchNames('Ba', all, nameForms), [barnovi, bakhtrioni]);

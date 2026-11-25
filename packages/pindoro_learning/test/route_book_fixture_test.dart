@@ -133,12 +133,33 @@ void main() {
     for (final q in picks) {
       final read = q.n == 2
           ? q.junctions.map(label).toList()
-          : q.places.map((l) => l.name).toList();
+          : q.places.map((l) => normaliseName(l.name)).toList();
       expect(read.length, greaterThanOrEqualTo(2), reason: q.itemId);
       expect(read.toSet(), hasLength(read.length), reason: '${q.itemId} $read');
       expect(read, everyElement(isNotEmpty));
       if (q.n == 2) expect(q.junctions, contains(q.junction));
-      if (q.n == 3) expect(read, contains(q.landmark.name));
+      if (q.n == 3) expect(read, contains(normaliseName(q.landmark.name)));
+    }
+  });
+
+  test("a place's L cards ask from the turn that carries it", () {
+    final carriers = <String, Set<String?>>{};
+    for (final q in book.questions.values.whereType<TurnQuestion>()) {
+      if (q.landmark case final l?) {
+        (carriers[l.id] ??= {}).add(q.approachStreet?.id);
+      }
+    }
+    final cards = [
+      for (final q in book.questions.values.whereType<LandmarkQuestion>())
+        if (q.n > 1 && carriers.containsKey(q.landmark.id)) q,
+    ];
+    expect(cards, isNotEmpty);
+    for (final q in cards) {
+      expect(
+        carriers[q.landmark.id],
+        contains(q.approachStreet?.id),
+        reason: q.itemId,
+      );
     }
   });
 

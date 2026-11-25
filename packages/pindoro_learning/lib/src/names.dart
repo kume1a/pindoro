@@ -229,7 +229,7 @@ NamedStreet? suggestStreet(String typed, Iterable<NamedStreet> streets) {
   for (final s in streets) {
     final d = score(s);
     if (d < bestScore ||
-        (d == bestScore && best != null && s.id.compareTo(best.id) < 0)) {
+        (d == bestScore && (best == null || s.id.compareTo(best.id) < 0))) {
       (best, bestScore) = (s, d);
     }
   }

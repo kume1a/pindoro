@@ -202,11 +202,7 @@ List<RecitalStep> resolveRecital(
   final entries = <_Entry>[
     for (final s in streets) (forms: nameForms(s), street: s, landmark: null),
     for (final l in landmarks)
-      (
-        forms: {nameBase(l.name), transliterate(nameBase(l.name))}..remove(''),
-        street: null,
-        landmark: l,
-      ),
+      (forms: placeForms(l.name, l.nameEn), street: null, landmark: l),
   ];
   final steps = <RecitalStep>[];
   var previous = from;

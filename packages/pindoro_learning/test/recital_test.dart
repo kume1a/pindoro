@@ -232,6 +232,25 @@ void main() {
         (null, s['bar']!.id, null),
       ]);
     });
+
+    test('a landmark resolves by its English name too', () {
+      final park = (
+        id: 'osm:w1',
+        name: 'ვაკის პარკი',
+        nameEn: 'Vake Park',
+        kind: 'park',
+        at: graph.at(j(0, 2)),
+        personal: false,
+        junction: j(0, 2),
+        onLeft: true,
+      );
+      final steps = resolveRecital(
+        tokenizeRecital('Paliashvili, right at Vake Park, Barnovi'),
+        streets: all,
+        landmarks: [park],
+      );
+      expect(steps.map((st) => st.landmark?.id), [null, 'osm:w1', null]);
+    });
   });
 
   group('RecitalGrader.grade', () {

@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:pindoro_core/pindoro_core.dart';
 
+import 'cards.dart' show stableSeed;
 import 'curriculum.dart';
 import 'grader.dart';
 import 'map_labels.dart';
@@ -182,13 +183,18 @@ const int _choices = 4;
 /// Kinds of place the city has many alike, so always named with their street (SPEC §16.20).
 const Set<String> _chainKinds = {'fuel', 'supermarket'};
 
-/// Degrees from north driving along [line] at its start.
-double _startBearing(Polyline line) => bearingDegrees(line[0], line[1]);
+/// Degrees from north driving along [line] at its start, past a repeated first vertex.
+double _startBearing(Polyline line) =>
+    bearingDegrees(line.first, _awayFrom(line.first, line.skip(1)));
 
-/// The heading arriving at [junction] on [edge].
+/// The first of [points] that isn't [at] (the last one when all are).
+LatLng _awayFrom(LatLng at, Iterable<LatLng> points) =>
+    points.firstWhere((p) => p != at, orElse: () => points.last);
+
+/// The heading arriving at [junction] on [edge], past a repeated last vertex.
 double arrivingBearing(RoadEdge edge, int junction) {
   final line = edge.lineFrom(edge.other(junction));
-  return bearingDegrees(line[line.length - 2], line.last);
+  return bearingDegrees(_awayFrom(line.last, line.reversed.skip(1)), line.last);
 }
 
 /// The heading leaving [junction] on [edge].
@@ -233,6 +239,8 @@ RouteBook buildRouteBook({
   final questions = <String, RouteQuestion>{};
   final byLandmark = {for (final l in landmarks) l.id: l};
   final onTurns = <String, RouteLandmark>{};
+  // The turn whose card first carried each pack landmark: its L cards follow that approach.
+  final carriedBy = <String, TurnQuestion>{};
   NamedStreet? streetOf(RoadEdge e) => streets[e.streetId];
   void add(RouteCandidate c, RouteQuestion q) {
     if (questions.containsKey(c.itemId)) return;
@@ -278,36 +286,37 @@ RouteBook buildRouteBook({
           ),
           null => null,
         };
-        if (landmark != null) onTurns.putIfAbsent(landmark.id, () => landmark);
         final turnsOntoIt =
             onto != null && onto != into && _namesStreet(landmark, onto);
         final id = RouteIds.junction(node, from, to);
-        add(
-          (
-            itemId: id,
-            layer: item.layer == JunctionLayer.skeleton
-                ? RouteLayer.skeleton
-                : RouteLayer.district,
-            rank: item.rank,
-            known: known,
-            raion: into == null ? null : curriculum.raionOf(into.id),
-            chunk: null,
-            phase2: false,
-            personal: false,
-          ),
-          TurnQuestion(
-            id,
-            junction: item.junctionId,
-            approach: approach,
-            exits: exits,
-            correct: correct,
-            approachStreet: into,
-            exitStreet: onto,
-            destChunk: item.destChunkId,
-            // A place named after the way on would give the answer away.
-            landmark: turnsOntoIt ? null : landmark,
-          ),
+        final question = TurnQuestion(
+          id,
+          junction: item.junctionId,
+          approach: approach,
+          exits: exits,
+          correct: correct,
+          approachStreet: into,
+          exitStreet: onto,
+          destChunk: item.destChunkId,
+          // A place named after the way on would give the answer away.
+          landmark: turnsOntoIt ? null : landmark,
         );
+        if (landmark != null) {
+          onTurns.putIfAbsent(landmark.id, () => landmark);
+          carriedBy.putIfAbsent(landmark.id, () => question);
+        }
+        add((
+          itemId: id,
+          layer: item.layer == JunctionLayer.skeleton
+              ? RouteLayer.skeleton
+              : RouteLayer.district,
+          rank: item.rank,
+          known: known,
+          raion: into == null ? null : curriculum.raionOf(into.id),
+          chunk: null,
+          phase2: false,
+          personal: false,
+        ), question);
       case JunctionLayer.gatewayOut || JunctionLayer.gatewayIn:
         final chunk = item.chunkId;
         if (chunk == null) continue;
@@ -432,7 +441,7 @@ RouteBook buildRouteBook({
   }
   for (final landmark in places) {
     final at = landmark.junction;
-    final turn = turnJunctions[at];
+    final turn = carriedBy[landmark.id] ?? turnJunctions[at];
     final pack = byLandmark[landmark.id];
     final street = streetOfPlace[landmark.id];
     final twin =
@@ -442,7 +451,7 @@ RouteBook buildRouteBook({
     final cross = twin
         ? _corner(landmark.at, street, streetsAt(at!), all)
         : null;
-    final random = Random(landmark.id.hashCode);
+    final random = Random(stableSeed(landmark.id));
     final known = {?turn?.approachStreet?.id};
     for (final n in [1, 2, 3]) {
       if (n > 1 && (at == null || turn == null)) continue;
@@ -575,14 +584,14 @@ List<RouteLandmark> _placeChoices(
   RouteLandmark place,
   Iterable<RouteLandmark> onTurns,
 ) {
-  final names = {place.name};
+  final names = {normaliseName(place.name)};
   return [
     place,
     ..._byDistance(
       place.at,
       onTurns,
       (l) => l.at,
-    ).where((l) => names.add(l.name)).take(_choices - 1),
+    ).where((l) => names.add(normaliseName(l.name))).take(_choices - 1),
   ];
 }
 
