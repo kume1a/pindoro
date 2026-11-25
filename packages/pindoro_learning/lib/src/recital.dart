@@ -349,9 +349,7 @@ abstract final class RecitalGrader {
         junction: j,
         approach: approach,
         exit: exit,
-        turn: approach == null
-            ? null
-            : turnOf(arrivingBearing(approach, j), leavingBearing(exit, j)),
+        turn: approach == null ? null : turnAt(approach, exit, j),
         correct:
             legal.any((e) => e.id == exit.id) &&
             keepsGoodPath(
@@ -544,10 +542,7 @@ abstract final class RecitalGrader {
   static double _turnCost(Turn? said, _Walk s, Route r) {
     final approach = s.edge;
     if (said == null || approach == null || r.edges.isEmpty) return 0;
-    final made = turnOf(
-      arrivingBearing(approach, s.junction),
-      leavingBearing(r.edges.first, s.junction),
-    );
+    final made = turnAt(approach, r.edges.first, s.junction);
     return made == said ? 0 : LearningConfig.recitalTurnMismatchM;
   }
 

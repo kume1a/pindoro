@@ -443,6 +443,12 @@ abstract final class LearningConfig {
   /// a point a week, showing at most the last [chartWeeks] weeks.
   static const int chartDailyDays = 14;
   static const int chartWeeks = 10;
+
+  /// The forecast (§8): due reviews a day over the next this many days.
+  static const int forecastDays = 14;
+
+  /// A route pick (item 71): a bridge, an L2 junction or an L3 place among this many.
+  static const int routeChoices = 4;
   static const int cityMemoryMilestone = 500;
   static const int maintenanceBadgeDays = 100;
   static const int bullseyeBadgePerfects = 10;

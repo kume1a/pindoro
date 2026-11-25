@@ -225,9 +225,7 @@ List<NavDecision> navDecisions(
         junction: j,
         approach: before,
         exit: exit,
-        turn: before == null
-            ? null
-            : turnOf(arrivingBearing(before, j), leavingBearing(exit, j)),
+        turn: before == null ? null : turnAt(before, exit, j),
         street: named,
         newStreet: newStreet,
         atM: atM,

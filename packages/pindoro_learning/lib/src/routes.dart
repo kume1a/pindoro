@@ -19,6 +19,10 @@ Turn turnOf(double approachDeg, double exitDeg) {
   return d > 0 ? Turn.right : Turn.left;
 }
 
+/// The turn at [junction] arriving on [approach] and leaving on [exit].
+Turn turnAt(RoadEdge approach, RoadEdge exit, int junction) =>
+    turnOf(arrivingBearing(approach, junction), leavingBearing(exit, junction));
+
 /// Route item ids (SPEC §3, §16.14). Every part survives a pack rebuild: junctions and
 /// approaches are OSM node ids (`n123`), bridges and landmarks OSM ids, chunks district ids.
 abstract final class RouteIds {

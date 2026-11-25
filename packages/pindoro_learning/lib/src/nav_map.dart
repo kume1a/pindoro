@@ -5,7 +5,6 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'constants.dart';
 import 'grader.dart';
 import 'nav_plan.dart';
-import 'route_questions.dart';
 
 /// The arrow Guided draws on the map at [d] (SPEC §16.23 items 130, 135): [plan]'s route from
 /// [LearningConfig.navArrowBeforeM] before it to [LearningConfig.navArrowAfterM] after, its way

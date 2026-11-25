@@ -48,7 +48,11 @@ double? recallRate(Iterable<LogEntry> log, DateTime now) {
 }
 
 /// Reviews due on each of the next [days] days, today first; overdue ones count on today.
-List<int> forecast(Iterable<CardState> cards, DateTime now, {int days = 14}) {
+List<int> forecast(
+  Iterable<CardState> cards,
+  DateTime now, {
+  int days = LearningConfig.forecastDays,
+}) {
   final ends = [for (var d = 1; d <= days; d++) daysAfter(startOfDay(now), d)];
   final counts = List.filled(days, 0);
   for (final c in cards) {

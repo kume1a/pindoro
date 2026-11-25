@@ -121,6 +121,22 @@ class RoadEdge {
       junction == from ? line : line.reversed.toList();
 }
 
+/// The heading arriving at [junction] on [edge], past a repeated last vertex.
+double arrivingBearing(RoadEdge edge, int junction) {
+  final line = edge.lineFrom(edge.other(junction));
+  return bearingDegrees(_awayFrom(line.last, line.reversed.skip(1)), line.last);
+}
+
+/// The heading leaving [junction] on [edge], past a repeated first vertex.
+double leavingBearing(RoadEdge edge, int junction) {
+  final line = edge.lineFrom(junction);
+  return bearingDegrees(line.first, _awayFrom(line.first, line.skip(1)));
+}
+
+/// The first of [points] that isn't [at] (the last one when all are).
+LatLng _awayFrom(LatLng at, Iterable<LatLng> points) =>
+    points.firstWhere((p) => p != at, orElse: () => points.last);
+
 /// A drive along edges: its junctions from the start, the edges between them,
 /// its length and its cost (the length plus [RoutingConfig.uTurnPenaltyM] per
 /// U-turn).

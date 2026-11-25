@@ -69,23 +69,6 @@ RouteCandidate _candidate(
 );
 
 void main() {
-  test("an edge's headings skip a repeated end vertex", () {
-    const a = LatLng(41.7, 44.8);
-    const b = LatLng(41.701, 44.8);
-    final edge = RoadEdge(
-      id: 1,
-      from: 1,
-      to: 2,
-      streetId: null,
-      lengthM: 111,
-      line: const [a, a, b, b],
-    );
-    expect(leavingBearing(edge, 1), closeTo(0, 1e-9));
-    expect(arrivingBearing(edge, 2), closeTo(0, 1e-9));
-    expect(leavingBearing(edge, 2), closeTo(180, 1e-9));
-    expect(arrivingBearing(edge, 1), closeTo(180, 1e-9));
-  });
-
   test('a pin anywhere in a park is on it; outside, it is measured to the '
       'edge (SPEC §16.18 item 95)', () {
     const at = LatLng(41.7, 44.8);

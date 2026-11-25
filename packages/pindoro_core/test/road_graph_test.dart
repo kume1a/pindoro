@@ -56,6 +56,23 @@ double? _edgeDijkstra(RoadGraph graph, int from, int to) {
 }
 
 void main() {
+  test("an edge's headings skip a repeated end vertex", () {
+    const a = LatLng(41.7, 44.8);
+    const b = LatLng(41.701, 44.8);
+    final edge = RoadEdge(
+      id: 1,
+      from: 1,
+      to: 2,
+      streetId: null,
+      lengthM: 111,
+      line: const [a, a, b, b],
+    );
+    expect(leavingBearing(edge, 1), closeTo(0, 1e-9));
+    expect(arrivingBearing(edge, 2), closeTo(0, 1e-9));
+    expect(leavingBearing(edge, 2), closeTo(180, 1e-9));
+    expect(arrivingBearing(edge, 1), closeTo(180, 1e-9));
+  });
+
   group('shortestRoute', () {
     test('drives the grid corner to corner along the streets', () {
       final grid = roadGrid(4).graph;
