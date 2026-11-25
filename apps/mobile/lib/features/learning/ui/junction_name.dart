@@ -16,3 +16,20 @@ String? junctionName(
   }.toList()..sort();
   return names.isEmpty ? null : names.join(' × ');
 }
+
+/// "At Chavchavadze Avenue": another street meeting [on] at [junction];
+/// null where none does.
+String? crossingAt(
+  RoadGraph graph,
+  int junction,
+  NamedStreet on,
+  Map<String, NamedStreet> streets,
+  Settings? settings,
+) {
+  final other = {
+    for (final e in graph.edgesAt(junction))
+      if (streets[e.streetId] case final s? when s != on)
+        streetName(s, settings),
+  }.toList()..sort();
+  return other.firstOrNull;
+}

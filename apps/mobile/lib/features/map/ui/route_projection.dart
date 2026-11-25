@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/painting.dart' show EdgeInsets, Offset, Size;
+import 'package:flutter/widgets.dart' show State, StatefulWidget, ValueNotifier;
 
 import 'package:pindoro_core/pindoro_core.dart';
 
@@ -128,4 +129,18 @@ class MapProjection {
   /// Ground metres one dp covers at [at].
   double metresPerDp(LatLng at) =>
       _earthCircumferenceM * math.cos(at.lat * math.pi / 180) / _world;
+}
+
+/// A map screen's camera as it moves ([onCamera] for a map's `onCamera`), for the overlays
+/// that keep to map points.
+mixin MapProjectionHost<T extends StatefulWidget> on State<T> {
+  final projection = ValueNotifier<MapProjection?>(null);
+
+  void onCamera(MapProjection p) => projection.value = p;
+
+  @override
+  void dispose() {
+    projection.dispose();
+    super.dispose();
+  }
 }

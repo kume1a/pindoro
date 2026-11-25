@@ -41,15 +41,8 @@ class EndsView extends ConsumerStatefulWidget {
   ConsumerState<EndsView> createState() => _EndsViewState();
 }
 
-class _EndsViewState extends ConsumerState<EndsView> {
-  final _projection = ValueNotifier<MapProjection?>(null);
-
-  @override
-  void dispose() {
-    _projection.dispose();
-    super.dispose();
-  }
-
+class _EndsViewState extends ConsumerState<EndsView>
+    with MapProjectionHost<EndsView> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -72,7 +65,7 @@ class _EndsViewState extends ConsumerState<EndsView> {
           // Asking: places, but none named after the street.
           names: grade == null ? MapNames.asking(play.street) : MapNames.all,
           onTap: grade == null ? widget.onPin : null,
-          onCamera: (p) => _projection.value = p,
+          onCamera: onCamera,
           showControls: grade == null,
           topInset: insets.top,
           bottomInset: insets.bottom,
@@ -83,7 +76,7 @@ class _EndsViewState extends ConsumerState<EndsView> {
           Positioned.fill(
             child: IgnorePointer(
               child: GeoAnchors(
-                projection: _projection,
+                projection: projection,
                 anchors: [
                   (
                     pins.first,

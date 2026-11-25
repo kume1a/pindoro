@@ -44,21 +44,14 @@ class SweepView extends ConsumerStatefulWidget {
   ConsumerState<SweepView> createState() => _SweepViewState();
 }
 
-class _SweepViewState extends ConsumerState<SweepView> {
-  final _projection = ValueNotifier<MapProjection?>(null);
-
+class _SweepViewState extends ConsumerState<SweepView>
+    with MapProjectionHost<SweepView> {
   /// The label (its tray index) picked up, waiting for a socket.
   int? _held;
 
   /// The question whose result sheet shows: Check marks the sockets first,
   /// then the sheet takes over after [answerResultDelay].
   int? _resultFor;
-
-  @override
-  void dispose() {
-    _projection.dispose();
-    super.dispose();
-  }
 
   void _place(String label, String lane) {
     setState(() => _held = null);
@@ -102,7 +95,7 @@ class _SweepViewState extends ConsumerState<SweepView> {
                 for (final lane in task.lanes) lane.name,
             },
           ),
-          onCamera: (p) => _projection.value = p,
+          onCamera: onCamera,
           topInset: insets.top,
           bottomInset: insets.bottom,
         ),
@@ -110,7 +103,7 @@ class _SweepViewState extends ConsumerState<SweepView> {
       overlays: [
         Positioned.fill(
           child: GeoAnchors(
-            projection: _projection,
+            projection: projection,
             anchors: [
               for (final (i, lane) in task.lanes.indexed)
                 () {

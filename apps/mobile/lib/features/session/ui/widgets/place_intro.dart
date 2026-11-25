@@ -1,8 +1,5 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pindoro/core/dialogs.dart';
 import 'package:pindoro/core/feedback.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/google_maps.dart';
@@ -15,6 +12,7 @@ import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/widgets/street_view_button.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
+import 'package:pindoro/features/session/ui/widgets/cant_find_it_chip.dart';
 import 'package:pindoro/features/session/ui/widgets/intro_scaffold.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
@@ -91,37 +89,6 @@ class PlaceIntro extends ConsumerWidget {
           onGotIt();
         },
       ),
-    );
-  }
-}
-
-/// "Can't find it?" on a pack place (SPEC §16.18 item 94): once confirmed,
-/// [onHide] hides the place on this phone.
-class CantFindItChip extends StatelessWidget {
-  const CantFindItChip({super.key, required this.name, required this.onHide});
-
-  final String name;
-  final VoidCallback onHide;
-
-  Future<void> _ask(BuildContext context) async {
-    final l10n = context.l10n;
-    final hide = await askChoice(
-      context,
-      title: l10n.placeHideTitle(name),
-      body: l10n.placeHideBody,
-      primary: l10n.landmarksKeep,
-      secondary: l10n.placeHideConfirm,
-    );
-    if (hide) onHide();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final label = context.l10n.placeCantFind;
-    return Tappable(
-      onTap: () => unawaited(_ask(context)),
-      label: label,
-      child: StatChip(label: label, glyph: PindoroGlyph.flag),
     );
   }
 }
