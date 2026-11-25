@@ -286,13 +286,29 @@ bool _inReview(CardState card, DateTime now) => switch (card) {
   _ => false,
 };
 
-/// A [Random] seeded by FNV-1a of the item and the time: the same review always fuzzes alike.
-Random fuzzFor(String itemId, DateTime now) {
+/// A [Random] seeded by [key]: the same review always fuzzes alike.
+Random fuzzFor(String itemId, DateTime now) =>
+    Random(stableSeed('$itemId@${now.microsecondsSinceEpoch}'));
+
+/// FNV-1a of [key]: a seed that stays the same on every run and platform, unlike `hashCode`.
+int stableSeed(String key) {
   var hash = 0x811c9dc5;
-  for (final unit in '$itemId@${now.microsecondsSinceEpoch}'.codeUnits) {
+  for (final unit in key.codeUnits) {
     hash = ((hash ^ unit) * 0x01000193) & 0xffffffff;
   }
-  return Random(hash);
+  return hash;
+}
+
+/// Each P card's earlier reviews rated Hard or better, [Grader.gradePin]'s `priorSuccesses`;
+/// drills that only log don't count.
+Map<String, int> priorSuccesses(Iterable<LogEntry> log) {
+  final successes = <String, int>{};
+  for (final e in log) {
+    if (e.type == CardType.p && e.rating.isSuccess && !e.format.logsOnly) {
+      successes.update(e.itemId, (n) => n + 1, ifAbsent: () => 1);
+    }
+  }
+  return successes;
 }
 
 /// An Explore answer (SPEC §16.3 item 16): it reviews [card] when the card is due or near due (due

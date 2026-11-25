@@ -66,7 +66,34 @@ class RevealDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) => ConstrainedBox(
     constraints: const BoxConstraints(maxWidth: 600),
-    child: RiseIn(key: ValueKey(revealKey), child: sheet),
+    child: RiseIn(
+      key: ValueKey(revealKey),
+      child: _TapsOnceRisen(child: sheet),
+    ),
+  );
+}
+
+/// Ignores taps while the sheet rises in: the second tap of a double tap on Got it or Next
+/// would land on the next sheet's button.
+class _TapsOnceRisen extends StatefulWidget {
+  const _TapsOnceRisen({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_TapsOnceRisen> createState() => _TapsOnceRisenState();
+}
+
+class _TapsOnceRisenState extends State<_TapsOnceRisen> {
+  bool _risen = false;
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    tween: Tween(begin: 0, end: 1),
+    duration: PindoroMotion.durationBase,
+    onEnd: () => setState(() => _risen = true),
+    builder: (_, _, child) => child!,
+    child: IgnorePointer(ignoring: !_risen, child: widget.child),
   );
 }
 

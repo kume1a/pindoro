@@ -69,7 +69,8 @@ class _EndsViewState extends ConsumerState<EndsView> {
           pin: pins.firstOrNull,
           morePins: pins.skip(1).toList(),
           truth: grade == null ? null : play.street.geometry,
-          names: grade == null ? const MapNames(places: true) : MapNames.all,
+          // Asking: places, but none named after the street.
+          names: grade == null ? MapNames.asking(play.street) : MapNames.all,
           onTap: grade == null ? widget.onPin : null,
           onCamera: (p) => _projection.value = p,
           showControls: grade == null,

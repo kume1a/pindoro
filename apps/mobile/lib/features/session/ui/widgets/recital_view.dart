@@ -70,6 +70,16 @@ class _RecitalViewState extends ConsumerState<RecitalView> {
   bool _notFound = false;
 
   @override
+  void didUpdateWidget(RecitalView old) {
+    super.didUpdateWidget(old);
+    // Recitals in a row share this state: a new one starts blank.
+    if (old.play.index != widget.play.index) {
+      _notFound = false;
+      _field.clear();
+    }
+  }
+
+  @override
   void dispose() {
     _field.dispose();
     _projection.dispose();

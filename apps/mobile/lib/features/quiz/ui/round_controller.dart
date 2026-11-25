@@ -390,29 +390,32 @@ class RoundController extends Notifier<RoundState> {
         final question = round.question;
         final nearest = pin == null ? null : question.street.nearest(pin);
         final rtMs = _now().difference(_askedAt).inMilliseconds;
-        final answer = await dao.recordAnswer(
-          roundId: round.id,
-          streetId: question.id,
-          pin: pin,
-          distanceM: nearest?.distanceM,
-          tier: nearest == null
-              ? Tier.miss
-              : scoreAnswer(
-                  nearest.distanceM,
-                  nearest.part.roadClass,
-                  round.difficulty,
-                ),
-          packVersion: round.packVersion,
-        );
+        // Both start now: the round may be left while they save, and the pin still reviews
+        // its card.
+        final (answer, _) = await (
+          dao.recordAnswer(
+            roundId: round.id,
+            streetId: question.id,
+            pin: pin,
+            distanceM: nearest?.distanceM,
+            tier: nearest == null
+                ? Tier.miss
+                : scoreAnswer(
+                    nearest.distanceM,
+                    nearest.part.roadClass,
+                    round.difficulty,
+                  ),
+            packVersion: round.packVersion,
+          ),
+          learnFromExplore(
+            ref,
+            street: question.street,
+            pin: pin,
+            rtMs: rtMs,
+            roundId: round.id,
+          ),
+        ).wait;
         if (round.isLast) await dao.finishRound(round.id);
-        if (!ref.mounted) return;
-        await learnFromExplore(
-          ref,
-          street: question.street,
-          pin: pin,
-          rtMs: rtMs,
-          roundId: round.id,
-        );
         if (ref.mounted) {
           state = RoundRevealed(
             round.withAnswer(answer),
