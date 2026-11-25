@@ -13,7 +13,7 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/online.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/toast.dart';
-import 'package:pindoro/features/learning/data/progress.dart';
+import 'package:pindoro/features/learning/data/refresh.dart';
 import 'package:pindoro/features/map/ui/pin_drop_view.dart';
 import 'package:pindoro/features/quiz/ui/round_controller.dart';
 import 'package:pindoro/features/quiz/ui/setup_states.dart';

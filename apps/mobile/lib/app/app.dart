@@ -12,7 +12,7 @@ import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/account/data/account_data.dart';
 import 'package:pindoro/features/badges/data/badge_data.dart';
 import 'package:pindoro/features/learning/data/day.dart';
-import 'package:pindoro/features/learning/data/progress.dart';
+import 'package:pindoro/features/learning/data/refresh.dart';
 import 'package:pindoro/features/pack/data/app_update.dart';
 import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';

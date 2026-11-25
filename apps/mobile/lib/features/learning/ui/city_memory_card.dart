@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pindoro/core/format.dart';
-import 'package:pindoro/features/learning/data/progress.dart';
+import 'package:pindoro/features/learning/data/memory_summary.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';

@@ -8,7 +8,7 @@ import 'package:pindoro/core/config.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
-import 'package:pindoro/features/learning/data/progress.dart';
+import 'package:pindoro/features/learning/data/memory_summary.dart';
 import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';

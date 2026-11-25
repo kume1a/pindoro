@@ -9,7 +9,7 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/page_scaffold.dart';
 import 'package:pindoro/core/routes.dart';
 import 'package:pindoro/core/settings.dart';
-import 'package:pindoro/features/learning/data/progress.dart';
+import 'package:pindoro/features/learning/data/memory_summary.dart';
 import 'package:pindoro/l10n/app_localizations.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
