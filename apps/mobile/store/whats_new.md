@@ -4,6 +4,24 @@ What each version brings, newest first, for the people who install Pindoro. The 
 workflow puts the section of the version it builds into the SideStore source as its release notes
 and fails when that section is missing, so write it with every version bump.
 
+## 2.19.1
+
+Fixes
+- After I don't know, the answer shows on its own: no half-placed pin, ends or exit left from before.
+- Name it shows the street names and "Did you know it?" after I don't know.
+- The both-ends question no longer shows a place named after the street.
+- A second recital in a row starts with an empty field.
+- A landmark said by its English name ("Vake Park") counts in a recital.
+- A quick double tap on Got it or Next no longer skips the next street.
+- Explore keeps an answer for your reviews even when you leave the round right after it.
+
+Large and bold text
+- The search field, the streak calendar, map labels and the week's bars grow with large text instead of clipping.
+- Buttons and labels make room for bold text.
+
+Also
+- Lighter on memory, and a lot of tidying under the hood.
+
 ## 2.19.0
 
 "I don't know" on every question
