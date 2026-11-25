@@ -143,7 +143,7 @@ class _AreaPickerMapState extends State<AreaPickerMap>
   /// top and bottom padding centre [b] where the shapes and [_reportCamera]
   /// put the uncovered part's centre.
   ({LatLng target, double zoom}) _fit(Bbox b, Size size) => MapProjection.fit(
-    [LatLng(b.minLat, b.minLon), LatLng(b.maxLat, b.maxLon)],
+    b.diagonal,
     size: size,
     padding: EdgeInsets.fromLTRB(
       PindoroSpace.s8,

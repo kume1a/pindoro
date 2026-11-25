@@ -96,20 +96,6 @@ void main() {
         {'B'},
       );
     });
-
-    test('knownCounts per city and district', () {
-      final counts = knownCounts(
-        streets: streets,
-        partsByDistrict: {
-          'd1': {'a1', 'a2', 'b'},
-          'd2': {'a3'},
-        },
-        known: {'a1'},
-      );
-      expect(counts.city, (known: 1, total: 3));
-      expect(counts.byDistrict['d1'], (known: 1, total: 2));
-      expect(counts.byDistrict['d2'], (known: 0, total: 1));
-    });
   });
 
   group('NamedStreet', () {

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../geo/geo.dart';
+import '../pack/road_edge.dart';
 import '../pack/road_graph.dart';
 
 /// A drive being drawn from A towards any of [goals], one edge at a time.
@@ -62,14 +63,7 @@ class RouteDraft {
     );
     var draft = this;
     for (var i = 1; i <= steps; i++) {
-      final t = i / steps;
-      draft = draft._follow(
-        LatLng(
-          from.lat + (finger.lat - from.lat) * t,
-          from.lon + (finger.lon - from.lon) * t,
-        ),
-        snapM,
-      );
+      draft = draft._follow(pointBetween(from, finger, i / steps), snapM);
     }
     return draft;
   }

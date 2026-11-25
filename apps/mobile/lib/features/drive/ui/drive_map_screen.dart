@@ -333,5 +333,5 @@ class ChooseOnMapRow extends StatelessWidget {
 /// About 600 m around [at]: a few blocks, close enough to tap a street.
 List<LatLng> _around(LatLng at) {
   final box = CircleArea(at, 600).bbox;
-  return [LatLng(box.minLat, box.minLon), LatLng(box.maxLat, box.maxLon)];
+  return box.diagonal;
 }

@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:pindoro/features/map/data/map_places.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
@@ -15,16 +13,11 @@ Set<int> placesNear(
 }) {
   final points = [for (final line in lines) ...line];
   if (points.isEmpty) return const {};
-  final box = Bbox.of(points);
-  // The box grown by [nearM]: a cheap test before the distance to the lines.
-  final dLat = nearM / 111320;
-  final dLon = dLat / cos(box.center.lat * pi / 180);
+  // A cheap test before the distance to the lines.
+  final box = Bbox.of(points).grown(nearM);
   return {
     for (final p in places)
-      if (p.at.lat >= box.minLat - dLat &&
-          p.at.lat <= box.maxLat + dLat &&
-          p.at.lon >= box.minLon - dLon &&
-          p.at.lon <= box.maxLon + dLon &&
+      if (box.contains(p.at) &&
           pointToPolylineDistance(p.at, lines).distanceMeters <= nearM)
         ?featureIdOf(p.id),
   };

@@ -354,5 +354,5 @@ class _ChoiceRow<T> extends StatelessWidget {
 /// About 150 m around [junction]: close enough to see its approaches.
 List<LatLng> _around(LatLng junction) {
   final box = CircleArea(junction, 150).bbox;
-  return [LatLng(box.minLat, box.minLon), LatLng(box.maxLat, box.maxLon)];
+  return box.diagonal;
 }

@@ -140,10 +140,7 @@ abstract final class Grader {
     Iterable<NamedStreet> nearby,
   ) {
     const radius = LearningConfig.snapSearchM;
-    final projection = LocalProjection(pin);
-    final sw = projection.unproject((-radius, -radius));
-    final ne = projection.unproject((radius, radius));
-    final reach = Bbox(sw.lat, sw.lon, ne.lat, ne.lon);
+    final reach = Bbox.around(pin, radius);
 
     String? best = targetDistanceM <= radius ? target.id : null;
     var bestM = targetDistanceM <= radius ? targetDistanceM : double.infinity;

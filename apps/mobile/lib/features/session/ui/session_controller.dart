@@ -1473,7 +1473,7 @@ class SessionController extends Notifier<SessionState> {
         .where((d) => d.id == chunk)
         .firstOrNull
         ?.bbox) {
-      final b? => [LatLng(b.minLat, b.minLon), LatLng(b.maxLat, b.maxLon)],
+      final b? => b.diagonal,
       null => null,
     },
     BridgeQuestion(:final at, :final options) => [
@@ -1595,10 +1595,7 @@ class SessionController extends Notifier<SessionState> {
           .fold(0.0, (sum, e) => sum + e.value);
       if (m > bestM) (best, bestM) = (id, m);
     }
-    final b = raions[best]?.bbox;
-    return b == null
-        ? null
-        : [LatLng(b.minLat, b.minLon), LatLng(b.maxLat, b.maxLon)];
+    return raions[best]?.bbox.diagonal;
   }
 
   double _memory(DateTime now) => cityMemory(

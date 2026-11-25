@@ -397,7 +397,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
   List<LatLng> get _areaFrame {
     if (widget.frame case final frame?) return frame;
     final b = widget.area.bbox;
-    return [LatLng(b.minLat, b.minLon), LatLng(b.maxLat, b.maxLon)];
+    return b.diagonal;
   }
 
   /// What the camera frames: the street (or the place and the streets
@@ -414,11 +414,7 @@ class _PindoroMapState extends ConsumerState<PindoroMap>
 
   /// A square [_placeFrameM] out from [at] each way.
   static List<LatLng> _around(LatLng at) {
-    final local = LocalProjection(at);
-    return [
-      local.unproject((-_placeFrameM, -_placeFrameM)),
-      local.unproject((_placeFrameM, _placeFrameM)),
-    ];
+    return Bbox.around(at, _placeFrameM).diagonal;
   }
 
   Future<void> _fitArea() => _fit(_areaFrame);

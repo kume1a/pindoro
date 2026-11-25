@@ -85,10 +85,7 @@ class _ExploreMapState extends State<ExploreMap> with MapHost<ExploreMap> {
   }
 
   ({LatLng target, double zoom}) _fit(Size size) => MapProjection.fit(
-    [
-      LatLng(widget.bounds.minLat, widget.bounds.minLon),
-      LatLng(widget.bounds.maxLat, widget.bounds.maxLon),
-    ],
+    widget.bounds.diagonal,
     size: size,
     padding: EdgeInsets.fromLTRB(
       PindoroSpace.s4,
