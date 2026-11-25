@@ -316,7 +316,7 @@ class _NearHome extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final homeId = ref.watch(learnCityProvider).value?.homeId;
-    final home = pack.districts().where((d) => d.id == homeId).firstOrNull;
+    final home = pack.district(homeId);
     return _QuickCard(
       glyph: PindoroGlyph.home,
       title: l10n.exploreNearHome,

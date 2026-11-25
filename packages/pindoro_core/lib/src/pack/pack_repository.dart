@@ -49,3 +49,9 @@ abstract interface class PackRepository {
 
   void close();
 }
+
+extension PackDistricts on PackRepository {
+  /// The district with [id]; null when there's none.
+  District? district(String? id) =>
+      districts().where((d) => d.id == id).firstOrNull;
+}

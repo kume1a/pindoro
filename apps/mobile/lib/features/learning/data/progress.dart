@@ -403,12 +403,12 @@ final nowLearningProvider = FutureProvider.autoDispose<NowLearning?>((
   }
   final chunk = progress.coming.firstOrNull;
   if (chunk == null) return null;
-  final raion = pack.districts().where((d) => d.id == chunk.chunk.parentId);
-  if (raion.isEmpty) return null;
+  final raion = pack.district(chunk.chunk.parentId);
+  if (raion == null) return null;
   return (
     band: null,
     chunk: chunk.chunk,
-    raion: raion.single,
+    raion: raion,
     memory: chunk.memory,
     seen: chunk.seen,
     nextBand: null,

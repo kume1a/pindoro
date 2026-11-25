@@ -101,11 +101,10 @@ class _RouteViewState extends ConsumerState<RouteView> {
     final play = widget.play;
     final task = play.task as RouteTask;
     final graph = pack?.roadGraph();
-    String chunkName(String? chunk) =>
-        switch (pack?.districts().where((d) => d.id == chunk).firstOrNull) {
-          final d? => districtName(d, settings),
-          null => l10n.routeCityCentre,
-        };
+    String chunkName(String? chunk) => switch (pack?.district(chunk)) {
+      final d? => districtName(d, settings),
+      null => l10n.routeCityCentre,
+    };
     // A way with no name is "a link road", never a blank in the sentence.
     String name(NamedStreet? s) =>
         s == null ? l10n.debriefLinkRoad : streetName(s, settings);

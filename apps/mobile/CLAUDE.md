@@ -52,7 +52,7 @@ lib/features/<feature>/ui/     screens and controllers (Riverpod notifiers), the
                                home/work picker and your landmarks: list, add on the map
                                snapped to a junction), streak, me, session (SessionController plays
                                today's plan and Learn 10 more round by round (Round done between
-                               them, no timer), or the city's placement; each step's
+                               them, no timer), or the city's placement, from `loadSession`'s reads (learning/data); `SessionDeck` gives each step its street, task and frame; each step's
                                SessionTask: a pin, Name it, both ends, the family sweep, the
                                crossings drill, a bearing, a route card (RouteView: the
                                turn on the heading-up map, gateway, bridge, connection, landmark) or a
