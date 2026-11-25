@@ -4,7 +4,7 @@ import 'cards.dart';
 import 'constants.dart';
 import 'curriculum.dart';
 import 'fsrs.dart';
-import 'stats.dart';
+import 'labels.dart';
 
 /// Which way a turn goes, seen arriving on the approach (a J card's exit buttons).
 enum Turn { left, straight, right, uTurn }

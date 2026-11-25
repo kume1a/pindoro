@@ -4,7 +4,7 @@ import 'cards.dart';
 import 'constants.dart';
 import 'drive_log.dart';
 import 'fsrs.dart';
-import 'stats.dart';
+import 'labels.dart';
 
 /// What the player's past says about one decision (by its key): when it last failed anywhere
 /// (a session, a recital or a drive), and on the drives through it, latest first, whether they

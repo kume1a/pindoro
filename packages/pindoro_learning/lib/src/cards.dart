@@ -3,7 +3,7 @@ import 'dart:math';
 import 'constants.dart';
 import 'fsrs.dart';
 import 'grader.dart';
-import 'planner.dart' show startOfDay;
+import 'days.dart';
 
 /// Card types; an item id is `<TYPE>:<key>` (SPEC §3).
 enum CardType {
@@ -326,7 +326,7 @@ Map<String, int> priorSuccesses(Iterable<LogEntry> log) {
   final rating = grade?.rating ?? Grader.notKnown;
   // A suspended leech comes back only through its intro (SPEC §16.13).
   final reviews = card == null
-      ? rating == Rating.good || rating == Rating.easy
+      ? rating.passes
       : card.phase != CardPhase.suspended &&
             (isNearDue(card, now) ||
                 (rating == Rating.again && _inReview(card, now)));
@@ -380,3 +380,9 @@ bool isNearDue(CardState card, DateTime now) {
         source: source,
         sessionId: sessionId,
       );
+
+/// A reviewed card due before [t] (learning, suspended and unseen are not).
+bool isDueBefore(CardState card, DateTime t) =>
+    (card.phase == CardPhase.review || card.phase == CardPhase.relearning) &&
+    card.dueAt != null &&
+    card.dueAt!.isBefore(t);

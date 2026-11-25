@@ -36,8 +36,7 @@ class Placement {
   int _mainRoadsPassed = 0;
   int _passed = 0;
 
-  static bool passes(Rating? rating) =>
-      rating == Rating.good || rating == Rating.easy;
+  static bool passes(Rating? rating) => rating?.passes ?? false;
 
   /// Records [id]'s answer and returns the sweep it added (usually none).
   List<String> answer(String id, Rating? rating) {
