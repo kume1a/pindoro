@@ -8,6 +8,7 @@ import '../theme.dart';
 import 'graphics.dart';
 import 'surfaces.dart';
 import 'tappable.dart';
+import 'whole_words.dart';
 
 /// Counts per memory state for a set of streets; [total] is every street in
 /// the set (the rest is track).
@@ -549,11 +550,13 @@ class WeekBars extends StatelessWidget {
               child: Column(
                 spacing: 2,
                 children: [
-                  Text(
-                    format(n),
-                    style: PindoroType.labelMd.copyWith(
-                      color: c.textPrimary,
-                      fontWeight: FontWeight.w800,
+                  WholeWords(
+                    Text(
+                      format(n),
+                      style: PindoroType.labelMd.copyWith(
+                        color: c.textPrimary,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                   SizedBox(

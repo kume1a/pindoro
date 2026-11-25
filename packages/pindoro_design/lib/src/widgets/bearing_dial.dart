@@ -249,6 +249,7 @@ class _BearingDialPainter extends CustomPainter {
             north.computeDistanceToActualBaseline(TextBaseline.alphabetic),
       ),
     );
+    north.dispose();
     final truth = this.truth;
     Color shown(Color color) => color.withValues(alpha: color.a * reveal);
     if (truth != null) {
@@ -295,7 +296,9 @@ class _BearingDialPainter extends CustomPainter {
           ),
           textDirection: TextDirection.ltr,
         )..layout();
-        text.paint(canvas, at - Offset(text.width / 2, text.height / 2));
+        text
+          ..paint(canvas, at - Offset(text.width / 2, text.height / 2))
+          ..dispose();
       }
     }
   }

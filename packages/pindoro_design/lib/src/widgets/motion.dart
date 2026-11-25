@@ -324,14 +324,8 @@ class Celebration extends StatefulWidget {
 
 class _CelebrationState extends State<Celebration>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: switch (widget.size) {
-      CelebrationSize.small => PindoroMotion.celebrateSmall,
-      CelebrationSize.medium => PindoroMotion.celebrateMedium,
-      CelebrationSize.big => PindoroMotion.celebrateBig,
-    },
-  )..forward();
+  /// Made on the first build that shows something: a calm or small celebration never ticks.
+  AnimationController? _c;
 
   final _pieces = [
     for (var i = 0; i < 28; i++)
@@ -346,7 +340,7 @@ class _CelebrationState extends State<Celebration>
 
   @override
   void dispose() {
-    _c.dispose();
+    _c?.dispose();
     super.dispose();
   }
 
@@ -355,14 +349,22 @@ class _CelebrationState extends State<Celebration>
     if (_calm(context) || widget.size == CelebrationSize.small) {
       return const SizedBox.shrink();
     }
+    final c = _c ??= AnimationController(
+      vsync: this,
+      duration: switch (widget.size) {
+        CelebrationSize.small => PindoroMotion.celebrateSmall,
+        CelebrationSize.medium => PindoroMotion.celebrateMedium,
+        CelebrationSize.big => PindoroMotion.celebrateBig,
+      },
+    )..forward();
     final colors = PindoroTheme.of(context).colors;
     return IgnorePointer(
       child: AnimatedBuilder(
-        animation: _c,
+        animation: c,
         builder: (_, _) => CustomPaint(
           size: Size.infinite,
           painter: _CelebrationPainter(
-            t: _c.value,
+            t: c.value,
             big: widget.size == CelebrationSize.big,
             burstCenter: widget.burstCenter ?? Alignment.center,
             pieces: _pieces,

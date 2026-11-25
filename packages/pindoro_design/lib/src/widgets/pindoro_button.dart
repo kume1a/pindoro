@@ -57,10 +57,11 @@ class PindoroButton extends StatefulWidget {
   double wholeWordsWidth(BuildContext context) {
     if (iconOnly && icon != null) return large ? PindoroSize.buttonLg : height;
     final scaler = MediaQuery.textScalerOf(context);
+    final style = textStyleAsShown(context, PindoroType.labelButton);
     var widest = 0.0;
     for (final word in label.split(RegExp(r'\s+'))) {
       final painter = TextPainter(
-        text: TextSpan(text: word, style: PindoroType.labelButton),
+        text: TextSpan(text: word, style: style),
         textDirection: Directionality.of(context),
         textScaler: scaler,
       )..layout();

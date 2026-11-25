@@ -392,10 +392,12 @@ class MapChip {
             ..strokeJoin = StrokeJoin.round,
         );
       }
-      painter.paint(
-        canvas,
-        Offset(PindoroSpace.s3 + checkSize + gap, PindoroSpace.s1),
-      );
+      painter
+        ..paint(
+          canvas,
+          Offset(PindoroSpace.s3 + checkSize + gap, PindoroSpace.s1),
+        )
+        ..dispose();
     });
   }
 }
@@ -427,8 +429,11 @@ Future<Uint8List> outlineLabelPng(
   return _png(Size(fill.width + 2 * halo, fill.height + 2 * halo), pixelRatio, (
     canvas,
   ) {
-    outline.paint(canvas, const Offset(halo, halo));
-    fill.paint(canvas, const Offset(halo, halo));
+    for (final painter in [outline, fill]) {
+      painter
+        ..paint(canvas, const Offset(halo, halo))
+        ..dispose();
+    }
   });
 }
 
@@ -439,13 +444,18 @@ Future<Uint8List> _png(
 ) async {
   final recorder = ui.PictureRecorder();
   paint(Canvas(recorder)..scale(pixelRatio));
-  final image = await recorder.endRecording().toImage(
-    (size.width * pixelRatio).ceil(),
-    (size.height * pixelRatio).ceil(),
-  );
-  final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-  image.dispose();
-  return bytes!.buffer.asUint8List();
+  final picture = recorder.endRecording();
+  try {
+    final image = await picture.toImage(
+      (size.width * pixelRatio).ceil(),
+      (size.height * pixelRatio).ceil(),
+    );
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    return bytes!.buffer.asUint8List();
+  } finally {
+    picture.dispose();
+  }
 }
 
 class _PinPainter extends CustomPainter {

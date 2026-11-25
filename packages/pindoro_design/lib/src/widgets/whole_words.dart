@@ -16,7 +16,10 @@ class WholeWords extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _WordFit(
     words: text.data!.split(_space),
-    style: DefaultTextStyle.of(context).style.merge(text.style),
+    style: textStyleAsShown(
+      context,
+      DefaultTextStyle.of(context).style.merge(text.style),
+    ),
     scaler: text.textScaler ?? MediaQuery.textScalerOf(context),
     direction: text.textDirection ?? Directionality.of(context),
     child: text,
@@ -24,6 +27,12 @@ class WholeWords extends StatelessWidget {
 }
 
 final RegExp _space = RegExp(r'\s+');
+
+/// [style] as a [Text] lays it out: bold when the platform asks for bold text.
+TextStyle textStyleAsShown(BuildContext context, TextStyle style) =>
+    MediaQuery.boldTextOf(context)
+    ? style.merge(const TextStyle(fontWeight: FontWeight.bold))
+    : style;
 
 class _WordFit extends SingleChildRenderObjectWidget {
   const _WordFit({

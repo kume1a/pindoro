@@ -121,9 +121,12 @@ class StreakCalendar extends StatelessWidget {
     final lead = (DateTime(month.year, month.month).weekday - firstWeekday) % 7;
     final cells = <Widget>[
       for (var i = 0; i < 7; i++)
-        SizedBox(
-          width: _disc,
-          height: 20,
+        ConstrainedBox(
+          constraints: const BoxConstraints(
+            minWidth: _disc,
+            maxWidth: _disc,
+            minHeight: 20,
+          ),
           child: Center(
             child: Text(
               weekdays[(firstWeekday - 1 + i) % 7],

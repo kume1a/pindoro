@@ -190,7 +190,7 @@ class MapLabelChip extends StatelessWidget {
       radius: PindoroRadius.full,
       shadow: true,
       child: Container(
-        height: height,
+        constraints: const BoxConstraints(minHeight: height),
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(horizontal: PindoroSpace.s2),
         child: Text(
