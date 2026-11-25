@@ -4,6 +4,58 @@ import 'cards.dart';
 import 'recital.dart';
 import 'routes.dart';
 
+/// A checked recital's saves (SPEC §5.3): the review of its R card [itemId], the evidence for
+/// the J items of [routeItems] it drove, the implicit reviews of their [cards], and the carded
+/// ones it got wrong, to practise.
+({
+  ({CardState card, LogEntry log}) answer,
+  List<({String itemId, bool ok})> evidence,
+  List<({CardState card, LogEntry log})> reviews,
+  List<String> practice,
+})
+recitalOutcome(
+  RecitalResult graded, {
+  required String itemId,
+  required Map<String, CardState> cards,
+  required Map<int, int> junctionNodes,
+  required Iterable<String> routeItems,
+  required DateTime now,
+  required String sessionId,
+  required int rtMs,
+}) {
+  final evidence = recitalEvidence(graded, junctionNodes, {
+    for (final id in routeItems)
+      if (CardType.ofItem(id) == CardType.j) id,
+  });
+  return (
+    answer: applyReview(
+      cards[itemId],
+      itemId: itemId,
+      rating: graded.rating,
+      now: now,
+      format: ReviewFormat.recital,
+      source: ReviewSource.session,
+      sessionId: sessionId,
+      rtMs: rtMs,
+    ),
+    evidence: evidence,
+    reviews: [
+      for (final e in evidence)
+        ?implicitReview(
+          cards[e.itemId],
+          ok: e.ok,
+          now: now,
+          source: ReviewSource.recital,
+          sessionId: sessionId,
+        ),
+    ],
+    practice: {
+      for (final e in evidence)
+        if (!e.ok && cards.containsKey(e.itemId)) e.itemId,
+    }.toList(),
+  );
+}
+
 /// What a recital or drive says about the junction cards (SPEC §4 implicit evidence, §5.3 step
 /// 7): a right decision is evidence for the J item it drove ([ok]); a wrong one against every J
 /// item at that junction from that approach. Only items in [routeItems]; an item met twice keeps

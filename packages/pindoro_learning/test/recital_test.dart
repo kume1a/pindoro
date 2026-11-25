@@ -584,5 +584,23 @@ void main() {
       (itemId: jId(j(2, 1), j(1, 1), j(1, 1)), ok: true),
       (itemId: jId(j(1, 1), j(2, 1), j(0, 1)), ok: true),
     ]);
+
+    final carded = jId(j(1, 1), j(1, 0), j(2, 1));
+    final now = DateTime(2026, 3, 2, 9);
+    final outcome = recitalOutcome(
+      r,
+      itemId: 'R:a:b',
+      cards: {carded: CardState(itemId: carded, phase: CardPhase.learning)},
+      junctionNodes: nodes,
+      routeItems: [...items, 'G:c:n1:out'],
+      now: now,
+      sessionId: 's',
+      rtMs: 1000,
+    );
+    expect(outcome.evidence, recitalEvidence(r, nodes, items));
+    expect(outcome.practice, [carded]);
+    expect(outcome.answer.card.itemId, 'R:a:b');
+    expect(outcome.answer.log.rating, r.rating);
+    expect(outcome.answer.log.format, ReviewFormat.recital);
   });
 }

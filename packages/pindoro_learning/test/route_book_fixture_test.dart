@@ -142,6 +142,36 @@ void main() {
     }
   });
 
+  test('route answers rate as SPEC §5.2 grades them', () {
+    final turn = book.questions.values.whereType<TurnQuestion>().firstWhere(
+      (q) => q.exitStreet?.nameEn != null,
+    );
+    final exit = turn.exitStreet!;
+    final wrong = turn.exits.keys.firstWhere((t) => t != turn.correct);
+    expect(turn.rate(choice: turn.correct), Rating.good);
+    expect(turn.rate(choice: turn.correct, known: {exit}), Rating.hard);
+    expect(
+      turn.rate(choice: turn.correct, typed: exit.nameEn!, known: {exit}),
+      Rating.good,
+    );
+    expect(turn.rate(choice: turn.correct, typed: 'zzzz'), Rating.hard);
+    expect(turn.rate(choice: wrong, typed: exit.nameEn!), Rating.again);
+    expect(turn.format, ReviewFormat.junction);
+
+    final l3 = book.questions.values.whereType<LandmarkQuestion>().firstWhere(
+      (q) => q.n == 3,
+    );
+    final other = l3.places.firstWhere((p) => p.name != l3.landmark.name);
+    expect(l3.rate(choice: l3.landmark.name), Rating.good);
+    expect(l3.rate(choice: other.name), Rating.again);
+    final l1 = book.questions.values.whereType<LandmarkQuestion>().firstWhere(
+      (q) => q.n == 1,
+    );
+    expect(l1.rate(), isNull);
+    expect(l1.rate(pin: l1.landmark.at), Rating.good);
+    expect(l1.format, ReviewFormat.landmark);
+  });
+
   test("a place's L cards ask from the turn that carries it", () {
     final carriers = <String, Set<String?>>{};
     for (final q in book.questions.values.whereType<TurnQuestion>()) {

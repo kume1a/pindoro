@@ -1,5 +1,8 @@
 import 'package:pindoro_core/pindoro_core.dart';
 
+import 'cards.dart';
+import 'fsrs.dart';
+import 'names.dart';
 import 'routes.dart';
 
 /// A landmark a route card can ask about: one from the pack, or the player's own (SPEC §9).
@@ -22,6 +25,49 @@ sealed class RouteQuestion {
   const RouteQuestion(this.itemId);
 
   final String itemId;
+
+  /// The format its answers are logged with.
+  ReviewFormat get format => switch (this) {
+    TurnQuestion() => ReviewFormat.junction,
+    GatewayQuestion() => ReviewFormat.gateway,
+    BridgeQuestion() => ReviewFormat.bridge,
+    ConnectionQuestion() => ReviewFormat.connection,
+    LandmarkQuestion() => ReviewFormat.landmark,
+  };
+
+  /// The rating of an answer (SPEC §5.2): the [choice] picked, the [pin] dropped and the
+  /// [typed] street; a turn asks for its street when the player [known]s it. Null while a
+  /// pin question has no pin.
+  Rating? rate({
+    Object? choice,
+    LatLng? pin,
+    String typed = '',
+    Set<NamedStreet> known = const {},
+  }) {
+    final hasTyped = typed.trim().isNotEmpty;
+    bool names(NamedStreet? s) =>
+        s != null && hasTyped && nameMatches(typed, s);
+    Rating passed(bool right) => right ? Rating.good : Rating.again;
+    return switch (this) {
+      final TurnQuestion q => RouteGrader.turn(
+        exitRight: choice == q.correct,
+        streetRight: hasTyped ? names(q.exitStreet) : null,
+        streetAsked: known.contains(q.exitStreet),
+      ),
+      final GatewayQuestion q when pin != null => RouteGrader.gateway(
+        distanceM: distanceBetween(pin, q.at),
+        streetRight: names(q.exitStreet),
+      ),
+      final BridgeQuestion q => passed(choice == q.bridge),
+      final ConnectionQuestion q => passed(names(q.to)),
+      final LandmarkQuestion q when q.n == 1 && pin != null =>
+        RouteGrader.point(q.distanceFrom(pin).distanceM).rating,
+      final LandmarkQuestion q when q.n > 1 => passed(
+        q.n == 2 ? choice == q.junction : choice == q.landmark.name,
+      ),
+      _ => null,
+    };
+  }
 }
 
 /// J: on [approachStreet] heading to [destChunk], at the junction (and [landmark]), which

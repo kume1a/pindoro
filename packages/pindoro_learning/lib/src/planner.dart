@@ -18,7 +18,16 @@ enum StepKind {
   placement,
   familySweep,
   crossings,
-  bearing,
+  bearing;
+
+  /// The review format a pin step of this kind is logged with.
+  ReviewFormat get format => switch (this) {
+    retrieval1 => ReviewFormat.retrieval1,
+    retrieval2 => ReviewFormat.retrieval2,
+    relearn => ReviewFormat.relearn,
+    placement => ReviewFormat.placement,
+    _ => ReviewFormat.review,
+  };
 }
 
 typedef SessionStep = ({StepKind kind, String itemId});
@@ -270,6 +279,35 @@ abstract final class Planner {
 
   /// Whether a missed [itemId] comes back again in a session of [steps]: not once it has had
   /// [LearningConfig.relearnMaxPerSession] relearns (SPEC §16.18). It stays due, for the next.
+  /// [remaining] with a relearn for each of [forgotten] that [session] still allows, each
+  /// placed with its own random from [seed].
+  static List<SessionStep> withRelearns(
+    List<SessionStep> remaining,
+    List<String> forgotten, {
+    required List<SessionStep> session,
+    required int seed,
+  }) {
+    var rest = remaining;
+    for (final (i, id) in forgotten.indexed) {
+      if (!mayRelearn(session, id)) continue;
+      rest = withRelearn(rest, id, Random(seed + i));
+    }
+    return rest;
+  }
+
+  /// Days from [now] to [card]'s next review; null when it comes back in this session of
+  /// [steps] (a miss that has had its relearns waits for its due time).
+  static int? nextReviewDays(
+    CardState card,
+    DateTime now,
+    List<SessionStep> steps,
+  ) =>
+      card.phase == CardPhase.review ||
+          (card.phase == CardPhase.relearning &&
+              !mayRelearn(steps, card.itemId))
+      ? card.dueAt!.difference(now).inDays
+      : null;
+
   static bool mayRelearn(List<SessionStep> steps, String itemId) =>
       steps
           .where((s) => s.kind == StepKind.relearn && s.itemId == itemId)

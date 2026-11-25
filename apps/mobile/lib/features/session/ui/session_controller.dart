@@ -262,7 +262,7 @@ class SessionController extends Notifier<SessionState> {
   Placement? _placement;
   late List<String> _anchors;
   String _sessionId = const Uuid().v7();
-  final List<_Answer> _answers = [];
+  final List<SessionAnswer> _answers = [];
 
   /// Set while an answer saves: a second tap meanwhile is ignored.
   bool _saving = false;
@@ -521,7 +521,7 @@ class SessionController extends Notifier<SessionState> {
       step,
       grade.rating,
       tier: grade.tier,
-      format: _formatOf(step.kind),
+      format: step.kind.format,
       distanceM: grade.distanceM,
       snapId: grade.snapStreetId,
       rtMs: rtMs,
@@ -882,12 +882,12 @@ class SessionController extends Notifier<SessionState> {
   /// [p] with a relearn for each of [forgotten] 5–10 items on, and its
   /// session bar block marked when any.
   SessionPlaying _answered(SessionPlaying p, List<String> forgotten) {
-    var rest = p.steps.sublist(p.index + 1);
-    final session = _sessionSteps(p);
-    for (final (i, id) in forgotten.indexed) {
-      if (!Planner.mayRelearn(session, id)) continue;
-      rest = Planner.withRelearn(rest, id, Random(_seed + p.index + i));
-    }
+    final rest = Planner.withRelearns(
+      p.steps.sublist(p.index + 1),
+      forgotten,
+      session: _sessionSteps(p),
+      seed: _seed + p.index,
+    );
     final missed =
         forgotten.isNotEmpty || _answers.lastOrNull?.rating == Rating.again;
     return p.copyWith(
@@ -902,21 +902,12 @@ class SessionController extends Notifier<SessionState> {
   /// Counted from the review itself: a clock read after the saves would cut a day short.
   (SessionPlaying, int?) _reviewed(SessionPlaying p, CardState card) => (
     _answered(p, [if (card.phase == CardPhase.relearning) p.step.itemId]),
-    _nextReviewDays(card, card.memory?.lastReview ?? _now(), _sessionSteps(p)),
+    Planner.nextReviewDays(
+      card,
+      card.memory?.lastReview ?? _now(),
+      _sessionSteps(p),
+    ),
   );
-
-  /// Days to [card]'s next review; null when it comes back in this session of
-  /// [steps] (a miss that has had its relearns waits for its due time).
-  static int? _nextReviewDays(
-    CardState card,
-    DateTime now,
-    List<SessionStep> steps,
-  ) =>
-      card.phase == CardPhase.review ||
-          (card.phase == CardPhase.relearning &&
-              !Planner.mayRelearn(steps, card.itemId))
-      ? card.dueAt!.difference(now).inDays
-      : null;
 
   /// [street]'s P card as stored, or the item it would get.
   CardState _cardOf(NamedStreet street) => _cards.values.firstWhere(
@@ -1012,7 +1003,7 @@ class SessionController extends Notifier<SessionState> {
             p.step,
             Grader.notKnown,
             tier: Tier.miss,
-            format: _formatOf(p.step.kind),
+            format: p.step.kind.format,
           );
           if (card == null) return;
           final (answered, days) = _reviewed(p, card);
@@ -1343,30 +1334,16 @@ class SessionController extends Notifier<SessionState> {
         ),
       };
       final now = _now();
-      final answer = applyReview(
-        _cards[p.step.itemId],
+      final (:answer, :evidence, :reviews, :practice) = recitalOutcome(
+        graded,
         itemId: p.step.itemId,
-        rating: graded.rating,
+        cards: _cards,
+        junctionNodes: _nodes,
+        routeItems: _routes.questions.keys,
         now: now,
-        format: ReviewFormat.recital,
-        source: ReviewSource.session,
         sessionId: _sessionId,
         rtMs: _rtMs(now),
       );
-      final evidence = recitalEvidence(graded, _nodes, {
-        for (final id in _routes.questions.keys)
-          if (CardType.ofItem(id) == CardType.j) id,
-      });
-      final reviews = [
-        for (final e in evidence)
-          ?implicitReview(
-            _cards[e.itemId],
-            ok: e.ok,
-            now: now,
-            source: ReviewSource.recital,
-            sessionId: _sessionId,
-          ),
-      ];
       final markDay = dayMarker(ref, reviews: _reviews);
       await _dao.saveTest(
         log: answer.log,
@@ -1391,10 +1368,6 @@ class SessionController extends Notifier<SessionState> {
       _times.add(now);
       await markDay();
       if (!ref.mounted) return;
-      final practice = {
-        for (final e in evidence)
-          if (!e.ok && _cards.containsKey(e.itemId)) e.itemId,
-      }.toList();
       state = _answered(p, practice).copyWith(
         task: t.copyWith(
           graded: graded,
@@ -1502,37 +1475,20 @@ class SessionController extends Notifier<SessionState> {
     final p = state;
     if (p is! SessionPlaying || p.answered) return;
     if (p.task case final RouteTask t) {
-      final pin = p.pin;
-      bool names(NamedStreet? s) =>
-          s != null && typed.trim().isNotEmpty && nameMatches(typed, s);
-      final rating = switch (t.question) {
-        _ when notKnown => Grader.notKnown,
-        final TurnQuestion q => RouteGrader.turn(
-          exitRight: t.choice == q.correct,
-          streetRight: typed.trim().isEmpty ? null : names(q.exitStreet),
-          streetAsked: _knownStreets(_now()).contains(q.exitStreet),
-        ),
-        final GatewayQuestion q when pin != null => RouteGrader.gateway(
-          distanceM: distanceBetween(pin, q.at),
-          streetRight: names(q.exitStreet),
-        ),
-        final BridgeQuestion q =>
-          t.choice == q.bridge ? Rating.good : Rating.again,
-        final ConnectionQuestion q => names(q.to) ? Rating.good : Rating.again,
-        final LandmarkQuestion q when q.n == 1 && pin != null =>
-          RouteGrader.point(q.distanceFrom(pin).distanceM).rating,
-        final LandmarkQuestion q when q.n > 1 =>
-          (q.n == 2 ? t.choice == q.junction : t.choice == q.landmark.name)
-              ? Rating.good
-              : Rating.again,
-        _ => null,
-      };
+      final rating = notKnown
+          ? Grader.notKnown
+          : t.question.rate(
+              choice: t.choice,
+              pin: p.pin,
+              typed: typed,
+              known: _knownStreets(_now()),
+            );
       if (rating == null) return;
       final card = await _review(
         p.step,
         rating,
         tier: RouteGrader.tierOf(rating),
-        format: _routeFormat(t.question),
+        format: t.question.format,
         street: p.street,
       );
       if (card == null) return;
@@ -1601,8 +1557,10 @@ class SessionController extends Notifier<SessionState> {
   double _memory(DateTime now) => cityMemory(
     _cards.values,
     now,
-    isCore: (id) =>
-        (_streets[itemKey(id)]?.lengthM ?? 0) >= LearningConfig.coreMinLengthM,
+    isCore: (id) => switch (_streets[itemKey(id)]) {
+      final s? => Curriculum.isCore(s),
+      null => false,
+    },
   );
 
   Future<void> _placed(Placement run) async {
@@ -1628,37 +1586,20 @@ class SessionController extends Notifier<SessionState> {
 
   SessionSummary _summary() {
     final now = _now();
-    final graded = [
-      for (final a in _answers)
-        if (a.kind != StepKind.crossings) a,
-    ];
-    final passed = graded.where((a) => a.rating.isSuccess).length;
-    final closes = <String, int>{};
-    for (final a in graded.where((a) => a.tier == Tier.close)) {
-      closes.update(a.streetId, (n) => n + 1, ifAbsent: () => 1);
-    }
+    final s = summarizeSession(_answers, _times);
     final midnight = nextMidnight(now);
     return (
-      reviews: graded
-          .where(
-            (a) => a.kind == StepKind.review || a.kind == StepKind.familySweep,
-          )
-          .length,
+      reviews: s.reviews,
       newStreets: _introsDone,
-      recalledPercent: graded.isEmpty
-          ? 0
-          : (100 * passed / graded.length).round(),
+      recalledPercent: s.recalledPercent,
       memoryBefore: _memoryBefore,
       memoryAfter: _memory(now),
       mixUps: [
-        for (final a in graded)
-          if (_streets[a.mixUp] case final hit?) (_streets[a.streetId]!, hit),
+        for (final (id, hit) in s.mixUps)
+          if (_streets[hit] case final other?) (_streets[id]!, other),
       ],
-      closeTwice: [
-        for (final MapEntry(:key, :value) in closes.entries)
-          if (value >= 2) _streets[key]!,
-      ],
-      minutes: (activeSeconds(_times) / 60).ceil(),
+      closeTwice: [for (final id in s.closeTwice) _streets[id]!],
+      minutes: s.minutes,
       cleared: !_cards.values
           .where(_reviews(_cards.values))
           .any((c) => isDueBefore(c, midnight)),
@@ -1667,30 +1608,3 @@ class SessionController extends Notifier<SessionState> {
     );
   }
 }
-
-/// One graded answer of the session, for Session done.
-typedef _Answer = ({
-  StepKind kind,
-  Rating rating,
-  Tier tier,
-  String streetId,
-
-  /// The street a mix-up confused it with.
-  String? mixUp,
-});
-
-ReviewFormat _routeFormat(RouteQuestion q) => switch (q) {
-  TurnQuestion() => ReviewFormat.junction,
-  GatewayQuestion() => ReviewFormat.gateway,
-  BridgeQuestion() => ReviewFormat.bridge,
-  ConnectionQuestion() => ReviewFormat.connection,
-  LandmarkQuestion() => ReviewFormat.landmark,
-};
-
-ReviewFormat _formatOf(StepKind kind) => switch (kind) {
-  StepKind.retrieval1 => ReviewFormat.retrieval1,
-  StepKind.retrieval2 => ReviewFormat.retrieval2,
-  StepKind.relearn => ReviewFormat.relearn,
-  StepKind.placement => ReviewFormat.placement,
-  _ => ReviewFormat.review,
-};

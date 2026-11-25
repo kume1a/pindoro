@@ -33,6 +33,7 @@ export 'src/route_book.dart';
 export 'src/route_questions.dart';
 export 'src/routes.dart';
 export 'src/runs.dart';
+export 'src/session_summary.dart';
 export 'src/stats.dart';
 export 'src/today.dart';
 export 'src/tuning.dart';
