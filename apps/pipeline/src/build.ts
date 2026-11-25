@@ -29,7 +29,7 @@ import {
   readIdentities,
   writeIdentities,
 } from "./identity.ts";
-import { isoSeconds, run, writeJson } from "./io.ts";
+import { isoSeconds, percent, run, writeJson } from "./io.ts";
 import { extractCity, loadOsm, readNeighbourhoods, runSqlSteps } from "./load.ts";
 import { finalisePack, type PackOptions, packVersion, writePack } from "./pack.ts";
 import { selectJunctionItems } from "./routes.ts";
@@ -85,9 +85,6 @@ const loadStreets = async (
     FROM pipeline.street ORDER BY key`;
 };
 
-const share = (part: number, whole: number): string =>
-  whole ? `${((part / whole) * 100).toFixed(1)} %` : "–";
-
 /**
  * The data check behind the lane families: how many numbered lane, dead-end and passage names
  * found their parent, how near it they lie, and the orphans. Markdown, for docs/research.
@@ -122,11 +119,11 @@ const familyCheck = async (sql: Sql): Promise<string> => {
     "| Measure | Streets | Share |",
     "| --- | --- | --- |",
     `| Names ending in შესახვევი, ჩიხი or გასასვლელი | ${family_words} | |`,
-    `| … with a Roman numeral | ${numbered} | ${share(numbered, family_words)} |`,
-    `| Children with a parent (lane ${lanes}, dead end ${dead_ends}, passage ${passages}) | ${children} | ${share(children, numbered)} |`,
-    `| … within 500 m of the parent | ${near} | ${share(near, children)} |`,
-    `| … within 1.5 km of the parent | ${within} | ${share(within, children)} |`,
-    `| Orphans (over 1.5 km) | ${orphans.length} | ${share(orphans.length, children)} |`,
+    `| … with a Roman numeral | ${numbered} | ${percent(numbered, family_words)} |`,
+    `| Children with a parent (lane ${lanes}, dead end ${dead_ends}, passage ${passages}) | ${children} | ${percent(children, numbered)} |`,
+    `| … within 500 m of the parent | ${near} | ${percent(near, children)} |`,
+    `| … within 1.5 km of the parent | ${within} | ${percent(within, children)} |`,
+    `| Orphans (over 1.5 km) | ${orphans.length} | ${percent(orphans.length, children)} |`,
     "",
     `Numbered names without a parent (${unmatched.length}): ${unmatched.map((r) => r.name_ka).join(", ")}.`,
     "",

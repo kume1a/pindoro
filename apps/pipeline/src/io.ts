@@ -28,5 +28,9 @@ export const replaceAtomically = (dest: string, write: (tmp: string) => void): v
 export const writeJson = (file: string, value: unknown): void =>
   writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
 
+/** `part` of `whole` as the reports show it, e.g. "12.5 %"; a dash when `whole` is 0. */
+export const percent = (part: number, whole: number): string =>
+  whole ? `${((part / whole) * 100).toFixed(1)} %` : "–";
+
 /** An ISO timestamp without milliseconds, e.g. 2026-11-05T22:17:00Z. */
 export const isoSeconds = (at: Date): string => at.toISOString().replace(/\.\d+Z$/, "Z");
