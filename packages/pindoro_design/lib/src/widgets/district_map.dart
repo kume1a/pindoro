@@ -219,7 +219,9 @@ class _DistrictPainter extends CustomPainter {
       final halo = TextPainter(
         text: TextSpan(
           text: d.name,
-          style: label.copyWith(foreground: _line(colors.mapVectorLand, 3)),
+          style: label.copyWith(
+            foreground: _line(colors.mapVectorLand, PindoroStroke.thick),
+          ),
         ),
         textDirection: TextDirection.ltr,
       )..layout();

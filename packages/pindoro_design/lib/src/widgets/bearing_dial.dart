@@ -227,7 +227,10 @@ class _BearingDialPainter extends CustomPainter {
       canvas.drawLine(
         pt(t, 106),
         pt(t, major ? 124 : 118),
-        stroke(colors.textSecondary, major ? 3 : 2),
+        stroke(
+          colors.textSecondary,
+          major ? PindoroStroke.thick : PindoroStroke.base,
+        ),
       );
     }
     final north = TextPainter(

@@ -74,10 +74,15 @@ class RevealSheet extends StatelessWidget {
                         runSpacing: PindoroSpace.s2,
                         children: [
                           PopIn(
-                            delay: const Duration(milliseconds: 80),
+                            delay: PindoroMotion.durationInstant,
                             child: tier == Tier.close
-                                ? Wiggle(child: TierBadge(tier, size: 32))
-                                : TierBadge(tier, size: 32),
+                                ? Wiggle(
+                                    child: TierBadge(
+                                      tier,
+                                      size: PindoroSize.iconLg,
+                                    ),
+                                  )
+                                : TierBadge(tier, size: PindoroSize.iconLg),
                           ),
                           Text(
                             label,

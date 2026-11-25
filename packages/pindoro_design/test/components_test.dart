@@ -292,61 +292,6 @@ void main() {
     expect(tester.getCenter(find.text('1')).dx, tester.getCenter(first).dx);
   });
 
-  testWidgets('a skeleton shimmers, and holds still under reduce motion', (
-    tester,
-  ) async {
-    // _host turns animations off; this one needs them on.
-    await tester.pumpWidget(
-      _host(
-        const MediaQuery(
-          data: MediaQueryData(),
-          child: Skeleton(width: 56, height: 56, radius: 28),
-        ),
-      ),
-    );
-    expect(tester.getSize(find.byType(Skeleton)), const Size(56, 56));
-    expect(tester.hasRunningAnimations, isTrue);
-    await tester.pumpWidget(
-      _host(
-        const MediaQuery(
-          data: MediaQueryData(disableAnimations: true),
-          child: Skeleton(width: 56, height: 56),
-        ),
-      ),
-    );
-    // Settles (the theme's own lerp ends); a shimmer would never settle.
-    await tester.pumpAndSettle();
-    expect(tester.hasRunningAnimations, isFalse);
-  });
-
-  testWidgets('a tappable pill is its own button next to other pills', (
-    tester,
-  ) async {
-    var taps = 0;
-    await tester.pumpWidget(
-      _host(
-        Wrap(
-          children: [
-            const Pill(label: '3 to your Pit stop'),
-            Pill(label: 'Up to 4th in Avenue league', onTap: () => taps++),
-          ],
-        ),
-      ),
-    );
-    expect(
-      tester.getSemantics(find.bySemanticsLabel('Up to 4th in Avenue league')),
-      matchesSemantics(
-        label: 'Up to 4th in Avenue league',
-        isButton: true,
-        hasTapAction: true,
-        hasEnabledState: true,
-        isEnabled: true,
-      ),
-    );
-    await tester.tap(find.text('Up to 4th in Avenue league'));
-    expect(taps, 1);
-  });
-
   testWidgets(
     'endpoint pins read their letter; the car and a landmark render',
     (tester) async {

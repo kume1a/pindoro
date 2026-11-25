@@ -4,7 +4,6 @@ import 'package:pindoro_core/pindoro_core.dart';
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
-import 'progress.dart';
 import 'surfaces.dart';
 import 'tappable.dart';
 
@@ -81,9 +80,7 @@ class Pill extends StatelessWidget {
     this.lip,
     this.foreground,
     this.floating = false,
-    this.ring = false,
     this.semanticLabel,
-    this.onTap,
   });
 
   final String label;
@@ -98,66 +95,46 @@ class Pill extends StatelessWidget {
   /// The label's colour; defaults to `color.text.primary`.
   final Color? foreground;
   final bool floating;
-
-  /// The accent ring, while the value changes (Home after a round).
-  final bool ring;
   final String? semanticLabel;
-
-  /// Makes the pill a button (Results' league chip opens the league).
-  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final pill = _pill(context);
-    if (onTap == null) return pill;
-    // Its own node: next to other pills it would merge into their parent.
-    return Semantics(
-      container: true,
-      child: Tappable(label: semanticLabel ?? label, onTap: onTap, child: pill),
-    );
-  }
-
-  Widget _pill(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
     return Semantics(
       container: semanticLabel != null,
       label: semanticLabel,
       excludeSemantics: semanticLabel != null,
-      child: AccentRing(
-        on: ring,
+      child: LipBox(
         radius: PindoroRadius.full,
-        child: LipBox(
-          radius: PindoroRadius.full,
-          face: face,
-          lip: lip,
-          shadow: floating,
-          padding: const EdgeInsets.symmetric(
-            horizontal: PindoroSpace.s3,
-            vertical: PindoroSpace.s2,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            spacing: PindoroSpace.s1,
-            children: [
-              if (icon != null)
-                PindoroIcon(
-                  icon!,
-                  size: PindoroSize.iconSm,
-                  color: iconColor ?? c.textPrimary,
-                  accent: iconAccent,
-                  cut: face,
-                ),
-              // Wraps rather than overflows: long labels at large text sizes.
-              Flexible(
-                child: Text(
-                  label,
-                  style: PindoroType.numericSm.copyWith(
-                    color: foreground ?? c.textPrimary,
-                  ),
+        face: face,
+        lip: lip,
+        shadow: floating,
+        padding: const EdgeInsets.symmetric(
+          horizontal: PindoroSpace.s3,
+          vertical: PindoroSpace.s2,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          spacing: PindoroSpace.s1,
+          children: [
+            if (icon != null)
+              PindoroIcon(
+                icon!,
+                size: PindoroSize.iconSm,
+                color: iconColor ?? c.textPrimary,
+                accent: iconAccent,
+                cut: face,
+              ),
+            // Wraps rather than overflows: long labels at large text sizes.
+            Flexible(
+              child: Text(
+                label,
+                style: PindoroType.numericSm.copyWith(
+                  color: foreground ?? c.textPrimary,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

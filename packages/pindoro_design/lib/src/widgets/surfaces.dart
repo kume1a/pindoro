@@ -4,6 +4,7 @@ import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
 import 'tappable.dart';
+import 'text_scale.dart';
 import 'whole_words.dart';
 
 /// A flat face sitting on a solid bottom lip: the system's only depth.
@@ -279,7 +280,7 @@ class TileGrid extends StatelessWidget {
   static int columnsFor(int count, double textScale) =>
       textScale >= stackAt ? 1 : (count == 4 ? 2 : count.clamp(1, 3));
 
-  static const double stackAt = 1.6;
+  static const double stackAt = largeTextScale;
 
   @override
   Widget build(BuildContext context) => Column(

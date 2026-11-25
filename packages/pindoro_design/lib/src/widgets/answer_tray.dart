@@ -880,8 +880,8 @@ class _AnswerChoiceState extends State<_AnswerChoice> {
         );
       case _Lead.number:
         return Container(
-          width: 24,
-          height: 24,
+          width: PindoroSize.iconMd,
+          height: PindoroSize.iconMd,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: on ? c.primaryBase : c.surfaceSunken,

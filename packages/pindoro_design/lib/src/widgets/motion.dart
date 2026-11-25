@@ -159,7 +159,7 @@ class PopIn extends StatelessWidget {
       context,
       delay,
       PindoroMotion.durationBase,
-      Curves.linear,
+      PindoroMotion.easeLinear,
     );
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
@@ -242,50 +242,6 @@ class RiseSwitcher extends StatelessWidget {
       child: child,
     );
   }
-}
-
-/// Shows [child] through a circle growing from [center] (global
-/// coordinates) as [progress] runs 0 → 1, until it covers the screen.
-class CircleReveal extends StatelessWidget {
-  const CircleReveal({
-    super.key,
-    required this.progress,
-    required this.center,
-    required this.child,
-  });
-
-  final Animation<double> progress;
-  final Offset center;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: progress,
-    builder: (context, child) =>
-        ClipPath(clipper: _CircleClipper(center, progress.value), child: child),
-    child: child,
-  );
-}
-
-class _CircleClipper extends CustomClipper<Path> {
-  _CircleClipper(this.center, this.t);
-
-  final Offset center;
-  final double t;
-
-  @override
-  Path getClip(Size size) {
-    final reach = [
-      Offset.zero,
-      size.topRight(Offset.zero),
-      size.bottomLeft(Offset.zero),
-      size.bottomRight(Offset.zero),
-    ].map((corner) => (corner - center).distance).reduce(math.max);
-    return Path()..addOval(Rect.fromCircle(center: center, radius: reach * t));
-  }
-
-  @override
-  bool shouldReclip(_CircleClipper old) => old.t != t || old.center != center;
 }
 
 enum CelebrationSize { small, medium, big }
