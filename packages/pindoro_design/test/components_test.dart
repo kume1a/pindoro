@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
-import 'junction_sample.dart';
+import 'route_marks_sample.dart';
 
 /// Animations off, so pops and count-ups show their final frame.
 Widget _host(Widget child, {Brightness brightness = Brightness.light}) =>

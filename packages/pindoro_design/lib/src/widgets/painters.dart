@@ -1,4 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/rendering.dart';
+
+import '../generated/pindoro_tokens.dart';
 
 /// [path] cut into pieces [dash] long, one every [period] along it.
 Path dashedPath(Path path, {required double dash, required double period}) {
@@ -34,4 +38,37 @@ class TailPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(TailPainter old) => old.color != color || old.down != down;
+}
+
+/// A 2 dp dashed rounded edge (an empty socket, a placed label's slot).
+class DashedEdge extends CustomPainter {
+  const DashedEdge({required this.color, required this.radius});
+
+  final Color color;
+  final double radius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const w = PindoroStroke.base;
+    final r = math.min(radius, size.shortestSide / 2);
+    final edge = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          (Offset.zero & size).deflate(w / 2),
+          Radius.circular(r),
+        ),
+      );
+    final dashes = dashedPath(edge, dash: 6, period: 10);
+    canvas.drawPath(
+      dashes,
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = w,
+    );
+  }
+
+  @override
+  bool shouldRepaint(DashedEdge old) =>
+      old.color != color || old.radius != radius;
 }
