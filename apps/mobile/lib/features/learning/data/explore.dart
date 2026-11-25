@@ -29,9 +29,7 @@ Future<void> learnFromExplore(
   final all = streets.values.toSet();
   final card = await _cardOf(dao, street);
   final itemId = card?.itemId ?? CardType.p.item(street.id);
-  final successes = (await dao.log())
-      .where((e) => e.itemId == itemId && e.rating.isSuccess)
-      .length;
+  final successes = priorSuccesses(await dao.log())[itemId] ?? 0;
   final grade = pin == null
       ? null
       : Grader.gradePin(

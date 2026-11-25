@@ -98,7 +98,8 @@ class DistrictMap extends StatelessWidget {
 
   static const double _fill = 0.92;
 
-  List<(int, Path)> _paths(Size size) {
+  /// The districts' outlines in a [size] box, and the projection that drew them.
+  ({Offset Function(LatLng) at, List<(int, Path)> paths}) _layout(Size size) {
     final at = _fit(
       [
         for (final d in districts)
@@ -108,10 +109,13 @@ class DistrictMap extends StatelessWidget {
       size,
       _fill,
     );
-    return [
-      for (final (i, d) in districts.indexed)
-        for (final polygon in d.boundary) (i, _polygonPath(polygon, at)),
-    ];
+    return (
+      at: at,
+      paths: [
+        for (final (i, d) in districts.indexed)
+          for (final polygon in d.boundary) (i, _polygonPath(polygon, at)),
+      ],
+    );
   }
 
   @override
@@ -138,7 +142,7 @@ class DistrictMap extends StatelessWidget {
                       onTapUp: onTap == null || empty
                           ? null
                           : (details) {
-                              for (final (i, path) in _paths(size)) {
+                              for (final (i, path) in _layout(size).paths) {
                                 if (path.contains(details.localPosition)) {
                                   onTap!(i);
                                   return;
@@ -149,7 +153,7 @@ class DistrictMap extends StatelessWidget {
                         painter: _DistrictPainter(
                           colors: c,
                           districts: districts,
-                          paths: empty ? const [] : _paths(size),
+                          layout: empty ? null : _layout(size),
                           label: PindoroType.labelSm,
                         ),
                       ),
@@ -170,19 +174,23 @@ class _DistrictPainter extends CustomPainter {
   _DistrictPainter({
     required this.colors,
     required this.districts,
-    required this.paths,
+    required this.layout,
     required this.label,
   });
 
   final PindoroColors colors;
   final List<MapDistrict> districts;
-  final List<(int, Path)> paths;
+
+  /// Null while no district has an outline.
+  final ({Offset Function(LatLng) at, List<(int, Path)> paths})? layout;
   final TextStyle label;
 
   @override
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = colors.mapVectorLand);
-    if (paths.isEmpty) return;
+    final layout = this.layout;
+    if (layout == null || layout.paths.isEmpty) return;
+    final (:at, :paths) = layout;
     // Each district is a tile: its fill, a coloured edge kept inside it, then
     // a land-coloured gap along every border, so no neighbour draws over it.
     for (final (i, path) in paths) {
@@ -202,15 +210,6 @@ class _DistrictPainter extends CustomPainter {
     for (final (_, path) in paths) {
       canvas.drawPath(path, _line(colors.mapVectorLand, 1.5));
     }
-    final at = _fit(
-      [
-        for (final d in districts)
-          for (final polygon in d.boundary)
-            for (final ring in polygon) ...ring,
-      ],
-      size,
-      DistrictMap._fill,
-    );
     for (final (i, d) in districts.indexed) {
       final room = paths
           .where((p) => p.$1 == i)
@@ -219,7 +218,9 @@ class _DistrictPainter extends CustomPainter {
       final halo = TextPainter(
         text: TextSpan(
           text: d.name,
-          style: label.copyWith(foreground: _line(colors.mapVectorLand, 3)),
+          style: label.copyWith(
+            foreground: _line(colors.mapVectorLand, PindoroStroke.thick),
+          ),
         ),
         textDirection: TextDirection.ltr,
       )..layout();

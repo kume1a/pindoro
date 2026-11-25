@@ -12,6 +12,9 @@ enum Rating {
 
   int get grade => index + 1;
   bool get isSuccess => this != again;
+
+  /// Good or Easy: an answer that places a street or opens a card from Explore.
+  bool get passes => this == good || this == easy;
 }
 
 /// What FSRS knows about a card after its first review.

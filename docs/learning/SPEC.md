@@ -397,6 +397,8 @@ pindoro_core `ScoringConfig`, not copied):
 | `bullseyeBadgePerfects`, `onFireBadgeDays`, `explorerBadgeDistricts`    | 10, 7, 5                            |
 | `recallWindowDays` (recall rate, §16.18)                                | 30                                  |
 | `chartDailyDays`, `chartWeeks`                                          | 14, 10                              |
+| `forecastDays` (the forecast, §8)                                       | 14                                  |
+| `routeChoices` (a bridge, L2 or L3 pick, item 71)                       | 4                                   |
 | `uTurnPenaltyM` (pindoro_core `RoutingConfig`, referenced)              | 250                                 |
 | `turnStraightDeg`, `turnUTurnDeg` (a J card's exit directions)          | 30, 150                             |
 | `phase2StableDays`                                                      | 14                                  |

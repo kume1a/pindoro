@@ -5,8 +5,7 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'cards.dart';
 import 'constants.dart';
 import 'curriculum.dart';
-import 'planner.dart';
-import 'stats.dart';
+import 'labels.dart';
 
 /// A family sweep (SPEC §7): a parent and the P cards (stored item ids) of its children due
 /// within [LearningConfig.familySweepWindowDays], most at risk first.

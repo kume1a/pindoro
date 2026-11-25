@@ -3,9 +3,10 @@
 Pure Dart game logic. **No Flutter imports** — it must run under plain `dart test`.
 
 ```
-lib/src/geo/        LatLng, LocalProjection, Bbox, pointToPolylineDistance, bearings, compass
-                    points, headingAlong (Dart-only: Street View links), angleDiffDeg and
-                    linePart (Dart-only: navigation), polyline6 (+ Dart-only
+lib/src/geo/        LatLng, LocalProjection, Bbox (+ Dart-only `around`, `grown`, `diagonal`),
+                    pointToPolylineDistance, bearings, compass points, headingAlong (Dart-only:
+                    Street View links), angleDiffDeg, pointBetween and linePart (Dart-only:
+                    navigation), polyline6 (+ Dart-only
                     `encodeInts`/`decodeInts`: the drive log's track), sun (Dart-only:
                     `isNight` by sun elevation, the drive screens' day and night)
 lib/src/scoring/    Difficulty, Tier, ScoringConfig (half-widths, fixed distances, difficulty
@@ -19,10 +20,11 @@ lib/src/game/       Area (districts/circle/rect, in-area rule), NamedStreet (nea
                     route_draft (RouteDraft drag and tap drawing along legal exits: the
                     recital's Draw mode)
 lib/src/pack/       City/District/Street (pack rows; format 4 adds the curriculum columns and
-                    FamilyLink), PackRepository, RoadGraph (junctions, edges with `Oneway` and
+                    FamilyLink), PackRepository, road_edge (`RoadEdge`, `Oneway`, the edge headings), RoadGraph (junctions, edges with `Oneway` and
                     connectors (no street), turn restrictions, `legalExits`, edge-expanded A*
                     `shortestRoute` to a goal set with the U-turn penalty in `RoutingConfig`,
-                    edgeNear; Dart only, not twinned: `edgesNear` (a grid index, the drive's
+                    edgeNear; Dart only, not twinned: `arrivingBearing` and `leavingBearing` (an
+                    edge's heading at a junction: the turn cards and navigation), `edgesNear` (a grid index, the drive's
                     snapping) and `edgesWithin` (its edges whose ends are close enough), `allowing` the player's reported moves,
                     `shortestRoute`'s `costOf`, `uTurnCostM` and `arriveOn` (navigation; a stop on a road), format 7's
                     `RoadEdge.maxspeedKmh`, `signals` and `cameras`, format 8's `RoadEdge.lanes`,

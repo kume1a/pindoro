@@ -98,7 +98,7 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
     ],
     cap: mine == null || mine.routes.isEmpty
         ? 0
-        : (_yourRoutesShare(cards, log, now) *
+        : (yourRoutesShareOf(cards, log, now) *
                   newPerDayAt(settings.minutesPerDay))
               .round(),
   );
@@ -140,18 +140,4 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
     tReviewS: times.tReviewS,
     tNewS: times.tNewS,
   );
-}
-
-/// The share of the day's new cards the player's routes may take (SPEC §16.23 item 120), by how
-/// City memory grew over the last [LearningConfig.yourRouteDays] and the days before.
-double _yourRoutesShare(
-  List<CardState> cards,
-  List<LogEntry> log,
-  DateTime now,
-) {
-  double at(int daysAgo) =>
-      cityMemoryAt(cards, log, now.subtract(Duration(days: daysAgo)));
-  const days = LearningConfig.yourRouteDays;
-  final (a, b, c) = (at(0), at(days), at(2 * days));
-  return yourRoutesShare(gainNow: a - b, gainBefore: b - c);
 }

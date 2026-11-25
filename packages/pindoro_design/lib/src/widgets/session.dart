@@ -8,6 +8,12 @@ import 'motion.dart';
 import 'pindoro_button.dart';
 import 'surfaces.dart';
 
+/// A chip's label (StatChip, the dial's result chip): body.lg in black weight on 22 dp lines.
+final TextStyle chipLabelStyle = PindoroType.bodyLg.copyWith(
+  fontWeight: FontWeight.w900,
+  height: 22 / 17,
+);
+
 /// A raised chip with an icon and a short stat (`.pd-statchip`): the
 /// next-review chip, the family chip, the pair chip. The label wraps, never
 /// truncates.
@@ -38,11 +44,7 @@ class StatChip extends StatelessWidget {
           Flexible(
             child: Text(
               label,
-              style: PindoroType.bodyLg.copyWith(
-                color: c.textPrimary,
-                fontWeight: FontWeight.w900,
-                height: 22 / 17,
-              ),
+              style: chipLabelStyle.copyWith(color: c.textPrimary),
             ),
           ),
         ],
@@ -136,20 +138,8 @@ class IntroSheet extends StatelessWidget {
     return Semantics(
       container: true,
       label: regionLabel,
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: c.surfaceOverlay,
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(PindoroRadius.r2xl),
-          ),
-        ),
-        padding: EdgeInsets.fromLTRB(
-          PindoroSpace.s4,
-          PindoroSpace.s3,
-          PindoroSpace.s4,
-          PindoroSpace.s3 + MediaQuery.paddingOf(context).bottom,
-        ),
+      child: SheetFrame(
+        color: c.surfaceOverlay,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,

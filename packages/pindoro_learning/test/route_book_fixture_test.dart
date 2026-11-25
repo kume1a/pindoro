@@ -133,12 +133,63 @@ void main() {
     for (final q in picks) {
       final read = q.n == 2
           ? q.junctions.map(label).toList()
-          : q.places.map((l) => l.name).toList();
+          : q.places.map((l) => normaliseName(l.name)).toList();
       expect(read.length, greaterThanOrEqualTo(2), reason: q.itemId);
       expect(read.toSet(), hasLength(read.length), reason: '${q.itemId} $read');
       expect(read, everyElement(isNotEmpty));
       if (q.n == 2) expect(q.junctions, contains(q.junction));
-      if (q.n == 3) expect(read, contains(q.landmark.name));
+      if (q.n == 3) expect(read, contains(normaliseName(q.landmark.name)));
+    }
+  });
+
+  test('route answers rate as SPEC §5.2 grades them', () {
+    final turn = book.questions.values.whereType<TurnQuestion>().firstWhere(
+      (q) => q.exitStreet?.nameEn != null,
+    );
+    final exit = turn.exitStreet!;
+    final wrong = turn.exits.keys.firstWhere((t) => t != turn.correct);
+    expect(turn.rate(choice: turn.correct), Rating.good);
+    expect(turn.rate(choice: turn.correct, known: {exit}), Rating.hard);
+    expect(
+      turn.rate(choice: turn.correct, typed: exit.nameEn!, known: {exit}),
+      Rating.good,
+    );
+    expect(turn.rate(choice: turn.correct, typed: 'zzzz'), Rating.hard);
+    expect(turn.rate(choice: wrong, typed: exit.nameEn!), Rating.again);
+    expect(turn.format, ReviewFormat.junction);
+
+    final l3 = book.questions.values.whereType<LandmarkQuestion>().firstWhere(
+      (q) => q.n == 3,
+    );
+    final other = l3.places.firstWhere((p) => p.name != l3.landmark.name);
+    expect(l3.rate(choice: l3.landmark.name), Rating.good);
+    expect(l3.rate(choice: other.name), Rating.again);
+    final l1 = book.questions.values.whereType<LandmarkQuestion>().firstWhere(
+      (q) => q.n == 1,
+    );
+    expect(l1.rate(), isNull);
+    expect(l1.rate(pin: l1.landmark.at), Rating.good);
+    expect(l1.format, ReviewFormat.landmark);
+  });
+
+  test("a place's L cards ask from the turn that carries it", () {
+    final carriers = <String, Set<String?>>{};
+    for (final q in book.questions.values.whereType<TurnQuestion>()) {
+      if (q.landmark case final l?) {
+        (carriers[l.id] ??= {}).add(q.approachStreet?.id);
+      }
+    }
+    final cards = [
+      for (final q in book.questions.values.whereType<LandmarkQuestion>())
+        if (q.n > 1 && carriers.containsKey(q.landmark.id)) q,
+    ];
+    expect(cards, isNotEmpty);
+    for (final q in cards) {
+      expect(
+        carriers[q.landmark.id],
+        contains(q.approachStreet?.id),
+        reason: q.itemId,
+      );
     }
   });
 

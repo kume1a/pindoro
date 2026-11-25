@@ -66,35 +66,3 @@ class CoachBubble extends StatelessWidget {
     ),
   );
 }
-
-/// The accent ring around [child] (`stroke.thick`, lane yellow) while [on];
-/// it fades in and out over `duration.fast`.
-class AccentRing extends StatelessWidget {
-  const AccentRing({
-    super.key,
-    required this.on,
-    required this.radius,
-    required this.child,
-  });
-
-  final bool on;
-  final double radius;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) => AnimatedContainer(
-    duration: PindoroMotion.durationFast,
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(radius),
-      boxShadow: [
-        BoxShadow(
-          color: on
-              ? PindoroTheme.of(context).colors.accentBase
-              : Colors.transparent,
-          spreadRadius: PindoroStroke.thick,
-        ),
-      ],
-    ),
-    child: child,
-  );
-}

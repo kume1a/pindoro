@@ -4,8 +4,8 @@ import 'package:pindoro_core/pindoro_core.dart';
 
 import 'cards.dart';
 import 'constants.dart';
-import 'planner.dart';
-import 'stats.dart';
+import 'days.dart';
+import 'labels.dart';
 
 /// The road classes taught city-wide, one after another, before the neighbourhoods (SPEC §6.3).
 enum RoadBand { main, secondary, tertiary, minor }

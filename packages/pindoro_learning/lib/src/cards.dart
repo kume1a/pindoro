@@ -3,7 +3,7 @@ import 'dart:math';
 import 'constants.dart';
 import 'fsrs.dart';
 import 'grader.dart';
-import 'planner.dart' show startOfDay;
+import 'days.dart';
 
 /// Card types; an item id is `<TYPE>:<key>` (SPEC §3).
 enum CardType {
@@ -286,13 +286,29 @@ bool _inReview(CardState card, DateTime now) => switch (card) {
   _ => false,
 };
 
-/// A [Random] seeded by FNV-1a of the item and the time: the same review always fuzzes alike.
-Random fuzzFor(String itemId, DateTime now) {
+/// A [Random] seeded by [key]: the same review always fuzzes alike.
+Random fuzzFor(String itemId, DateTime now) =>
+    Random(stableSeed('$itemId@${now.microsecondsSinceEpoch}'));
+
+/// FNV-1a of [key]: a seed that stays the same on every run and platform, unlike `hashCode`.
+int stableSeed(String key) {
   var hash = 0x811c9dc5;
-  for (final unit in '$itemId@${now.microsecondsSinceEpoch}'.codeUnits) {
+  for (final unit in key.codeUnits) {
     hash = ((hash ^ unit) * 0x01000193) & 0xffffffff;
   }
-  return Random(hash);
+  return hash;
+}
+
+/// Each P card's earlier reviews rated Hard or better, [Grader.gradePin]'s `priorSuccesses`;
+/// drills that only log don't count.
+Map<String, int> priorSuccesses(Iterable<LogEntry> log) {
+  final successes = <String, int>{};
+  for (final e in log) {
+    if (e.type == CardType.p && e.rating.isSuccess && !e.format.logsOnly) {
+      successes.update(e.itemId, (n) => n + 1, ifAbsent: () => 1);
+    }
+  }
+  return successes;
 }
 
 /// An Explore answer (SPEC §16.3 item 16): it reviews [card] when the card is due or near due (due
@@ -310,7 +326,7 @@ Random fuzzFor(String itemId, DateTime now) {
   final rating = grade?.rating ?? Grader.notKnown;
   // A suspended leech comes back only through its intro (SPEC §16.13).
   final reviews = card == null
-      ? rating == Rating.good || rating == Rating.easy
+      ? rating.passes
       : card.phase != CardPhase.suspended &&
             (isNearDue(card, now) ||
                 (rating == Rating.again && _inReview(card, now)));
@@ -364,3 +380,9 @@ bool isNearDue(CardState card, DateTime now) {
         source: source,
         sessionId: sessionId,
       );
+
+/// A reviewed card due before [t] (learning, suspended and unseen are not).
+bool isDueBefore(CardState card, DateTime t) =>
+    (card.phase == CardPhase.review || card.phase == CardPhase.relearning) &&
+    card.dueAt != null &&
+    card.dueAt!.isBefore(t);

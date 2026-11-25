@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 import 'package:test/test.dart';
 
@@ -441,6 +442,91 @@ void main() {
       );
     });
   });
+
+  test('relearns go in for the forgotten a session still allows', () {
+    const id = 'P:x';
+    final rest = [
+      for (var i = 0; i < 12; i++) (kind: StepKind.review, itemId: 'P:r$i'),
+    ];
+    final relearned = [
+      (kind: StepKind.relearn, itemId: id),
+      (kind: StepKind.relearn, itemId: id),
+    ];
+    expect(
+      Planner.withRelearns(rest, [id], session: const [], seed: 3),
+      Planner.withRelearn(rest, id, Random(3)),
+    );
+    expect(Planner.withRelearns(rest, [id], session: relearned, seed: 3), rest);
+  });
+
+  test('the next review is days away, or none while it relearns here', () {
+    final now = DateTime(2026, 3, 2, 9);
+    const id = 'P:x';
+    final due = CardState(
+      itemId: id,
+      phase: CardPhase.review,
+      dueAt: now.add(const Duration(days: 4, hours: 2)),
+    );
+    final relearning = CardState(
+      itemId: id,
+      phase: CardPhase.relearning,
+      dueAt: now.add(const Duration(minutes: 10)),
+    );
+    final twice = [
+      (kind: StepKind.relearn, itemId: id),
+      (kind: StepKind.relearn, itemId: id),
+    ];
+    expect(Planner.nextReviewDays(due, now, const []), 4);
+    expect(Planner.nextReviewDays(relearning, now, const []), isNull);
+    expect(Planner.nextReviewDays(relearning, now, twice), 0);
+  });
+
+  test('a pin step logs in its own format', () {
+    expect(StepKind.retrieval1.format, ReviewFormat.retrieval1);
+    expect(StepKind.relearn.format, ReviewFormat.relearn);
+    expect(StepKind.placement.format, ReviewFormat.placement);
+    expect(StepKind.review.format, ReviewFormat.review);
+    expect(StepKind.familySweep.format, ReviewFormat.review);
+  });
+
+  test(
+    'Session done counts graded answers; a crossings drill is not graded',
+    () {
+      final t0 = DateTime(2026, 3, 2, 9);
+      SessionAnswer a(
+        StepKind kind,
+        Rating rating,
+        Tier tier,
+        String street, [
+        String? mixUp,
+      ]) => (
+        kind: kind,
+        rating: rating,
+        tier: tier,
+        streetId: street,
+        mixUp: mixUp,
+      );
+      final s = summarizeSession(
+        [
+          a(StepKind.review, Rating.good, Tier.great, 'a'),
+          a(StepKind.review, Rating.hard, Tier.close, 'b'),
+          a(StepKind.relearn, Rating.again, Tier.miss, 'c', 'd'),
+          a(StepKind.familySweep, Rating.hard, Tier.close, 'b'),
+          a(StepKind.crossings, Rating.again, Tier.miss, 'e', 'f'),
+        ],
+        [
+          t0,
+          t0.add(const Duration(seconds: 30)),
+          t0.add(const Duration(seconds: 95)),
+        ],
+      );
+      expect(s.reviews, 3);
+      expect(s.recalledPercent, 75);
+      expect(s.mixUps, [('c', 'd')]);
+      expect(s.closeTwice, ['b']);
+      expect(s.minutes, 2);
+    },
+  );
 
   test('a missed card relearns at most twice a session', () {
     const id = 'L:n1:1';

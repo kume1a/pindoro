@@ -34,6 +34,36 @@ void main() {
     });
   });
 
+  test(
+    'prior successes count pin reviews rated Hard or better, not drills',
+    () {
+      LogEntry row(String item, Rating rating, ReviewFormat format) => LogEntry(
+        ts: t0,
+        itemId: item,
+        format: format,
+        rating: rating,
+        source: ReviewSource.session,
+      );
+      expect(
+        priorSuccesses([
+          row(itemId, Rating.good, ReviewFormat.review),
+          row(itemId, Rating.hard, ReviewFormat.explore),
+          row(itemId, Rating.again, ReviewFormat.review),
+          row(itemId, Rating.good, ReviewFormat.crossings),
+          row(itemId, Rating.easy, ReviewFormat.bearing),
+          row(CardType.n.item('street-1'), Rating.good, ReviewFormat.nameCheck),
+        ]),
+        {itemId: 2},
+      );
+    },
+  );
+
+  test('a stable seed is FNV-1a: the same on every run', () {
+    expect(stableSeed(''), 0x811c9dc5);
+    expect(stableSeed('a'), 0xe40c292c);
+    expect(stableSeed('review:P:street-1'), stableSeed('review:P:street-1'));
+  });
+
   test('an intro opens a learning card with no memory and no log row', () {
     final card = introduce(itemId, t0);
     expect(card.phase, CardPhase.learning);

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,12 +10,13 @@ import 'package:pindoro/features/learning/ui/junction_name.dart';
 import 'package:pindoro/features/learning/ui/landmark_glyph.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/map/ui/question_scaffold.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
-import 'package:pindoro/features/session/ui/widgets/place_intro.dart';
-import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
+import 'package:pindoro/features/session/ui/widgets/cant_find_it_chip.dart';
+import 'package:pindoro/features/session/ui/widgets/turn_scene.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
@@ -59,14 +59,12 @@ class RouteView extends ConsumerStatefulWidget {
   ConsumerState<RouteView> createState() => _RouteViewState();
 }
 
-class _RouteViewState extends ConsumerState<RouteView> {
+class _RouteViewState extends ConsumerState<RouteView>
+    with MapProjectionHost<RouteView> {
   final _field = TextEditingController();
-  final _projection = ValueNotifier<MapProjection?>(null);
-
   @override
   void dispose() {
     _field.dispose();
-    _projection.dispose();
     super.dispose();
   }
 
@@ -101,11 +99,10 @@ class _RouteViewState extends ConsumerState<RouteView> {
     final play = widget.play;
     final task = play.task as RouteTask;
     final graph = pack?.roadGraph();
-    String chunkName(String? chunk) =>
-        switch (pack?.districts().where((d) => d.id == chunk).firstOrNull) {
-          final d? => districtName(d, settings),
-          null => l10n.routeCityCentre,
-        };
+    String chunkName(String? chunk) => switch (pack?.district(chunk)) {
+      final d? => districtName(d, settings),
+      null => l10n.routeCityCentre,
+    };
     // A way with no name is "a link road", never a blank in the sentence.
     String name(NamedStreet? s) =>
         s == null ? l10n.debriefLinkRoad : streetName(s, settings);
@@ -155,9 +152,9 @@ class _RouteViewState extends ConsumerState<RouteView> {
         final chosen = task.choice as Turn?;
         final right = tier == null ? null : chosen == q.correct;
         final exitWord = exitLabel(l10n, q.correct);
-        final scene = graph == null ? null : _turnScene(graph, q);
+        final scene = graph == null ? null : turnScene(graph, q);
         final landmark = q.landmark;
-        return TaskScaffold(
+        return QuestionScaffold(
           onDontKnow: widget.onDontKnow,
           topBar: widget.topBar,
           header: StreetPlate(
@@ -195,7 +192,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
                         ? MapNames.asking(q.exitStreet)
                         : MapNames.all,
                     showControls: false,
-                    onCamera: (p) => _projection.value = p,
+                    onCamera: onCamera,
                     topInset: insets.top,
                     bottomInset: insets.bottom,
                   ),
@@ -204,7 +201,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
             if (scene != null)
               Positioned.fill(
                 child: GeoAnchors(
-                  projection: _projection,
+                  projection: projection,
                   anchors: [
                     (
                       scene.car,
@@ -257,7 +254,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
 
       case final GatewayQuestion q:
         final chunk = chunkName(q.chunk);
-        return TaskScaffold(
+        return QuestionScaffold(
           onDontKnow: widget.onDontKnow,
           topBar: widget.topBar,
           map: (insets) => map(
@@ -305,7 +302,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
       case final BridgeQuestion q:
         final chosen = task.choice as Bridge?;
         final number = chosen == null ? 0 : q.options.indexOf(chosen) + 1;
-        return TaskScaffold(
+        return QuestionScaffold(
           onDontKnow: widget.onDontKnow,
           topBar: widget.topBar,
           map: (insets) => map(
@@ -314,7 +311,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
               frame: play.frame,
               truth: tier == null ? null : q.bridge.geometry,
               names: tier == null ? const MapNames(places: true) : MapNames.all,
-              onCamera: (p) => _projection.value = p,
+              onCamera: onCamera,
               topInset: insets.top,
               bottomInset: insets.bottom,
             ),
@@ -322,7 +319,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
           overlays: [
             Positioned.fill(
               child: GeoAnchors(
-                projection: _projection,
+                projection: projection,
                 anchors: [
                   for (final (i, b) in q.options.indexed)
                     (
@@ -361,7 +358,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
         );
 
       case final ConnectionQuestion q:
-        return TaskScaffold(
+        return QuestionScaffold(
           onDontKnow: widget.onDontKnow,
           topBar: widget.topBar,
           header: AskCard(
@@ -391,7 +388,7 @@ class _RouteViewState extends ConsumerState<RouteView> {
         final revealed = tier != null;
         final miss = pin == null ? null : q.distanceFrom(pin);
         final junction = junctionAt(q.junction ?? -1);
-        return TaskScaffold(
+        return QuestionScaffold(
           onDontKnow: widget.onDontKnow,
           topBar: widget.topBar,
           map: q.n == 1
@@ -501,48 +498,3 @@ class _RouteViewState extends ConsumerState<RouteView> {
 }
 
 ExitDirection _direction(Turn turn) => ExitDirection.values.byName(turn.name);
-
-/// A turn card on the real map, driving up the screen: the [approach] into
-/// the junction and each exit's road out of it (ends at the junction), where
-/// each exit's button and the car sit, and what the camera frames.
-typedef _TurnScene = ({
-  double bearing,
-  List<LatLng> approach,
-  Map<Turn, List<LatLng>> exits,
-  Map<Turn, LatLng> buttons,
-  LatLng car,
-  List<LatLng> frame,
-});
-
-/// Metres of road drawn from the junction; buttons and the car sit
-/// [_markM] out along each road's first stretch (a short edge still puts
-/// its button clear of the junction).
-const double _roadM = 90;
-const double _markM = 50;
-
-/// How far along a road its heading is read.
-const double _headingM = 20;
-
-_TurnScene _turnScene(RoadGraph graph, TurnQuestion q) {
-  final at = graph.at(q.junction);
-  final local = LocalProjection(at);
-  List<LatLng> road(RoadEdge e, double metres) =>
-      clipToCircle([e.lineFrom(q.junction)], at, metres).first;
-  LatLng out(RoadEdge e) {
-    final (x, y) = local.project(road(e, _headingM).last);
-    final length = math.max(math.sqrt(x * x + y * y), 1);
-    return local.unproject((x / length * _markM, y / length * _markM));
-  }
-
-  final car = out(q.approach);
-  final buttons = {for (final e in q.exits.entries) e.key: out(e.value)};
-  return (
-    // The way the driver faces: from the approach towards the junction.
-    bearing: bearingDegrees(road(q.approach, _headingM).last, at),
-    approach: road(q.approach, _roadM).reversed.toList(),
-    exits: {for (final e in q.exits.entries) e.key: road(e.value, _roadM)},
-    buttons: buttons,
-    car: car,
-    frame: [at, car, ...buttons.values],
-  );
-}

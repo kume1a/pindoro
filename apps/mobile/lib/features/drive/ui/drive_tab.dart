@@ -10,7 +10,7 @@ import 'package:pindoro/features/drive/ui/drive_cards.dart';
 import 'package:pindoro/features/drive/ui/where_to.dart';
 import 'package:pindoro/features/learning/data/drive_places.dart';
 import 'package:pindoro/features/learning/data/nav_data.dart';
-import 'package:pindoro/features/learning/data/progress.dart';
+import 'package:pindoro/features/learning/data/refresh.dart';
 
 /// The Drive tab, first in the bar and the page the app opens on (SPEC §16.23 item 129): Where
 /// to, then the drives. A pick opens the drive on it; back here, and on every return to the app,

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../generated/pindoro_tokens.dart';
+
 /// How every custom control takes a tap: one semantics node that carries the
 /// tap action, its role and [label] (a labelled node drops its children's
 /// semantics, the gesture's own tap action with them), a gesture detector
@@ -15,9 +17,7 @@ class Tappable extends StatelessWidget {
     this.toggled,
     this.selected,
     this.inMutuallyExclusiveGroup = false,
-    this.onTapDown,
-    this.onTapUp,
-    this.onTapCancel,
+    this.onPress,
   });
 
   /// Null disables the control.
@@ -33,9 +33,9 @@ class Tappable extends StatelessWidget {
   final bool? toggled;
   final bool? selected;
   final bool inMutuallyExclusiveGroup;
-  final GestureTapDownCallback? onTapDown;
-  final GestureTapUpCallback? onTapUp;
-  final GestureTapCancelCallback? onTapCancel;
+
+  /// True as a finger goes down on it, false as it lifts or slides off.
+  final ValueChanged<bool>? onPress;
 
   @override
   Widget build(BuildContext context) => Semantics(
@@ -51,9 +51,9 @@ class Tappable extends StatelessWidget {
     child: GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      onTapDown: onTapDown,
-      onTapUp: onTapUp,
-      onTapCancel: onTapCancel,
+      onTapDown: onPress == null ? null : (_) => onPress!(true),
+      onTapUp: onPress == null ? null : (_) => onPress!(false),
+      onTapCancel: onPress == null ? null : () => onPress!(false),
       child: MouseRegion(
         cursor: onTap == null
             ? SystemMouseCursors.forbidden
@@ -61,5 +61,53 @@ class Tappable extends StatelessWidget {
         child: child,
       ),
     ),
+  );
+}
+
+/// A lipped control's press ([Tappable.onPress]): [pressed] while a finger is down on it, never
+/// while [pressEnabled] is false. Disabled mid-press, its release would be ignored and the face
+/// stay down, so it lets go then.
+mixin LipPressState<T extends StatefulWidget> on State<T> {
+  bool pressed = false;
+
+  bool get pressEnabled => true;
+
+  void press(bool down) {
+    if (pressEnabled) setState(() => pressed = down);
+  }
+
+  @override
+  void didUpdateWidget(T oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!pressEnabled) pressed = false;
+  }
+}
+
+/// A face ([child]) on its [lipColor] lip, [full] tall at rest and [lip] tall now: the face
+/// sinks into it as it is pressed.
+class LipFace extends StatelessWidget {
+  const LipFace({
+    super.key,
+    required this.full,
+    required this.lip,
+    required this.lipColor,
+    required this.radius,
+    required this.child,
+  });
+
+  final double full;
+  final double lip;
+  final Color lipColor;
+  final BorderRadius radius;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => AnimatedContainer(
+    duration: PindoroMotion.durationInstant,
+    curve: PindoroMotion.easePress,
+    margin: EdgeInsets.only(top: full - lip),
+    padding: EdgeInsets.only(bottom: lip),
+    decoration: BoxDecoration(color: lipColor, borderRadius: radius),
+    child: child,
   );
 }

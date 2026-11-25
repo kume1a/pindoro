@@ -172,13 +172,17 @@ final class RouteTask extends SessionTask {
     null => null,
   };
 
-  RouteTask copyWith({Object? choice, Rating? rating, int? nextReviewDays}) =>
-      RouteTask(
-        question,
-        choice: choice ?? this.choice,
-        rating: rating ?? this.rating,
-        nextReviewDays: nextReviewDays ?? this.nextReviewDays,
-      );
+  /// [choice] is a function so "I don't know" can clear it.
+  RouteTask copyWith({
+    Object? Function()? choice,
+    Rating? rating,
+    int? nextReviewDays,
+  }) => RouteTask(
+    question,
+    choice: choice == null ? this.choice : choice(),
+    rating: rating ?? this.rating,
+    nextReviewDays: nextReviewDays ?? this.nextReviewDays,
+  );
 }
 
 /// How a recital is answered (RecitalScreen). Speak waits for speech

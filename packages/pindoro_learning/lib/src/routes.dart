@@ -4,7 +4,7 @@ import 'cards.dart';
 import 'constants.dart';
 import 'curriculum.dart';
 import 'fsrs.dart';
-import 'stats.dart';
+import 'labels.dart';
 
 /// Which way a turn goes, seen arriving on the approach (a J card's exit buttons).
 enum Turn { left, straight, right, uTurn }
@@ -18,6 +18,10 @@ Turn turnOf(double approachDeg, double exitDeg) {
   if (d.abs() >= LearningConfig.turnUTurnDeg) return Turn.uTurn;
   return d > 0 ? Turn.right : Turn.left;
 }
+
+/// The turn at [junction] arriving on [approach] and leaving on [exit].
+Turn turnAt(RoadEdge approach, RoadEdge exit, int junction) =>
+    turnOf(arrivingBearing(approach, junction), leavingBearing(exit, junction));
 
 /// Route item ids (SPEC §3, §16.14). Every part survives a pack rebuild: junctions and
 /// approaches are OSM node ids (`n123`), bridges and landmarks OSM ids, chunks district ids.

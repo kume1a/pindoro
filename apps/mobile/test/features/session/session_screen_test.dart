@@ -15,11 +15,11 @@ import 'package:pindoro/features/learning/data/today_plan.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/explore_map.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/map/ui/question_scaffold.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro/features/session/ui/session_screen.dart';
-import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart' show AnswerTray;
 import 'package:pindoro_learning/pindoro_learning.dart';
@@ -278,6 +278,9 @@ void main() {
       (kind: StepKind.retrieval1, itemId: item(a)),
     ]);
     await tapThrough(tester, find.text('Got it'));
+    // A pin dropped before "I don't know" isn't shown on its reveal.
+    maps.last.onTap!(onStreet(a));
+    await settle(tester);
     await tapThrough(tester, find.text('I don’t know'));
     expect(find.text('Didn’t know'), findsOneWidget);
     expect(maps.last.truth, a.geometry);
@@ -285,6 +288,25 @@ void main() {
     expect(find.text('Back in this session'), findsOneWidget);
     final row = (await dao.log()).single;
     expect((row.rating, row.distanceM), (Rating.again, null));
+  });
+
+  testWidgets('a double tap on Got it introduces one street, not the next', (
+    tester,
+  ) async {
+    await pump(tester, [
+      (kind: StepKind.intro, itemId: item(a)),
+      (kind: StepKind.intro, itemId: item(b)),
+    ]);
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Got it'));
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+    });
+    await tester.pump();
+    // The second tap lands on the next intro's sheet as it rises in.
+    await tester.tap(find.text('Got it'), warnIfMissed: false);
+    await settle(tester);
+    expect(find.text('New street · 2 of 2'), findsOneWidget);
+    expect(await dao.card(item(b)), isNull);
   });
 
   testWidgets('a day in rounds: each ends on its own summary, Next round '
@@ -532,6 +554,8 @@ void main() {
       await tester.ensureVisible(find.text('I don’t know'));
       await tapThrough(tester, find.text('I don’t know'));
       expect(find.text('It’s ${a.name}.'), findsOneWidget);
+      expect(find.text('Did you know it?'), findsOneWidget);
+      expect(maps.last.names, MapNames.all, reason: 'revealed: every name');
       final row = (await dao.log()).single;
       expect((row.format, row.rating), (ReviewFormat.nameCheck, Rating.again));
       expect(await dao.confusionPairs(), isEmpty);
@@ -554,6 +578,19 @@ void main() {
       expect(maps.last.truth, a.geometry);
       final row = (await dao.log()).single;
       expect((row.format, row.rating), (ReviewFormat.extent, Rating.good));
+    });
+
+    testWidgets('both ends: asked without places named after the street; '
+        '"I don’t know" after one pin shows no pin', (tester) async {
+      await pump(tester, [(kind: StepKind.review, itemId: 'E:${a.id}')]);
+      expect(maps.last.names, MapNames(places: true, placesNot: nameStems(a)));
+      maps.last.onTap!(streetEnds(a).$1);
+      await settle(tester);
+      await tapThrough(tester, find.text('I don’t know'));
+      expect(maps.last.truth, a.geometry);
+      expect(maps.last.pin, isNull);
+      expect(maps.last.morePins, isEmpty);
+      expect((await dao.log()).single.rating, Rating.again);
     });
 
     testWidgets('a leech comes back beside its mix-up and keeps a note', (
@@ -743,6 +780,9 @@ void main() {
     ) async {
       final q = first<TurnQuestion>();
       await pump(tester, [(kind: StepKind.review, itemId: q.itemId)]);
+      // The right exit picked first doesn't make "I don't know" read Right!
+      controller(tester).choose(q.correct);
+      await settle(tester);
       await tapThrough(tester, find.text('I don’t know'));
       expect(find.text('Not this one'), findsOneWidget);
       expect(maps.last.truth, hasLength(2), reason: 'approach and right exit');
@@ -957,6 +997,42 @@ void main() {
       expect(log.first.format, ReviewFormat.recital);
       expect(await dao.card(CardType.r.item(run.id)), isNotNull);
       expect(await db.select(db.implicitEvidence).get(), isNotEmpty);
+    });
+
+    testWidgets('the next recital starts with an empty field', (tester) async {
+      final turns = routes.questions.values.whereType<TurnQuestion>().toList();
+      final runs = [
+        for (final q in turns.take(2))
+          (
+            id: runId(
+              nodes[q.approach.other(q.junction)]!,
+              nodes[q.exits[q.correct]!.other(q.junction)]!,
+            ),
+            fromNode: nodes[q.approach.other(q.junction)]!,
+            toNode: nodes[q.exits[q.correct]!.other(q.junction)]!,
+            random: true,
+            items: [q.itemId],
+            createdAt: now,
+          ),
+      ];
+      for (final run in runs) {
+        await dao.saveRun(run);
+      }
+      await pump(tester, [
+        for (final run in runs)
+          (kind: StepKind.review, itemId: CardType.r.item(run.id)),
+      ]);
+      await tester.enterText(find.byType(TextField), 'zzzz');
+      await tester.testTextInput.receiveAction(TextInputAction.next);
+      await settle(tester);
+      expect(find.text('No street or landmark by that name'), findsOneWidget);
+      await tapThrough(tester, find.text('I don’t know'));
+      await tapThrough(tester, find.text('Next'));
+      expect(find.text('No street or landmark by that name'), findsNothing);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        isEmpty,
+      );
     });
 
     testWidgets('drawn along the streets from A to B', (tester) async {

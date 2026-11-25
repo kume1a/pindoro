@@ -7,9 +7,9 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/map/ui/question_scaffold.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
-import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -70,9 +70,11 @@ class _NameItViewState extends ConsumerState<NameItView> {
     final street = play.street;
     final name = streetName(street, settings);
     final picked = task.picked;
+    // "I don't know" reveals with nothing picked.
+    final revealed = task.result != null;
     final mapOf = ref.watch(pindoroMapBuilderProvider);
     final confirmed = _confirmed;
-    return TaskScaffold(
+    return QuestionScaffold(
       topBar: widget.topBar,
       map: (insets) => mapOf(
         PindoroMap(
@@ -80,14 +82,14 @@ class _NameItViewState extends ConsumerState<NameItView> {
           truth: street.geometry,
           frame: play.frame,
           // Asking: places, but none named after the street.
-          names: picked == null ? MapNames.asking(street) : MapNames.all,
+          names: revealed ? MapNames.all : MapNames.asking(street),
           topInset: insets.top,
           bottomInset: insets.bottom,
         ),
       ),
       // Asking, the tray holds the question.
       header: RiseSwitcher(
-        child: picked != null
+        child: revealed
             ? QuestionPlate(
                 key: ValueKey((play.index, 'name')),
                 street: street,

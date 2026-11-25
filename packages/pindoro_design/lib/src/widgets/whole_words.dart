@@ -16,7 +16,10 @@ class WholeWords extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _WordFit(
     words: text.data!.split(_space),
-    style: DefaultTextStyle.of(context).style.merge(text.style),
+    style: textStyleAsShown(
+      context,
+      DefaultTextStyle.of(context).style.merge(text.style),
+    ),
     scaler: text.textScaler ?? MediaQuery.textScalerOf(context),
     direction: text.textDirection ?? Directionality.of(context),
     child: text,
@@ -24,6 +27,43 @@ class WholeWords extends StatelessWidget {
 }
 
 final RegExp _space = RegExp(r'\s+');
+
+/// [text]'s width on one line in [style] at [scaler].
+double textWidth(
+  String text,
+  TextStyle style, {
+  TextScaler scaler = TextScaler.noScaling,
+  TextDirection direction = TextDirection.ltr,
+}) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textDirection: direction,
+    textScaler: scaler,
+  )..layout();
+  final width = painter.width;
+  painter.dispose();
+  return width;
+}
+
+/// The widest of [words] on one line, as [textWidth] measures each.
+double widestWordWidth(
+  Iterable<String> words,
+  TextStyle style, {
+  TextScaler scaler = TextScaler.noScaling,
+  TextDirection direction = TextDirection.ltr,
+}) => words.fold(
+  0,
+  (widest, word) => math.max(
+    widest,
+    textWidth(word, style, scaler: scaler, direction: direction),
+  ),
+);
+
+/// [style] as a [Text] lays it out: bold when the platform asks for bold text.
+TextStyle textStyleAsShown(BuildContext context, TextStyle style) =>
+    MediaQuery.boldTextOf(context)
+    ? style.merge(const TextStyle(fontWeight: FontWeight.bold))
+    : style;
 
 class _WordFit extends SingleChildRenderObjectWidget {
   const _WordFit({
@@ -82,16 +122,12 @@ class _RenderWordFit extends RenderProxyBox {
     markNeedsLayout();
   }
 
-  double get _widestWord => _widest ??= _words.fold<double>(0, (widest, word) {
-    final painter = TextPainter(
-      text: TextSpan(text: word, style: _style),
-      textDirection: _direction,
-      textScaler: _scaler,
-    )..layout();
-    final width = painter.width;
-    painter.dispose();
-    return math.max(widest, width);
-  });
+  double get _widestWord => _widest ??= widestWordWidth(
+    _words,
+    _style,
+    scaler: _scaler,
+    direction: _direction,
+  );
 
   double _scaleFor(double maxWidth) =>
       maxWidth.isFinite && _widestWord > maxWidth && maxWidth > 0

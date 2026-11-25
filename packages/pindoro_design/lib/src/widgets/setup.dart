@@ -57,6 +57,9 @@ class SearchField extends StatefulWidget {
   State<SearchField> createState() => _SearchFieldState();
 }
 
+const double _innerHeight =
+    PindoroSize.buttonMd - PindoroElevation.e1 - 2 * PindoroStroke.base;
+
 class _SearchFieldState extends State<SearchField> {
   final _focus = FocusNode();
 
@@ -64,6 +67,14 @@ class _SearchFieldState extends State<SearchField> {
   void initState() {
     super.initState();
     _focus.addListener(() => setState(() {}));
+    widget.controller.addListener(_changed);
+  }
+
+  @override
+  void didUpdateWidget(SearchField old) {
+    super.didUpdateWidget(old);
+    if (old.controller == widget.controller) return;
+    old.controller.removeListener(_changed);
     widget.controller.addListener(_changed);
   }
 
@@ -87,12 +98,9 @@ class _SearchFieldState extends State<SearchField> {
         lip: edge,
         border: edge,
         radius: PindoroRadius.lg,
-        // 48 dp counting the border and the lip.
-        child: SizedBox(
-          height:
-              PindoroSize.buttonMd -
-              PindoroElevation.e1 -
-              2 * PindoroStroke.base,
+        // 48 dp counting the border and the lip; taller with large text.
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: _innerHeight),
           child: Row(
             children: [
               const SizedBox(width: PindoroSpace.s4),
@@ -133,8 +141,9 @@ class _SearchFieldState extends State<SearchField> {
                     widget.controller.clear();
                     widget.onChanged?.call('');
                   },
-                  child: SizedBox.square(
-                    dimension: PindoroSize.tapMin,
+                  child: SizedBox(
+                    width: PindoroSize.tapMin,
+                    height: _innerHeight,
                     child: Center(
                       child: PindoroIcon(
                         PindoroGlyph.close,

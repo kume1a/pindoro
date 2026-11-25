@@ -2,7 +2,8 @@ import 'dart:math';
 
 import 'cards.dart';
 import 'constants.dart';
-import 'planner.dart';
+import 'days.dart';
+import 'today.dart';
 import 'stats.dart';
 
 /// Reviews whose predicted recall fell in [from]–[to] (SPEC §12): how many, the mean prediction
@@ -69,7 +70,8 @@ List<CalibrationBin> calibration(Iterable<LogEntry> log) {
 }) {
   const window = LearningConfig.tierCReliefDays;
   const replay = LearningConfig.tierCReliefReplayDays;
-  DateTime dayBefore(int days) => DateTime(now.year, now.month, now.day - days);
+  final today = startOfDay(now.toLocal());
+  DateTime dayBefore(int days) => daysAfter(today, -days);
   final first = dayBefore(replay + window);
   final byDay = <DateTime, List<LogEntry>>{};
   for (final e in log) {

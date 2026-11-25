@@ -3,6 +3,7 @@ import 'dart:math';
 import 'cards.dart';
 import 'constants.dart';
 import 'drills.dart';
+import 'days.dart';
 import 'fsrs.dart';
 
 /// What a session step asks (SPEC §6.4, §7). An intro writes no log row. A drill step's item is
@@ -17,7 +18,16 @@ enum StepKind {
   placement,
   familySweep,
   crossings,
-  bearing,
+  bearing;
+
+  /// The review format a pin step of this kind is logged with.
+  ReviewFormat get format => switch (this) {
+    retrieval1 => ReviewFormat.retrieval1,
+    retrieval2 => ReviewFormat.retrieval2,
+    relearn => ReviewFormat.relearn,
+    placement => ReviewFormat.placement,
+    _ => ReviewFormat.review,
+  };
 }
 
 typedef SessionStep = ({StepKind kind, String itemId});
@@ -93,7 +103,7 @@ abstract final class Planner {
         LearningConfig.newPerDay[minutesPerDay] ??
         (throw ArgumentError.value(minutesPerDay, 'minutesPerDay'));
     final midnight = nextMidnight(now);
-    final today = _day(now, 0);
+    final today = startOfDay(now);
 
     final pending = [
       for (final c in cards)
@@ -269,6 +279,35 @@ abstract final class Planner {
 
   /// Whether a missed [itemId] comes back again in a session of [steps]: not once it has had
   /// [LearningConfig.relearnMaxPerSession] relearns (SPEC §16.18). It stays due, for the next.
+  /// [remaining] with a relearn for each of [forgotten] that [session] still allows, each
+  /// placed with its own random from [seed].
+  static List<SessionStep> withRelearns(
+    List<SessionStep> remaining,
+    List<String> forgotten, {
+    required List<SessionStep> session,
+    required int seed,
+  }) {
+    var rest = remaining;
+    for (final (i, id) in forgotten.indexed) {
+      if (!mayRelearn(session, id)) continue;
+      rest = withRelearn(rest, id, Random(seed + i));
+    }
+    return rest;
+  }
+
+  /// Days from [now] to [card]'s next review; null when it comes back in this session of
+  /// [steps] (a miss that has had its relearns waits for its due time).
+  static int? nextReviewDays(
+    CardState card,
+    DateTime now,
+    List<SessionStep> steps,
+  ) =>
+      card.phase == CardPhase.review ||
+          (card.phase == CardPhase.relearning &&
+              !mayRelearn(steps, card.itemId))
+      ? card.dueAt!.difference(now).inDays
+      : null;
+
   static bool mayRelearn(List<SessionStep> steps, String itemId) =>
       steps
           .where((s) => s.kind == StepKind.relearn && s.itemId == itemId)
@@ -460,135 +499,9 @@ abstract final class Planner {
       waiting.indexWhere((w) => w.since >= w.target);
 }
 
-/// A reviewed card due before [t] (learning, suspended and unseen are not).
-bool isDueBefore(CardState card, DateTime t) =>
-    (card.phase == CardPhase.review || card.phase == CardPhase.relearning) &&
-    card.dueAt != null &&
-    card.dueAt!.isBefore(t);
-
-/// The start of the calendar day after [now], in [now]'s time zone (SPEC §16.3).
-DateTime nextMidnight(DateTime now) => _day(now, 1);
-
-/// The start of [now]'s calendar day, in [now]'s time zone (SPEC §16.3).
-DateTime startOfDay(DateTime now) => _day(now, 0);
-
-// Midnight [offset] calendar days from [now]'s day; calendar arithmetic keeps DST days right.
-DateTime _day(DateTime now, int offset) => now.isUtc
-    ? DateTime.utc(now.year, now.month, now.day + offset)
-    : DateTime(now.year, now.month, now.day + offset);
-
-/// Cards of [types] introduced since the start of [now]'s day: streets come off today's new
-/// number, places off today's places.
-int introducedToday(
-  Iterable<CardState> cards,
-  DateTime now, {
-  Set<CardType> types = const {CardType.p},
-}) {
-  final today = _day(now, 0);
-  return cards
-      .where(
-        (c) =>
-            types.contains(c.type) &&
-            c.introAt != null &&
-            !c.introAt!.isBefore(today),
-      )
-      .length;
-}
-
-/// Seconds spent learning since the start of [now]'s day (SPEC §16.9), each
-/// session counted with [activeSeconds].
-int spentTodayS(Iterable<LogEntry> log, DateTime now) {
-  final today = _day(now, 0);
-  return spentS(log.where((e) => !e.ts.isBefore(today)));
-}
-
-/// Seconds spent on [entries], each session counted with [activeSeconds].
-int spentS(Iterable<LogEntry> entries) {
-  final bySession = <String?, List<DateTime>>{};
-  for (final entry in entries) {
-    bySession.putIfAbsent(entry.sessionId, () => []).add(entry.ts);
-  }
-  return bySession.values.fold(0, (sum, times) => sum + activeSeconds(times));
-}
-
-/// Whether today counts towards the streak (SPEC §8, §16.8): something was answered [today] and
-/// then either nothing is due before midnight or the day's minutes are spent.
-bool dayCounts({
-  required Iterable<CardState> cards,
-  required List<LogEntry> today,
-  required int minutesPerDay,
-  required DateTime now,
-}) {
-  if (!today.any((e) => !e.ts.isBefore(_day(now, 0)))) return false;
-  final midnight = nextMidnight(now);
-  return !cards.any((c) => isDueBefore(c, midnight)) ||
-      spentTodayS(today, now) >= minutesPerDay * 60;
-}
-
-/// The session's time estimates from the log (SPEC §16.9): once there are
-/// [LearningConfig.timeEstimateMinSamples] reviews, a review takes the median
-/// gap before a review answer and a new street the default share of it.
-({int tReviewS, int tNewS}) timeEstimates(Iterable<LogEntry> log) {
-  final bySession = <String?, List<LogEntry>>{};
-  for (final e in log) {
-    bySession.putIfAbsent(e.sessionId, () => []).add(e);
-  }
-  final gaps = <int>[];
-  for (final rows in bySession.values) {
-    rows.sort((a, b) => a.ts.compareTo(b.ts));
-    for (var i = 1; i < rows.length; i++) {
-      if (rows[i].format != ReviewFormat.review) continue;
-      gaps.add(
-        min(
-          rows[i].ts.difference(rows[i - 1].ts).inSeconds,
-          LearningConfig.answerGapCapS,
-        ),
-      );
-    }
-  }
-  if (gaps.length < LearningConfig.timeEstimateMinSamples) {
-    return (tReviewS: LearningConfig.tReviewS, tNewS: LearningConfig.tNewS);
-  }
-  gaps.sort();
-  final tReview = max(1, gaps[gaps.length ~/ 2]);
-  return (
-    tReviewS: tReview,
-    tNewS: (tReview * LearningConfig.tNewS / LearningConfig.tReviewS).round(),
-  );
-}
-
-/// Seconds between consecutive [times] of one session, each gap capped at
-/// [LearningConfig.answerGapCapS] (SPEC §16.9).
-int activeSeconds(Iterable<DateTime> times) {
-  final sorted = times.toList()..sort();
-  var seconds = 0;
-  for (var i = 1; i < sorted.length; i++) {
-    seconds += min(
-      sorted[i].difference(sorted[i - 1]).inSeconds,
-      LearningConfig.answerGapCapS,
-    );
-  }
-  return seconds;
-}
-
 /// What reviewing [itemId] takes: [LearningConfig.tRecitalS] for a recital, else [tReviewS].
 int secondsFor(String itemId, int tReviewS) =>
     CardType.ofItem(itemId) == CardType.r ? LearningConfig.tRecitalS : tReviewS;
-
-/// Cards of [types] started since the start of [now]'s day (their first log row is today).
-int startedToday(Iterable<LogEntry> log, DateTime now, Set<CardType> types) {
-  final today = _day(now, 0);
-  return log
-      .where(
-        (e) =>
-            types.contains(e.type) &&
-            e.sBefore == null &&
-            !e.ts.isBefore(today),
-      )
-      .map((e) => e.itemId)
-      .toSet()
-      .length;
-}
 
 /// The name and ends cards.
 const Set<CardType> sideTypes = {CardType.n, CardType.e};
@@ -623,11 +536,3 @@ List<bool> finishedBlocks({
   }
   return out;
 }
-
-/// Days of the day's minutes that [dueCount] reviews take (Today's catching
-/// up: "About 3 days at 20 min").
-int catchUpDays({
-  required int dueCount,
-  required int minutesPerDay,
-  int tReviewS = LearningConfig.tReviewS,
-}) => (dueCount * tReviewS / (minutesPerDay * 60)).ceil();

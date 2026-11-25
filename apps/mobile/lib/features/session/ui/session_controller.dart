@@ -1,221 +1,32 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/clock.dart';
-import 'package:pindoro/core/hold.dart';
-import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/learning/data/cards.dart';
 import 'package:pindoro/features/learning/data/day.dart';
-import 'package:pindoro/features/learning/data/drive_history.dart';
 import 'package:pindoro/features/learning/data/learning_dao.dart';
 import 'package:pindoro/features/learning/data/route_book.dart';
 import 'package:pindoro/features/learning/data/runs.dart';
-import 'package:pindoro/features/learning/data/today_plan.dart';
-import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
-import 'package:pindoro/features/session/ui/session_tasks.dart';
+import 'package:pindoro/features/learning/data/session_inputs.dart';
+import 'package:pindoro/features/session/ui/session_deck.dart';
+import 'package:pindoro/features/session/ui/session_state.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_learning/pindoro_learning.dart';
 import 'package:uuid/uuid.dart';
 
-export 'package:pindoro/features/session/ui/session_tasks.dart';
+export 'package:pindoro/features/session/ui/session_state.dart';
 
 final sessionControllerProvider =
     NotifierProvider.autoDispose<SessionController, SessionState>(
       SessionController.new,
     );
 
-sealed class SessionState {
-  const SessionState();
-}
-
-final class SessionLoading extends SessionState {
-  const SessionLoading();
-}
-
-/// Nothing to learn now: no pack, or nothing due and no new streets.
-final class SessionEmpty extends SessionState {
-  const SessionEmpty();
-}
-
-/// A family member's intro chip: its parent and how many children of each
-/// kind the parent has.
-typedef SessionFamily = ({NamedStreet parent, Map<FamilyKind, int> children});
-
-/// Guess first (SPEC §6.4): a child whose parent the player knows is pinned
-/// before its intro; the guess is graded but schedules nothing.
-typedef SessionGuess = ({NamedStreet parent, int knownSiblings});
-
-/// A graded pin, as the reveal shows it.
-/// A pin step answered: its [grade], the [pin] and the street's [nearest] point; all three
-/// null for "I don't know".
-typedef SessionReveal = ({
-  PinGrade? grade,
-  LatLng? pin,
-  LatLng? nearest,
-
-  /// Null: back in this session (Again).
-  int? nextReviewDays,
-
-  /// The street a Mix-up's pin hit.
-  NamedStreet? hit,
-});
-
-final class SessionPlaying extends SessionState {
-  const SessionPlaying({
-    required this.steps,
-    required this.index,
-    required this.forgotten,
-    required this.street,
-    required this.area,
-    required this.knownNames,
-    required this.newIndex,
-    required this.newTotal,
-    this.task = const PinTask(),
-    this.family,
-    this.guess,
-    this.frame,
-    this.pin,
-    this.reveal,
-    this.contrast,
-    this.note,
-    this.leech = false,
-    this.suspended = false,
-  });
-
-  /// The whole session, done steps included; relearns join as Again comes.
-  final List<SessionStep> steps;
-  final int index;
-
-  /// Step indices answered Again, for the session bar.
-  final Set<int> forgotten;
-
-  /// The current step's street.
-  final NamedStreet street;
-
-  /// The city: the pin can go anywhere in it.
-  final AreaShape area;
-
-  /// Names of the streets the player knows: a place question names them
-  /// (SPEC §16.18).
-  final Set<String> knownNames;
-
-  /// "New street · [newIndex] of [newTotal]".
-  final int newIndex;
-  final int newTotal;
-
-  /// What the step asks beyond a pin (name, ends, drills).
-  final SessionTask task;
-  final SessionFamily? family;
-
-  /// Set while an intro waits for its guess.
-  final SessionGuess? guess;
-
-  /// Retrieval 1 frames the street's district; null frames the city.
-  final List<LatLng>? frame;
-  final LatLng? pin;
-  final SessionReveal? reveal;
-
-  /// A leech's intro: the street it is most often mixed up with, shown
-  /// beside it, and the player's note.
-  final NamedStreet? contrast;
-  final String? note;
-
-  /// The intro brings back a suspended leech (SPEC §4).
-  final bool leech;
-
-  /// The answer just made the card a leech: suspended until a fresh intro.
-  final bool suspended;
-
-  SessionStep get step => steps[index];
-
-  /// The step's answer is in: the reveal or the task's result shows.
-  bool get answered => reveal != null || task.result != null;
-
-  /// The answer's tier, for its sound and haptic; a Mix-up is a Miss.
-  Tier? get resultTier => switch (reveal) {
-    final r? => r.hit == null ? r.grade?.tier ?? Tier.miss : Tier.miss,
-    null => task.result,
-  };
-
-  SessionPlaying copyWith({
-    LatLng? pin,
-    SessionReveal? reveal,
-    List<SessionStep>? steps,
-    Set<int>? forgotten,
-    SessionTask? task,
-    bool? suspended,
-  }) => SessionPlaying(
-    steps: steps ?? this.steps,
-    index: index,
-    forgotten: forgotten ?? this.forgotten,
-    street: street,
-    area: area,
-    knownNames: knownNames,
-    newIndex: newIndex,
-    newTotal: newTotal,
-    task: task ?? this.task,
-    family: family,
-    guess: guess,
-    frame: frame,
-    pin: pin ?? this.pin,
-    reveal: reveal ?? this.reveal,
-    contrast: contrast,
-    note: note,
-    leech: leech,
-    suspended: suspended ?? this.suspended,
-  );
-}
-
-/// What the session did (Session done).
-typedef SessionSummary = ({
-  int reviews,
-  int newStreets,
-  int recalledPercent,
-  double memoryBefore,
-  double memoryAfter,
-  List<(NamedStreet, NamedStreet)> mixUps,
-  List<NamedStreet> closeTwice,
-  int minutes,
-  bool cleared,
-
-  /// The round just played, 1-based, of [rounds]: Next round while more are left.
-  int round,
-  int rounds,
-});
-
-final class SessionDone extends SessionState {
-  const SessionDone(this.summary);
-
-  final SessionSummary summary;
-}
-
-/// What placement found (the placement result).
-typedef PlacementSummary = ({
-  int passed,
-  ({int passed, int of}) mainRoads,
-  int raions,
-
-  /// The road class new streets start with, else the neighbourhood.
-  RoadBand? startBand,
-  District? startIn,
-});
-
-final class SessionPlaced extends SessionState {
-  const SessionPlaced(this.summary);
-
-  final PlacementSummary summary;
-}
-
 /// Plays today's session (docs/learning/SPEC.md §6.4, §7, §16.2, §16.13):
 /// intros, pins, name and ends cards and drills graded by pindoro_learning,
 /// each answer saved as it comes, relearns slotted in after Again. Leaving
 /// keeps everything answered so far.
 class SessionController extends Notifier<SessionState> {
-  late Map<String, NamedStreet> _streets;
-  late Set<NamedStreet> _all;
-  late PackRepository _pack;
-  late Curriculum _curriculum;
+  late SessionDeck _deck;
   late Map<String, CardState> _cards;
 
   /// Whether the pack asks a card: one it doesn't is never due.
@@ -224,8 +35,8 @@ class SessionController extends Notifier<SessionState> {
   /// Which of [cards] are reviewed now: asked, and not parked (SPEC §16.22).
   AsksCard _reviews(Iterable<CardState> cards) => reviewsOf(
     _asks,
-    streets: _streets,
-    curriculum: _curriculum,
+    streets: _deck.streets,
+    curriculum: _deck.curriculum,
     cards: cards,
     yours: _yours,
   );
@@ -236,20 +47,6 @@ class SessionController extends Notifier<SessionState> {
   late Map<String, int> _successes;
   late double _memoryBefore;
   late int _seed;
-  Drills _drills = Drills.none;
-  RouteBook _routes = (
-    candidates: const <RouteCandidate>[],
-    questions: const <String, RouteQuestion>{},
-  );
-
-  /// Recitals (SPEC §5.3): graded on the graph with the player's reported
-  /// moves, their runs by id, pack junctions by OSM node and back, and each
-  /// R item's task as first built.
-  RoadGraph? _graph;
-  Map<String, Run> _runs = const {};
-  Map<int, int> _byNode = const {};
-  Map<int, int> _nodes = const {};
-  final Map<String, RecitalTask?> _recitals = {};
 
   /// Tier C pin cards aim lower while the days run long (SPEC §4).
   bool _tierCRelief = false;
@@ -261,7 +58,7 @@ class SessionController extends Notifier<SessionState> {
   Placement? _placement;
   late List<String> _anchors;
   String _sessionId = const Uuid().v7();
-  final List<_Answer> _answers = [];
+  final List<SessionAnswer> _answers = [];
 
   /// Set while an answer saves: a second tap meanwhile is ignored.
   bool _saving = false;
@@ -299,45 +96,22 @@ class SessionController extends Notifier<SessionState> {
   }) async {
     state = const SessionLoading();
     _resetSession();
-    // Every read starts before the first await: the screen can go meanwhile.
-    final dao = _dao;
-    final planFuture = placement || drill != null
-        ? null
-        : ref.hold((more ? learnMorePlanProvider : todayPlanProvider).future);
-    final streetsFuture = ref.read(cityStreetsProvider.future);
-    final packFuture = ref.read(packRepositoryProvider.future);
-    final curriculumFuture = ref.read(curriculumProvider.future);
-    final routesFuture = ref.read(routeBookProvider.future);
-    final runsFuture = ref.hold(runsProvider.future);
-    final graphFuture = ref.hold(drivingGraphProvider.future);
-    final asksFuture = ref.hold(asksCardProvider.future);
-    // Learn 10 more restarts in place: the routes read for the day still hold.
-    final yoursFuture = more ? null : ref.hold(yourRouteItemsProvider.future);
-    final settingsFuture = ref.read(settingsProvider.future);
-    final plan = await planFuture;
-    final streets = await streetsFuture;
-    final pack = await packFuture;
-    final curriculum = await curriculumFuture;
-    final routes = await routesFuture;
-    final runs = await runsFuture;
-    final graph = await graphFuture;
-    final asks = await asksFuture;
-    final yours = (await yoursFuture)?.streets ?? _yours;
-    final cards = await dao.cards();
-    final confusions = await dao.confusionPairs();
-    final log = await dao.log();
-    final learnCity = await dao.learnCity(pack.city().id);
-    final settings = await settingsFuture;
-    final contrasts = <String, NamedStreet>{};
-    for (final c in cards.where((c) => c.phase == CardPhase.suspended)) {
-      final top = streets[await dao.topConfusion(itemKey(c.itemId)) ?? ''];
-      if (top != null) contrasts[c.itemId] = top;
-    }
+    final inputs = await loadSession(
+      ref,
+      planned: !placement && drill == null,
+      more: more,
+    );
     if (!ref.mounted) return;
+    final (plan, streets, cards, log) = (
+      inputs.plan,
+      inputs.streets,
+      inputs.cards,
+      inputs.log,
+    );
     final now = _now();
     if (placement) {
       _placement = Placement(
-        curriculum,
+        inputs.curriculum,
         seed: now.microsecondsSinceEpoch,
         carded: {
           for (final c in cards)
@@ -363,34 +137,30 @@ class SessionController extends Notifier<SessionState> {
       state = const SessionEmpty();
       return;
     }
-    _streets = streets;
-    _all = streets.values.toSet();
-    _pack = pack;
-    _curriculum = curriculum;
-    _drills = plan?.drills ?? Drills.none;
-    _routes = routes;
-    _graph = graph;
-    _runs = {for (final r in runs) r.id: r};
-    _nodes = pack.junctionNodes();
-    _byNode = {for (final e in _nodes.entries) e.value: e.key};
-    _contrasts.addAll(contrasts);
+    _seed = now.microsecondsSinceEpoch;
+    _deck = SessionDeck(
+      streets: streets,
+      pack: inputs.pack,
+      curriculum: inputs.curriculum,
+      routes: inputs.routes,
+      drills: plan?.drills ?? Drills.none,
+      graph: inputs.graph,
+      runs: inputs.runs,
+      confusable: _confusable,
+      seed: _seed,
+    );
+    _contrasts.addAll(inputs.contrasts);
     _cards = {for (final c in cards) c.itemId: c};
-    _asks = asks;
-    _yours = yours;
-    _confusions = [...confusions];
-    _successes = {};
-    for (final e in log) {
-      if (e.type == CardType.p && e.rating.isSuccess && !e.format.logsOnly) {
-        _successes.update(e.itemId, (n) => n + 1, ifAbsent: () => 1);
-      }
-    }
-    _anchors = [?learnCity?.homeId, ?learnCity?.workId];
+    _asks = inputs.asks;
+    _yours = inputs.yours ?? _yours;
+    _confusions = [...inputs.confusions];
+    _successes = priorSuccesses(log);
+    _anchors = [?inputs.learnCity?.homeId, ?inputs.learnCity?.workId];
     _tierCRelief = tierCRelief(
       log,
-      minutesPerDay: settings.minutesPerDay,
+      minutesPerDay: inputs.settings.minutesPerDay,
       now: now,
     ).on;
-    _seed = now.microsecondsSinceEpoch;
     _memoryBefore = _memory(now);
     _rounds = rounds;
     _show(rounds.first, 0, const {});
@@ -403,7 +173,6 @@ class SessionController extends Notifier<SessionState> {
     _round = 0;
     _played = const [];
     _placement = null;
-    _recitals.clear();
     _contrasts.clear();
     _resetSummary();
   }
@@ -477,7 +246,7 @@ class SessionController extends Notifier<SessionState> {
     if (p.task case ExtentTask(:final pins)) {
       state = p.copyWith(task: ExtentTask(pins: _withEnd(pins, at)));
     } else {
-      state = p.copyWith(pin: at);
+      state = p.copyWith(pin: () => at);
     }
   }
 
@@ -505,7 +274,7 @@ class SessionController extends Notifier<SessionState> {
     final grade = Grader.gradePin(
       pin: pin,
       target: target,
-      nearby: _all,
+      nearby: _deck.all,
       confusable: _confusable(target),
       rtMs: rtMs,
       priorSuccesses: _successes[step.itemId] ?? 0,
@@ -520,26 +289,24 @@ class SessionController extends Notifier<SessionState> {
       await _place(p, grade, pin, now, rtMs);
       return;
     }
-    final hit = grade.isMixUp ? _streets[grade.snapStreetId] : null;
-    final card = await _review(
-      step,
+    final hit = grade.isMixUp ? _deck.streets[grade.snapStreetId] : null;
+    await _grade(
+      p,
       grade.rating,
       tier: grade.tier,
-      format: _formatOf(step.kind),
+      format: step.kind.format,
       distanceM: grade.distanceM,
       snapId: grade.snapStreetId,
       rtMs: rtMs,
       mixUp: hit,
-    );
-    if (card == null) return;
-    final (answered, days) = _reviewed(p, card);
-    state = answered.copyWith(
-      reveal: (
-        grade: grade,
-        pin: pin,
-        nearest: target.nearest(pin).nearestPoint,
-        nextReviewDays: days,
-        hit: hit,
+      show: (answered, days) => answered.copyWith(
+        reveal: (
+          grade: grade,
+          pin: pin,
+          nearest: target.nearest(pin).nearestPoint,
+          nextReviewDays: days,
+          hit: hit,
+        ),
       ),
     );
   }
@@ -553,16 +320,18 @@ class SessionController extends Notifier<SessionState> {
             pins: (task.pins[0], task.pins[1]),
             street: p.street,
           );
-    final card = await _review(
-      p.step,
+    await _grade(
+      p,
       grade.rating,
       tier: grade.tier,
       format: ReviewFormat.extent,
-    );
-    if (card == null) return;
-    final (answered, days) = _reviewed(p, card);
-    state = answered.copyWith(
-      task: ExtentTask(pins: task.pins, grade: grade, nextReviewDays: days),
+      show: (answered, days) => answered.copyWith(
+        task: ExtentTask(
+          pins: notKnown ? const [] : task.pins,
+          grade: grade,
+          nextReviewDays: days,
+        ),
+      ),
     );
   }
 
@@ -576,17 +345,15 @@ class SessionController extends Notifier<SessionState> {
     if (p is! SessionPlaying || p.answered) return;
     if (p.task case final NameTask t) {
       final right = picked == p.street;
-      final card = await _review(
-        p.step,
+      await _grade(
+        p,
         picked == null ? Grader.notKnown : Grader.gradeName(knew: right),
         tier: right ? Tier.great : Tier.miss,
         format: ReviewFormat.nameCheck,
         mixUp: right ? null : picked,
-      );
-      if (card == null) return;
-      final (answered, days) = _reviewed(p, card);
-      state = answered.copyWith(
-        task: t.copyWith(picked: picked, right: right, nextReviewDays: days),
+        show: (answered, days) => answered.copyWith(
+          task: t.copyWith(picked: picked, right: right, nextReviewDays: days),
+        ),
       );
     }
   }
@@ -623,25 +390,56 @@ class SessionController extends Notifier<SessionState> {
       return;
     }
     final task = notKnown ? asked.copyWith(placed: const {}) : asked;
+    final now = _now();
+    final dao = _dao;
     final markDay = dayMarker(ref, reviews: _reviews);
-    final relearn = <String>[];
-    for (final lane in task.lanes) {
-      final on = task.placed[lane.id];
-      final right = on == lane.id;
-      final step = (kind: StepKind.familySweep, itemId: _cardOf(lane).itemId);
-      final card = await _review(
-        step,
-        right ? Rating.good : Rating.again,
-        tier: right ? Tier.great : Tier.miss,
-        format: ReviewFormat.familySweep,
-        mixUp: right ? null : _streets[on],
-        countDay: false,
-      );
-      if (card == null) break;
-      if (card.phase == CardPhase.relearning) relearn.add(card.itemId);
-    }
+    final answers = [
+      for (final lane in task.lanes)
+        if (task.placed[lane.id] case final on)
+          (
+            lane: lane,
+            right: on == lane.id,
+            mixUp: on == lane.id ? null : _deck.streets[on],
+            step: (kind: StepKind.familySweep, itemId: _cardOf(lane).itemId),
+          ),
+    ];
+    final applied = [
+      for (final a in answers)
+        _apply(
+          a.step,
+          a.right ? Rating.good : Rating.again,
+          format: ReviewFormat.familySweep,
+          now: now,
+          target: a.lane,
+        ),
+    ];
+    // Every lane or none: a sweep is one answer.
+    await dao.transaction(() async {
+      for (final (i, a) in answers.indexed) {
+        await dao.saveAnswer(
+          card: applied[i].card,
+          log: applied[i].log,
+          mixUp: _pairOf(a.lane, a.mixUp),
+        );
+      }
+    });
     await markDay();
     if (!ref.mounted) return;
+    for (final (i, a) in answers.indexed) {
+      _keep(
+        a.step,
+        applied[i].card,
+        a.right ? Rating.good : Rating.again,
+        a.right ? Tier.great : Tier.miss,
+        target: a.lane,
+        mixUp: a.mixUp,
+        now: now,
+      );
+    }
+    final relearn = [
+      for (final r in applied)
+        if (r.card.phase == CardPhase.relearning) r.card.itemId,
+    ];
     state = _answered(p, relearn).copyWith(task: task.copyWith(checked: true));
   }
 
@@ -656,7 +454,7 @@ class SessionController extends Notifier<SessionState> {
     if (task.done) return;
     final expected = task.crossings[task.named.length].street;
     final right = nameMatches(typed, expected);
-    final named = right ? null : suggestStreet(typed, _all);
+    final named = right ? null : suggestStreet(typed, _deck.all);
     await _logOnly(
       _cardOf(expected).itemId,
       right ? Rating.good : Rating.again,
@@ -725,39 +523,117 @@ class SessionController extends Notifier<SessionState> {
     int? rtMs,
     NamedStreet? mixUp,
     NamedStreet? street,
-    bool countDay = true,
   }) async {
     final now = _now();
     final markDay = dayMarker(ref, reviews: _reviews);
-    final target = street ?? _streets[itemKey(step.itemId)]!;
-    final result = applyReview(
-      _cards[step.itemId],
-      itemId: step.itemId,
-      rating: rating,
-      now: now,
+    final target = street ?? _deck.streets[itemKey(step.itemId)]!;
+    final result = _apply(
+      step,
+      rating,
       format: format,
-      source: ReviewSource.session,
-      sessionId: _sessionId,
+      now: now,
+      target: target,
       distanceM: distanceM,
       snapId: snapId,
-      rtMs: rtMs ?? _rtMs(now),
-      retention: retentionOf(
-        CardType.ofItem(step.itemId),
-        tierCRelieved:
-            _tierCRelief && _curriculum.tierOf(target.id) == StreetTier.c,
-      ),
+      rtMs: rtMs,
     );
     final dao = _dao;
     await dao.saveAnswer(
       card: result.card,
       log: result.log,
-      mixUp: mixUp == null ? null : (target: target.id, hit: mixUp.id),
+      mixUp: _pairOf(target, mixUp),
     );
     if (!ref.mounted) {
-      if (countDay) await markDay();
+      await markDay();
       return null;
     }
-    _cards[step.itemId] = result.card;
+    _keep(
+      step,
+      result.card,
+      rating,
+      tier,
+      target: target,
+      mixUp: mixUp,
+      now: now,
+    );
+    await markDay();
+    return ref.mounted ? result.card : null;
+  }
+
+  /// [p]'s step reviewed with [rating] (as [_review]) and its answer shown: [show] makes it from
+  /// [p] with its relearns and the days to the next review.
+  Future<void> _grade(
+    SessionPlaying p,
+    Rating rating, {
+    required Tier tier,
+    required ReviewFormat format,
+    required SessionPlaying Function(SessionPlaying answered, int? days) show,
+    double? distanceM,
+    String? snapId,
+    int? rtMs,
+    NamedStreet? mixUp,
+    NamedStreet? street,
+  }) async {
+    final card = await _review(
+      p.step,
+      rating,
+      tier: tier,
+      format: format,
+      distanceM: distanceM,
+      snapId: snapId,
+      rtMs: rtMs,
+      mixUp: mixUp,
+      street: street,
+    );
+    if (card == null) return;
+    final (answered, days) = _reviewed(p, card);
+    state = show(answered, days);
+  }
+
+  /// [rating] applied to [step]'s card at [now]: its new state and log row.
+  ({CardState card, LogEntry log}) _apply(
+    SessionStep step,
+    Rating rating, {
+    required ReviewFormat format,
+    required DateTime now,
+    required NamedStreet target,
+    double? distanceM,
+    String? snapId,
+    int? rtMs,
+  }) => applyReview(
+    _cards[step.itemId],
+    itemId: step.itemId,
+    rating: rating,
+    now: now,
+    format: format,
+    source: ReviewSource.session,
+    sessionId: _sessionId,
+    distanceM: distanceM,
+    snapId: snapId,
+    rtMs: rtMs ?? _rtMs(now),
+    retention: retentionOf(
+      CardType.ofItem(step.itemId),
+      tierCRelieved:
+          _tierCRelief && _deck.curriculum.tierOf(target.id) == StreetTier.c,
+    ),
+  );
+
+  static ({String target, String hit})? _pairOf(
+    NamedStreet target,
+    NamedStreet? mixUp,
+  ) => mixUp == null ? null : (target: target.id, hit: mixUp.id);
+
+  /// A saved answer's [card] kept for the rest of the session, and the answer counted.
+  void _keep(
+    SessionStep step,
+    CardState card,
+    Rating rating,
+    Tier tier, {
+    required NamedStreet target,
+    required NamedStreet? mixUp,
+    required DateTime now,
+  }) {
+    _cards[step.itemId] = card;
     if (rating.isSuccess && CardType.ofItem(step.itemId) == CardType.p) {
       _successes.update(step.itemId, (n) => n + 1, ifAbsent: () => 1);
     }
@@ -770,8 +646,6 @@ class SessionController extends Notifier<SessionState> {
       mixUp: mixUp?.id,
     ));
     _times.add(now);
-    if (countDay) await markDay();
-    return ref.mounted ? result.card : null;
   }
 
   /// Logs a drill answer that moves no card.
@@ -804,12 +678,12 @@ class SessionController extends Notifier<SessionState> {
   /// [p] with a relearn for each of [forgotten] 5–10 items on, and its
   /// session bar block marked when any.
   SessionPlaying _answered(SessionPlaying p, List<String> forgotten) {
-    var rest = p.steps.sublist(p.index + 1);
-    final session = _sessionSteps(p);
-    for (final (i, id) in forgotten.indexed) {
-      if (!Planner.mayRelearn(session, id)) continue;
-      rest = Planner.withRelearn(rest, id, Random(_seed + p.index + i));
-    }
+    final rest = Planner.withRelearns(
+      p.steps.sublist(p.index + 1),
+      forgotten,
+      session: _sessionSteps(p),
+      seed: _seed + p.index,
+    );
     final missed =
         forgotten.isNotEmpty || _answers.lastOrNull?.rating == Rating.again;
     return p.copyWith(
@@ -824,34 +698,25 @@ class SessionController extends Notifier<SessionState> {
   /// Counted from the review itself: a clock read after the saves would cut a day short.
   (SessionPlaying, int?) _reviewed(SessionPlaying p, CardState card) => (
     _answered(p, [if (card.phase == CardPhase.relearning) p.step.itemId]),
-    _nextReviewDays(card, card.memory?.lastReview ?? _now(), _sessionSteps(p)),
+    Planner.nextReviewDays(
+      card,
+      card.memory?.lastReview ?? _now(),
+      _sessionSteps(p),
+    ),
   );
-
-  /// Days to [card]'s next review; null when it comes back in this session of
-  /// [steps] (a miss that has had its relearns waits for its due time).
-  static int? _nextReviewDays(
-    CardState card,
-    DateTime now,
-    List<SessionStep> steps,
-  ) =>
-      card.phase == CardPhase.review ||
-          (card.phase == CardPhase.relearning &&
-              !Planner.mayRelearn(steps, card.itemId))
-      ? card.dueAt!.difference(now).inDays
-      : null;
 
   /// [street]'s P card as stored, or the item it would get.
   CardState _cardOf(NamedStreet street) => _cards.values.firstWhere(
-    (c) => c.type == CardType.p && _streets[itemKey(c.itemId)] == street,
+    (c) => c.type == CardType.p && _deck.streets[itemKey(c.itemId)] == street,
     orElse: () =>
         CardState(itemId: CardType.p.item(street.id), phase: CardPhase.review),
   );
 
   Set<String> _confusable(NamedStreet target) => confusablesOf(
     target,
-    _all,
+    _deck.all,
     _confusions,
-    family: _curriculum.familyOf(target.id),
+    family: _deck.curriculum.familyOf(target.id),
   );
 
   /// A placement pin (SPEC §6.2): Good or Easy at first sight makes a review
@@ -922,23 +787,16 @@ class SessionController extends Notifier<SessionState> {
     final p = state;
     if (p is! SessionPlaying || p.answered) return;
     if (p.step.kind == StepKind.placement) return skip();
-    switch (p.task) {
-      case PinTask() when p.guess != null:
-        await _once(() async {
-          await _saveGuess(p.step.itemId, null, _now(), _rtMs(_now()));
-          if (ref.mounted) _show(p.steps, p.index, p.forgotten, guessed: true);
-        });
-      case PinTask():
-        await _once(() async {
-          final card = await _review(
-            p.step,
-            Grader.notKnown,
-            tier: Tier.miss,
-            format: _formatOf(p.step.kind),
-          );
-          if (card == null) return;
-          final (answered, days) = _reviewed(p, card);
-          state = answered.copyWith(
+    await _once(
+      () => switch (p.task) {
+        PinTask() when p.guess != null => _guessNotKnown(p),
+        PinTask() => _grade(
+          p,
+          Grader.notKnown,
+          tier: Tier.miss,
+          format: p.step.kind.format,
+          show: (answered, days) => answered.copyWith(
+            pin: () => null,
             reveal: (
               grade: null,
               pin: null,
@@ -946,23 +804,23 @@ class SessionController extends Notifier<SessionState> {
               nextReviewDays: days,
               hit: null,
             ),
-          );
-        });
-      case ExtentTask():
-        await _once(() => _confirmEnds(p, notKnown: true));
-      case NameTask():
-        await _once(() => _pickName(null));
-      case RouteTask():
-        await _once(() => _answerRoute('', notKnown: true));
-      case RecitalTask():
-        await _once(() => _checkRecital(notKnown: true));
-      case SweepTask():
-        await _once(() => _checkSweep(notKnown: true));
-      case CrossingsTask():
-        await _once(() => _nameCrossing(''));
-      case BearingTask():
-        await _once(() => _checkBearing(notKnown: true));
-    }
+          ),
+        ),
+        ExtentTask() => _confirmEnds(p, notKnown: true),
+        NameTask() => _pickName(null),
+        RouteTask() => _answerRoute('', notKnown: true),
+        RecitalTask() => _checkRecital(notKnown: true),
+        SweepTask() => _checkSweep(notKnown: true),
+        CrossingsTask() => _nameCrossing(''),
+        BearingTask() => _checkBearing(notKnown: true),
+      },
+    );
+  }
+
+  /// A guess first's "I don't know": the street, then its intro.
+  Future<void> _guessNotKnown(SessionPlaying p) async {
+    await _saveGuess(p.step.itemId, null, _now(), _rtMs(_now()));
+    if (ref.mounted) _show(p.steps, p.index, p.forgotten, guessed: true);
   }
 
   /// [p]'s steps with the sweep its answer earned right after it.
@@ -1020,8 +878,8 @@ class SessionController extends Notifier<SessionState> {
     NamedStreet? shown;
     SessionTask? task;
     while (i < steps.length) {
-      shown = _stepStreet(steps[i]);
-      task = shown == null ? null : _taskFor(steps[i], shown);
+      shown = _deck.streetOf(steps[i]);
+      task = shown == null ? null : _deck.taskFor(steps[i], shown);
       if (task != null) break;
       i++;
     }
@@ -1044,10 +902,10 @@ class SessionController extends Notifier<SessionState> {
             CardType.ofItem(s.itemId) == CardType.ofItem(step.itemId))
           s,
     ];
-    final city = _pack.city();
+    final city = _deck.pack.city();
     final known = _knownStreets(now)..remove(street);
-    final family = _curriculum.familyOf(street.id);
-    final parent = _streets[_curriculum.parentOf(street.id)];
+    final family = _deck.curriculum.familyOf(street.id);
+    final parent = _deck.streets[_deck.curriculum.parentOf(street.id)];
     final leech = switch (_cards[step.itemId]) {
       final card?
           when step.kind == StepKind.intro &&
@@ -1077,101 +935,14 @@ class SessionController extends Notifier<SessionState> {
       newIndex: intros.indexOf(step) + 1,
       newTotal: intros.length,
       task: task,
-      family: _familyOf(street),
+      family: _deck.familyOf(street),
       guess: guess,
-      frame: switch (task) {
-        NameTask() => street.geometry.expand((l) => l).toList(),
-        SweepTask(:final lanes) => [
-          for (final s in [street, ...lanes]) ...s.geometry.expand((l) => l),
-        ],
-        CrossingsTask() => street.geometry.expand((l) => l).toList(),
-        RouteTask(:final question) => _routeFrame(question),
-        _ when step.kind == StepKind.retrieval1 || guess != null =>
-          _districtFrame(street),
-        _ => null,
-      },
+      frame: _deck.frameOf(task, step, street, guessing: guess != null),
       contrast: leech == null ? null : _contrasts[step.itemId],
       note: leech?.note,
       leech: leech != null,
     );
   }
-
-  /// What [step] asks of [street]; null for a drill whose streets are gone.
-  SessionTask? _taskFor(SessionStep step, NamedStreet street) =>
-      switch (step.kind) {
-        StepKind.familySweep => switch ([
-          for (final id in _drills.sweep?.children ?? const <String>[])
-            ?_streets[itemKey(id)],
-        ]) {
-          final lanes when lanes.length >= 2 => SweepTask(lanes: lanes),
-          _ => null,
-        },
-        StepKind.crossings => _crossingsTask(street),
-        StepKind.bearing => BearingTask(
-          trueBearing: bearingDegrees(
-            _curriculum.centre,
-            street.parts.first.midpoint,
-          ),
-          distanceM: distanceBetween(
-            _curriculum.centre,
-            street.parts.first.midpoint,
-          ),
-        ),
-        _ when step.kind == StepKind.intro && !isRouteItem(step.itemId) =>
-          const PinTask(),
-        _ when CardType.ofItem(step.itemId) == CardType.r => _recitalTask(
-          step.itemId,
-        ),
-        _ when _routes.questions[step.itemId] != null => RouteTask(
-          _routes.questions[step.itemId]!,
-        ),
-        _ => switch (CardType.ofItem(step.itemId)) {
-          CardType.n => NameTask(
-            choices: nameChoices(
-              target: street,
-              streets: _all,
-              confusable: _confusable(street),
-              random: Random(_seed + step.hashCode),
-            ),
-          ),
-          CardType.e => const ExtentTask(),
-          _ => const PinTask(),
-        },
-      };
-
-  /// The street a step's plate names: its own, or a route card's street.
-  NamedStreet? _stepStreet(SessionStep step) =>
-      _streets[itemKey(step.itemId)] ??
-      switch (_routes.questions[step.itemId]) {
-        final TurnQuestion q => q.approachStreet ?? q.exitStreet,
-        final GatewayQuestion q => q.exitStreet ?? _nearest(q.at),
-        final BridgeQuestion q => q.approachStreet ?? _nearest(q.at),
-        final ConnectionQuestion q => q.street,
-        final LandmarkQuestion q =>
-          q.street ?? q.approachStreet ?? _nearest(q.landmark.at),
-        null => _recitalTask(step.itemId)?.fromStreet,
-      };
-
-  /// R item [itemId]'s recital: its run's ends in this pack, A's and B's
-  /// streets from the best route between them; null when the run or a
-  /// legal route is gone.
-  RecitalTask? _recitalTask(String itemId) => _recitals.putIfAbsent(itemId, () {
-    final run = _runs[itemKey(itemId)];
-    final graph = _graph;
-    final ends = run == null || graph == null
-        ? null
-        : runEnds(run, graph, _byNode, _streets);
-    return ends == null
-        ? null
-        : RecitalTask(
-            run!,
-            from: ends.from,
-            to: ends.to,
-            fromStreet: ends.fromStreet,
-            toStreet: ends.toStreet,
-            draft: RouteDraft(graph!, ends.from, {ends.to}),
-          );
-  });
 
   void _recital(RecitalTask Function(RecitalTask t) change) {
     final p = state;
@@ -1196,11 +967,8 @@ class SessionController extends Notifier<SessionState> {
         ? (turn: null, street: suggested, landmark: null)
         : resolveRecital(
             tokenizeRecital(typed),
-            streets: _all,
-            landmarks: {
-              for (final q in _routes.questions.values)
-                if (q is LandmarkQuestion) q.landmark.id: q.landmark,
-            }.values,
+            streets: _deck.all,
+            landmarks: _deck.landmarks,
             from: t.steps.lastOrNull?.street ?? t.fromStreet,
           ).firstOrNull;
     if (step == null) return false;
@@ -1238,7 +1006,7 @@ class SessionController extends Notifier<SessionState> {
     final p = state;
     if (p is! SessionPlaying || p.answered) return;
     if (p.task case final RecitalTask t) {
-      final graph = _graph!;
+      final graph = _deck.graph!;
       final graded = switch (t.mode) {
         _ when notKnown => RecitalGrader.notKnown(
           graph,
@@ -1250,7 +1018,7 @@ class SessionController extends Notifier<SessionState> {
           t.steps,
           from: t.from,
           to: t.to,
-          streets: _streets,
+          streets: _deck.streets,
           hinted: t.hinted,
         ),
         RecitalMode.draw => RecitalGrader.score(
@@ -1258,34 +1026,20 @@ class SessionController extends Notifier<SessionState> {
           Route(t.draft.junctions, t.draft.edges, t.draft.lengthM),
           from: t.from,
           to: t.to,
-          streets: _streets,
+          streets: _deck.streets,
         ),
       };
       final now = _now();
-      final answer = applyReview(
-        _cards[p.step.itemId],
+      final (:answer, :evidence, :reviews, :practice) = recitalOutcome(
+        graded,
         itemId: p.step.itemId,
-        rating: graded.rating,
+        cards: _cards,
+        junctionNodes: _deck.nodes,
+        routeItems: _deck.routes.questions.keys,
         now: now,
-        format: ReviewFormat.recital,
-        source: ReviewSource.session,
         sessionId: _sessionId,
         rtMs: _rtMs(now),
       );
-      final evidence = recitalEvidence(graded, _nodes, {
-        for (final id in _routes.questions.keys)
-          if (CardType.ofItem(id) == CardType.j) id,
-      });
-      final reviews = [
-        for (final e in evidence)
-          ?implicitReview(
-            _cards[e.itemId],
-            ok: e.ok,
-            now: now,
-            source: ReviewSource.recital,
-            sessionId: _sessionId,
-          ),
-      ];
       final markDay = dayMarker(ref, reviews: _reviews);
       await _dao.saveTest(
         log: answer.log,
@@ -1310,10 +1064,6 @@ class SessionController extends Notifier<SessionState> {
       _times.add(now);
       await markDay();
       if (!ref.mounted) return;
-      final practice = {
-        for (final e in evidence)
-          if (!e.ok && _cards.containsKey(e.itemId)) e.itemId,
-      }.toList();
       state = _answered(p, practice).copyWith(
         task: t.copyWith(
           graded: graded,
@@ -1334,7 +1084,7 @@ class SessionController extends Notifier<SessionState> {
       :final graded?,
       reported: false,
     ) when graded.illegal != null && graded.path != null) {
-      await _dao.reportMove(moveReport(graded.illegal!, _nodes), _now());
+      await _dao.reportMove(moveReport(graded.illegal!, _deck.nodes), _now());
       ref.invalidate(drivingGraphProvider);
       if (!ref.mounted) return;
       final now = state;
@@ -1350,7 +1100,9 @@ class SessionController extends Notifier<SessionState> {
   /// on this phone, and its cards leave the session.
   // ponytail: a turn card later this session may still name it; the next
   // session's route book doesn't.
-  Future<void> hidePlace() async {
+  Future<void> hidePlace() => _once(_hidePlace);
+
+  Future<void> _hidePlace() async {
     final p = state;
     if (p is! SessionPlaying) return;
     if (p.task case RouteTask(
@@ -1359,53 +1111,19 @@ class SessionController extends Notifier<SessionState> {
       await _dao.hidePlace(landmark.id, _now());
       ref.invalidate(routeBookProvider);
       if (!ref.mounted) return;
-      _routes = (
-        candidates: _routes.candidates,
-        questions: Map.of(_routes.questions)
-          ..removeWhere(
-            (_, q) => q is LandmarkQuestion && q.landmark.id == landmark.id,
-          ),
-      );
-      if (state case final SessionPlaying now) {
+      _deck.hideLandmark(landmark.id);
+      if (state case final SessionPlaying now when now.index == p.index) {
         _show(now.steps, now.index + 1, now.forgotten);
       }
     }
   }
-
-  NamedStreet? _nearest(LatLng at) {
-    NamedStreet? best;
-    var bestM = double.infinity;
-    for (final s in _all) {
-      final m = distanceBetween(at, s.parts.first.midpoint);
-      if (m < bestM) (best, bestM) = (s, m);
-    }
-    return best;
-  }
-
-  /// What a route card's map frames: a gateway's neighbourhood, a bridge
-  /// question's bridges and start; the city otherwise.
-  List<LatLng>? _routeFrame(RouteQuestion q) => switch (q) {
-    GatewayQuestion(:final chunk) => switch (_pack
-        .districts()
-        .where((d) => d.id == chunk)
-        .firstOrNull
-        ?.bbox) {
-      final b? => [LatLng(b.minLat, b.minLon), LatLng(b.maxLat, b.maxLon)],
-      null => null,
-    },
-    BridgeQuestion(:final at, :final options) => [
-      at,
-      for (final b in options) b.midpoint,
-    ],
-    _ => null,
-  };
 
   /// A route card: picks the turn, bridge, junction or name before Confirm.
   void choose(Object choice) {
     final p = state;
     if (p is! SessionPlaying || p.answered) return;
     if (p.task case final RouteTask t) {
-      state = p.copyWith(task: t.copyWith(choice: choice));
+      state = p.copyWith(task: t.copyWith(choice: () => choice));
     }
   }
 
@@ -1419,43 +1137,29 @@ class SessionController extends Notifier<SessionState> {
     final p = state;
     if (p is! SessionPlaying || p.answered) return;
     if (p.task case final RouteTask t) {
-      final pin = p.pin;
-      bool names(NamedStreet? s) =>
-          s != null && typed.trim().isNotEmpty && nameMatches(typed, s);
-      final rating = switch (t.question) {
-        _ when notKnown => Grader.notKnown,
-        final TurnQuestion q => RouteGrader.turn(
-          exitRight: t.choice == q.correct,
-          streetRight: typed.trim().isEmpty ? null : names(q.exitStreet),
-          streetAsked: _knownStreets(_now()).contains(q.exitStreet),
-        ),
-        final GatewayQuestion q when pin != null => RouteGrader.gateway(
-          distanceM: distanceBetween(pin, q.at),
-          streetRight: names(q.exitStreet),
-        ),
-        final BridgeQuestion q =>
-          t.choice == q.bridge ? Rating.good : Rating.again,
-        final ConnectionQuestion q => names(q.to) ? Rating.good : Rating.again,
-        final LandmarkQuestion q when q.n == 1 && pin != null =>
-          RouteGrader.point(q.distanceFrom(pin).distanceM).rating,
-        final LandmarkQuestion q when q.n > 1 =>
-          (q.n == 2 ? t.choice == q.junction : t.choice == q.landmark.name)
-              ? Rating.good
-              : Rating.again,
-        _ => null,
-      };
+      final rating = notKnown
+          ? Grader.notKnown
+          : t.question.rate(
+              choice: t.choice,
+              pin: p.pin,
+              typed: typed,
+              known: _knownStreets(_now()),
+            );
       if (rating == null) return;
-      final card = await _review(
-        p.step,
+      await _grade(
+        p,
         rating,
         tier: RouteGrader.tierOf(rating),
-        format: _routeFormat(t.question),
+        format: t.question.format,
         street: p.street,
-      );
-      if (card == null) return;
-      final (answered, days) = _reviewed(p, card);
-      state = answered.copyWith(
-        task: t.copyWith(rating: rating, nextReviewDays: days),
+        show: (answered, days) => answered.copyWith(
+          pin: notKnown ? () => null : null,
+          task: t.copyWith(
+            choice: notKnown ? () => null : null,
+            rating: rating,
+            nextReviewDays: days,
+          ),
+        ),
       );
     }
   }
@@ -1463,117 +1167,54 @@ class SessionController extends Notifier<SessionState> {
   /// The streets whose P card is Known at [now].
   Set<NamedStreet> _knownStreets(DateTime now) => {
     for (final c in _cards.values)
-      if (c.type == CardType.p && isKnown(c, now)) ?_streets[itemKey(c.itemId)],
+      if (c.type == CardType.p && isKnown(c, now))
+        ?_deck.streets[itemKey(c.itemId)],
   };
-
-  CrossingsTask? _crossingsTask(NamedStreet street) {
-    final drill = _drills.crossings;
-    final from = _streets[drill?.fromId];
-    if (drill == null || from == null) return null;
-    final along = {
-      for (final c in crossingsAlong(street, _all)) c.street.id: c,
-    };
-    final crossings = [
-      for (final id in drill.crossings) ?along[_streets[id]?.id],
-    ];
-    final start = along[from.id]?.at;
-    return crossings.isEmpty || start == null
-        ? null
-        : CrossingsTask(from: from, start: start, crossings: crossings);
-  }
-
-  SessionFamily? _familyOf(NamedStreet street) {
-    final chip = _curriculum.familyChip(street.id);
-    final parent = _streets[chip?.parentId];
-    return chip == null || parent == null
-        ? null
-        : (parent: parent, children: chip.children);
-  }
-
-  /// The bounds of the raion holding most of [street]'s length.
-  List<LatLng>? _districtFrame(NamedStreet street) {
-    final parts = {for (final p in street.parts) p.id};
-    final raions = {
-      for (final d in _pack.districts())
-        if (d.isRaion) d.id: d,
-    };
-    String? best;
-    var bestM = 0.0;
-    for (final MapEntry(key: id, value: lengths)
-        in _pack.lengthsByDistrict().entries) {
-      if (!raions.containsKey(id)) continue;
-      final m = lengths.entries
-          .where((e) => parts.contains(e.key))
-          .fold(0.0, (sum, e) => sum + e.value);
-      if (m > bestM) (best, bestM) = (id, m);
-    }
-    final b = raions[best]?.bbox;
-    return b == null
-        ? null
-        : [LatLng(b.minLat, b.minLon), LatLng(b.maxLat, b.maxLon)];
-  }
 
   double _memory(DateTime now) => cityMemory(
     _cards.values,
     now,
-    isCore: (id) =>
-        (_streets[itemKey(id)]?.lengthM ?? 0) >= LearningConfig.coreMinLengthM,
+    isCore: (id) => switch (_deck.streets[itemKey(id)]) {
+      final s? => Curriculum.isCore(s),
+      null => false,
+    },
   );
 
   Future<void> _placed(Placement run) async {
-    final city = _pack.city();
+    final city = _deck.pack.city();
     await _dao.markPlaced(city.id, _now());
     if (!ref.mounted) return;
     final cards = {
       for (final c in _cards.values)
-        if (c.type == CardType.p) ?_streets[itemKey(c.itemId)]?.id: c,
+        if (c.type == CardType.p) ?_deck.streets[itemKey(c.itemId)]?.id: c,
     };
-    final band = _curriculum.bandsLeft(cards).firstOrNull;
-    final start = _curriculum.chunkSequence(cards, _anchors).firstOrNull;
+    final band = _deck.curriculum.bandsLeft(cards).firstOrNull;
+    final start = _deck.curriculum.chunkSequence(cards, _anchors).firstOrNull;
     state = SessionPlaced((
       passed: run.passed,
       mainRoads: run.mainRoads,
       raions: run.raions,
       startBand: band,
-      startIn: band != null
-          ? null
-          : _pack.districts().where((d) => d.id == start).firstOrNull,
+      startIn: band != null ? null : _deck.pack.district(start),
     ));
   }
 
   SessionSummary _summary() {
     final now = _now();
-    final graded = [
-      for (final a in _answers)
-        if (a.kind != StepKind.crossings) a,
-    ];
-    final passed = graded.where((a) => a.rating.isSuccess).length;
-    final closes = <String, int>{};
-    for (final a in graded.where((a) => a.tier == Tier.close)) {
-      closes.update(a.streetId, (n) => n + 1, ifAbsent: () => 1);
-    }
+    final s = summarizeSession(_answers, _times);
     final midnight = nextMidnight(now);
     return (
-      reviews: graded
-          .where(
-            (a) => a.kind == StepKind.review || a.kind == StepKind.familySweep,
-          )
-          .length,
+      reviews: s.reviews,
       newStreets: _introsDone,
-      recalledPercent: graded.isEmpty
-          ? 0
-          : (100 * passed / graded.length).round(),
+      recalledPercent: s.recalledPercent,
       memoryBefore: _memoryBefore,
       memoryAfter: _memory(now),
       mixUps: [
-        for (final a in graded)
-          if (_streets[a.mixUp] case final hit?) (_streets[a.streetId]!, hit),
+        for (final (id, hit) in s.mixUps)
+          if (_deck.streets[hit] case final other?) (_deck.streets[id]!, other),
       ],
-      closeTwice: [
-        for (final MapEntry(:key, :value) in closes.entries)
-          if (value >= 2) _streets[key]!,
-      ],
-      minutes: (activeSeconds(_times) / 60).ceil(),
+      closeTwice: [for (final id in s.closeTwice) _deck.streets[id]!],
+      minutes: s.minutes,
       cleared: !_cards.values
           .where(_reviews(_cards.values))
           .any((c) => isDueBefore(c, midnight)),
@@ -1582,30 +1223,3 @@ class SessionController extends Notifier<SessionState> {
     );
   }
 }
-
-/// One graded answer of the session, for Session done.
-typedef _Answer = ({
-  StepKind kind,
-  Rating rating,
-  Tier tier,
-  String streetId,
-
-  /// The street a mix-up confused it with.
-  String? mixUp,
-});
-
-ReviewFormat _routeFormat(RouteQuestion q) => switch (q) {
-  TurnQuestion() => ReviewFormat.junction,
-  GatewayQuestion() => ReviewFormat.gateway,
-  BridgeQuestion() => ReviewFormat.bridge,
-  ConnectionQuestion() => ReviewFormat.connection,
-  LandmarkQuestion() => ReviewFormat.landmark,
-};
-
-ReviewFormat _formatOf(StepKind kind) => switch (kind) {
-  StepKind.retrieval1 => ReviewFormat.retrieval1,
-  StepKind.retrieval2 => ReviewFormat.retrieval2,
-  StepKind.relearn => ReviewFormat.relearn,
-  StepKind.placement => ReviewFormat.placement,
-  _ => ReviewFormat.review,
-};

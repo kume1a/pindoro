@@ -6,7 +6,7 @@ import 'cards.dart';
 import 'constants.dart';
 import 'route_questions.dart';
 import 'routes.dart';
-import 'stats.dart';
+import 'labels.dart';
 
 /// A recital's A → B (SPEC §3 R, §16.7): a route-book run or a weekly [random] pair. Its ends are
 /// OSM nodes of pack junctions, so it survives pack rebuilds; [items] are the J items of the book

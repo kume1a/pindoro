@@ -10,6 +10,7 @@ import 'nav_level.dart';
 import 'nav_plan.dart';
 import 'nav_view.dart';
 import 'routes.dart';
+import 'stats.dart';
 
 // What a drive teaches and how it shows (SPEC §16.23 items 119–123).
 
@@ -403,6 +404,20 @@ String? reverseTurn(String key) {
     from: int.parse(m.group(2)!),
     to: int.parse(m.group(3)!),
   );
+}
+
+/// The share of the day's new cards the player's routes may take (SPEC §16.23 item 120), by how
+/// City memory grew over the last [LearningConfig.yourRouteDays] and the days before.
+double yourRoutesShareOf(
+  List<CardState> cards,
+  List<LogEntry> log,
+  DateTime now,
+) {
+  double at(int daysAgo) =>
+      cityMemoryAt(cards, log, now.subtract(Duration(days: daysAgo)));
+  const days = LearningConfig.yourRouteDays;
+  final (a, b, c) = (at(0), at(days), at(2 * days));
+  return yourRoutesShare(gainNow: a - b, gainBefore: b - c);
 }
 
 /// The share of the day's new cards the player's routes may take (item 120): less while City

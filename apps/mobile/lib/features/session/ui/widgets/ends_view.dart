@@ -4,11 +4,11 @@ import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/map/ui/question_scaffold.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
-import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -41,15 +41,8 @@ class EndsView extends ConsumerStatefulWidget {
   ConsumerState<EndsView> createState() => _EndsViewState();
 }
 
-class _EndsViewState extends ConsumerState<EndsView> {
-  final _projection = ValueNotifier<MapProjection?>(null);
-
-  @override
-  void dispose() {
-    _projection.dispose();
-    super.dispose();
-  }
-
+class _EndsViewState extends ConsumerState<EndsView>
+    with MapProjectionHost<EndsView> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -60,7 +53,7 @@ class _EndsViewState extends ConsumerState<EndsView> {
     final grade = task.grade;
     final pins = task.pins;
     final mapOf = ref.watch(pindoroMapBuilderProvider);
-    return TaskScaffold(
+    return QuestionScaffold(
       onDontKnow: widget.onDontKnow,
       topBar: widget.topBar,
       map: (insets) => mapOf(
@@ -69,9 +62,10 @@ class _EndsViewState extends ConsumerState<EndsView> {
           pin: pins.firstOrNull,
           morePins: pins.skip(1).toList(),
           truth: grade == null ? null : play.street.geometry,
-          names: grade == null ? const MapNames(places: true) : MapNames.all,
+          // Asking: places, but none named after the street.
+          names: grade == null ? MapNames.asking(play.street) : MapNames.all,
           onTap: grade == null ? widget.onPin : null,
-          onCamera: (p) => _projection.value = p,
+          onCamera: onCamera,
           showControls: grade == null,
           topInset: insets.top,
           bottomInset: insets.bottom,
@@ -82,7 +76,7 @@ class _EndsViewState extends ConsumerState<EndsView> {
           Positioned.fill(
             child: IgnorePointer(
               child: GeoAnchors(
-                projection: _projection,
+                projection: projection,
                 anchors: [
                   (
                     pins.first,

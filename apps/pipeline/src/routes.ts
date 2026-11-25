@@ -1,5 +1,6 @@
 import { distanceBetween, onewayOf, type RoadEdge, RoadGraph } from "@pindoro/geo";
 import type { Sql } from "postgres";
+import { percent } from "./io.ts";
 
 /** SPEC §13: `odSamples`, `junctionCoverage`, `landmarkRadiusM`, `landmarkStructuralM`. */
 export const COVERAGE = {
@@ -277,17 +278,17 @@ export const selectJunctionItems = async (
 
   const layers = new Map<string, number>();
   for (const r of rows) layers.set(r.layer, (layers.get(r.layer) ?? 0) + 1);
-  const pct = (part: number, whole: number): string =>
-    whole ? `${((part / whole) * 100).toFixed(1)} %` : "–";
   return [
     "| Measure | Count | Share |",
     "| --- | --- | --- |",
-    `| Origin–destination pairs routed | ${routed} | ${pct(routed, o.pairs)} of ${o.pairs} |`,
+    `| Origin–destination pairs routed | ${routed} | ${percent(routed, o.pairs)} of ${o.pairs} |`,
     `| Decisions driven | ${driven} | |`,
     `| Distinct decisions | ${decisions.size} | |`,
-    `| Junction items chosen | ${rows.length} | covers ${pct(covered, driven)} |`,
-    ...[...layers.entries()].sort().map(([l, n]) => `| … ${l} | ${n} | ${pct(n, rows.length)} |`),
-    `| Items with a landmark | ${rows.filter((r) => r.landmark_id).length} | ${pct(rows.filter((r) => r.landmark_id).length, rows.length)} |`,
+    `| Junction items chosen | ${rows.length} | covers ${percent(covered, driven)} |`,
+    ...[...layers.entries()]
+      .sort()
+      .map(([l, n]) => `| … ${l} | ${n} | ${percent(n, rows.length)} |`),
+    `| Items with a landmark | ${rows.filter((r) => r.landmark_id).length} | ${percent(rows.filter((r) => r.landmark_id).length, rows.length)} |`,
     "",
   ].join("\n");
 };

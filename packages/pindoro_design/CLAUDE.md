@@ -4,8 +4,7 @@ Flutter design system: generated tokens, `buildPindoroTheme`, `PindoroTheme` ext
 Signpost widgets: `PindoroButton` (with `ButtonRow`: side by side, then even, then stacked),
 `StreetPlate`, surfaces (`LipBox`, `ListGroup`, `ListRow`,
 `RowTile`, `StatTile`, a one-line `ListRow(dense: true)`, `TileGrid`, `TitledCard`, `SheetHandle`), the bottom navigation (`PindoroNavBar`, no counts on tabs), controls
-(`SegmentedControl`, `PindoroToggle`, `PindoroIconButton`, `PindoroDialog`, `LaneLoader`, the
-loading `Skeleton`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` incl. the route's
+(`SegmentedControl`, `PindoroToggle`, `PindoroIconButton`, `PindoroDialog`, `LaneLoader`), graphics (`PindoroIcon`, `Pindo`, `Wordmark`, `PinMark` incl. the route's
 `PinMark.endpoint`, `CarMark`, Guided's `ArrowMark`, `glyphPng`, `driveGlyphPng` and `onewayArrowPng` for map images), the round components (`QuestionBar`,
 `Pill`, `MapControl`, `RevealSheet` and its `TierSheetFrame`, `ResultRow`, `TierTally`,
 `CoachBubble`), the v3 session (`StatChip`, `NextReviewChip`, `IntroSheet`, the drills'

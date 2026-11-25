@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import '../geo/geo.dart';
 import 'named_street.dart';
 
@@ -33,7 +31,7 @@ List<Crossing> crossingsAlong(
   final points = lines.expand((l) => l).toList();
   if (points.isEmpty) return const [];
   final proj = LocalProjection(points.first);
-  final box = _grown(Bbox.of(points), _touchM);
+  final box = Bbox.of(points).grown(_touchM);
   // Each street is simplified on its own, so where one ends on another only
   // the ending street keeps a vertex at the junction: check both ways.
   final ends = [
@@ -85,17 +83,6 @@ List<Crossing> crossingsAlong(
     }
   }
   return best;
-}
-
-Bbox _grown(Bbox b, double m) {
-  final dLat = m / 111320;
-  final dLon = dLat / cos(b.center.lat * pi / 180);
-  return Bbox(
-    b.minLat - dLat,
-    b.minLon - dLon,
-    b.maxLat + dLat,
-    b.maxLon + dLon,
-  );
 }
 
 LatLng? _crossingPoint(MultiPolyline a, MultiPolyline b, LocalProjection proj) {

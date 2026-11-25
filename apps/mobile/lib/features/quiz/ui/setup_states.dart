@@ -120,13 +120,21 @@ class _Message extends StatelessWidget {
 }
 
 /// Nothing for 300 ms, then thinking Pindo and the lane loader (States rule).
-class _Loading extends StatelessWidget {
+class _Loading extends StatefulWidget {
   const _Loading();
+
+  @override
+  State<_Loading> createState() => _LoadingState();
+}
+
+class _LoadingState extends State<_Loading> {
+  /// Made once: a rebuild doesn't restart the wait.
+  final _wait = Future<void>.delayed(const Duration(milliseconds: 300));
 
   @override
   Widget build(BuildContext context) => Scaffold(
     body: FutureBuilder<void>(
-      future: Future<void>.delayed(const Duration(milliseconds: 300)),
+      future: _wait,
       builder: (context, wait) {
         if (wait.connectionState != ConnectionState.done) {
           return const SizedBox.expand();

@@ -63,22 +63,3 @@ extension KnownShare on KnownCount {
   /// Known streets as a share of all, 0 when there are none.
   double get fraction => total == 0 ? 0 : known / total;
 }
-
-typedef KnownCounts = ({KnownCount city, Map<String, KnownCount> byDistrict});
-
-/// Known / total streets for the city and each district.
-KnownCounts knownCounts({
-  required Map<String, NamedStreet> streets,
-  required Map<String, Set<String>> partsByDistrict,
-  required Set<String> known,
-}) {
-  KnownCount count(Set<String> ids) =>
-      (known: ids.where(known.contains).length, total: ids.length);
-  return (
-    city: count({for (final s in streets.values) s.id}),
-    byDistrict: {
-      for (final MapEntry(key: id, value: parts) in partsByDistrict.entries)
-        id: count({for (final p in parts) ?streets[p]?.id}),
-    },
-  );
-}

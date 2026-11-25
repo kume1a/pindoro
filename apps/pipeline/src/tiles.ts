@@ -162,8 +162,7 @@ export const resolveToken = (tokens: Map<string, TokenValue>, name: string, mode
   return alias ? resolveToken(tokens, alias, mode) : raw;
 };
 
-const flavorFor = (mode: Mode): Flavor => {
-  const tokens = loadTokens();
+const flavorFor = (mode: Mode, tokens: Map<string, TokenValue>): Flavor => {
   const c = (name: string): string => resolveToken(tokens, `color.map.vector.${name}`, mode);
   const base = namedFlavor(mode);
   const land = c("land");
@@ -319,52 +318,37 @@ export const NAME_LAYERS = {
 /** Neighbourhoods named on the map (Protomaps `places` kinds). */
 const AREA_KINDS = ["macrohood", "neighbourhood"];
 
+/** The names of the places `filter` keeps, hidden until shown, each under its icon. */
+const poiNameLayer = (id: string, filter: unknown, paint: object): object => ({
+  id,
+  type: "symbol",
+  source: "protomaps",
+  "source-layer": "pois",
+  filter,
+  layout: {
+    visibility: "none",
+    "symbol-sort-key": ["get", "min_zoom"],
+    "text-field": NAME,
+    "text-font": ["FiraGO Regular"],
+    "text-size": 11,
+    // Under the icon drawn at the same point, clear of its collision box.
+    "text-anchor": "top",
+    "text-offset": [0, 1.4],
+    "text-max-width": 8,
+  },
+  paint,
+});
+
 /** Street names along the roads, place names under their icons, neighbourhood and river names. */
-const nameLayers = (mode: Mode): object[] => {
-  const tokens = loadTokens();
+const nameLayers = (mode: Mode, tokens: Map<string, TokenValue>): object[] => {
   const paint = {
     "text-color": resolveToken(tokens, "color.map.vector.label", mode),
     "text-halo-color": resolveToken(tokens, "color.map.vector.land", mode),
     "text-halo-width": 1.5,
   };
   return [
-    {
-      id: NAME_LAYERS.pois,
-      type: "symbol",
-      source: "protomaps",
-      "source-layer": "pois",
-      filter: poiLayer.filter,
-      layout: {
-        visibility: "none",
-        "symbol-sort-key": ["get", "min_zoom"],
-        "text-field": NAME,
-        "text-font": ["FiraGO Regular"],
-        "text-size": 11,
-        // Under the icon drawn at the same point, clear of its collision box.
-        "text-anchor": "top",
-        "text-offset": [0, 1.4],
-        "text-max-width": 8,
-      },
-      paint,
-    },
-    {
-      id: NAME_LAYERS.poisAll,
-      type: "symbol",
-      source: "protomaps",
-      "source-layer": "pois",
-      filter: allPoiFilter,
-      layout: {
-        visibility: "none",
-        "symbol-sort-key": ["get", "min_zoom"],
-        "text-field": NAME,
-        "text-font": ["FiraGO Regular"],
-        "text-size": 11,
-        "text-anchor": "top",
-        "text-offset": [0, 1.4],
-        "text-max-width": 8,
-      },
-      paint,
-    },
+    poiNameLayer(NAME_LAYERS.pois, poiLayer.filter, paint),
+    poiNameLayer(NAME_LAYERS.poisAll, allPoiFilter, paint),
     {
       id: NAME_LAYERS.areas,
       type: "symbol",
@@ -428,29 +412,32 @@ const nameLayers = (mode: Mode): object[] => {
  * Protomaps layers minus every symbol layer, recoloured from the tokens, plus one-way arrows, the
  * hidden name layers and the POI icons on top.
  */
-export const mapStyle = (mode: Mode): object => ({
-  version: 8,
-  name: `pindoro-${mode}`,
-  glyphs: GLYPHS,
-  sources: {
-    // Tile template rather than TileJSON: behind the tunnel Martin's TileJSON would advertise http:// URLs.
-    protomaps: {
-      type: "vector",
-      tiles: ["{TILES_BASE_URL}/georgia/{z}/{x}/{y}"],
-      minzoom: 0,
-      maxzoom: MAX_ZOOM,
-      attribution: ATTRIBUTION,
+export const mapStyle = (mode: Mode): object => {
+  const tokens = loadTokens();
+  return {
+    version: 8,
+    name: `pindoro-${mode}`,
+    glyphs: GLYPHS,
+    sources: {
+      // Tile template rather than TileJSON: behind the tunnel Martin's TileJSON would advertise http:// URLs.
+      protomaps: {
+        type: "vector",
+        tiles: ["{TILES_BASE_URL}/georgia/{z}/{x}/{y}"],
+        minzoom: 0,
+        maxzoom: MAX_ZOOM,
+        attribution: ATTRIBUTION,
+      },
     },
-  },
-  layers: [
-    ...layers("protomaps", flavorFor(mode)).filter((layer) => layer.type !== "symbol"),
-    onewayLayer,
-    ...nameLayers(mode),
-    // On top: MapLibre places the top layer first, so landmark icons win over names.
-    poiLayer,
-    poiAllLayer,
-  ],
-});
+    layers: [
+      ...layers("protomaps", flavorFor(mode, tokens)).filter((layer) => layer.type !== "symbol"),
+      onewayLayer,
+      ...nameLayers(mode, tokens),
+      // On top: MapLibre places the top layer first, so landmark icons win over names.
+      poiLayer,
+      poiAllLayer,
+    ],
+  };
+};
 
 const writeStyles = (): void => {
   mkdirSync(STYLES_DIR, { recursive: true });

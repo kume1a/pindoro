@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 
@@ -57,16 +55,12 @@ class PindoroButton extends StatefulWidget {
   double wholeWordsWidth(BuildContext context) {
     if (iconOnly && icon != null) return large ? PindoroSize.buttonLg : height;
     final scaler = MediaQuery.textScalerOf(context);
-    var widest = 0.0;
-    for (final word in label.split(RegExp(r'\s+'))) {
-      final painter = TextPainter(
-        text: TextSpan(text: word, style: PindoroType.labelButton),
-        textDirection: Directionality.of(context),
-        textScaler: scaler,
-      )..layout();
-      widest = math.max(widest, painter.width);
-      painter.dispose();
-    }
+    final widest = widestWordWidth(
+      label.split(RegExp(r'\s+')),
+      textStyleAsShown(context, PindoroType.labelButton),
+      scaler: scaler,
+      direction: Directionality.of(context),
+    );
     final iconWidth = icon == null ? 0 : PindoroSize.iconMd + PindoroSpace.s2;
     return widest + iconWidth + 2 * PindoroSpace.s6;
   }
@@ -120,19 +114,10 @@ class ButtonRow extends StatelessWidget {
   );
 }
 
-class _PindoroButtonState extends State<PindoroButton> {
-  bool _pressed = false;
-
-  void _setPressed(bool value) {
-    if (widget.onPressed != null) setState(() => _pressed = value);
-  }
-
+class _PindoroButtonState extends State<PindoroButton>
+    with LipPressState<PindoroButton> {
   @override
-  void didUpdateWidget(PindoroButton old) {
-    super.didUpdateWidget(old);
-    // Disabled mid-press, the release would be ignored and the face stay down.
-    if (widget.onPressed == null) _pressed = false;
-  }
+  bool get pressEnabled => widget.onPressed != null;
 
   @override
   Widget build(BuildContext context) {
@@ -172,7 +157,7 @@ class _PindoroButtonState extends State<PindoroButton> {
           };
     final radius = BorderRadius.circular(PindoroRadius.lg);
     final fullLip = widget.hero ? PindoroElevation.e3 : PindoroElevation.e2;
-    final lipHeight = _pressed ? 0.0 : fullLip;
+    final lipHeight = pressed ? 0.0 : fullLip;
     final label = WholeWords(
       Text(
         widget.label,
@@ -191,15 +176,12 @@ class _PindoroButtonState extends State<PindoroButton> {
               if (widget.hero) PindoroButton.onHeroPress?.call();
               widget.onPressed!();
             },
-      onTapDown: (_) => _setPressed(true),
-      onTapUp: (_) => _setPressed(false),
-      onTapCancel: () => _setPressed(false),
-      child: AnimatedContainer(
-        duration: PindoroMotion.durationInstant,
-        curve: PindoroMotion.easePress,
-        margin: EdgeInsets.only(top: fullLip - lipHeight),
-        padding: EdgeInsets.only(bottom: lipHeight),
-        decoration: BoxDecoration(color: lip, borderRadius: radius),
+      onPress: press,
+      child: LipFace(
+        full: fullLip,
+        lip: lipHeight,
+        lipColor: lip,
+        radius: radius,
         // A label wrapping at large text sizes grows it.
         child: Container(
           constraints: BoxConstraints(

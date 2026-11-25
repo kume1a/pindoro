@@ -11,7 +11,7 @@ import 'package:pindoro/features/badges/ui/badge_look.dart';
 import 'package:pindoro/features/home/data/home_data.dart';
 import 'package:pindoro/features/home/ui/widgets/home_coach.dart';
 import 'package:pindoro/features/learning/data/cards.dart';
-import 'package:pindoro/features/learning/data/progress.dart';
+import 'package:pindoro/features/learning/data/memory_summary.dart';
 import 'package:pindoro/features/learning/ui/city_memory_card.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
@@ -316,7 +316,7 @@ class _NearHome extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final homeId = ref.watch(learnCityProvider).value?.homeId;
-    final home = pack.districts().where((d) => d.id == homeId).firstOrNull;
+    final home = pack.district(homeId);
     return _QuickCard(
       glyph: PindoroGlyph.home,
       title: l10n.exploreNearHome,

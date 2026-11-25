@@ -85,7 +85,27 @@ class Bbox {
     'max_lon': maxLon,
   };
 
+  /// The box reaching [eastM] east and west of [center], and [northM] (else [eastM]) north
+  /// and south.
+  factory Bbox.around(LatLng center, double eastM, [double? northM]) {
+    final local = LocalProjection(center);
+    final sw = local.unproject((-eastM, -(northM ?? eastM)));
+    final ne = local.unproject((eastM, northM ?? eastM));
+    return Bbox(sw.lat, sw.lon, ne.lat, ne.lon);
+  }
+
   LatLng get center => LatLng((minLat + maxLat) / 2, (minLon + maxLon) / 2);
+
+  /// The south-west and north-east corners, as a map fits a camera to them.
+  List<LatLng> get diagonal => [LatLng(minLat, minLon), LatLng(maxLat, maxLon)];
+
+  /// This box grown by [m] metres each way.
+  Bbox grown(double m) {
+    final reach = Bbox.around(center, m);
+    final dLat = reach.maxLat - center.lat;
+    final dLon = reach.maxLon - center.lon;
+    return Bbox(minLat - dLat, minLon - dLon, maxLat + dLat, maxLon + dLon);
+  }
 
   /// East–west extent through the centre, in metres.
   double get widthM =>
@@ -210,6 +230,10 @@ double bearingDegrees(LatLng from, LatLng to) {
 double angleDiffDeg(double from, double to) =>
     ((to - from) % 360 + 540) % 360 - 180;
 
+/// The point share [t] of the way from [a] to [b], in degrees.
+LatLng pointBetween(LatLng a, LatLng b, double t) =>
+    LatLng(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t);
+
 /// [line] from share [from] to share [to] of its length (Dart-only: navigation).
 Polyline linePart(Polyline line, double from, double to) {
   final cum = [0.0];
@@ -222,8 +246,7 @@ Polyline linePart(Polyline line, double from, double to) {
       if (cum[i] >= m) {
         final len = cum[i] - cum[i - 1];
         final t = len == 0 ? 0.0 : (m - cum[i - 1]) / len;
-        final a = line[i - 1], b = line[i];
-        return LatLng(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t);
+        return pointBetween(line[i - 1], line[i], t);
       }
     }
     return line.last;

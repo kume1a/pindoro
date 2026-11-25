@@ -12,6 +12,7 @@ export 'src/geo/polyline6.dart';
 export 'src/geo/sun.dart';
 export 'src/pack/models.dart';
 export 'src/pack/pack_repository.dart';
+export 'src/pack/road_edge.dart';
 export 'src/pack/road_graph.dart';
 export 'src/progress/account.dart';
 export 'src/progress/streak.dart';

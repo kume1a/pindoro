@@ -3,29 +3,10 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'cards.dart';
 import 'constants.dart';
 import 'curriculum.dart';
+import 'days.dart';
 import 'fsrs.dart';
+import 'labels.dart';
 import 'placement.dart';
-import 'planner.dart';
-
-/// Known (now), SPEC §8 and §16.17: a success on a day after the intro (or a
-/// placement or carried-over card), the last answer not forgotten, and recall
-/// still at [LearningConfig.knownMinR] or more. It decays on its own.
-bool isKnown(CardState card, DateTime now, {Fsrs fsrs = const Fsrs()}) {
-  final memory = card.memory;
-  if (memory == null || !(card.lastRating?.isSuccess ?? false)) return false;
-  final introAt = card.introAt;
-  final laterDay =
-      card.priorKnown ||
-      introAt == null ||
-      startOfDay(memory.lastReview).isAfter(startOfDay(introAt));
-  return laterDay &&
-      fsrs.retrievability(memory, now) >= LearningConfig.knownMinR;
-}
-
-extension CardLabels on CardState {
-  /// Solid, SPEC §8: stability of [LearningConfig.solidDays] or more.
-  bool get isSolid => (memory?.stability ?? 0) >= LearningConfig.solidDays;
-}
 
 /// City memory, SPEC §8: the recall chance summed over the core streets' P
 /// cards, so "streets you'd place right now"; unseen streets add nothing.
@@ -38,36 +19,7 @@ double cityMemory(
     .where((c) => c.memory != null && c.type == CardType.p && isCore(c.itemId))
     .fold(0, (sum, c) => sum + fsrs.retrievability(c.memory!, now));
 
-/// The memory bar's states, strongest first (SPEC §8). Every card is at least Seen.
-enum MemoryState { mastered, solid, known, seen }
-
-/// Mastered, SPEC §8: stability of [LearningConfig.masteredDays] or more, the last answer a
-/// success, and each name and ends card that applies ([sides], null where missing) at
-/// [LearningConfig.masteredSideDays] or more.
-bool isMastered(CardState card, {Iterable<CardState?> sides = const []}) =>
-    (card.memory?.stability ?? 0) >= LearningConfig.masteredDays &&
-    (card.lastRating?.isSuccess ?? false) &&
-    sides.every(
-      (s) => (s?.memory?.stability ?? 0) >= LearningConfig.masteredSideDays,
-    );
-
-/// A P card's name and ends cards that apply, null where missing (`Curriculum.sidesOf`).
-typedef SidesOf = Iterable<CardState?> Function(CardState p);
-
 Iterable<CardState?> _noSides(CardState _) => const [];
-
-MemoryState memoryState(
-  CardState card,
-  DateTime now, {
-  Iterable<CardState?> sides = const [],
-  Fsrs fsrs = const Fsrs(),
-}) => isMastered(card, sides: sides)
-    ? MemoryState.mastered
-    : card.isSolid
-    ? MemoryState.solid
-    : isKnown(card, now, fsrs: fsrs)
-    ? MemoryState.known
-    : MemoryState.seen;
 
 Map<MemoryState, int> memoryCounts(
   Iterable<CardState> cards,
@@ -96,8 +48,12 @@ double? recallRate(Iterable<LogEntry> log, DateTime now) {
 }
 
 /// Reviews due on each of the next [days] days, today first; overdue ones count on today.
-List<int> forecast(Iterable<CardState> cards, DateTime now, {int days = 14}) {
-  final ends = [for (var d = 1; d <= days; d++) _daysAfter(startOfDay(now), d)];
+List<int> forecast(
+  Iterable<CardState> cards,
+  DateTime now, {
+  int days = LearningConfig.forecastDays,
+}) {
+  final ends = [for (var d = 1; d <= days; d++) daysAfter(startOfDay(now), d)];
   final counts = List.filled(days, 0);
   for (final c in cards) {
     final day = ends.indexWhere((end) => isDueBefore(c, end));
@@ -114,7 +70,7 @@ DateTime? wholeCityBy({
   required DateTime now,
 }) => newPerDay <= 0
     ? null
-    : _daysAfter(startOfDay(now), (unseenCore / newPerDay).ceil());
+    : daysAfter(startOfDay(now), (unseenCore / newPerDay).ceil());
 
 /// Whether [entry] moved its card's memory: a guess, a logged Explore answer or a drill that only
 /// logs never does, nor a placement pin that created no card.
@@ -220,7 +176,7 @@ MemoryHistory cityMemoryHistory({
 }) {
   const daily = LearningConfig.chartDailyDays;
   final today = startOfDay(now);
-  final frame = _daysAfter(today, -(daily - 1));
+  final frame = daysAfter(today, -(daily - 1));
   final core = [
     for (final c in cards)
       if (c.type == CardType.p && isCore(c.itemId)) c,
@@ -240,14 +196,14 @@ MemoryHistory cityMemoryHistory({
   final first = firsts.reduce((a, b) => a.isBefore(b) ? a : b);
   final value = _replay(core, _byItem(log), fsrs);
   if (!startOfDay(first).isBefore(frame)) {
-    final skipped = _calendarDays(frame, startOfDay(first));
+    final skipped = calendarDaysBetween(frame, startOfDay(first));
     return (
       start: frame,
       points: [
         for (var d = skipped; d < daily; d++)
           (
             at: d / (daily - 1),
-            value: value(d == daily - 1 ? now : _daysAfter(frame, d + 1)),
+            value: value(d == daily - 1 ? now : daysAfter(frame, d + 1)),
           ),
       ],
       days: daily,
@@ -269,15 +225,6 @@ MemoryHistory cityMemoryHistory({
     window: first.isAfter(weeks) ? MemoryWindow.weekly : MemoryWindow.lastWeeks,
   );
 }
-
-/// The midnight [days] calendar days from the midnight [day]: a DST day is
-/// 23 or 25 hours long, so the step lands at noon and goes back to midnight.
-DateTime _daysAfter(DateTime day, int days) =>
-    startOfDay(day.add(Duration(days: days, hours: 12)));
-
-/// Calendar days from [from] to [to], both midnights (DST days count once).
-int _calendarDays(DateTime from, DateTime to) =>
-    (to.difference(from).inHours / 24).round();
 
 /// Raions and neighbourhoods whose every core street is Mastered (SPEC §8),
 /// and raions with a Known street, over [streets] and their chunks' raions

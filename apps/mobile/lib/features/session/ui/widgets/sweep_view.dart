@@ -7,11 +7,11 @@ import 'package:pindoro/core/labels.dart';
 import 'package:pindoro/core/settings.dart';
 import 'package:pindoro/features/map/data/map_style.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
+import 'package:pindoro/features/map/ui/question_scaffold.dart';
 import 'package:pindoro/features/map/ui/route_projection.dart';
 import 'package:pindoro/features/map/ui/widgets/geo_anchors.dart';
 import 'package:pindoro/features/map/ui/widgets/question_plate.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
-import 'package:pindoro/features/session/ui/widgets/task_scaffold.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// The family sweep (SessionScreen `family`, AnswerChoices' sweep): the
@@ -44,21 +44,14 @@ class SweepView extends ConsumerStatefulWidget {
   ConsumerState<SweepView> createState() => _SweepViewState();
 }
 
-class _SweepViewState extends ConsumerState<SweepView> {
-  final _projection = ValueNotifier<MapProjection?>(null);
-
+class _SweepViewState extends ConsumerState<SweepView>
+    with MapProjectionHost<SweepView> {
   /// The label (its tray index) picked up, waiting for a socket.
   int? _held;
 
   /// The question whose result sheet shows: Check marks the sockets first,
   /// then the sheet takes over after [answerResultDelay].
   int? _resultFor;
-
-  @override
-  void dispose() {
-    _projection.dispose();
-    super.dispose();
-  }
 
   void _place(String label, String lane) {
     setState(() => _held = null);
@@ -85,7 +78,7 @@ class _SweepViewState extends ConsumerState<SweepView> {
     final tier = task.result;
     final held = _held;
     final mapOf = ref.watch(pindoroMapBuilderProvider);
-    return TaskScaffold(
+    return QuestionScaffold(
       topBar: widget.topBar,
       map: (insets) => mapOf(
         PindoroMap(
@@ -102,7 +95,7 @@ class _SweepViewState extends ConsumerState<SweepView> {
                 for (final lane in task.lanes) lane.name,
             },
           ),
-          onCamera: (p) => _projection.value = p,
+          onCamera: onCamera,
           topInset: insets.top,
           bottomInset: insets.bottom,
         ),
@@ -110,7 +103,7 @@ class _SweepViewState extends ConsumerState<SweepView> {
       overlays: [
         Positioned.fill(
           child: GeoAnchors(
-            projection: _projection,
+            projection: projection,
             anchors: [
               for (final (i, lane) in task.lanes.indexed)
                 () {

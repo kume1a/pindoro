@@ -136,6 +136,7 @@ class StreetPlate extends StatelessWidget {
 
 /// Largest size from [style]'s own down to the floor, in 2 dp steps, at which
 /// [text] fits in two lines of [maxWidth]; the floor when nothing fits.
+@visibleForTesting
 double plateFontSize(
   String text,
   TextStyle style, {

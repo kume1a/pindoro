@@ -21,6 +21,15 @@ Widget _host(Widget child, {Brightness brightness = Brightness.light}) =>
       ),
     );
 
+/// [child] under the surrounding media query as [change] makes it.
+Widget _withMedia(
+  MediaQueryData Function(MediaQueryData media) change,
+  Widget child,
+) => Builder(
+  builder: (context) =>
+      MediaQuery(data: change(MediaQuery.of(context)), child: child),
+);
+
 double _fontSizeOf(WidgetTester tester, String text) =>
     tester.widget<Text>(find.text(text)).style!.fontSize!;
 
@@ -143,6 +152,37 @@ void main() {
     await tester.pump();
     expect(focused(), isFalse);
   });
+
+  testWidgets(
+    'SearchField follows a new controller and grows with large text',
+    (tester) async {
+      final first = TextEditingController();
+      final second = TextEditingController();
+      addTearDown(first.dispose);
+      addTearDown(second.dispose);
+      Widget field(TextEditingController controller, {double scale = 1}) =>
+          _host(
+            _withMedia(
+              (m) => m.copyWith(textScaler: TextScaler.linear(scale)),
+              SearchField(
+                controller: controller,
+                placeholder: 'Search',
+                clearLabel: 'Clear',
+              ),
+            ),
+          );
+      await tester.pumpWidget(field(first));
+      expect(tester.getSize(find.byType(SearchField)).height, 48);
+      await tester.pumpWidget(field(second));
+      second.text = 'vake';
+      await tester.pump();
+      expect(find.bySemanticsLabel('Clear'), findsOneWidget);
+      first.text = 'x';
+      await tester.pumpWidget(field(second, scale: 2));
+      expect(tester.takeException(), isNull);
+      expect(tester.getSize(find.byType(SearchField)).height, greaterThan(48));
+    },
+  );
 
   test('celebrations calm down on repeats', () {
     expect(celebrationFor(Tier.perfect), CelebrationSize.big);

@@ -45,6 +45,31 @@ void main() {
     }
   });
 
+  testWidgets('with bold text on, words are measured bold', (tester) async {
+    const word = 'ღირსშესანიშნაობის';
+    const style = PindoroType.bodyLg;
+    final regular = TextPainter(
+      text: const TextSpan(text: word, style: style),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final width = regular.width.ceilToDouble();
+    regular.dispose();
+    await tester.pumpWidget(
+      _host(
+        Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(boldText: true),
+            child: SizedBox(
+              width: width,
+              child: const WholeWords(Text(word, style: style)),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(_lineTops(tester, word), hasLength(1));
+  });
+
   testWidgets('a word that fits is left as it is', (tester) async {
     await tester.pumpWidget(
       _host(

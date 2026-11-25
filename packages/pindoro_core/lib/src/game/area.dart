@@ -79,10 +79,7 @@ final class DistrictsArea extends Area {
     if (picked.isEmpty || picked.length < ids.length) return null;
     return (
       bbox: Bbox.of([
-        for (final d in picked) ...[
-          LatLng(d.bbox.minLat, d.bbox.minLon),
-          LatLng(d.bbox.maxLat, d.bbox.maxLon),
-        ],
+        for (final d in picked) ...[...d.bbox.diagonal],
       ]),
       boundary: [for (final d in picked) ...d.boundary],
     );
@@ -176,12 +173,8 @@ final class RectArea extends DrawnArea {
   const RectArea(this.bounds);
 
   /// A [widthM] × [heightM] rectangle centred on [center].
-  factory RectArea.around(LatLng center, double widthM, double heightM) {
-    final proj = LocalProjection(center);
-    final sw = proj.unproject((-widthM / 2, -heightM / 2));
-    final ne = proj.unproject((widthM / 2, heightM / 2));
-    return RectArea(Bbox(sw.lat, sw.lon, ne.lat, ne.lon));
-  }
+  factory RectArea.around(LatLng center, double widthM, double heightM) =>
+      RectArea(Bbox.around(center, widthM / 2, heightM / 2));
 
   static const double minSideM = 500;
   static const double maxSideM = 10000;
@@ -219,12 +212,9 @@ double lengthInside(MultiPolyline geometry, bool Function(LatLng) contains) {
       final length = distanceBetween(a, b);
       final steps = math.max(1, (length / _lengthStepM).ceil());
       for (var k = 0; k < steps; k++) {
-        final t = (k + 0.5) / steps;
-        final mid = LatLng(
-          a.lat + (b.lat - a.lat) * t,
-          a.lon + (b.lon - a.lon) * t,
-        );
-        if (contains(mid)) inside += length / steps;
+        if (contains(pointBetween(a, b, (k + 0.5) / steps))) {
+          inside += length / steps;
+        }
       }
     }
   }
