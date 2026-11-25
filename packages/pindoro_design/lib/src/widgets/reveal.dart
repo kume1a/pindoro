@@ -139,23 +139,9 @@ class TierSheetFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = PindoroTheme.of(context).tier(tier);
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: style.bg,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(PindoroRadius.r2xl),
-        ),
-        border: Border(
-          top: BorderSide(color: style.fill, width: PindoroElevation.e2),
-        ),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        PindoroSpace.s4,
-        PindoroSpace.s3,
-        PindoroSpace.s4,
-        PindoroSpace.s3 + MediaQuery.paddingOf(context).bottom,
-      ),
+    return SheetFrame(
+      color: style.bg,
+      topBorder: BorderSide(color: style.fill, width: PindoroElevation.e2),
       child: child,
     );
   }

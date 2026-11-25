@@ -558,3 +558,40 @@ class RowTile extends StatelessWidget {
 }
 
 InlineSpan? _span(String? text) => text == null ? null : TextSpan(text: text);
+
+/// A bottom sheet's frame: [color] with round top corners (and [topBorder] along the top),
+/// padded clear of the system bar.
+class SheetFrame extends StatelessWidget {
+  const SheetFrame({
+    super.key,
+    required this.color,
+    required this.child,
+    this.topBorder,
+  });
+
+  final Color color;
+  final BorderSide? topBorder;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: const BorderRadius.vertical(
+        top: Radius.circular(PindoroRadius.r2xl),
+      ),
+      border: switch (topBorder) {
+        final side? => Border(top: side),
+        null => null,
+      },
+    ),
+    padding: EdgeInsets.fromLTRB(
+      PindoroSpace.s4,
+      PindoroSpace.s3,
+      PindoroSpace.s4,
+      PindoroSpace.s3 + MediaQuery.paddingOf(context).bottom,
+    ),
+    child: child,
+  );
+}

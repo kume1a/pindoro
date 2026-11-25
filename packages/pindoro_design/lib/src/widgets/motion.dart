@@ -535,3 +535,30 @@ class _FadeIndexedStackState extends State<FadeIndexedStack>
     ],
   );
 }
+
+/// [builder] at 0 → 1 over [duration] on [curve], once, while [animate] and motion is on;
+/// at 1 otherwise.
+class GrowOnce extends StatelessWidget {
+  const GrowOnce({
+    super.key,
+    required this.duration,
+    required this.builder,
+    this.curve = Curves.linear,
+    this.animate = true,
+  });
+
+  final Duration duration;
+  final Curve curve;
+  final bool animate;
+  final Widget Function(double t) builder;
+
+  @override
+  Widget build(BuildContext context) => animate && !_calm(context)
+      ? TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: 1),
+          duration: duration,
+          curve: curve,
+          builder: (_, t, _) => builder(t),
+        )
+      : builder(1);
+}

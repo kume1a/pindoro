@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
+import 'motion.dart';
 import 'surfaces.dart';
 import 'tappable.dart';
 import 'whole_words.dart';
@@ -36,8 +37,26 @@ List<(int, Color)> _states(MemoryCounts n, PindoroColors c) => [
   (n.seen, c.memorySeen),
 ];
 
-bool _moving(BuildContext context, bool animate) =>
-    animate && !MediaQuery.disableAnimationsOf(context);
+/// A chart's first and last labels, under its two ends.
+class _EndLabels extends StatelessWidget {
+  const _EndLabels(this.start, this.end, {required this.style});
+
+  final String start;
+  final String end;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    spacing: PindoroSpace.s3,
+    children: [
+      Flexible(child: Text(start, style: style)),
+      Flexible(
+        child: Text(end, style: style, textAlign: TextAlign.end),
+      ),
+    ],
+  );
+}
 
 /// Each non-empty segment's width in a bar [width] wide: its share of
 /// [total], with [PindoroStroke.base] gaps between segments.
@@ -112,14 +131,12 @@ class MemoryBar extends StatelessWidget {
             child: SizedBox(
               height: compact ? 6 : 14,
               width: double.infinity,
-              child: _moving(context, animate)
-                  ? TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: 1),
-                      duration: PindoroMotion.durationSlow,
-                      curve: PindoroMotion.easeStandard,
-                      builder: (_, t, _) => bar(t),
-                    )
-                  : bar(1),
+              child: GrowOnce(
+                animate: animate,
+                duration: PindoroMotion.durationSlow,
+                curve: PindoroMotion.easeStandard,
+                builder: bar,
+              ),
             ),
           ),
         ),
@@ -273,24 +290,8 @@ class MemoryChart extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           spacing: PindoroSpace.s1,
           children: [
-            if (_moving(context, animate))
-              TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0, end: 1),
-                duration: _total,
-                builder: (_, t, _) => plot(t),
-              )
-            else
-              plot(1),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              spacing: PindoroSpace.s3,
-              children: [
-                Flexible(child: Text(startLabel, style: label)),
-                Flexible(
-                  child: Text(endLabel, style: label, textAlign: TextAlign.end),
-                ),
-              ],
-            ),
+            GrowOnce(animate: animate, duration: _total, builder: plot),
+            _EndLabels(startLabel, endLabel, style: label),
           ],
         ),
       ),
@@ -483,24 +484,8 @@ class ForecastBars extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: PindoroSpace.s2,
         children: [
-          if (_moving(context, animate))
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: 1),
-              duration: total,
-              builder: (_, t, _) => bars(t),
-            )
-          else
-            bars(1),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            spacing: PindoroSpace.s3,
-            children: [
-              Flexible(child: Text(startLabel, style: label)),
-              Flexible(
-                child: Text(endLabel, style: label, textAlign: TextAlign.end),
-              ),
-            ],
-          ),
+          GrowOnce(animate: animate, duration: total, builder: bars),
+          _EndLabels(startLabel, endLabel, style: label),
         ],
       ),
     );

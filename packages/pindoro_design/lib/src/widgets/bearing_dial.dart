@@ -7,7 +7,9 @@ import 'package:pindoro_core/pindoro_core.dart';
 import '../generated/pindoro_tokens.dart';
 import '../theme.dart';
 import 'graphics.dart';
+import 'motion.dart';
 import 'painters.dart';
+import 'session.dart';
 
 /// The dial's reference size: every length in the painter spec is at 280 dp.
 const double _reference = 280;
@@ -89,7 +91,6 @@ class _BearingDialState extends State<BearingDial> {
     final c = PindoroTheme.of(context).colors;
     final player = widget.playerBearing;
     final truth = widget.trueBearing;
-    final moving = widget.animate && !MediaQuery.disableAnimationsOf(context);
     Widget dial(double side, double reveal) => CustomPaint(
       size: Size.square(side),
       painter: _BearingDialPainter(
@@ -138,14 +139,12 @@ class _BearingDialState extends State<BearingDial> {
                   excludeFromSemantics: true,
                   onPanDown: (d) => _point(d.localPosition, side),
                   onPanUpdate: (d) => _point(d.localPosition, side),
-                  child: truth != null && moving
-                      ? TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0, end: 1),
-                          duration: PindoroMotion.durationBase,
-                          curve: PindoroMotion.easeDecelerate,
-                          builder: (_, t, _) => dial(side, t),
-                        )
-                      : dial(side, 1),
+                  child: GrowOnce(
+                    animate: truth != null && widget.animate,
+                    duration: PindoroMotion.durationBase,
+                    curve: PindoroMotion.easeDecelerate,
+                    builder: (t) => dial(side, t),
+                  ),
                 );
               },
             ),
@@ -352,12 +351,7 @@ class DialResultChip extends StatelessWidget {
               Flexible(
                 child: Text(
                   label,
-                  style: PindoroType.labelLg.copyWith(
-                    fontSize: 17,
-                    height: 22 / 17,
-                    fontWeight: FontWeight.w900,
-                    color: t.ink,
-                  ),
+                  style: chipLabelStyle.copyWith(color: t.ink),
                 ),
               ),
             ],

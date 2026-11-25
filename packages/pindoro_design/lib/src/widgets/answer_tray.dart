@@ -14,6 +14,7 @@ import 'pindoro_button.dart';
 import 'surfaces.dart';
 import 'tappable.dart';
 import 'text_scale.dart';
+import 'whole_words.dart';
 
 /// One answer in an [AnswerTray] (or a label in a [SweepTray]): the name as
 /// the city writes it, and its transliteration when the scripts differ.
@@ -290,7 +291,7 @@ class SweepSocket extends StatelessWidget {
           children: [
             if (tier != null)
               PindoroIcon(
-                right! ? PindoroGlyph.check : PindoroGlyph.reroute,
+                _verdictGlyph(right!),
                 size: PindoroSize.iconSm,
                 color: ink,
                 cut: face,
@@ -640,27 +641,21 @@ class _ChoiceGrid extends StatelessWidget {
       2 * PindoroSpace.s2 + 2 * PindoroStroke.thick + PindoroSize.iconSm + 6;
 
   static bool _fits(String label, double width, TextScaler scaler) {
-    TextPainter painter(String text) => TextPainter(
-      text: TextSpan(text: text, style: PindoroType.labelLg),
-      textScaler: scaler,
-      textDirection: TextDirection.ltr,
-    );
-    double widthOf(String text) {
-      final p = painter(text)..layout();
-      final width = p.width;
-      p.dispose();
-      return width;
-    }
-
     for (final word in label.split(RegExp(r'\s+'))) {
       // A word may break at its soft hyphens, each piece with its hyphen.
       final pieces = word.split('­');
       for (final (i, piece) in pieces.indexed) {
         final shown = i < pieces.length - 1 ? '$piece-' : piece;
-        if (widthOf(shown) > width) return false;
+        if (textWidth(shown, PindoroType.labelLg, scaler: scaler) > width) {
+          return false;
+        }
       }
     }
-    final whole = painter(label)..layout(maxWidth: width);
+    final whole = TextPainter(
+      text: TextSpan(text: label, style: PindoroType.labelLg),
+      textScaler: scaler,
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: width);
     final lines = whole.computeLineMetrics().length;
     whole.dispose();
     return lines <= 3;
@@ -704,6 +699,10 @@ class _ChoiceGrid extends StatelessWidget {
 
 enum _ChoiceState { idle, selected, right, wrong, off }
 
+/// A checked choice's mark: a check when right, `reroute` when wrong.
+PindoroGlyph _verdictGlyph(bool right) =>
+    right ? PindoroGlyph.check : PindoroGlyph.reroute;
+
 enum _Lead { radio, number, grip }
 
 /// One choice: a secondary button's face and lip with its key and name. A
@@ -732,23 +731,20 @@ class _AnswerChoice extends StatefulWidget {
   State<_AnswerChoice> createState() => _AnswerChoiceState();
 }
 
-class _AnswerChoiceState extends State<_AnswerChoice> {
-  bool _pressed = false;
-
-  void _press(bool down) {
-    if (widget.onTap != null) setState(() => _pressed = down);
-  }
-
+class _AnswerChoiceState extends State<_AnswerChoice>
+    with LipPressState<_AnswerChoice> {
   @override
-  void didUpdateWidget(_AnswerChoice old) {
-    super.didUpdateWidget(old);
-    // Disabled mid-press (graded): its release never comes.
-    if (widget.onTap == null) _pressed = false;
-  }
+  bool get pressEnabled => widget.onTap != null;
 
   @override
   Widget build(BuildContext context) {
-    final c = PindoroTheme.of(context).colors;
+    final theme = PindoroTheme.of(context);
+    final c = theme.colors;
+    (Color, Color, double, Color, Color) verdict(Tier tier) {
+      final t = theme.tier(tier);
+      return (t.fill, t.fill, PindoroStroke.base, t.lip, t.on);
+    }
+
     final state = widget.state;
     final (face, edge, edgeWidth, lip, ink) = switch (state) {
       _ChoiceState.idle => (
@@ -765,20 +761,8 @@ class _AnswerChoiceState extends State<_AnswerChoice> {
         c.primaryLip,
         c.primaryText,
       ),
-      _ChoiceState.right => (
-        c.feedbackGreatFill,
-        c.feedbackGreatFill,
-        PindoroStroke.base,
-        c.feedbackGreatLip,
-        c.feedbackGreatOn,
-      ),
-      _ChoiceState.wrong => (
-        c.feedbackMissFill,
-        c.feedbackMissFill,
-        PindoroStroke.base,
-        c.feedbackMissLip,
-        c.feedbackMissOn,
-      ),
+      _ChoiceState.right => verdict(Tier.great),
+      _ChoiceState.wrong => verdict(Tier.miss),
       _ChoiceState.off => (
         c.buttonDisabledBg,
         c.buttonDisabledBg,
@@ -788,7 +772,7 @@ class _AnswerChoiceState extends State<_AnswerChoice> {
       ),
     };
     const full = PindoroElevation.e2;
-    final lipNow = _pressed
+    final lipNow = pressed
         ? 0.0
         : state == _ChoiceState.selected
         ? full / 2
@@ -815,12 +799,11 @@ class _AnswerChoiceState extends State<_AnswerChoice> {
       ],
     );
     final radius = BorderRadius.circular(PindoroRadius.lg);
-    final body = AnimatedContainer(
-      duration: PindoroMotion.durationInstant,
-      curve: PindoroMotion.easePress,
-      margin: EdgeInsets.only(top: full - lipNow),
-      padding: EdgeInsets.only(bottom: lipNow),
-      decoration: BoxDecoration(color: lip, borderRadius: radius),
+    final body = LipFace(
+      full: full,
+      lip: lipNow,
+      lipColor: lip,
+      radius: radius,
       child: Container(
         constraints: const BoxConstraints(minHeight: PindoroSize.buttonMd),
         padding: const EdgeInsets.all(PindoroSpace.s2),
@@ -853,9 +836,7 @@ class _AnswerChoiceState extends State<_AnswerChoice> {
       selected: widget.lead == _Lead.grip
           ? state == _ChoiceState.selected
           : null,
-      onTapDown: (_) => _press(true),
-      onTapUp: (_) => _press(false),
-      onTapCancel: () => _press(false),
+      onPress: press,
       child: body,
     );
   }
@@ -864,7 +845,7 @@ class _AnswerChoiceState extends State<_AnswerChoice> {
     final state = widget.state;
     if (state == _ChoiceState.right || state == _ChoiceState.wrong) {
       return PindoroIcon(
-        state == _ChoiceState.right ? PindoroGlyph.check : PindoroGlyph.reroute,
+        _verdictGlyph(state == _ChoiceState.right),
         size: PindoroSize.iconSm,
         color: ink,
         cut: face,

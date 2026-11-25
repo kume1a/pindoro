@@ -44,11 +44,8 @@ class ExitButton extends StatefulWidget {
   State<ExitButton> createState() => _ExitButtonState();
 }
 
-class _ExitButtonState extends State<ExitButton> {
-  bool _pressed = false;
-
-  void _press(bool down) => setState(() => _pressed = down);
-
+class _ExitButtonState extends State<ExitButton>
+    with LipPressState<ExitButton> {
   @override
   Widget build(BuildContext context) {
     final c = PindoroTheme.of(context).colors;
@@ -66,9 +63,7 @@ class _ExitButtonState extends State<ExitButton> {
       label: widget.semanticsLabel,
       toggled: selected,
       onTap: widget.onTap,
-      onTapDown: (_) => _press(true),
-      onTapUp: (_) => _press(false),
-      onTapCancel: () => _press(false),
+      onPress: press,
       child: SizedBox(
         width: ExitButton.size,
         height: ExitButton.size + lipHeight,
@@ -78,7 +73,7 @@ class _ExitButtonState extends State<ExitButton> {
             AnimatedPositioned(
               duration: PindoroMotion.durationInstant,
               curve: PindoroMotion.easePress,
-              top: _pressed ? lipHeight : 0,
+              top: pressed ? lipHeight : 0,
               child: Container(
                 width: ExitButton.size,
                 height: ExitButton.size,

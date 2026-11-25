@@ -83,15 +83,7 @@ Future<Uint8List> glyphPng(
   required double pixelRatio,
 }) async {
   final icon = await glyphPicture(glyph, ink: ink, cut: cut);
-  try {
-    return await _png(Size.square(size), pixelRatio, (canvas) {
-      canvas
-        ..scale(size / icon.size.width)
-        ..drawPicture(icon.picture);
-    });
-  } finally {
-    icon.picture.dispose();
-  }
+  return _picturePng(icon, size, pixelRatio);
 }
 
 /// [glyph] at [size] dp as a PNG for map symbol layers (Guided's traffic lights).
@@ -106,6 +98,15 @@ Future<Uint8List> driveGlyphPng(
     SvgStringLoader(driveGlyphSvg(glyph, color: color, cut: cut)),
     null,
   );
+  return _picturePng(icon, size, pixelRatio);
+}
+
+/// [icon] drawn in a [size] dp square as a PNG; the picture is freed after.
+Future<Uint8List> _picturePng(
+  PictureInfo icon,
+  double size,
+  double pixelRatio,
+) async {
   try {
     return await _png(Size.square(size), pixelRatio, (canvas) {
       canvas
