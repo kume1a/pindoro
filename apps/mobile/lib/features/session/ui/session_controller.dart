@@ -510,20 +510,23 @@ class SessionController extends Notifier<SessionState> {
     state = p.copyWith(task: task);
   }
 
-  /// Applies [rating] to [step]'s card, saves it with its log row (and a
-  /// mixed-up pair with [mixUp]) and counts the day; the new card, or null
-  /// once the session is gone.
-  Future<CardState?> _review(
-    SessionStep step,
+  /// [p]'s step reviewed with [rating]: its card saved with its log row (and a
+  /// mixed-up pair with [mixUp]), the day counted, and its answer shown once
+  /// the session is still here: [show] makes it from [p] with its relearns and
+  /// the days to the next review.
+  Future<void> _grade(
+    SessionPlaying p,
     Rating rating, {
     required Tier tier,
     required ReviewFormat format,
+    required SessionPlaying Function(SessionPlaying answered, int? days) show,
     double? distanceM,
     String? snapId,
     int? rtMs,
     NamedStreet? mixUp,
     NamedStreet? street,
   }) async {
+    final step = p.step;
     final now = _now();
     final markDay = dayMarker(ref, reviews: _reviews);
     final target = street ?? _deck.streets[itemKey(step.itemId)]!;
@@ -537,16 +540,12 @@ class SessionController extends Notifier<SessionState> {
       snapId: snapId,
       rtMs: rtMs,
     );
-    final dao = _dao;
-    await dao.saveAnswer(
+    await _dao.saveAnswer(
       card: result.card,
       log: result.log,
       mixUp: _pairOf(target, mixUp),
     );
-    if (!ref.mounted) {
-      await markDay();
-      return null;
-    }
+    if (!ref.mounted) return markDay();
     _keep(
       step,
       result.card,
@@ -557,36 +556,8 @@ class SessionController extends Notifier<SessionState> {
       now: now,
     );
     await markDay();
-    return ref.mounted ? result.card : null;
-  }
-
-  /// [p]'s step reviewed with [rating] (as [_review]) and its answer shown: [show] makes it from
-  /// [p] with its relearns and the days to the next review.
-  Future<void> _grade(
-    SessionPlaying p,
-    Rating rating, {
-    required Tier tier,
-    required ReviewFormat format,
-    required SessionPlaying Function(SessionPlaying answered, int? days) show,
-    double? distanceM,
-    String? snapId,
-    int? rtMs,
-    NamedStreet? mixUp,
-    NamedStreet? street,
-  }) async {
-    final card = await _review(
-      p.step,
-      rating,
-      tier: tier,
-      format: format,
-      distanceM: distanceM,
-      snapId: snapId,
-      rtMs: rtMs,
-      mixUp: mixUp,
-      street: street,
-    );
-    if (card == null) return;
-    final (answered, days) = _reviewed(p, card);
+    if (!ref.mounted) return;
+    final (answered, days) = _reviewed(p, result.card);
     state = show(answered, days);
   }
 
