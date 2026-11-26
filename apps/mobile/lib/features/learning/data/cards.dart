@@ -78,28 +78,39 @@ final cardsByItemProvider = FutureProvider.autoDispose<Map<String, CardState>>((
 });
 
 /// The P cards among [cards] by the street of [streets] they belong to: a
-/// card made on another part of a street is still that street's.
+/// card made on another part of a street is still that street's, one per
+/// street as [cardsByItemOf] picks it.
 Map<String, CardState> streetCardsOf(
   Map<String, NamedStreet> streets,
   Iterable<CardState> cards,
 ) => {
-  for (final card in cards)
+  for (final card in cardsByItemOf(streets, cards).values)
     if (card.type == CardType.p)
       if (streets[itemKey(card.itemId)] case final street?) street.id: card,
 };
 
 /// [cards] by item id, a street card's keyed by its street of [streets]
 /// (`N:<street id>` even when the card was made on another of its parts).
+/// Two cards on parts that joined into one street (a highway's) keep the one
+/// made on the street's own id, else the first: the street is one card.
 Map<String, CardState> cardsByItemOf(
   Map<String, NamedStreet> streets,
   Iterable<CardState> cards,
-) => {
-  for (final card in cards)
-    switch (streets[itemKey(card.itemId)]) {
-      final street? => card.type.item(street.id),
-      null => card.itemId,
-    }: card,
-};
+) {
+  final byItem = <String, CardState>{};
+  for (final card in cards) {
+    final street = streets[itemKey(card.itemId)];
+    final item = street == null ? card.itemId : card.type.item(street.id);
+    if (!byItem.containsKey(item) || card.itemId == item) byItem[item] = card;
+  }
+  return byItem;
+}
+
+/// [cards], one per item ([cardsByItemOf]).
+List<CardState> oneCardPerItem(
+  Map<String, NamedStreet> streets,
+  Iterable<CardState> cards,
+) => cardsByItemOf(streets, cards).values.toList();
 
 /// A P card's name and ends cards (SPEC §8 Mastered), from the open city.
 final sidesOfProvider = FutureProvider.autoDispose<SidesOf>((ref) async {
@@ -158,16 +169,14 @@ final cityCardsProvider = FutureProvider.autoDispose<List<CardState>>((
   final asks = await ref.watch(asksCardProvider.future);
   final streets = await ref.watch(cityStreetsProvider.future);
   await ref.watch(carryOverProvider.future);
-  return cardsByItemOf(
-    streets,
-    (await dao.cards()).where(asks),
-  ).values.toList();
+  return oneCardPerItem(streets, (await dao.cards()).where(asks));
 });
 
-/// [asks] narrowed to the cards reviewed now: none of a street parked until
-/// its road class is taught (`Curriculum.parkedStreets`), worked out over
-/// [cards], except the streets of the player's routes ([yours], SPEC §16.23
-/// item 120). Parked cards still count everywhere else.
+/// [asks] narrowed to the cards reviewed now: one per item ([cardsByItemOf]:
+/// the other is never asked, so it must never count as due), and none of a
+/// street parked until its road class is taught (`Curriculum.parkedStreets`),
+/// worked out over [cards], except the streets of the player's routes
+/// ([yours], SPEC §16.23 item 120). Parked cards still count everywhere else.
 AsksCard reviewsOf(
   AsksCard asks, {
   required Map<String, NamedStreet> streets,
@@ -175,12 +184,15 @@ AsksCard reviewsOf(
   required Iterable<CardState> cards,
   Iterable<String> yours = const [],
 }) {
+  final asked = oneCardPerItem(streets, cards.where(asks));
+  final kept = {for (final c in asked) c.itemId};
   final parked = curriculum.parkedStreets(
-    streetCardsOf(streets, cards.where(asks)),
+    streetCardsOf(streets, asked),
     except: yours.toSet(),
   );
   return (CardState card) =>
-      asks(card) && !parked.contains(streets[itemKey(card.itemId)]?.id);
+      kept.contains(card.itemId) &&
+      !parked.contains(streets[itemKey(card.itemId)]?.id);
 }
 
 /// The open city's cards reviewed now ([reviewsOf]): what Today plans and

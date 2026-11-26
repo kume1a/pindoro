@@ -27,7 +27,7 @@ Future<void> learnFromExplore(
   final streets = await streetsFuture;
   final curriculum = await curriculumFuture;
   final all = streets.values.toSet();
-  final card = await _cardOf(dao, street);
+  final card = streetCardsOf(streets, await dao.cards())[street.id];
   final itemId = card?.itemId ?? CardType.p.item(street.id);
   final successes = priorSuccesses(await dao.log())[itemId] ?? 0;
   final grade = pin == null
@@ -55,12 +55,4 @@ Future<void> learnFromExplore(
   );
   await dao.saveAnswer(card: result.card, log: result.log);
   await markDay();
-}
-
-/// The street's P card, on whichever of its parts it was made.
-Future<CardState?> _cardOf(LearningDao dao, NamedStreet street) async {
-  for (final part in street.parts) {
-    if (await dao.card(CardType.p.item(part.id)) case final card?) return card;
-  }
-  return null;
 }
