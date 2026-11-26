@@ -4,6 +4,17 @@ What each version brings, newest first, for the people who install Pindoro. The 
 workflow puts the section of the version it builds into the SideStore source as its release notes
 and fails when that section is missing, so write it with every version bump.
 
+## 2.20.0
+
+Tbilisi first
+- New streets now stay inside the city: its main, secondary, tertiary and minor roads first, then the outskirts.
+- The outskirts are Tskneti, Betania, Kojori, Shindisi, Tabakhmela, Tsavkisi, Okrokana, Gldani village, Zahesi, Lilo, the airport and Dighomi village, and the roads out to them and to the border.
+- Outskirts streets you already learned wait until their turn. Your own routes keep going.
+
+Streets that share a name
+- When two streets have the same name, the question says which one: "Shota Rustaveli Street · Tskneti".
+- The Tbilisi Bypass Road is one street now, not three.
+
 ## 2.19.1
 
 Fixes
