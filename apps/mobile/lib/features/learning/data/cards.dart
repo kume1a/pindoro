@@ -140,8 +140,9 @@ final newCandidatesProvider = FutureProvider.autoDispose
 typedef AsksCard = bool Function(CardState card);
 
 /// Whether the open pack asks a card. Not a street card whose street left
-/// the pack, a route card the pack doesn't ask (a hidden or dropped place) or
-/// a recital whose run it lacks: those are never due. A card keyed by another
+/// the pack, a route card the pack doesn't ask (a hidden or dropped place, a
+/// connection whose question went, though it is keyed by its street) or a
+/// recital whose run it lacks: those are never due. A card keyed by another
 /// part of a street still counts as that street's card. Saved runs, not
 /// [runsProvider], which makes runs as it builds: day marking reads this
 /// after every answer.
@@ -154,7 +155,8 @@ final asksCardProvider = FutureProvider.autoDispose<AsksCard>((ref) async {
     for (final r in await savedRuns(dao, pack.junctionNodes())) r.id,
   };
   return (CardState card) =>
-      streets.containsKey(itemKey(card.itemId)) ||
+      (!isRouteItem(card.itemId) &&
+          streets.containsKey(itemKey(card.itemId))) ||
       routes.questions.containsKey(card.itemId) ||
       (card.type == CardType.r && runs.contains(itemKey(card.itemId)));
 });

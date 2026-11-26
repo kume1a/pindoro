@@ -1112,9 +1112,17 @@ class SessionController extends Notifier<SessionState> {
       ref.invalidate(routeBookProvider);
       if (!ref.mounted) return;
       _deck.hideLandmark(landmark.id);
+      // Its other cards leave what counts as due, as the next route book's.
+      final asked = _asks;
+      _asks = (card) =>
+          asked(card) &&
+          (!isRouteItem(card.itemId) ||
+              _deck.routes.questions.containsKey(card.itemId));
+      final markDay = dayMarker(ref, reviews: _reviews);
       if (state case final SessionPlaying now when now.index == p.index) {
         _show(now.steps, now.index + 1, now.forgotten);
       }
+      await markDay();
     }
   }
 

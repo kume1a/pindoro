@@ -230,6 +230,25 @@ void main() {
     );
   });
 
+  test('a connection card without its question is never due, though its '
+      'street is in the pack', () async {
+    await LearningDao(db).putCard(
+      CardState(
+        itemId: RouteIds.connection(b.id),
+        phase: CardPhase.review,
+        memory: Memory(
+          stability: 3,
+          difficulty: 5,
+          lastReview: now.subtract(const Duration(days: 3)),
+        ),
+        dueAt: now.subtract(const Duration(hours: 1)),
+      ),
+    );
+    final p = await plan();
+    expect(p.dueCount, 1);
+    expect(p.steps.map((s) => s.itemId), isNot(contains('C:b1')));
+  });
+
   test('of two cards on one street, the one on its own id wins, and the other '
       'is never reviewed', () async {
     final byPart = {
