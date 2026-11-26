@@ -38,6 +38,8 @@ const params: StepParams = {
     [41.725, 44.69],
     [41.725, 44.81],
   ],
+  // The East's neighbourhood, and a road by name (any case).
+  outskirts: { areas: ["osm:w119"], streets: ["north road"] },
 };
 
 describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
@@ -375,9 +377,11 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
   /** Each street's curriculum row by name; same-name streets in key order. */
   const learning = async (
     name: string,
-  ): Promise<{ tier: string; ring: number; bank: string; chunk_id: string }[]> =>
+  ): Promise<
+    { tier: string; ring: number; bank: string; chunk_id: string; outskirts: boolean }[]
+  > =>
     (await sql`
-      SELECT l.tier, l.ring, l.bank, l.chunk_id
+      SELECT l.tier, l.ring, l.bank, l.chunk_id, l.outskirts
       FROM pipeline.street_learning l JOIN pipeline.street s USING (key)
       WHERE s.norm_name = pipeline.normalise_name(${name}) ORDER BY s.key`) as never;
 
@@ -530,9 +534,9 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
     ).toEqual([{ blank: null, directional: "right", other_way: null }]);
   });
 
-  it("exports the directed graph, the route tables and every named place (pack format 9)", async () => {
+  it("exports the directed graph, the route tables and every named place (pack format 10)", async () => {
     const db = await exportPack();
-    expect(db.pragma("user_version", { simple: true })).toBe(9);
+    expect(db.pragma("user_version", { simple: true })).toBe(10);
     expect(db.prepare("SELECT key, kind, street FROM poi WHERE id = 'osm:n916'").get()).toEqual({
       key: "amenity",
       kind: "restaurant",
@@ -611,6 +615,13 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
     expect((await learning("Edge Lane"))[0]?.chunk_id).toBe("osm:w119");
   });
 
+  it("flags the outskirts: streets in a listed neighbourhood or of a listed name", async () => {
+    expect(await learning("Edge Lane")).toMatchObject([{ chunk_id: "osm:w119", outskirts: true }]);
+    expect(await learning("North Road")).toMatchObject([{ outskirts: true }]);
+    expect(await learning("Split Street")).toMatchObject([{ outskirts: false }]);
+    expect(await learning("ჯვრის გამზირი")).toMatchObject([{ outskirts: false }]);
+  });
+
   it("links neighbourhoods within 50 m both ways and gives each area its raion", async () => {
     expect(await sql`SELECT chunk_a, chunk_b FROM pipeline.chunk_neighbour ORDER BY 1, 2`).toEqual([
       { chunk_a: "osm:w118", chunk_b: "osm:w119" },
@@ -649,7 +660,7 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
     expect(
       db
         .prepare(
-          "SELECT tier, ring, bank, chunk_id, etymology FROM street WHERE name_en = 'Cross Avenue'",
+          "SELECT tier, ring, bank, chunk_id, etymology, outskirts FROM street WHERE name_en = 'Cross Avenue'",
         )
         .get(),
     ).toEqual({
@@ -658,7 +669,11 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
       bank: "L",
       chunk_id: "osm:w118",
       etymology: "The cross on the hill",
+      outskirts: 0,
     });
+    expect(
+      db.prepare("SELECT name_ka FROM street WHERE outskirts = 1 ORDER BY 1").pluck().all(),
+    ).toEqual(["Edge Lane", "North Road"]);
     expect(db.prepare("SELECT parent_id FROM district WHERE id = 'osm:w114'").pluck().get()).toBe(
       "osm:r1001",
     );
@@ -714,6 +729,15 @@ describe.skipIf(!toolsReady)("SQL steps on synthetic OSM", () => {
       await sql`SELECT kind, osm_relation_id FROM pipeline.district WHERE id = 'curated:crossing'`;
     expect(n).toEqual({ kind: "neighbourhood", osm_relation_id: null });
     expect(await districtsOf("ჯვრის გამზირი")).toContain("curated:crossing");
+  });
+
+  it("fails loudly when an outskirts area or road is missing", async () => {
+    await expect(
+      runSqlSteps(sql, {
+        ...params,
+        outskirts: { areas: ["osm:w999"], streets: ["Nowhere Road"] },
+      }),
+    ).rejects.toThrow(/Nowhere Road.*osm:w999/);
   });
 
   it("fails loudly when an expected district relation is missing", async () => {

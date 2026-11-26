@@ -94,7 +94,10 @@ class _SessionIntroState extends ConsumerState<SessionIntro> {
         name,
         prompt: prompt,
         promptGlyph: PindoroGlyph.signpost,
-        subline: otherScript(street, settings),
+        subline: switch (streetNotes(ref, street, settings)) {
+          [] => null,
+          final notes => notes.join(' · '),
+        },
         semanticLabel: '$prompt: $name',
       ),
       sheet: IntroSheet(

@@ -126,6 +126,34 @@ void main() {
       ]);
     });
 
+    test('same-name highway parts are one road however far apart', () {
+      final west = _street('w', 'Bypass', 900, [
+        [_p(41.80, 44.70), _p(41.80, 44.71)],
+      ], roadClass: 'trunk');
+      // About 2 km east of the west part, past a gap with no name.
+      final east = _street('e', 'Bypass', 400, [
+        [_p(41.80, 44.734), _p(41.80, 44.74)],
+      ], roadClass: 'motorway');
+      final lane = _street('r', 'Bypass', 100, [
+        [_p(41.80, 44.76), _p(41.80, 44.761)],
+      ]);
+      expect(groupByName([west, east, lane]).map((g) => g.parts.length), [
+        2,
+        1,
+      ]);
+    });
+
+    test('sharedNames: the names more than one street has', () {
+      final suburb = _street('far', 'A', 300, [
+        [_p(41.75, 44.70), _p(41.75, 44.701)],
+      ]);
+      final other = _street('b', 'B', 10, [
+        [_p(41.70, 44.72), _p(41.70, 44.721)],
+      ]);
+      expect(sharedNames(groupByName([long, short, other])), isEmpty);
+      expect(sharedNames(groupByName([long, short, suburb, other])), {'A'});
+    });
+
     test('a part bridging two groups joins them', () {
       final middle = _street('m', 'A', 100, [
         [_p(41.704, 44.70), _p(41.706, 44.70)],

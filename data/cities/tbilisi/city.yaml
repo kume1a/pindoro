@@ -110,3 +110,31 @@ river:
   - [41.5836, 45.0007]
   - [41.5795, 45.0051]
   - [41.5714, 45.0040]
+
+# The outskirts (SPEC §16.25): settlements inside the city boundary but outside the continuous city,
+# and the roads out to them and to the border. Their streets are taught after the city's.
+outskirts:
+  # Neighbourhoods (pack district ids): every street they teach; nearby villages' streets with them.
+  areas:
+    - osm:r11879843 # Tskneti
+    - osm:r17488023 # Betania
+    - osm:r15508369 # Kojori
+    - osm:r21265364 # Shindisi (with Tabakhmela)
+    - osm:r21265363 # Tsavkisi (with Okrokana)
+    - osm:r18254208 # Village Gldani
+    - osm:r18237478 # Zahesi
+    - osm:w57792577 # Lilo
+    - osm:w199479145 # Airport Settlement
+    - osm:r19149661 # Dighomi village
+  # Roads by name_ka: every street of that name.
+  streets:
+    - წყნეთის გზატკეცილი # Tskneti Highway
+    - თბილისი-კოჯორის გზატკეცილი # Tbilisi-Kojori Highway
+    - ვალიკო ჯუღელის გზატკეცილი # Valiko Jugheli Highway
+    - თბილისის შემოსავლელი გზა # Tbilisi Bypass Road
+    - თიანეთის გზატკეცილი # Tianeti Highway
+    - თბილისი (გლდანი) — თიანეთი # Tbilisi (Gldani) — Tianeti
+    - მარნეულის გზატკეცილი # Marneuli Highway
+    - ფონიჭალა — მარნეული — გუგუთი # Ponichala — Marneuli — Guguti
+    - გარდაბანის გზატკეცილი # Gardabani Highway
+    - თბილისი — ბაკურციხე — ლაგოდეხი # Tbilisi — Bakurtsikhe — Lagodekhi

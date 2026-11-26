@@ -7,7 +7,7 @@ import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
 /// The street a typed name suggests (`suggestStreet`), as a row to take it:
-/// its name, its other script and any [note].
+/// its name, its notes (other script, the area of a shared name) and any [note].
 class StreetMatchRow extends ConsumerWidget {
   const StreetMatchRow(
     this.street, {
@@ -25,7 +25,7 @@ class StreetMatchRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider).value;
-    final subtitle = [?otherScript(street, settings), ?note].join(' · ');
+    final subtitle = [...streetNotes(ref, street, settings), ?note].join(' · ');
     return ListRow(
       leading: const RowTile(PindoroGlyph.signpost),
       title: streetName(street, settings),

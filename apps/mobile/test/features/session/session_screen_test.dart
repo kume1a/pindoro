@@ -17,6 +17,7 @@ import 'package:pindoro/features/map/ui/explore_map.dart';
 import 'package:pindoro/features/map/ui/pindoro_map.dart';
 import 'package:pindoro/features/map/ui/question_scaffold.dart';
 import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
+import 'package:pindoro/features/progress/data/progress_dao.dart';
 import 'package:pindoro/features/progress/data/reminders.dart';
 import 'package:pindoro/features/session/ui/session_controller.dart';
 import 'package:pindoro/features/session/ui/session_screen.dart';
@@ -950,6 +951,26 @@ void main() {
         ),
         isEmpty,
       );
+    });
+
+    testWidgets('a hidden place’s other cards no longer count as due: the '
+        'session ends cleared and the day counts', (tester) async {
+      final q = first<LandmarkQuestion>(
+        (q) =>
+            q.n == 1 &&
+            !q.landmark.personal &&
+            routes.questions.containsKey(RouteIds.landmark(q.landmark.id, 2)),
+      );
+      await dao.putCard(reviewed(q.itemId));
+      // Due today too, but not in this session.
+      await dao.putCard(reviewed(RouteIds.landmark(q.landmark.id, 2)));
+      await pump(tester, [(kind: StepKind.review, itemId: q.itemId)]);
+      await tapThrough(tester, find.text('I don’t know'));
+      await tapThrough(tester, find.text("Can't find it?"));
+      await tapThrough(tester, find.text('Hide it'));
+      final done = controller(tester).state as SessionDone;
+      expect(done.summary.cleared, isTrue);
+      expect((await ProgressDao(db).goalDayRounds()).keys, [calendarDay(now)]);
     });
   });
 

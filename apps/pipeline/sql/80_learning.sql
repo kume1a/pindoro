@@ -1,17 +1,40 @@
--- Curriculum data (pack format 4): each street's tier, ring, river bank and chunk, each area's raion,
--- the chunks that border each other, and the lane families parsed from the Georgian names.
+-- Curriculum data (pack format 4): each street's tier, ring, river bank, chunk and (format 10)
+-- outskirts, each area's raion, the chunks that border each other, and the lane families parsed
+-- from the Georgian names.
+
+-- The outskirts must still name a neighbourhood and a street each: a renamed one fails the build
+-- rather than teach its streets with the city's.
+DO $$
+DECLARE
+  missing text[];
+BEGIN
+  SELECT array_agg(x ORDER BY x) INTO missing
+  FROM (
+    SELECT a AS x FROM pipeline.params p, unnest(p.outskirts_areas) a
+    WHERE NOT EXISTS (SELECT 1 FROM pipeline.district d WHERE d.id = a AND d.kind = 'neighbourhood')
+    UNION ALL
+    SELECT n FROM pipeline.params p, unnest(p.outskirts_streets) n
+    WHERE NOT EXISTS (SELECT 1 FROM pipeline.street s WHERE s.norm_name = pipeline.normalise_name(n))
+  ) m;
+  IF missing IS NOT NULL THEN
+    RAISE EXCEPTION 'outskirts not found: %', missing;
+  END IF;
+END $$;
 
 -- Tier A skeleton, B grid, C the rest. Ring: 2 km bands round `centre`. Bank: the side of `river`
 -- the centroid lies on, L when left of the flow. Chunk: the neighbourhood holding most of the
--- street's length; a street in none goes to the nearest neighbourhood.
+-- street's length; a street in none goes to the nearest neighbourhood. Outskirts: its chunk is one
+-- of `outskirts_areas`, or its name one of `outskirts_streets`.
 CREATE TABLE pipeline.street_learning AS
 WITH place AS (
   SELECT ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(p.river), 4326), p.utm_srid) AS river,
-         ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(p.centre), 4326), p.utm_srid) AS centre
+         ST_Transform(ST_SetSRID(ST_GeomFromGeoJSON(p.centre), 4326), p.utm_srid) AS centre,
+         p.outskirts_areas,
+         ARRAY(SELECT pipeline.normalise_name(n) FROM unnest(p.outskirts_streets) n) AS outskirts_names
   FROM pipeline.params p
 ),
 street AS (
-  SELECT s.key, s.road_class, s.geom, ST_Centroid(s.geom) AS c, place.*,
+  SELECT s.key, s.road_class, s.norm_name, s.geom, ST_Centroid(s.geom) AS c, place.*,
          ST_LineLocatePoint(place.river, ST_Centroid(s.geom)) AS f
   FROM pipeline.street s, place
 )
@@ -27,7 +50,9 @@ SELECT s.key,
             - (ST_Y(flow.b) - ST_Y(flow.a)) * (ST_X(s.c) - ST_X(flow.a)) > 0 THEN 'L'
          ELSE 'R'
        END AS bank,
-       chunk.id AS chunk_id
+       chunk.id AS chunk_id,
+       coalesce(chunk.id = ANY (s.outskirts_areas), false)
+         OR s.norm_name = ANY (s.outskirts_names) AS outskirts
 FROM street s
 CROSS JOIN LATERAL (
   SELECT ST_LineInterpolatePoint(s.river, greatest(s.f - 1e-4, 0)) AS a,

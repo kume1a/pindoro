@@ -74,9 +74,10 @@ abstract final class Planner {
   /// day less [routesStartedToday], paused while the due reviews take more than
   /// [LearningConfig.routePauseFactor] of the minutes (SPEC §7); [openRecitals] (`openRecitals`)
   /// last, [LearningConfig.recitalNewPerDay] a day less [recitalsStartedToday], paused alike. A
-  /// recital takes [LearningConfig.tRecitalS]. [drills] go mid-session; a backlog keeps only the
-  /// family sweep, whose children leave the reviews. [extraNew] is "Learn 10 more": that many new streets past the daily
-  /// number and the minutes, with no name and ends cards. Same inputs and [seed], same session.
+  /// recital takes [LearningConfig.tRecitalS]. [drills] go mid-session; a backlog, and a day with
+  /// nothing else to do, keep only the family sweep, whose children leave the reviews. [extraNew]
+  /// is "Learn 10 more": that many new streets past the daily number and the minutes, with no
+  /// name and ends cards. Same inputs and [seed], same session.
   static SessionPlan plan({
     required List<CardState> cards,
     required List<String> newCandidates,
@@ -208,7 +209,15 @@ abstract final class Planner {
       ...routes,
       ...openRecitals.take(max(0, recitalSlots)),
     ];
-    final kept = backlog ? Drills(sweep: drills.sweep) : drills;
+    // Crossings and bearings only log: alone they would plan the same steps all day, and Today
+    // would never be done.
+    final idle =
+        drills.sweep == null &&
+        fresh.isEmpty &&
+        places.isEmpty &&
+        reviews.isEmpty &&
+        pending.isEmpty;
+    final kept = backlog || idle ? Drills(sweep: drills.sweep) : drills;
 
     final random = Random(seed);
     final rounds = <List<SessionStep>>[];

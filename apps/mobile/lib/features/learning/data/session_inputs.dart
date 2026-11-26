@@ -65,14 +65,18 @@ Future<SessionInputs> loadSession(
   final graph = await graphFuture;
   final asks = await asksFuture;
   final yours = (await yoursFuture)?.streets;
-  final cards = await dao.cards();
+  // One card per street, as the plan sees them: a duplicate on another part
+  // would be found by the session's lookups but never asked.
+  final cards = oneCardPerItem(streets, await dao.cards());
   final confusions = await dao.confusionPairs();
   final log = await dao.log();
   final learnCity = await dao.learnCity(pack.city().id);
   final settings = await settingsFuture;
   final contrasts = <String, NamedStreet>{};
   for (final c in cards.where((c) => c.phase == CardPhase.suspended)) {
-    final top = streets[await dao.topConfusion(itemKey(c.itemId)) ?? ''];
+    // Mix-ups are logged under the street's id, whichever part the card is on.
+    final street = streets[itemKey(c.itemId)]?.id ?? itemKey(c.itemId);
+    final top = streets[await dao.topConfusion(street) ?? ''];
     if (top != null) contrasts[c.itemId] = top;
   }
   return (

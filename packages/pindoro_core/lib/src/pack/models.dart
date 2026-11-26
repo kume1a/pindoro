@@ -134,6 +134,7 @@ class Street {
     this.bank,
     this.chunkId,
     this.etymology,
+    this.outskirts = false,
   });
 
   factory Street.fromRow(PackRow r) => Street(
@@ -158,6 +159,7 @@ class Street {
     },
     chunkId: r['chunk_id'] as String?,
     etymology: r['etymology'] as String?,
+    outskirts: r['outskirts'] == 1,
   );
 
   final String id;
@@ -182,6 +184,10 @@ class Street {
 
   /// OSM `name:etymology`.
   final String? etymology;
+
+  /// Outside the continuous city (pack format 10), taught after it; false in
+  /// older packs.
+  final bool outskirts;
 }
 
 /// A lane-family kind, by the Georgian word that ends the child's name.

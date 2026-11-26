@@ -91,4 +91,22 @@ void main() {
     await container.read(carryOverProvider.future);
     expect(await dao.cards(), hasLength(2));
   });
+
+  test('an Explore answer the learning cards already graded is not carried '
+      'over', () async {
+    final [slow, ...] = streets;
+    await answered({slow: Tier.great});
+    // Since M3 an Explore pin is graded for the cards too: slow, so only logged.
+    await LearningDao(db).saveAnswer(
+      log: LogEntry(
+        ts: now,
+        itemId: CardType.p.item(slow.parts.last.id),
+        format: ReviewFormat.exploreLog,
+        rating: Rating.hard,
+        source: ReviewSource.explore,
+      ),
+    );
+    await container.read(carryOverProvider.future);
+    expect(await LearningDao(db).cards(), isEmpty);
+  });
 }

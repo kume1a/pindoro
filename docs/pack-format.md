@@ -1,7 +1,11 @@
-# City pack format (v9)
+# City pack format (v10)
 
 A city pack is a read-only SQLite database built by `pipeline` from OpenStreetMap data and
 downloaded by the app. Packs are immutable: a new build gets a new `version` and a new file name.
+
+v10 (2026-11) adds `street.outskirts`: 1 for a street outside the continuous city (the settlements
+and roads `outskirts` in `city.yaml` names), which the curriculum teaches after the city. The app
+installs v3 to v10; a pack without the column teaches every street as the city's.
 
 v9 (2026-11) adds `poi`: every named place in the city (restaurants, shops, offices, …) with its
 OSM key and kind, address, opening hours and contacts, for navigation's place search and the map's
@@ -52,7 +56,7 @@ format it supports; v1 packs already on a phone still open.
 
 ```json
 {
-  "format_version": 9,
+  "format_version": 10,
   "city": "tbilisi",
   "name_ka": "თბილისი",
   "name_en": "Tbilisi",
@@ -84,7 +88,7 @@ zone. Street geometry is simplified to 3 m.
 
 ## Schema
 
-`PRAGMA user_version = 9` equals `format_version`.
+`PRAGMA user_version = 10` equals `format_version`.
 
 ```sql
 CREATE TABLE meta (
@@ -144,7 +148,8 @@ CREATE TABLE street (
   ring        INTEGER NOT NULL,          -- floor(centroid's distance from the city centre / 2 km)
   bank        TEXT NOT NULL CHECK (bank IN ('L', 'R')), -- side of the river, facing downstream
   chunk_id    TEXT REFERENCES district (id), -- the neighbourhood that teaches it
-  etymology   TEXT                       -- OSM name:etymology
+  etymology   TEXT,                      -- OSM name:etymology
+  outskirts   INTEGER NOT NULL CHECK (outskirts IN (0, 1)) -- outside the continuous city
 );
 CREATE INDEX street_difficulty ON street (difficulty);
 
@@ -329,6 +334,9 @@ CREATE TABLE chunk_neighbour (
     line; `L` is the left bank facing downstream.
   - Chunk: the `neighbourhood` holding most of the street's length; a street in none goes to the
     nearest neighbourhood. Chunks border each other when their boundaries come within 50 m.
+  - Outskirts: a street whose chunk is one of `outskirts.areas` in `city.yaml` (neighbourhood
+    ids), or whose normalised name is one of `outskirts.streets` (roads out of the city). The build
+    fails when a listed area is no neighbourhood or a listed name matches no street.
   - A smaller area's raion is the district holding its centre (the nearest one at the city's
     edge).
   - Families come from `name_ka`: `<prefix> <Roman numeral> <შესახვევი | ჩიხი | გასასვლელი>` (kinds

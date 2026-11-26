@@ -93,6 +93,8 @@ export interface StepParams {
   minAreaStreets?: number;
   centre: CityConfig["centre"];
   river: CityConfig["river"];
+  /** None when left out. */
+  outskirts?: CityConfig["outskirts"];
 }
 
 /** Recreates schema `pipeline` and runs apps/pipeline/sql/*.sql in file-name order. */
@@ -106,7 +108,9 @@ export const runSqlSteps = async (sql: Sql, p: StepParams): Promise<void> => {
       expect_relations bigint[] NOT NULL,
       min_area_streets int NOT NULL,
       centre text NOT NULL,
-      river text NOT NULL
+      river text NOT NULL,
+      outskirts_areas text[] NOT NULL,
+      outskirts_streets text[] NOT NULL
     );
     CREATE TABLE pipeline.neighbourhood_raw (
       slug text PRIMARY KEY,
@@ -118,7 +122,8 @@ export const runSqlSteps = async (sql: Sql, p: StepParams): Promise<void> => {
   const centre = { type: "Point", coordinates: [p.centre.lon, p.centre.lat] };
   const river = { type: "LineString", coordinates: p.river.map(([lat, lon]) => [lon, lat]) };
   await sql`INSERT INTO pipeline.params VALUES (${p.cityRelationId}, ${p.utmSrid}, ${p.expectRelations},
-    ${p.minAreaStreets ?? MIN_AREA_STREETS}, ${JSON.stringify(centre)}, ${JSON.stringify(river)})`;
+    ${p.minAreaStreets ?? MIN_AREA_STREETS}, ${JSON.stringify(centre)}, ${JSON.stringify(river)},
+    ${p.outskirts?.areas ?? []}::text[], ${p.outskirts?.streets ?? []}::text[])`;
   for (const n of p.neighbourhoods) {
     await sql`INSERT INTO pipeline.neighbourhood_raw
       VALUES (${n.slug}, ${n.name_ka}, ${n.name_en ?? null}, ${JSON.stringify(n.geometry)})`;

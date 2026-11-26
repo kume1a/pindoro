@@ -60,7 +60,7 @@
   - The Mix-up sentence names the hit street and the way to the answer, but not the contrast line
     ("The 4th is the next lane west, before the bend").
   - The intro's "where" sentence doesn't place a lane on its parent ("the 4th lane off 26 May
-    Street, counting from the west"), and the plate doesn't add the district for a shared name.
+    Street, counting from the west").
   - Known-street chips use the full name, not the short form ("Chavchavadze Ave", "1st").
   - The Mix-up reveal paints both streets at once (no cobalt-then-yellow paint), and Session done
     shows City memory as a number, without the card-size memory bar.

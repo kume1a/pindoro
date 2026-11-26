@@ -1191,7 +1191,7 @@
       }
     }
   },
-  "placementDoneStartBand": "{band, select, main{New streets start with the main roads.} secondary{New streets start with the secondary roads.} tertiary{New streets start with the tertiary roads.} other{New streets start with the minor roads.}}",
+  "placementDoneStartBand": "{band, select, main{New streets start with the main roads.} secondary{New streets start with the secondary roads.} tertiary{New streets start with the tertiary roads.} outskirts{New streets start with the outskirts.} other{New streets start with the minor roads.}}",
   "@placementDoneStartBand": {
     "placeholders": {
       "band": {
@@ -2661,7 +2661,7 @@
       }
     }
   },
-  "roadBand": "{band, select, main{Main roads} secondary{Secondary roads} tertiary{Tertiary roads} other{Minor roads}}",
+  "roadBand": "{band, select, main{Main roads} secondary{Secondary roads} tertiary{Tertiary roads} outskirts{The outskirts} other{Minor roads}}",
   "@roadBand": {
     "placeholders": {
       "band": {

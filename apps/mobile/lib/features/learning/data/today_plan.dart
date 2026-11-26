@@ -61,6 +61,10 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
   ];
   final curriculum = await curriculumFuture;
   final byItem = await byItemFuture;
+  final streetCards = await streetCardsFuture;
+  final coreStreetCards = [
+    for (final s in coreStreets(streets)) ?streetCards[s.id],
+  ];
   final log = await dao.log();
   final today = log.where((e) => !e.ts.isBefore(startOfDay(now))).toList();
   final times = timeEstimates(log);
@@ -70,7 +74,7 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
       ? const <String>[]
       : curriculum.openRoutes(
           book.candidates,
-          cards: await streetCardsFuture,
+          cards: streetCards,
           carded: {for (final c in cards) c.itemId},
           items: byItem,
           now: now,
@@ -98,7 +102,7 @@ Future<SessionPlan> _plan(Ref ref, {int? extraNew}) async {
     ],
     cap: mine == null || mine.routes.isEmpty
         ? 0
-        : (yourRoutesShareOf(cards, log, now) *
+        : (yourRoutesShareOf(coreStreetCards, log, now) *
                   newPerDayAt(settings.minutesPerDay))
               .round(),
   );

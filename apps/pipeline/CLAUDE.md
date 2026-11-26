@@ -45,7 +45,8 @@ styles `apps/mobile/assets/map_styles/pindoro_{light,dark}.json`, tiles `infra/t
    way ends, edges between them; directed by `oneway`, with unnamed and `*_link` connector ways and
    node-via turn restrictions, each edge's signed limit and lane arrows both ways, junctions with
    lights within 25 m and speed cameras within 30 m of an edge) → `80_learning` curriculum data
-   (tier, ring round `centre`, bank of `river`, chunk, area raions, chunk neighbours, lane families
+   (tier, ring round `centre`, bank of `river`, chunk, `outskirts` from `city.yaml` (pack format
+   10; fails on a listed area or road that's gone), area raions, chunk neighbours, lane families
    parsed from `name_ka`) →
    `90_routes` bridges over `river`, junction banks, landmark candidates with their base salience →
    `95_pois` every named place in the city (pack `poi`, format 9).

@@ -230,6 +230,92 @@ void main() {
     );
   });
 
+  test('a connection card without its question is never due, though its '
+      'street is in the pack', () async {
+    await LearningDao(db).putCard(
+      CardState(
+        itemId: RouteIds.connection(b.id),
+        phase: CardPhase.review,
+        memory: Memory(
+          stability: 3,
+          difficulty: 5,
+          lastReview: now.subtract(const Duration(days: 3)),
+        ),
+        dueAt: now.subtract(const Duration(hours: 1)),
+      ),
+    );
+    final p = await plan();
+    expect(p.dueCount, 1);
+    expect(p.steps.map((s) => s.itemId), isNot(contains('C:b1')));
+  });
+
+  test('of two cards on one street, the one on its own id wins, and the other '
+      'is never reviewed', () async {
+    final byPart = {
+      for (final s in [a, b, c])
+        for (final p in s.parts) p.id: s,
+    };
+    const onPart = CardState(itemId: 'P:a2', phase: CardPhase.review);
+    const own = CardState(itemId: 'P:a1', phase: CardPhase.review);
+    for (final cards in [
+      [own, onPart],
+      [onPart, own],
+    ]) {
+      expect(streetCardsOf(byPart, cards)[a.id], same(own));
+      expect(cardsByItemOf(byPart, cards)['P:a1'], same(own));
+    }
+    final reviews = reviewsOf(
+      (_) => true,
+      streets: byPart,
+      curriculum: await container.read(curriculumProvider.future),
+      cards: const [onPart, own],
+    );
+    expect(reviews(own), isTrue);
+    expect(reviews(onPart), isFalse, reason: 'it would stay due for good');
+  });
+
+  test('an Explore pin reviews the card on the street’s own id', () async {
+    await LearningDao(
+      db,
+    ).putCard(const CardState(itemId: 'P:a1', phase: CardPhase.review));
+    final roundId = await ProgressDao(db).startRound(
+      cityId: 'tbilisi',
+      area: const DistrictsArea({'vake'}),
+      difficulty: Difficulty.expert,
+      packVersion: '1',
+      streetIds: [a.id],
+    );
+    final explore = FutureProvider<void>(
+      (ref) => learnFromExplore(
+        ref,
+        street: a,
+        pin: a.parts.first.midpoint,
+        rtMs: 3000,
+        roundId: roundId,
+      ),
+    );
+    await container.read(explore.future);
+    expect((await LearningDao(db).log()).single.itemId, 'P:a1');
+  });
+
+  test('cards made on two parts of one street ask it once', () async {
+    await LearningDao(db).putCard(
+      CardState(
+        itemId: 'P:a1',
+        phase: CardPhase.review,
+        memory: Memory(
+          stability: 3,
+          difficulty: 5,
+          lastReview: now.subtract(const Duration(days: 3)),
+        ),
+        dueAt: now.subtract(const Duration(hours: 1)),
+      ),
+    );
+    final p = await plan();
+    expect(p.dueCount, 1);
+    expect(p.steps.where((s) => s.kind == StepKind.review), hasLength(1));
+  });
+
   test('an Explore pin reviews the card made on another part of its street, '
       'not a new one', () async {
     final roundId = await ProgressDao(db).startRound(
