@@ -230,6 +230,24 @@ void main() {
     );
   });
 
+  test('cards made on two parts of one street ask it once', () async {
+    await LearningDao(db).putCard(
+      CardState(
+        itemId: 'P:a1',
+        phase: CardPhase.review,
+        memory: Memory(
+          stability: 3,
+          difficulty: 5,
+          lastReview: now.subtract(const Duration(days: 3)),
+        ),
+        dueAt: now.subtract(const Duration(hours: 1)),
+      ),
+    );
+    final p = await plan();
+    expect(p.dueCount, 1);
+    expect(p.steps.where((s) => s.kind == StepKind.review), hasLength(1));
+  });
+
   test('an Explore pin reviews the card made on another part of its street, '
       'not a new one', () async {
     final roundId = await ProgressDao(db).startRound(

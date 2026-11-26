@@ -148,14 +148,20 @@ final asksCardProvider = FutureProvider.autoDispose<AsksCard>((ref) async {
       (card.type == CardType.r && runs.contains(itemKey(card.itemId)));
 });
 
-/// The open city's cards that its pack asks ([asksCardProvider]).
+/// The open city's cards that its pack asks ([asksCardProvider]), one per
+/// item: cards made on parts that now join into one street (a highway's) count
+/// once, so the street isn't asked twice.
 final cityCardsProvider = FutureProvider.autoDispose<List<CardState>>((
   ref,
 ) async {
   final dao = ref.watch(learningDaoProvider);
   final asks = await ref.watch(asksCardProvider.future);
+  final streets = await ref.watch(cityStreetsProvider.future);
   await ref.watch(carryOverProvider.future);
-  return (await dao.cards()).where(asks).toList();
+  return cardsByItemOf(
+    streets,
+    (await dao.cards()).where(asks),
+  ).values.toList();
 });
 
 /// [asks] narrowed to the cards reviewed now: none of a street parked until

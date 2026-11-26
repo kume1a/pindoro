@@ -40,12 +40,13 @@ class NamedStreet {
 
 /// Same-name parts with an end within this of each other are one street;
 /// farther apart they're different streets sharing a name (e.g. one per
-/// suburb). ponytail: end-to-line distance, misses parts that only run side by
-/// side; compare whole lines if that shows up.
+/// suburb), unless both are highways. ponytail: end-to-line distance, misses
+/// parts that only run side by side; compare whole lines if that shows up.
 const double sameStreetMaxGapM = 500;
 
 /// Groups streets by exact `name_ka` and nearness; each group's parts longest
-/// first.
+/// first. Same-name highway parts are one road however far apart: a highway's
+/// name names one road, cut where a stretch has no name or another one.
 List<NamedStreet> groupByName(Iterable<Street> streets) {
   final byName = <String, List<Street>>{};
   for (final s in streets) {
@@ -56,6 +57,16 @@ List<NamedStreet> groupByName(Iterable<Street> streets) {
       for (final group in _nearbyGroups(parts))
         NamedStreet(group..sort((a, b) => b.lengthM.compareTo(a.lengthM))),
   ];
+}
+
+/// The names more than one of [streets] has (a Rustaveli Street in Vake and
+/// one in Tskneti).
+Set<String> sharedNames(Iterable<NamedStreet> streets) {
+  final seen = <String>{};
+  return {
+    for (final s in streets.toSet())
+      if (!seen.add(s.name)) s.name,
+  };
 }
 
 /// A pack's streets as the player sees them, found by any part's id.
@@ -69,7 +80,7 @@ List<List<Street>> _nearbyGroups(List<Street> parts) {
   for (final s in parts) {
     final touching = [
       for (final g in groups)
-        if (g.any((p) => _endNear(p, s) || _endNear(s, p))) g,
+        if (g.any((p) => _sameRoad(p, s))) g,
     ];
     groups
       ..removeWhere(touching.contains)
@@ -77,6 +88,12 @@ List<List<Street>> _nearbyGroups(List<Street> parts) {
   }
   return groups;
 }
+
+bool _sameRoad(Street a, Street b) =>
+    (_isHighway(a) && _isHighway(b)) || _endNear(a, b) || _endNear(b, a);
+
+bool _isHighway(Street s) =>
+    s.roadClass == 'motorway' || s.roadClass == 'trunk';
 
 bool _endNear(Street a, Street b) => a.geometry.any(
   (line) => [line.first, line.last].any(

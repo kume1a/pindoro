@@ -47,9 +47,9 @@ lib/src/pack/       City/District/Street (pack rows; format 4 adds the curriculu
 - Distances are measured to segments, not vertices, in a local equirectangular projection around
   the query point.
 - **A street is a name in one place.** Packs keep same-name parts as separate rows with stable ids;
-  `groupByName` joins parts within 500 m at runtime, so same-name streets in different suburbs stay
-  apart. Rounds pick distinct names; scoring and knowledge are per street (`NamedStreet.id`). The
-  database stores a part's id, which resolves through `streetsByPartId`.
+  `groupByName` joins parts within 500 m (highways however far) at runtime, so same-name streets
+  in different suburbs stay apart. Rounds pick distinct names; scoring and knowledge are per street
+  (`NamedStreet.id`). The database stores a part's id, which resolves through `streetsByPartId`.
 - Pack models map the columns in `docs/pack-format.md`; the format is the contract, not this code.
 
 ## Commands
