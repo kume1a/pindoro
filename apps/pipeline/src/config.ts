@@ -28,6 +28,8 @@ export interface CityConfig {
   centre: { lat: number; lon: number };
   /** The river splitting the city into banks: [lat, lon] points, downstream. */
   river: [lat: number, lon: number][];
+  /** Outside the continuous city, taught after it: neighbourhood ids and road names (`name_ka`). */
+  outskirts: { areas: string[]; streets: string[] };
 }
 
 export const cityDir = (city: string): string => join(REPO_ROOT, "data/cities", city);
@@ -46,7 +48,14 @@ export const loadCity = (city: string): CityConfig => {
   ] as const) {
     if (!config[key]) throw new Error(`data/cities/${city}/city.yaml: missing ${key}`);
   }
-  return { ...config, expect_relations: config.expect_relations ?? [] };
+  return {
+    ...config,
+    expect_relations: config.expect_relations ?? [],
+    outskirts: {
+      areas: config.outskirts?.areas ?? [],
+      streets: config.outskirts?.streets ?? [],
+    },
+  };
 };
 
 export const extractPath = (city: CityConfig): string =>

@@ -226,10 +226,10 @@ sweep the rest of that district's tier B the same way. "I don't know this one" l
 
 1. Road classes, one after another, city-wide: main roads (motorway, trunk, primary), then secondary,
    tertiary, unclassified (§16.19). Within a class: sort by `ring`, alternate `bank` within a ring, then
-   length descending.
+   length descending. The outskirts' roads wait for every class, then go class by class (§16.25).
 2. Then the rest (residential, living streets) by chunk: start with the chunks holding the centre and the
    home / work anchors; then always the unfinished chunk that borders the most completed chunks (ties:
-   distance to centre).
+   distance to centre), the outskirts' chunks after the city's.
 3. Within a chunk: parents by length descending → non-family streets by length → each family's children in
    numeric order.
 4. Families: a child never before its parent reaches S ≥ 3 d; at most 4 new siblings of one family a day.
@@ -497,7 +497,7 @@ rest of the spec. Numbers named here are in §13.
 ### 16.1 Units, ids and time
 
 1. **A street card is a NamedStreet.** The app joins same-name pack parts within 500 m into one street
-   (`NamedStreet` in pindoro_core). One P/N/E card per NamedStreet, keyed by its longest part's id; a
+   (`NamedStreet` in pindoro_core), highway parts however far apart (§16.25 item 140). One P/N/E card per NamedStreet, keyed by its longest part's id; a
    card resolves through `streetsByPartId`, so it survives a pack that reshuffles parts. Progress
    denominators count NamedStreets with length ≥ `coreMinLengthM`, computed from the pack (the
    boards' "3 282" is illustrative).
@@ -1420,3 +1420,29 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
        Placement keeps "I don't know this one", which logs nothing.
 137. **"Report this turn" asks first**: it makes a move legal on this phone for good, so it
      says so and waits for Report it (as "Can't find it?" does).
+
+### 16.25 Tbilisi first, and streets that share a name (2026-11-26)
+
+138. **The outskirts** (asked by the player: the ladder taught the roads to Tskneti and the border
+     among the city's own): settlements inside the city boundary but outside the continuous city,
+     and the roads out to them and to the border. Curated per city in `city.yaml` `outskirts`:
+     neighbourhood ids (`areas`, every street whose chunk is one; nearby villages' streets fall in
+     with them) and road names (`streets`). Tbilisi's: Tskneti, Betania, Kojori, Shindisi,
+     Tsavkisi, Village Gldani, Zahesi, Lilo, Airport Settlement and Dighomi village; Tskneti,
+     Tbilisi-Kojori, Valiko Jugheli, Tianeti, Marneuli and Gardabani highways, the Bypass Road,
+     the Gldani–Tianeti, Ponichala–Marneuli–Guguti and Bakurtsikhe–Lagodekhi roads. Pack format
+     10 carries the flag (`street.outskirts`); an older pack has no outskirts.
+139. **Their place in the order** (amends §6.3, §16.19 item 99): the city's main, secondary,
+     tertiary and minor roads, then the outskirts' roads as one band (`RoadBand.outskirts`) class
+     by class, each by ring; then the residential streets chunk by chunk, every outskirts chunk
+     (most of its streets in the outskirts) after the city's, though a home or work anchor there
+     still comes first. Outskirts cards are parked like a later class (§16.22 item 109) while a
+     city band is taught, and placement leaves the outskirts out. The Today and Progress labels
+     call the band "The outskirts".
+140. **A highway is one street** (amends §16.1 item 1): same-name motorway and trunk parts join
+     however far apart, as a highway's name names one road (the Bypass Road came as three
+     streets). Cards made on two parts that now join count once: the street is asked once.
+141. **A shared name shows its area** (the v3 screens' Session plate rule; the name alone can't
+     say which street is asked): when another street has its name, the plate, the intro and a
+     typed name's match row add the street's chunk after its other script ("Shota Rustaveli
+     Street · Tskneti"). Two namesakes in one chunk read the same.

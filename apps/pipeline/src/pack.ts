@@ -8,7 +8,7 @@ import type { Sql } from "postgres";
 import type { CityConfig } from "./config.ts";
 import { isoSeconds, replaceAtomically, writeJson } from "./io.ts";
 
-export const PACK_FORMAT_VERSION = 9;
+export const PACK_FORMAT_VERSION = 10;
 
 // Mirrors docs/pack-format.md exactly; `validate` diffs packs against it.
 export const PACK_DDL = `
@@ -67,7 +67,8 @@ CREATE TABLE street (
   ring        INTEGER NOT NULL,
   bank        TEXT NOT NULL CHECK (bank IN ('L', 'R')),
   chunk_id    TEXT REFERENCES district (id),
-  etymology   TEXT
+  etymology   TEXT,
+  outskirts   INTEGER NOT NULL CHECK (outskirts IN (0, 1))
 );
 CREATE INDEX street_difficulty ON street (difficulty);
 
@@ -331,7 +332,7 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
     `SELECT s.key::float8 AS key, s.name_ka, s.name_en, s.road_class, s.difficulty, s.length_m,
             ST_Y(p.mid) AS mid_lat, ST_X(p.mid) AS mid_lon,
             ST_YMin(p.geom) AS min_lat, ST_XMin(p.geom) AS min_lon, ST_YMax(p.geom) AS max_lat, ST_XMax(p.geom) AS max_lon,
-            ST_AsGeoJSON(p.geom, 7) AS geojson, l.tier, l.ring, l.bank, s.etymology,
+            ST_AsGeoJSON(p.geom, 7) AS geojson, l.tier, l.ring, l.bank, s.etymology, l.outskirts::int AS outskirts,
             CASE WHEN ${areaInPack("l.chunk_id")} THEN l.chunk_id END AS chunk_id
      FROM pipeline.street s JOIN pipeline.pack_street p USING (key)
      JOIN pipeline.street_learning l USING (key)
@@ -489,7 +490,7 @@ export const writePack = async (sql: Sql, file: string, o: PackOptions): Promise
       const street = db.prepare(
         `INSERT INTO street VALUES (@id, @name_ka, @name_en, @road_class, @difficulty, @length_m,
           @mid_lat, @mid_lon, @min_lat, @min_lon, @max_lat, @max_lon, @geometry, @tier, @ring, @bank,
-          @chunk_id, @etymology)`,
+          @chunk_id, @etymology, @outskirts)`,
       );
       for (const { key, geojson, ...s } of streets) {
         street.run({ ...s, id: streetId(key), geometry: multiline6(geojson) });

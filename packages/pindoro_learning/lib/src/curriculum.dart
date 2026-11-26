@@ -7,12 +7,13 @@ import 'constants.dart';
 import 'days.dart';
 import 'labels.dart';
 
-/// The road classes taught city-wide, one after another, before the neighbourhoods (SPEC §6.3).
-enum RoadBand { main, secondary, tertiary, minor }
+/// The road classes taught city-wide, one after another, then the outskirts' roads, before the
+/// neighbourhoods (SPEC §6.3, §16.25).
+enum RoadBand { main, secondary, tertiary, minor, outskirts }
 
 /// The order new streets are taught in (SPEC §6, §16.5): placement first, then each [RoadBand]
-/// city-wide by ring and bank, and the rest chunk by chunk. Built once per pack; [next] is pure
-/// over the cards.
+/// city-wide by ring and bank (the outskirts' roads class by class), and the rest chunk by chunk,
+/// the outskirts' chunks last. Built once per pack; [next] is pure over the cards.
 ///
 /// Streets are [NamedStreet]s and take their longest part's road class, tier, ring, bank and
 /// chunk. A pack older than format 4 has no tier, ring, bank or chunk: every street is then tier
@@ -59,11 +60,20 @@ class Curriculum {
         .firstOrNull;
 
     for (final band in RoadBand.values) {
-      _bands[band] = ringOrder(all.where((s) => bandOf(s) == band));
+      _bands[band] = [
+        for (final roadClass in _classBands)
+          ...ringOrder(
+            all.where((s) => bandOf(s) == band && _classBand(s) == roadClass),
+          ),
+      ];
     }
     for (final s in all) {
       _chunkStreets.putIfAbsent(chunkOf(s), () => []).add(s);
     }
+    _outskirtsChunks = {
+      for (final MapEntry(:key, :value) in _chunkStreets.entries)
+        if (value.where(isOutskirts).length * 2 > value.length) key,
+    };
     final parents = _parentOf.values.toSet();
     for (final MapEntry(:key, :value) in _chunkStreets.entries) {
       final local = value.where((s) => bandOf(s) == null);
@@ -97,6 +107,9 @@ class Curriculum {
   final _chunkStreets = <String, List<NamedStreet>>{};
   final _chunkOrder = <String, List<NamedStreet>>{};
 
+  /// The chunks most of whose streets are [isOutskirts]: taught after every other.
+  late final Set<String> _outskirtsChunks;
+
   /// The chunk of streets without one (packs before format 4, or the bundled Vake pack's edges).
   static const String noChunk = '';
 
@@ -107,15 +120,31 @@ class Curriculum {
   static bool isCore(NamedStreet s) =>
       s.lengthM >= LearningConfig.coreMinLengthM;
 
-  /// The band [s] is taught in by its road class; null for residential and living streets, taught
-  /// chunk by chunk after every band.
-  static RoadBand? bandOf(NamedStreet s) => switch (s.parts.first.roadClass) {
-    'motorway' || 'trunk' || 'primary' => RoadBand.main,
-    'secondary' => RoadBand.secondary,
-    'tertiary' => RoadBand.tertiary,
-    'unclassified' => RoadBand.minor,
-    _ => null,
+  /// Outside the continuous city (SPEC §16.25): taught after it.
+  static bool isOutskirts(NamedStreet s) => s.parts.first.outskirts;
+
+  /// The band [s] is taught in: its road class's, the outskirts' for an [isOutskirts] road; null
+  /// for residential and living streets, taught chunk by chunk after every band.
+  static RoadBand? bandOf(NamedStreet s) => switch (_classBand(s)) {
+    _? when isOutskirts(s) => RoadBand.outskirts,
+    final band => band,
   };
+
+  static const _classBands = [
+    RoadBand.main,
+    RoadBand.secondary,
+    RoadBand.tertiary,
+    RoadBand.minor,
+  ];
+
+  static RoadBand? _classBand(NamedStreet s) =>
+      switch (s.parts.first.roadClass) {
+        'motorway' || 'trunk' || 'primary' => RoadBand.main,
+        'secondary' => RoadBand.secondary,
+        'tertiary' => RoadBand.tertiary,
+        'unclassified' => RoadBand.minor,
+        _ => null,
+      };
 
   /// [band]'s streets in teaching order, short ones included.
   List<NamedStreet> bandStreets(RoadBand band) => _bands[band]!;
@@ -278,12 +307,15 @@ class Curriculum {
   }
 
   /// Placement (SPEC §6.2): every core tier A street, then [LearningConfig.placementSamplePerDistrict]
-  /// core tier B streets per raion drawn with [seed]. A street's raion is its chunk's.
+  /// core tier B streets per raion drawn with [seed]. A street's raion is its chunk's. The outskirts
+  /// stay out (SPEC §16.25).
   List<String> placement(int seed) {
     final random = Random(seed);
     final tierB = _coreTierBByRaion();
     return [
-      for (final s in ringOrder(streetsWhere((s) => _tier(s) == StreetTier.a)))
+      for (final s in ringOrder(
+        streetsWhere((s) => _tier(s) == StreetTier.a && !isOutskirts(s)),
+      ))
         if (isCore(s)) s.id,
       for (final raion in tierB.keys.toList()..sort())
         ...(tierB[raion]!..shuffle(random))
@@ -305,7 +337,10 @@ class Curriculum {
     final byRaion = <String, List<NamedStreet>>{};
     for (final s in _byId.values) {
       final raion = _raionOf[chunkOf(s)];
-      if (_tier(s) == StreetTier.b && isCore(s) && raion != null) {
+      if (_tier(s) == StreetTier.b &&
+          isCore(s) &&
+          !isOutskirts(s) &&
+          raion != null) {
         byRaion.putIfAbsent(raion, () => []).add(s);
       }
     }
@@ -369,8 +404,8 @@ class Curriculum {
   }
 
   /// Chunks with streets of no band left to teach, in teaching order: the anchors and the centre's
-  /// chunk, then chunks already started, then the chunk bordering the most finished chunks
-  /// (ties: nearer the centre); streets without a chunk last.
+  /// chunk, then the city's chunks before the outskirts': chunks already started, then the chunk
+  /// bordering the most finished chunks (ties: nearer the centre); streets without a chunk last.
   List<String> chunkSequence(
     Map<String, CardState> cards,
     List<String> anchors,
@@ -399,12 +434,14 @@ class Curriculum {
         if (value.any((s) => !cards.containsKey(s.id))) key,
     ];
     // Each chunk's sort keys, worked out once: streets without a chunk always
-    // last (SPEC §16.11 item 41).
+    // last (SPEC §16.11 item 41), the outskirts after the city bar an anchor
+    // (§16.25).
     final keys = {
       for (final c in open)
         c: [
           c == noChunk ? 1 : 0,
           startRank(c),
+          _outskirtsChunks.contains(c) ? 1 : 0,
           started(c) ? 0 : 1,
           -finishedNeighbours(c),
           fromCentre(c),

@@ -15,6 +15,7 @@ NamedStreet _street(
   RiverBank bank = RiverBank.left,
   String? chunk = 'c1',
   double length = 300,
+  bool outskirts = false,
 }) => NamedStreet([
   Street(
     id: id,
@@ -38,6 +39,7 @@ NamedStreet _street(
     ring: ring,
     bank: bank,
     chunkId: chunk,
+    outskirts: outskirts,
   ),
 ]);
 
@@ -166,7 +168,12 @@ void main() {
       'pri-short',
       'tru',
     ]);
-    expect(curriculum.bandsLeft(const {}), RoadBand.values);
+    expect(curriculum.bandsLeft(const {}), [
+      RoadBand.main,
+      RoadBand.secondary,
+      RoadBand.tertiary,
+      RoadBand.minor,
+    ]);
     final mainSeen = {'pri': _card('pri'), 'tru': _card('tru')};
     expect(curriculum.bandsLeft(mainSeen), [
       RoadBand.secondary,
@@ -176,6 +183,71 @@ void main() {
     expect(
       curriculum.bandsLeft({
         for (final id in ['pri', 'tru', 'sec', 'ter', 'unc']) id: _card(id),
+      }),
+      isEmpty,
+    );
+  });
+
+  test('the outskirts after the city’s road classes: their roads class by '
+      'class, nearest first; their streets in the neighbourhoods', () {
+    final streets = [
+      _street('res', length: 2000),
+      _street('out-res', chunk: 'c2', outskirts: true, length: 2000),
+      _street(
+        'out-ter',
+        tier: StreetTier.b,
+        roadClass: 'tertiary',
+        outskirts: true,
+        length: 3000,
+      ),
+      _street('out-sec', tier: StreetTier.b, outskirts: true, length: 3000),
+      _street(
+        'out-tru',
+        tier: StreetTier.a,
+        roadClass: 'trunk',
+        ring: 3,
+        outskirts: true,
+      ),
+      _street('out-pri', tier: StreetTier.a, ring: 1, outskirts: true),
+      _street('unc', roadClass: 'unclassified', ring: 4),
+      _street('sec', tier: StreetTier.b, ring: 5),
+      _street('pri', tier: StreetTier.a, ring: 6),
+    ];
+    final curriculum = _curriculum(streets);
+    expect(_next(curriculum), [
+      'pri',
+      'sec',
+      'unc',
+      'out-pri',
+      'out-tru',
+      'out-sec',
+      'out-ter',
+      'res',
+      'out-res',
+    ]);
+    expect(Curriculum.bandOf(streets[2]), RoadBand.outskirts);
+    expect(Curriculum.bandOf(streets[1]), isNull);
+    expect(curriculum.bandsLeft(const {}), [
+      RoadBand.main,
+      RoadBand.secondary,
+      RoadBand.minor,
+      RoadBand.outskirts,
+    ]);
+  });
+
+  test('outskirts roads wait while a city road class is taught', () {
+    final curriculum = _curriculum([
+      _street('sec', tier: StreetTier.b),
+      _street('pri', tier: StreetTier.a),
+      _street('out-pri', tier: StreetTier.a, outskirts: true),
+    ]);
+    expect(curriculum.parkedStreets({'out-pri': _card('out-pri')}), {
+      'sec',
+      'out-pri',
+    });
+    expect(
+      curriculum.parkedStreets({
+        for (final id in ['pri', 'sec']) id: _card(id),
       }),
       isEmpty,
     );
@@ -285,6 +357,27 @@ void main() {
       );
       expect(next.last, 'loose-1');
       expect(next.first, startsWith('c2'));
+    });
+
+    test('outskirts chunks after every city chunk, unless an anchor', () {
+      final withOutskirts = _curriculum([
+        for (final s in streets)
+          s.parts.first.chunkId == 'c2'
+              ? _street(s.id, chunk: 'c2', outskirts: true, length: s.lengthM)
+              : s,
+      ], neighbours: neighbours);
+      String first(
+        Map<String, CardState> cards, [
+        List<String> anchors = const [],
+      ]) => _next(
+        withOutskirts,
+        cards: cards,
+        count: 1,
+        anchors: anchors,
+      ).single.split('-').first;
+      expect(first(finished(['c1'])), 'c3');
+      expect(first(finished(['c1', 'c3', 'c4'])), 'c2');
+      expect(first(const {}, ['c2']), 'c2');
     });
 
     test('a group stays in its chunk while it has streets', () {
@@ -409,6 +502,17 @@ void main() {
     final sweep = curriculum.placementSweep('r1', r1);
     expect({...sweep, ...r1}, {for (var i = 0; i < 8; i++) 'r1b$i'});
     expect(sweep, hasLength(3));
+  });
+
+  test('placement leaves the outskirts out', () {
+    final curriculum = _curriculum([
+      _street('a1', tier: StreetTier.a, length: 900),
+      _street('a-out', tier: StreetTier.a, length: 900, outskirts: true),
+      _street('b1', tier: StreetTier.b),
+      _street('b-out', tier: StreetTier.b, outskirts: true),
+    ]);
+    expect(curriculum.placement(7), ['a1', 'b1']);
+    expect(curriculum.placementSweep('r1', const []), ['b1']);
   });
 
   group('a placement run', () {

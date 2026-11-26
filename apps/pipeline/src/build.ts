@@ -79,6 +79,7 @@ const loadStreets = async (
     neighbourhoods: readNeighbourhoods(join(cityDir(city.id), "curation/neighbourhoods.geojson")),
     centre: city.centre,
     river: city.river,
+    outskirts: city.outskirts,
   });
   return sql<CurrentStreet[]>`
     SELECT key::float8 AS key, norm_name, name_ka AS name, way_ids::float8[] AS way_ids
