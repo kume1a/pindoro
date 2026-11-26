@@ -1446,3 +1446,7 @@ numbers go into §13 and `constants.dart` with the code (PLAN M9).
      say which street is asked): when another street has its name, the plate, the intro and a
      typed name's match row add the street's chunk after its other script ("Shota Rustaveli
      Street · Tskneti"). Two namesakes in one chunk read the same.
+142. **Drills never keep a day open** (found in review): crossings and bearings only log, so on a
+     day with nothing else to do (no review, new street, pending retrieval or family sweep) they
+     are not planned, and Today shows Done. Before, the same 1–3 bearings came back all day once
+     a raion's grid was half Solid.

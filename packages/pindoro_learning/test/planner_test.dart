@@ -708,6 +708,30 @@ void main() {
       },
     );
 
+    test('crossings and bearings come only with other work, so a finished day '
+        'plans nothing; a sweep still comes', () {
+      const drills = Drills(
+        crossings: (streetId: 'av', fromId: 'x', crossings: ['a', 'b']),
+        bearings: ['far'],
+      );
+      final done = plan(cards: const [], fresh: const [], drills: drills);
+      expect(done.rounds, isEmpty, reason: 'Today shows Done');
+      final sweep = plan(
+        cards: const [],
+        fresh: const [],
+        drills: Drills(
+          sweep: (parentId: 'parent', children: ['P:d0', 'P:d1', 'P:d2']),
+          crossings: drills.crossings,
+          bearings: drills.bearings,
+        ),
+      );
+      expect(sweep.steps.map((s) => s.kind), [
+        StepKind.familySweep,
+        StepKind.crossings,
+        StepKind.bearing,
+      ]);
+    });
+
     test('sidesStartedToday counts today\'s first name and ends answers', () {
       LogEntry row(String item, {double? s, int hoursAgo = 1}) => LogEntry(
         ts: now.subtract(Duration(hours: hoursAgo)),
