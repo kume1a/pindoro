@@ -411,6 +411,21 @@ final cityStreetsProvider = FutureProvider<Map<String, NamedStreet>>(
   ),
 );
 
+/// The area that tells a street from another of its name: its chunk; null
+/// for a name of its own. ponytail: two namesakes in one catch-all chunk
+/// ("Shindisi") read the same; name the nearest place if that confuses.
+final namesakeAreaProvider = FutureProvider<District? Function(NamedStreet)>((
+  ref,
+) async {
+  final pack = await ref.watch(packRepositoryProvider.future);
+  final shared = sharedNames(
+    (await ref.watch(cityStreetsProvider.future)).values,
+  );
+  final areas = {for (final d in pack.districts()) d.id: d};
+  return (street) =>
+      shared.contains(street.name) ? areas[street.parts.first.chunkId] : null;
+});
+
 /// Every place in the active pack by id (`osm:n…`): its named places (format 9), else its
 /// junction items' landmarks.
 final packPlacesProvider = FutureProvider<Map<String, Landmark>>((ref) async {

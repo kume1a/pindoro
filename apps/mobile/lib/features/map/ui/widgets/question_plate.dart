@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pindoro/core/database/database.dart';
 import 'package:pindoro/core/format.dart';
 import 'package:pindoro/core/labels.dart';
+import 'package:pindoro/features/pack/data/sqlite_pack_repository.dart';
 import 'package:pindoro_core/pindoro_core.dart';
 import 'package:pindoro_design/pindoro_design.dart';
 
@@ -14,7 +16,19 @@ String? otherScript(NamedStreet street, Settings? settings) {
       : street.nameEn;
 }
 
-class QuestionPlate extends StatelessWidget {
+/// What a street's sub-line says about it: its other script, and its area when
+/// another street has its name (a Rustaveli Street in Tskneti, not Vake's).
+List<String> streetNotes(
+  WidgetRef ref,
+  NamedStreet street,
+  Settings? settings,
+) => [
+  ?otherScript(street, settings),
+  if (ref.watch(namesakeAreaProvider).value?.call(street) case final area?)
+    districtName(area, settings),
+];
+
+class QuestionPlate extends ConsumerWidget {
   const QuestionPlate({
     super.key,
     required this.street,
@@ -45,10 +59,10 @@ class QuestionPlate extends StatelessWidget {
   final PindoroGlyph? glyph;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final name = streetName(street, settings);
-    final other = otherScript(street, settings);
+    final notes = streetNotes(ref, street, settings);
     final distance = retryDistance == null
         ? null
         : l10n.quizRetryPreviousDistance(formatDistance(retryDistance!, l10n));
@@ -62,10 +76,10 @@ class QuestionPlate extends StatelessWidget {
       compact: compact,
       prompt: prompt,
       promptGlyph: glyph,
-      subline: [?other, ?distance, ?guess, ?detail].join(' · ').nullIfEmpty,
-      semanticLabel: other == null
+      subline: [...notes, ?distance, ?guess, ?detail].join(' · ').nullIfEmpty,
+      semanticLabel: notes.isEmpty
           ? l10n.a11yFindStreetName(name)
-          : l10n.a11yFindStreet(name, other),
+          : l10n.a11yFindStreet(name, notes.join(' · ')),
     );
   }
 }
