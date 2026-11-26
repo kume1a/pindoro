@@ -15,6 +15,11 @@ Streets that share a name
 - When two streets have the same name, the question says which one: "Shota Rustaveli Street · Tskneti".
 - The Tbilisi Bypass Road is one street now, not three.
 
+Fixes
+- Today shows Done once the day's work is done, also after the pointing drills unlock.
+- Hiding a place you can't find no longer keeps the day from counting.
+- A street you got right only slowly in Explore is no longer marked as known on the next launch.
+
 ## 2.19.1
 
 Fixes
